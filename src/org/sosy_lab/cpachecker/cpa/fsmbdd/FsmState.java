@@ -30,6 +30,7 @@ import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDDomain;
 import net.sf.javabdd.BDDFactory;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.VariableDeclarationException;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class FsmState implements AbstractState {
 
   private static Map<String, BDDDomain> declaredVariables = new HashMap<String, BDDDomain>();
+  private static ExpressionCache expressionCache = new ExpressionCache();
 
   /**
    * Reference to the instance of the BDD library.
@@ -53,6 +55,8 @@ public class FsmState implements AbstractState {
    */
   private BDD stateBdd;
 
+  private CExpression conditionBlock;
+
   /**
    * Constructor.
    */
@@ -62,6 +66,7 @@ public class FsmState implements AbstractState {
     // Initially, the state is TRUE;
     // this means that every possible error state would be reachable.
     this.stateBdd = bddFactory.one();
+    this.conditionBlock = null;
   }
 
   /**
@@ -131,6 +136,26 @@ public class FsmState implements AbstractState {
     }
   }
 
+  public void addToConditionBlock(CExpression conjunctWith, boolean conjunction) {
+    if (conditionBlock == null) {
+      conditionBlock = conjunctWith;
+    } else {
+      CExpression left = conjunctWith;
+      CExpression right = conditionBlock;
+      BinaryOperator op = conjunction ? BinaryOperator.LOGICAL_AND : BinaryOperator.LOGICAL_OR;
+
+      conditionBlock = expressionCache.fetchCachedBinExpression(left, op, right);
+    }
+  }
+
+  public CExpression getConditionBlock() {
+    return conditionBlock;
+  }
+
+  public void resetConditionBlock() {
+    this.conditionBlock = null;
+  }
+
   /**
    * Modify the state by conjuncting (AND) the
    * BDD of the state with the given BDD.
@@ -172,6 +197,7 @@ public class FsmState implements AbstractState {
   public FsmState cloneState() {
     FsmState result = new FsmState(bddFactory);
     result.stateBdd = this.stateBdd;
+    result.conditionBlock = this.conditionBlock;
 
     return result;
   }

@@ -48,7 +48,16 @@ public class FsmMergeOperator implements MergeOperator {
     FsmState state1 = (FsmState) pState1;
     FsmState state2 = (FsmState) pState2;
 
-    return domain.join(state1, state2);
+    if (state1.getConditionBlock() == null
+    && state2.getConditionBlock() == null) {
+      return domain.join(state1, state2);
+    } else if (state1.getStateBdd().equals(state2.getStateBdd())) {
+      FsmState result = state1.cloneState();
+      result.addToConditionBlock(state2.getConditionBlock(), false);
+      return result;
+    } else {
+      return state2;
+    }
   }
 
 }

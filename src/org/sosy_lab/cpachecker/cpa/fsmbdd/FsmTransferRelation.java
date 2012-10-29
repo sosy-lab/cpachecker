@@ -98,6 +98,8 @@ public class FsmTransferRelation implements TransferRelation {
    */
   private static final String SCOPE_SEPARATOR = ".";
 
+  private static boolean conditionBlocking = true;
+
   /**
    * Reference to the DomainIntervalProvider.
    */
@@ -139,6 +141,8 @@ public class FsmTransferRelation implements TransferRelation {
   }
 
   public boolean isAbstractionState(FsmState pSuccessor, CFANode pSuccLocation) {
+    // Depending on the subsequent edges.
+
 //    return true;
     for (CFAEdge e: CFAUtils.enteringEdges(pSuccLocation)) {
       if (e.getEdgeType() != CFAEdgeType.AssumeEdge) {
@@ -172,6 +176,7 @@ public class FsmTransferRelation implements TransferRelation {
 //    System.out.println(String.format("%15s : (l %d) %s (l %d)", pCfaEdge.getEdgeType(), pCfaEdge.getPredecessor().getNodeNumber(), pCfaEdge.getRawStatement(), pCfaEdge.getSuccessor().getNodeNumber()));
 
     try {
+
       switch (pCfaEdge.getEdgeType()) {
         case AssumeEdge:
           handleAssumeEdge(predecessor, (CAssumeEdge) pCfaEdge, successor);
@@ -211,6 +216,12 @@ public class FsmTransferRelation implements TransferRelation {
       throw new CPATransferException(e.getMessage());
     }
 
+    if (conditionBlocking) {
+      if (isAbstractionState(successor, pCfaEdge.getSuccessor())) {
+        computeAbstraction(successor, pCfaEdge);
+      }
+    }
+
 //    System.out.println(String.format("%15s : %s", "Successor", successor));
 
     // Return an empty set if the BDD evaluates to "false".
@@ -219,6 +230,18 @@ public class FsmTransferRelation implements TransferRelation {
     } else {
       return Collections.singleton(successor);
     }
+  }
+
+  private void computeAbstraction(FsmState pSuccessor, CFAEdge pEdge) throws CPATransferException {
+   CExpression conditionBlock = pSuccessor.getConditionBlock();
+   if (conditionBlock == null) {
+     return;
+   }
+
+   BDD blockBdd = getAssumptionAsBdd(pSuccessor, pEdge.getSuccessor().getFunctionName(), conditionBlock);
+
+   pSuccessor.conjunctStateWith(blockBdd);
+   pSuccessor.resetConditionBlock();
   }
 
   private void handleMultiEdge(FsmState pPredecessor, MultiEdge pMultiEdge, final FsmState pSuccessor) throws CPATransferException {
@@ -393,17 +416,25 @@ public class FsmTransferRelation implements TransferRelation {
    * by doing a conjunction of the assumption with the the BDD of the predecessor state.
    */
   private void handleAssumeEdge (FsmState pPredecessor, CAssumeEdge pAssumeEdge, FsmState pSuccessor) throws CPATransferException {
-    BDD assumptionBdd = edgeBddCache.get(pAssumeEdge.getExpression());
-    if (assumptionBdd == null) {
-      assumptionBdd = getAssumptionAsBdd(pSuccessor, pAssumeEdge.getPredecessor().getFunctionName(), pAssumeEdge.getExpression());
-      edgeBddCache.put(pAssumeEdge.getExpression(), assumptionBdd);
-    }
+    if (conditionBlocking) {
+      CExpression assumeExpr = pAssumeEdge.getExpression();
+      if (!pAssumeEdge.getTruthAssumption()) {
+        assumeExpr = new CUnaryExpression(assumeExpr.getFileLocation(), null, pAssumeEdge.getExpression(), UnaryOperator.NOT);
+      }
+      pSuccessor.addToConditionBlock(assumeExpr, true);
+    } else {
+      BDD assumptionBdd = edgeBddCache.get(pAssumeEdge.getExpression());
+      if (assumptionBdd == null) {
+        assumptionBdd = getAssumptionAsBdd(pSuccessor, pAssumeEdge.getPredecessor().getFunctionName(), pAssumeEdge.getExpression());
+        edgeBddCache.put(pAssumeEdge.getExpression(), assumptionBdd);
+      }
 
-    if (!pAssumeEdge.getTruthAssumption()) {
-      assumptionBdd = assumptionBdd.not();
-    }
+      if (!pAssumeEdge.getTruthAssumption()) {
+        assumptionBdd = assumptionBdd.not();
+      }
 
-    pSuccessor.conjunctStateWith(assumptionBdd);
+      pSuccessor.conjunctStateWith(assumptionBdd);
+    }
   }
 
   /**

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -96,7 +98,20 @@ public class FsmDomain implements AbstractDomain {
     FsmState s1 = (FsmState) pState1;
     FsmState s2 = (FsmState) pState2;
 
-    return s1.getStateBdd().imp(s2.getStateBdd()).isOne();
+    if (!s1.getStateBdd().imp(s2.getStateBdd()).isOne()) {
+      return false;
+    }
+
+    if (s1.getConditionBlock() instanceof CBinaryExpression
+    && s2.getConditionBlock() != null) {
+      CBinaryExpression be = (CBinaryExpression) s1.getConditionBlock();
+      if (be.getOperator() == BinaryOperator.LOGICAL_AND) {
+        return be.getOperand1() == s2.getConditionBlock()
+            || be.getOperand2() == s2.getConditionBlock();
+      }
+    }
+
+    return true;
 
   }
 
