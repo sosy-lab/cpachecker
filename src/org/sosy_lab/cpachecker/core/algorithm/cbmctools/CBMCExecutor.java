@@ -34,9 +34,11 @@ import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 
 public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> {
 
+  private static final int MAX_CBMC_ERROR_OUTPUT_SHOWN = 10;
+
   private Boolean result = null;
   private boolean unwindingAssertionFailed = false;
-  private boolean gaveErrorOutput = false;
+  private volatile int errorOutputCount = 0;
 
   public CBMCExecutor(LogManager logger, String[] args) throws IOException {
     super(logger, CounterexampleAnalysisFailed.class, args);
@@ -46,7 +48,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   protected void handleExitCode(int pCode) throws CounterexampleAnalysisFailed {
     switch (pCode) {
     case 0: // Verification successful (Path is infeasible)
-      if (gaveErrorOutput) {
+      if (errorOutputCount > 0) {
         logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings. Please check the log above!");
       } else {
         result = false;
@@ -54,7 +56,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
       break;
 
     case 10: // Verification failed (Path is feasible)
-      if (gaveErrorOutput) {
+      if (errorOutputCount > 0) {
         logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings. Please check the log above!");
       } else {
         result = true;
@@ -77,8 +79,14 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
     } else if (!pLine.startsWith("**** WARNING: no body for function ")) {
       // ignore warning which is not interesting for us
 
-      gaveErrorOutput = true;
-      super.handleErrorOutput(pLine);
+      if (errorOutputCount == MAX_CBMC_ERROR_OUTPUT_SHOWN) {
+        logger.log(Level.WARNING, "Skipping further CBMC error output...");
+        errorOutputCount++;
+
+      } else if (errorOutputCount < MAX_CBMC_ERROR_OUTPUT_SHOWN) {
+        errorOutputCount++;
+        super.handleErrorOutput(pLine);
+      }
     }
   }
 
