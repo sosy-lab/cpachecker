@@ -90,7 +90,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
     super.handleOutput(pLine);
   }
 
-  public boolean didUnwindingAssertionFailed(){
+  public boolean didUnwindingAssertionFail(){
     return unwindingAssertionFailed;
   }
 

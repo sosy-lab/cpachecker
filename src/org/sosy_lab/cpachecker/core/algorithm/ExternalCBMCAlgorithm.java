@@ -119,7 +119,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     // ERROR is REACHED
     if (cbmc.getResult()){
       // if this is unwinding assertions violation the analysis result is UNKNOWN
-      if (cbmc.didUnwindingAssertionFailed()){
+      if (cbmc.didUnwindingAssertionFail()){
         logger.log(Level.INFO, "CBMC terminated with unwinding assertions violation");
         return false;
       }
