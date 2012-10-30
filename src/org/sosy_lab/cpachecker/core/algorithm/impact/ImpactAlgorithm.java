@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -129,14 +130,15 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   private boolean useForcedCovering = true;
 
 
-  public ImpactAlgorithm(Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, CPAException {
+  public ImpactAlgorithm(Configuration config, LogManager pLogger,
+      ConfigurableProgramAnalysis pCpa, CFA cfa) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger;
     cpa = pCpa;
 
     FormulaManagerFactory factory = new FormulaManagerFactory(config, pLogger);
     fmgr = new ExtendedFormulaManager(factory.getFormulaManager(), config, logger);
-    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger));
+    pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, cfa.getMachineModel()));
     prover = factory.createTheoremProver();
     solver = new Solver(fmgr, prover);
     imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, solver, factory, config, logger);

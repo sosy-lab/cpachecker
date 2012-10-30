@@ -13,7 +13,7 @@
     </sourcefiles>
     <sourcefiles>
       <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
-      <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
+      <option name="-setprop">analysis.machineModel=Linux64</option>
     </sourcefiles>
     <option name="-noout"/>
     <option name="-predicateAnalysis-lbe"/>

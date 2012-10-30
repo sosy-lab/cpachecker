@@ -71,7 +71,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
     // CBMC does not seem to print this anymore to stderr
     //if (!(pLine.startsWith("Verified ") && pLine.endsWith("original clauses.")))
 
-    if (pLine.equals("Out of memory") || pLine.equals("terminate called after throwing an instance of 'Minisat::OutOfMemoryException'")) {
+    if (pLine.contains("Out of memory") || pLine.equals("terminate called after throwing an instance of 'Minisat::OutOfMemoryException'")) {
       throw new CounterexampleAnalysisFailed("CBMC run out of memory.");
 
     } else if (!pLine.startsWith("**** WARNING: no body for function ")) {

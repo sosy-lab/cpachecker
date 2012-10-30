@@ -123,7 +123,7 @@ class CoreComponentsFactory {
       algorithm = new RestartAlgorithm(config, logger, filename, cfa);
 
     } else if (useImpactAlgorithm) {
-      algorithm = new ImpactAlgorithm(config, logger, cpa);
+      algorithm = new ImpactAlgorithm(config, logger, cpa, cfa);
 
     } else {
       algorithm = new CPAAlgorithm(cpa, logger, config);

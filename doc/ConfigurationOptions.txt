@@ -65,6 +65,10 @@ analysis.externalCBMC = false
 # run interprocedural analysis
 analysis.interprocedural = true
 
+# the machine model, which determines the sizes of types like int
+analysis.machineModel = LINUX32
+  enum:     [LINUX32, LINUX64]
+
 # C programs to analyze (currently only one file is supported)
 analysis.programNames = no default value
 
@@ -582,10 +586,6 @@ cpa.predicate.initAllVars = false
 
 # use uninterpreted functions for *, & and array access
 cpa.predicate.lvalsAsUIFs = false
-
-# the machine model used for functions sizeof and alignof
-cpa.predicate.machineModel = LINUX32
-  enum:     [LINUX32, LINUX64]
 
 # List of further options which will be passed to Mathsat. Format is
 # 'key1=value1,key2=value2'
