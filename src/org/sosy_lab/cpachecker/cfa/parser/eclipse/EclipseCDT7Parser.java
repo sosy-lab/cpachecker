@@ -31,7 +31,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
- * Wrapper for Eclipse CDT 7 (internal version number 5.2.*)
+ * Wrapper for Eclipse CDT 7.0 and 8.0 (internal version number 5.2.* and 5.3.*)
  */
 public class EclipseCDT7Parser extends AbstractEclipseCParser<FileContent> {
 
