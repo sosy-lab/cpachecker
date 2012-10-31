@@ -315,11 +315,6 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   }
 
   @Override
-  public Formula parseInfix(String s) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public Formula parse(String s) {
     return encapsulate(parseStringToTerms(s)[0]);
   }
