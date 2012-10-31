@@ -649,20 +649,12 @@ cpa.predicate.refinement.addWellScopedPredicates = false
 # interpolant
 cpa.predicate.refinement.atomicPredicates = true
 
-# try again with a second solver if refinement timed out
-cpa.predicate.refinement.changesolverontimeout = false
-
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
 # apply deletion-filter to the abstract counterexample, to get a minimal set
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
-
-# Which interpolating solver to use for interpolant generation?
-# DEFAULT means to use the solver used for everything else as well.
-cpa.predicate.refinement.interpolatingProver = "DEFAULT"
-  allowed values: [DEFAULT, CSISAT]
 
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
