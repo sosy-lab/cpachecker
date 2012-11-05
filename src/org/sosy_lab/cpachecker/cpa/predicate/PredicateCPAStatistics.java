@@ -90,7 +90,7 @@ class PredicateCPAStatistics implements Statistics {
       for (Precision precision : reached.getPrecisions()) {
         if (precision instanceof WrapperPrecision) {
           PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
-          predicates.putAll(preds.getPredicateMap());
+          predicates.putAll(preds.getLocalPredicates());
         }
       }
 

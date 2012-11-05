@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -205,22 +204,9 @@ public class ABMPredicateReducer implements Reducer {
       return pRootPrecision;
     }
 
-    PredicatePrecision mergedToplevelPrecision = mergePrecisions(toplevelPrecision, derivedToplevelPrecision);
+    PredicatePrecision mergedToplevelPrecision = toplevelPrecision.mergeWith(derivedToplevelPrecision);
 
     return getVariableReducedPrecision(mergedToplevelPrecision, pRootContext);
-  }
-
-
-  private PredicatePrecision mergePrecisions(PredicatePrecision lhs, PredicatePrecision rhs) {
-    Set<AbstractionPredicate> globalPredicates = new HashSet<AbstractionPredicate>();
-    globalPredicates.addAll(rhs.getGlobalPredicates());
-    globalPredicates.addAll(lhs.getGlobalPredicates());
-
-    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-    pmapBuilder.putAll(rhs.getPredicateMap());
-    pmapBuilder.putAll(lhs.getPredicateMap());
-
-    return new PredicatePrecision(pmapBuilder.build(), globalPredicates);
   }
 
   private class ReducedPredicatePrecision extends PredicatePrecision {
@@ -234,7 +220,8 @@ public class ABMPredicateReducer implements Reducer {
 
 
     public ReducedPredicatePrecision(PredicatePrecision expandedPredicatePrecision, Block context) {
-      super(null);
+      super(ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
+          ImmutableSet.<AbstractionPredicate>of());
 
       this.expandedPredicatePrecision = expandedPredicatePrecision;
       this.context = context;
@@ -265,7 +252,7 @@ public class ABMPredicateReducer implements Reducer {
         evaluatedGlobalPredicates = ImmutableSet.copyOf(relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getGlobalPredicates()));
 
         ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-        Set<CFANode> keySet = lExpandedPredicatePrecision==null?rootPredicatePrecision.getPredicateMap().keySet():lExpandedPredicatePrecision.approximatePredicateMap().keySet();
+        Set<CFANode> keySet = lExpandedPredicatePrecision==null?rootPredicatePrecision.getLocalPredicates().keySet():lExpandedPredicatePrecision.approximatePredicateMap().keySet();
         for (CFANode node : keySet) {
           if (context.getNodes().contains(node)) {
             Collection<AbstractionPredicate> set = relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(node));
@@ -279,14 +266,14 @@ public class ABMPredicateReducer implements Reducer {
 
     private SetMultimap<CFANode, AbstractionPredicate> approximatePredicateMap() {
       if (evaluatedPredicateMap == null) {
-        return rootPredicatePrecision.getPredicateMap();
+        return rootPredicatePrecision.getLocalPredicates();
       } else {
         return evaluatedPredicateMap;
       }
     }
 
     @Override
-    public SetMultimap<CFANode, AbstractionPredicate> getPredicateMap() {
+    public SetMultimap<CFANode, AbstractionPredicate> getLocalPredicates() {
       computeView();
       return evaluatedPredicateMap;
     }
@@ -364,9 +351,9 @@ public class ABMPredicateReducer implements Reducer {
       }
     }
 
-    for (CFANode node : precision.getPredicateMap().keySet()) {
-      for (AbstractionPredicate p : precision.getPredicateMap().get(node)) {
-        if (!otherPrecision.getPredicateMap().get(node).contains(p)) {
+    for (CFANode node : precision.getLocalPredicates().keySet()) {
+      for (AbstractionPredicate p : precision.getLocalPredicates().get(node)) {
+        if (!otherPrecision.getLocalPredicates().get(node).contains(p)) {
           distance++;
         }
       }

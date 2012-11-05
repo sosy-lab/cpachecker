@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.io.Files;
 
 /**
@@ -186,7 +187,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
         predicates.add(p);
       }
     }
-    initialPrecision = new PredicatePrecision(predicates);
+    initialPrecision = new PredicatePrecision(
+        ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
+        predicates);
 
     stats = new PredicateCPAStatistics(this, blk, regionManager);
 

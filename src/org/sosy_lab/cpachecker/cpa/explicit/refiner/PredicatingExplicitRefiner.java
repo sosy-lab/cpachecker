@@ -30,12 +30,9 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -54,9 +51,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 
 public class PredicatingExplicitRefiner {
 
@@ -95,7 +90,8 @@ public class PredicatingExplicitRefiner {
     // create the mapping of CFA nodes to predicates, based on the counter example trace info
     PredicateMap predicateMap = new PredicateMap(pInfo.getPredicatesForRefinement(), errorPath);
 
-    Precision precision = createPredicatePrecision(extractPredicatePrecision(oldPrecision), predicateMap);
+    Precision precision = extractPredicatePrecision(oldPrecision)
+        .addLocalPredicates(predicateMap.getPredicateMapping());
     ARGState interpolationPoint = predicateMap.firstInterpolationPoint.getFirst();
 
     return Pair.of(interpolationPoint, precision);
@@ -125,28 +121,6 @@ public class PredicatingExplicitRefiner {
       throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
     }
     return predicatePrecision;
-  }
-
-  /**
-   * This method creates the new predicate precision based on the old precision and the increment.
-   *
-   * @param oldPredicatePrecision the old predicate precision to build on
-   * @param predicateMap the precision increment
-   * @return the new predicate precision
-   */
-  private PredicatePrecision createPredicatePrecision(PredicatePrecision oldPredicatePrecision,
-                                                    PredicateMap predicateMap) {
-    Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPredicatePrecision.getPredicateMap();
-    Set<AbstractionPredicate> globalPredicates = oldPredicatePrecision.getGlobalPredicates();
-
-    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-    pmapBuilder.putAll(oldPredicateMap);
-
-    for (Map.Entry<CFANode, AbstractionPredicate> predicateAtLocation : predicateMap.getPredicateMapping().entries()) {
-      pmapBuilder.putAll(predicateAtLocation.getKey(), predicateAtLocation.getValue());
-    }
-
-    return new PredicatePrecision(pmapBuilder.build(), globalPredicates);
   }
 
   protected void printStatistics(PrintStream out, Result result, ReachedSet reached) {
