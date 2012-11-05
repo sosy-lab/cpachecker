@@ -343,22 +343,6 @@ public class ABMPredicateReducer implements Reducer {
     PredicatePrecision precision = (PredicatePrecision)pPrecision;
     PredicatePrecision otherPrecision = (PredicatePrecision)pOtherPrecision;
 
-    int distance = 0;
-
-    for (AbstractionPredicate p : precision.getGlobalPredicates()) {
-      if (!otherPrecision.getGlobalPredicates().contains(p)) {
-        distance++;
-      }
-    }
-
-    for (CFANode node : precision.getLocalPredicates().keySet()) {
-      for (AbstractionPredicate p : precision.getLocalPredicates().get(node)) {
-        if (!otherPrecision.getLocalPredicates().get(node).contains(p)) {
-          distance++;
-        }
-      }
-    }
-
-    return distance;
+    return precision.calculateDifferenceTo(otherPrecision);
   }
 }

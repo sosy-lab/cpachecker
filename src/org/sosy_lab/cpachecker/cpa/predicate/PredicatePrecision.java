@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
 /**
  * This class represents the precision of the PredicateCPA.
@@ -146,6 +147,29 @@ public class PredicatePrecision implements Precision {
     }
 
     return new PredicatePrecision(newLocalPredicates, newGlobalPredicates);
+  }
+
+  /**
+   * Calculates a "difference" from this precision to another precision.
+   * The difference is the number of predicates which are present in this precision,
+   * and are missing in the other precision.
+   * If a predicate is present in both precisions, but for different locations,
+   * this counts as a difference.
+   *
+   * Note that this difference is not symmetric!
+   * (Similar to {@link Sets#difference(Set, Set)}).
+   */
+  public int calculateDifferenceTo(PredicatePrecision other) {
+    int difference = 0;
+    difference += Sets.difference(this.globalPredicates,
+                                  other.globalPredicates).size();
+
+    difference += Sets.difference(this.functionPredicates.entries(),
+                                  other.functionPredicates.entries()).size();
+
+    difference += Sets.difference(this.localPredicates.entries(),
+                                  other.localPredicates.entries()).size();
+    return difference;
   }
 
   @Override
