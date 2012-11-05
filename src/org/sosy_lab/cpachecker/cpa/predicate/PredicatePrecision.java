@@ -44,20 +44,24 @@ import com.google.common.collect.Sets;
  * It is basically a map which assigns to each node in the CFA a (possibly empty)
  * set of predicates which should be used at this location.
  * Additionally, there may be some predicates which are used for all locations
- * ("global" predicates).
+ * ("global" predicates), and some predicates which are used for all locations
+ * within a specific function.
  *
  * All instances of this class are immutable.
  */
 public class PredicatePrecision implements Precision {
 
   private final ImmutableSetMultimap<CFANode, AbstractionPredicate> localPredicates;
+  private final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates;
   private final ImmutableSet<AbstractionPredicate> globalPredicates;
   private final int id = idCounter++;
   private static int idCounter = 0;
 
   public PredicatePrecision(Multimap<CFANode, AbstractionPredicate> pLocalPredicates,
+      Multimap<String, AbstractionPredicate> pFunctionPredicates,
       Collection<AbstractionPredicate> pGlobalPredicates) {
     localPredicates = ImmutableSetMultimap.copyOf(pLocalPredicates);
+    functionPredicates = ImmutableSetMultimap.copyOf(pFunctionPredicates);
     globalPredicates = ImmutableSet.copyOf(pGlobalPredicates);
   }
 
@@ -67,6 +71,7 @@ public class PredicatePrecision implements Precision {
   public static PredicatePrecision empty() {
     return new PredicatePrecision(
         ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
+        ImmutableSetMultimap.<String, AbstractionPredicate>of(),
         ImmutableSet.<AbstractionPredicate>of());
   }
 
@@ -75,6 +80,13 @@ public class PredicatePrecision implements Precision {
    */
   public SetMultimap<CFANode, AbstractionPredicate> getLocalPredicates() {
     return localPredicates;
+  }
+
+  /**
+   * Return a map view of the function-specific predicates of this precision.
+   */
+  public SetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
+    return functionPredicates;
   }
 
   /**
@@ -93,6 +105,9 @@ public class PredicatePrecision implements Precision {
   public Set<AbstractionPredicate> getPredicates(CFANode loc) {
     Set<AbstractionPredicate> result = localPredicates.get(loc);
     if (result.isEmpty()) {
+      result = functionPredicates.get(loc.getFunctionName());
+    }
+    if (result.isEmpty()) {
       result = globalPredicates;
     }
     return result;
@@ -105,7 +120,7 @@ public class PredicatePrecision implements Precision {
   public PredicatePrecision addGlobalPredicates(Collection<AbstractionPredicate> newPredicates) {
     List<AbstractionPredicate> predicates = Lists.newArrayList(globalPredicates);
     predicates.addAll(newPredicates);
-    return new PredicatePrecision(localPredicates, predicates);
+    return new PredicatePrecision(localPredicates, functionPredicates, predicates);
   }
 
   /**
@@ -116,16 +131,17 @@ public class PredicatePrecision implements Precision {
     Multimap<CFANode, AbstractionPredicate> predicates = ArrayListMultimap.create(localPredicates);
     predicates.putAll(newPredicates);
 
-    // During lookup, we do not look into globalPredicates,
+    // During lookup, we do not look into globalPredicates and functionPredicates,
     // if there is something for the key in predicates.
     // Thus, we copy the relevant items into the predicates set here.
-    if (!globalPredicates.isEmpty()) {
+    if (!globalPredicates.isEmpty() || !functionPredicates.isEmpty()) {
       for (CFANode newLoc : newPredicates.keySet()) {
+        predicates.putAll(newLoc, functionPredicates.get(newLoc.getFunctionName()));
         predicates.putAll(newLoc, globalPredicates);
       }
     }
 
-    return new PredicatePrecision(predicates, globalPredicates);
+    return new PredicatePrecision(predicates, functionPredicates, globalPredicates);
   }
 
   /**
@@ -133,20 +149,34 @@ public class PredicatePrecision implements Precision {
    * and a second one.
    */
   public PredicatePrecision mergeWith(PredicatePrecision prec) {
+    // create new set of global predicates
     Collection<AbstractionPredicate> newGlobalPredicates = Lists.newArrayList(globalPredicates);
     newGlobalPredicates.addAll(prec.globalPredicates);
     newGlobalPredicates = ImmutableSet.copyOf(newGlobalPredicates);
 
+    // create new multimap of function-specific predicates
+    Multimap<String, AbstractionPredicate> newFunctionPredicates = ArrayListMultimap.create(functionPredicates);
+    newFunctionPredicates.putAll(prec.functionPredicates);
+
+    if (!newGlobalPredicates.isEmpty()) {
+      for (String function : newFunctionPredicates.keySet()) {
+        newFunctionPredicates.putAll(function, newGlobalPredicates);
+      }
+    }
+    newFunctionPredicates = ImmutableSetMultimap.copyOf(newFunctionPredicates);
+
+    // create new multimap of location-specific predicates
     Multimap<CFANode, AbstractionPredicate> newLocalPredicates = ArrayListMultimap.create(localPredicates);
     newLocalPredicates.putAll(prec.localPredicates);
 
-    if (!newGlobalPredicates.isEmpty()) {
+    if (!newGlobalPredicates.isEmpty() || !newFunctionPredicates.isEmpty()) {
       for (CFANode loc : newLocalPredicates.keySet()) {
         newLocalPredicates.putAll(loc, newGlobalPredicates);
+        newLocalPredicates.putAll(loc, newFunctionPredicates.get(loc.getFunctionName()));
       }
     }
 
-    return new PredicatePrecision(newLocalPredicates, newGlobalPredicates);
+    return new PredicatePrecision(newLocalPredicates, newFunctionPredicates, newGlobalPredicates);
   }
 
   /**
@@ -186,13 +216,15 @@ public class PredicatePrecision implements Precision {
     } else {
       PredicatePrecision other = (PredicatePrecision)pObj;
       return localPredicates.equals(other.localPredicates)
+          && functionPredicates.equals(other.functionPredicates)
           && globalPredicates.equals(other.globalPredicates);
     }
   }
 
   @Override
   public String toString() {
-    return (globalPredicates.isEmpty() ? "" : "global predicates: " + globalPredicates + ", ")
+    return (globalPredicates.isEmpty() ? "" : "global predicates: "   + globalPredicates + ", ")
+        + (functionPredicates.isEmpty() ? "" : "function predicates: " + functionPredicates + ", ")
         + "local predicates: " + localPredicates;
   }
 

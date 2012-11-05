@@ -189,6 +189,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     initialPrecision = new PredicatePrecision(
         ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
+        ImmutableSetMultimap.<String, AbstractionPredicate>of(),
         predicates);
 
     stats = new PredicateCPAStatistics(this, blk, regionManager);

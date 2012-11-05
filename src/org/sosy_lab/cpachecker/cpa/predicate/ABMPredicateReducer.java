@@ -221,7 +221,10 @@ public class ABMPredicateReducer implements Reducer {
 
     public ReducedPredicatePrecision(PredicatePrecision expandedPredicatePrecision, Block context) {
       super(ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
+          ImmutableSetMultimap.<String, AbstractionPredicate>of(),
           ImmutableSet.<AbstractionPredicate>of());
+
+      assert expandedPredicatePrecision.getFunctionPredicates().isEmpty() : "TODO: need to handle function-specific predicates in ReducedPredicatePrecision";
 
       this.expandedPredicatePrecision = expandedPredicatePrecision;
       this.context = context;
