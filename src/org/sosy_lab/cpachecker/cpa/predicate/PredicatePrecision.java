@@ -223,9 +223,31 @@ public class PredicatePrecision implements Precision {
 
   @Override
   public String toString() {
-    return (globalPredicates.isEmpty() ? "" : "global predicates: "   + globalPredicates + ", ")
-        + (functionPredicates.isEmpty() ? "" : "function predicates: " + functionPredicates + ", ")
-        + "local predicates: " + localPredicates;
+    StringBuffer sb = new StringBuffer();
+    if (!globalPredicates.isEmpty())  {
+      sb.append("global predicates: ");
+      sb.append(globalPredicates);
+    }
+    if (!functionPredicates.isEmpty()) {
+      if (sb.length() > 0) {
+        sb.append(", ");
+      }
+      sb.append("function predicates: ");
+      sb.append(functionPredicates);
+    }
+    if (!localPredicates.isEmpty()) {
+      if (sb.length() > 0) {
+        sb.append(", ");
+      }
+      sb.append("local predicates: ");
+      sb.append(localPredicates);
+    }
+
+    if (sb.length() == 0) {
+      return "empty";
+    } else {
+      return sb.toString();
+    }
   }
 
   /**
