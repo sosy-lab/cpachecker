@@ -69,7 +69,7 @@ import com.google.common.collect.Sets;
  *   (identified by "Nid", where id is the node number).
  *   This line defines where the following predicates are to be used.
  * - The following lines of the section contain SMTLIB2 statements of the form
- *   "(assert (...))". Each asserted term will be used as one predicate.
+ *   "(assert ...)". Each asserted term will be used as one predicate.
  */
 public class PredicateMapParser {
 
@@ -216,10 +216,10 @@ public class PredicateMapParser {
 
       } else {
         // we expect a predicate
-        if (hasParentheses(currentLine)) {
+        if (currentLine.startsWith("(assert ") && currentLine.endsWith(")")) {
           Formula f;
           try {
-            f = fmgr.parse(functionDefinitions + "(assert " + currentLine + ")");
+            f = fmgr.parse(functionDefinitions + currentLine);
           } catch (IllegalArgumentException e) {
             throw new PredicateMapParsingFailedException(e, source, lineNo);
           }
@@ -233,10 +233,6 @@ public class PredicateMapParser {
     }
 
     return new PredicatePrecision(localPredicates, functionPredicates, globalPredicates);
-  }
-
-  private static boolean hasParentheses(String s) {
-    return s.startsWith("(") && s.endsWith(")");
   }
 
   private static Map<Integer, CFANode> createMappingForCFANodes(CFA cfa) {
