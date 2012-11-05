@@ -533,7 +533,8 @@ cpa.predicate.abstraction.cartesian = false
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
 
-# get an initial set of predicates from a file in MSAT format
+# get an initial map of predicates from a file (see source of
+# PredicateMapParser for format definition)
 cpa.predicate.abstraction.initialPredicates = no default value
 
 # What to use for storing abstractions
