@@ -313,7 +313,7 @@ public class ABMPredicateReducer implements Reducer {
     public boolean equals(Object pObj) {
       if (pObj == this) {
         return true;
-      } else if (!(pObj instanceof ReducedPredicatePrecision)) {
+      } else if (!(pObj.getClass().equals(ReducedPredicatePrecision.class))) {
         return false;
       } else {
         computeView();

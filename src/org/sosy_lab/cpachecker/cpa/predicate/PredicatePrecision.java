@@ -181,10 +181,12 @@ public class PredicatePrecision implements Precision {
   public boolean equals(Object pObj) {
     if (pObj == this) {
       return true;
-    } else if (!(pObj instanceof PredicatePrecision)) {
+    } else if (!(pObj.getClass().equals(PredicatePrecision.class))) {
       return false;
     } else {
-      return localPredicates.equals(((PredicatePrecision)pObj).localPredicates);
+      PredicatePrecision other = (PredicatePrecision)pObj;
+      return localPredicates.equals(other.localPredicates)
+          && globalPredicates.equals(other.globalPredicates);
     }
   }
 
