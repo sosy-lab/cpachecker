@@ -264,7 +264,10 @@ class PredicateCPAStatistics implements Statistics {
         assert lines.size() > 1;
         String predString = lines.get(lines.size()-1);
         lines.remove(lines.size()-1);
-        assert predString.startsWith("(assert ") && predString.endsWith(")"): lines;
+        if (!(predString.startsWith("(assert ") && predString.endsWith(")"))) {
+          writePredicateMapToFile("Writing predicate map is only supported for solvers which support the Smtlib2 format, please try using Mathsat5.\n");
+          return;
+        }
 
         predToString.put(pred, predString);
         definitions.addAll(lines);
@@ -284,8 +287,12 @@ class PredicateCPAStatistics implements Statistics {
         writeSetOfPredicates(sb, e.getKey().toString(), e.getValue(), predToString);
       }
 
+      writePredicateMapToFile(sb.toString());
+    }
+
+    private void writePredicateMapToFile(String s) {
       try {
-        Files.writeFile(file, sb);
+        Files.writeFile(file, s);
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write predicate map to file");
       }
