@@ -27,8 +27,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
 
@@ -51,8 +51,10 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.base.Supplier;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.predicate.predmap")
 class PredicateCPAStatistics implements Statistics {
@@ -85,25 +87,45 @@ class PredicateCPAStatistics implements Statistics {
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
       PredicateAbstractionManager amgr = cpa.getPredicateManager();
 
-      Multimap<CFANode, AbstractionPredicate> predicates = HashMultimap.create();
+      Supplier<Set<AbstractionPredicate>> hashSetSupplier = new Supplier<Set<AbstractionPredicate>>() {
+        @Override
+        public Set<AbstractionPredicate> get() {
+          return Sets.newHashSet();
+        }
+      };
+
+      SetMultimap<CFANode, AbstractionPredicate> localPredicates = Multimaps.newSetMultimap(new TreeMap<CFANode, Collection<AbstractionPredicate>>(), hashSetSupplier);
+      SetMultimap<String, AbstractionPredicate> functionPredicates = Multimaps.newSetMultimap(new TreeMap<String, Collection<AbstractionPredicate>>(), hashSetSupplier);
+      Set<AbstractionPredicate> globalPredicates = Sets.newHashSet();
 
       for (Precision precision : reached.getPrecisions()) {
         if (precision instanceof WrapperPrecision) {
           PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
-          predicates.putAll(preds.getLocalPredicates());
+          localPredicates.putAll(preds.getLocalPredicates());
+          functionPredicates.putAll(preds.getFunctionPredicates());
+          globalPredicates.addAll(preds.getGlobalPredicates());
         }
       }
 
       // check if/where to dump the predicate map
       if (export && file != null) {
-        TreeMap<CFANode, Collection<AbstractionPredicate>> sortedPredicates
-              = new TreeMap<CFANode, Collection<AbstractionPredicate>>(predicates.asMap());
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder("\n");
+        if (!globalPredicates.isEmpty()) {
+          sb.append("*:\n");
+          Joiner.on('\n').appendTo(sb, globalPredicates);
+          sb.append("\n\n");
+        }
 
-        for (Entry<CFANode, Collection<AbstractionPredicate>> e : sortedPredicates.entrySet()) {
-          sb.append("LOCATION: ");
+        for (Entry<String, Collection<AbstractionPredicate>> e : functionPredicates.asMap().entrySet()) {
           sb.append(e.getKey());
-          sb.append('\n');
+          sb.append(":\n");
+          Joiner.on('\n').appendTo(sb, e.getValue());
+          sb.append("\n\n");
+        }
+
+        for (Entry<CFANode, Collection<AbstractionPredicate>> e : localPredicates.asMap().entrySet()) {
+          sb.append(e.getKey());
+          sb.append(":\n");
           Joiner.on('\n').appendTo(sb, e.getValue());
           sb.append("\n\n");
         }
@@ -116,14 +138,17 @@ class PredicateCPAStatistics implements Statistics {
       }
 
       int maxPredsPerLocation = 0;
-      for (Collection<AbstractionPredicate> p : predicates.asMap().values()) {
+      for (Collection<AbstractionPredicate> p : localPredicates.asMap().values()) {
         maxPredsPerLocation = Math.max(maxPredsPerLocation, p.size());
       }
 
-      int allLocs = predicates.keySet().size();
-      int totPredsUsed = predicates.size();
+      int allLocs = localPredicates.keySet().size();
+      int totPredsUsed = localPredicates.size();
       int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
-      int allDistinctPreds = (new HashSet<AbstractionPredicate>(predicates.values())).size();
+
+      globalPredicates.addAll(localPredicates.values());
+      globalPredicates.addAll(functionPredicates.values());
+      int allDistinctPreds = globalPredicates.size();
 
       PredicateAbstractionManager.Stats as = amgr.stats;
       PredicateAbstractDomain domain = cpa.getAbstractDomain();
