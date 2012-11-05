@@ -86,7 +86,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private String abstractionType = "BDD";
 
   @Option(name="abstraction.initialPredicates",
-      description="get an initial map of predicates from a file (see source of PredicateMapParser for format definition)")
+      description="get an initial map of predicates from a file (see source doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private File predicatesFile = null;
 

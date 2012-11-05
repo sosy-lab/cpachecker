@@ -533,8 +533,8 @@ cpa.predicate.abstraction.cartesian = false
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
 
-# get an initial map of predicates from a file (see source of
-# PredicateMapParser for format definition)
+# get an initial map of predicates from a file (see source
+# doc/examples/predmap.txt for an example)
 cpa.predicate.abstraction.initialPredicates = no default value
 
 # What to use for storing abstractions
