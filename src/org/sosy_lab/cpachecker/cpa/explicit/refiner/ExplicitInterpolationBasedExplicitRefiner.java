@@ -72,6 +72,7 @@ public class ExplicitInterpolationBasedExplicitRefiner {
 
   // statistics
   private int numberOfRefinements           = 0;
+  private int numberOfSuccessfulRefinements = 0;
   private int numberOfInterpolations        = 0;
   private int numberOfErrorPathElements     = 0;
   private Timer timerInterpolation          = new Timer();
@@ -92,7 +93,7 @@ public class ExplicitInterpolationBasedExplicitRefiner {
     if(!isPathFeasable(errorPath)) {
       numberOfRefinements++;
 
-      Multimap<CFANode, String> referencedVariableMapping = determineReferencedVariableMapping(errorPath);
+      Multimap<CFAEdge, String> referencedVariableMapping = determineReferencedVariableMapping(errorPath);
 
       ExplicitInterpolator interpolator     = new ExplicitInterpolator();
       Map<String, Long> currentInterpolant  = new HashMap<String, Long>();
@@ -105,8 +106,7 @@ public class ExplicitInterpolationBasedExplicitRefiner {
           currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
         }
 
-        Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge.getSuccessor());
-
+        Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge);
         // do interpolation
         if(!referencedVariablesAtEdge.isEmpty()) {
           Map<String, Long> inputInterpolant = new HashMap<String, Long>(currentInterpolant);
@@ -114,7 +114,6 @@ public class ExplicitInterpolationBasedExplicitRefiner {
           // check for each variable, if ignoring it makes the error path feasible
           for(String currentVariable : referencedVariablesAtEdge) {
             numberOfInterpolations++;
-
             try {
               Pair<String, Long> element = interpolator.deriveInterpolant(errorPath, i, currentVariable, inputInterpolant);
 
@@ -154,7 +153,8 @@ public class ExplicitInterpolationBasedExplicitRefiner {
             increment.put(currentEdge.getSuccessor(), variableName);
 
             if(firstInterpolationPoint == null) {
-              firstInterpolationPoint = errorPath.get(i).getFirst();
+              firstInterpolationPoint = errorPath.get(i - 1).getFirst();
+              numberOfSuccessfulRefinements++;
             }
           }
         }
@@ -219,7 +219,7 @@ public class ExplicitInterpolationBasedExplicitRefiner {
    * @param currentErrorPath the current error path to check
    * @return the mapping where to do an explicit interpolation for which variables
    */
-  private Multimap<CFANode, String> determineReferencedVariableMapping(Path currentErrorPath) {
+  private Multimap<CFAEdge, String> determineReferencedVariableMapping(Path currentErrorPath) {
     AssignedVariablesCollector collector = new AssignedVariablesCollector();
 
     return collector.collectVars(currentErrorPath);
@@ -246,8 +246,9 @@ public class ExplicitInterpolationBasedExplicitRefiner {
 
   protected void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     out.println(this.getClass().getSimpleName() + ":");
-    out.println("  number of explicit-interpolation-based refinements:  " + numberOfRefinements);
-    out.println("  number of explicit-interpolations:                   " + numberOfInterpolations);
+    out.println("  number of explicit refinements:                      " + numberOfRefinements);
+    out.println("  number of successful explicit refinements:           " + numberOfSuccessfulRefinements);
+    out.println("  number of explicit interpolations:                   " + numberOfInterpolations);
     out.println("  total number of elements in error paths:             " + numberOfErrorPathElements);
     out.println("  percentage of elements checked:                      " + (Math.round(((double)numberOfInterpolations / (double)numberOfErrorPathElements) * 10000) / 100.00) + "%");
     out.println("  max. time for singe interpolation:                   " + timerInterpolation.printMaxTime());

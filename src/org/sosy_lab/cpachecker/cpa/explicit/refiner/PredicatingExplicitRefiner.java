@@ -63,7 +63,6 @@ public class PredicatingExplicitRefiner {
   protected List<Pair<ARGState, CFAEdge>> currentErrorPath  = null;
 
   private int numberOfPredicateRefinements                    = 0;
-  private int numberOfPredicateRefinementsDone                = 0;
 
   protected final List<ARGState> transformPath(Path errorPath) {
     numberOfPredicateRefinements++;
@@ -93,7 +92,6 @@ public class PredicatingExplicitRefiner {
       Precision oldPrecision,
       List<ARGState> errorPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {
-    numberOfPredicateRefinementsDone++;
     // create the mapping of CFA nodes to predicates, based on the counter example trace info
     PredicateMap predicateMap = new PredicateMap(pInfo.getPredicatesForRefinement(), errorPath);
 
@@ -154,6 +152,5 @@ public class PredicatingExplicitRefiner {
   protected void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     out.println(this.getClass().getSimpleName() + ":");
     out.println("  number of predicate refinements:           " + numberOfPredicateRefinements);
-    out.println("  number of predicate refinements done:      " + numberOfPredicateRefinementsDone);
   }
 }
