@@ -578,6 +578,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       CFANode prevNode, CStatement statement) {
 
     CFANode lastNode;
+    boolean useStatement = true;
 
     // in this case, there's a ternary operator
     if (astCreator.getConditionalExpression() != null) {
@@ -588,21 +589,23 @@ class CFAFunctionBuilder extends ASTVisitor {
       boolean resultIsUnused = ((statement instanceof CExpressionStatement)
           && ((CExpressionStatement)statement).getExpression() == astCreator.getConditionalTemporaryVariable());
 
-      lastNode = handleTernaryOperator(condExp, prevNode, resultIsUnused);
+      prevNode = handleTernaryOperator(condExp, prevNode, resultIsUnused);
 
-      if (!resultIsUnused) {
-        lastNode = createEdge(lastNode, condExp.getRawSignature(), fileloc.getStartingLineNumber(), statement);
-      }
+      useStatement = !resultIsUnused;
 
     } else {
       prevNode = handleSideassignments(prevNode, rawSignature, fileloc.getStartingLineNumber());
+    }
 
+    if (useStatement) {
       lastNode = new CFANode(fileloc.getStartingLineNumber(), cfa.getFunctionName());
       cfaNodes.add(lastNode);
 
       CStatementEdge edge = new CStatementEdge(rawSignature, statement,
           fileloc.getStartingLineNumber(), prevNode, lastNode);
       addToCFA(edge);
+    } else {
+      lastNode = prevNode;
     }
     return lastNode;
   }
@@ -1100,7 +1103,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       for (int i = 0; i < expl.length - 1; i++) {
         String rawSignature = expl[i].getRawSignature();
 
-        CAstNode node = astCreator.convertExpressionWithoutSideEffects(expl[i]);
+        CExpression node = astCreator.convertExpressionWithoutSideEffects(expl[i]);
 
         loopStart = handleSideassignments(loopStart, rawSignature, filelocStart);
 
