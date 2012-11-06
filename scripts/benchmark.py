@@ -2045,19 +2045,21 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
     parser = argparse.ArgumentParser(description=
-        """INFO: Documented example-files can be found as 'doc/examples/benchmark*.xml'.
+        """Run benchmarks with a verification tool.
+        Documented example files for the benchmark definitions
+        can be found as 'doc/examples/benchmark*.xml'.
+        Use the table-generator.py script to create nice tables
+        from the output of this script.""")
 
-Use the table-generator.py script to create nice tables
-from the output of this script.""")
-
-    parser.add_argument("files", nargs='+', metavar="FILE")
+    parser.add_argument("files", nargs='+', metavar="FILE",
+                      help="XML file with benchmark definition")
     parser.add_argument("-d", "--debug",
                       action="store_true",
                       help="Enable debug output")
 
     parser.add_argument("-t", "--test", dest="testRunOnly",
                       action="append",
-                      help="Run only the given TEST from the xml-file. "
+                      help="Run only the specified TEST from the benchmark definition. "
                             + "This option can be specified several times.",
                       metavar="TEST")
 
@@ -2066,7 +2068,7 @@ from the output of this script.""")
                       default="./test/results/",
                       help="Output prefix for the generated results. "
                             + "If the path is a folder files are put into it,"
-                            + "otherwise the string is used as a prefix for the resulting files.")
+                            + "otherwise it is used as a prefix for the resulting files.")
 
     parser.add_argument("-T", "--timelimit",
                       dest="timelimit", default=None,
@@ -2086,7 +2088,7 @@ from the output of this script.""")
     parser.add_argument("-x", "--moduloAndRest",
                       dest="moduloAndRest", default=(1,0), nargs=2, type=int,
                       help="Run only a subset of tests for which (i %% a == b) holds" +
-                            "with i being the index of the test in the xml-file " +
+                            "with i being the index of the test in the benhcmark definition file " +
                             "(starting with 1).",
                       metavar=("a","b"))
 
@@ -2096,7 +2098,7 @@ from the output of this script.""")
 
     parser.add_argument("-c", "--limitCores", dest="limitCores",
                       action="store_true",
-                      help="When limiting core usage, every run in the benchmark is only allowed to use one core of the cpu.")
+                      help="Limit each run of the tool to a single CPU core.")
 
     parser.add_argument("--commit", dest="commit",
                       action="store_true",

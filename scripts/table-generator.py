@@ -807,48 +807,49 @@ def main(args=None):
         args = sys.argv
 
     parser = argparse.ArgumentParser(
-        description="INFO: documented example-files can be found in 'doc/examples'\n")
+        description="""Create table with the results of one or more benchmark runs.
+        Documented example files for the table definitions can be found in 'doc/examples'\n"""
+    )
 
     parser.add_argument("tables",
         metavar="TABLE",
         type=str,
-        nargs='*'
+        nargs='*',
+        help="XML file with the results from the benchmark script"
     )
     parser.add_argument("-x", "--xml",
         action="store",
         type=str,
         dest="xmltablefile",
-        help="use xmlfile for table. the xml-file should define resultfiles and columns."
+        help="XML file with the table definition."
     )
     parser.add_argument("-o", "--outputpath",
         action="store",
         type=str,
         default="test/results",
         dest="outputPath",
-        help="outputPath for table. if it does not exist, it is created."
+        help="Output path for the table."
     )
     parser.add_argument("-d", "--dump",
         action="store_true", dest="dumpCounts",
-        help="Should the good, bad, unknown counts be printed?"
+        help="Print summary statistics for the good, bad, and unknown counts."
     )
     mergeGroup = parser.add_mutually_exclusive_group()
     mergeGroup.add_argument("-m", "--merge",
         action="store_true", dest="merge",
-        help="If resultfiles with distinct sourcefiles are found, " \
-            + "should the sourcefilenames be merged?"
+        help="Put all sourcefiles into the table, even if the results for some runs are missing." \
     )
     mergeGroup.add_argument("-c", "--common",
         action="store_true", dest="common",
-        help="If resultfiles with distinct sourcefiles are found, " \
-            + "use only the sourcefiles common to all resultfiles."
+        help="Put only sourcefiles into the table for which all benchmarks contain results."
     )
     parser.add_argument("--no-diff",
         action="store_false", dest="writeDiffTable",
-        help="Do not output a table with differences between resultfiles."
+        help="Do not output a table with result differences between benchmarks."
     )
     parser.add_argument("--correct-only",
         action="store_true", dest="correctOnly",
-        help="Clear all results in cases where the result was not correct."
+        help="Clear all results (e.g., time) in cases where the result was not correct."
     )
     parser.add_argument("--offline",
         action="store_const", dest="libUrl",

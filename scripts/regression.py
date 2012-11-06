@@ -279,20 +279,23 @@ def main(args=None):
     if args is None:
         args = sys.argv
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Create table with the differences between the results of several benchmark runs."
+    )
     parser.add_argument("xmlFiles",
         metavar="TABLE",
         type=str,
-        nargs='+'
+        nargs='+',
+        help="XML file with the results from the benchmark script"
     )
     parser.add_argument("-c", "--compare",
         action="store", type=str, dest="compare",
-        help="Which sourcefiles should be compared? " + \
+        help="Compare only the results of a specific sourcefile. " + \
              "Use 'a' for 'all' or a number for the position."
     )
     parser.add_argument("-d", "--dump",
         action="store_true", dest="dump_counts",
-        help="Should the good, bad, unknown counts be printed? "
+        help="Print summary statistics for the good, bad, and unknown counts."
     )
     options = parser.parse_args(args[1:])
 
