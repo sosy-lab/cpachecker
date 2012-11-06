@@ -1035,15 +1035,16 @@ class CFAFunctionBuilder extends ASTVisitor {
     assert expression != null;
     assert !(expression instanceof IASTExpressionList);
 
+    String rawSignature = expression.getRawSignature();
     final CStatement stmt = astCreator.convertExpressionToStatement(expression, expression.getFileLocation());
 
-    prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), expression.getRawSignature(), filelocStart);
+    prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), rawSignature, filelocStart);
 
     if (lastNode == null) {
       lastNode = newCFANode(filelocStart);
     }
 
-    final CStatementEdge lastEdge = new CStatementEdge(expression.getRawSignature(), stmt, filelocStart, prevNode, lastNode);
+    final CStatementEdge lastEdge = new CStatementEdge(rawSignature, stmt, filelocStart, prevNode, lastNode);
     addToCFA(lastEdge);
     return lastNode;
   }
@@ -1067,20 +1068,9 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else if (condition instanceof IASTExpressionList) {
       IASTExpression[] expl = ((IASTExpressionList) condition).getExpressions();
       for (int i = 0; i < expl.length - 1; i++) {
-        String rawSignature = expl[i].getRawSignature();
-
-        CExpression node = astCreator.convertExpressionWithoutSideEffects(expl[i]);
-
-        loopStart = insertSideAssignments(loopStart, astCreator.getAndResetPreSideAssignments(), rawSignature, filelocStart);
-
-        CFANode nextNode = newCFANode(filelocStart);
-        CFAEdge edge = new CStatementEdge(rawSignature, new CExpressionStatement(node.getFileLocation(), node), filelocStart, loopStart, nextNode);
-        addToCFA(edge);
-        loopStart = nextNode;
-
-        loopStart = insertSideAssignments(loopStart, astCreator.getAndResetPostSideAssignments(), rawSignature, filelocStart);
+        loopStart = createEdgeForSingleExpression(expl[i], filelocStart, loopStart, null);
       }
-      createConditionEdgesForForLoop(expl[expl.length - 1], filelocStart, loopStart, postLoopNode, firstLoopNode);
+      createConditionEdges(expl[expl.length - 1], filelocStart, loopStart, firstLoopNode, postLoopNode);
     } else {
       createConditionEdges(condition, filelocStart, loopStart, firstLoopNode,
           postLoopNode);
