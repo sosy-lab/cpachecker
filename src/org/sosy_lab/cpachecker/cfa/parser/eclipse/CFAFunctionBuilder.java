@@ -838,8 +838,14 @@ class CFAFunctionBuilder extends ASTVisitor {
     loopStart.setLoopStart();
 
     // loopEnd is Node before "counter++;"
-    final CFANode loopEnd = new CLabelNode(filelocStart, cfa.getFunctionName(), "");
-    cfaNodes.add(loopEnd);
+    final CFANode loopEnd;
+    final IASTExpression iterationExpression = forStatement.getIterationExpression();
+    if (iterationExpression != null) {
+      loopEnd = new CLabelNode(filelocStart, cfa.getFunctionName(), "");
+      cfaNodes.add(loopEnd);
+    } else {
+      loopEnd = loopStart;
+    }
     loopStartStack.push(loopEnd);
 
     // firstLoopNode is Node after "counter < 5"
@@ -878,12 +884,10 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     // this edge connects loopEnd with loopStart and contains the statement "counter++;"
-    IASTExpression iterationExpression = forStatement.getIterationExpression();
-    if (iterationExpression == null) {
-      final BlankEdge blankEdge = new BlankEdge("", filelocStart, loopEnd, loopStart, "");
-      addToCFA(blankEdge);
-    } else {
+    if (iterationExpression != null) {
       createEdgeForExpression(iterationExpression, filelocStart, loopEnd, loopStart);
+    } else {
+      assert loopEnd == loopStart;
     }
 
     scope.leaveBlock();
