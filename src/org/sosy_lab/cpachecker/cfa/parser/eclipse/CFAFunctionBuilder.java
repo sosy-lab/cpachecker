@@ -1247,15 +1247,13 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode prevNode = locStack.pop();
 
-    // firstSwitchNode is first Node of switch-Statement.
-    // TODO useful or unnecessary? it can be replaced through prevNode.
-    final CFANode firstSwitchNode = newCFANode(fileloc);
-
     CExpression switchExpression = astCreator
         .convertExpressionWithoutSideEffects(statement
             .getControllerExpression());
     prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), statement.getRawSignature(), switchExpression.getFileLocation().getStartingLineNumber());
 
+    // firstSwitchNode is first Node of switch-Statement.
+    final CFANode firstSwitchNode = newCFANode(fileloc);
     String rawSignature = "switch (" + statement.getControllerExpression().getRawSignature() + ")";
     String description = "switch (" + switchExpression.toASTString() + ")";
     addToCFA(new BlankEdge(rawSignature, fileloc.getStartingLineNumber(),
