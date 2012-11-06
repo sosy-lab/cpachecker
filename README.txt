@@ -74,5 +74,7 @@ Verifying a Program with CPAchecker
    Note that not all of these files will be available for all configurations.
    Also some of these files are only produced if an error is found (or vice-versa).
    CPAchecker will overwrite files in this directory!
-   These files may be used to generate a report that can be viewed in a browser.
-   Cf. BuildReport.txt for this.
+   A graphical report which can be viewed in a browser can be generated
+   from these files by running
+   scripts/report-generator.py
+   (Cf. doc/BuildReport.txt).

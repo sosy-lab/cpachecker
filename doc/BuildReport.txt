@@ -2,7 +2,7 @@ CPAchecker Report Generator
 ---------------------------
 
 The report generator can be used to compile an interactive analysis report of a CPAchecker run.
-The report is in HTML format. Currently, the only supported browser is Firefox (tested with 3.6.8),
+The report is in HTML format and works best in Firefox,
 mainly because of problems accessing local resources via Javascript in other browsers.
 If the file is hosted on a server, Google Chrome/Chromium should also work with some quirks
 (the focused SVG element does not scroll into view).
@@ -11,17 +11,26 @@ If the file is hosted on a server, Google Chrome/Chromium should also work with 
 Generate a Report
 ---------------------
 
-0) Make sure 'dot' is on your PATH
+0) Make sure 'dot' from the graphviz package (www.graphviz.org) is on your PATH.
+   For Ubuntu: sudo apt-get install graphviz
 
-1) Run CPAchecker as follows:
+1) It's best to clear the output directory of CPAchecker,
+   so that old files won't get mixed up with the new files.
 
-scripts/cpa.sh -predicateAnalysis path/to/my.cil.c
+2) Run CPAchecker as usual (be sure to not use -noout):
 
-2) After CPAchecker has completed, generate the report:
+3) After CPAchecker has completed, generate the report:
 
-python scripts/report-generator.py path/to/my.cil.c
+   scripts/report-generator.py
 
-3) open output/index.html in Firefox.
+   If you use non-default output file paths and names for CPAchecker,
+   specify the path to the config with --config.
+   The directory for the generated report can be specified with --reportpath.
+   If dot takes too much time for generating the ARG,
+   press Ctrl+C to cancel this step
+   (you will not be able to see the ARG in the browser in this case).
+
+4) Open output/index.html in Firefox.
 
 
 Quick Reference to use the report
@@ -29,8 +38,8 @@ Quick Reference to use the report
 
   - Left Panel: Error Path (if a bug is found)
 
-     - indentation reflects height of call stack.
-     - click nodes/edges to jump to the location in the CFA/ARG/CIL (depending on the active tab).
+     - Indentation reflects height of call stack.
+     - Click nodes/edges to jump to the location in the CFA/ARG/CIL (depending on the active tab).
      - Function Start,Function Return, and unlabeled edges are not displayed.
      - Use Start (or click a node/edge) and Prev/Next to walk along the error path.
 
@@ -55,11 +64,11 @@ Quick Reference to use the report
 
     - CIL Tab
 
-      - displays CIL code
+      - Displays CIL code.
 
     - Log Tab
 
-      - Displays the output of CPAchecker
+      - Displays the output of CPAchecker.
 
 
 Known Problems
@@ -74,8 +83,6 @@ Known Problems
 
   - Clicking edges leaving the introduced multistatement nodes does not jump to the correct location in the CIL code.
      All other edges in the CFA should be ok.
-
-  - It is not apparent, that edges are clickable. At least the mouse cursor should change to pointer.
 
   - When an item is selected in the error path window on the left, only the active tab on the right is updated.
      Workaround: After changing the tab on the right, click the selected item in the error path window again.
