@@ -148,7 +148,7 @@ class ASTConverter {
 
   private final LogManager logger;
 
-  private Scope scope;
+  private final Scope scope;
 
   private final List<CAstNode> preSideAssignments = new ArrayList<CAstNode>();
   private final List<CAstNode> postSideAssignments = new ArrayList<CAstNode>();
@@ -156,7 +156,7 @@ class ASTConverter {
   private CIdExpression conditionalTemporaryVariable = null;
 
   // list for all complextypes which are known, so that they don't have to be parsed again and again
-  private ArrayList<Pair<org.eclipse.cdt.core.dom.ast.ICompositeType, CCompositeType>> iCompTypeList = Lists.newArrayList();
+  private final List<Pair<ICompositeType, CCompositeType>> iCompTypeList = Lists.newArrayList();
 
 
   public ASTConverter(Scope pScope, LogManager pLogger) {
