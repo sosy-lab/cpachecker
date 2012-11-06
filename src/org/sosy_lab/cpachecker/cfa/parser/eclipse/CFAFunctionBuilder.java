@@ -644,10 +644,12 @@ class CFAFunctionBuilder extends ASTVisitor {
       edge = new CStatementEdge(rawSignature, (CStatement)code, filelocStart, prevNode, nextNode);
     } else if (code instanceof CAssignment) {
       edge = new CStatementEdge(rawSignature, (CStatement)code, filelocStart, prevNode, nextNode);
-    } else if (code instanceof CIdExpression) {
+    } else if (code instanceof CExpression) {
       edge = new CStatementEdge(rawSignature, new CExpressionStatement(code.getFileLocation(), (CExpression) code), filelocStart, prevNode, nextNode);
-    } else {
+    } else if (code instanceof CDeclaration) {
       edge = new CDeclarationEdge(rawSignature, filelocStart, prevNode, nextNode, (CDeclaration) code);
+    } else {
+      throw new AssertionError();
     }
     addToCFA(edge);
 
