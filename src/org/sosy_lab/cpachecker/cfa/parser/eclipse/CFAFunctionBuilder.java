@@ -465,7 +465,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     cfaNodes.add(thenNode);
     CFANode elseNode = new CFANode(filelocStart, cfa.getFunctionName());
     cfaNodes.add(elseNode);
-    buildConditionTree(condExp.getLogicalConditionExpression(), filelocStart, rootNode, thenNode, elseNode, thenNode, elseNode, true, true);
+    createConditionEdges(condExp.getLogicalConditionExpression(), filelocStart, rootNode, thenNode, elseNode);
 
     CFANode lastNode = new CFANode(filelocStart, cfa.getFunctionName());
     cfaNodes.add(lastNode);
