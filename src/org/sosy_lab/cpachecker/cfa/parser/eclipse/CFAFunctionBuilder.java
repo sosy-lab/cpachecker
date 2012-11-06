@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -138,7 +137,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
   private FunctionEntryNode cfa = null;
-  private final Set<CFANode> cfaNodes = new HashSet<CFANode>();
+  private final List<CFANode> cfaNodes = new ArrayList<CFANode>();
 
   private final Scope scope;
   private final ASTConverter astCreator;
@@ -165,7 +164,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     return cfa;
   }
 
-  Set<CFANode> getCfaNodes() {
+  List<CFANode> getCfaNodes() {
     checkState(cfa != null);
     return cfaNodes;
   }
@@ -387,15 +386,9 @@ class CFAFunctionBuilder extends ASTVisitor {
         }
       }
 
-      Iterator<CFANode> it = cfaNodes.iterator();
-      while (it.hasNext()) {
-        CFANode n = it.next();
-
-        if (!reachableNodes.contains(n)) {
-          // node was created but isn't part of CFA (e.g. because of dead code)
-          it.remove(); // remove n from currentCFANodes
-        }
-      }
+      // remove node which were created but aren't part of CFA (e.g. because of dead code)
+      cfaNodes.retainAll(reachableNodes);
+      assert cfaNodes.size() == reachableNodes.size(); // they should be equal now
 
       scope.leaveFunction();
     }
