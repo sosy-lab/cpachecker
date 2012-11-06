@@ -218,7 +218,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode prevNode = locStack.pop();
 
-    CFANode nextNode = addDeclarationsToCFA(sd, fileloc.getStartingLineNumber(), prevNode);
+    CFANode nextNode = createEdgeForDeclaration(sd, fileloc.getStartingLineNumber(), prevNode);
 
     assert nextNode != null;
     locStack.push(nextNode);
@@ -876,8 +876,14 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     // this edge connects loopEnd with loopStart and contains the statement "counter++;"
-    createLastEdgeForForLoop(forStatement.getIterationExpression(),
-                             filelocStart, loopEnd, loopStart);
+    IASTExpression iterationExpression = forStatement.getIterationExpression();
+    if (iterationExpression == null) {
+      final BlankEdge blankEdge = new BlankEdge("", filelocStart, loopEnd, loopStart, "");
+      addToCFA(blankEdge);
+    } else {
+      createEdgeForExpression(iterationExpression, filelocStart, loopEnd, loopStart);
+    }
+
     scope.leaveBlock();
 
     // skip visiting children of loop, because loopbody was handled before
@@ -893,44 +899,21 @@ class CFAFunctionBuilder extends ASTVisitor {
   private CFANode createInitEdgeForForLoop(final IASTStatement statement,
       final int filelocStart, CFANode prevNode) {
 
-    // "int counter = 0;"
     if (statement instanceof IASTDeclarationStatement) {
+      // "int counter = 0;"
       final IASTDeclaration decl = ((IASTDeclarationStatement)statement).getDeclaration();
       if (!(decl instanceof IASTSimpleDeclaration)) {
         throw new CFAGenerationRuntimeException("unknown init-statement in for-statement", decl);
       }
-      return addDeclarationsToCFA((IASTSimpleDeclaration)decl, filelocStart, prevNode);
+      return createEdgeForDeclaration((IASTSimpleDeclaration)decl, filelocStart, prevNode);
 
-    // "counter = 0;"
     } else if (statement instanceof IASTExpressionStatement) {
+      // "counter = 0;"
+      IASTExpression expression = ((IASTExpressionStatement) statement).getExpression();
+      return createEdgeForExpression(expression, filelocStart, prevNode, null);
 
-      IASTExpressionStatement expStatement = (IASTExpressionStatement) statement;
-
-      if (expStatement.getExpression() instanceof IASTExpressionList) {
-        IASTExpression[] expressions = ((IASTExpressionList) expStatement.getExpression()).getExpressions();
-        CFANode nextNode = null;
-
-        for (int i = 0; i < expressions.length; i++) {
-          nextNode = newCFANode(filelocStart);
-          createForLoopEndStartEdges(expressions[i], filelocStart, prevNode, nextNode);
-          prevNode = nextNode;
-        }
-
-        return nextNode;
-      } else {
-
-        final CStatement stmt = astCreator.convert((IASTExpressionStatement) statement);
-        prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), expStatement.getRawSignature(), filelocStart);
-
-        final CFANode nextNode = newCFANode(filelocStart);
-        final CStatementEdge initEdge = new CStatementEdge(statement.getRawSignature(),
-            stmt, filelocStart, prevNode, nextNode);
-        addToCFA(initEdge);
-        return nextNode;
-      }
-      //";"
     } else if (statement instanceof IASTNullStatement) {
-      // no edge inserted
+      //";", no edge inserted
       return prevNode;
 
     } else { // TODO: are there other init-statements in a for-loop?
@@ -943,7 +926,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * The edges are inserted after startNode.
    * @return the node after the last of the new declarations
    */
-  private CFANode addDeclarationsToCFA(final IASTSimpleDeclaration sd,
+  private CFANode createEdgeForDeclaration(final IASTSimpleDeclaration sd,
       final int filelocStart, CFANode prevNode) {
 
     final List<CDeclaration> declList = astCreator.convert(sd);
@@ -982,61 +965,62 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
   /**
-   * This function creates the last edge in a loop (= iteration-edge).
-   * The edge contains the statement "counter++" or something similar
-   * and is inserted between the loopEnd-Node and the loopStart-Node.
+   * Create a statement edge for an expression (which may be an expression list).
+   * @param exp The expression to put at the edge.
+   * @param filelocStart The file location.
+   * @param prevNode The predecessor of the new edge.
+   * @param lastNode The successor of the new edge
+   *         (may be null, in this case, a new node is created).
+   * @return The successor of the new edge.
    */
-  private void createLastEdgeForForLoop(final IASTExpression exp, final int filelocStart,
-      CFANode loopEnd, CFANode loopStart) {
-    if (exp instanceof IASTExpressionList) {
-      IASTExpression[] expList = ((IASTExpressionList) exp).getExpressions();
+  private CFANode createEdgeForExpression(final IASTExpression expression,
+      final int filelocStart, CFANode prevNode, final @Nullable CFANode lastNode) {
+    if (expression instanceof IASTExpressionList) {
+      IASTExpression[] expressions = ((IASTExpressionList) expression).getExpressions();
       CFANode nextNode = null;
-      for (int i = 0; i < expList.length - 1; i++) {
-        nextNode = newCFANode(filelocStart);
 
-        createForLoopEndStartEdges(expList[i], filelocStart, loopEnd, nextNode);
-        loopEnd = nextNode;
+      for (int i = 0; i < expressions.length; i++) {
+        if (lastNode != null && i == expressions.length-1) {
+          nextNode = lastNode;
+        } else {
+          nextNode = newCFANode(filelocStart);
+        }
+
+        createEdgeForSingleExpression(expressions[i], filelocStart, prevNode, nextNode);
+        prevNode = nextNode;
       }
-      createForLoopEndStartEdges(expList[expList.length - 1], filelocStart, loopEnd, loopStart);
+
+      return nextNode;
     } else {
-    createForLoopEndStartEdges(exp, filelocStart, loopEnd, loopStart);
+      return createEdgeForSingleExpression(expression, filelocStart, prevNode, lastNode);
     }
   }
 
-  private void createForLoopEndStartEdges(final IASTExpression exp, final int filelocStart, CFANode loopEnd,
-      final CFANode loopStart) throws AssertionError {
-    final CAstNode node = astCreator.convertExpressionWithSideEffects(exp);
+  /**
+   * Create a statement edge for an expression (which may not be an expression list).
+   * @param expression The expression to put at the edge.
+   * @param filelocStart The file location.
+   * @param prevNode The predecessor of the new edge.
+   * @param lastNode The successor of the new edge
+   *         (may be null, in this case, a new node is created).
+   * @return The successor of the new edge.
+   */
+  private CFANode createEdgeForSingleExpression(final IASTExpression expression,
+      final int filelocStart, CFANode prevNode, @Nullable CFANode lastNode) {
+    assert expression != null;
+    assert !(expression instanceof IASTExpressionList);
 
-    if (exp != null) {
-      loopEnd = insertSideAssignments(loopEnd, astCreator.getAndResetPreSideAssignments(), exp.getRawSignature(), filelocStart);
+    final CStatement stmt = astCreator.convertExpressionToStatement(expression, expression.getFileLocation());
+
+    prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), expression.getRawSignature(), filelocStart);
+
+    if (lastNode == null) {
+      lastNode = newCFANode(filelocStart);
     }
 
-    if (exp == null) {
-      // ignore, only add blankEdge
-      final BlankEdge blankEdge = new BlankEdge("", filelocStart, loopEnd, loopStart, "");
-      addToCFA(blankEdge);
-
-      // "counter;"
-    } else if (node instanceof CIdExpression) {
-      final BlankEdge blankEdge = new BlankEdge(node.toASTString(),
-          filelocStart, loopEnd, loopStart, "");
-      addToCFA(blankEdge);
-
-      // "counter++;"
-    } else if (node instanceof CExpressionAssignmentStatement) {
-      final CStatementEdge lastEdge = new CStatementEdge(exp.getRawSignature(),
-          (CExpressionAssignmentStatement) node, filelocStart, loopEnd, loopStart);
-      addToCFA(lastEdge);
-
-    } else if (node instanceof CFunctionCallAssignmentStatement) {
-      final CStatementEdge edge = new CStatementEdge(exp.getRawSignature(),
-          (CFunctionCallAssignmentStatement)node, filelocStart, loopEnd, loopStart);
-      addToCFA(edge);
-
-    } else { // TODO: are there other iteration-expressions in a for-loop?
-      throw new AssertionError("CFABuilder: unknown iteration-expressions in for-statement:\n"
-          + exp.getClass());
-    }
+    final CStatementEdge lastEdge = new CStatementEdge(expression.getRawSignature(), stmt, filelocStart, prevNode, lastNode);
+    addToCFA(lastEdge);
+    return lastNode;
   }
 
   /**
