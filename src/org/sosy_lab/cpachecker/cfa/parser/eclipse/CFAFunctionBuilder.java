@@ -965,7 +965,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
       if (ASTConverter.isBooleanExpression(exp)) {
-        addConditionEdges(exp, rootNode, thenNodeForLastThen, elseNodeForLastElse);
+        addConditionEdges(exp, rootNode, thenNodeForLastThen, elseNodeForLastElse,
+            condition.getFileLocation().getStartingLineNumber());
 
       } else {
         // build new boolean expression: a==0 and switch branches
@@ -975,7 +976,8 @@ class CFAFunctionBuilder extends ASTVisitor {
         CExpression conv =
             new CBinaryExpression(exp.getFileLocation(), exp.getExpressionType(), exp, zero, BinaryOperator.EQUALS);
 
-        addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen);
+        addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen,
+            condition.getFileLocation().getStartingLineNumber());
       }
     }
   }
@@ -985,15 +987,16 @@ class CFAFunctionBuilder extends ASTVisitor {
    * 2. falseEdge from rootNode to elseNode.
    * @category conditions
    */
-  private void addConditionEdges(CExpression condition, CFANode rootNode, CFANode thenNode, CFANode elseNode) {
+  private void addConditionEdges(CExpression condition, CFANode rootNode,
+      CFANode thenNode, CFANode elseNode, int filelocStart) {
     // edge connecting condition with thenNode
     final CAssumeEdge trueEdge = new CAssumeEdge(condition.toASTString(),
-        rootNode.getLineNumber(), rootNode, thenNode, condition, true);
+        filelocStart, rootNode, thenNode, condition, true);
     addToCFA(trueEdge);
 
     // edge connecting condition with elseNode
     final CAssumeEdge falseEdge = new CAssumeEdge("!(" + condition.toASTString() + ")",
-        rootNode.getLineNumber(), rootNode, elseNode, condition, false);
+        filelocStart, rootNode, elseNode, condition, false);
     addToCFA(falseEdge);
   }
 
@@ -1333,15 +1336,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     switchCaseStack.push(notCaseNode);
     locStack.push(caseNode);
 
-    // edge connecting rootNode with notCaseNode, "!(a==2)"
-    final CAssumeEdge assumeEdgeFalse = new CAssumeEdge("!(" + binExp.toASTString() + ")",
-        filelocStart, rootNode, notCaseNode, binExp, false);
-    addToCFA(assumeEdgeFalse);
-
-    // edge connecting rootNode with caseNode, "a==2"
-    final CAssumeEdge assumeEdgeTrue = new CAssumeEdge(binExp.toASTString(),
-        filelocStart, rootNode, caseNode, binExp, true);
-    addToCFA(assumeEdgeTrue);
+    addConditionEdges(binExp, rootNode, caseNode, notCaseNode, filelocStart);
   }
 
   /**
