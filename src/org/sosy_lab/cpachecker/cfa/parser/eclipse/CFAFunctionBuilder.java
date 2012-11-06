@@ -891,7 +891,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @return The node after the last inserted edge.
    */
   private CFANode createInitEdgeForForLoop(final IASTStatement statement,
-      final int filelocStart, final CFANode loopInit) {
+      final int filelocStart, CFANode prevNode) {
 
     // "int counter = 0;"
     if (statement instanceof IASTDeclarationStatement) {
@@ -899,7 +899,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       if (!(decl instanceof IASTSimpleDeclaration)) {
         throw new CFAGenerationRuntimeException("unknown init-statement in for-statement", decl);
       }
-      return addDeclarationsToCFA((IASTSimpleDeclaration)decl, filelocStart, loopInit);
+      return addDeclarationsToCFA((IASTSimpleDeclaration)decl, filelocStart, prevNode);
 
     // "counter = 0;"
     } else if (statement instanceof IASTExpressionStatement) {
@@ -909,29 +909,29 @@ class CFAFunctionBuilder extends ASTVisitor {
       if (expStatement.getExpression() instanceof IASTExpressionList) {
         IASTExpression[] expressions = ((IASTExpressionList) expStatement.getExpression()).getExpressions();
         CFANode nextNode = null;
-        CFANode previousNode = loopInit;
 
         for (int i = 0; i < expressions.length; i++) {
           nextNode = newCFANode(filelocStart);
-          createForLoopEndStartEdges(expressions[i], filelocStart, previousNode, nextNode);
-          previousNode = nextNode;
+          createForLoopEndStartEdges(expressions[i], filelocStart, prevNode, nextNode);
+          prevNode = nextNode;
         }
 
         return nextNode;
       } else {
 
-        final CFANode nextNode = newCFANode(filelocStart);
+        final CStatement stmt = astCreator.convert((IASTExpressionStatement) statement);
+        prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), expStatement.getRawSignature(), filelocStart);
 
+        final CFANode nextNode = newCFANode(filelocStart);
         final CStatementEdge initEdge = new CStatementEdge(statement.getRawSignature(),
-            astCreator.convert((IASTExpressionStatement) statement),
-            filelocStart, loopInit, nextNode);
+            stmt, filelocStart, prevNode, nextNode);
         addToCFA(initEdge);
         return nextNode;
       }
       //";"
     } else if (statement instanceof IASTNullStatement) {
       // no edge inserted
-      return loopInit;
+      return prevNode;
 
     } else { // TODO: are there other init-statements in a for-loop?
       throw new CFAGenerationRuntimeException("unknown init-statement in for-statement", statement);
