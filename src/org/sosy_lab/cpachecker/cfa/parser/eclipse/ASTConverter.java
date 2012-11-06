@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Character.isDigit;
 
 import java.math.BigDecimal;
@@ -30,9 +31,9 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -79,7 +80,6 @@ import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
-import org.eclipse.cdt.core.dom.ast.ICompositeType;
 import org.eclipse.cdt.core.dom.ast.IField;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -142,6 +142,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 @SuppressWarnings("deprecation") // several methods are deprecated in CDT 7 but still working
 class ASTConverter {
@@ -155,8 +156,9 @@ class ASTConverter {
   private IASTConditionalExpression conditionalExpression = null;
   private CIdExpression conditionalTemporaryVariable = null;
 
-  // list for all complextypes which are known, so that they don't have to be parsed again and again
-  private final List<Pair<ICompositeType, CCompositeType>> iCompTypeList = Lists.newArrayList();
+  // cache for all ITypes, so that they don't have to be parsed again and again
+  // (Eclipse seems to give us identical objects for identical types already).
+  private final Map<org.eclipse.cdt.core.dom.ast.IType, CType> typeConversions = Maps.newIdentityHashMap();
 
 
   public ASTConverter(Scope pScope, LogManager pLogger) {
@@ -1504,7 +1506,17 @@ class ASTConverter {
     return declarator.getFirst();
   }
 
+
   private CType convert(org.eclipse.cdt.core.dom.ast.IType t) {
+    CType result = typeConversions.get(t);
+    if (result == null) {
+      result = checkNotNull(convert0(t));
+      typeConversions.put(t, result);
+    }
+    return result;
+  }
+
+  private CType convert0(org.eclipse.cdt.core.dom.ast.IType t) {
     if (t instanceof org.eclipse.cdt.core.dom.ast.IBasicType) {
       return convert((org.eclipse.cdt.core.dom.ast.IBasicType)t);
 
@@ -1517,22 +1529,18 @@ class ASTConverter {
     } else if(t instanceof org.eclipse.cdt.core.dom.ast.ICompositeType) {
       org.eclipse.cdt.core.dom.ast.ICompositeType ct = (org.eclipse.cdt.core.dom.ast.ICompositeType) t;
 
-      Iterator<Pair<ICompositeType, CCompositeType>> it = iCompTypeList.iterator();
-      while(it.hasNext()) {
-        Pair<org.eclipse.cdt.core.dom.ast.ICompositeType, CCompositeType> iType = it.next();
-        if(ct.isSameType(iType.getFirst())) {
-          return iType.getSecond();
-        }
-      }
-
       // empty linkedList for the Fields of the struct, they are created afterwards
       // with the right references in case of pointers to a struct of the same type
       // otherwise they would not point to the correct struct
       // TODO: volatile and const cannot be checked here until no, so both is set
       //       to false
       CCompositeType compType = new CCompositeType(false, false, ct.getKey(), new LinkedList<CCompositeTypeMemberDeclaration>(), ct.getName());
-      Pair<ICompositeType, CCompositeType> prototype = Pair.of(ct, compType);
-      iCompTypeList.add(prototype);
+
+      // We need to cache compType before converting the type of its fields!
+      // Otherwise we run into an infinite recursion if the type of one field
+      // is (a pointer to) the struct itself.
+      typeConversions.put(t, compType);
+
       compType.setMembers(convert(ct.getFields()));
 
       return compType;
