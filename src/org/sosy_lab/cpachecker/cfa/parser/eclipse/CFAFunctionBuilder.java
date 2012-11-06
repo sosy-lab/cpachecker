@@ -887,10 +887,11 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private CONDITION getConditionKind(final IASTExpression cond) {
       if (cond instanceof IASTLiteralExpression) {
-          if (((IASTLiteralExpression)cond).getKind() ==
-              IASTLiteralExpression.lk_integer_constant) {
-              int c = Integer.parseInt(cond.getRawSignature());
-              if (c == 0) {
+          IASTLiteralExpression literalExpression = (IASTLiteralExpression) cond;
+          if (literalExpression.getKind() == IASTLiteralExpression.lk_integer_constant) {
+              String s = String.valueOf(literalExpression.getValue());
+              BigInteger i = astCreator.parseIntegerLiteral(s, cond);
+              if (i.equals(BigInteger.ZERO)) {
                 return CONDITION.ALWAYS_FALSE;
               } else {
                 return CONDITION.ALWAYS_TRUE;
