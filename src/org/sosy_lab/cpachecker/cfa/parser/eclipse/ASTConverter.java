@@ -148,15 +148,15 @@ class ASTConverter {
 
   private final LogManager logger;
 
-  private Scope scope;
+  private final Scope scope;
 
-  private LinkedList<CAstNode> preSideAssignments = new LinkedList<CAstNode>();
-  private LinkedList<CAstNode> postSideAssignments = new LinkedList<CAstNode>();
+  private final List<CAstNode> preSideAssignments = new ArrayList<CAstNode>();
+  private final List<CAstNode> postSideAssignments = new ArrayList<CAstNode>();
   private IASTConditionalExpression conditionalExpression = null;
   private CIdExpression conditionalTemporaryVariable = null;
 
   // list for all complextypes which are known, so that they don't have to be parsed again and again
-  private ArrayList<Pair<org.eclipse.cdt.core.dom.ast.ICompositeType, CCompositeType>> iCompTypeList = Lists.newArrayList();
+  private final List<Pair<ICompositeType, CCompositeType>> iCompTypeList = Lists.newArrayList();
 
 
   public ASTConverter(Scope pScope, LogManager pLogger) {
@@ -170,21 +170,16 @@ class ASTConverter {
     }
   }
 
-  public int numberOfPreSideAssignments(){
-    return preSideAssignments.size();
+  public List<CAstNode> getAndResetPreSideAssignments() {
+    List<CAstNode> result = new ArrayList<CAstNode>(preSideAssignments);
+    preSideAssignments.clear();
+    return result;
   }
 
-
-  public CAstNode getNextPreSideAssignment() {
-    return preSideAssignments.removeFirst();
-  }
-
-  public int numberOfPostSideAssignments(){
-    return postSideAssignments.size();
-  }
-
-  public CAstNode getNextPostSideAssignment() {
-    return postSideAssignments.removeFirst();
+  public List<CAstNode> getAndResetPostSideAssignments() {
+    List<CAstNode> result = new ArrayList<CAstNode>(postSideAssignments);
+    postSideAssignments.clear();
+    return result;
   }
 
   public void resetConditionalExpression() {
@@ -838,7 +833,12 @@ class ASTConverter {
   }
 
   public CStatement convert(final IASTExpressionStatement s) {
-    CAstNode node = convertExpressionWithSideEffects(s.getExpression());
+    return convertExpressionToStatement(s.getExpression(), s.getFileLocation());
+  }
+
+  public CStatement convertExpressionToStatement(final IASTExpression e,
+      final IASTFileLocation fileLoc) {
+    CAstNode node = convertExpressionWithSideEffects(e);
 
     if (node instanceof CExpressionAssignmentStatement) {
       return (CExpressionAssignmentStatement)node;
@@ -847,10 +847,10 @@ class ASTConverter {
       return (CFunctionCallAssignmentStatement)node;
 
     } else if (node instanceof CFunctionCallExpression) {
-      return new CFunctionCallStatement(convert(s.getFileLocation()), (CFunctionCallExpression)node);
+      return new CFunctionCallStatement(convert(fileLoc), (CFunctionCallExpression)node);
 
     } else if (node instanceof CExpression) {
-      return new CExpressionStatement(convert(s.getFileLocation()), (CExpression)node);
+      return new CExpressionStatement(convert(fileLoc), (CExpression)node);
 
     } else {
       throw new AssertionError();

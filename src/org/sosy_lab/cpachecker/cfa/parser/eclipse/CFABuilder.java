@@ -61,7 +61,7 @@ import com.google.common.collect.TreeMultimap;
 class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
-  private Queue<IASTFunctionDefinition> functionDeclarations = new LinkedList<IASTFunctionDefinition>();
+  private final Queue<IASTFunctionDefinition> functionDeclarations = new LinkedList<IASTFunctionDefinition>();
   private final Map<String, FunctionEntryNode> cfas = new HashMap<String, FunctionEntryNode>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
@@ -123,7 +123,8 @@ class CFABuilder extends ASTVisitor {
 
       // add forward declaration to list of global declarations
       CDeclaration functionDefinition = astCreator.convert(fd);
-      if (astCreator.numberOfPreSideAssignments() > 0) {
+      if (!astCreator.getAndResetPreSideAssignments().isEmpty()
+          || !astCreator.getAndResetPostSideAssignments().isEmpty()) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
 
@@ -164,7 +165,8 @@ class CFABuilder extends ASTVisitor {
     final List<CDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
-    if (astCreator.numberOfPreSideAssignments() > 0) {
+    if (!astCreator.getAndResetPreSideAssignments().isEmpty()
+        || !astCreator.getAndResetPostSideAssignments().isEmpty()) {
       throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
     }
 
@@ -208,6 +210,8 @@ class CFABuilder extends ASTVisitor {
       }
       cfas.put(functionName, startNode);
       cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
+
+      functionBuilder.finish();
     }
     return PROCESS_CONTINUE;
   }
