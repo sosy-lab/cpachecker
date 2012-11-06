@@ -261,7 +261,7 @@ class PredicateCPAStatistics implements Statistics {
       for (AbstractionPredicate pred : allPredicates) {
         String s = cpa.getFormulaManager().dumpFormula(pred.getSymbolicAtom());
         List<String> lines = Lists.newArrayList(LINE_SPLITTER.split(s));
-        assert lines.size() > 1;
+        assert !lines.isEmpty();
         String predString = lines.get(lines.size()-1);
         lines.remove(lines.size()-1);
         if (!(predString.startsWith("(assert ") && predString.endsWith(")"))) {
