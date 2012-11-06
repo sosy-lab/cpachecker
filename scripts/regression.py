@@ -299,7 +299,7 @@ def main(args=None):
     )
     options = parser.parse_args(args[1:])
 
-    compareResults(options.tables, options)
+    compareResults(options)
 
 
 if __name__ == '__main__':
