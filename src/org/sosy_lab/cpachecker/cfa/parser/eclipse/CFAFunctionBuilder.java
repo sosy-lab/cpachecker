@@ -1059,9 +1059,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     final CFANode firstLoopNode = newCFANode(fileloc);
 
-    final CFANode postLoopNode = new CLabelNode(fileloc.getEndingLineNumber(),
-        cfa.getFunctionName(), "");
-    cfaNodes.add(postLoopNode);
+    final CFANode postLoopNode = newCFANode(fileloc.getEndingLineNumber());
     loopNextStack.push(postLoopNode);
 
     // inverse order here!
@@ -1136,8 +1134,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CFANode loopEnd;
     final IASTExpression iterationExpression = forStatement.getIterationExpression();
     if (iterationExpression != null) {
-      loopEnd = new CLabelNode(filelocStart, cfa.getFunctionName(), "");
-      cfaNodes.add(loopEnd);
+      loopEnd = newCFANode(filelocStart);
     } else {
       loopEnd = loopStart;
     }
@@ -1147,9 +1144,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CFANode firstLoopNode = newCFANode(filelocStart);
 
     // postLoopNode is Node after "!(counter < 5)"
-    final CFANode postLoopNode = new CLabelNode(
-        fileloc.getEndingLineNumber(), cfa.getFunctionName(), "");
-    cfaNodes.add(postLoopNode);
+    final CFANode postLoopNode = newCFANode(fileloc.getEndingLineNumber());
     loopNextStack.push(postLoopNode);
 
     // inverse order here!
@@ -1281,10 +1276,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     switchCaseStack.push(firstSwitchNode);
 
     // postSwitchNode is Node after the switch-statement
-    final CFANode postSwitchNode =
-        new CLabelNode(fileloc.getEndingLineNumber(),
-            cfa.getFunctionName(), "");
-    cfaNodes.add(postSwitchNode);
+    final CFANode postSwitchNode = newCFANode(fileloc.getEndingLineNumber());
     loopNextStack.push(postSwitchNode);
     locStack.push(postSwitchNode);
 

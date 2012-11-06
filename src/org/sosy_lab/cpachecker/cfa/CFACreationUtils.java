@@ -95,14 +95,12 @@ public class CFACreationUtils {
   /**
    * Returns true if a node is reachable, that is if it contains an incoming edge.
    * Label nodes and function start nodes are always considered to be reachable.
-   * If a LabelNode has an empty labelText, it is not reachable through gotos.
    */
   public static boolean isReachableNode(CFANode node) {
     return (node.getNumEnteringEdges() > 0)
         || (node instanceof FunctionEntryNode)
         || (node.isLoopStart())
-        || ((node instanceof CLabelNode)
-            && !((CLabelNode)node).getLabel().isEmpty());
+        || (node instanceof CLabelNode);
   }
 
   /**
