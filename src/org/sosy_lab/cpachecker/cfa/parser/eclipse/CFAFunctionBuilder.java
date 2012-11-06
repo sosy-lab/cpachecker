@@ -115,8 +115,8 @@ import com.google.common.collect.Multimap;
 /**
  * Builder to traverse AST.
  * Known Limitations:
- * <p> -- K&R style function definitions not implemented
- * <p> -- Pointer modifiers not tracked (i.e. const, volatile, etc. for *
+ * -- K&R style function definitions not implemented
+ * -- Inlined assembler code is ignored
  */
 class CFAFunctionBuilder extends ASTVisitor {
 
@@ -214,7 +214,6 @@ class CFAFunctionBuilder extends ASTVisitor {
       return PROCESS_SKIP;
 
     } else if (declaration instanceof IASTASMDeclaration) {
-      // TODO Assembler code is ignored here
       return ignoreASMDeclaration(fileloc, declaration);
 
     } else {
@@ -328,7 +327,6 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category declarations
    */
   private int ignoreASMDeclaration(final IASTFileLocation fileloc, final IASTNode asmCode) {
-    // TODO Assembler code is ignored here
     logger.log(Level.FINER, "Ignoring inline assembler code at line", fileloc.getStartingLineNumber());
 
     if (!printedAsmWarning) {
@@ -477,7 +475,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else if (statement instanceof IASTNullStatement) {
       // We really don't care about blank statements
     } else if (statement instanceof IASTDeclarationStatement) {
-      // TODO: I think we can ignore these here...
+      // these are handled by visit(IASTDeclaration)
     } else if (statement instanceof IASTProblemStatement) {
       visit(((IASTProblemStatement)statement).getProblem());
     } else if (statement instanceof IASTDoStatement) {
@@ -1211,7 +1209,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       // "int counter = 0;"
       final IASTDeclaration decl = ((IASTDeclarationStatement)statement).getDeclaration();
       if (!(decl instanceof IASTSimpleDeclaration)) {
-        throw new CFAGenerationRuntimeException("unknown init-statement in for-statement", decl);
+        throw new CFAGenerationRuntimeException("Unexpected declaration in header of for loop", decl);
       }
       return createEdgeForDeclaration((IASTSimpleDeclaration)decl, filelocStart, prevNode);
 
@@ -1224,8 +1222,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       //";", no edge inserted
       return prevNode;
 
-    } else { // TODO: are there other init-statements in a for-loop?
-      throw new CFAGenerationRuntimeException("unknown init-statement in for-statement", statement);
+    } else {
+      throw new CFAGenerationRuntimeException("Unexpected statement type in header of for loop", statement);
     }
   }
 
