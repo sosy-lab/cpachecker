@@ -862,9 +862,10 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
   /**
-   * This function creates the edges of a condition:
-   * - If ALWAYS_TRUE or ALWAYS_FALSE only one blankEdge is created.
-   * - If NORMAL two edges are created: one 'then'-edge and one 'else'-edge.
+   * This function creates the edges of a condition.
+   * It expands the shortcutting operators && and || into several edges,
+   * and it skips branches that are not reachable
+   * (e.g., for "if (0) { }").
    * @category conditions
    */
   private void createConditionEdges(final IASTExpression condition,
@@ -873,33 +874,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     assert condition != null;
 
-    final CONDITION kind = getConditionKind(condition);
-    String rawSignature = condition.getRawSignature();
-
-    switch (kind) {
-    case ALWAYS_FALSE:
-      // no edge connecting rootNode with thenNode,
-      // so the "then" branch won't be connected to the rest of the CFA
-
-      final BlankEdge falseEdge = new BlankEdge(rawSignature, filelocStart, rootNode, elseNode, "");
-      addToCFA(falseEdge);
-      break;
-
-    case ALWAYS_TRUE:
-      final BlankEdge trueEdge = new BlankEdge(rawSignature, filelocStart, rootNode, thenNode, "");
-      addToCFA(trueEdge);
-
-      // no edge connecting prevNode with elseNode,
-      // so the "else" branch won't be connected to the rest of the CFA
-      break;
-
-    case NORMAL:
-        buildConditionTree(condition, filelocStart, rootNode, thenNode, elseNode, thenNode, elseNode, true, true);
-      break;
-
-    default:
-      throw new InternalError("Missing switch clause");
-    }
+    buildConditionTree(condition, filelocStart, rootNode, thenNode, elseNode, thenNode, elseNode, true, true);
   }
 
   /**
@@ -958,9 +933,33 @@ class CFAFunctionBuilder extends ASTVisitor {
       buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true);
 
     } else {
+      final CONDITION kind = getConditionKind(condition);
+      String rawSignature = condition.getRawSignature();
+
+      switch (kind) {
+      case ALWAYS_FALSE:
+        // no edge connecting rootNode with thenNode,
+        // so the "then" branch won't be connected to the rest of the CFA
+
+        final BlankEdge falseEdge = new BlankEdge(rawSignature, filelocStart, rootNode, elseNode, "");
+        addToCFA(falseEdge);
+        return;
+
+      case ALWAYS_TRUE:
+        final BlankEdge trueEdge = new BlankEdge(rawSignature, filelocStart, rootNode, thenNode, "");
+        addToCFA(trueEdge);
+
+        // no edge connecting prevNode with elseNode,
+        // so the "else" branch won't be connected to the rest of the CFA
+        return;
+
+      default:
+        throw new AssertionError();
+
+      case NORMAL:
+      }
 
       final CExpression exp = astCreator.convertExpressionWithoutSideEffects(condition);
-      String rawSignature = condition.getRawSignature();
 
       rootNode = handleAllSideEffects(rootNode, filelocStart, rawSignature, true);
 
