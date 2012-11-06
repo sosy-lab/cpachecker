@@ -865,9 +865,11 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CFANode lastNodeInLoop = locStack.pop();
 
     // loopEnd is the Node before "counter++;"
-    assert loopEnd == loopStartStack.pop();
-    assert postLoopNode == loopNextStack.pop();
+    assert loopEnd == loopStartStack.peek();
+    assert postLoopNode == loopNextStack.peek();
     assert postLoopNode == locStack.peek();
+    loopStartStack.pop();
+    loopNextStack.pop();
 
     if (isReachableNode(lastNodeInLoop)) {
       final BlankEdge blankEdge = new BlankEdge("", lastNodeInLoop.getLineNumber(),
