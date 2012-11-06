@@ -464,36 +464,45 @@ class CFAFunctionBuilder extends ASTVisitor {
         loopStart, firstLoopNode, postLoopNode);
   }
 
+  /**
+   * This methods handles all side effects and an eventual ternary operator.
+   * @param prevNode The CFANode where to start adding edges.
+   * @param filelocStart The file location.
+   * @param rawSignature The raw signature.
+   * @param resultIsUsed In case a ternary operator exists, is the result used in some computation?
+   *         (Otherwise we can omit the temporary variable.)
+   * @return The last CFANode that was created.
+   */
   private CFANode handleAllSideEffects(CFANode prevNode, final int filelocStart,
-      String rawSignature) {
+      final String rawSignature, final boolean resultIsUsed) {
 
     if (astCreator.getConditionalExpression() != null) {
       // in this case, there's a ternary operator
       IASTConditionalExpression condExp = astCreator.getConditionalExpression();
       astCreator.resetConditionalExpression();
 
-      prevNode = handleTernaryOperator(condExp, prevNode, false);
+      prevNode = handleTernaryOperator(condExp, prevNode, resultIsUsed);
 
     } else {
-      prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), rawSignature, filelocStart);
+      prevNode = createEdgesForSideEffects(prevNode, astCreator.getAndResetPreSideAssignments(), rawSignature, filelocStart);
     }
 
     return prevNode;
   }
 
   private CFANode handleTernaryOperator(IASTConditionalExpression condExp,
-      CFANode rootNode, boolean resultIsUnused) {
+      CFANode rootNode, boolean resultIsUsed) {
     int filelocStart = condExp.getFileLocation().getStartingLineNumber();
 
     CIdExpression tempVar;
-    if (resultIsUnused) {
+    if (resultIsUsed) {
+      tempVar = astCreator.getConditionalTemporaryVariable();
+      rootNode = createEdgesForSideEffects(rootNode, astCreator.getAndResetPreSideAssignments(), condExp.getRawSignature(), filelocStart);
+
+    } else {
       tempVar = null;
       // ignore side assignments
       astCreator.getAndResetPreSideAssignments();
-
-    } else {
-      tempVar = astCreator.getConditionalTemporaryVariable();
-      rootNode = insertSideAssignments(rootNode, astCreator.getAndResetPreSideAssignments(), condExp.getRawSignature(), filelocStart);
     }
 
     CFANode thenNode = newCFANode(filelocStart);
@@ -502,19 +511,19 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode lastNode = newCFANode(filelocStart);
 
-    createTernaryOperatorEdges(condExp.getPositiveResultExpression(), lastNode, filelocStart, thenNode, tempVar);
-    createTernaryOperatorEdges(condExp.getNegativeResultExpression(), lastNode, filelocStart, elseNode, tempVar);
+    createEdgesForTernaryOperatorBranch(condExp.getPositiveResultExpression(), lastNode, filelocStart, thenNode, tempVar);
+    createEdgesForTernaryOperatorBranch(condExp.getNegativeResultExpression(), lastNode, filelocStart, elseNode, tempVar);
 
     return lastNode;
   }
 
-  private void createTernaryOperatorEdges(IASTExpression condExp,
+  private void createEdgesForTernaryOperatorBranch(IASTExpression condExp,
       CFANode lastNode, int filelocStart, CFANode prevNode, @Nullable CIdExpression tempVar) {
     CAstNode exp = astCreator.convertExpressionWithSideEffects(condExp);
 
     if (astCreator.getConditionalExpression() == null) {
 
-      prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), exp.toASTString(), filelocStart);
+      prevNode = createEdgesForSideEffects(prevNode, astCreator.getAndResetPreSideAssignments(), exp.toASTString(), filelocStart);
 
       if (exp instanceof CStatement) {
         assert exp instanceof CAssignment;
@@ -535,19 +544,46 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     } else {
       // nested ternary operator
-      IASTConditionalExpression innerCondExp = astCreator.getConditionalExpression();
-      astCreator.resetConditionalExpression();
       assert exp instanceof CRightHandSide;
+      boolean resultIsUsed = (tempVar != null) || exp != astCreator.getConditionalTemporaryVariable();
 
-      boolean resultIsUnused = (tempVar == null) && exp == astCreator.getConditionalTemporaryVariable();
-      prevNode = handleTernaryOperator(innerCondExp, prevNode, resultIsUnused);
-      if (resultIsUnused) {
-        addToCFA(new BlankEdge("", filelocStart, prevNode, lastNode, ""));
-      } else {
+      prevNode = handleAllSideEffects(prevNode, filelocStart, condExp.getRawSignature(), resultIsUsed);
+
+      if (resultIsUsed) {
         CStatement stmt = createStatement(condExp.getFileLocation(), tempVar, (CRightHandSide)exp);
         addToCFA(new CStatementEdge(stmt.toASTString(), stmt, filelocStart, prevNode, lastNode));
+      } else {
+        addToCFA(new BlankEdge("", filelocStart, prevNode, lastNode, ""));
       }
     }
+  }
+
+  /**
+   * This method creates statement and declaration edges for all given sideassignments.
+   *
+   * @return the nextnode
+   */
+  private CFANode createEdgesForSideEffects(CFANode prevNode, List<CAstNode> sideeffects, String rawSignature, int filelocStart) {
+    for (CAstNode sideeffect : sideeffects) {
+      CFANode nextNode = newCFANode(filelocStart);
+
+      if (sideeffect instanceof CExpression) {
+        sideeffect = new CExpressionStatement(sideeffect.getFileLocation(), (CExpression) sideeffect);
+      }
+
+      CFAEdge edge;
+      if (sideeffect instanceof CStatement) {
+        edge = new CStatementEdge(rawSignature, (CStatement)sideeffect, filelocStart, prevNode, nextNode);
+      } else if (sideeffect instanceof CDeclaration) {
+        edge = new CDeclarationEdge(rawSignature, filelocStart, prevNode, nextNode, (CDeclaration) sideeffect);
+      } else {
+        throw new AssertionError();
+      }
+      addToCFA(edge);
+      prevNode = nextNode;
+    }
+
+    return prevNode;
   }
 
   private CStatement createStatement(IASTFileLocation location,
@@ -609,26 +645,18 @@ class CFAFunctionBuilder extends ASTVisitor {
       CFANode prevNode, CStatement statement) {
 
     CFANode lastNode;
-    boolean useStatement = true;
+    boolean resultIsUsed = true;
 
     // in this case, there's a ternary operator
     if (astCreator.getConditionalExpression() != null) {
-      IASTConditionalExpression condExp = astCreator.getConditionalExpression();
-      astCreator.resetConditionalExpression();
-
       //evaluates to true if the ternary expressions return value is not used (i. e. var==0 ? 0 : 1;)
-      boolean resultIsUnused = ((statement instanceof CExpressionStatement)
-          && ((CExpressionStatement)statement).getExpression() == astCreator.getConditionalTemporaryVariable());
-
-      prevNode = handleTernaryOperator(condExp, prevNode, resultIsUnused);
-
-      useStatement = !resultIsUnused;
-
-    } else {
-      prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), rawSignature, fileloc.getStartingLineNumber());
+      resultIsUsed = (!(statement instanceof CExpressionStatement)
+          || ((CExpressionStatement)statement).getExpression() != astCreator.getConditionalTemporaryVariable());
     }
 
-    if (useStatement) {
+    prevNode = handleAllSideEffects(prevNode, fileloc.getStartingLineNumber(), rawSignature, resultIsUsed);
+
+    if (resultIsUsed) {
       lastNode = newCFANode(fileloc);
 
       CStatementEdge edge = new CStatementEdge(rawSignature, statement,
@@ -638,34 +666,6 @@ class CFAFunctionBuilder extends ASTVisitor {
       lastNode = prevNode;
     }
     return lastNode;
-  }
-
-  /**
-   * This method creates statement and declaration edges for all given sideassignments.
-   *
-   * @return the nextnode
-   */
-  private CFANode insertSideAssignments(CFANode prevNode, List<CAstNode> sideeffects, String rawSignature, int filelocStart) {
-    for (CAstNode sideeffect : sideeffects) {
-      CFANode nextNode = newCFANode(filelocStart);
-
-      if (sideeffect instanceof CExpression) {
-        sideeffect = new CExpressionStatement(sideeffect.getFileLocation(), (CExpression) sideeffect);
-      }
-
-      CFAEdge edge;
-      if (sideeffect instanceof CStatement) {
-        edge = new CStatementEdge(rawSignature, (CStatement)sideeffect, filelocStart, prevNode, nextNode);
-      } else if (sideeffect instanceof CDeclaration) {
-        edge = new CDeclarationEdge(rawSignature, filelocStart, prevNode, nextNode, (CDeclaration) sideeffect);
-      } else {
-        throw new AssertionError();
-      }
-      addToCFA(edge);
-      prevNode = nextNode;
-    }
-
-    return prevNode;
   }
 
   private static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE }
@@ -813,7 +813,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       final CExpression exp = astCreator.convertExpressionWithoutSideEffects(condition);
       String rawSignature = condition.getRawSignature();
 
-      rootNode = handleAllSideEffects(rootNode, filelocStart, rawSignature);
+      rootNode = handleAllSideEffects(rootNode, filelocStart, rawSignature, true);
 
       if (furtherThenComputation) {
         thenNodeForLastThen = thenNode;
@@ -974,7 +974,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     final List<CDeclaration> declList = astCreator.convert(sd);
     final String rawSignature = sd.getRawSignature();
 
-    prevNode = handleAllSideEffects(prevNode, filelocStart, rawSignature);
+    prevNode = handleAllSideEffects(prevNode, filelocStart, rawSignature, true);
 
     // create one edge for every declaration
     for (CDeclaration newD : declList) {
@@ -993,7 +993,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       prevNode = nextNode;
     }
-    prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPostSideAssignments(), rawSignature, filelocStart);
+    prevNode = createEdgesForSideEffects(prevNode, astCreator.getAndResetPostSideAssignments(), rawSignature, filelocStart);
 
     return prevNode;
   }
@@ -1032,7 +1032,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       String rawSignature = expression.getRawSignature();
       final CStatement stmt = astCreator.convertExpressionToStatement(expression, expression.getFileLocation());
 
-      prevNode = handleAllSideEffects(prevNode, filelocStart, rawSignature);
+      prevNode = handleAllSideEffects(prevNode, filelocStart, rawSignature, true);
 
       if (lastNode == null) {
         lastNode = newCFANode(filelocStart);
@@ -1226,7 +1226,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     FunctionExitNode functionExitNode = cfa.getExitNode();
 
     CReturnStatement returnstmt = astCreator.convert(returnStatement);
-    prevNode = handleAllSideEffects(prevNode, returnstmt.getFileLocation().getStartingLineNumber(), returnStatement.getRawSignature());
+    prevNode = handleAllSideEffects(prevNode, returnstmt.getFileLocation().getStartingLineNumber(), returnStatement.getRawSignature(), true);
 
     CReturnStatementEdge edge = new CReturnStatementEdge(returnStatement.getRawSignature(),
     returnstmt, fileloc.getStartingLineNumber(), prevNode, functionExitNode);
@@ -1244,7 +1244,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     CExpression switchExpression = astCreator
         .convertExpressionWithoutSideEffects(statement
             .getControllerExpression());
-    prevNode = handleAllSideEffects(prevNode, switchExpression.getFileLocation().getStartingLineNumber(), statement.getRawSignature());
+    prevNode = handleAllSideEffects(prevNode, switchExpression.getFileLocation().getStartingLineNumber(), statement.getRawSignature(), true);
 
     // firstSwitchNode is first Node of switch-Statement.
     final CFANode firstSwitchNode = newCFANode(fileloc);
