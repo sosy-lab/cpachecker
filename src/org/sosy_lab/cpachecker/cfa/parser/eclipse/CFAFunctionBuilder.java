@@ -508,9 +508,14 @@ class CFAFunctionBuilder extends ASTVisitor {
       astCreator.resetConditionalExpression();
       assert exp instanceof CRightHandSide;
 
-      prevNode = handleTernaryOperator(innerCondExp, prevNode, false);
-      CStatement stmt = createStatement(condExp.getFileLocation(), tempVar, (CRightHandSide)exp);
-      addToCFA(new CStatementEdge(stmt.toASTString(), stmt, filelocStart, prevNode, lastNode));
+      boolean resultIsUnused = (tempVar == null) && exp == astCreator.getConditionalTemporaryVariable();
+      prevNode = handleTernaryOperator(innerCondExp, prevNode, resultIsUnused);
+      if (resultIsUnused) {
+        addToCFA(new BlankEdge("", filelocStart, prevNode, lastNode, ""));
+      } else {
+        CStatement stmt = createStatement(condExp.getFileLocation(), tempVar, (CRightHandSide)exp);
+        addToCFA(new CStatementEdge(stmt.toASTString(), stmt, filelocStart, prevNode, lastNode));
+      }
     }
   }
 
@@ -578,14 +583,10 @@ class CFAFunctionBuilder extends ASTVisitor {
       IASTConditionalExpression condExp = astCreator.getConditionalExpression();
       astCreator.resetConditionalExpression();
 
-      //unpack unaryExpressions if there are some
-      IASTNode parentExp = condExp.getParent();
-      while(parentExp instanceof IASTUnaryExpression) {
-        parentExp = parentExp.getParent();
-      }
-
       //evaluates to true if the ternary expressions return value is not used (i. e. var==0 ? 0 : 1;)
-      boolean resultIsUnused = (parentExp instanceof IASTExpressionStatement);
+      boolean resultIsUnused = ((statement instanceof CExpressionStatement)
+          && ((CExpressionStatement)statement).getExpression() == astCreator.getConditionalTemporaryVariable());
+
       lastNode = handleTernaryOperator(condExp, prevNode, resultIsUnused);
 
       if (!resultIsUnused) {
