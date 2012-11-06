@@ -1863,6 +1863,8 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
             status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
         elif 'Could not reserve enough space for object heap' in line:
             status = 'JAVA HEAP ERROR'
+        elif line.startswith('Error: '):
+            status = 'ERROR'
         
         elif line.startswith('Verification result: '):
             line = line[21:].strip()
