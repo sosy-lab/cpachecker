@@ -999,7 +999,9 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @return The successor of the new edge.
    */
   private CFANode createEdgeForExpression(final IASTExpression expression,
-      final int filelocStart, CFANode prevNode, final @Nullable CFANode lastNode) {
+      final int filelocStart, CFANode prevNode, @Nullable CFANode lastNode) {
+    assert expression != null;
+
     if (expression instanceof IASTExpressionList) {
       IASTExpression[] expressions = ((IASTExpressionList) expression).getExpressions();
       CFANode nextNode = null;
@@ -1011,42 +1013,26 @@ class CFAFunctionBuilder extends ASTVisitor {
           nextNode = newCFANode(filelocStart);
         }
 
-        createEdgeForSingleExpression(expressions[i], filelocStart, prevNode, nextNode);
+        createEdgeForExpression(expressions[i], filelocStart, prevNode, nextNode);
         prevNode = nextNode;
       }
 
       return nextNode;
+
     } else {
-      return createEdgeForSingleExpression(expression, filelocStart, prevNode, lastNode);
+      String rawSignature = expression.getRawSignature();
+      final CStatement stmt = astCreator.convertExpressionToStatement(expression, expression.getFileLocation());
+
+      prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), rawSignature, filelocStart);
+
+      if (lastNode == null) {
+        lastNode = newCFANode(filelocStart);
+      }
+
+      final CStatementEdge lastEdge = new CStatementEdge(rawSignature, stmt, filelocStart, prevNode, lastNode);
+      addToCFA(lastEdge);
+      return lastNode;
     }
-  }
-
-  /**
-   * Create a statement edge for an expression (which may not be an expression list).
-   * @param expression The expression to put at the edge.
-   * @param filelocStart The file location.
-   * @param prevNode The predecessor of the new edge.
-   * @param lastNode The successor of the new edge
-   *         (may be null, in this case, a new node is created).
-   * @return The successor of the new edge.
-   */
-  private CFANode createEdgeForSingleExpression(final IASTExpression expression,
-      final int filelocStart, CFANode prevNode, @Nullable CFANode lastNode) {
-    assert expression != null;
-    assert !(expression instanceof IASTExpressionList);
-
-    String rawSignature = expression.getRawSignature();
-    final CStatement stmt = astCreator.convertExpressionToStatement(expression, expression.getFileLocation());
-
-    prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), rawSignature, filelocStart);
-
-    if (lastNode == null) {
-      lastNode = newCFANode(filelocStart);
-    }
-
-    final CStatementEdge lastEdge = new CStatementEdge(rawSignature, stmt, filelocStart, prevNode, lastNode);
-    addToCFA(lastEdge);
-    return lastNode;
   }
 
   /**
@@ -1068,7 +1054,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else if (condition instanceof IASTExpressionList) {
       IASTExpression[] expl = ((IASTExpressionList) condition).getExpressions();
       for (int i = 0; i < expl.length - 1; i++) {
-        loopStart = createEdgeForSingleExpression(expl[i], filelocStart, loopStart, null);
+        loopStart = createEdgeForExpression(expl[i], filelocStart, loopStart, null);
       }
       createConditionEdges(expl[expl.length - 1], filelocStart, loopStart, firstLoopNode, postLoopNode);
     } else {
