@@ -838,7 +838,12 @@ class ASTConverter {
   }
 
   public CStatement convert(final IASTExpressionStatement s) {
-    CAstNode node = convertExpressionWithSideEffects(s.getExpression());
+    return convertExpressionToStatement(s.getExpression(), s.getFileLocation());
+  }
+
+  public CStatement convertExpressionToStatement(final IASTExpression e,
+      final IASTFileLocation fileLoc) {
+    CAstNode node = convertExpressionWithSideEffects(e);
 
     if (node instanceof CExpressionAssignmentStatement) {
       return (CExpressionAssignmentStatement)node;
@@ -847,10 +852,10 @@ class ASTConverter {
       return (CFunctionCallAssignmentStatement)node;
 
     } else if (node instanceof CFunctionCallExpression) {
-      return new CFunctionCallStatement(convert(s.getFileLocation()), (CFunctionCallExpression)node);
+      return new CFunctionCallStatement(convert(fileLoc), (CFunctionCallExpression)node);
 
     } else if (node instanceof CExpression) {
-      return new CExpressionStatement(convert(s.getFileLocation()), (CExpression)node);
+      return new CExpressionStatement(convert(fileLoc), (CExpression)node);
 
     } else {
       throw new AssertionError();

@@ -562,10 +562,11 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     if(exprStatement.getExpression() instanceof IASTExpressionList) {
       for(IASTExpression exp : ((IASTExpressionList) exprStatement.getExpression()).getExpressions()) {
-        CStatement statement = (CStatement) astCreator.convertExpressionWithSideEffects(exp);
+        CStatement statement = astCreator.convertExpressionToStatement(exp, exp.getFileLocation());
         lastNode = createIASTExpressionStatementEdges(rawSignature, fileloc, prevNode, statement);
         prevNode = lastNode;
       }
+      assert lastNode != null;
     } else {
       CStatement statement = astCreator.convert(exprStatement);
       lastNode = createIASTExpressionStatementEdges(rawSignature, fileloc, prevNode, statement);
