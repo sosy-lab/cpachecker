@@ -504,10 +504,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         handleTernaryExpressionTail(exp, filelocStart, prevNode, tmp, tempVar);
         prevNode = tmp;
       } else if (astCreator.numberOfPreSideAssignments() > 0){
-        tmp = new CFANode(filelocStart, cfa.getFunctionName());
-        cfaNodes.add(tmp);
-        handleSideassignments(prevNode, exp.toASTString(), filelocStart, tmp);
-        prevNode = tmp;
+        prevNode = handleSideassignments(prevNode, exp.toASTString(), filelocStart);
       }
 
       CStatementEdge edge;
@@ -554,10 +551,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         handleTernaryStatementTail(exp, filelocStart, prevNode, tmp);
         prevNode = tmp;
       } else if (astCreator.numberOfPreSideAssignments() > 0){
-        tmp = new CFANode(filelocStart, cfa.getFunctionName());
-        cfaNodes.add(tmp);
-        handleSideassignments(prevNode, exp.toASTString(), filelocStart, tmp);
-        prevNode = tmp;
+        prevNode = handleSideassignments(prevNode, exp.toASTString(), filelocStart);
       }
 
       CStatementEdge edge;
@@ -685,39 +679,17 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @return the nextnode
    */
   private CFANode handleSideassignments(CFANode prevNode, String rawSignature, int filelocStart) {
-    CFANode nextNode = null;
     while (astCreator.numberOfPreSideAssignments() > 0){
-      nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+      CAstNode sideeffect = astCreator.getNextPreSideAssignment();
+
+      CFANode nextNode = new CFANode(filelocStart, cfa.getFunctionName());
       cfaNodes.add(nextNode);
 
-      CAstNode sideeffect = astCreator.getNextPreSideAssignment();
-
       createSideAssignmentEdges(prevNode, nextNode, rawSignature, filelocStart, sideeffect);
       prevNode = nextNode;
     }
+
     return prevNode;
-  }
-
-  /**
-   * This method creates statement and declaration edges for all sideassignments
-   * with a specific last node.
-   */
-  private void handleSideassignments(CFANode prevNode, String rawSignature, int filelocStart, CFANode lastNode) {
-    CFANode nextNode = null;
-
-    while (astCreator.numberOfPreSideAssignments() > 0){
-      CAstNode sideeffect = astCreator.getNextPreSideAssignment();
-
-      if (astCreator.numberOfPreSideAssignments() > 0) {
-        nextNode = new CFANode(filelocStart, cfa.getFunctionName());
-        cfaNodes.add(nextNode);
-      } else {
-        nextNode = lastNode;
-      }
-
-      createSideAssignmentEdges(prevNode, nextNode, rawSignature, filelocStart, sideeffect);
-      prevNode = nextNode;
-    }
   }
 
   /**
@@ -1145,12 +1117,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       final CFANode loopStart) throws AssertionError {
     final CAstNode node = astCreator.convertExpressionWithSideEffects(exp);
 
-    CFANode nextNode;
     if (astCreator.numberOfPreSideAssignments() > 0) {
-      nextNode = new CFANode(filelocStart, cfa.getFunctionName());
-      cfaNodes.add(nextNode);
-      handleSideassignments(loopEnd, exp.getRawSignature(), filelocStart, nextNode);
-      loopEnd = nextNode;
+      loopEnd = handleSideassignments(loopEnd, exp.getRawSignature(), filelocStart);
     }
 
     if (exp == null) {
