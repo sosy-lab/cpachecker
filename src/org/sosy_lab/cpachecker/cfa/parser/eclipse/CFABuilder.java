@@ -73,6 +73,8 @@ class CFABuilder extends ASTVisitor {
 
   private final LogManager logger;
 
+  private boolean encounteredAsm = false;
+
   public CFABuilder(LogManager pLogger) {
     logger = pLogger;
     astCreator = new ASTConverter(scope, logger);
@@ -143,9 +145,8 @@ class CFABuilder extends ASTVisitor {
 
     } else if (declaration instanceof IASTASMDeclaration) {
       // TODO Assembler code is ignored here
-      logger.log(Level.WARNING, "Ignoring inline assembler code at line "
-          + fileloc.getStartingLineNumber()
-          + ", analysis is probably unsound!");
+      encounteredAsm = true;
+      logger.log(Level.FINER, "Ignoring inline assembler code at line", fileloc.getStartingLineNumber());
       return PROCESS_SKIP;
 
     } else {
@@ -211,8 +212,14 @@ class CFABuilder extends ASTVisitor {
       cfas.put(functionName, startNode);
       cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
 
+      encounteredAsm |= functionBuilder.didEncounterAsm();
       functionBuilder.finish();
     }
+
+    if (encounteredAsm) {
+      logger.log(Level.WARNING, "Inline assembler ignored, analysis is probably unsound!");
+    }
+
     return PROCESS_CONTINUE;
   }
 }
