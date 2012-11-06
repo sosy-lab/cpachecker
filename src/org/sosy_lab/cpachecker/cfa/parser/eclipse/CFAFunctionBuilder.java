@@ -1019,32 +1019,15 @@ class CFAFunctionBuilder extends ASTVisitor {
   /**
    * @category loops
    */
-  private void handleWhileStatement(IASTWhileStatement whileStatement,
-      IASTFileLocation fileloc) {
-
+  private void handleWhileStatement(IASTWhileStatement whileStatement, IASTFileLocation fileloc) {
     final CFANode prevNode = locStack.pop();
 
-    final CFANode loopStart = newCFANode(fileloc);
-    loopStart.setLoopStart();
-    loopStartStack.push(loopStart);
+    createLoop(whileStatement.getCondition(), fileloc);
 
-    final CFANode firstLoopNode = newCFANode(fileloc);
-
-    final CFANode postLoopNode = new CLabelNode(fileloc.getEndingLineNumber(),
-        cfa.getFunctionName(), "");
-    cfaNodes.add(postLoopNode);
-    loopNextStack.push(postLoopNode);
-
-    // inverse order here!
-    locStack.push(postLoopNode);
-    locStack.push(firstLoopNode);
-
+    // connect CFA with loop start node
     final BlankEdge blankEdge = new BlankEdge("", fileloc.getStartingLineNumber(),
-        prevNode, loopStart, "while");
+        prevNode, loopStartStack.peek(), "while");
     addToCFA(blankEdge);
-
-    createConditionEdges(whileStatement.getCondition(), fileloc.getStartingLineNumber(),
-        loopStart, firstLoopNode, postLoopNode);
   }
 
   /**
@@ -1053,6 +1036,23 @@ class CFAFunctionBuilder extends ASTVisitor {
   private void handleDoWhileStatement(IASTDoStatement doStatement, IASTFileLocation fileloc) {
     final CFANode prevNode = locStack.pop();
 
+    createLoop(doStatement.getCondition(), fileloc);
+
+    // connect CFA with first node inside the loop
+    // (so the condition will be skipped in the first iteration)
+    final BlankEdge blankEdge = new BlankEdge("", fileloc.getStartingLineNumber(),
+        prevNode, locStack.peek(), "do");
+    addToCFA(blankEdge);
+  }
+
+  /**
+   * Create a simple while or do-while style loop,
+   * and set up all the stacks.
+   * The loop will not be connected to the existing CFA,
+   * the caller has to ensure this.
+   * @category loops
+   */
+  private void createLoop(IASTExpression condition, IASTFileLocation fileloc) {
     final CFANode loopStart = newCFANode(fileloc);
     loopStart.setLoopStart();
     loopStartStack.push(loopStart);
@@ -1068,11 +1068,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     locStack.push(postLoopNode);
     locStack.push(firstLoopNode);
 
-    final BlankEdge blankEdge = new BlankEdge("", fileloc.getStartingLineNumber(),
-        prevNode, firstLoopNode, "do");
-    addToCFA(blankEdge);
-
-    createConditionEdges(doStatement.getCondition(), fileloc.getStartingLineNumber(),
+    createConditionEdges(condition, fileloc.getStartingLineNumber(),
         loopStart, firstLoopNode, postLoopNode);
   }
 
