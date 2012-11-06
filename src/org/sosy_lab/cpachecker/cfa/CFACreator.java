@@ -197,7 +197,7 @@ public class CFACreator {
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
 
-        CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa.getAllFunctions());
+        CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa);
         spbuilder.insertCallEdgesRecursively();
       }
 

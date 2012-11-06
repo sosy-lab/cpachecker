@@ -68,8 +68,7 @@ public class CFACreationUtils {
     if (isReachableNode(predecessor)) {
 
       // all checks passed, add it to the CFA
-      edge.getPredecessor().addLeavingEdge(edge);
-      edge.getSuccessor().addEnteringEdge(edge);
+      addEdgeUnconditionallyToCFA(edge);
 
     } else {
       // unreachable edge, don't add it to the CFA
@@ -90,6 +89,17 @@ public class CFACreationUtils {
 
       lastDetectedDeadCode = edge.getSuccessor().getNodeNumber();
     }
+  }
+
+  /**
+   * This method adds this edge to the leaving and entering edges
+   * of its predecessor and successor respectively.
+   * It does so without further checks, so use with care and only if really
+   * necessary.
+   */
+  public static void addEdgeUnconditionallyToCFA(CFAEdge edge) {
+    edge.getPredecessor().addLeavingEdge(edge);
+    edge.getSuccessor().addEnteringEdge(edge);
   }
 
   /**
