@@ -464,6 +464,23 @@ class CFAFunctionBuilder extends ASTVisitor {
         loopStart, firstLoopNode, postLoopNode);
   }
 
+  private CFANode handleAllSideEffects(CFANode prevNode, final int filelocStart,
+      String rawSignature) {
+
+    if (astCreator.getConditionalExpression() != null) {
+      // in this case, there's a ternary operator
+      IASTConditionalExpression condExp = astCreator.getConditionalExpression();
+      astCreator.resetConditionalExpression();
+
+      prevNode = handleTernaryOperator(condExp, prevNode, false);
+
+    } else {
+      prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), rawSignature, filelocStart);
+    }
+
+    return prevNode;
+  }
+
   private CFANode handleTernaryOperator(IASTConditionalExpression condExp,
       CFANode rootNode, boolean resultIsUnused) {
     int filelocStart = condExp.getFileLocation().getStartingLineNumber();
@@ -796,7 +813,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       final CExpression exp = astCreator.convertExpressionWithoutSideEffects(condition);
       String rawSignature = condition.getRawSignature();
 
-      CFANode nextNode = insertSideAssignments(rootNode, astCreator.getAndResetPreSideAssignments(), rawSignature, condition.getFileLocation().getStartingLineNumber());
+      rootNode = handleAllSideEffects(rootNode, filelocStart, rawSignature);
 
       if (furtherThenComputation) {
         thenNodeForLastThen = thenNode;
@@ -806,7 +823,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
       if (ASTConverter.isBooleanExpression(exp)) {
-        addConditionEdges(exp, nextNode, thenNodeForLastThen, elseNodeForLastElse);
+        addConditionEdges(exp, rootNode, thenNodeForLastThen, elseNodeForLastElse);
 
       } else {
         // build new boolean expression: a==0 and switch branches
@@ -816,7 +833,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         CExpression conv =
             new CBinaryExpression(exp.getFileLocation(), exp.getExpressionType(), exp, zero, BinaryOperator.EQUALS);
 
-        addConditionEdges(conv, nextNode, elseNodeForLastElse, thenNodeForLastThen);
+        addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen);
       }
     }
   }
@@ -957,15 +974,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     final List<CDeclaration> declList = astCreator.convert(sd);
     final String rawSignature = sd.getRawSignature();
 
-
-    if (astCreator.getConditionalExpression() != null) {
-      IASTConditionalExpression condExp = astCreator.getConditionalExpression();
-      astCreator.resetConditionalExpression();
-
-      prevNode = handleTernaryOperator(condExp, prevNode, false);
-    }
-
-    prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), rawSignature, filelocStart);
+    prevNode = handleAllSideEffects(prevNode, filelocStart, rawSignature);
 
     // create one edge for every declaration
     for (CDeclaration newD : declList) {
@@ -1023,7 +1032,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       String rawSignature = expression.getRawSignature();
       final CStatement stmt = astCreator.convertExpressionToStatement(expression, expression.getFileLocation());
 
-      prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), rawSignature, filelocStart);
+      prevNode = handleAllSideEffects(prevNode, filelocStart, rawSignature);
 
       if (lastNode == null) {
         lastNode = newCFANode(filelocStart);
@@ -1217,7 +1226,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     FunctionExitNode functionExitNode = cfa.getExitNode();
 
     CReturnStatement returnstmt = astCreator.convert(returnStatement);
-    prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), returnStatement.getRawSignature(), returnstmt.getFileLocation().getStartingLineNumber());
+    prevNode = handleAllSideEffects(prevNode, returnstmt.getFileLocation().getStartingLineNumber(), returnStatement.getRawSignature());
 
     CReturnStatementEdge edge = new CReturnStatementEdge(returnStatement.getRawSignature(),
     returnstmt, fileloc.getStartingLineNumber(), prevNode, functionExitNode);
@@ -1235,7 +1244,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     CExpression switchExpression = astCreator
         .convertExpressionWithoutSideEffects(statement
             .getControllerExpression());
-    prevNode = insertSideAssignments(prevNode, astCreator.getAndResetPreSideAssignments(), statement.getRawSignature(), switchExpression.getFileLocation().getStartingLineNumber());
+    prevNode = handleAllSideEffects(prevNode, switchExpression.getFileLocation().getStartingLineNumber(), statement.getRawSignature());
 
     // firstSwitchNode is first Node of switch-Statement.
     final CFANode firstSwitchNode = newCFANode(fileloc);
