@@ -210,6 +210,8 @@ class CFABuilder extends ASTVisitor {
       }
       cfas.put(functionName, startNode);
       cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
+
+      functionBuilder.finish();
     }
     return PROCESS_CONTINUE;
   }

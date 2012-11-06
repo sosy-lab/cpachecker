@@ -170,6 +170,22 @@ class CFAFunctionBuilder extends ASTVisitor {
     return cfaNodes;
   }
 
+  /**
+   * This method is called after parsing and checks if we left everything clean.
+   */
+  void finish() {
+    assert astCreator.getAndResetPreSideAssignments().isEmpty();
+    assert astCreator.getAndResetPostSideAssignments().isEmpty();
+    assert scope.isGlobalScope();
+    assert locStack.isEmpty();
+    assert loopStartStack.isEmpty();
+    assert loopNextStack.isEmpty();
+    assert elseStack.isEmpty();
+    assert switchCaseStack.isEmpty();
+    assert switchExprStack.isEmpty();
+    assert gotoLabelNeeded.isEmpty();
+  }
+
   private CFANode newCFANode(final IASTFileLocation fileloc) {
     return newCFANode(fileloc.getStartingLineNumber());
   }
@@ -935,6 +951,9 @@ class CFAFunctionBuilder extends ASTVisitor {
   private CFANode createEdgeForDeclaration(final IASTSimpleDeclaration sd,
       final int filelocStart, CFANode prevNode) {
 
+    assert astCreator.getAndResetPostSideAssignments().isEmpty()
+          : "post side assignments should occur only on declarations," +
+            "but they occurred somewhere else and where not handled";
     final List<CDeclaration> declList = astCreator.convert(sd);
     final String rawSignature = sd.getRawSignature();
 
