@@ -487,13 +487,6 @@ class CFAFunctionBuilder extends ASTVisitor {
   private void handleExpressionStatement(IASTExpressionStatement exprStatement,
       IASTFileLocation fileloc) {
 
-    // check, if the exprStatement is the initializer of a forLoop, i.e. "counter=0;"
-    // then we can ignore it, because it is handled with the loopstart
-    if (exprStatement.getParent() instanceof IASTForStatement
-        && exprStatement == ((IASTForStatement) exprStatement.getParent()).getInitializerStatement()) {
-      return;
-    }
-
     CFANode prevNode = locStack.pop ();
     CFANode lastNode = null;
     String rawSignature = exprStatement.getRawSignature();
