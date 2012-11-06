@@ -36,7 +36,7 @@ Util = TableGenerator.Util # only for different names in programm
 
 import xml.etree.ElementTree as ET
 import os
-import optparse
+import argparse
 
 
 OUTPUT_PATH = 'test/results/'
@@ -150,11 +150,11 @@ def status(currentFile):
         return 'unknown'
     return "correct" if (status == 'safe') == isSafeFile else "wrong"
 
-def compareResults(xmlFiles, options):
+def compareResults(options):
     compare = options.compare
     print ('\ncomparing results ...')
 
-    resultFiles = Util.extendFileList(xmlFiles)
+    resultFiles = Util.extendFileList(options.xmlFiles)
 
     if len(resultFiles) == 0:
         print ('Resultfile not found. Check your filenames!')
@@ -279,23 +279,24 @@ def main(args=None):
     if args is None:
         args = sys.argv
 
-    parser = optparse.OptionParser('%prog [options] result_1.xml ... result_n.xml')
-    parser.add_option("-c", "--compare",
-        action="store", type="string", dest="compare",
+    parser = argparse.ArgumentParser()
+    parser.add_argument("xmlFiles",
+        metavar="TABLE",
+        type=str,
+        nargs='+'
+    )
+    parser.add_argument("-c", "--compare",
+        action="store", type=str, dest="compare",
         help="Which sourcefiles should be compared? " + \
              "Use 'a' for 'all' or a number for the position."
     )
-    parser.add_option("-d", "--dump",
+    parser.add_argument("-d", "--dump",
         action="store_true", dest="dump_counts",
         help="Should the good, bad, unknown counts be printed? "
     )
-    options, args = parser.parse_args(args)
+    options = parser.parse_args(args[1:])
 
-    if len(args) < 2:
-        print ('xml-file needed')
-        sys.exit()
-
-    compareResults(args[1:], options)
+    compareResults(options.tables, options)
 
 
 if __name__ == '__main__':

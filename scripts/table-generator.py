@@ -35,7 +35,7 @@ import collections
 import os.path
 import glob
 import json
-import optparse
+import argparse
 import time
 import tempita
 
@@ -806,70 +806,71 @@ def main(args=None):
     if args is None:
         args = sys.argv
 
-    parser = optparse.OptionParser('%prog [options] sourcefile\n\n' + \
-        "INFO: documented example-files can be found in 'doc/examples'\n")
+    parser = argparse.ArgumentParser(
+        description="INFO: documented example-files can be found in 'doc/examples'\n")
 
-    parser.add_option("-x", "--xml",
+    parser.add_argument("tables",
+        metavar="TABLE",
+        type=str,
+        nargs='*'
+    )
+    parser.add_argument("-x", "--xml",
         action="store",
-        type="string",
+        type=str,
         dest="xmltablefile",
         help="use xmlfile for table. the xml-file should define resultfiles and columns."
     )
-    parser.add_option("-o", "--outputpath",
+    parser.add_argument("-o", "--outputpath",
         action="store",
-        type="string",
+        type=str,
         default="test/results",
         dest="outputPath",
         help="outputPath for table. if it does not exist, it is created."
     )
-    parser.add_option("-d", "--dump",
+    parser.add_argument("-d", "--dump",
         action="store_true", dest="dumpCounts",
         help="Should the good, bad, unknown counts be printed?"
     )
-    parser.add_option("-m", "--merge",
+    mergeGroup = parser.add_mutually_exclusive_group()
+    mergeGroup.add_argument("-m", "--merge",
         action="store_true", dest="merge",
         help="If resultfiles with distinct sourcefiles are found, " \
             + "should the sourcefilenames be merged?"
     )
-    parser.add_option("-c", "--common",
+    mergeGroup.add_argument("-c", "--common",
         action="store_true", dest="common",
         help="If resultfiles with distinct sourcefiles are found, " \
             + "use only the sourcefiles common to all resultfiles."
     )
-    parser.add_option("--no-diff",
-        action="store_false", dest="writeDiffTable", default=True,
+    parser.add_argument("--no-diff",
+        action="store_false", dest="writeDiffTable",
         help="Do not output a table with differences between resultfiles."
     )
-    parser.add_option("--correct-only",
+    parser.add_argument("--correct-only",
         action="store_true", dest="correctOnly",
         help="Clear all results in cases where the result was not correct."
     )
-    parser.add_option("--offline",
-        action="store_true", dest="offline",
+    parser.add_argument("--offline",
+        action="store_const", dest="libUrl",
+        const=LIB_URL_OFFLINE,
+        default=LIB_URL,
         help="Don't insert links to http://www.sosy-lab.org, instead expect JS libs in libs/javascript."
     )
 
-    options, args = parser.parse_args(args)
-    args = args[1:] # skip args[0] which is the name of this script
-
-    if options.merge and options.common:
-        print("Invalid combination of arguments (--merge and --common)")
-        exit()
-
-    libUrl = LIB_URL_OFFLINE if options.offline else LIB_URL
+    options = parser.parse_args(args[1:])
 
     if not os.path.isdir(options.outputPath): os.makedirs(options.outputPath)
 
     if options.xmltablefile:
-        if args:
-            print ("Invalid additional arguments '{}'".format(" ".join(args)))
+        if options.tables:
+            print ("Invalid additional arguments '{}'".format(" ".join(options.table)))
             exit()
         listOfTestFiles = parseTableDefinitionFile(options.xmltablefile)
         name = os.path.basename(options.xmltablefile)[:-4] # remove ending '.xml'
 
     else:
-        if args:
-            inputFiles = args
+        if options.tables:
+            inputFiles = options.tables
         else:
             print ("searching resultfiles in '{}'...".format(options.outputPath))
             inputFiles = [os.path.join(options.outputPath, '*.results*.xml')]
@@ -903,7 +904,7 @@ def main(args=None):
     rowsDiff = filterRowsWithDifferences(rows) if options.writeDiffTable else []
 
     print ('generating table ...')
-    createTables(name, listOfTests, fileNames, rows, rowsDiff, options.outputPath, libUrl)
+    createTables(name, listOfTests, fileNames, rows, rowsDiff, options.outputPath, options.libUrl)
 
     print ('done')
 
