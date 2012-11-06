@@ -31,28 +31,42 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
+class FsmBddStatistics implements Statistics {
 
-public class FsmBddStatistics implements Statistics {
+  private static final String SIMPLE_STAT_VALUE_FMT = "%-40s %s\n";
 
-  private static final String SIMPLE_STAT_VALUE_FMT = "%-35s %s\n";
+  private int maxEncodedAssumptions;
+
+  public int mergesBecauseEqualBdd = 0;
+  public int mergesBecauseEqualSyntax = 0;
+  public int mergesBecauseBothEmptySyntax = 0;
 
   private BDDFactory bddFactory;
 
   public FsmBddStatistics(BDDFactory pBddFactory) {
     this.bddFactory = pBddFactory;
+    this.maxEncodedAssumptions = Integer.MIN_VALUE;
   }
 
-  private void printFmt (PrintStream pOut, String pName, Object pValue) {
+  private void printValue (PrintStream pOut, String pName, Object pValue) {
     pOut.printf(SIMPLE_STAT_VALUE_FMT,  pName + ":", pValue.toString());
+  }
+
+  public void signalNumOfEncodedAssumptions(int pEncodedAssumptions) {
+    maxEncodedAssumptions = Math.max(maxEncodedAssumptions, pEncodedAssumptions);
   }
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-    printFmt(pOut, "Number of BDD domains",     bddFactory.numberOfDomains());
-    printFmt(pOut, "Number of BDD nodes",       bddFactory.getNodeNum());
-    printFmt(pOut, "Size of BDD node table",    bddFactory.getNodeTableSize());
-    printFmt(pOut, "Size of BDD cache",         bddFactory.getCacheSize());
-    printFmt(pOut, "Number of BDD reorderings", bddFactory.getReorderTimes());
+    printValue(pOut, "Number of BDD domains",     bddFactory.numberOfDomains());
+    printValue(pOut, "Number of BDD nodes",       bddFactory.getNodeNum());
+    printValue(pOut, "Size of BDD node table",    bddFactory.getNodeTableSize());
+    printValue(pOut, "Size of BDD cache",         bddFactory.getCacheSize());
+    printValue(pOut, "Number of BDD reorderings", bddFactory.getReorderTimes());
+    printValue(pOut, "Max. encoded assumptions",  maxEncodedAssumptions);
+    printValue(pOut, "Merges because of equal BDD",  mergesBecauseEqualBdd);
+    printValue(pOut, "Merges because of equal syntax",  mergesBecauseEqualSyntax);
+    printValue(pOut, "Merges because of both empty syntax",  mergesBecauseBothEmptySyntax);
   }
 
   @Override

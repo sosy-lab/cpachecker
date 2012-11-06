@@ -32,6 +32,7 @@ import net.sf.javabdd.BDDFactory;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.VariableDeclarationException;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
@@ -44,6 +45,7 @@ public class FsmState implements AbstractState {
 
   private static Map<String, BDDDomain> declaredVariables = new HashMap<String, BDDDomain>();
   private static ExpressionCache expressionCache = new ExpressionCache();
+  private static ExpressionToString exprToString = new ExpressionToString();
 
   /**
    * Reference to the instance of the BDD library.
@@ -56,17 +58,23 @@ public class FsmState implements AbstractState {
   private BDD stateBdd;
 
   private CExpression conditionBlock;
+  private int encodedAssumptions;
+  private StringBuilder debugInfos;
+  private final CFANode cfaNode;
 
   /**
    * Constructor.
    */
-  public FsmState(BDDFactory pBddFactory) {
+  public FsmState(BDDFactory pBddFactory, CFANode pCfaNode) {
     this.bddFactory = pBddFactory;
 
     // Initially, the state is TRUE;
     // this means that every possible error state would be reachable.
     this.stateBdd = bddFactory.one();
     this.conditionBlock = null;
+    this.encodedAssumptions = 0;
+    this.debugInfos = null;
+    this.cfaNode = pCfaNode;
   }
 
   /**
@@ -85,6 +93,10 @@ public class FsmState implements AbstractState {
    */
   public BDD getStateBdd() {
     return stateBdd;
+  }
+
+  public int getEncodedAssumptions() {
+    return this.encodedAssumptions;
   }
 
   /**
@@ -137,6 +149,8 @@ public class FsmState implements AbstractState {
   }
 
   public void addToConditionBlock(CExpression conjunctWith, boolean conjunction) {
+    encodedAssumptions++;
+
     if (conditionBlock == null) {
       conditionBlock = conjunctWith;
     } else {
@@ -154,6 +168,7 @@ public class FsmState implements AbstractState {
 
   public void resetConditionBlock() {
     this.conditionBlock = null;
+    this.encodedAssumptions = 0;
   }
 
   /**
@@ -194,12 +209,25 @@ public class FsmState implements AbstractState {
    /**
    * Create a copy (new instance) of the state.
    */
-  public FsmState cloneState() {
-    FsmState result = new FsmState(bddFactory);
+  public FsmState cloneState(CFANode pCfaNode) {
+    FsmState result = new FsmState(bddFactory, pCfaNode);
     result.stateBdd = this.stateBdd;
     result.conditionBlock = this.conditionBlock;
+    result.encodedAssumptions = this.encodedAssumptions;
 
     return result;
+  }
+
+  public void addDebugInfo (String pName, String pValue) {
+    if (debugInfos == null) {
+      debugInfos = new StringBuilder();
+    }
+
+    debugInfos.append(String.format("%s : %s\n", pName, pValue));
+  }
+
+  public CFANode getCfaNode() {
+    return this.cfaNode;
   }
 
 
@@ -213,13 +241,39 @@ public class FsmState implements AbstractState {
     String stateBddText;
     int bddNodes = stateBdd.nodeCount();
     if (bddNodes > 25) {
-      stateBddText = String.format("BDD with %d nodes.", bddNodes);
+      stateBddText = String.format("BDD %d with %d nodes.", stateBdd.hashCode(), bddNodes);
     } else {
       stateBddText = stateBdd.toStringWithDomains();
     }
-    result.append(String.format(" | %15s : %s\n", "State", stateBddText));
+
+    String condText;
+    if (encodedAssumptions > 20) {
+      condText = String.format("AST with %d assumptions", encodedAssumptions);
+    } else if (conditionBlock == null) {
+      condText = "[]";
+    } else {
+      condText = conditionBlock.accept(new ExpressionToString());
+    }
+
+    result.append("\n");
+    result.append(String.format(" | %15s : %s\n", "Node", cfaNode.getNodeNumber()));
+    result.append(String.format(" | %15s : %s\n", "BDD", stateBddText));
+    result.append(String.format(" | %15s : [%d] %s\n", "Condition", encodedAssumptions, condText));
+    if (debugInfos != null) {
+      result.append(String.format(" | %15s : %s\n", "Debug", debugInfos));
+    }
 
     return result.toString();
+  }
+
+  public boolean condBlockEqualToBlockOf(FsmState pOtherState) {
+    if (this.getConditionBlock() == pOtherState.getConditionBlock()) {
+      return true;
+    } else if (this.getEncodedAssumptions() < 25 && this.getEncodedAssumptions() == pOtherState.getEncodedAssumptions()){
+      return this.getConditionBlock().accept(exprToString).equals(pOtherState.getConditionBlock().accept(exprToString));
+    } else {
+      return false;
+    }
   }
 
 

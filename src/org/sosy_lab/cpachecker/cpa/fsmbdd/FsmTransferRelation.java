@@ -121,14 +121,17 @@ public class FsmTransferRelation implements TransferRelation {
    */
   private final Map<CExpression, BDD> edgeBddCache;
 
+  private final FsmBddStatistics statistics;
+
   /**
    * Constructor.
    * @throws InvalidConfigurationException
    */
-  public FsmTransferRelation(Configuration pConfig) throws InvalidConfigurationException {
+  public FsmTransferRelation(Configuration pConfig, FsmBddStatistics pStatistics) throws InvalidConfigurationException {
     this.edgeBddCache = new HashMap<CExpression, BDD>();
     this.globalVariables = new HashSet<String>();
     this.variablesPerFunction = new HashMap<String, Set<String>>();
+    this.statistics = pStatistics;
 
     pConfig.inject(this);
   }
@@ -140,20 +143,27 @@ public class FsmTransferRelation implements TransferRelation {
     this.domainIntervalProvider = pDomainIntervalProvider;
   }
 
+
+
   public boolean isAbstractionState(FsmState pSuccessor, CFANode pSuccLocation) {
     // Depending on the subsequent edges.
 
 //    return true;
     for (CFAEdge e: CFAUtils.enteringEdges(pSuccLocation)) {
-      if (e.getEdgeType() != CFAEdgeType.AssumeEdge) {
-        return true;
-      }
+//      if (e.getEdgeType() != CFAEdgeType.BlankEdge) {
+        if (e.getEdgeType() != CFAEdgeType.AssumeEdge) {
+          return true;
+        }
+//      }
     }
 
     for (CFAEdge e: CFAUtils.leavingEdges(pSuccLocation)) {
-      if (e.getEdgeType() != CFAEdgeType.AssumeEdge) {
-        return true;
-      }
+//      if (e.getEdgeType() != CFAEdgeType.BlankEdge) {
+
+        if (e.getEdgeType() != CFAEdgeType.AssumeEdge) {
+          return true;
+        }
+//      }
     }
 
     return false;
@@ -169,7 +179,7 @@ public class FsmTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
     final FsmState predecessor = (FsmState) pState;
-    final FsmState successor = predecessor.cloneState();
+    final FsmState successor = predecessor.cloneState(pCfaEdge.getSuccessor());
 
 //    System.out.println("================================================================================");
 //    System.out.println(String.format("%15s :  %s ", "Predecessor", predecessor));
@@ -223,6 +233,7 @@ public class FsmTransferRelation implements TransferRelation {
     }
 
 //    System.out.println(String.format("%15s : %s", "Successor", successor));
+    statistics.signalNumOfEncodedAssumptions(successor.getEncodedAssumptions());
 
     // Return an empty set if the BDD evaluates to "false".
     if (successor.getStateBdd().isZero()) {
@@ -237,6 +248,8 @@ public class FsmTransferRelation implements TransferRelation {
    if (conditionBlock == null) {
      return;
    }
+
+   statistics.signalNumOfEncodedAssumptions(pSuccessor.getEncodedAssumptions());
 
    BDD blockBdd = getAssumptionAsBdd(pSuccessor, pEdge.getSuccessor().getFunctionName(), conditionBlock);
 
@@ -443,22 +456,34 @@ public class FsmTransferRelation implements TransferRelation {
    */
   private void handleStatementEdge (FsmState pPredecessor, CStatementEdge pStatementEdge, FsmState pSuccessor) throws CPATransferException {
     CStatement stmt = pStatementEdge.getStatement();
+    String functionName = pStatementEdge.getPredecessor().getFunctionName();
+
     if (stmt instanceof CExpressionAssignmentStatement) {
       CExpressionAssignmentStatement assign = (CExpressionAssignmentStatement) stmt;
 
       if (assign.getLeftHandSide() instanceof CIdExpression
       && assign.getRightHandSide() instanceof CLiteralExpression) {
-
         CIdExpression left = (CIdExpression) assign.getLeftHandSide();
         CLiteralExpression right = (CLiteralExpression) assign.getRightHandSide();
 
-        String functionName = pStatementEdge.getPredecessor().getFunctionName();
         String scopedTargetVariableName = getScopedVariableName(functionName, left.getName());
-
         pSuccessor.assingConstantToVariable(scopedTargetVariableName, domainIntervalProvider, right);
       } else {
         throw new UnrecognizedCCodeException("Unsupported CExpressionAssignmentStatement", pStatementEdge);
       }
+    } else if (stmt instanceof CFunctionCallAssignmentStatement) {
+      // CFunctionCallAssignmentStatement: This is a call to a function whose body is undefined.
+      CFunctionCallAssignmentStatement callAssign = (CFunctionCallAssignmentStatement) stmt;
+      if (callAssign.getLeftHandSide() instanceof CIdExpression) {
+        CIdExpression left = (CIdExpression) callAssign.getLeftHandSide();
+        pSuccessor.undefineVariable(getScopedVariableName(functionName, left.getName()));
+      } else {
+        throw new UnrecognizedCCodeException("Unsupported CFunctionCallAssignmentStatement", pStatementEdge);
+      }
+    } else if (stmt instanceof CFunctionCallStatement) {
+      // We can ignore this case because it is a call to a function whose body is undefined.
+    } else {
+      throw new UnrecognizedCCodeException("Unsupported statement edge", pStatementEdge);
     }
   }
 

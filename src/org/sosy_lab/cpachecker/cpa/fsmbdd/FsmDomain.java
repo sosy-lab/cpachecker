@@ -55,7 +55,7 @@ public class FsmDomain implements AbstractDomain {
 
     // Create the joined state by
     // constructing a disjunction (OR) of the BDDs of the given states.
-    FsmState joined = state1.cloneState();
+    FsmState joined = state1.cloneState(state1.getCfaNode());
     joined.disjunctWithState(state2);
 
     if (joined.getStateBdd().equals(state2.getStateBdd())) {
@@ -67,6 +67,7 @@ public class FsmDomain implements AbstractDomain {
       // makes states reachable that were not reachable before.
       return joined;
     }
+
 
     /* Example:
      *     State 1: FALSE
@@ -104,10 +105,15 @@ public class FsmDomain implements AbstractDomain {
 
     if (s1.getConditionBlock() instanceof CBinaryExpression
     && s2.getConditionBlock() != null) {
+      if (s1.condBlockEqualToBlockOf(s2)) {
+        return true;
+      }
+
       CBinaryExpression be = (CBinaryExpression) s1.getConditionBlock();
       if (be.getOperator() == BinaryOperator.LOGICAL_AND) {
-        return be.getOperand1() == s2.getConditionBlock()
+        boolean result = be.getOperand1() == s2.getConditionBlock()
             || be.getOperand2() == s2.getConditionBlock();
+        return result;
       }
     }
 

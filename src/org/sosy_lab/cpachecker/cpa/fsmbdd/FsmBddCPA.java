@@ -91,15 +91,15 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     //
     // Initialization of the (remaining) components of the CPA.
     //
+    this.stats = new FsmBddStatistics(bddFactory);
     this.domainIntervalProvider = new FsmSyntaxAnalizer(pCfa);
     this.abstractDomain = new FsmDomain();
-    this.transferRelation = new FsmTransferRelation(pConfig);
+    this.transferRelation = new FsmTransferRelation(pConfig, stats);
     this.transferRelation.setDomainIntervalProvider(domainIntervalProvider);
     this.precision = initializePrecision(pConfig, pCfa);
     this.stopOperator = initializeStopOperator();
-    this.mergeOperator = new FsmMergeOperator(abstractDomain);
+    this.mergeOperator = new FsmMergeOperator(abstractDomain, stats);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    this.stats = new FsmBddStatistics(bddFactory);
   }
 
   private StopOperator initializeStopOperator() {
@@ -132,7 +132,7 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvide
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    FsmState result = new FsmState(bddFactory);
+    FsmState result = new FsmState(bddFactory, node);
     return result;
   }
 

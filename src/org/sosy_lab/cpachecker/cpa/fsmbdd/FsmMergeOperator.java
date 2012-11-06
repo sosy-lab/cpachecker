@@ -37,10 +37,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class FsmMergeOperator implements MergeOperator {
 
   private final AbstractDomain domain;
+  private final FsmBddStatistics statistics;
 
-  public FsmMergeOperator(AbstractDomain d)
+  public FsmMergeOperator(AbstractDomain pDomain, FsmBddStatistics pStatistics)
   {
-    this.domain = d;
+    this.domain = pDomain;
+    this.statistics = pStatistics;
   }
 
   @Override
@@ -48,16 +50,28 @@ public class FsmMergeOperator implements MergeOperator {
     FsmState state1 = (FsmState) pState1;
     FsmState state2 = (FsmState) pState2;
 
-    if (state1.getConditionBlock() == null
-    && state2.getConditionBlock() == null) {
-      return domain.join(state1, state2);
-    } else if (state1.getStateBdd().equals(state2.getStateBdd())) {
-      FsmState result = state1.cloneState();
+//    System.out.printf("M %d <> %d ?\n", state1.getCfaNode().getNodeNumber(), state2.getCfaNode().getNodeNumber());
+//    System.out.println(state1);
+//    System.out.println(state2);
+
+    if (state1.getStateBdd().equals(state2.getStateBdd())) {
+      FsmState result = state1.cloneState(state1.getCfaNode());
       result.addToConditionBlock(state2.getConditionBlock(), false);
+      statistics.mergesBecauseEqualBdd++;
       return result;
+    } else if (state1.condBlockEqualToBlockOf(state2)) {
+        if (state1.getConditionBlock() == null) {
+          statistics.mergesBecauseBothEmptySyntax++;
+        } else {
+          statistics.mergesBecauseEqualSyntax++;
+        }
+        state1.addDebugInfo("merged", "equalSyntax");
+        state2.addDebugInfo("merged", "equalSyntax");
+        return domain.join(state1, state2);
     } else {
       return state2;
     }
   }
+
 
 }
