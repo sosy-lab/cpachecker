@@ -150,8 +150,8 @@ class ASTConverter {
 
   private Scope scope;
 
-  private LinkedList<CAstNode> preSideAssignments = new LinkedList<CAstNode>();
-  private LinkedList<CAstNode> postSideAssignments = new LinkedList<CAstNode>();
+  private final List<CAstNode> preSideAssignments = new ArrayList<CAstNode>();
+  private final List<CAstNode> postSideAssignments = new ArrayList<CAstNode>();
   private IASTConditionalExpression conditionalExpression = null;
   private CIdExpression conditionalTemporaryVariable = null;
 
@@ -170,21 +170,16 @@ class ASTConverter {
     }
   }
 
-  public int numberOfPreSideAssignments(){
-    return preSideAssignments.size();
+  public List<CAstNode> getAndResetPreSideAssignments() {
+    List<CAstNode> result = new ArrayList<CAstNode>(preSideAssignments);
+    preSideAssignments.clear();
+    return result;
   }
 
-
-  public CAstNode getNextPreSideAssignment() {
-    return preSideAssignments.removeFirst();
-  }
-
-  public int numberOfPostSideAssignments(){
-    return postSideAssignments.size();
-  }
-
-  public CAstNode getNextPostSideAssignment() {
-    return postSideAssignments.removeFirst();
+  public List<CAstNode> getAndResetPostSideAssignments() {
+    List<CAstNode> result = new ArrayList<CAstNode>(postSideAssignments);
+    postSideAssignments.clear();
+    return result;
   }
 
   public void resetConditionalExpression() {
