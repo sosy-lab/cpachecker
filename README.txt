@@ -42,7 +42,7 @@ Verifying a Program with CPAchecker
    choose a configuration file. This file defines for example which CPAs are used.
    Standard configuration files can be found in the directory config/.
    Example: config/predicateAnalysis.properties
-   The configuration options used in this file are explained in doc/Configuration.txt.
+   The configuration of CPAchecker is explained in doc/Configuration.txt.
 
 3. Choose a specification file (you may not need this for some CPAs).
    The standard configuration files use config/specification/default.spc
