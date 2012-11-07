@@ -44,6 +44,8 @@ from decimal import *
 
 NAME_START = "results" # first part of filename of table
 
+DEFAULT_OUTPUT_PATH = "test/results/"
+
 LIB_URL = "http://www.sosy-lab.org/lib"
 LIB_URL_OFFLINE = "lib/javascript"
 
@@ -826,7 +828,6 @@ def main(args=None):
     parser.add_argument("-o", "--outputpath",
         action="store",
         type=str,
-        default="test/results",
         dest="outputPath",
         help="Output path for the table."
     )
@@ -860,7 +861,7 @@ def main(args=None):
 
     options = parser.parse_args(args[1:])
 
-    if not os.path.isdir(options.outputPath): os.makedirs(options.outputPath)
+    outputPath = options.outputPath
 
     if options.xmltablefile:
         if options.tables:
@@ -868,19 +869,27 @@ def main(args=None):
             exit()
         listOfTestFiles = parseTableDefinitionFile(options.xmltablefile)
         name = os.path.basename(options.xmltablefile)[:-4] # remove ending '.xml'
+        if not outputPath:
+            outputPath = os.path.dirname(options.xmltablefile) or '.'
 
     else:
         if options.tables:
             inputFiles = options.tables
         else:
-            print ("searching resultfiles in '{}'...".format(options.outputPath))
-            inputFiles = [os.path.join(options.outputPath, '*.results*.xml')]
+            searchDir = outputPath or DEFAULT_OUTPUT_PATH
+            print ("searching resultfiles in '{}'...".format(searchDir))
+            inputFiles = [os.path.join(searchDir, '*.results*.xml')]
 
         inputFiles = Util.extendFileList(inputFiles) # expand wildcards
         listOfTestFiles = [(file, None) for file in inputFiles]
-
         name = NAME_START + "." + time.strftime("%y-%m-%d_%H%M", time.localtime())
 
+        if inputFiles and not outputPath:
+            dir = os.path.dirname(inputFiles[0])
+            if all(dir == os.path.dirname(file) for file in inputFiles):
+                outputPath = dir
+            else:
+                outputPath = DEFAULT_OUTPUT_PATH
 
     # parse test files
     listOfTests = [parseTestFile(file, columnsToShow) for file, columnsToShow in listOfTestFiles]
@@ -905,7 +914,8 @@ def main(args=None):
     rowsDiff = filterRowsWithDifferences(rows) if options.writeDiffTable else []
 
     print ('generating table ...')
-    createTables(name, listOfTests, fileNames, rows, rowsDiff, options.outputPath, options.libUrl)
+    if not os.path.isdir(outputPath): os.makedirs(outputPath)
+    createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, options.libUrl)
 
     print ('done')
 
