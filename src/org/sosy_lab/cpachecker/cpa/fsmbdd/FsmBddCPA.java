@@ -64,9 +64,9 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvide
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
-  private FsmTransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
-  private FsmPrecision precision;
+  private FsmBddTransferRelation transferRelation;
+  private FsmBddPrecision precision;
   private FsmBddStatistics stats;
 
   private final Configuration config;
@@ -93,12 +93,12 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     //
     this.stats = new FsmBddStatistics(bddFactory);
     this.domainIntervalProvider = new FsmSyntaxAnalizer(pCfa);
-    this.abstractDomain = new FsmDomain();
-    this.transferRelation = new FsmTransferRelation(pConfig, stats);
+    this.abstractDomain = new FsmBddDomain();
+    this.transferRelation = new FsmBddTransferRelation(pConfig, stats);
     this.transferRelation.setDomainIntervalProvider(domainIntervalProvider);
     this.precision = initializePrecision(pConfig, pCfa);
     this.stopOperator = initializeStopOperator();
-    this.mergeOperator = new FsmMergeOperator(abstractDomain, stats);
+    this.mergeOperator = new FsmBddMergeOperator(abstractDomain, stats);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
@@ -106,8 +106,8 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     return new StopSepOperator(abstractDomain);
   }
 
-  private FsmPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
-    return new FsmPrecision();
+  private FsmBddPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
+    return new FsmBddPrecision();
   }
 
   @Override
@@ -132,7 +132,7 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvide
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    FsmState result = new FsmState(bddFactory, node);
+    FsmBddState result = new FsmBddState(bddFactory, node);
     return result;
   }
 

@@ -34,12 +34,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * Merge is done by joining the abstract states;
  * this is done by constructing the disjunction (OR) of their BDDs.
  */
-public class FsmMergeOperator implements MergeOperator {
+public class FsmBddMergeOperator implements MergeOperator {
 
   private final AbstractDomain domain;
   private final FsmBddStatistics statistics;
 
-  public FsmMergeOperator(AbstractDomain pDomain, FsmBddStatistics pStatistics)
+  public FsmBddMergeOperator(AbstractDomain pDomain, FsmBddStatistics pStatistics)
   {
     this.domain = pDomain;
     this.statistics = pStatistics;
@@ -47,15 +47,15 @@ public class FsmMergeOperator implements MergeOperator {
 
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision) throws CPAException {
-    FsmState state1 = (FsmState) pState1;
-    FsmState state2 = (FsmState) pState2;
+    FsmBddState state1 = (FsmBddState) pState1;
+    FsmBddState state2 = (FsmBddState) pState2;
 
 //    System.out.printf("M %d <> %d ?\n", state1.getCfaNode().getNodeNumber(), state2.getCfaNode().getNodeNumber());
 //    System.out.println(state1);
 //    System.out.println(state2);
 
     if (state1.getStateBdd().equals(state2.getStateBdd())) {
-      FsmState result = state1.cloneState(state1.getCfaNode());
+      FsmBddState result = state1.cloneState(state1.getCfaNode());
       result.addToConditionBlock(state2.getConditionBlock(), false);
       statistics.mergesBecauseEqualBdd++;
       return result;

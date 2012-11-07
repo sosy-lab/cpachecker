@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * See "Program Analysis with Dynamic Precision Adjustment" [Beyer et.al. 2008]
  * for details on configurable program analysis.
  */
-public class FsmDomain implements AbstractDomain {
+public class FsmBddDomain implements AbstractDomain {
 
   /**
    * The JOIN operator (of the semi-lattice) of the abstract domain.
@@ -50,12 +50,12 @@ public class FsmDomain implements AbstractDomain {
    */
   @Override
   public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
-    FsmState state1 = (FsmState) pState1;
-    FsmState state2 = (FsmState) pState2;
+    FsmBddState state1 = (FsmBddState) pState1;
+    FsmBddState state2 = (FsmBddState) pState2;
 
     // Create the joined state by
     // constructing a disjunction (OR) of the BDDs of the given states.
-    FsmState joined = state1.cloneState(state1.getCfaNode());
+    FsmBddState joined = state1.cloneState(state1.getCfaNode());
     joined.disjunctWithState(state2);
 
     if (joined.getStateBdd().equals(state2.getStateBdd())) {
@@ -96,8 +96,8 @@ public class FsmDomain implements AbstractDomain {
    */
   @Override
   public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException {
-    FsmState s1 = (FsmState) pState1;
-    FsmState s2 = (FsmState) pState2;
+    FsmBddState s1 = (FsmBddState) pState1;
+    FsmBddState s2 = (FsmBddState) pState2;
 
     if (!s1.getStateBdd().imp(s2.getStateBdd()).isOne()) {
       return false;

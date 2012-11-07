@@ -81,7 +81,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * The transfer-relation of the FsmBdd CPA.
  */
 @Options(prefix="cpa.fsmbdd")
-public class FsmTransferRelation implements TransferRelation {
+public class FsmBddTransferRelation implements TransferRelation {
 
   /**
    * Name of the variable that is used to encode the result of a function.
@@ -127,7 +127,7 @@ public class FsmTransferRelation implements TransferRelation {
    * Constructor.
    * @throws InvalidConfigurationException
    */
-  public FsmTransferRelation(Configuration pConfig, FsmBddStatistics pStatistics) throws InvalidConfigurationException {
+  public FsmBddTransferRelation(Configuration pConfig, FsmBddStatistics pStatistics) throws InvalidConfigurationException {
     this.edgeBddCache = new HashMap<CExpression, BDD>();
     this.globalVariables = new HashSet<String>();
     this.variablesPerFunction = new HashMap<String, Set<String>>();
@@ -145,7 +145,7 @@ public class FsmTransferRelation implements TransferRelation {
 
 
 
-  public boolean isAbstractionState(FsmState pSuccessor, CFANode pSuccLocation) {
+  public boolean isAbstractionState(FsmBddState pSuccessor, CFANode pSuccLocation) {
     // Depending on the subsequent edges.
 
 //    return true;
@@ -178,8 +178,8 @@ public class FsmTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
-    final FsmState predecessor = (FsmState) pState;
-    final FsmState successor = predecessor.cloneState(pCfaEdge.getSuccessor());
+    final FsmBddState predecessor = (FsmBddState) pState;
+    final FsmBddState successor = predecessor.cloneState(pCfaEdge.getSuccessor());
 
 //    System.out.println("================================================================================");
 //    System.out.println(String.format("%15s :  %s ", "Predecessor", predecessor));
@@ -243,7 +243,7 @@ public class FsmTransferRelation implements TransferRelation {
     }
   }
 
-  private void computeAbstraction(FsmState pSuccessor, CFAEdge pEdge) throws CPATransferException {
+  private void computeAbstraction(FsmBddState pSuccessor, CFAEdge pEdge) throws CPATransferException {
    CExpression conditionBlock = pSuccessor.getConditionBlock();
    if (conditionBlock == null) {
      return;
@@ -257,7 +257,7 @@ public class FsmTransferRelation implements TransferRelation {
    pSuccessor.resetConditionBlock();
   }
 
-  private void handleMultiEdge(FsmState pPredecessor, MultiEdge pMultiEdge, final FsmState pSuccessor) throws CPATransferException {
+  private void handleMultiEdge(FsmBddState pPredecessor, MultiEdge pMultiEdge, final FsmBddState pSuccessor) throws CPATransferException {
     for (CFAEdge edge: pMultiEdge.getEdges()) {
       switch (edge.getEdgeType()) {
       case BlankEdge:
@@ -290,7 +290,7 @@ public class FsmTransferRelation implements TransferRelation {
    *    return;
    *
    */
-  private void handleReturnStatementEdge(FsmState pPredecessor, CReturnStatementEdge pReturnEdge, final FsmState pSuccessor) throws CPATransferException {
+  private void handleReturnStatementEdge(FsmBddState pPredecessor, CReturnStatementEdge pReturnEdge, final FsmBddState pSuccessor) throws CPATransferException {
     // Get the expression from the return edge.
     CExpression rightOfReturn = pReturnEdge.getExpression();
 
@@ -332,7 +332,7 @@ public class FsmTransferRelation implements TransferRelation {
    *  }
    *
    */
-  private void handleFunctionCallEdge(FsmState pPredecessor, CFunctionCallEdge pCfaEdge, final FsmState pSuccessor) throws CPATransferException {
+  private void handleFunctionCallEdge(FsmBddState pPredecessor, CFunctionCallEdge pCfaEdge, final FsmBddState pSuccessor) throws CPATransferException {
     CFunctionEntryNode functionEntryNode = pCfaEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = pCfaEdge.getPredecessor().getFunctionName();
@@ -389,7 +389,7 @@ public class FsmTransferRelation implements TransferRelation {
    * @throws CPATransferException
    *
    */
-  private void handleFunctionReturnEdge(FsmState pPredecessor, CFunctionReturnEdge pFunctionReturnEdge, FsmState pSuccessor) throws CPATransferException {
+  private void handleFunctionReturnEdge(FsmBddState pPredecessor, CFunctionReturnEdge pFunctionReturnEdge, FsmBddState pSuccessor) throws CPATransferException {
     CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSummaryEdge();
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
 
@@ -428,7 +428,7 @@ public class FsmTransferRelation implements TransferRelation {
    * The BDD of the successor state gets constructed
    * by doing a conjunction of the assumption with the the BDD of the predecessor state.
    */
-  private void handleAssumeEdge (FsmState pPredecessor, CAssumeEdge pAssumeEdge, FsmState pSuccessor) throws CPATransferException {
+  private void handleAssumeEdge (FsmBddState pPredecessor, CAssumeEdge pAssumeEdge, FsmBddState pSuccessor) throws CPATransferException {
     if (conditionBlocking) {
       CExpression assumeExpr = pAssumeEdge.getExpression();
       if (!pAssumeEdge.getTruthAssumption()) {
@@ -454,7 +454,7 @@ public class FsmTransferRelation implements TransferRelation {
    * Handle a statement edges.
    * Currently, only statements of the form "IDExpression = LiteralExpression;" are supported.
    */
-  private void handleStatementEdge (FsmState pPredecessor, CStatementEdge pStatementEdge, FsmState pSuccessor) throws CPATransferException {
+  private void handleStatementEdge (FsmBddState pPredecessor, CStatementEdge pStatementEdge, FsmBddState pSuccessor) throws CPATransferException {
     CStatement stmt = pStatementEdge.getStatement();
     String functionName = pStatementEdge.getPredecessor().getFunctionName();
 
@@ -492,7 +492,7 @@ public class FsmTransferRelation implements TransferRelation {
    * For function declarations, the result variable gets introduced.
    * Variables get declared and, if there is an initializer expression, initialized.
    */
-  private void handleDeclarationEdge (FsmState pPredecessor, CDeclarationEdge pDeclEdge, FsmState pSuccessor) throws CPATransferException {
+  private void handleDeclarationEdge (FsmBddState pPredecessor, CDeclarationEdge pDeclEdge, FsmBddState pSuccessor) throws CPATransferException {
     CDeclaration decl = pDeclEdge.getDeclaration();
     if (decl instanceof CVariableDeclaration) {
       CVariableDeclaration vdecl = (CVariableDeclaration) decl;
@@ -533,7 +533,7 @@ public class FsmTransferRelation implements TransferRelation {
   /**
    * Build a BDD that represents one valuation of a variable.
    */
-  private BDD getValuedVarBdd(FsmState pOnState, String variableName, CExpression literal) throws CPATransferException {
+  private BDD getValuedVarBdd(FsmBddState pOnState, String variableName, CExpression literal) throws CPATransferException {
     BDDDomain varDomain = pOnState.getGlobalVariableDomain(variableName);
     int literalIndex = domainIntervalProvider.mapLiteralToIndex(literal);
     return varDomain.ithVar(literalIndex);
@@ -543,7 +543,7 @@ public class FsmTransferRelation implements TransferRelation {
    * Transform a given assumption-expression
    * to a binary decision diagram.
    */
-  private BDD getAssumptionAsBdd(final FsmState pOnState, final String pFunctionName, CExpression pExpression)
+  private BDD getAssumptionAsBdd(final FsmBddState pOnState, final String pFunctionName, CExpression pExpression)
       throws CPATransferException {
     DefaultCExpressionVisitor<BDD, CPATransferException> visitor = new DefaultCExpressionVisitor<BDD, CPATransferException>() {
       @Override

@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.UnrecognizedSyntaxException;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.VariableDeclarationException;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -41,10 +42,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 /**
  * Abstract state that gets represented by a binary decision diagram.
  */
-public class FsmState implements AbstractState {
+public class FsmBddState implements AbstractState {
 
   private static Map<String, BDDDomain> declaredVariables = new HashMap<String, BDDDomain>();
-  private static ExpressionCache expressionCache = new ExpressionCache();
+  private static ExpressionCache2 expressionCache = new ExpressionCache2();
   private static ExpressionToString exprToString = new ExpressionToString();
 
   /**
@@ -65,7 +66,7 @@ public class FsmState implements AbstractState {
   /**
    * Constructor.
    */
-  public FsmState(BDDFactory pBddFactory, CFANode pCfaNode) {
+  public FsmBddState(BDDFactory pBddFactory, CFANode pCfaNode) {
     this.bddFactory = pBddFactory;
 
     // Initially, the state is TRUE;
@@ -84,7 +85,7 @@ public class FsmState implements AbstractState {
    *
    * @param pOtherState
    */
-  public void disjunctWithState(FsmState pOtherState) {
+  public void disjunctWithState(FsmBddState pOtherState) {
     this.stateBdd = this.stateBdd.or(pOtherState.getStateBdd());
   }
 
@@ -148,17 +149,20 @@ public class FsmState implements AbstractState {
     }
   }
 
-  public void addToConditionBlock(CExpression conjunctWith, boolean conjunction) {
+  public void addToConditionBlock(CExpression conjunctWith, boolean conjunction) throws UnrecognizedSyntaxException {
     encodedAssumptions++;
-
     if (conditionBlock == null) {
-      conditionBlock = conjunctWith;
+      conditionBlock = expressionCache.lookupCachedExpressionVersion(conjunctWith);
     } else {
       CExpression left = conjunctWith;
       CExpression right = conditionBlock;
       BinaryOperator op = conjunction ? BinaryOperator.LOGICAL_AND : BinaryOperator.LOGICAL_OR;
 
-      conditionBlock = expressionCache.fetchCachedBinExpression(left, op, right);
+      if (conjunction) {
+        assert (conjunctWith != null);
+      }
+
+      conditionBlock = expressionCache.binaryExpression(op, left, right);
     }
   }
 
@@ -209,8 +213,8 @@ public class FsmState implements AbstractState {
    /**
    * Create a copy (new instance) of the state.
    */
-  public FsmState cloneState(CFANode pCfaNode) {
-    FsmState result = new FsmState(bddFactory, pCfaNode);
+  public FsmBddState cloneState(CFANode pCfaNode) {
+    FsmBddState result = new FsmBddState(bddFactory, pCfaNode);
     result.stateBdd = this.stateBdd;
     result.conditionBlock = this.conditionBlock;
     result.encodedAssumptions = this.encodedAssumptions;
@@ -266,7 +270,7 @@ public class FsmState implements AbstractState {
     return result.toString();
   }
 
-  public boolean condBlockEqualToBlockOf(FsmState pOtherState) {
+  public boolean condBlockEqualToBlockOf(FsmBddState pOtherState) {
     if (this.getConditionBlock() == pOtherState.getConditionBlock()) {
       return true;
     } else if (this.getEncodedAssumptions() < 25 && this.getEncodedAssumptions() == pOtherState.getEncodedAssumptions()){
