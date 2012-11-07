@@ -247,7 +247,7 @@ cfa.removeIrrelevantForSpecification = false
 cfa.useMultiEdges = false
 
 # Dump the complete configuration to a file.
-configuration.dumpFile = "UsedConfiguration.txt"
+configuration.dumpFile = "UsedConfiguration.properties"
 
 # which model checker to use for verifying counterexamples as a second check
 # Currently CBMC or CPAchecker with a different config can be used.
