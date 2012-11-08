@@ -69,7 +69,7 @@
     <!-- Ask Ivy to get all the dependencies for us -->
     <target name="resolve-dependencies" depends="load-ivy, update-contrib">
         <echo message="Downloading and installing dependencies with Ivy..."/>
-        <ivy:resolve conf="build, runtime, test"/>
+        <ivy:resolve conf="build, runtime, test" log="download-only"/>
         <ivy:retrieve sync="true" overwriteMode="different" pattern="${ivy.lib.dir}/[conf]/[artifact](-[classifier]).[ext]"/>
     </target>
 
@@ -83,7 +83,7 @@
     </target>
 
     <target name="install-contrib" depends="load-ivy" description="retrieve sources and docs for external libraries">
-        <ivy:resolve conf="contrib"/>
+        <ivy:resolve conf="contrib" log="download-only"/>
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-contrib/[artifact](-[classifier]).[ext]"/>
     </target>
 
