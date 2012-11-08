@@ -101,10 +101,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     reducer             = new ExplicitReducer();
     statistics          = new ExplicitCPAStatistics();
-
-    static_stats = statistics;
   }
-  public static ExplicitCPAStatistics static_stats = null;
 
   private MergeOperator initializeMergeOperator() {
     if (mergeType.equals("SEP")) {
