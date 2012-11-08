@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -249,9 +248,10 @@ class PredicateCPAStatistics implements Statistics {
         SetMultimap<String, AbstractionPredicate> functionPredicates, Set<AbstractionPredicate> globalPredicates,
         Set<AbstractionPredicate> allPredicates) {
 
-      // in this set, we collect the definitions and declarations necessary
+      // In this set, we collect the definitions and declarations necessary
       // for the predicates (e.g., for variables)
-      TreeSet<String> definitions = Sets.newTreeSet();
+      // The order of the definitions is important!
+      Set<String> definitions = Sets.newLinkedHashSet();
 
       // in this set, we collect the string representing each predicate
       // (potentially making use of the above definitions)
