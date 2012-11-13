@@ -325,7 +325,12 @@ class ASTConverter {
     boolean nameWasInUse = true;
     if (name == null) {
       nameWasInUse = false;
-      name = scope.getUniqueName("__CPAchecker_TMP");
+      name = "__CPAchecker_TMP_";
+      int i = 0;
+      while (scope.variableNameInUse(name + i, name + i)) {
+        i++;
+      }
+      name += i;
     }
 
     CVariableDeclaration decl = new CVariableDeclaration(convert(e.getFileLocation()),
@@ -966,8 +971,13 @@ class ASTConverter {
         cStorageClass = CStorageClass.AUTO;
       }
 
-      if (!isGlobal){
-        name = scope.getUniqueName(origName);
+      if (!isGlobal && scope.variableNameInUse(name, name)) {
+        String sep = "__";
+        int index = 1;
+        while (scope.variableNameInUse(name + sep + index, origName)) {
+          ++index;
+        }
+        name = name + sep + index;
       }
       return new CVariableDeclaration(fileLoc, isGlobal, cStorageClass, type, name, origName, initializer);
 

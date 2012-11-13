@@ -216,7 +216,7 @@ public class AutomatonTest {
       );
 
       TestResults results = run(prop, "test/programs/simple/PointerAnalysisErrors.c");
-      Assert.assertTrue(results.logContains("Automaton going to ErrorState on edge \"free(a__1);\""));
+      Assert.assertTrue(results.logContains("Automaton going to ErrorState on edge \"free(a__2);\""));
       Assert.assertTrue(results.isUnsafe());
   }
 
