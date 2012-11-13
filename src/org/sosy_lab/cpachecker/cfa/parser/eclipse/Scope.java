@@ -25,9 +25,8 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
@@ -48,7 +47,12 @@ import com.google.common.collect.Sets;
  */
 class Scope {
 
-  private final Deque<Map<String, CSimpleDeclaration>> varsStack = Lists.newLinkedList();
+  /** This stack contains all vars, that are declared at a specific level.
+   * The first level is "global", the second level is "function-scope",
+   * each further level is "block-scope". */
+  private final LinkedList<Map<String, CSimpleDeclaration>> varsStack = Lists.newLinkedList();
+
+  /** This set conatins all names, that are used for a CFA. */
   private final Set<String> usedNames = Sets.newHashSet();
 
   private final Map<String, CSimpleDeclaration> functions = new HashMap<String, CSimpleDeclaration>();
@@ -63,16 +67,16 @@ class Scope {
   }
 
   public void enterFunction(CFunctionDeclaration pFuncDef) {
+    checkState(isGlobalScope()); // currently CPAchecker supports only functions declared in global scope
     currentFunctionName = pFuncDef.getOrigName();
     registerFunctionDeclaration(pFuncDef);
-
     enterBlock();
   }
 
   public void leaveFunction() {
-    checkState(!isGlobalScope());
     varsStack.removeLast();
     currentFunctionName = null;
+    checkState(isGlobalScope());
   }
 
   public void enterBlock() {
@@ -105,14 +109,14 @@ class Scope {
     return uniqueName;
   }
 
-  public CSimpleDeclaration lookupVariable(String name) {
-    checkNotNull(name);
+  /** returns the declaration for this name.
+   * If the name hides another name from a higher scope,
+   * the declaration with the lowest scope is returned. */
+  public CSimpleDeclaration lookupVariable(String origName) {
+    checkNotNull(origName);
 
-    Iterator<Map<String, CSimpleDeclaration>> it = varsStack.descendingIterator();
-    while (it.hasNext()) {
-      Map<String, CSimpleDeclaration> vars = it.next();
-
-      CSimpleDeclaration binding = vars.get(name);
+    for (Map<String, CSimpleDeclaration> vars : Lists.reverse(varsStack)){
+      CSimpleDeclaration binding = vars.get(origName);
       if (binding != null) {
         return binding;
       }
