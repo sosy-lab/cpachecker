@@ -29,6 +29,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * Provides a symbol table that maps variable and functions to their declaration
@@ -47,7 +49,7 @@ import com.google.common.collect.Lists;
 class Scope {
 
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = Lists.newLinkedList();
-  private final Deque<Map<String, CSimpleDeclaration>> varsList = Lists.newLinkedList();
+  private final Set<String> usedNames = Sets.newHashSet();
 
   private final Map<String, CSimpleDeclaration> functions = new HashMap<String, CSimpleDeclaration>();
   private String currentFunctionName = null;
@@ -70,15 +72,11 @@ class Scope {
   public void leaveFunction() {
     checkState(!isGlobalScope());
     varsStack.removeLast();
-    while (varsList.size() > varsStack.size()) {
-      varsList.removeLast();
-    }
     currentFunctionName = null;
   }
 
   public void enterBlock() {
     varsStack.addLast(new HashMap<String, CSimpleDeclaration>());
-    varsList.addLast(varsStack.getLast());
   }
 
   public void leaveBlock() {
@@ -86,25 +84,26 @@ class Scope {
     varsStack.removeLast();
   }
 
-  public boolean variableNameInUse(String name, String origName) {
-      checkNotNull(name);
-      checkNotNull(origName);
+  /** returns a unique name for a original variable-name.
+   * If the original name hides another (equal) name,
+   * the returned name is new created with an unique index. */
+  public String getUniqueName(final String origName) {
+    checkNotNull(origName);
 
-      Iterator<Map<String, CSimpleDeclaration>> it = varsList.descendingIterator();
-      while (it.hasNext()) {
-        Map<String, CSimpleDeclaration> vars = it.next();
-
-        CSimpleDeclaration binding = vars.get(origName);
-        if (binding != null && binding.getName().equals(name)) {
-          return true;
-        }
-        binding = vars.get(name);
-        if (binding != null && binding.getName().equals(name)) {
-          return true;
-        }
-      }
-      return false;
+    if (!usedNames.contains(origName)) {
+      usedNames.add(origName);
+      return origName;
     }
+
+    int i = 0;
+    String uniqueName;
+    do {
+      uniqueName = origName + "__" + (i++);
+    } while (usedNames.contains(uniqueName));
+
+    usedNames.add(uniqueName);
+    return uniqueName;
+  }
 
   public CSimpleDeclaration lookupVariable(String name) {
     checkNotNull(name);
@@ -143,6 +142,7 @@ class Scope {
     }
 
     vars.put(name, declaration);
+    usedNames.add(name);
   }
 
   public void registerFunctionDeclaration(CFunctionDeclaration declaration) {
@@ -158,6 +158,7 @@ class Scope {
     }
 
     functions.put(name, declaration);
+    usedNames.add(name);
   }
 
   public String getCurrentFunctionName() {
