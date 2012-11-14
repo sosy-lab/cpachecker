@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 /**
  * Definition of the abstract domain of the FsmBdd-CPA.
  *
@@ -50,23 +52,25 @@ public class FsmBddDomain implements AbstractDomain {
    */
   @Override
   public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
-    FsmBddState state1 = (FsmBddState) pState1;
-    FsmBddState state2 = (FsmBddState) pState2;
+    throw new NotImplementedException();
 
-    // Create the joined state by
-    // constructing a disjunction (OR) of the BDDs of the given states.
-    FsmBddState joined = state1.cloneState(state1.getCfaNode());
-    joined.disjunctWithState(state2);
-
-    if (joined.getStateBdd().equals(state2.getStateBdd())) {
-      // Return the existing (second) state if the new (first) state makes
-      // no additional states reachable.
-      return state2;
-    } else {
-      // Return the joined state if it (caused by conjunction with the new, first, state)
-      // makes states reachable that were not reachable before.
-      return joined;
-    }
+//    FsmBddState state1 = (FsmBddState) pState1;
+//    FsmBddState state2 = (FsmBddState) pState2;
+//
+//    // Create the joined state by
+//    // constructing a disjunction (OR) of the BDDs of the given states.
+//    FsmBddState joined = state1.cloneState(state1.getCfaNode());
+//    joined.disjunctWithState(state2);
+//
+//    if (joined.getStateBdd().equals(state2.getStateBdd())) {
+//      // Return the existing (second) state if the new (first) state makes
+//      // no additional states reachable.
+//      return state2;
+//    } else {
+//      // Return the joined state if it (caused by conjunction with the new, first, state)
+//      // makes states reachable that were not reachable before.
+//      return joined;
+//    }
 
 
     /* Example:
@@ -99,26 +103,38 @@ public class FsmBddDomain implements AbstractDomain {
     FsmBddState s1 = (FsmBddState) pState1;
     FsmBddState s2 = (FsmBddState) pState2;
 
-    if (!s1.getStateBdd().imp(s2.getStateBdd()).isOne()) {
+    boolean bddImplies = s1.getStateBdd().imp(s2.getStateBdd()).isOne();
+    boolean conditionsEqual = s1.condBlockEqualToBlockOf(s2);
+
+    if (!bddImplies) {
       return false;
+    } else if (conditionsEqual) {
+      return true;
+    } else if (s1.getConditionBlock() != null && s2.getConditionBlock() == null) {
+      return true;
+    } else if (s1.getMergedInto() == s2) {
+      return true;
     }
 
     if (s1.getConditionBlock() instanceof CBinaryExpression
     && s2.getConditionBlock() != null) {
-      if (s1.condBlockEqualToBlockOf(s2)) {
-        return true;
-      }
-
-      CBinaryExpression be = (CBinaryExpression) s1.getConditionBlock();
-      if (be.getOperator() == BinaryOperator.LOGICAL_AND) {
-        boolean result = be.getOperand1() == s2.getConditionBlock()
-            || be.getOperand2() == s2.getConditionBlock();
-        return result;
+      CBinaryExpression s1cond = (CBinaryExpression) s1.getConditionBlock();
+      if (s1cond.getOperator() == BinaryOperator.LOGICAL_AND) {
+        return s1cond.getOperand1() == s2.getConditionBlock()
+            || s1cond.getOperand2() == s2.getConditionBlock();
       }
     }
 
-    return true;
+    if (s2.getConditionBlock() instanceof CBinaryExpression
+    && s1.getConditionBlock() != null) {
+      CBinaryExpression s2cond = (CBinaryExpression) s2.getConditionBlock();
+      if (s2cond.getOperator() == BinaryOperator.LOGICAL_OR) {
+        return s2cond.getOperand1() == s1.getConditionBlock()
+            || s2cond.getOperand2() == s1.getConditionBlock();
+      }
+    }
 
+    return false;
   }
 
 }

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
-import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -59,7 +58,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class FsmSyntaxAnalizer implements DomainIntervalProvider{
 
-  private final Map<String,Integer> literalIndexMap;
+  private final Map<CExpression,Integer> literalIndexMap;
+  private final Map<String,CExpression> stringToExpressionMap;
+
   private int literalSequence;
   private CFA cfa;
 
@@ -68,15 +69,9 @@ public class FsmSyntaxAnalizer implements DomainIntervalProvider{
    */
   public FsmSyntaxAnalizer(CFA pCfa) {
     this.cfa = pCfa;
-    this.literalIndexMap = new HashMap<String, Integer>();
+    this.literalIndexMap = new HashMap<CExpression, Integer>();
+    this.stringToExpressionMap = new HashMap<String, CExpression>();
     this.literalSequence = 0;
-  }
-
-  @Override
-  public void printLiteralIndexMap(PrintStream pOut) {
-    for (String lit : literalIndexMap.keySet()) {
-      pOut.println(String.format("%10s --> %d", lit, literalIndexMap.get(lit)));
-    }
   }
 
   @Override
@@ -93,21 +88,33 @@ public class FsmSyntaxAnalizer implements DomainIntervalProvider{
    */
   @Override
   public int mapLiteralToIndex(CExpression pLiteral) throws CPATransferException {
-    Integer index = literalIndexMap.get(pLiteral.toASTString());
+    Integer index = literalIndexMap.get(pLiteral);
+
     if (index == null) {
-      throw new CPATransferException("Cannot map literal to index: " + pLiteral.getClass().getSimpleName() + ": " + pLiteral.toASTString());
+      if (pLiteral.getFileLocation() == null) {
+        CExpression pEquivalentLiteral = stringToExpressionMap.get(pLiteral.toASTString());
+        return mapLiteralToIndex(pEquivalentLiteral);
+      } else {
+        throw new CPATransferException(String.format("Cannot map literal to index: %s: %s",
+            pLiteral.getClass().getSimpleName(), pLiteral.toASTString()));
+      }
     }
 
-    return index;
+    return index.intValue();
   }
 
   /**
    * Assign an sequence number to a given literal.
    * @param literal
    */
-  private void registerLiteral(CExpression literal) {
-    if (!literalIndexMap.containsKey(literal.toASTString())) {
-      literalIndexMap.put(literal.toASTString(), literalSequence++);
+  public void registerLiteral(CExpression literal) {
+    if (!stringToExpressionMap.containsKey(literal.toASTString())) {
+      stringToExpressionMap.put(literal.toASTString(), literal);
+      literalIndexMap.put(literal, literalSequence++);
+    } else {
+      CExpression first = stringToExpressionMap.get(literal.toASTString());
+      Integer firstIndex = literalIndexMap.get(first);
+      literalIndexMap.put(literal, firstIndex);
     }
   }
 
@@ -144,7 +151,7 @@ public class FsmSyntaxAnalizer implements DomainIntervalProvider{
       @Override
       public Void visit(CUnaryExpression pE) throws UnsupportedCCodeException {
         if (pE.getOperand() instanceof CUnaryExpression
-            || pE.getOperand() instanceof CBinaryExpression) {
+         || pE.getOperand() instanceof CBinaryExpression) {
           pE.getOperand().accept(this);
         } else {
           registerLiteral(pE);

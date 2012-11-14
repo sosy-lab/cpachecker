@@ -94,11 +94,11 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     this.stats = new FsmBddStatistics(bddFactory);
     this.domainIntervalProvider = new FsmSyntaxAnalizer(pCfa);
     this.abstractDomain = new FsmBddDomain();
-    this.transferRelation = new FsmBddTransferRelation(pConfig, stats);
+    this.transferRelation = new FsmBddTransferRelation(pConfig, stats, bddFactory);
     this.transferRelation.setDomainIntervalProvider(domainIntervalProvider);
     this.precision = initializePrecision(pConfig, pCfa);
     this.stopOperator = initializeStopOperator();
-    this.mergeOperator = new FsmBddMergeOperator(abstractDomain, stats);
+    this.mergeOperator = new FsmBddMergeOperator(pConfig, stats);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 

@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -49,7 +50,13 @@ public class ExpressionCache2 {
   }
 
   private CExpression atomExpression (CExpression pExpr) {
-    String key = pExpr.toASTString();
+    String key;
+    if (pExpr instanceof CIntegerLiteralExpression) {
+      key = new String(((CIntegerLiteralExpression) pExpr).getValue().toByteArray());
+    } else {
+      key = pExpr.toASTString();
+    }
+
     CExpression result = expressionAtoms.get(key);
     if (result == null) {
       result = pExpr;

@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -34,43 +37,66 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * Merge is done by joining the abstract states;
  * this is done by constructing the disjunction (OR) of their BDDs.
  */
+@Options(prefix="cpa.fsmbdd")
 public class FsmBddMergeOperator implements MergeOperator {
 
-  private final AbstractDomain domain;
+  @Option(description="Merge only on abstraction locations.")
+  public boolean mergeOnlyOnEqualConditions = true;
+
   private final FsmBddStatistics statistics;
 
-  public FsmBddMergeOperator(AbstractDomain pDomain, FsmBddStatistics pStatistics)
+  public FsmBddMergeOperator(Configuration pConfig, FsmBddStatistics pStatistics) throws InvalidConfigurationException
   {
-    this.domain = pDomain;
     this.statistics = pStatistics;
+    if (pConfig != null) {
+      pConfig.inject(this);
+    }
   }
 
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision) throws CPAException {
     FsmBddState state1 = (FsmBddState) pState1;
     FsmBddState state2 = (FsmBddState) pState2;
+    FsmBddState result = state2;
+
+    if (mergeOnlyOnEqualConditions
+        && !state1.condBlockEqualToBlockOf(state2)) {
+      return result;
+    }
 
 //    System.out.printf("M %d <> %d ?\n", state1.getCfaNode().getNodeNumber(), state2.getCfaNode().getNodeNumber());
 //    System.out.println(state1);
 //    System.out.println(state2);
 
     if (state1.getStateBdd().equals(state2.getStateBdd())) {
-      FsmBddState result = state1.cloneState(state1.getCfaNode());
-      result.addToConditionBlock(state2.getConditionBlock(), false);
+      result = state1.cloneState(state1.getCfaNode());
+      if (!state1.condBlockEqualToBlockOf(state2)) {
+        result.addToConditionBlock(state2.getConditionBlock(), false);
+      }
       statistics.mergesBecauseEqualBdd++;
-      return result;
     } else if (state1.condBlockEqualToBlockOf(state2)) {
         if (state1.getConditionBlock() == null) {
           statistics.mergesBecauseBothEmptySyntax++;
         } else {
           statistics.mergesBecauseEqualSyntax++;
         }
-        state1.addDebugInfo("merged", "equalSyntax");
-        state2.addDebugInfo("merged", "equalSyntax");
-        return domain.join(state1, state2);
-    } else {
-      return state2;
+
+        // Create the joined state by
+        // constructing a disjunction (OR) of the BDDs of the given states.
+        result = state1.cloneState(state1.getCfaNode());
+        result.disjunctStateBddWith(state2);
     }
+
+    if (result.getStateBdd().equals(state2.getStateBdd())
+        && result.condBlockEqualToBlockOf(state2)) {
+      result = state2;
+    }
+
+    if (result != state2) {
+      state1.setMergedInto(result);
+    }
+
+    return result;
   }
 
 

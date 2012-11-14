@@ -34,19 +34,23 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.UnrecognizedSyntaxException;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.VariableDeclarationException;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Abstract state that gets represented by a binary decision diagram.
  */
-public class FsmBddState implements AbstractState {
+public class FsmBddState implements AbstractState, Partitionable{
 
   private static Map<String, BDDDomain> declaredVariables = new HashMap<String, BDDDomain>();
   private static ExpressionCache2 expressionCache = new ExpressionCache2();
   private static ExpressionToString exprToString = new ExpressionToString();
+  public static FsmBddStatistics statistic;
 
   /**
    * Reference to the instance of the BDD library.
@@ -60,8 +64,8 @@ public class FsmBddState implements AbstractState {
 
   private CExpression conditionBlock;
   private int encodedAssumptions;
-  private StringBuilder debugInfos;
   private final CFANode cfaNode;
+  private FsmBddState mergedInto;
 
   /**
    * Constructor.
@@ -74,7 +78,6 @@ public class FsmBddState implements AbstractState {
     this.stateBdd = bddFactory.one();
     this.conditionBlock = null;
     this.encodedAssumptions = 0;
-    this.debugInfos = null;
     this.cfaNode = pCfaNode;
   }
 
@@ -85,8 +88,10 @@ public class FsmBddState implements AbstractState {
    *
    * @param pOtherState
    */
-  public void disjunctWithState(FsmBddState pOtherState) {
+  public void disjunctStateBddWith(FsmBddState pOtherState) {
+    statistic.disjunctStateBddTimer.start();
     this.stateBdd = this.stateBdd.or(pOtherState.getStateBdd());
+    statistic.disjunctStateBddTimer.stop();
   }
 
   /**
@@ -132,7 +137,9 @@ public class FsmBddState implements AbstractState {
    */
   public void undefineVariable(String pScopedVariableName) {
     BDDDomain varDomain = declaredVariables.get(pScopedVariableName);
+    statistic.undefineVarInBddTimer.start();
     stateBdd = stateBdd.exist(varDomain.set());
+    statistic.undefineVarInBddTimer.stop();
   }
 
   /**
@@ -158,6 +165,25 @@ public class FsmBddState implements AbstractState {
       CExpression right = conditionBlock;
       BinaryOperator op = conjunction ? BinaryOperator.LOGICAL_AND : BinaryOperator.LOGICAL_OR;
 
+      assert(op != BinaryOperator.LOGICAL_OR);
+
+      if (conjunction) {
+        assert (conjunctWith != null);
+      }
+
+      conditionBlock = expressionCache.binaryExpression(op, left, right);
+    }
+  }
+
+  public void addToConditionBlock2(CExpression conjunctWith, boolean conjunction) throws UnrecognizedSyntaxException {
+    encodedAssumptions++;
+    if (conditionBlock == null) {
+      conditionBlock = expressionCache.lookupCachedExpressionVersion(conjunctWith);
+    } else {
+      CExpression left = conjunctWith;
+      CExpression right = conditionBlock;
+      BinaryOperator op = conjunction ? BinaryOperator.LOGICAL_AND : BinaryOperator.LOGICAL_OR;
+
       if (conjunction) {
         assert (conjunctWith != null);
       }
@@ -170,6 +196,10 @@ public class FsmBddState implements AbstractState {
     return conditionBlock;
   }
 
+  public boolean getConditionBlockIsTrue() {
+    return conditionBlock == null;
+  }
+
   public void resetConditionBlock() {
     this.conditionBlock = null;
     this.encodedAssumptions = 0;
@@ -180,7 +210,9 @@ public class FsmBddState implements AbstractState {
    * BDD of the state with the given BDD.
    */
   public void conjunctStateWith(BDD bdd) {
+    statistic.conjunctStateBddTimer.start();
     stateBdd = stateBdd.and(bdd);
+    statistic.conjunctStateBddTimer.stop();
   }
 
   /**
@@ -195,7 +227,9 @@ public class FsmBddState implements AbstractState {
     int literalIndex = domainIntervalProvider.mapLiteralToIndex(pValue);
     BDDDomain variableDomain = getGlobalVariableDomain(pVariableName);
 
+    statistic.assignToVarTimer.start();
     stateBdd = stateBdd.exist(variableDomain.set()).and(variableDomain.ithVar(literalIndex));
+    statistic.assignToVarTimer.stop();
   }
 
   /**
@@ -207,7 +241,9 @@ public class FsmBddState implements AbstractState {
     BDDDomain targetDomain = getGlobalVariableDomain(pTargetVariable);
     BDDDomain sourceDomain = getGlobalVariableDomain(pSourceVariable);
 
+    statistic.assignToVarTimer.start();
     stateBdd = stateBdd.exist(targetDomain.set()).and(sourceDomain.buildEquals(targetDomain));
+    statistic.assignToVarTimer.stop();
   }
 
    /**
@@ -222,16 +258,17 @@ public class FsmBddState implements AbstractState {
     return result;
   }
 
-  public void addDebugInfo (String pName, String pValue) {
-    if (debugInfos == null) {
-      debugInfos = new StringBuilder();
-    }
-
-    debugInfos.append(String.format("%s : %s\n", pName, pValue));
-  }
-
   public CFANode getCfaNode() {
     return this.cfaNode;
+  }
+
+  FsmBddState getMergedInto() {
+    return mergedInto;
+  }
+
+  void setMergedInto(FsmBddState pMergedInto) {
+    Preconditions.checkNotNull(pMergedInto);
+    mergedInto = pMergedInto;
   }
 
 
@@ -263,9 +300,6 @@ public class FsmBddState implements AbstractState {
     result.append(String.format(" | %15s : %s\n", "Node", cfaNode.getNodeNumber()));
     result.append(String.format(" | %15s : %s\n", "BDD", stateBddText));
     result.append(String.format(" | %15s : [%d] %s\n", "Condition", encodedAssumptions, condText));
-    if (debugInfos != null) {
-      result.append(String.format(" | %15s : %s\n", "Debug", debugInfos));
-    }
 
     return result.toString();
   }
@@ -273,11 +307,16 @@ public class FsmBddState implements AbstractState {
   public boolean condBlockEqualToBlockOf(FsmBddState pOtherState) {
     if (this.getConditionBlock() == pOtherState.getConditionBlock()) {
       return true;
-    } else if (this.getEncodedAssumptions() < 25 && this.getEncodedAssumptions() == pOtherState.getEncodedAssumptions()){
-      return this.getConditionBlock().accept(exprToString).equals(pOtherState.getConditionBlock().accept(exprToString));
+//    } else if (this.getEncodedAssumptions() < 5 && this.getEncodedAssumptions() == pOtherState.getEncodedAssumptions()){
+//      return this.getConditionBlock().accept(exprToString).equals(pOtherState.getConditionBlock().accept(exprToString));
     } else {
       return false;
     }
+  }
+
+  @Override
+  public Object getPartitionKey() {
+    return null;
   }
 
 

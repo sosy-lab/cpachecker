@@ -27,19 +27,27 @@ import java.io.PrintStream;
 
 import net.sf.javabdd.BDDFactory;
 
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
-class FsmBddStatistics implements Statistics {
+public class FsmBddStatistics implements Statistics {
 
   private static final String SIMPLE_STAT_VALUE_FMT = "%-40s %s\n";
 
   private int maxEncodedAssumptions;
-
   public int mergesBecauseEqualBdd = 0;
   public int mergesBecauseEqualSyntax = 0;
   public int mergesBecauseBothEmptySyntax = 0;
+  public final Timer blockAbstractionAllTimer = new Timer();
+  public final Timer blockAbstractionBeginOnLastEncodeTimer = new Timer();
+  public final Timer blockAbstractionBeginOnFirstEncodeTimer = new Timer();
+  public final Timer blockAbstractionConjunctTimer = new Timer();
+  public final Timer disjunctStateBddTimer = new Timer();
+  public final Timer conjunctStateBddTimer = new Timer();
+  public final Timer undefineVarInBddTimer = new Timer();
+  public final Timer assignToVarTimer = new Timer();
 
   private BDDFactory bddFactory;
 
@@ -67,6 +75,14 @@ class FsmBddStatistics implements Statistics {
     printValue(pOut, "Merges because of equal BDD",  mergesBecauseEqualBdd);
     printValue(pOut, "Merges because of equal syntax",  mergesBecauseEqualSyntax);
     printValue(pOut, "Merges because of both empty syntax",  mergesBecauseBothEmptySyntax);
+    printValue(pOut, "Time for condition block abstraction",  blockAbstractionAllTimer);
+    printValue(pOut, "Time for condition block abst. conj.",  blockAbstractionConjunctTimer);
+    printValue(pOut, "Time for condition block abst. lfe.",  blockAbstractionBeginOnLastEncodeTimer);
+    printValue(pOut, "Time for condition block abst. ffe",  blockAbstractionBeginOnFirstEncodeTimer);
+    printValue(pOut, "Time for state BDD disjunction",  disjunctStateBddTimer);
+    printValue(pOut, "Time for state BDD conjunction",  conjunctStateBddTimer);
+    printValue(pOut, "Time for undefining var in BDD",  undefineVarInBddTimer);
+    printValue(pOut, "Time for assign values in BDD",  assignToVarTimer);
   }
 
   @Override

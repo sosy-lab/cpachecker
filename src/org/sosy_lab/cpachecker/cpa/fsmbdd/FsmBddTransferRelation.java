@@ -27,15 +27,21 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
+import java.util.Stack;
 
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDDomain;
+import net.sf.javabdd.BDDFactory;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -83,6 +89,12 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 @Options(prefix="cpa.fsmbdd")
 public class FsmBddTransferRelation implements TransferRelation {
 
+  @Option(description="Enable condition-block encoding?")
+  private boolean conditionBlocking = true;
+
+  @Option(description="Assume that state-conditions contain no disjunctions?")
+  private boolean assumeConditionsWithoutDisjunctions = true;
+
   /**
    * Name of the variable that is used to encode the result of a function.
    * (gets scoped with the name of the function)
@@ -97,8 +109,6 @@ public class FsmBddTransferRelation implements TransferRelation {
    * levels of a scoped variable name.
    */
   private static final String SCOPE_SEPARATOR = ".";
-
-  private static boolean conditionBlocking = true;
 
   /**
    * Reference to the DomainIntervalProvider.
@@ -123,15 +133,22 @@ public class FsmBddTransferRelation implements TransferRelation {
 
   private final FsmBddStatistics statistics;
 
+  private final BDDFactory bddFactory;
+
+  private final Random random = new Random();
+
   /**
    * Constructor.
    * @throws InvalidConfigurationException
    */
-  public FsmBddTransferRelation(Configuration pConfig, FsmBddStatistics pStatistics) throws InvalidConfigurationException {
+  public FsmBddTransferRelation(Configuration pConfig, FsmBddStatistics pStatistics, BDDFactory pBddfactory) throws InvalidConfigurationException {
     this.edgeBddCache = new HashMap<CExpression, BDD>();
     this.globalVariables = new HashSet<String>();
     this.variablesPerFunction = new HashMap<String, Set<String>>();
     this.statistics = pStatistics;
+    this.bddFactory = pBddfactory;
+
+    FsmBddState.statistic = statistics;
 
     pConfig.inject(this);
   }
@@ -142,8 +159,6 @@ public class FsmBddTransferRelation implements TransferRelation {
   public void setDomainIntervalProvider(DomainIntervalProvider pDomainIntervalProvider) {
     this.domainIntervalProvider = pDomainIntervalProvider;
   }
-
-
 
   public boolean isAbstractionState(FsmBddState pSuccessor, CFANode pSuccLocation) {
     // Depending on the subsequent edges.
@@ -243,6 +258,35 @@ public class FsmBddTransferRelation implements TransferRelation {
     }
   }
 
+  /**
+   * Conjunctive normal form.
+   * @return
+   */
+  private List<CExpression> breakIntoClauses(final CExpression pInput) {
+    List<CExpression> result = new LinkedList<CExpression>();
+    Stack<CExpression> toProcess = new Stack<CExpression>();
+
+    toProcess.push(pInput);
+    while (!toProcess.isEmpty()) {
+      CExpression expr = toProcess.pop();
+      if (expr instanceof CBinaryExpression) {
+        CBinaryExpression bin = (CBinaryExpression) expr;
+        switch (bin.getOperator()) {
+        case LOGICAL_AND:
+          toProcess.push(bin.getOperand1());
+          toProcess.push(bin.getOperand2());
+          continue;
+        case LOGICAL_OR:
+          throw new IllegalStateException("Condition contains disjunctions; this is not allowed!");
+        }
+      }
+
+      result.add(expr);
+    }
+
+    return result;
+  }
+
   private void computeAbstraction(FsmBddState pSuccessor, CFAEdge pEdge) throws CPATransferException {
    CExpression conditionBlock = pSuccessor.getConditionBlock();
    if (conditionBlock == null) {
@@ -250,11 +294,45 @@ public class FsmBddTransferRelation implements TransferRelation {
    }
 
    statistics.signalNumOfEncodedAssumptions(pSuccessor.getEncodedAssumptions());
+   statistics.blockAbstractionAllTimer.start();
 
-   BDD blockBdd = getAssumptionAsBdd(pSuccessor, pEdge.getSuccessor().getFunctionName(), conditionBlock);
+   BDD blockBdd = null;
+   if (random.nextBoolean()) {
+     statistics.blockAbstractionBeginOnFirstEncodeTimer.start();
 
+     if (assumeConditionsWithoutDisjunctions) {
+       List<CExpression> cnf = breakIntoClauses(conditionBlock);
+       ListIterator<CExpression> it = cnf.listIterator();
+       while (it.hasNext()) {
+         CExpression expr = it.next();
+         BDD exprBdd = getAssumptionAsBdd(pSuccessor, pEdge.getSuccessor().getFunctionName(), expr, true);
+         blockBdd = (blockBdd == null) ? exprBdd : blockBdd.and(exprBdd);
+       }
+     } else {
+       blockBdd = getAssumptionAsBdd(pSuccessor, pEdge.getSuccessor().getFunctionName(), conditionBlock, true);
+     }
+     statistics.blockAbstractionBeginOnFirstEncodeTimer.stop();
+   } else {
+     statistics.blockAbstractionBeginOnLastEncodeTimer.start();
+     if (assumeConditionsWithoutDisjunctions) {
+       List<CExpression> cnf = breakIntoClauses(conditionBlock);
+       ListIterator<CExpression> it = cnf.listIterator(cnf.size());
+       while (it.hasPrevious()) {
+         CExpression expr = it.previous();
+         BDD exprBdd = getAssumptionAsBdd(pSuccessor, pEdge.getSuccessor().getFunctionName(), expr, true);
+         blockBdd = (blockBdd == null) ? exprBdd : blockBdd.and(exprBdd);
+       }
+     } else {
+       blockBdd = getAssumptionAsBdd(pSuccessor, pEdge.getSuccessor().getFunctionName(), conditionBlock, true);
+     }
+     statistics.blockAbstractionBeginOnLastEncodeTimer.stop();
+   }
+
+   statistics.blockAbstractionConjunctTimer.start();
    pSuccessor.conjunctStateWith(blockBdd);
+   statistics.blockAbstractionConjunctTimer.stop();
    pSuccessor.resetConditionBlock();
+   statistics.blockAbstractionAllTimer.stop();
   }
 
   private void handleMultiEdge(FsmBddState pPredecessor, MultiEdge pMultiEdge, final FsmBddState pSuccessor) throws CPATransferException {
@@ -438,7 +516,7 @@ public class FsmBddTransferRelation implements TransferRelation {
     } else {
       BDD assumptionBdd = edgeBddCache.get(pAssumeEdge.getExpression());
       if (assumptionBdd == null) {
-        assumptionBdd = getAssumptionAsBdd(pSuccessor, pAssumeEdge.getPredecessor().getFunctionName(), pAssumeEdge.getExpression());
+        assumptionBdd = getAssumptionAsBdd(pSuccessor, pAssumeEdge.getPredecessor().getFunctionName(), pAssumeEdge.getExpression(), false);
         edgeBddCache.put(pAssumeEdge.getExpression(), assumptionBdd);
       }
 
@@ -543,9 +621,10 @@ public class FsmBddTransferRelation implements TransferRelation {
    * Transform a given assumption-expression
    * to a binary decision diagram.
    */
-  private BDD getAssumptionAsBdd(final FsmBddState pOnState, final String pFunctionName, CExpression pExpression)
+  private BDD getAssumptionAsBdd(final FsmBddState pOnState, final String pFunctionName, CExpression pExpression, final boolean positiveFirst)
       throws CPATransferException {
     DefaultCExpressionVisitor<BDD, CPATransferException> visitor = new DefaultCExpressionVisitor<BDD, CPATransferException>() {
+      public BDD visited;
       @Override
       public BDD visit(CBinaryExpression pE) throws CPATransferException {
         switch (pE.getOperator()) {
@@ -612,12 +691,22 @@ public class FsmBddTransferRelation implements TransferRelation {
         case LOGICAL_AND: {
           BDD left = pE.getOperand1().accept(this);
           BDD right = pE.getOperand2().accept(this);
-          return left.and(right);
+
+          BDD result = left.and(right);
+
+          System.out.printf("%d AND %d -> %d\n", left.nodeCount(), right.nodeCount(), result.nodeCount());
+
+          return result;
         }
         case LOGICAL_OR: {
           BDD left = pE.getOperand1().accept(this);
           BDD right = pE.getOperand2().accept(this);
-          return left.or(right);
+
+          BDD result = left.or(right);
+
+          System.out.printf("%d OR %d -> %d\n", left.nodeCount(), right.nodeCount(), result.nodeCount());
+
+          return result;
         }
         default:
           throw new CPATransferException(String.format("Operator %s not (yet) supported!", pE.getOperator()));
@@ -641,6 +730,62 @@ public class FsmBddTransferRelation implements TransferRelation {
 
     return pExpression.accept(visitor);
   }
+
+//  /**
+//   * Transform a given assumption-expression
+//   * to a binary decision diagram.
+//   */
+//  private BDD getAssumptionAsBdd2(final FsmBddState pOnState, final String pFunctionName, CExpression pExpression, final boolean positiveFirst)
+//      throws CPATransferException {
+//    Stack<CExpression> parsingStack = new Stack<CExpression>();
+//    Stack<BDD> valueStack = new Stack<BDD>();
+//
+//    parsingStack.push(pExpression);
+//
+//    BDD result = null;
+//
+//    while (parsingStack.size() > 0) {
+//      CExpression activeExpression = parsingStack.pop();
+//      BinaryOperator activeOperator = BinaryOperator.LOGICAL_AND;
+//
+//      if (activeExpression instanceof CBinaryExpression) {
+//        CBinaryExpression bin = (CBinaryExpression) pExpression;
+//        switch (bin.getOperator()) {
+//        case LOGICAL_AND:
+//        case LOGICAL_OR:
+//          parsingStack.push(bin.getOperand1());
+//          parsingStack.push(bin.getOperand2());
+//          break;
+//        case EQUALS:
+//        case NOT_EQUALS:
+//          BDD expressionBdd = getAssumptionAsBdd(pOnState, pFunctionName, activeExpression, false);
+//          switch (activeOperator) {
+//          case LOGICAL_AND:
+//            result = result.and(expressionBdd); break;
+//          case LOGICAL_OR:
+//            result = result.or(expressionBdd); break;
+//          default:
+//            result = expressionBdd;
+//          }
+//          break;
+//        default:
+//          throw new CPATransferException("Operand of binary expression not supported!");
+//        }
+//    }
+//
+//    if (pExpression instanceof CBinaryExpression) {
+//      CBinaryExpression bin = (CBinaryExpression) pExpression;
+//      CExpression left = bin.getOperand1();
+//      CExpression right = bin.getOperand2();
+//      result = getAssumptionAsBdd(pOnState, pFunctionName, left, positiveFirst);
+//
+//      switch (bin.getOperator()) {
+//      }
+//
+//    } else {
+//      result = getAssumptionAsBdd(pOnState, pFunctionName, pExpression, positiveFirst);
+//    }
+//  }
 
   /**
    * Return the scoped name of the variable.
