@@ -27,10 +27,13 @@ import java.math.BigInteger;
 
 import net.sf.javabdd.BDDFactory;
 
+import org.junit.Before;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.fsmbdd.FsmBddState;
+import org.sosy_lab.cpachecker.cpa.fsmbdd.FsmBddStatistics;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -46,6 +49,11 @@ public class FsmBddTest {
   protected CIntegerLiteralExpression int7 = new CIntegerLiteralExpression(null, null, new BigInteger("7"));
   protected CIntegerLiteralExpression int8 = new CIntegerLiteralExpression(null, null, new BigInteger("8"));
   protected CIntegerLiteralExpression int9 = new CIntegerLiteralExpression(null, null, new BigInteger("9"));
+
+  @Before
+  public void setup() {
+    FsmBddState.statistic = new FsmBddStatistics(bddfactory);
+  }
 
   protected DomainIntervalProvider domainInterval = new DomainIntervalProvider() {
     @Override
