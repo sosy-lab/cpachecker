@@ -40,7 +40,7 @@ except ImportError: # Queue was renamed to queue in Python 3
 import time
 import glob
 import logging
-import optparse
+import argparse
 import os
 import platform
 import re
@@ -1863,6 +1863,8 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
             status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
         elif 'Could not reserve enough space for object heap' in line:
             status = 'JAVA HEAP ERROR'
+        elif line.startswith('Error: '):
+            status = 'ERROR'
         
         elif line.startswith('Verification result: '):
             line = line[21:].strip()
@@ -2044,88 +2046,87 @@ def main(argv=None):
 
     if argv is None:
         argv = sys.argv
-    parser = optparse.OptionParser(usage=
-        """%prog [OPTION]... [FILE]...
+    parser = argparse.ArgumentParser(description=
+        """Run benchmarks with a verification tool.
+        Documented example files for the benchmark definitions
+        can be found as 'doc/examples/benchmark*.xml'.
+        Use the table-generator.py script to create nice tables
+        from the output of this script.""")
 
-INFO: Documented example-files can be found as 'doc/examples/benchmark*.xml'.
-
-Use the table-generator.py script to create nice tables
-from the output of this script.""")
-
-    parser.add_option("-d", "--debug",
+    parser.add_argument("files", nargs='+', metavar="FILE",
+                      help="XML file with benchmark definition")
+    parser.add_argument("-d", "--debug",
                       action="store_true",
                       help="Enable debug output")
 
-    parser.add_option("-t", "--test", dest="testRunOnly",
+    parser.add_argument("-t", "--test", dest="testRunOnly",
                       action="append",
-                      help="Run only the given TEST from the xml-file. "
+                      help="Run only the specified TEST from the benchmark definition. "
                             + "This option can be specified several times.",
                       metavar="TEST")
 
-    parser.add_option("-o", "--outputpath",
-                      dest="output_path", type="string",
+    parser.add_argument("-o", "--outputpath",
+                      dest="output_path", type=str,
                       default="./test/results/",
                       help="Output prefix for the generated results. "
                             + "If the path is a folder files are put into it,"
-                            + "otherwise the string is used as a prefix for the resulting files.")
+                            + "otherwise it is used as a prefix for the resulting files.")
 
-    parser.add_option("-T", "--timelimit",
+    parser.add_argument("-T", "--timelimit",
                       dest="timelimit", default=None,
                       help="Time limit in seconds for each run (-1 to disable)",
                       metavar="SECONDS")
 
-    parser.add_option("-M", "--memorylimit",
+    parser.add_argument("-M", "--memorylimit",
                       dest="memorylimit", default=None,
                       help="Memory limit in MB (-1 to disable)",
                       metavar="MB")
 
-    parser.add_option("-N", "--numOfThreads",
+    parser.add_argument("-N", "--numOfThreads",
                       dest="numOfThreads", default=None,
                       help="Run n benchmarks in parallel",
                       metavar="n")
 
-    parser.add_option("-x", "--moduloAndRest",
-                      dest="moduloAndRest", default=(1,0), nargs=2, type="int",
-                      help="Run only a subset of tests for which (i % a == b) holds" +
-                            "with i being the index of the test in the xml-file " +
+    parser.add_argument("-x", "--moduloAndRest",
+                      dest="moduloAndRest", default=(1,0), nargs=2, type=int,
+                      help="Run only a subset of tests for which (i %% a == b) holds" +
+                            "with i being the index of the test in the benhcmark definition file " +
                             "(starting with 1).",
-                      metavar="a b")
+                      metavar=("a","b"))
 
-    parser.add_option("-D", "--memdata", dest="memdata",
+    parser.add_argument("-D", "--memdata", dest="memdata",
                       action="store_true",
                       help="When limiting memory usage, restrict only the data segments instead of the virtual address space.")
 
-    parser.add_option("-c", "--limitCores", dest="limitCores",
+    parser.add_argument("-c", "--limitCores", dest="limitCores",
                       action="store_true",
-                      help="When limiting core usage, every run in the benchmark is only allowed to use one core of the cpu.")
+                      help="Limit each run of the tool to a single CPU core.")
 
-    parser.add_option("--commit", dest="commit",
+    parser.add_argument("--commit", dest="commit",
                       action="store_true",
                       help="If the output path is a git repository without local changes,"
                             + "add and commit the result files.")
 
-    parser.add_option("--message",
-                      dest="commitMessage", type="string",
+    parser.add_argument("--message",
+                      dest="commitMessage", type=str,
                       default="Results for benchmark run",
                       help="Commit message if --commit is used.")
 
     global options, OUTPUT_PATH
-    (options, args) = parser.parse_args(argv)
+    options = parser.parse_args(argv[1:])
     if os.path.isdir(options.output_path):
         OUTPUT_PATH = os.path.normpath(options.output_path) + os.sep
     else:
         OUTPUT_PATH = options.output_path
 
-    
-    if len(args) < 2:
-        parser.error("invalid number of arguments")
+
     if (options.debug):
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
                             level=logging.DEBUG)
     else:
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s")
 
-    for arg in args[1:]:
+    for arg in options.files:
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
 
@@ -2137,7 +2138,7 @@ from the output of this script.""")
     except OSError:
         pass # this does not work on Windows
 
-    for arg in args[1:]:
+    for arg in options.files:
         if STOPPED_BY_INTERRUPT: break
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
         runBenchmark(arg)

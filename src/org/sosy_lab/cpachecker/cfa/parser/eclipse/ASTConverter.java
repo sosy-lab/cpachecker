@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
@@ -73,6 +76,7 @@ import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.eclipse.cdt.core.dom.ast.IField;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -109,35 +113,41 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
+import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 @SuppressWarnings("deprecation") // several methods are deprecated in CDT 7 but still working
 class ASTConverter {
 
   private final LogManager logger;
 
-  private Scope scope;
+  private final Scope scope;
 
-  private LinkedList<CAstNode> preSideAssignments = new LinkedList<CAstNode>();
-  private LinkedList<CAstNode> postSideAssignments = new LinkedList<CAstNode>();
+  private final List<CAstNode> preSideAssignments = new ArrayList<CAstNode>();
+  private final List<CAstNode> postSideAssignments = new ArrayList<CAstNode>();
   private IASTConditionalExpression conditionalExpression = null;
   private CIdExpression conditionalTemporaryVariable = null;
 
-  // list for all complextypes which are known, so that they don't have to be parsed again and again
-  private ArrayList<Pair<org.eclipse.cdt.core.dom.ast.ICompositeType, CCompositeType>> iCompTypeList = Lists.newArrayList();
+  // cache for all ITypes, so that they don't have to be parsed again and again
+  // (Eclipse seems to give us identical objects for identical types already).
+  private final Map<org.eclipse.cdt.core.dom.ast.IType, CType> typeConversions = Maps.newIdentityHashMap();
 
 
   public ASTConverter(Scope pScope, LogManager pLogger) {
@@ -145,21 +155,16 @@ class ASTConverter {
     logger = pLogger;
   }
 
-  public int numberOfPreSideAssignments(){
-    return preSideAssignments.size();
+  public List<CAstNode> getAndResetPreSideAssignments() {
+    List<CAstNode> result = new ArrayList<CAstNode>(preSideAssignments);
+    preSideAssignments.clear();
+    return result;
   }
 
-
-  public CAstNode getNextPreSideAssignment() {
-    return preSideAssignments.removeFirst();
-  }
-
-  public int numberOfPostSideAssignments(){
-    return postSideAssignments.size();
-  }
-
-  public CAstNode getNextPostSideAssignment() {
-    return postSideAssignments.removeFirst();
+  public List<CAstNode> getAndResetPostSideAssignments() {
+    List<CAstNode> result = new ArrayList<CAstNode>(postSideAssignments);
+    postSideAssignments.clear();
+    return result;
   }
 
   public void resetConditionalExpression() {
@@ -504,7 +509,12 @@ class ASTConverter {
   }
 
   public CStatement convert(final IASTExpressionStatement s) {
-    CAstNode node = convertExpressionWithSideEffects(s.getExpression());
+    return convertExpressionToStatement(s.getExpression(), s.getFileLocation());
+  }
+
+  public CStatement convertExpressionToStatement(final IASTExpression e,
+      final IASTFileLocation fileLoc) {
+    CAstNode node = convertExpressionWithSideEffects(e);
 
     if (node instanceof CExpressionAssignmentStatement) {
       return (CExpressionAssignmentStatement)node;
@@ -513,14 +523,21 @@ class ASTConverter {
       return (CFunctionCallAssignmentStatement)node;
 
     } else if (node instanceof CFunctionCallExpression) {
-      return new CFunctionCallStatement(getLocation(s), (CFunctionCallExpression)node);
+        return new CFunctionCallStatement(convert(fileLoc), (CFunctionCallExpression)node);
 
-    } else if (node instanceof CExpression) {
-      return new CExpressionStatement(getLocation(s), (CExpression)node);
+      } else if (node instanceof CExpression) {
+        return new CExpressionStatement(convert(fileLoc), (CExpression)node);
 
     } else {
       throw new AssertionError();
     }
+  }
+
+  public CFileLocation convert(IASTFileLocation l) {
+    if (l == null) {
+      return null;
+    }
+    return new CFileLocation(l.getEndingLineNumber(), l.getFileName(), l.getNodeLength(), l.getNodeOffset(), l.getStartingLineNumber());
   }
 
   public CReturnStatement convert(final IASTReturnStatement s) {
@@ -1067,5 +1084,162 @@ class ASTConverter {
     }
 
     return declarator.getFirst();
+  }
+
+  private CType convert(org.eclipse.cdt.core.dom.ast.IType t) {
+    CType result = typeConversions.get(t);
+    if (result == null) {
+      result = checkNotNull(convert0(t));
+      typeConversions.put(t, result);
+    }
+    return result;
+  }
+
+  private CType convert0(org.eclipse.cdt.core.dom.ast.IType t) {
+    if (t instanceof org.eclipse.cdt.core.dom.ast.IBasicType) {
+      return convert((org.eclipse.cdt.core.dom.ast.IBasicType)t);
+
+    } else if (t instanceof org.eclipse.cdt.core.dom.ast.IPointerType) {
+      return convert((org.eclipse.cdt.core.dom.ast.IPointerType)t);
+
+    } else if (t instanceof org.eclipse.cdt.core.dom.ast.ITypedef) {
+      return convert((org.eclipse.cdt.core.dom.ast.ITypedef)t);
+
+    } else if(t instanceof org.eclipse.cdt.core.dom.ast.ICompositeType) {
+      org.eclipse.cdt.core.dom.ast.ICompositeType ct = (org.eclipse.cdt.core.dom.ast.ICompositeType) t;
+
+      // empty linkedList for the Fields of the struct, they are created afterwards
+      // with the right references in case of pointers to a struct of the same type
+      // otherwise they would not point to the correct struct
+      // TODO: volatile and const cannot be checked here until no, so both is set
+      //       to false
+      CCompositeType compType = new CCompositeType(false, false, ct.getKey(), new LinkedList<CCompositeTypeMemberDeclaration>(), ct.getName());
+
+      // We need to cache compType before converting the type of its fields!
+      // Otherwise we run into an infinite recursion if the type of one field
+      // is (a pointer to) the struct itself.
+      typeConversions.put(t, compType);
+
+      compType.setMembers(convert(ct.getFields()));
+
+      return compType;
+
+    } else if (t instanceof org.eclipse.cdt.core.dom.ast.IFunctionType) {
+      org.eclipse.cdt.core.dom.ast.IFunctionType ft = (org.eclipse.cdt.core.dom.ast.IFunctionType) t;
+
+      org.eclipse.cdt.core.dom.ast.IType[] parameters = ft.getParameterTypes();
+      List<CType> newParameters = Lists.newArrayListWithExpectedSize(parameters.length);
+      for (org.eclipse.cdt.core.dom.ast.IType p : parameters) {
+        newParameters.add(convert(p));
+      }
+
+      // TODO varargs
+      return new CFunctionPointerType(false, false, convert(ft.getReturnType()), newParameters, false);
+
+
+    } else if (t instanceof org.eclipse.cdt.core.dom.ast.IBinding) {
+      return new CComplexType(((org.eclipse.cdt.core.dom.ast.IBinding) t).getName());
+
+    } else {
+      return new CDummyType(t.toString());
+    }
+  }
+
+  private List<CCompositeTypeMemberDeclaration> convert(IField[] pFields) {
+    List<CCompositeTypeMemberDeclaration> list = new LinkedList<CCompositeTypeMemberDeclaration>();
+
+    for(int i = 0; i < pFields.length; i++) {
+          list.add(new CCompositeTypeMemberDeclaration(convert(pFields[i].getType()), pFields[i].getName()));
+    }
+    return list;
+  }
+
+  private CSimpleType convert(final org.eclipse.cdt.core.dom.ast.IBasicType t) {
+    try {
+
+      // The IBasicType has to be an ICBasicType or
+      // an IBasicType of type "void" (then it is an ICPPBasicType)
+      if (t instanceof org.eclipse.cdt.core.dom.ast.c.ICBasicType) {
+        final org.eclipse.cdt.core.dom.ast.c.ICBasicType c =
+          (org.eclipse.cdt.core.dom.ast.c.ICBasicType) t;
+
+        CBasicType type;
+        switch (t.getType()) {
+        case org.eclipse.cdt.core.dom.ast.c.ICBasicType.t_Bool:
+          type = CBasicType.BOOL;
+          break;
+        case org.eclipse.cdt.core.dom.ast.IBasicType.t_char:
+          type = CBasicType.CHAR;
+          break;
+        case org.eclipse.cdt.core.dom.ast.IBasicType.t_double:
+          type = CBasicType.DOUBLE;
+          break;
+        case org.eclipse.cdt.core.dom.ast.IBasicType.t_float:
+          type = CBasicType.FLOAT;
+          break;
+        case org.eclipse.cdt.core.dom.ast.IBasicType.t_int:
+          type = CBasicType.INT;
+          break;
+        case org.eclipse.cdt.core.dom.ast.IBasicType.t_unspecified:
+          type = CBasicType.UNSPECIFIED;
+          break;
+        case org.eclipse.cdt.core.dom.ast.IBasicType.t_void:
+          type = CBasicType.VOID;
+          break;
+        default:
+          throw new CFAGenerationRuntimeException("Unknown basic type " + t.getType());
+        }
+
+        if ((c.isShort() && c.isLong())
+            || (c.isShort() && c.isLongLong())
+            || (c.isLong() && c.isLongLong())
+            || (c.isSigned() && c.isUnsigned())) {
+          throw new CFAGenerationRuntimeException("Illegal combination of type identifiers");
+        }
+
+        // TODO why is there no isConst() and isVolatile() here?
+        return new CSimpleType(false, false, type, c.isLong(), c.isShort(), c.isSigned(), c.isUnsigned(), c.isComplex(), c.isImaginary(), c.isLongLong());
+
+      } else if (t.getType() == org.eclipse.cdt.core.dom.ast.IBasicType.t_void) {
+
+        // the three values isComplex, isImaginary, isLongLong are initialized
+        // with FALSE, because we do not know about them
+        return new CSimpleType(false, false, CBasicType.VOID, t.isLong(), t.isShort(), t.isSigned(), t.isUnsigned(), false, false, false);
+
+      } else {
+        throw new CFAGenerationRuntimeException("Unknown type " + t.toString());
+      }
+
+    } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
+      throw new CFAGenerationRuntimeException(e);
+    }
+  }
+
+  private CPointerType convert(org.eclipse.cdt.core.dom.ast.IPointerType t) {
+    try {
+      return new CPointerType(t.isConst(), t.isVolatile(), convert(getType(t)));
+    } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
+      throw new CFAGenerationRuntimeException(e);
+    }
+  }
+
+  private org.eclipse.cdt.core.dom.ast.IType getType(org.eclipse.cdt.core.dom.ast.IPointerType t) throws org.eclipse.cdt.core.dom.ast.DOMException {
+    // This method needs to throw DOMException because t.getType() does so in Eclipse CDT 6.
+    // Don't inline it, because otherwise Eclipse will complain about an unreachable catch block with Eclipse CDT 7.
+    return t.getType();
+  }
+
+  private CTypedef convert(org.eclipse.cdt.core.dom.ast.ITypedef t) {
+    try {
+      return new CTypedef(t.getName(), convert(getType(t)));
+    } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
+      throw new CFAGenerationRuntimeException(e);
+    }
+  }
+
+  private org.eclipse.cdt.core.dom.ast.IType getType(org.eclipse.cdt.core.dom.ast.ITypedef t) throws org.eclipse.cdt.core.dom.ast.DOMException {
+    // This method needs to throw DOMException because t.getType() does so in Eclipse CDT 6.
+    // Don't inline it, because otherwise Eclipse will complain about an unreachable catch block with Eclipse CDT 7.
+    return t.getType();
   }
 }

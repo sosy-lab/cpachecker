@@ -84,28 +84,6 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (obj == this) {
-      return true;
-    }
-    if (CallstackState.class != obj.getClass()) {
-      return false;
-    }
-
-    CallstackState other = (CallstackState)obj;
-    return (this.previousState == other.previousState)
-        && (this.currentFunction.equals(other.currentFunction))
-        && (this.callerNode.equals(other.callerNode));
-  }
-
-  @Override
-  public int hashCode() {
-    return (((callerNode.hashCode() * 31)
-        + System.identityHashCode(previousState)) * 17)
-        + currentFunction.hashCode();
-  }
-
-  @Override
   public String getCPAName() {
     return "Callstack";
   }

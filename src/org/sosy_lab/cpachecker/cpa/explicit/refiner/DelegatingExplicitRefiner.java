@@ -94,13 +94,18 @@ public class DelegatingExplicitRefiner
       throw new InvalidConfigurationException(DelegatingExplicitRefiner.class.getSimpleName() + " needs a ExplicitCPA");
     }
 
-    DelegatingExplicitRefiner refiner = initialiseExplicitRefiner(cpa, explicitCpa.getConfiguration(), explicitCpa.getLogger());
+    DelegatingExplicitRefiner refiner = initialiseExplicitRefiner(cpa, explicitCpa);
     explicitCpa.getStats().addRefiner(refiner);
 
     return refiner;
   }
 
-  private static DelegatingExplicitRefiner initialiseExplicitRefiner(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws CPAException, InvalidConfigurationException {
+  private static DelegatingExplicitRefiner initialiseExplicitRefiner(
+      ConfigurableProgramAnalysis cpa, ExplicitCPA explicitCpa)
+          throws CPAException, InvalidConfigurationException {
+    Configuration config                        = explicitCpa.getConfiguration();
+    LogManager logger                           = explicitCpa.getLogger();
+
     FormulaManagerFactory factory               = null;
     ExtendedFormulaManager formulaManager       = null;
     PathFormulaManager pathFormulaManager       = null;
@@ -120,7 +125,7 @@ public class DelegatingExplicitRefiner
       TheoremProver theoremProver = factory.createTheoremProver();
       RegionManager regionManager = BDDRegionManager.getInstance(config, logger);
       formulaManager              = new ExtendedFormulaManager(factory.getFormulaManager(), config, logger);
-      pathFormulaManager          = new PathFormulaManagerImpl(formulaManager, config, logger);
+      pathFormulaManager          = new PathFormulaManagerImpl(formulaManager, config, logger, explicitCpa.getMachineModel());
       solver                      = new Solver(formulaManager, theoremProver);
       absManager                  = new AbstractionManager(regionManager, formulaManager, config, logger);
     }

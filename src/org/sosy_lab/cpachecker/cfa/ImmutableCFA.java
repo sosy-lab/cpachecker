@@ -29,6 +29,7 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -46,18 +47,22 @@ import com.google.common.collect.SetMultimap;
  */
 class ImmutableCFA implements CFA {
 
+  private final MachineModel machineModel;
   private final ImmutableMap<String, FunctionEntryNode> functions;
   private final ImmutableSortedSet<CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
   private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
   private final Optional<VariableClassification> varClassification;
 
-  ImmutableCFA(Map<String, FunctionEntryNode> pFunctions,
+  ImmutableCFA(
+      MachineModel pMachineModel,
+      Map<String, FunctionEntryNode> pFunctions,
       SetMultimap<String, CFANode> pAllNodes,
       FunctionEntryNode pMainFunction,
       Optional<ImmutableMultimap<String, Loop>> pLoopStructure,
       Optional<VariableClassification> pVarClassification) {
 
+    machineModel = pMachineModel;
     functions = ImmutableMap.copyOf(pFunctions);
     allNodes = ImmutableSortedSet.copyOf(pAllNodes.values());
     mainFunction = checkNotNull(pMainFunction);
@@ -67,7 +72,8 @@ class ImmutableCFA implements CFA {
     checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
   }
 
-  private ImmutableCFA() {
+  private ImmutableCFA(MachineModel pMachineModel) {
+    machineModel = pMachineModel;
     functions = ImmutableMap.of();
     allNodes = ImmutableSortedSet.of();
     mainFunction = null;
@@ -75,8 +81,13 @@ class ImmutableCFA implements CFA {
     varClassification = Optional.absent();
   }
 
-  static ImmutableCFA empty() {
-    return new ImmutableCFA();
+  static ImmutableCFA empty(MachineModel pMachineModel) {
+    return new ImmutableCFA(pMachineModel);
+  }
+
+  @Override
+  public MachineModel getMachineModel() {
+    return machineModel;
   }
 
   @Override

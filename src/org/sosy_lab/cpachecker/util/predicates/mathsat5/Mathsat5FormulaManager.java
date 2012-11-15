@@ -493,12 +493,6 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   }
 
   @Override
-  public Formula parseInfix(String s) {
-    long f = msat_from_string(msatEnv, s);
-    return encapsulate(f);
-  }
-
-  @Override
   public Formula parse(String s) {
     long f = msat_from_smtlib2(msatEnv, s);
     return encapsulate(f);

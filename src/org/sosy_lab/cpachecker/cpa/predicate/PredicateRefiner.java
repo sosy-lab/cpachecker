@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -63,7 +62,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
 /**
@@ -191,15 +190,10 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     List<ARGState> interpolationPoints = pPath.subList(0, pPath.size()-1);
     assert interpolationPoints.size() == newPreds.size();
 
-    Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
-    Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
-
     boolean predicatesFound = false;
     boolean newPredicatesFound = false;
     ARGState firstInterpolationPoint = null;
-    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-
-    pmapBuilder.putAll(oldPredicateMap);
+    Multimap<CFANode, AbstractionPredicate> newPredicates = ArrayListMultimap.create();
 
     // iterate through interpolationPoints and find first point with new predicates, from there we have to cut the ARG
     // also build new precision
@@ -216,12 +210,10 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
           firstInterpolationPoint = interpolationPoint;
         }
 
-        if (!oldPredicateMap.get(loc).containsAll(localPreds)) {
+        if (!oldPrecision.getPredicates(loc).containsAll(localPreds)) {
           // new predicates for this location
           newPredicatesFound = true;
-
-          pmapBuilder.putAll(loc, localPreds);
-          pmapBuilder.putAll(loc, globalPredicates);
+          newPredicates.putAll(loc, localPreds);
         }
 
       }
@@ -234,15 +226,14 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     }
     assert firstInterpolationPoint != null;
 
-    ImmutableSetMultimap<CFANode, AbstractionPredicate> newPredicateMap = pmapBuilder.build();
     PredicatePrecision newPrecision;
     if (addPredicatesGlobally) {
-      newPrecision = new PredicatePrecision(newPredicateMap.values());
+      newPrecision = oldPrecision.addGlobalPredicates(newPredicates.values());
     } else {
-      newPrecision = new PredicatePrecision(newPredicateMap, globalPredicates);
+      newPrecision = oldPrecision.addLocalPredicates(newPredicates);
     }
 
-    logger.log(Level.ALL, "Predicate map now is", newPredicateMap);
+    logger.log(Level.ALL, "Predicate map now is", newPrecision);
 
     // We have two different strategies for the refinement root: set it to
     // the firstInterpolationPoint or set it to highest location in the ARG

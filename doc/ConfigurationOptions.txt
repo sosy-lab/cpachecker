@@ -65,6 +65,10 @@ analysis.externalCBMC = false
 # run interprocedural analysis
 analysis.interprocedural = true
 
+# the machine model, which determines the sizes of types like int
+analysis.machineModel = LINUX32
+  enum:     [LINUX32, LINUX64]
+
 # C programs to analyze (currently only one file is supported)
 analysis.programNames = no default value
 
@@ -245,6 +249,9 @@ cfa.useConditionTrees = false
 
 # combine sequences of simple edges into a single edge
 cfa.useMultiEdges = false
+
+# Dump the complete configuration to a file.
+configuration.dumpFile = "UsedConfiguration.properties"
 
 # which model checker to use for verifying counterexamples as a second check
 # Currently CBMC or CPAchecker with a different config can be used.
@@ -463,10 +470,6 @@ cpa.explicit.stop = "SEP"
 # blacklist regex for variables that won't be tracked by ExplicitCPA
 cpa.explicit.variableBlacklist = ""
 
-# whether or not to always use the inital node as starting point for the next
-# re-exploration of the ARG
-cpa.explict.refiner.useInitialNodeAsRestartingPoint = no default value
-
 # whitelist regex for variables that will be tracked by FeatureVarsCPA
 cpa.featurevars.variableWhitelist = ""
 
@@ -537,7 +540,8 @@ cpa.predicate.abstraction.cartesian = false
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
 
-# get an initial set of predicates from a file in MSAT format
+# get an initial map of predicates from a file (see source
+# doc/examples/predmap.txt for an example)
 cpa.predicate.abstraction.initialPredicates = no default value
 
 # What to use for storing abstractions
@@ -590,10 +594,6 @@ cpa.predicate.initAllVars = false
 
 # use uninterpreted functions for *, & and array access
 cpa.predicate.lvalsAsUIFs = false
-
-# the machine model used for functions sizeof and alignof
-cpa.predicate.machineModel = LINUX32
-  enum:     [LINUX32, LINUX64]
 
 # List of further options which will be passed to Mathsat. Format is
 # 'key1=value1,key2=value2'
@@ -657,20 +657,12 @@ cpa.predicate.refinement.addWellScopedPredicates = false
 # interpolant
 cpa.predicate.refinement.atomicPredicates = true
 
-# try again with a second solver if refinement timed out
-cpa.predicate.refinement.changesolverontimeout = false
-
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
 # apply deletion-filter to the abstract counterexample, to get a minimal set
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
-
-# Which interpolating solver to use for interpolant generation?
-# DEFAULT means to use the solver used for everything else as well.
-cpa.predicate.refinement.interpolatingProver = "DEFAULT"
-  allowed values: [DEFAULT, CSISAT]
 
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)

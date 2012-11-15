@@ -23,8 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
-public class FsmPrecision implements Precision {
+
+public class ExpressionToStringTest {
+
+  @Test
+  public void test() {
+    ExpressionToString v = new ExpressionToString();
+    CIdExpression a = new CIdExpression(null, null, "a", null);
+    CIdExpression b = new CIdExpression(null, null, "b", null);
+    CBinaryExpression bin1 = new CBinaryExpression(null, null, a, b, BinaryOperator.LOGICAL_AND);
+    CBinaryExpression bin2 = new CBinaryExpression(null, null, bin1, b, BinaryOperator.LOGICAL_AND);
+
+    System.out.println(bin2.accept(v));
+  }
 
 }

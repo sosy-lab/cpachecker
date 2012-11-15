@@ -32,28 +32,24 @@ sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 import os
 import time
-import optparse
+import argparse
 import subprocess
 import tempita
-try:
-    import json
-except ImportError:
-    #for python 2.5 and below, hope that simplejson is available
-    import simplejson as json
+import json
 
 
 def call_dot(infile, outpath):
     (basefilename, ext) = os.path.splitext(os.path.basename(infile))
     outfile = os.path.join(outpath, basefilename + '.svg')
-    print ('   generating ' + infile)
+    #print ('   generating ' + infile)
 
     code = 0
     try:
         p = subprocess.Popen(['dot', '-Nfontsize=10', '-Efontsize=10',
                               '-Efontname=Courier New', '-Tsvg', '-o',
-                              outfile, infile], stdout=subprocess.PIPE)
+                              outfile, infile])
         code = p.wait()
-    except KeyboardInterrupt: # strg + c
+    except KeyboardInterrupt: # ctrl + c
         print ('   skipping ' + infile)
         p.terminate()
 
@@ -76,96 +72,70 @@ def readfile(filepath, optional=False):
         if optional:
             return None
         raise Exception('File not found: ' + filepath)
-    print ('Reading: ' + filepath)
+    #print ('Reading: ' + filepath)
     with open(filepath, 'r') as fp:
         return fp.read()
 
 
 def main():
 
-    parser = optparse.OptionParser('%prog [options] sourcefile')
-    parser.add_option("-r", "--reportpath",
-        action="store",
-        type="string",
+    parser = argparse.ArgumentParser(
+        description="Generate a HTML report with graphs from the CPAchecker output."
+    )
+    parser.add_argument("-r", "--reportpath",
         dest="reportdir",
-        help="Directory for report"
+        help="Directory for report (default: CPAchecker output path)"
     )
-    parser.add_option("-o", "--outputpath",
-        action="store",
-        type="string",
-        dest="outdir",
-        help="CPAchecker output.path"
-    )
-    parser.add_option("-a", "--arg",
-        action="store",
-        type="string",
-        dest="arg",
-        help="CPAchecker ARG.file"
-    )
-    parser.add_option("-l", "--logfile",
-        action="store",
-        type="string",
-        dest="logfile",
-        help="CPAchecker log.file"
-    )
-    parser.add_option("-s", "--statistics",
-        action="store",
-        type="string",
-        dest="statsfile",
-        help="CPAchecker statistics.file"
-    )
-    parser.add_option("-e", "--errorpath",
-        action="store",
-        type="string",
-        dest="errorpath",
-        help="CPAchecker cpa.arg.errorPath.json"
-    )
-    parser.add_option("-g", "--errorpathgraph",
-        action="store",
-        type="string",
-        dest="errorpathgraph",
-        help="CPAchecker cpa.arg.errorPath.graph"
-    )
-    parser.add_option("-c", "--config",
-        action="store",
-        type="string",
-        dest="conffile",
-        help="path to CPAchecker config file"
+    parser.add_argument("-c", "--config",
+        dest="configfile",
+        default="output/UsedConfiguration.properties",
+        help="""File with all the used CPAchecker configuration files
+             (default: output/UsedConfiguration.properties)"""
     )
 
-    options, args = parser.parse_args()
-    if len(args) != 1:
-         parser.error('Incorrect number of arguments, you need to specify the source code file')
+    options = parser.parse_args()
 
     print ('Generating report')
-    scriptdir = os.path.dirname(__file__)
-    cpacheckerdir = os.path.normpath(os.path.join(scriptdir, '..'))
-    cpaoutdir = options.outdir or os.path.join(cpacheckerdir, 'output')
-    reportdir = options.reportdir or cpaoutdir
+
+    # read config file
+    config = {}
+    with open(options.configfile) as configfile:
+        for line in configfile:
+            (key, val) = line.split("=", 1)
+            config[key.strip()] = val.strip()
+
+    # extract paths to all necessary files from config
+    cpaoutdir      = config.get('output.path', 'output/')
+    sourcefile     = config.get('analysis.programNames')
+    logfile        = os.path.join(cpaoutdir, config.get('log.file', 'CPALog.txt'))
+    statsfile      = os.path.join(cpaoutdir, config.get('statistics.file', 'Statistics.txt'))
+    argfilepath    = os.path.join(cpaoutdir, config.get('cpa.arg.file', 'ARG.dot'))
+    errorpathgraph = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.graph', 'ErrorPath.dot'))
+    errorpath      = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.json', 'ErrorPath.json'))
+    combinednodes  = os.path.join(cpaoutdir, 'combinednodes.json')
+    cfainfo        = os.path.join(cpaoutdir, 'cfainfo.json')
+    fcalledges     = os.path.join(cpaoutdir, 'fcalledges.json')
+
+    scriptdir   = os.path.dirname(__file__)
+    reportdir   = options.reportdir or cpaoutdir
     tplfilepath = os.path.join(scriptdir, 'report-template.html')
     outfilepath = os.path.join(reportdir, 'index.html')
-    argfilepath = options.arg or os.path.join(cpaoutdir, 'ARG.dot')
-    errorpathgraph = options.errorpathgraph or os.path.join(cpaoutdir, 'ErrorPath.dot')
-    errorpath = options.errorpath or os.path.join(cpaoutdir, 'ErrorPath.json')
-    combinednodes = os.path.join(reportdir, 'combinednodes.json')
-    cfainfo = os.path.join(reportdir, 'cfainfo.json')
-    fcalledges = os.path.join(reportdir, 'fcalledges.json')
-    logfile = options.logfile or os.path.join(cpaoutdir, 'CPALog.txt')
-    statsfile = options.statsfile or os.path.join(cpaoutdir, 'Statistics.txt')
-    conffile = options.conffile or os.path.join(cpacheckerdir, 'config', 'predicateAnalysis.properties')
-    sourcefile = args[0]
+
     time_generated = time.strftime("%a, %d %b %Y %H:%M", time.localtime())
+
+    if not os.path.isdir(reportdir):
+        os.makedirs(reportdir)
 
     #if there is an ARG.dot create an SVG in the report dir
     if os.path.isfile(argfilepath):
-        print ('Generating SVG for ARG')
+        print ('Generating SVG for ARG (press Ctrl+C if this takes too long)')
         if not call_dot(argfilepath, reportdir) and os.path.isfile(errorpathgraph):
             if call_dot(errorpathgraph, reportdir):
                 os.rename(os.path.join(reportdir, 'ErrorPath.svg'),
                           os.path.join(reportdir, 'ARG.svg'))
 
-    functions = [x[5:-4] for x in os.listdir(cpaoutdir) if x.startswith('cfa__') and x.endswith('.dot')]
     print ('Generating SVGs for CFA')
+    functions = [x[5:-4] for x in os.listdir(cpaoutdir) if x.startswith('cfa__') and x.endswith('.dot')]
     for func in functions:
         call_dot(os.path.join(cpaoutdir, 'cfa__' + func + '.dot'), reportdir)
 
@@ -180,7 +150,7 @@ def main():
             sourcefilecontent=readfile(sourcefile, optional=True),
             logfile          =readfile(logfile, optional=True),
             statistics       =readfile(statsfile, optional=True),
-            conffile         =readfile(conffile, optional=True),
+            conffile         =readfile(options.configfile, optional=True),
 
             # JSON data for script
             errorpath        =readfile(errorpath, optional=True) or '[]',

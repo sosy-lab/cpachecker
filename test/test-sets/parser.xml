@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="60" memlimit="3000">
+  <!-- Test the parser frontend of CPAchecker. -->
+
+  <test>
+    <sourcefiles>
+      <includesfile>../programs/benchmarks/*.set</includesfile>
+      <include>../programs/simple/*.c</include>
+      <include>../programs/simple/*/*.c</include>
+    </sourcefiles>
+    <option name="-noout"/>
+    <option name="-generateCFA"/>
+  </test>
+</benchmark>

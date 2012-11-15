@@ -27,12 +27,9 @@ import static com.google.common.base.Preconditions.*;
 
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -55,8 +52,6 @@ class Scope {
    * each further level is "block-scope". */
   private final LinkedList<Map<String, CSimpleDeclaration>> varsStack = Lists.newLinkedList();
   private final Set<String> usedNames = Sets.newHashSet();
-
-  private final List<Pair<CDeclaration, String>> globalDeclarations = Lists.newArrayList();
 
   private final Map<String, CSimpleDeclaration> functions = new HashMap<String, CSimpleDeclaration>();
   private String currentFunctionName = null;

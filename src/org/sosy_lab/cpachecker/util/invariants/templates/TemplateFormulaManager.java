@@ -520,16 +520,6 @@ public class TemplateFormulaManager implements FormulaManager {
   // TODO: there remain many stub methods. Write them?
 
   /**
-   * Parse a formula given as a String in the common infix notation.
-   * @return The same formula in the internal representation.
-   * @throws IllegalArgumentException If the string cannot be parsed.
-   */
-  @Override
-  public Formula parseInfix(String s) throws IllegalArgumentException {
-    return null;
-  }
-
-  /**
    * Parse a formula given as a String in a solver-specific file format.
    * @return The same formula in the internal representation.
    * @throws IllegalArgumentException If the string cannot be parsed.

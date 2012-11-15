@@ -23,12 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
 
@@ -51,11 +55,20 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.base.Splitter;
+import com.google.common.base.Supplier;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.predicate.predmap")
 class PredicateCPAStatistics implements Statistics {
+
+    private static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
+
+    private static final Joiner LINE_JOINER = Joiner.on('\n');
 
     @Option(description="export final predicate map, if the error location is not reached")
     private boolean export = true;
@@ -85,45 +98,45 @@ class PredicateCPAStatistics implements Statistics {
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
       PredicateAbstractionManager amgr = cpa.getPredicateManager();
 
-      Multimap<CFANode, AbstractionPredicate> predicates = HashMultimap.create();
+      Supplier<Set<AbstractionPredicate>> hashSetSupplier = new Supplier<Set<AbstractionPredicate>>() {
+        @Override
+        public Set<AbstractionPredicate> get() {
+          return Sets.newHashSet();
+        }
+      };
+
+      SetMultimap<CFANode, AbstractionPredicate> localPredicates = Multimaps.newSetMultimap(new TreeMap<CFANode, Collection<AbstractionPredicate>>(), hashSetSupplier);
+      SetMultimap<String, AbstractionPredicate> functionPredicates = Multimaps.newSetMultimap(new TreeMap<String, Collection<AbstractionPredicate>>(), hashSetSupplier);
+      Set<AbstractionPredicate> globalPredicates = Sets.newHashSet();
 
       for (Precision precision : reached.getPrecisions()) {
         if (precision instanceof WrapperPrecision) {
           PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
-          predicates.putAll(preds.getPredicateMap());
+          localPredicates.putAll(preds.getLocalPredicates());
+          functionPredicates.putAll(preds.getFunctionPredicates());
+          globalPredicates.addAll(preds.getGlobalPredicates());
         }
       }
+
+      Set<AbstractionPredicate> allPredicates = Sets.newHashSet(globalPredicates);
+      allPredicates.addAll(localPredicates.values());
+      allPredicates.addAll(functionPredicates.values());
 
       // check if/where to dump the predicate map
       if (export && file != null) {
-        TreeMap<CFANode, Collection<AbstractionPredicate>> sortedPredicates
-              = new TreeMap<CFANode, Collection<AbstractionPredicate>>(predicates.asMap());
-        StringBuilder sb = new StringBuilder();
-
-        for (Entry<CFANode, Collection<AbstractionPredicate>> e : sortedPredicates.entrySet()) {
-          sb.append("LOCATION: ");
-          sb.append(e.getKey());
-          sb.append('\n');
-          Joiner.on('\n').appendTo(sb, e.getValue());
-          sb.append("\n\n");
-        }
-
-        try {
-          Files.writeFile(file, sb);
-        } catch (IOException e) {
-          cpa.getLogger().logUserException(Level.WARNING, e, "Could not write predicate map to file");
-        }
+        writePredicateMap(localPredicates, functionPredicates, globalPredicates, allPredicates);
       }
 
       int maxPredsPerLocation = 0;
-      for (Collection<AbstractionPredicate> p : predicates.asMap().values()) {
+      for (Collection<AbstractionPredicate> p : localPredicates.asMap().values()) {
         maxPredsPerLocation = Math.max(maxPredsPerLocation, p.size());
       }
 
-      int allLocs = predicates.keySet().size();
-      int totPredsUsed = predicates.size();
+      int allLocs = localPredicates.keySet().size();
+      int totPredsUsed = localPredicates.size();
       int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
-      int allDistinctPreds = (new HashSet<AbstractionPredicate>(predicates.values())).size();
+
+      int allDistinctPreds = allPredicates.size();
 
       PredicateAbstractionManager.Stats as = amgr.stats;
       PredicateAbstractDomain domain = cpa.getAbstractDomain();
@@ -229,6 +242,74 @@ class PredicateCPAStatistics implements Statistics {
       }
       out.println();
       rmgr.printStatistics(out);
+    }
+
+    private void writePredicateMap(SetMultimap<CFANode, AbstractionPredicate> localPredicates,
+        SetMultimap<String, AbstractionPredicate> functionPredicates, Set<AbstractionPredicate> globalPredicates,
+        Set<AbstractionPredicate> allPredicates) {
+
+      // In this set, we collect the definitions and declarations necessary
+      // for the predicates (e.g., for variables)
+      // The order of the definitions is important!
+      Set<String> definitions = Sets.newLinkedHashSet();
+
+      // in this set, we collect the string representing each predicate
+      // (potentially making use of the above definitions)
+      Map<AbstractionPredicate, String> predToString = Maps.newHashMap();
+
+      // fill the above set and map
+      for (AbstractionPredicate pred : allPredicates) {
+        String s = cpa.getFormulaManager().dumpFormula(pred.getSymbolicAtom());
+        List<String> lines = Lists.newArrayList(LINE_SPLITTER.split(s));
+        assert !lines.isEmpty();
+        String predString = lines.get(lines.size()-1);
+        lines.remove(lines.size()-1);
+        if (!(predString.startsWith("(assert ") && predString.endsWith(")"))) {
+          writePredicateMapToFile("Writing predicate map is only supported for solvers which support the Smtlib2 format, please try using Mathsat5.\n");
+          return;
+        }
+
+        predToString.put(pred, predString);
+        definitions.addAll(lines);
+      }
+
+      StringBuilder sb = new StringBuilder();
+      LINE_JOINER.appendTo(sb, definitions);
+      sb.append("\n\n");
+
+      writeSetOfPredicates(sb, "*", globalPredicates, predToString);
+
+      for (Entry<String, Collection<AbstractionPredicate>> e : functionPredicates.asMap().entrySet()) {
+        writeSetOfPredicates(sb, e.getKey(), e.getValue(), predToString);
+      }
+
+      for (Entry<CFANode, Collection<AbstractionPredicate>> e : localPredicates.asMap().entrySet()) {
+        writeSetOfPredicates(sb, e.getKey().toString(), e.getValue(), predToString);
+      }
+
+      writePredicateMapToFile(sb.toString());
+    }
+
+    private void writePredicateMapToFile(String s) {
+      try {
+        Files.writeFile(file, s);
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write predicate map to file");
+      }
+    }
+
+    private void writeSetOfPredicates(StringBuilder sb, String key,
+        Collection<AbstractionPredicate> predicates,
+        Map<AbstractionPredicate, String> predToString) {
+      if (!predicates.isEmpty()) {
+        sb.append(key);
+        sb.append(":\n");
+        for (AbstractionPredicate pred : predicates) {
+          sb.append(checkNotNull(predToString.get(pred)));
+          sb.append('\n');
+        }
+        sb.append('\n');
+      }
     }
 
     private String toPercent(double val, double full) {

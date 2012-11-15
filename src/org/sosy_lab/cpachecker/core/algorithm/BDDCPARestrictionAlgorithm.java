@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -87,7 +86,9 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
               + "Setting this to false may prevent a lot of similar infeasible counterexamples to get discovered, but is unsound")
   private boolean removeInfeasibleErrors = false;
 
-  public BDDCPARestrictionAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger, ReachedSetFactory reachedSetFactory, CFA cfa) throws InvalidConfigurationException, CPAException {
+  public BDDCPARestrictionAlgorithm(Algorithm algorithm,
+      ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger,
+      CFA cfa, String filename) throws InvalidConfigurationException, CPAException {
     this.algorithm = algorithm;
     this.logger = logger;
     config.inject(this);
@@ -98,9 +99,9 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
     logger.log(Level.INFO, "using the FeatureVars Restriction Algorithm");
 
     if (checkerName.equals("CBMC")) {
-      checker = new CBMCChecker(config, logger);
+      checker = new CBMCChecker(config, logger, cfa);
     } else if (checkerName.equals("CPACHECKER")) {
-      checker = new CounterexampleCPAChecker(config, logger, reachedSetFactory, cfa);
+      checker = new CounterexampleCPAChecker(config, logger, cfa, filename);
     } else {
       throw new AssertionError();
     }

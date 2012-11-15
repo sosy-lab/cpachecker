@@ -235,11 +235,6 @@ public class ForwardingFormulaManager implements FormulaManager {
   }
 
   @Override
-  public Formula parseInfix(String pS) throws IllegalArgumentException {
-    return delegate.parseInfix(pS);
-  }
-
-  @Override
   public Formula parse(String pS) throws IllegalArgumentException {
     return delegate.parse(pS);
   }

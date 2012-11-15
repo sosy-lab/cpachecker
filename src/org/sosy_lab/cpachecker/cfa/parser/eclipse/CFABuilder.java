@@ -44,6 +44,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
@@ -76,6 +77,8 @@ class CFABuilder extends ASTVisitor {
   private final ASTConverter astCreator;
 
   private final LogManager logger;
+
+  private boolean encounteredAsm = false;
 
   public CFABuilder(LogManager pLogger) {
     logger = pLogger;
@@ -119,26 +122,16 @@ class CFABuilder extends ASTVisitor {
     IASTFileLocation fileloc = declaration.getFileLocation();
 
     if (declaration instanceof IASTSimpleDeclaration) {
-
-      if (((IASTSimpleDeclaration)declaration).getDeclarators().length>0)
-      System.out.println("IASTSimpleDeclaration  "
-          + ((IASTSimpleDeclaration) declaration).getRawSignature()
-          + "   " + ((IASTSimpleDeclaration)declaration).getDeclarators()[0].getClass());
-      else System.out.println("CBC");
-
       return handleSimpleDeclaration((IASTSimpleDeclaration)declaration);
 
     } else if (declaration instanceof IASTFunctionDefinition) {
-
-      System.out.println("IASTFunctionDefinition  "
-          + ((IASTFunctionDefinition) declaration).getDeclarator().getRawSignature());
-
       IASTFunctionDefinition fd = (IASTFunctionDefinition) declaration;
       functionDefinitions.add(fd);
 
       // add forward declaration to list of global declarations
       CDeclaration functionDefinition = astCreator.convert(fd);
-      if (astCreator.numberOfPreSideAssignments() > 0) {
+      if (!astCreator.getAndResetPreSideAssignments().isEmpty()
+          || !astCreator.getAndResetPostSideAssignments().isEmpty()) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
 
@@ -157,9 +150,8 @@ class CFABuilder extends ASTVisitor {
 
     } else if (declaration instanceof IASTASMDeclaration) {
       // TODO Assembler code is ignored here
-      logger.log(Level.WARNING, "Ignoring inline assembler code at line "
-          + fileloc.getStartingLineNumber()
-          + ", analysis is probably unsound!");
+      encounteredAsm = true;
+      logger.log(Level.FINER, "Ignoring inline assembler code at line", fileloc.getStartingLineNumber());
       return PROCESS_SKIP;
 
     } else {
@@ -182,17 +174,18 @@ class CFABuilder extends ASTVisitor {
     final List<CDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
-    if (astCreator.numberOfPreSideAssignments() > 0) {
+    if (!astCreator.getAndResetPreSideAssignments().isEmpty()
+        || !astCreator.getAndResetPostSideAssignments().isEmpty()) {
       throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
     }
 
     String rawSignature = sd.getRawSignature();
 
     for (CDeclaration newD : newDs) {
-      if (newD instanceof CFunctionDeclaration) {
-        scope.registerFunctionDeclaration((CFunctionDeclaration) newD);
-      } else {
+      if (newD instanceof CVariableDeclaration) {
         scope.registerDeclaration(newD);
+      } else if (newD instanceof CFunctionDeclaration) {
+        scope.registerFunctionDeclaration((CFunctionDeclaration) newD);
       }
 
       globalDeclarations.add(Pair.of(newD, rawSignature));
@@ -226,7 +219,15 @@ class CFABuilder extends ASTVisitor {
       }
       cfas.put(functionName, startNode);
       cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
+
+      encounteredAsm |= functionBuilder.didEncounterAsm();
+      functionBuilder.finish();
     }
+
+    if (encounteredAsm) {
+      logger.log(Level.WARNING, "Inline assembler ignored, analysis is probably unsound!");
+    }
+
     return PROCESS_CONTINUE;
   }
 }
