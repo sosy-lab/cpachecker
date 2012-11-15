@@ -27,12 +27,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.Stack;
 
 import net.sf.javabdd.BDD;
@@ -288,7 +289,7 @@ public class FsmBddTransferRelation implements TransferRelation {
   }
 
   private void computeAbstraction(FsmBddState pSuccessor, CFAEdge pEdge) throws CPATransferException {
-   CExpression conditionBlock = pSuccessor.getConditionBlock();
+   SortedMap<Integer, CExpression> conditionBlock = pSuccessor.getConditionBlock();
    if (conditionBlock == null) {
      return;
    }
@@ -297,36 +298,18 @@ public class FsmBddTransferRelation implements TransferRelation {
    statistics.blockAbstractionAllTimer.start();
 
    BDD blockBdd = null;
-   if (random.nextBoolean()) {
-     statistics.blockAbstractionBeginOnFirstEncodeTimer.start();
 
-     if (assumeConditionsWithoutDisjunctions) {
-       List<CExpression> cnf = breakIntoClauses(conditionBlock);
-       ListIterator<CExpression> it = cnf.listIterator();
-       while (it.hasNext()) {
-         CExpression expr = it.next();
-         BDD exprBdd = getAssumptionAsBdd(pSuccessor, pEdge.getSuccessor().getFunctionName(), expr, true);
-         blockBdd = (blockBdd == null) ? exprBdd : blockBdd.and(exprBdd);
-       }
-     } else {
-       blockBdd = getAssumptionAsBdd(pSuccessor, pEdge.getSuccessor().getFunctionName(), conditionBlock, true);
-     }
-     statistics.blockAbstractionBeginOnFirstEncodeTimer.stop();
-   } else {
-     statistics.blockAbstractionBeginOnLastEncodeTimer.start();
-     if (assumeConditionsWithoutDisjunctions) {
-       List<CExpression> cnf = breakIntoClauses(conditionBlock);
-       ListIterator<CExpression> it = cnf.listIterator(cnf.size());
-       while (it.hasPrevious()) {
-         CExpression expr = it.previous();
-         BDD exprBdd = getAssumptionAsBdd(pSuccessor, pEdge.getSuccessor().getFunctionName(), expr, true);
-         blockBdd = (blockBdd == null) ? exprBdd : blockBdd.and(exprBdd);
-       }
-     } else {
-       blockBdd = getAssumptionAsBdd(pSuccessor, pEdge.getSuccessor().getFunctionName(), conditionBlock, true);
-     }
-     statistics.blockAbstractionBeginOnLastEncodeTimer.stop();
+   statistics.blockAbstractionBeginOnFirstEncodeTimer.start();
+   Collection<CExpression> cnf = conditionBlock.values();
+   Iterator<CExpression> it = cnf.iterator();
+   while (it.hasNext()) {
+     CExpression expr = it.next();
+     BDD exprBdd = getAssumptionAsBdd(pSuccessor, pEdge.getSuccessor().getFunctionName(), expr, true);
+     blockBdd = (blockBdd == null) ? exprBdd : blockBdd.and(exprBdd);
    }
+
+   statistics.blockAbstractionBeginOnFirstEncodeTimer.stop();
+
 
    statistics.blockAbstractionConjunctTimer.start();
    pSuccessor.conjunctStateWith(blockBdd);
@@ -512,7 +495,7 @@ public class FsmBddTransferRelation implements TransferRelation {
       if (!pAssumeEdge.getTruthAssumption()) {
         assumeExpr = new CUnaryExpression(assumeExpr.getFileLocation(), null, pAssumeEdge.getExpression(), UnaryOperator.NOT);
       }
-      pSuccessor.addToConditionBlock(assumeExpr, true);
+      pSuccessor.conjunctToConditionBlock(assumeExpr);
     } else {
       BDD assumptionBdd = edgeBddCache.get(pAssumeEdge.getExpression());
       if (assumptionBdd == null) {
@@ -694,8 +677,6 @@ public class FsmBddTransferRelation implements TransferRelation {
 
           BDD result = left.and(right);
 
-          System.out.printf("%d AND %d -> %d\n", left.nodeCount(), right.nodeCount(), result.nodeCount());
-
           return result;
         }
         case LOGICAL_OR: {
@@ -703,8 +684,6 @@ public class FsmBddTransferRelation implements TransferRelation {
           BDD right = pE.getOperand2().accept(this);
 
           BDD result = left.or(right);
-
-          System.out.printf("%d OR %d -> %d\n", left.nodeCount(), right.nodeCount(), result.nodeCount());
 
           return result;
         }

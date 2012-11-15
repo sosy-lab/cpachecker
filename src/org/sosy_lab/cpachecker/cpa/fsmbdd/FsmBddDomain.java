@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -104,35 +102,33 @@ public class FsmBddDomain implements AbstractDomain {
     FsmBddState s2 = (FsmBddState) pState2;
 
     boolean bddImplies = s1.getStateBdd().imp(s2.getStateBdd()).isOne();
-    boolean conditionsEqual = s1.condBlockEqualToBlockOf(s2);
+    boolean conditionsLessOrEqual = s1.conditionsLessOrEqual(s2);
 
     if (!bddImplies) {
       return false;
-    } else if (conditionsEqual) {
-      return true;
-    } else if (s1.getConditionBlock() != null && s2.getConditionBlock() == null) {
+    } else if (conditionsLessOrEqual) {
       return true;
     } else if (s1.getMergedInto() == s2) {
       return true;
     }
 
-    if (s1.getConditionBlock() instanceof CBinaryExpression
-    && s2.getConditionBlock() != null) {
-      CBinaryExpression s1cond = (CBinaryExpression) s1.getConditionBlock();
-      if (s1cond.getOperator() == BinaryOperator.LOGICAL_AND) {
-        return s1cond.getOperand1() == s2.getConditionBlock()
-            || s1cond.getOperand2() == s2.getConditionBlock();
-      }
-    }
-
-    if (s2.getConditionBlock() instanceof CBinaryExpression
-    && s1.getConditionBlock() != null) {
-      CBinaryExpression s2cond = (CBinaryExpression) s2.getConditionBlock();
-      if (s2cond.getOperator() == BinaryOperator.LOGICAL_OR) {
-        return s2cond.getOperand1() == s1.getConditionBlock()
-            || s2cond.getOperand2() == s1.getConditionBlock();
-      }
-    }
+//    if (s1.getConditionBlock() instanceof CBinaryExpression
+//    && s2.getConditionBlock() != null) {
+//      CBinaryExpression s1cond = (CBinaryExpression) s1.getConditionBlock();
+//      if (s1cond.getOperator() == BinaryOperator.LOGICAL_AND) {
+//        return s1cond.getOperand1() == s2.getConditionBlock()
+//            || s1cond.getOperand2() == s2.getConditionBlock();
+//      }
+//    }
+//
+//    if (s2.getConditionBlock() instanceof CBinaryExpression
+//    && s1.getConditionBlock() != null) {
+//      CBinaryExpression s2cond = (CBinaryExpression) s2.getConditionBlock();
+//      if (s2cond.getOperator() == BinaryOperator.LOGICAL_OR) {
+//        return s2cond.getOperand1() == s1.getConditionBlock()
+//            || s2cond.getOperand2() == s1.getConditionBlock();
+//      }
+//    }
 
     return false;
   }

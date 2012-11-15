@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.FsmBddMergeOperator;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.FsmBddState;
@@ -48,31 +49,35 @@ public class FsmBddMergeOperatorTest extends FsmBddTest {
     FsmBddState s2 = new FsmBddState(bddfactory, l1);
     FsmBddState s3 = new FsmBddState(bddfactory, l1);
     FsmBddState s4 = new FsmBddState(bddfactory, l1);
+    FsmBddState s5 = new FsmBddState(bddfactory, l1);
 
     s1.declareGlobal("v1", domainInterval.getIntervalMaximum());
     s1.declareGlobal("v2", domainInterval.getIntervalMaximum());
     s1.declareGlobal("v3", domainInterval.getIntervalMaximum());
 
-    CBinaryExpression comp1 = new CBinaryExpression(null, null, v2, int9, BinaryOperator.EQUALS);
-    CBinaryExpression comp2 = new CBinaryExpression(null, null, v3, int7, BinaryOperator.EQUALS);
+    CFileLocation loc = new CFileLocation(2, "test.c", 12, 200, 1);
+    CBinaryExpression comp1 = new CBinaryExpression(loc, null, v2, int9, BinaryOperator.EQUALS);
+    CBinaryExpression comp2 = new CBinaryExpression(loc, null, v3, int7, BinaryOperator.EQUALS);
 
     // State s1: (v1=7, v2=9)
     s1.assingConstantToVariable("v1", domainInterval, int7);
-    s1.addToConditionBlock(comp1, true);
+    s1.conjunctToConditionBlock(comp1);
 
     // State s2: (v1=7, v2=9 && v3=7)
     s2.assingConstantToVariable("v1", domainInterval, int7);
-    s2.addToConditionBlock(comp1, true);
-    s2.addToConditionBlock(comp2, true);
+    s2.conjunctToConditionBlock(comp1);
+    s2.conjunctToConditionBlock(comp2);
 
-    // State s3: (v1=7, v2=9 || v3=7)
+    // State s4: (v1=7, v2=9 || v3=7)
     s3.assingConstantToVariable("v1", domainInterval, int7);
-    s3.addToConditionBlock(comp1, true);
-    s3.addToConditionBlock(comp2, false);
-
-    // State s4: (v1=7, TRUE)
+    s3.conjunctToConditionBlock(comp1);
     s4.assingConstantToVariable("v1", domainInterval, int7);
-    s4.resetConditionBlock();
+    s4.conjunctToConditionBlock(comp2);
+    s4.disjunctConditionBlocks(s3.getConditionBlock());
+
+    // State s5: (v1=7, TRUE)
+    s5.assingConstantToVariable("v1", domainInterval, int7);
+    s5.resetConditionBlock();
 
     AbstractState joined = mergeOp.merge(s1, s2, null);
     Assert.assertNotSame(joined, s2);

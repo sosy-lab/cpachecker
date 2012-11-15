@@ -123,4 +123,15 @@ public class ExpressionCache2 {
     }
   }
 
+  public boolean expressionsEqual(CExpression e1, CExpression e2) {
+    try {
+      CExpression cached1 = lookupCachedExpressionVersion(e1);
+      CExpression cached2 = lookupCachedExpressionVersion(e2);
+
+      return (cached1 == cached2);
+    } catch (UnrecognizedSyntaxException ex) {
+      throw new RuntimeException(ex);
+    }
+  }
+
 }

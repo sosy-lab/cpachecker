@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class FsmBddMergeOperator implements MergeOperator {
 
   @Option(description="Merge only on abstraction locations.")
-  public boolean mergeOnlyOnEqualConditions = true;
+  public boolean mergeOnlyOnEqualConditions = false;
 
   private final FsmBddStatistics statistics;
 
@@ -71,7 +71,7 @@ public class FsmBddMergeOperator implements MergeOperator {
     if (state1.getStateBdd().equals(state2.getStateBdd())) {
       result = state1.cloneState(state1.getCfaNode());
       if (!state1.condBlockEqualToBlockOf(state2)) {
-        result.addToConditionBlock(state2.getConditionBlock(), false);
+        result.disjunctConditionBlocks(state2.getConditionBlock());
       }
       statistics.mergesBecauseEqualBdd++;
     } else if (state1.condBlockEqualToBlockOf(state2)) {

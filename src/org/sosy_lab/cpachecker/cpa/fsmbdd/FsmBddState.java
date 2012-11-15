@@ -25,16 +25,18 @@ package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDDomain;
 import net.sf.javabdd.BDDFactory;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.UnrecognizedSyntaxException;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.VariableDeclarationException;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
@@ -45,7 +47,7 @@ import com.google.common.base.Preconditions;
 /**
  * Abstract state that gets represented by a binary decision diagram.
  */
-public class FsmBddState implements AbstractState, Partitionable{
+public class FsmBddState implements AbstractState {
 
   private static Map<String, BDDDomain> declaredVariables = new HashMap<String, BDDDomain>();
   private static ExpressionCache2 expressionCache = new ExpressionCache2();
@@ -62,7 +64,7 @@ public class FsmBddState implements AbstractState, Partitionable{
    */
   private BDD stateBdd;
 
-  private CExpression conditionBlock;
+  private SortedMap<Integer, CExpression> conditionBlock;
   private int encodedAssumptions;
   private final CFANode cfaNode;
   private FsmBddState mergedInto;
@@ -156,48 +158,63 @@ public class FsmBddState implements AbstractState, Partitionable{
     }
   }
 
-  public void addToConditionBlock(CExpression conjunctWith, boolean conjunction) throws UnrecognizedSyntaxException {
+  public void conjunctToConditionBlock(CExpression conjunctWith) throws UnrecognizedSyntaxException {
     encodedAssumptions++;
     if (conditionBlock == null) {
-      conditionBlock = expressionCache.lookupCachedExpressionVersion(conjunctWith);
+      conditionBlock = new TreeMap<Integer, CExpression>();
+    }
+
+    Integer conditionLine = conjunctWith.getFileLocation().getStartingLineNumber();
+    CExpression lineCondition = conditionBlock.get(conditionLine);
+
+    if (lineCondition == null) {
+      lineCondition = expressionCache.lookupCachedExpressionVersion(conjunctWith);
     } else {
       CExpression left = conjunctWith;
-      CExpression right = conditionBlock;
-      BinaryOperator op = conjunction ? BinaryOperator.LOGICAL_AND : BinaryOperator.LOGICAL_OR;
+      CExpression right = lineCondition;
+      BinaryOperator op = BinaryOperator.LOGICAL_AND;
 
-      assert(op != BinaryOperator.LOGICAL_OR);
+      lineCondition = expressionCache.binaryExpression(op, left, right);
+    }
 
-      if (conjunction) {
-        assert (conjunctWith != null);
+    conditionBlock.put(conditionLine, lineCondition);
+  }
+
+  public void disjunctConditionBlocks(SortedMap<Integer, CExpression> disjunctWith) throws UnrecognizedSyntaxException {
+    if (disjunctWith == null || disjunctWith.size() == 0) {
+      this.resetConditionBlock();
+      return;
+    }
+
+    encodedAssumptions++;
+    if (conditionBlock == null) {
+      conditionBlock = new TreeMap<Integer, CExpression>();
+    }
+
+    for (Integer conditionLine : disjunctWith.keySet()) {
+      CExpression thisLineCondition = conditionBlock.get(conditionLine);
+      CExpression otherLineCondition = disjunctWith.get(conditionLine);
+
+      if (thisLineCondition == null) {
+        thisLineCondition = expressionCache.lookupCachedExpressionVersion(otherLineCondition);
+      } else {
+        CExpression left = thisLineCondition;
+        CExpression right = otherLineCondition;
+        BinaryOperator op = BinaryOperator.LOGICAL_OR;
+
+        thisLineCondition = expressionCache.binaryExpression(op, left, right);
       }
 
-      conditionBlock = expressionCache.binaryExpression(op, left, right);
+      conditionBlock.put(conditionLine, thisLineCondition);
     }
   }
 
-  public void addToConditionBlock2(CExpression conjunctWith, boolean conjunction) throws UnrecognizedSyntaxException {
-    encodedAssumptions++;
-    if (conditionBlock == null) {
-      conditionBlock = expressionCache.lookupCachedExpressionVersion(conjunctWith);
-    } else {
-      CExpression left = conjunctWith;
-      CExpression right = conditionBlock;
-      BinaryOperator op = conjunction ? BinaryOperator.LOGICAL_AND : BinaryOperator.LOGICAL_OR;
-
-      if (conjunction) {
-        assert (conjunctWith != null);
-      }
-
-      conditionBlock = expressionCache.binaryExpression(op, left, right);
-    }
-  }
-
-  public CExpression getConditionBlock() {
+  public SortedMap<Integer, CExpression> getConditionBlock() {
     return conditionBlock;
   }
 
   public boolean getConditionBlockIsTrue() {
-    return conditionBlock == null;
+    return conditionBlock == null || conditionBlock.size() == 0;
   }
 
   public void resetConditionBlock() {
@@ -252,7 +269,7 @@ public class FsmBddState implements AbstractState, Partitionable{
   public FsmBddState cloneState(CFANode pCfaNode) {
     FsmBddState result = new FsmBddState(bddFactory, pCfaNode);
     result.stateBdd = this.stateBdd;
-    result.conditionBlock = this.conditionBlock;
+    result.conditionBlock = this.conditionBlock == null ? null : new TreeMap<Integer, CExpression>(this.conditionBlock);
     result.encodedAssumptions = this.encodedAssumptions;
 
     return result;
@@ -288,12 +305,16 @@ public class FsmBddState implements AbstractState, Partitionable{
     }
 
     String condText;
-    if (encodedAssumptions > 20) {
+    if (encodedAssumptions > 5) {
       condText = String.format("AST with %d assumptions", encodedAssumptions);
     } else if (conditionBlock == null) {
       condText = "[]";
     } else {
-      condText = conditionBlock.accept(new ExpressionToString());
+      condText = "";
+      for (Integer line: conditionBlock.keySet()) {
+        CExpression lineCondition = conditionBlock.get(line);
+        condText += String.format("(%d) %s\n", line, lineCondition.accept(new ExpressionToString()));
+      }
     }
 
     result.append("\n");
@@ -304,20 +325,94 @@ public class FsmBddState implements AbstractState, Partitionable{
     return result.toString();
   }
 
-  public boolean condBlockEqualToBlockOf(FsmBddState pOtherState) {
-    if (this.getConditionBlock() == pOtherState.getConditionBlock()) {
+  public boolean condBlockEqualToBlockOf(FsmBddState pOther) {
+    SortedMap<Integer, CExpression> thisBlock = this.getConditionBlock();
+    SortedMap<Integer, CExpression> otherBlock = pOther.getConditionBlock();
+
+    if (thisBlock == null && otherBlock == null) {
       return true;
-//    } else if (this.getEncodedAssumptions() < 5 && this.getEncodedAssumptions() == pOtherState.getEncodedAssumptions()){
-//      return this.getConditionBlock().accept(exprToString).equals(pOtherState.getConditionBlock().accept(exprToString));
-    } else {
+    }
+
+    if (thisBlock == null || otherBlock == null) {
       return false;
     }
+
+    if (thisBlock.size() == otherBlock.size()) {
+      for (Integer key: thisBlock.keySet()) {
+        CExpression otherExpr = otherBlock.get(key);
+        if (otherExpr == null) {
+          return false;
+        } else {
+          CExpression thisExpr = thisBlock.get(key);
+          if (!expressionCache.expressionsEqual(thisExpr, otherExpr)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    return false;
   }
 
-  @Override
-  public Object getPartitionKey() {
-    return null;
-  }
+  public boolean conditionsLessOrEqual(FsmBddState pOther) {
+    if (pOther.getConditionBlockIsTrue()) {
+      return true;
+    }
 
+    if (this.getConditionBlockIsTrue()) {
+      return false;
+    }
+
+    SortedMap<Integer, CExpression> thisBlock = this.getConditionBlock();
+    SortedMap<Integer, CExpression> otherBlock = pOther.getConditionBlock();
+
+    if (thisBlock.size() == otherBlock.size()) {
+      for (Integer key: thisBlock.keySet()) {
+        CExpression otherExpr = otherBlock.get(key);
+        CExpression thisExpr = thisBlock.get(key);
+        boolean exprIsLessOrEqual = false;
+
+        if (otherExpr == null) {
+          return false;
+        } else {
+          if (thisExpr instanceof CBinaryExpression) {
+            CBinaryExpression s1cond = (CBinaryExpression) thisExpr;
+            if (s1cond.getOperator() == BinaryOperator.LOGICAL_AND) {
+              if (s1cond.getOperand1() == otherExpr
+               || s1cond.getOperand2() == otherExpr) {
+                exprIsLessOrEqual = true;
+              }
+            }
+          }
+
+          if (!exprIsLessOrEqual) {
+            if (otherExpr instanceof CBinaryExpression) {
+              CBinaryExpression s2cond = (CBinaryExpression) otherExpr;
+              if (s2cond.getOperator() == BinaryOperator.LOGICAL_OR) {
+                if (s2cond.getOperand1() == thisExpr
+                 || s2cond.getOperand2() == thisExpr) {
+                  exprIsLessOrEqual = true;
+                }
+              }
+            }
+          }
+
+          if (!exprIsLessOrEqual) {
+            if (expressionCache.expressionsEqual(thisExpr, otherExpr)) {
+              exprIsLessOrEqual = true;
+            }
+          }
+        }
+
+        if (!exprIsLessOrEqual) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    return false;
+  }
 
 }
