@@ -920,6 +920,7 @@ class OutputHandler:
             testInfo += test.name + "\n"
         testInfo += "test {0} of {1}: skipped {2}\n".format(
                 numberOfTest, len(self.benchmark.tests), reason or "")
+        self.TXTContent += testInfo
         self.TXTFile.append(testInfo)
 
 
