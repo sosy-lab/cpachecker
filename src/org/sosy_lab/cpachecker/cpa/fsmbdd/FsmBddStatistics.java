@@ -37,6 +37,7 @@ public class FsmBddStatistics implements Statistics {
   private static final String SIMPLE_STAT_VALUE_FMT = "%-40s %s\n";
 
   private int maxEncodedAssumptions;
+  public int mergeCalls = 0;
   public int mergesBecauseEqualBdd = 0;
   public int mergesBecauseEqualSyntax = 0;
   public int mergesBecauseBothEmptySyntax = 0;
@@ -72,6 +73,7 @@ public class FsmBddStatistics implements Statistics {
     printValue(pOut, "Size of BDD cache",         bddFactory.getCacheSize());
     printValue(pOut, "Number of BDD reorderings", bddFactory.getReorderTimes());
     printValue(pOut, "Max. encoded assumptions",  maxEncodedAssumptions);
+    printValue(pOut, "Merge called",  mergeCalls);
     printValue(pOut, "Merges because of equal BDD",  mergesBecauseEqualBdd);
     printValue(pOut, "Merges because of equal syntax",  mergesBecauseEqualSyntax);
     printValue(pOut, "Merges because of both empty syntax",  mergesBecauseBothEmptySyntax);

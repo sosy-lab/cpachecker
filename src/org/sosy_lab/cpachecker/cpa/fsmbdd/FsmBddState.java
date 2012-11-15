@@ -305,7 +305,7 @@ public class FsmBddState implements AbstractState {
     }
 
     String condText;
-    if (encodedAssumptions > 5) {
+    if (encodedAssumptions > 10) {
       condText = String.format("AST with %d assumptions", encodedAssumptions);
     } else if (conditionBlock == null) {
       condText = "[]";
@@ -349,6 +349,7 @@ public class FsmBddState implements AbstractState {
           }
         }
       }
+
       return true;
     }
 

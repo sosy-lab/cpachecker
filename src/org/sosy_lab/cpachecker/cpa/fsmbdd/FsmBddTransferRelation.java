@@ -35,6 +35,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.Stack;
+import java.util.TreeSet;
 
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDDomain;
@@ -130,7 +131,7 @@ public class FsmBddTransferRelation implements TransferRelation {
    * Cache to avoid rebuilding the BDD that represents
    * one control-flow edge.
    */
-  private final Map<CExpression, BDD> edgeBddCache;
+  private final Map<CExpression, BDD> expressionBddCache;
 
   private final FsmBddStatistics statistics;
 
@@ -143,7 +144,7 @@ public class FsmBddTransferRelation implements TransferRelation {
    * @throws InvalidConfigurationException
    */
   public FsmBddTransferRelation(Configuration pConfig, FsmBddStatistics pStatistics, BDDFactory pBddfactory) throws InvalidConfigurationException {
-    this.edgeBddCache = new HashMap<CExpression, BDD>();
+    this.expressionBddCache = new HashMap<CExpression, BDD>();
     this.globalVariables = new HashSet<String>();
     this.variablesPerFunction = new HashMap<String, Set<String>>();
     this.statistics = pStatistics;
@@ -297,15 +298,17 @@ public class FsmBddTransferRelation implements TransferRelation {
    statistics.signalNumOfEncodedAssumptions(pSuccessor.getEncodedAssumptions());
    statistics.blockAbstractionAllTimer.start();
 
-   BDD blockBdd = null;
+   BDD blockBdd = bddFactory.one();
 
    statistics.blockAbstractionBeginOnFirstEncodeTimer.start();
-   Collection<CExpression> cnf = conditionBlock.values();
-   Iterator<CExpression> it = cnf.iterator();
+   TreeSet<Integer> conditionKeys = new TreeSet<Integer>(conditionBlock.keySet());
+   //System.out.println(pSuccessor.toString());
+   Iterator<Integer> it = conditionKeys.descendingIterator();
    while (it.hasNext()) {
-     CExpression expr = it.next();
-     BDD exprBdd = getAssumptionAsBdd(pSuccessor, pEdge.getSuccessor().getFunctionName(), expr, true);
-     blockBdd = (blockBdd == null) ? exprBdd : blockBdd.and(exprBdd);
+     Integer key = it.next();
+     CExpression keyCondition = conditionBlock.get(key);
+     BDD exprBdd = getAssumptionAsBdd(pSuccessor, pEdge.getSuccessor().getFunctionName(), keyCondition, true);
+     blockBdd = blockBdd.and(exprBdd);
    }
 
    statistics.blockAbstractionBeginOnFirstEncodeTimer.stop();
@@ -497,10 +500,10 @@ public class FsmBddTransferRelation implements TransferRelation {
       }
       pSuccessor.conjunctToConditionBlock(assumeExpr);
     } else {
-      BDD assumptionBdd = edgeBddCache.get(pAssumeEdge.getExpression());
+      BDD assumptionBdd = expressionBddCache.get(pAssumeEdge.getExpression());
       if (assumptionBdd == null) {
         assumptionBdd = getAssumptionAsBdd(pSuccessor, pAssumeEdge.getPredecessor().getFunctionName(), pAssumeEdge.getExpression(), false);
-        edgeBddCache.put(pAssumeEdge.getExpression(), assumptionBdd);
+        expressionBddCache.put(pAssumeEdge.getExpression(), assumptionBdd);
       }
 
       if (!pAssumeEdge.getTruthAssumption()) {
@@ -607,15 +610,17 @@ public class FsmBddTransferRelation implements TransferRelation {
   private BDD getAssumptionAsBdd(final FsmBddState pOnState, final String pFunctionName, CExpression pExpression, final boolean positiveFirst)
       throws CPATransferException {
     DefaultCExpressionVisitor<BDD, CPATransferException> visitor = new DefaultCExpressionVisitor<BDD, CPATransferException>() {
-      public BDD visited;
       @Override
       public BDD visit(CBinaryExpression pE) throws CPATransferException {
+        BDD result = expressionBddCache.get(pE);
+        if (result != null) {
+          return result;
+        }
+
         switch (pE.getOperator()) {
         case EQUALS:
         case NOT_EQUALS: {
           try {
-            BDD result;
-
             // a == 123
             if(pE.getOperand1() instanceof CIdExpression
             && pE.getOperand2() instanceof CLiteralExpression) {
@@ -665,45 +670,64 @@ public class FsmBddTransferRelation implements TransferRelation {
             if (pE.getOperator() == BinaryOperator.NOT_EQUALS) {
               result = result.not();
             }
-
-            return result;
           } catch (VariableDeclarationException ex) {
             throw new CPATransferException(ex.getMessage());
           }
+
+          break;
         }
         case LOGICAL_AND: {
           BDD left = pE.getOperand1().accept(this);
           BDD right = pE.getOperand2().accept(this);
 
-          BDD result = left.and(right);
-
-          return result;
+          result = left.and(right);
+          break;
         }
         case LOGICAL_OR: {
           BDD left = pE.getOperand1().accept(this);
           BDD right = pE.getOperand2().accept(this);
 
-          BDD result = left.or(right);
-
-          return result;
+          result = left.or(right);
+          break;
         }
         default:
           throw new CPATransferException(String.format("Operator %s not (yet) supported!", pE.getOperator()));
         }
+
+        expressionBddCache.put(pE, result);
+        return result;
       }
 
       @Override
       public BDD visit(CUnaryExpression pE) throws CPATransferException {
+        BDD result = expressionBddCache.get(pE);
+        if (result != null) {
+          return result;
+        }
+
         switch (pE.getOperator()) {
-        case NOT: return pE.getOperand().accept(this).not();
+        case NOT: {
+            result = pE.getOperand().accept(this).not();
+            break;
+        }
         default:
           throw new CPATransferException(String.format("Operator %s not (yet) supported!", pE.getOperator()));
         }
+
+        expressionBddCache.put(pE, result);
+        return result;
       }
 
       @Override
-      protected BDD visitDefault(CExpression pExp) throws CPATransferException {
-        return pExp.accept(this);
+      protected BDD visitDefault(CExpression pE) throws CPATransferException {
+        BDD result = expressionBddCache.get(pE);
+        if (result != null) {
+          return result;
+        }
+
+        result = pE.accept(this);
+        expressionBddCache.put(pE, result);
+        return result;
       }
     };
 

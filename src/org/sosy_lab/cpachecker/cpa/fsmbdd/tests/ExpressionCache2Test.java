@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.UnrecognizedSyntaxException
 public class ExpressionCache2Test {
 
   @Test
-  public void test() throws UnrecognizedSyntaxException {
+  public void testLookupCachedExpressionVersion() throws UnrecognizedSyntaxException {
     ExpressionCache2 cache = new ExpressionCache2();
     BinaryOperator opr = BinaryOperator.EQUALS;
     CExpression opA1 = new CIdExpression(null, null, "a", null);
@@ -60,13 +60,8 @@ public class ExpressionCache2Test {
         cache.lookupCachedExpressionVersion(bin1),
         cache.lookupCachedExpressionVersion(bin2));
 
-    CExpression cached1 = cache.binaryExpression(BinaryOperator.LOGICAL_AND,
-        cache.lookupCachedExpressionVersion(bin1),
-        cache.lookupCachedExpressionVersion(bin2));
-
-    CExpression cached2 = cache.binaryExpression(BinaryOperator.LOGICAL_AND,
-        cache.lookupCachedExpressionVersion(bin1),
-        cache.lookupCachedExpressionVersion(bin2));
+    CExpression cached1 = cache.binaryExpression(BinaryOperator.LOGICAL_AND, bin1, bin2);
+    CExpression cached2 = cache.binaryExpression(BinaryOperator.LOGICAL_AND, bin1, bin2);
 
     Assert.assertEquals(cached1, cached2);
   }

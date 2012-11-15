@@ -59,6 +59,8 @@ public class FsmBddMergeOperator implements MergeOperator {
     FsmBddState state2 = (FsmBddState) pState2;
     FsmBddState result = state2;
 
+    statistics.mergeCalls++;
+
     if (mergeOnlyOnEqualConditions
         && !state1.condBlockEqualToBlockOf(state2)) {
       return result;
