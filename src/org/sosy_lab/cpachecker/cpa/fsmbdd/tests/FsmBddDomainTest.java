@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cpa.fsmbdd.FsmBddState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-public class FsmBddDomainTest extends FsmBddTest {
+public class FsmBddDomainTest extends FsmBddTesting {
 
   @Test
   public void testIsLessOrEqual_OnlyBdd() throws CPAException {

@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cpa.fsmbdd.FsmBddStatistics;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-public class FsmBddMergeOperatorTest extends FsmBddTest {
+public class FsmBddMergeOperatorTest extends FsmBddTesting {
 
   @Test
   public void testMergeOnlyOnEqualCond() throws CPAException, InvalidConfigurationException {

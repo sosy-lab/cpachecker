@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.VariableDeclarationExceptio
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 
-public class FsmBddStateTest extends FsmBddTest {
+public class FsmBddStateTest extends FsmBddTesting {
 
   @Test
   public void testCloneState_NoConditions() throws CPATransferException {
