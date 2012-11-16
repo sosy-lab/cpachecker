@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 
-public class FsmBddTest {
+public abstract class FsmBddTest {
   protected static BDDFactory bddfactory = BDDFactory.init("java", 500000, 200000);
 
   protected CIdExpression v2 = new CIdExpression(null, null, "v2", null);
