@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cpa.fsmbdd.ExpressionCache;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.UnrecognizedSyntaxException;
 
 
-public class ExpressionCache2Test {
+public class ExpressionCacheTest {
 
   @Test
   public void testLookupCachedExpressionVersion() throws UnrecognizedSyntaxException {
