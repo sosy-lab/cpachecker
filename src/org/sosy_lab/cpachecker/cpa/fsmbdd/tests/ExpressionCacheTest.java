@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cpa.fsmbdd.ExpressionCache2;
+import org.sosy_lab.cpachecker.cpa.fsmbdd.ExpressionCache;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.UnrecognizedSyntaxException;
 
 
@@ -37,7 +37,7 @@ public class ExpressionCache2Test {
 
   @Test
   public void testLookupCachedExpressionVersion() throws UnrecognizedSyntaxException {
-    ExpressionCache2 cache = new ExpressionCache2();
+    ExpressionCache cache = new ExpressionCache();
     BinaryOperator opr = BinaryOperator.EQUALS;
     CExpression opA1 = new CIdExpression(null, null, "a", null);
     CBinaryExpression bin = new CBinaryExpression(null, null, opA1, opA1, opr);
@@ -49,7 +49,7 @@ public class ExpressionCache2Test {
 
   @Test
   public void test2() throws UnrecognizedSyntaxException {
-    ExpressionCache2 cache = new ExpressionCache2();
+    ExpressionCache cache = new ExpressionCache();
     BinaryOperator opr = BinaryOperator.EQUALS;
     CExpression opA1 = new CIdExpression(null, null, "a", null);
     CExpression opA2 = new CIdExpression(null, null, "a", null);

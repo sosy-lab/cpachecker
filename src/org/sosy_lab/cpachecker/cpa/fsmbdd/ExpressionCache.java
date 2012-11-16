@@ -24,65 +24,134 @@
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.UnrecognizedSyntaxException;
 
 
 public class ExpressionCache {
 
-  private Map<String, CExpression> expressionCache;
-  private ExpressionToString expressionToStringVisitor;
+  private final Set<CExpression> cachedExpressions;
+  private final Map<CExpression, String> atomKeys;
+  private final Map<String, CExpression> expressionAtoms;
+  private final Map<BinaryOperator, Map<CExpression, Map<CExpression, CBinaryExpression>>> cachedBinExpressions;
+  private final Map<UnaryOperator, Map<CExpression, CUnaryExpression>> cachedUniExpressions;
 
   public ExpressionCache() {
-    this.expressionCache = new HashMap<String, CExpression>();
-    this.expressionToStringVisitor = new ExpressionToString();
+    cachedExpressions = new HashSet<CExpression>();
+    expressionAtoms = new HashMap<String, CExpression>();
+    atomKeys = new HashMap<CExpression, String>();
+    cachedBinExpressions = new HashMap<CBinaryExpression.BinaryOperator, Map<CExpression,Map<CExpression,CBinaryExpression>>>();
+    cachedUniExpressions = new HashMap<CUnaryExpression.UnaryOperator, Map<CExpression,CUnaryExpression>>();
   }
 
-  private CExpression fetchCachedExpression(CExpression expr, int maxDepth) {
-    if (expr instanceof CBinaryExpression) {
-      CBinaryExpression be = (CBinaryExpression) expr;
-
-      BinaryOperator op = be.getOperator();
-      CExpression left = be.getOperand1();
-      CExpression right = be.getOperand2();
-
-      return fetchCachedBinExpression(left, op, right, maxDepth - 1);
+  private String getKey(CExpression pExpr) {
+    String key;
+    if (pExpr instanceof CIntegerLiteralExpression) {
+      key = atomKeys.get(pExpr);
+      if (key == null) {
+        key = ((CIntegerLiteralExpression) pExpr).getValue().toString();
+        atomKeys.put(pExpr, key);
+      }
+    } else if (pExpr instanceof CIdExpression) {
+        key = ((CIdExpression) pExpr).getName();
     } else {
-      String key = expr.toASTString();
-      CExpression result = expressionCache.get(key);
-      if (result == null) {
-        result = expr;
-        expressionCache.put(key, result);
-      }
-      return expr;
+      key = pExpr.toASTString();
     }
+    return key;
   }
 
-  public CExpression fetchCachedBinExpression(CExpression left, BinaryOperator op, CExpression right, int maxDepth) {
-    CExpression result = new CBinaryExpression(left.getFileLocation(),
-        null,
-        fetchCachedExpression(left, maxDepth - 1),
-        fetchCachedExpression(right, maxDepth - 1),
-        op);
+  private CExpression atomExpression (CExpression pExpr) {
+    String key = getKey(pExpr);
 
-    if (maxDepth > 0) {
-      String key = result.accept(expressionToStringVisitor);
-      CExpression cached = expressionCache.get(key);
-      if (cached == null) {
-        expressionCache.put(key, result);
-      } else {
-        result = cached;
-      }
+    CExpression result = expressionAtoms.get(key);
+    if (result == null) {
+      result = pExpr;
+      expressionAtoms.put(key, result);
+      cachedExpressions.add(result);
     }
-
     return result;
   }
 
-  public CExpression fetchCachedBinExpression(CExpression left, BinaryOperator op, CExpression right) {
-    return fetchCachedBinExpression(left, op, right, 0);
+
+  public CExpression binaryExpression(BinaryOperator pOperator, CExpression pOp1, CExpression pOp2) throws UnrecognizedSyntaxException {
+    pOp1 = lookupCachedExpressionVersion(pOp1);
+    pOp2 = lookupCachedExpressionVersion(pOp2);
+
+    Map<CExpression, Map<CExpression, CBinaryExpression>> operatorCache = cachedBinExpressions.get(pOperator);
+    if (operatorCache == null) {
+      operatorCache = new HashMap<CExpression, Map<CExpression,CBinaryExpression>>(10);
+      cachedBinExpressions.put(pOperator, operatorCache);
+    }
+
+    Map<CExpression, CBinaryExpression> operatorOp1Cache = operatorCache.get(pOp1);
+    if (operatorOp1Cache == null) {
+      operatorOp1Cache = new HashMap<CExpression, CBinaryExpression>(5000);
+      operatorCache.put(pOp1, operatorOp1Cache);
+    }
+
+    CBinaryExpression cachedExpression = operatorOp1Cache.get(pOp2);
+    if (cachedExpression == null) {
+      cachedExpression = new CBinaryExpression(null, null, pOp1, pOp2, pOperator);
+      operatorOp1Cache.put(pOp2, cachedExpression);
+      cachedExpressions.add(cachedExpression);
+    }
+
+    return cachedExpression;
+  }
+
+  public CExpression unaryExpression(UnaryOperator pOperator, CExpression pOp1) throws UnrecognizedSyntaxException {
+    pOp1 = lookupCachedExpressionVersion(pOp1);
+
+    Map<CExpression, CUnaryExpression> operatorCache = cachedUniExpressions.get(pOperator);
+    if (operatorCache == null) {
+      operatorCache = new HashMap<CExpression, CUnaryExpression>();
+      cachedUniExpressions.put(pOperator, operatorCache);
+    }
+
+    CUnaryExpression cachedExpression = operatorCache.get(pOp1);
+    if (cachedExpression == null) {
+      cachedExpression = new CUnaryExpression(null, null, pOp1, pOperator);
+      operatorCache.put(pOp1, cachedExpression);
+      cachedExpressions.add(cachedExpression);
+    }
+
+    return cachedExpression;
+  }
+
+  public CExpression lookupCachedExpressionVersion(CExpression pExpression) throws UnrecognizedSyntaxException {
+    if (pExpression == null) {
+      return null;
+    } else if (cachedExpressions.contains(pExpression)) {
+      return pExpression;
+    } else if (pExpression instanceof CBinaryExpression) {
+      CBinaryExpression bin = (CBinaryExpression) pExpression;
+      return binaryExpression(bin.getOperator(), bin.getOperand1(), bin.getOperand2());
+
+    } else if (pExpression instanceof CUnaryExpression) {
+      CUnaryExpression un = (CUnaryExpression) pExpression;
+      return unaryExpression(un.getOperator(), un.getOperand());
+
+    } else if (pExpression instanceof CIdExpression || pExpression instanceof CLiteralExpression) {
+      return atomExpression(pExpression);
+
+    } else {
+      throw new UnrecognizedSyntaxException(String.format("Unsupported expression class (%s)!", pExpression.getClass().getSimpleName()) , pExpression);
+    }
+  }
+
+  public boolean expressionsEqual(CExpression e1, CExpression e2) {
+    return (e1 == e2);
   }
 
 }

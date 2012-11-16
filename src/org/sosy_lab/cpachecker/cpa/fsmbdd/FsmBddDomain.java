@@ -27,8 +27,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 /**
  * Definition of the abstract domain of the FsmBdd-CPA.
  *
@@ -50,7 +48,7 @@ public class FsmBddDomain implements AbstractDomain {
    */
   @Override
   public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
-    throw new NotImplementedException();
+    throw new RuntimeException("'Join' not implemented for FsmBddDomain.");
 
 //    FsmBddState state1 = (FsmBddState) pState1;
 //    FsmBddState state2 = (FsmBddState) pState2;

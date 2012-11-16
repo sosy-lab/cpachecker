@@ -50,7 +50,7 @@ import com.google.common.base.Preconditions;
 public class FsmBddState implements AbstractState {
 
   private static Map<String, BDDDomain> declaredVariables = new HashMap<String, BDDDomain>();
-  private static ExpressionCache2 expressionCache = new ExpressionCache2();
+  private static ExpressionCache expressionCache = new ExpressionCache();
   private static ExpressionToString exprToString = new ExpressionToString();
   public static FsmBddStatistics statistic;
 
