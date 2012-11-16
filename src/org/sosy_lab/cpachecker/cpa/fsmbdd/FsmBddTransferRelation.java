@@ -28,13 +28,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.Stack;
 import java.util.TreeSet;
 
 import net.sf.javabdd.BDD;
@@ -94,9 +91,6 @@ public class FsmBddTransferRelation implements TransferRelation {
   @Option(description="Enable condition-block encoding?")
   private boolean conditionBlocking = true;
 
-  @Option(description="Assume that state-conditions contain no disjunctions?")
-  private boolean assumeConditionsWithoutDisjunctions = true;
-
   /**
    * Name of the variable that is used to encode the result of a function.
    * (gets scoped with the name of the function)
@@ -134,10 +128,7 @@ public class FsmBddTransferRelation implements TransferRelation {
   private final Map<CExpression, BDD> expressionBddCache;
 
   private final FsmBddStatistics statistics;
-
   private final BDDFactory bddFactory;
-
-  private final Random random = new Random();
 
   /**
    * Constructor.
@@ -260,34 +251,34 @@ public class FsmBddTransferRelation implements TransferRelation {
     }
   }
 
-  /**
-   * Conjunctive normal form.
-   * @return
-   */
-  private List<CExpression> breakIntoClauses(final CExpression pInput) {
-    List<CExpression> result = new LinkedList<CExpression>();
-    Stack<CExpression> toProcess = new Stack<CExpression>();
-
-    toProcess.push(pInput);
-    while (!toProcess.isEmpty()) {
-      CExpression expr = toProcess.pop();
-      if (expr instanceof CBinaryExpression) {
-        CBinaryExpression bin = (CBinaryExpression) expr;
-        switch (bin.getOperator()) {
-        case LOGICAL_AND:
-          toProcess.push(bin.getOperand1());
-          toProcess.push(bin.getOperand2());
-          continue;
-        case LOGICAL_OR:
-          throw new IllegalStateException("Condition contains disjunctions; this is not allowed!");
-        }
-      }
-
-      result.add(expr);
-    }
-
-    return result;
-  }
+//  /**
+//   * Conjunctive normal form.
+//   * @return
+//   */
+//  private List<CExpression> breakIntoClauses(final CExpression pInput) {
+//    List<CExpression> result = new LinkedList<CExpression>();
+//    Stack<CExpression> toProcess = new Stack<CExpression>();
+//
+//    toProcess.push(pInput);
+//    while (!toProcess.isEmpty()) {
+//      CExpression expr = toProcess.pop();
+//      if (expr instanceof CBinaryExpression) {
+//        CBinaryExpression bin = (CBinaryExpression) expr;
+//        switch (bin.getOperator()) {
+//        case LOGICAL_AND:
+//          toProcess.push(bin.getOperand1());
+//          toProcess.push(bin.getOperand2());
+//          continue;
+//        case LOGICAL_OR:
+//          throw new IllegalStateException("Condition contains disjunctions; this is not allowed!");
+//        }
+//      }
+//
+//      result.add(expr);
+//    }
+//
+//    return result;
+//  }
 
   private void computeAbstraction(FsmBddState pSuccessor, CFAEdge pEdge) throws CPATransferException {
    SortedMap<Integer, CExpression> conditionBlock = pSuccessor.getConditionBlock();
