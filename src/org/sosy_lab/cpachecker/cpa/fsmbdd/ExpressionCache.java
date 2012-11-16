@@ -39,6 +39,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.UnrecognizedSyntaxException;
 
 
+/**
+ * Cache for CExpressions.
+ *
+ * A directed acyclic graph (DAG) of expressions gets constructed instead of a tree.
+ *
+ * Implicitly we construct a table of the form
+ *   ----------------------------------------------------------
+ *   | Operator | Operand 1 | Operand 2 | Result of Operation |
+ *   ----------------------------------------------------------
+ */
 public class ExpressionCache {
 
   private final Set<CExpression> cachedExpressions;
@@ -47,6 +57,9 @@ public class ExpressionCache {
   private final Map<BinaryOperator, Map<CExpression, Map<CExpression, CBinaryExpression>>> cachedBinExpressions;
   private final Map<UnaryOperator, Map<CExpression, CUnaryExpression>> cachedUniExpressions;
 
+  /**
+   * Constructor.
+   */
   public ExpressionCache() {
     cachedExpressions = new HashSet<CExpression>();
     expressionAtoms = new HashMap<String, CExpression>();
@@ -55,7 +68,7 @@ public class ExpressionCache {
     cachedUniExpressions = new HashMap<CUnaryExpression.UnaryOperator, Map<CExpression,CUnaryExpression>>();
   }
 
-  private String getKey(CExpression pExpr) {
+  private String getAtomExpressionKey(CExpression pExpr) {
     String key;
     if (pExpr instanceof CIntegerLiteralExpression) {
       key = atomKeys.get(pExpr);
@@ -71,8 +84,16 @@ public class ExpressionCache {
     return key;
   }
 
+  /**
+   * Handling of "atom expressions";
+   * this are expressions that are neither
+   * CUnaryExpressions nor CBinaryExpressions.
+   *
+   * @param pExpr
+   * @return  Cached version of the expression.
+   */
   private CExpression atomExpression (CExpression pExpr) {
-    String key = getKey(pExpr);
+    String key = getAtomExpressionKey(pExpr);
 
     CExpression result = expressionAtoms.get(key);
     if (result == null) {
@@ -83,7 +104,15 @@ public class ExpressionCache {
     return result;
   }
 
-
+  /**
+   * Construct a new (or the semantically equivalent cached version) binary expression.
+   *
+   * @param pOperator
+   * @param pOp1
+   *
+   * @return BinaryExpression (pOp1, pOperator, pOp2)
+   * @throws UnrecognizedSyntaxException
+   */
   public CExpression binaryExpression(BinaryOperator pOperator, CExpression pOp1, CExpression pOp2) throws UnrecognizedSyntaxException {
     pOp1 = lookupCachedExpressionVersion(pOp1);
     pOp2 = lookupCachedExpressionVersion(pOp2);
@@ -110,6 +139,15 @@ public class ExpressionCache {
     return cachedExpression;
   }
 
+  /**
+   * Construct a new (or the semantically equivalent cached version) unary expression.
+   *
+   * @param pOperator
+   * @param pOp1
+   *
+   * @return UnaryExpression (pOperator, pOp1)
+   * @throws UnrecognizedSyntaxException
+   */
   public CExpression unaryExpression(UnaryOperator pOperator, CExpression pOp1) throws UnrecognizedSyntaxException {
     pOp1 = lookupCachedExpressionVersion(pOp1);
 
@@ -129,6 +167,13 @@ public class ExpressionCache {
     return cachedExpression;
   }
 
+  /**
+   * Lookup the cached version of an expression.
+   *
+   * @param pExpression
+   * @return  Cached version of the expression.
+   * @throws UnrecognizedSyntaxException
+   */
   public CExpression lookupCachedExpressionVersion(CExpression pExpression) throws UnrecognizedSyntaxException {
     if (pExpression == null) {
       return null;
@@ -150,6 +195,17 @@ public class ExpressionCache {
     }
   }
 
+  /**
+   * Check two expressions of equality.
+   *
+   * We assume that both expressions are already cached.
+   * (this means that semantically equal expression get
+   * represented by the same object)
+   *
+   * @param e1
+   * @param e2
+   * @return  Are they equal?
+   */
   public boolean expressionsEqual(CExpression e1, CExpression e2) {
     return (e1 == e2);
   }
