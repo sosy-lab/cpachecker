@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
@@ -95,8 +96,8 @@ public class FsmSyntaxAnalizer implements DomainIntervalProvider{
         CExpression pEquivalentLiteral = stringToExpressionMap.get(pLiteral.toASTString());
         return mapLiteralToIndex(pEquivalentLiteral);
       } else {
-        throw new CPATransferException(String.format("Cannot map literal to index: %s: %s",
-            pLiteral.getClass().getSimpleName(), pLiteral.toASTString()));
+        throw new CPATransferException(String.format("Cannot map literal '%s' (line %d) of class '%s' to index.",
+            pLiteral.toASTString(), pLiteral.getFileLocation().getStartingLineNumber(), pLiteral.getClass().getSimpleName()));
       }
     }
 
@@ -229,6 +230,13 @@ public class FsmSyntaxAnalizer implements DomainIntervalProvider{
         case MultiEdge:
           MultiEdge multiEdge = (MultiEdge) e;
           leavingEdges.addAll(multiEdge.getEdges());
+          break;
+        case FunctionCallEdge:
+          CFunctionCallEdge callEdge = (CFunctionCallEdge) e;
+          for (CExpression arg: callEdge.getArguments()) {
+            arg.accept(exprVisitor);
+          }
+          break;
         }
       }
     }
