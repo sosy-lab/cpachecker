@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
-import static java.lang.Character.isDigit;
-
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -84,7 +81,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -92,7 +88,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -102,12 +97,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -144,12 +137,6 @@ class ASTConverter {
   public ASTConverter(Scope pScope, LogManager pLogger) {
     scope = pScope;
     logger = pLogger;
-  }
-
-  private static void check(boolean assertion, String msg, IASTNode astNode) throws CFAGenerationRuntimeException {
-    if (!assertion) {
-      throw new CFAGenerationRuntimeException(msg, astNode);
-    }
   }
 
   public List<CAstNode> getAndResetPreSideAssignments() {
@@ -205,7 +192,7 @@ class ASTConverter {
                                                                             IASTExpression e){
     CIdExpression tmp = createTemporaryVariable(e, null);
 
-    preSideAssignments.add(new CFunctionCallAssignmentStatement(convert(e.getFileLocation()),
+    preSideAssignments.add(new CFunctionCallAssignmentStatement(getLocation(e),
                                                                 tmp,
                                                                 (CFunctionCallExpression) node));
     return tmp;
@@ -252,7 +239,7 @@ class ASTConverter {
       return convert((IASTIdExpression)e);
 
     } else if (e instanceof IASTLiteralExpression) {
-      return convert((IASTLiteralExpression)e);
+      return ASTLiteralConverter.convert((IASTLiteralExpression)e);
 
     } else if (e instanceof IASTUnaryExpression) {
       return convert((IASTUnaryExpression)e);
@@ -276,7 +263,7 @@ class ASTConverter {
   }
 
   private CArraySubscriptExpression convert(IASTArraySubscriptExpression e) {
-    return new CArraySubscriptExpression(convert(e.getFileLocation()),
+    return new CArraySubscriptExpression(getLocation(e),
         ASTTypeConverter.convert(e.getExpressionType()),
         convertExpressionWithoutSideEffects(e.getArrayExpression()),
         convertExpressionWithoutSideEffects(e.getSubscriptExpression()));
@@ -297,7 +284,7 @@ class ASTConverter {
       name += i;
     }
 
-    CVariableDeclaration decl = new CVariableDeclaration(convert(e.getFileLocation()),
+    CVariableDeclaration decl = new CVariableDeclaration(getLocation(e),
                                                false,
                                                CStorageClass.AUTO,
                                                ASTTypeConverter.convert(e.getExpressionType()),
@@ -309,7 +296,7 @@ class ASTConverter {
     scope.registerDeclaration(decl);
     preSideAssignments.add(decl);
     }
-    CIdExpression tmp = new CIdExpression(convert(e.getFileLocation()),
+    CIdExpression tmp = new CIdExpression(getLocation(e),
                                                 ASTTypeConverter.convert(e.getExpressionType()),
                                                 name,
                                                 decl);
@@ -317,7 +304,7 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTBinaryExpression e) {
-    CFileLocation fileLoc = convert(e.getFileLocation());
+    CFileLocation fileLoc = getLocation(e);
     CType type = ASTTypeConverter.convert(e.getExpressionType());
     CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getOperand1());
 
@@ -365,11 +352,11 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTCastExpression e) {
-    return new CCastExpression(convert(e.getFileLocation()), ASTTypeConverter.convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getOperand()), convert(e.getTypeId()));
+    return new CCastExpression(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getOperand()), convert(e.getTypeId()));
   }
 
   private CFieldReference convert(IASTFieldReference e) {
-    return new CFieldReference(convert(e.getFileLocation()), ASTTypeConverter.convert(e.getExpressionType()), convert(e.getFieldName()), convertExpressionWithoutSideEffects(e.getFieldOwner()), e.isPointerDereference());
+    return new CFieldReference(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()), convert(e.getFieldName()), convertExpressionWithoutSideEffects(e.getFieldOwner()), e.isPointerDereference());
   }
 
   private CFunctionCallExpression convert(IASTFunctionCallExpression e) {
@@ -403,7 +390,7 @@ class ASTConverter {
       }
     }
 
-    return new CFunctionCallExpression(convert(e.getFileLocation()), ASTTypeConverter.convert(e.getExpressionType()), functionName, params, declaration);
+    return new CFunctionCallExpression(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()), functionName, params, declaration);
   }
 
   private List<CExpression> convert(IASTExpressionList es) {
@@ -420,161 +407,7 @@ class ASTConverter {
     if (declaration != null) {
       name = declaration.getName();
     }
-    return new CIdExpression(convert(e.getFileLocation()), ASTTypeConverter.convert(e.getExpressionType()), name, declaration);
-  }
-
-  private CLiteralExpression convert(IASTLiteralExpression e) {
-    CFileLocation fileLoc = convert(e.getFileLocation());
-    CType type = ASTTypeConverter.convert(e.getExpressionType());
-
-    String valueStr = String.valueOf(e.getValue());
-    switch (e.getKind()) {
-    case IASTLiteralExpression.lk_char_constant:
-      return new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, e));
-
-    case IASTLiteralExpression.lk_integer_constant:
-      return new CIntegerLiteralExpression(fileLoc, type, parseIntegerLiteral(valueStr, e));
-
-    case IASTLiteralExpression.lk_float_constant:
-      BigDecimal value;
-      try {
-        value = new BigDecimal(valueStr);
-      } catch (NumberFormatException nfe1) {
-        try {
-          // this might be a hex floating point literal
-          // BigDecimal doesn't support this, but Double does
-          // TODO handle hex floating point literals that are too large for Double
-          value = BigDecimal.valueOf(Double.parseDouble(valueStr));
-        } catch (NumberFormatException nfe2) {
-          throw new CFAGenerationRuntimeException("illegal floating point literal", e);
-        }
-      }
-
-      return new CFloatLiteralExpression(fileLoc, type, value);
-
-    case IASTLiteralExpression.lk_string_literal:
-      return new CStringLiteralExpression(fileLoc, type, valueStr);
-
-    default:
-      throw new CFAGenerationRuntimeException("Unknown literal", e);
-    }
-  }
-
-  char parseCharacterLiteral(String s, IASTNode e) {
-    check(s.length() >= 3, "invalid character literal (too short)", e);
-    check(s.charAt(0) == '\'' && s.charAt(s.length()-1) == '\'', "character literal without quotation marks", e);
-    s = s.substring(1, s.length()-1); // remove the surrounding quotation marks ''
-
-    char result;
-    if (s.length() == 1) {
-      result = s.charAt(0);
-      check(result != '\\', "invalid quoting sequence", e);
-
-    } else {
-      check(s.charAt(0) == '\\', "character literal too long", e);
-      // quoted character literal
-      s = s.substring(1); // remove leading backslash \
-      check(s.length() >= 1, "invalid quoting sequence", e);
-
-      final char c = s.charAt(0);
-      if (c == 'x' || c == 'X') {
-        // something like '\xFF'
-        s = s.substring(1); // remove leading x
-        check(s.length() > 0 && s.length() <= 3, "character literal with illegal hex number", e);
-        try {
-          result = (char) Integer.parseInt(s, 16);
-          check(result <= 0xFF, "hex escape sequence out of range", e);
-        } catch (NumberFormatException _) {
-          throw new CFAGenerationRuntimeException("character literal with illegal hex number", e);
-        }
-
-      } else if (isDigit(c)) {
-        // something like '\000'
-        check(s.length() <= 3, "character literal with illegal octal number", e);
-        try {
-          result = (char)Integer.parseInt(s, 8);
-          check(result <= 0xFF, "octal escape sequence out of range", e);
-        } catch (NumberFormatException _) {
-          throw new CFAGenerationRuntimeException("character literal with illegal octal number", e);
-        }
-
-      } else {
-        // something like '\n'
-        check(s.length() == 1, "character literal too long", e);
-        switch (c) {
-        case 'a'  : result = 7   ; break;
-        case 'b'  : result = '\b'; break;
-        case 'f'  : result = '\f'; break;
-        case 'n'  : result = '\n'; break;
-        case 'r'  : result = '\r'; break;
-        case 't'  : result = '\t'; break;
-        case 'v'  : result = 11; break;
-        case '"'  : result = '\"'; break;
-        case '\'' : result = '\''; break;
-        case '\\' : result = '\\'; break;
-        default   : throw new CFAGenerationRuntimeException("unknown character literal", e);
-        }
-      }
-    }
-    return result;
-  }
-
-  BigInteger parseIntegerLiteral(String s, IASTNode e) {
-    // this might have some modifiers attached (e.g. 0ULL), we have to get rid of them
-    int last = s.length()-1;
-    int bits = 32;
-    boolean signed = true;
-
-    if (s.charAt(last) == 'L' || s.charAt(last) == 'l' ) {
-      last--;
-      // one 'L' is equal to no 'L' (TODO this assumes a 32bit machine)
-    }
-    if (s.charAt(last) == 'L' || s.charAt(last) == 'l') {
-      last--;
-      bits = 64; // two 'L' are a long long
-    }
-    if (s.charAt(last) == 'U' || s.charAt(last) == 'u') {
-      last--;
-      signed = false;
-    }
-
-    s = s.substring(0, last+1);
-    BigInteger result;
-    try {
-      if (s.startsWith("0x") || s.startsWith("0X")) {
-        // this should be in hex format, remove "0x" from the string
-        s = s.substring(2);
-        result = new BigInteger(s, 16);
-
-      } else if (s.startsWith("0")) {
-        result = new BigInteger(s, 8);
-
-      } else {
-        result = new BigInteger(s, 10);
-      }
-    } catch (NumberFormatException _) {
-      throw new CFAGenerationRuntimeException("invalid number", e);
-    }
-    check(result.compareTo(BigInteger.ZERO) >= 0, "invalid number", e);
-
-    // clear the bits that don't fit in the type
-    // a BigInteger with the lowest "bits" bits set to one (e. 2^32-1 or 2^64-1)
-    BigInteger mask = BigInteger.ZERO.setBit(bits).subtract(BigInteger.ONE);
-    result = result.and(mask);
-    assert result.bitLength() <= bits;
-
-    // compute twos complement if necessary
-    if (signed && result.testBit(bits-1)) {
-      // highest bit is set
-      result = result.clearBit(bits-1);
-
-      // a BigInteger for -2^(bits-1) (e.g. -2^-31 or -2^-63)
-      BigInteger minValue = BigInteger.ZERO.setBit(bits-1).negate();
-
-      result = minValue.add(result);
-    }
-
-    return result;
+    return new CIdExpression(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()), name, declaration);
   }
 
   private CAstNode convert(IASTUnaryExpression e) {
@@ -584,7 +417,7 @@ class ASTConverter {
       return operand;
     }
 
-    CFileLocation fileLoc = convert(e.getFileLocation());
+    CFileLocation fileLoc = getLocation(e);
     CType type = ASTTypeConverter.convert(e.getExpressionType());
 
 
@@ -633,7 +466,7 @@ class ASTConverter {
   }
 
   private CTypeIdExpression convert(IASTTypeIdExpression e) {
-    return new CTypeIdExpression(convert(e.getFileLocation()), ASTTypeConverter.convert(e.getExpressionType()),
+    return new CTypeIdExpression(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()),
         ASTOperatorConverter.convertTypeIdOperator(e), convert(e.getTypeId()));
   }
 
@@ -654,11 +487,10 @@ class ASTConverter {
   }
 
   public CStatement convert(final IASTExpressionStatement s) {
-    return convertExpressionToStatement(s.getExpression(), s.getFileLocation());
+    return convertExpressionToStatement(s.getExpression());
   }
 
-  public CStatement convertExpressionToStatement(final IASTExpression e,
-      final IASTFileLocation fileLoc) {
+  public CStatement convertExpressionToStatement(final IASTExpression e) {
     CAstNode node = convertExpressionWithSideEffects(e);
 
     if (node instanceof CExpressionAssignmentStatement) {
@@ -668,10 +500,10 @@ class ASTConverter {
       return (CFunctionCallAssignmentStatement)node;
 
     } else if (node instanceof CFunctionCallExpression) {
-      return new CFunctionCallStatement(convert(fileLoc), (CFunctionCallExpression)node);
+      return new CFunctionCallStatement(getLocation(e), (CFunctionCallExpression)node);
 
     } else if (node instanceof CExpression) {
-      return new CExpressionStatement(convert(fileLoc), (CExpression)node);
+      return new CExpressionStatement(getLocation(e), (CExpression)node);
 
     } else {
       throw new AssertionError();
@@ -679,7 +511,7 @@ class ASTConverter {
   }
 
   public CReturnStatement convert(final IASTReturnStatement s) {
-    return new CReturnStatement(convert(s.getFileLocation()), convertExpressionWithoutSideEffects(s.getReturnValue()));
+    return new CReturnStatement(getLocation(s), convertExpressionWithoutSideEffects(s.getReturnValue()));
   }
 
   public CFunctionDeclaration convert(final IASTFunctionDefinition f) {
@@ -709,13 +541,13 @@ class ASTConverter {
     CFunctionType declSpec = (CFunctionType)declarator.getFirst();
     String name = declarator.getThird();
 
-    CFileLocation fileLoc = convert(f.getFileLocation());
+    CFileLocation fileLoc = getLocation(f);
 
     return new CFunctionDeclaration(fileLoc, declSpec, name);
   }
 
   public List<CDeclaration> convert(final IASTSimpleDeclaration d) {
-    CFileLocation fileLoc = convert(d.getFileLocation());
+    CFileLocation fileLoc = getLocation(d);
     Pair<CStorageClass, ? extends CType> specifier = convert(d.getDeclSpecifier());
     CStorageClass cStorageClass = specifier.getFirst();
     CType type = specifier.getSecond();
@@ -1073,7 +905,7 @@ class ASTConverter {
       }
     }
 
-    CEnumerator result = new CEnumerator(convert(e.getFileLocation()), convert(e.getName()), value);
+    CEnumerator result = new CEnumerator(getLocation(e), convert(e.getName()), value);
     scope.registerDeclaration(result);
     return result;
   }
@@ -1100,14 +932,14 @@ class ASTConverter {
     CAstNode initializer = convertExpressionWithSideEffects(i.getExpression());
     if (initializer != null && initializer instanceof CAssignment){
       preSideAssignments.add(initializer);
-      return new CInitializerExpression(convert(i.getFileLocation()), ((CAssignment)initializer).getLeftHandSide());
+      return new CInitializerExpression(getLocation(i), ((CAssignment)initializer).getLeftHandSide());
     }
 
     if (initializer != null && !(initializer instanceof CExpression)) {
       throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", i);
     }
 
-    return new CInitializerExpression(convert(i.getFileLocation()), (CExpression)initializer);
+    return new CInitializerExpression(getLocation(i), (CExpression)initializer);
   }
 
   private CInitializerList convert(IASTInitializerList iList) {
@@ -1118,7 +950,7 @@ class ASTConverter {
         initializerList.add(newI);
       }
     }
-    return new CInitializerList(convert(iList.getFileLocation()), initializerList);
+    return new CInitializerList(getLocation(iList), initializerList);
   }
 
   private CInitializer convert(IASTEqualsInitializer i) {
@@ -1130,11 +962,11 @@ class ASTConverter {
 
       if (initializer != null && initializer instanceof CAssignment){
         preSideAssignments.add(initializer);
-        return new CInitializerExpression(convert(e.getFileLocation()), ((CAssignment)initializer).getLeftHandSide());
+        return new CInitializerExpression(getLocation(e), ((CAssignment)initializer).getLeftHandSide());
       } else if (initializer != null && initializer instanceof CFunctionCallExpression && i.getParent() instanceof IASTDeclarator) {
 
         String tmpname = convert(((IASTDeclarator)i.getParent()).getName());
-        postSideAssignments.add(new CFunctionCallAssignmentStatement(convert(i.getFileLocation()),
+        postSideAssignments.add(new CFunctionCallAssignmentStatement(getLocation(i),
                                                                         createTemporaryVariable(e, tmpname),
                                                                         (CFunctionCallExpression) initializer));
         return null;
@@ -1144,7 +976,7 @@ class ASTConverter {
         throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", e);
       }
 
-      return new CInitializerExpression(convert(ic.getFileLocation()), (CExpression)initializer);
+      return new CInitializerExpression(getLocation(ic), (CExpression)initializer);
 
     } else if (ic instanceof IASTInitializerList) {
       return convert((IASTInitializerList)ic);
@@ -1184,14 +1016,20 @@ class ASTConverter {
       type = new CPointerType(false, false, functionType);
     }
 
-    return new CParameterDeclaration(convert(p.getFileLocation()), type, declarator.getThird());
+    return new CParameterDeclaration(getLocation(p), type, declarator.getThird());
   }
 
-  public CFileLocation convert(IASTFileLocation l) {
+  /** This function returns the converted file-location of an IASTNode. */
+  static CFileLocation getLocation(final IASTNode n) {
+    return convert(n.getFileLocation());
+  }
+
+  static CFileLocation convert(IASTFileLocation l) {
     if (l == null) {
       return null;
     }
-    return new CFileLocation(l.getEndingLineNumber(), l.getFileName(), l.getNodeLength(), l.getNodeOffset(), l.getStartingLineNumber());
+    return new CFileLocation(l.getEndingLineNumber(), l.getFileName(),
+        l.getNodeLength(), l.getNodeOffset(), l.getStartingLineNumber());
   }
 
   static String convert(IASTName n) {

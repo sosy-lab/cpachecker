@@ -492,7 +492,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     if(exprStatement.getExpression() instanceof IASTExpressionList) {
       for(IASTExpression exp : ((IASTExpressionList) exprStatement.getExpression()).getExpressions()) {
-        CStatement statement = astCreator.convertExpressionToStatement(exp, exp.getFileLocation());
+        CStatement statement = astCreator.convertExpressionToStatement(exp);
         lastNode = createIASTExpressionStatementEdges(rawSignature, fileloc, prevNode, statement);
         prevNode = lastNode;
       }
@@ -806,7 +806,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     } else {
       String rawSignature = expression.getRawSignature();
-      final CStatement stmt = astCreator.convertExpressionToStatement(expression, expression.getFileLocation());
+      final CStatement stmt = astCreator.convertExpressionToStatement(expression);
 
       prevNode = handleAllSideEffects(prevNode, filelocStart, rawSignature, true);
 
@@ -882,7 +882,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           IASTLiteralExpression literalExpression = (IASTLiteralExpression) cond;
           if (literalExpression.getKind() == IASTLiteralExpression.lk_integer_constant) {
               String s = String.valueOf(literalExpression.getValue());
-              BigInteger i = astCreator.parseIntegerLiteral(s, cond);
+              BigInteger i = ASTLiteralConverter.parseIntegerLiteral(s, cond);
               if (i.equals(BigInteger.ZERO)) {
                 return CONDITION.ALWAYS_FALSE;
               } else {
@@ -1314,7 +1314,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // build condition, "a==2", TODO correct type?
     final CBinaryExpression binExp =
-        new CBinaryExpression(astCreator.convert(fileloc),
+        new CBinaryExpression(ASTConverter.convert(fileloc),
             switchExpr.getExpressionType(), switchExpr, caseExpr,
             CBinaryExpression.BinaryOperator.EQUALS);
 
@@ -1454,7 +1454,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
       assert exp instanceof CRightHandSide;
 
-      CStatement stmt = createStatement(condExp.getFileLocation(), tempVar, (CRightHandSide)exp);
+      CStatement stmt = createStatement(ASTConverter.getLocation(condExp), tempVar, (CRightHandSide)exp);
 
       CFAEdge edge = new CStatementEdge(condExp.getRawSignature(), stmt, filelocStart, prevNode, lastNode);
       addToCFA(edge);
@@ -1467,7 +1467,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       prevNode = handleAllSideEffects(prevNode, filelocStart, condExp.getRawSignature(), resultIsUsed);
 
       if (resultIsUsed) {
-        CStatement stmt = createStatement(condExp.getFileLocation(), tempVar, (CRightHandSide)exp);
+        CStatement stmt = createStatement(ASTConverter.getLocation(condExp), tempVar, (CRightHandSide)exp);
         addToCFA(new CStatementEdge(stmt.toASTString(), stmt, filelocStart, prevNode, lastNode));
       } else {
         addToCFA(new BlankEdge("", filelocStart, prevNode, lastNode, ""));
@@ -1507,9 +1507,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   /**
    * @category sideeffects
    */
-  private CStatement createStatement(IASTFileLocation location,
+  private CStatement createStatement(CFileLocation fileLoc,
       @Nullable CIdExpression leftHandSide, CRightHandSide rightHandSide) {
-    CFileLocation fileLoc = astCreator.convert(location);
 
     if (leftHandSide != null) {
       // create assignments
