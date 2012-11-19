@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +44,6 @@ import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
 import org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -53,7 +51,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -61,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 /** This Class contains functions,
@@ -91,9 +90,6 @@ class ASTTypeConverter {
     } else if (t instanceof ITypedef) {
       return conv((ITypedef) t);
 
-    } else if (t instanceof IBinding) {
-      return new CComplexType(((IBinding) t).getName());
-
     } else if(t instanceof ICompositeType) {
       ICompositeType ct = (ICompositeType) t;
 
@@ -114,7 +110,19 @@ class ASTTypeConverter {
       return compType;
 
     } else if (t instanceof IFunctionType) {
-      return conv((IFunctionType) t);
+      IFunctionType ft = (IFunctionType) t;
+
+      IType[] parameters = ft.getParameterTypes();
+      List<CType> newParameters = Lists.newArrayListWithExpectedSize(parameters.length);
+      for (IType p : parameters) {
+        newParameters.add(convert(p));
+      }
+
+      // TODO varargs
+      return new CFunctionPointerType(false, false, convert(ft.getReturnType()), newParameters, false);
+
+    } else if (t instanceof IBinding) {
+      return new CComplexType(((IBinding) t).getName());
 
     } else {
       return new CDummyType(t.toString());
@@ -199,17 +207,6 @@ class ASTTypeConverter {
       list.add(new CCompositeTypeMemberDeclaration(convert(pFields[i].getType()), pFields[i].getName()));
     }
     return list;
-  }
-
-  private static CFunctionType conv(final IFunctionType t) {
-    final CType returnType = convert(t.getReturnType());
-
-    final List<CParameterDeclaration> paramsList = new ArrayList<CParameterDeclaration>();
-    for (IType p : t.getParameterTypes()) {
-      paramsList.add(new CParameterDeclaration(null, convert(p), "")); // TODO add filelocation and name?
-    }
-
-    return new CFunctionType(false, false, returnType, paramsList, false);
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
