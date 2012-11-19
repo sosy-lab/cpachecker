@@ -963,7 +963,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         elseNodeForLastElse = elseNode;
       }
 
-      if (ASTConverter.isBooleanExpression(exp)) {
+      if (ASTOperatorConverter.isBooleanExpression(exp)) {
         addConditionEdges(exp, rootNode, thenNodeForLastThen, elseNodeForLastElse,
             condition.getFileLocation().getStartingLineNumber());
 

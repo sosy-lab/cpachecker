@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
@@ -111,7 +110,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -129,7 +127,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 @SuppressWarnings("deprecation") // several methods are deprecated in CDT 7 but still working
@@ -177,27 +174,6 @@ class ASTConverter {
 
   public CIdExpression getConditionalTemporaryVariable() {
     return conditionalTemporaryVariable;
-  }
-  private static final Set<BinaryOperator> BOOLEAN_BINARY_OPERATORS = ImmutableSet.of(
-      BinaryOperator.EQUALS,
-      BinaryOperator.NOT_EQUALS,
-      BinaryOperator.GREATER_EQUAL,
-      BinaryOperator.GREATER_THAN,
-      BinaryOperator.LESS_EQUAL,
-      BinaryOperator.LESS_THAN,
-      BinaryOperator.LOGICAL_AND,
-      BinaryOperator.LOGICAL_OR);
-
-  public static boolean isBooleanExpression(CExpression e) {
-    if (e instanceof CBinaryExpression) {
-      return BOOLEAN_BINARY_OPERATORS.contains(((CBinaryExpression)e).getOperator());
-
-    } else if (e instanceof CUnaryExpression) {
-      return ((CUnaryExpression) e).getOperator() == UnaryOperator.NOT;
-
-    } else {
-      return false;
-    }
   }
 
   public CExpression convertExpressionWithoutSideEffects(
@@ -345,7 +321,7 @@ class ASTConverter {
     CType type = ASTTypeConverter.convert(e.getExpressionType());
     CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getOperand1());
 
-    Pair<BinaryOperator, Boolean> opPair = convertBinaryOperator(e);
+    Pair<BinaryOperator, Boolean> opPair = ASTOperatorConverter.convertBinaryOperator(e);
     BinaryOperator op = opPair.getFirst();
     boolean isAssign = opPair.getSecond();
 
@@ -386,116 +362,6 @@ class ASTConverter {
       CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
       return new CBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
     }
-  }
-
-  private Pair<BinaryOperator, Boolean> convertBinaryOperator(IASTBinaryExpression e) {
-    boolean isAssign = false;
-    BinaryOperator operator;
-
-    switch (e.getOperator()) {
-    case IASTBinaryExpression.op_multiply:
-      operator = BinaryOperator.MULTIPLY;
-      break;
-    case IASTBinaryExpression.op_divide:
-      operator = BinaryOperator.DIVIDE;
-      break;
-    case IASTBinaryExpression.op_modulo:
-      operator = BinaryOperator.MODULO;
-      break;
-    case IASTBinaryExpression.op_plus:
-      operator = BinaryOperator.PLUS;
-      break;
-    case IASTBinaryExpression.op_minus:
-      operator = BinaryOperator.MINUS;
-      break;
-    case IASTBinaryExpression.op_shiftLeft:
-      operator = BinaryOperator.SHIFT_LEFT;
-      break;
-    case IASTBinaryExpression.op_shiftRight:
-      operator = BinaryOperator.SHIFT_RIGHT;
-      break;
-    case IASTBinaryExpression.op_lessThan:
-      operator = BinaryOperator.LESS_THAN;
-      break;
-    case IASTBinaryExpression.op_greaterThan:
-      operator = BinaryOperator.GREATER_THAN;
-      break;
-    case IASTBinaryExpression.op_lessEqual:
-      operator = BinaryOperator.LESS_EQUAL;
-      break;
-    case IASTBinaryExpression.op_greaterEqual:
-      operator = BinaryOperator.GREATER_EQUAL;
-      break;
-    case IASTBinaryExpression.op_binaryAnd:
-      operator = BinaryOperator.BINARY_AND;
-      break;
-    case IASTBinaryExpression.op_binaryXor:
-      operator = BinaryOperator.BINARY_XOR;
-      break;
-    case IASTBinaryExpression.op_binaryOr:
-      operator = BinaryOperator.BINARY_OR;
-      break;
-    case IASTBinaryExpression.op_logicalAnd:
-      operator = BinaryOperator.LOGICAL_AND;
-      break;
-    case IASTBinaryExpression.op_logicalOr:
-      operator = BinaryOperator.LOGICAL_OR;
-      break;
-    case IASTBinaryExpression.op_assign:
-      operator = null;
-      isAssign = true;
-      break;
-    case IASTBinaryExpression.op_multiplyAssign:
-      operator = BinaryOperator.MULTIPLY;
-      isAssign = true;
-      break;
-    case IASTBinaryExpression.op_divideAssign:
-      operator = BinaryOperator.DIVIDE;
-      isAssign = true;
-      break;
-    case IASTBinaryExpression.op_moduloAssign:
-      operator = BinaryOperator.MODULO;
-      isAssign = true;
-      break;
-    case IASTBinaryExpression.op_plusAssign:
-      operator = BinaryOperator.PLUS;
-      isAssign = true;
-      break;
-    case IASTBinaryExpression.op_minusAssign:
-      operator = BinaryOperator.MINUS;
-      isAssign = true;
-      break;
-    case IASTBinaryExpression.op_shiftLeftAssign:
-      operator = BinaryOperator.SHIFT_LEFT;
-      isAssign = true;
-      break;
-    case IASTBinaryExpression.op_shiftRightAssign:
-      operator = BinaryOperator.SHIFT_RIGHT;
-      isAssign = true;
-      break;
-    case IASTBinaryExpression.op_binaryAndAssign:
-      operator = BinaryOperator.BINARY_AND;
-      isAssign = true;
-      break;
-    case IASTBinaryExpression.op_binaryXorAssign:
-      operator = BinaryOperator.BINARY_XOR;
-      isAssign = true;
-      break;
-    case IASTBinaryExpression.op_binaryOrAssign:
-      operator = BinaryOperator.BINARY_OR;
-      isAssign = true;
-      break;
-    case IASTBinaryExpression.op_equals:
-      operator = BinaryOperator.EQUALS;
-      break;
-    case IASTBinaryExpression.op_notequals:
-      operator = BinaryOperator.NOT_EQUALS;
-      break;
-    default:
-      throw new CFAGenerationRuntimeException("Unknown binary operator", e);
-    }
-
-    return Pair.of(operator, isAssign);
   }
 
   private CAstNode convert(IASTCastExpression e) {
@@ -762,50 +628,13 @@ class ASTConverter {
       return new CExpressionAssignmentStatement(fileLoc, operand, postExp);
 
     default:
-      return new CUnaryExpression(fileLoc, type, operand, convertUnaryOperator(e));
-    }
-  }
-
-  private UnaryOperator convertUnaryOperator(IASTUnaryExpression e) {
-    switch (e.getOperator()) {
-    case IASTUnaryExpression.op_amper:
-      return UnaryOperator.AMPER;
-    case IASTUnaryExpression.op_minus:
-      return UnaryOperator.MINUS;
-    case IASTUnaryExpression.op_not:
-      return UnaryOperator.NOT;
-    case IASTUnaryExpression.op_plus:
-      return UnaryOperator.PLUS;
-    case IASTUnaryExpression.op_sizeof:
-      return UnaryOperator.SIZEOF;
-    case IASTUnaryExpression.op_star:
-      return UnaryOperator.STAR;
-    case IASTUnaryExpression.op_tilde:
-      return UnaryOperator.TILDE;
-    default:
-      throw new CFAGenerationRuntimeException("Unknown unary operator", e);
+      return new CUnaryExpression(fileLoc, type, operand, ASTOperatorConverter.convertUnaryOperator(e));
     }
   }
 
   private CTypeIdExpression convert(IASTTypeIdExpression e) {
     return new CTypeIdExpression(convert(e.getFileLocation()), ASTTypeConverter.convert(e.getExpressionType()),
-        convertTypeIdOperator(e), convert(e.getTypeId()));
-  }
-
-  /** converts the operator of an idExpression: alignOf, sizeOf, typeId, typeOf */
-  private TypeIdOperator convertTypeIdOperator(IASTTypeIdExpression e) {
-    switch (e.getOperator()) {
-    case IASTTypeIdExpression.op_alignof:
-      return TypeIdOperator.ALIGNOF;
-    case IASTTypeIdExpression.op_sizeof:
-      return TypeIdOperator.SIZEOF;
-    case IASTTypeIdExpression.op_typeid:
-      return TypeIdOperator.TYPEID;
-    case IASTTypeIdExpression.op_typeof:
-      return TypeIdOperator.TYPEOF;
-    default:
-      throw new CFAGenerationRuntimeException("Unknown type id operator", e);
-    }
+        ASTOperatorConverter.convertTypeIdOperator(e), convert(e.getTypeId()));
   }
 
   public CAstNode convert(final IASTStatement s) {
