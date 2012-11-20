@@ -24,14 +24,14 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CArraySubscriptExpression extends AArraySubscriptExpression implements CExpression {
 
 
 
-  public CArraySubscriptExpression(final CFileLocation pFileLocation,
+  public CArraySubscriptExpression(final FileLocation pFileLocation,
                                       final CType pType,
                                       final CExpression pArrayExpression,
                                       final CExpression pSubscriptExpression) {

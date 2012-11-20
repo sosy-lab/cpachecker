@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public interface IAstNode {
 
-  public CFileLocation getFileLocation();
+  public FileLocation getFileLocation();
 
   public String toASTString();
 

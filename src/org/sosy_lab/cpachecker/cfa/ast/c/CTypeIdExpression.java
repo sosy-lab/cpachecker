@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CTypeIdExpression extends AExpression implements CExpression {
@@ -33,7 +33,7 @@ public final class CTypeIdExpression extends AExpression implements CExpression 
   @SuppressWarnings("hiding")
   private final CType type;
 
-  public CTypeIdExpression(final CFileLocation pFileLocation,
+  public CTypeIdExpression(final FileLocation pFileLocation,
                               final CType pExpressionType, final TypeIdOperator pOperator,
                               final CType pType) {
     super(pFileLocation, pExpressionType);

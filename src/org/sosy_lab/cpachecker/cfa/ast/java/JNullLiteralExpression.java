@@ -24,14 +24,14 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
 
 public class JNullLiteralExpression extends ALiteralExpression implements JExpression {
 
-  public JNullLiteralExpression(CFileLocation pFileLocation) {
+  public JNullLiteralExpression(FileLocation pFileLocation) {
     super(pFileLocation, new JSimpleType(JBasicType.NULL));
 
   }

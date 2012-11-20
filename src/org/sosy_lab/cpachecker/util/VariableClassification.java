@@ -36,7 +36,7 @@ import java.util.TreeSet;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -388,7 +388,7 @@ public class VariableClassification {
       nonSimpleCalcVars.put(function, varName);
     }
 
-    CInitializer initializer = vdecl.getInitializer();
+    Initializer initializer = vdecl.getInitializer();
     if ((initializer == null) || !(initializer instanceof CInitializerExpression)) { return; }
 
     CExpression exp = ((CInitializerExpression) initializer).getExpression();

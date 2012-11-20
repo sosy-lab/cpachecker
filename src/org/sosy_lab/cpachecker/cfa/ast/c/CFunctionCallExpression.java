@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CFunctionCallExpression extends AFunctionCallExpression implements CRightHandSide {
@@ -35,7 +35,7 @@ public class CFunctionCallExpression extends AFunctionCallExpression implements 
 
 
 
-  public CFunctionCallExpression(final CFileLocation pFileLocation,
+  public CFunctionCallExpression(final FileLocation pFileLocation,
                                     final CType pType,
                                     final CExpression pFunctionName,
                                     final List<CExpression> pParameters,

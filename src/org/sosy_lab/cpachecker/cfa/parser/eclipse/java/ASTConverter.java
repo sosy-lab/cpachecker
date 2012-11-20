@@ -82,7 +82,7 @@ import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
@@ -238,7 +238,7 @@ public class ASTConverter {
     List<JParameterDeclaration> param = convertParameterList((List<SingleVariableDeclaration>)md.parameters());
 
 
-    CFileLocation fileLoc = getFileLocation(md);
+    FileLocation fileLoc = getFileLocation(md);
     if(md.isConstructor()){
       JConstructorType type = new JConstructorType((JClassType) convert( md.resolveBinding().getDeclaringClass()), param , md.isVarargs());
       return new JConstructorDeclaration(fileLoc, type , getFullyQualifiedMethodName(md.resolveBinding()) ,   mb.getVisibility(), mb.isStrictFp);
@@ -381,7 +381,7 @@ public class ASTConverter {
    * @return FileLocation with Placement Information of the Code Piece, or null
    *          if such Information could not be obtained.
    */
-  public CFileLocation getFileLocation (ASTNode l) {
+  public FileLocation getFileLocation (ASTNode l) {
     if (l == null) {
       return null;
     } else if(l.getRoot().getNodeType() != ASTNode.COMPILATION_UNIT){
@@ -393,7 +393,7 @@ public class ASTConverter {
 
 
     // TODO Solve File Name Problem
-    return new CFileLocation(   co.getLineNumber(l.getLength() + l.getStartPosition()),
+    return new FileLocation(   co.getLineNumber(l.getLength() + l.getStartPosition()),
                                      "Readable.java", l.getLength(), l.getStartPosition(),
                                        co.getLineNumber(l.getStartPosition()));
   }
@@ -460,7 +460,7 @@ public class ASTConverter {
 
     Type type = fd.getType();
 
-    CFileLocation fileLoc  = getFileLocation(fd);
+    FileLocation fileLoc  = getFileLocation(fd);
     @SuppressWarnings("unchecked")
     ModifierBean mB = ModifierBean.getModifiers(fd.modifiers());
 
@@ -769,7 +769,7 @@ public class ASTConverter {
     List<VariableDeclarationFragment> variableDeclarationFragments =
                                             (List<VariableDeclarationFragment>)vds.fragments();
 
-    CFileLocation fileLoc = getFileLocation(vds);
+    FileLocation fileLoc = getFileLocation(vds);
     Type type = vds.getType();
 
 
@@ -1056,7 +1056,7 @@ public class ASTConverter {
     List<VariableDeclarationFragment> variableDeclarationFragments =
                                             (List<VariableDeclarationFragment>)vde.fragments();
 
-    CFileLocation fileLoc = getFileLocation(vde);
+    FileLocation fileLoc = getFileLocation(vde);
     Type type = vde.getType();
 
 
@@ -1092,7 +1092,7 @@ public class ASTConverter {
 
   private JAstNode convert(InstanceofExpression e) {
 
-    CFileLocation fileloc = getFileLocation(e);
+    FileLocation fileloc = getFileLocation(e);
     JExpression leftOperand = convertExpressionWithoutSideEffects(e.getLeftOperand());
     JType type = convert(e.getRightOperand().resolveBinding());
     assert leftOperand instanceof JIdExpression : "There are other expressions for instanceOf?";
@@ -1298,7 +1298,7 @@ public class ASTConverter {
 
 
 
-    CFileLocation fileloc = getFileLocation(Ace);
+    FileLocation fileloc = getFileLocation(Ace);
     JArrayInitializer initializer = (JArrayInitializer) convertExpressionWithoutSideEffects(Ace.getInitializer());
     JArrayType type = convert(Ace.getType());
     List<JExpression> length = new ArrayList<JExpression>(type.getDimensions());
@@ -1599,7 +1599,7 @@ public class ASTConverter {
 
   private JAstNode convert(Assignment e) {
 
-    CFileLocation fileLoc = getFileLocation(e);
+    FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
     JExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftHandSide());
 
@@ -1690,7 +1690,7 @@ public class ASTConverter {
     }
 
     JExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
-    CFileLocation fileLoc = getFileLocation(e);
+    FileLocation fileLoc = getFileLocation(e);
 
 
     return new JUnaryExpression(fileLoc, convert(e.resolveTypeBinding()), operand, convertUnaryOperator(op));
@@ -1718,7 +1718,7 @@ public class ASTConverter {
       //return null;
     //} else {
 
-      CFileLocation fileLoc = getFileLocation(e);
+      FileLocation fileLoc = getFileLocation(e);
       JType type = convert(e.resolveTypeBinding());
       JExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
 
@@ -1745,7 +1745,7 @@ public class ASTConverter {
       //return null;
     //} else {
 
-      CFileLocation fileLoc = getFileLocation(e);
+      FileLocation fileLoc = getFileLocation(e);
       JType type = convert(e.resolveTypeBinding());
       JExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
 
@@ -1776,7 +1776,7 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
 
   @SuppressWarnings("unchecked")
   private JExpression convert(InfixExpression e) {
-    CFileLocation fileLoc = getFileLocation(e);
+    FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
     JExpression leftHandSide = convertExpressionWithoutSideEffects(e.getLeftOperand());
 
@@ -1847,7 +1847,7 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
   }
 
   private JExpression convert(NumberLiteral e) {
-    CFileLocation fileLoc = getFileLocation(e);
+    FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
     String valueStr = e.getToken();
 
@@ -1929,7 +1929,7 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
 
 
   JStringLiteralExpression convert(StringLiteral e) {
-    CFileLocation fileLoc = getFileLocation(e);
+    FileLocation fileLoc = getFileLocation(e);
 
     //TODO Prototype , String is in java a class Type
     JType type = new JDummyType("String");
@@ -1942,7 +1942,7 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
 
 
   JCharLiteralExpression convert(CharacterLiteral e) {
-    CFileLocation fileLoc = getFileLocation(e);
+    FileLocation fileLoc = getFileLocation(e);
      JType type = convert(e.resolveTypeBinding());
     return new JCharLiteralExpression(fileLoc, type, e.charValue());
   }
@@ -1984,11 +1984,11 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
     }
   }
 
-  JReturnStatement getConstructorObjectReturn(ITypeBinding declaringClass , CFileLocation constructorFileLoc) {
+  JReturnStatement getConstructorObjectReturn(ITypeBinding declaringClass , FileLocation constructorFileLoc) {
 
     assert declaringClass.isClass() : "Method " + declaringClass.getName() + " is no Contructor";
 
-    CFileLocation fileloc= new CFileLocation(constructorFileLoc.getEndingLineNumber(), constructorFileLoc.getFileName(), NO_LINE, constructorFileLoc.getEndingLineNumber(), constructorFileLoc.getEndingLineNumber());
+    FileLocation fileloc= new FileLocation(constructorFileLoc.getEndingLineNumber(), constructorFileLoc.getFileName(), NO_LINE, constructorFileLoc.getEndingLineNumber(), constructorFileLoc.getEndingLineNumber());
 
     JClassType objectReturnType = (JClassType) convert(declaringClass);
 
@@ -1996,7 +1996,7 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
     return new JObjectReferenceReturn(fileloc, new JStringLiteralExpression(fileloc, objectReturnType, objectReturnType.getName()), objectReturnType);
   }
 
-  public JRunTimeTypeEqualsType convertClassRunTimeCompileTimeAccord( CFileLocation fileloc ,JSimpleDeclaration referencedVariable,
+  public JRunTimeTypeEqualsType convertClassRunTimeCompileTimeAccord( FileLocation fileloc ,JSimpleDeclaration referencedVariable,
       JClassOrInterfaceType classType) {
     return new JRunTimeTypeEqualsType(fileloc, new JThisRunTimeType(fileloc, referencedVariable), classType );
   }
@@ -2024,7 +2024,7 @@ private UnaryOperator convertUnaryOperator(PrefixExpression.Operator op) {
 
 
     // TODO File Location of Default Constructor???
-    CFileLocation fileLoc = new CFileLocation(0, "", 0, 0, 0);
+    FileLocation fileLoc = new FileLocation(0, "", 0, 0, 0);
 
     JConstructorType type = new JConstructorType((JClassType) convert( classBinding), param , false);
     return new JConstructorDeclaration(fileLoc, type , getFullyQualifiedDefaultConstructorName(classBinding) , VisibilityModifier.PUBLIC  , false);

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 public final class CParameterDeclaration extends AParameterDeclaration implements CSimpleDeclaration {
 
-  public CParameterDeclaration(CFileLocation pFileLocation,
+  public CParameterDeclaration(FileLocation pFileLocation,
                                   CType pType,
                                   String pName) {
     super(pFileLocation, pType, checkNotNull(pName));

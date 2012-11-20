@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
 public class JMethodInvocationStatement extends AFunctionCallStatement implements JStatement , JMethodOrConstructorInvocation {
 
-  public JMethodInvocationStatement(CFileLocation pFileLocation, JMethodInvocationExpression pFunctionCall) {
+  public JMethodInvocationStatement(FileLocation pFileLocation, JMethodInvocationExpression pFunctionCall) {
     super(pFileLocation, pFunctionCall);
   }
 

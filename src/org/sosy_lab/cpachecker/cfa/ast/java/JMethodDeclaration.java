@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 
 import com.google.common.base.Strings;
@@ -41,7 +41,7 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
   private final VisibilityModifier visibility;
 
 
-  public JMethodDeclaration(CFileLocation pFileLocation, JMethodType pType, String pName , VisibilityModifier pVisibility  ,final boolean pIsFinal
+  public JMethodDeclaration(FileLocation pFileLocation, JMethodType pType, String pName , VisibilityModifier pVisibility  ,final boolean pIsFinal
       ,final boolean pIsAbstract, final boolean pIsStatic,final boolean pIsNative,final boolean pIsSynchronized,final boolean pIsStrictfp ) {
     super(pFileLocation, pType, pName);
     visibility = pVisibility;

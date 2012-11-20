@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 
 
-public class AInitializerExpression extends CInitializer {
+public class AInitializerExpression extends Initializer {
 
   protected final IAExpression expression;
 
-  public AInitializerExpression(CFileLocation pFileLocation , final IAExpression pExpression) {
+  public AInitializerExpression(FileLocation pFileLocation , final IAExpression pExpression) {
     super(pFileLocation);
     expression = pExpression;
   }

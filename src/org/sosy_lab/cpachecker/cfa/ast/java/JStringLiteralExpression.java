@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JStringLiteralExpression extends AStringLiteralExpression implements JExpression {
 
-  public JStringLiteralExpression(CFileLocation pFileLocation, JType pType, String pValue) {
+  public JStringLiteralExpression(FileLocation pFileLocation, JType pType, String pValue) {
     super(pFileLocation, pType, pValue);
   }
 

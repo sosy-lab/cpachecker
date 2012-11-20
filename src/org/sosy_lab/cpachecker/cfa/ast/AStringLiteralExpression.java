@@ -30,7 +30,7 @@ public class AStringLiteralExpression extends ALiteralExpression {
 
   protected final String value;
 
-  public AStringLiteralExpression(CFileLocation pFileLocation, Type pType, String pValue) {
+  public AStringLiteralExpression(FileLocation pFileLocation, Type pType, String pValue) {
     super(pFileLocation, pType);
      value = pValue;
   }

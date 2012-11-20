@@ -27,7 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -60,7 +60,7 @@ public class DefUseTransferRelation implements TransferRelation
   {
     if (cfaEdge.getDeclaration() instanceof CVariableDeclaration) {
       CVariableDeclaration decl = (CVariableDeclaration)cfaEdge.getDeclaration();
-      CInitializer initializer = decl.getInitializer();
+      Initializer initializer = decl.getInitializer();
       if (initializer != null)
       {
         String varName = decl.getName();

@@ -27,7 +27,7 @@ public class AReturnStatement extends AstNode implements IAReturnStatement {
 
   protected final IAExpression expression;
 
-  public AReturnStatement(final CFileLocation pFileLocation, final IAExpression pExpression) {
+  public AReturnStatement(final FileLocation pFileLocation, final IAExpression pExpression) {
     super(pFileLocation);
     expression = pExpression;
 

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
@@ -37,7 +37,7 @@ public class JReferencedMethodInvocationExpression extends JMethodInvocationExpr
   private boolean hasKnownRunTimeBinding = false;
   private JClassType runTimeBinding = null;
 
-  public JReferencedMethodInvocationExpression(CFileLocation pFileLocation, JType pType, JExpression pFunctionName,
+  public JReferencedMethodInvocationExpression(FileLocation pFileLocation, JType pType, JExpression pFunctionName,
       List<? extends JExpression> pParameters, JSimpleDeclaration pDeclaration, JSimpleDeclaration pReferencedVariable) {
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
       referencedVariable = pReferencedVariable;

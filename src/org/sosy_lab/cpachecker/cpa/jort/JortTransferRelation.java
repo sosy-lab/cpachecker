@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
@@ -245,7 +245,7 @@ public class JortTransferRelation implements TransferRelation {
     }
 
     // get initial value
-    CInitializer init = decl.getInitializer();
+    Initializer init = decl.getInitializer();
 
     if(init instanceof AInitializerExpression) {
       IAExpression exp = ((AInitializerExpression)init).getExpression();

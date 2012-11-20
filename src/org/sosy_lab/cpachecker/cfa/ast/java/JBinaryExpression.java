@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JBinaryExpression extends ABinaryExpression implements JExpression {
 
-  public JBinaryExpression(CFileLocation pFileLocation, JType pType, JExpression pOperand1, JExpression pOperand2,
+  public JBinaryExpression(FileLocation pFileLocation, JType pType, JExpression pOperand1, JExpression pOperand2,
       BinaryOperator pOperator) {
     super(pFileLocation, pType, pOperand1, pOperand2, pOperator);
 

@@ -32,7 +32,7 @@ public class AArraySubscriptExpression extends AExpression {
   protected final IAExpression arrayExpression;
   protected final IAExpression subscriptExpression;
 
-  public AArraySubscriptExpression(CFileLocation pFileLocation,
+  public AArraySubscriptExpression(FileLocation pFileLocation,
       Type pType,
       final IAExpression pArrayExpression,
       final IAExpression pSubscriptExpression) {

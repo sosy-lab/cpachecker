@@ -32,7 +32,7 @@ public class AFunctionCallAssignmentStatement extends AStatement implements AAss
   protected final IAExpression leftHandSide;
   protected final AFunctionCallExpression rightHandSide;
 
-  public AFunctionCallAssignmentStatement(CFileLocation pFileLocation
+  public AFunctionCallAssignmentStatement(FileLocation pFileLocation
                                           , IAExpression pLeftHandSide,
                                           AFunctionCallExpression pRightHandSide) {
     super(pFileLocation);

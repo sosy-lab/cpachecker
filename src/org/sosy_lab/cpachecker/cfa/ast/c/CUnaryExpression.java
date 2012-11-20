@@ -24,14 +24,14 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CUnaryExpression extends AUnaryExpression implements CExpression {
 
 
 
-  public CUnaryExpression(final CFileLocation pFileLocation,
+  public CUnaryExpression(final FileLocation pFileLocation,
                              final CType pType, final CExpression pOperand,
                              final UnaryOperator pOperator) {
     super(pFileLocation, pType, pOperand, pOperator);

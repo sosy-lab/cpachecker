@@ -24,14 +24,14 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
 public final class CInitializerExpression extends AInitializerExpression {
 
 
 
-  public CInitializerExpression(final CFileLocation pFileLocation,
+  public CInitializerExpression(final FileLocation pFileLocation,
                                    final CExpression pExpression) {
     super(pFileLocation,pExpression);
 

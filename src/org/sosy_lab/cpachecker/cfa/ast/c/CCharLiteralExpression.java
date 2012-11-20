@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CCharLiteralExpression extends ACharLiteralExpression implements CLiteralExpression {
 
-  public CCharLiteralExpression(CFileLocation pFileLocation,
+  public CCharLiteralExpression(FileLocation pFileLocation,
                                    CType pType,
                                    char pCharacter) {
     super(pFileLocation, pType, pCharacter);

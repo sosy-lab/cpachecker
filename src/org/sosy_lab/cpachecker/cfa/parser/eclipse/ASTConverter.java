@@ -84,9 +84,9 @@ import org.eclipse.cdt.core.dom.ast.IField;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
+import org.sosy_lab.cpachecker.cfa.ast.InitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -269,7 +269,7 @@ class ASTConverter {
 
   private CIdExpression addSideAssignmentsForUnaryExpressions(IASTExpression e,
                                                               CExpression exp,
-                                                              CFileLocation fileLoc,
+                                                              FileLocation fileLoc,
                                                               CType type,
                                                               BinaryOperator op) {
     CIdExpression tmp = createTemporaryVariable(e, null);
@@ -370,7 +370,7 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTBinaryExpression e) {
-    CFileLocation fileLoc = convert(e.getFileLocation());
+    FileLocation fileLoc = convert(e.getFileLocation());
     CType type = convert(e.getExpressionType());
     CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getOperand1());
 
@@ -587,7 +587,7 @@ class ASTConverter {
   }
 
   private CLiteralExpression convert(IASTLiteralExpression e) {
-    CFileLocation fileLoc = convert(e.getFileLocation());
+    FileLocation fileLoc = convert(e.getFileLocation());
     CType type = convert(e.getExpressionType());
 
     String valueStr = String.valueOf(e.getValue());
@@ -747,7 +747,7 @@ class ASTConverter {
       return operand;
     }
 
-    CFileLocation fileLoc = convert(e.getFileLocation());
+    FileLocation fileLoc = convert(e.getFileLocation());
     CType type = convert(e.getExpressionType());
 
 
@@ -888,7 +888,7 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unsupported storage class for function definition", f);
     }
 
-    Triple<CType, CInitializer, String> declarator = convert(f.getDeclarator(), specifier.getSecond());
+    Triple<CType, Initializer, String> declarator = convert(f.getDeclarator(), specifier.getSecond());
     if (!(declarator.getFirst() instanceof CFunctionType)) {
       throw new CFAGenerationRuntimeException("Unsupported nested declarator for function definition", f);
     }
@@ -902,13 +902,13 @@ class ASTConverter {
     CFunctionType declSpec = (CFunctionType)declarator.getFirst();
     String name = declarator.getThird();
 
-    CFileLocation fileLoc = convert(f.getFileLocation());
+    FileLocation fileLoc = convert(f.getFileLocation());
 
     return new CFunctionDeclaration(fileLoc, declSpec, name);
   }
 
   public List<CDeclaration> convert(final IASTSimpleDeclaration d) {
-    CFileLocation fileLoc = convert(d.getFileLocation());
+    FileLocation fileLoc = convert(d.getFileLocation());
     Pair<CStorageClass, ? extends CType> specifier = convert(d.getDeclSpecifier());
     CStorageClass cStorageClass = specifier.getFirst();
     CType type = specifier.getSecond();
@@ -935,13 +935,13 @@ class ASTConverter {
     return result;
   }
 
-  private CDeclaration createDeclaration(CFileLocation fileLoc, CStorageClass cStorageClass, CType type, IASTDeclarator d) {
+  private CDeclaration createDeclaration(FileLocation fileLoc, CStorageClass cStorageClass, CType type, IASTDeclarator d) {
     boolean isGlobal = scope.isGlobalScope();
 
     if (d != null) {
-      Triple<CType, CInitializer, String> declarator = convert(d, type);
+      Triple<CType, Initializer, String> declarator = convert(d, type);
       type = declarator.getFirst();
-      CInitializer initializer = declarator.getSecond();
+      Initializer initializer = declarator.getSecond();
       String name = declarator.getThird();
 
       if (name == null) {
@@ -1057,7 +1057,7 @@ class ASTConverter {
     String name = null;
 
     if (d != null) {
-      Triple<CType, CInitializer, String> declarator = convert(d, type);
+      Triple<CType, Initializer, String> declarator = convert(d, type);
 
       if (declarator.getSecond() != null) {
         throw new CFAGenerationRuntimeException("Unsupported initializer inside composite type", d);
@@ -1070,7 +1070,7 @@ class ASTConverter {
     return new CCompositeTypeMemberDeclaration(type, name);
   }
 
-  private Triple<CType, CInitializer, String> convert(IASTDeclarator d, CType specifier) {
+  private Triple<CType, Initializer, String> convert(IASTDeclarator d, CType specifier) {
     if (d instanceof IASTFunctionDeclarator) {
       return convert((IASTFunctionDeclarator)d, specifier);
 
@@ -1086,7 +1086,7 @@ class ASTConverter {
       // Collection of all modifiers (outermost modifier is first).
       List<IASTNode> modifiers = Lists.newArrayListWithExpectedSize(1);
 
-      CInitializer initializer = null;
+      Initializer initializer = null;
       String name = null;
 
       // Descend into the nested chain of declators.
@@ -1169,7 +1169,7 @@ class ASTConverter {
     }
   }
 
-  private Triple<CType, CInitializer, String> convert(IASTFunctionDeclarator d, CType returnType) {
+  private Triple<CType, Initializer, String> convert(IASTFunctionDeclarator d, CType returnType) {
     if (!(d instanceof IASTStandardFunctionDeclarator)) {
       throw new CFAGenerationRuntimeException("Unknown non-standard function definition", d);
     }
@@ -1187,7 +1187,7 @@ class ASTConverter {
 
     String name;
     if (d.getNestedDeclarator() != null) {
-      Triple<? extends CType, CInitializer, String> nestedDeclarator = convert(d.getNestedDeclarator(), type);
+      Triple<? extends CType, Initializer, String> nestedDeclarator = convert(d.getNestedDeclarator(), type);
 
       assert d.getName().getRawSignature().isEmpty() : d;
       assert nestedDeclarator.getSecond() == null;
@@ -1380,7 +1380,7 @@ class ASTConverter {
     return result;
   }
 
-  private CInitializer convert(IASTInitializer i) {
+  private Initializer convert(IASTInitializer i) {
     if (i == null) {
       return null;
 
@@ -1412,18 +1412,18 @@ class ASTConverter {
     return new CInitializerExpression(convert(i.getFileLocation()), (CExpression)initializer);
   }
 
-  private CInitializerList convert(IASTInitializerList iList) {
-    List<CInitializer> initializerList = new ArrayList<CInitializer>(iList.getInitializers().length);
+  private InitializerList convert(IASTInitializerList iList) {
+    List<Initializer> initializerList = new ArrayList<Initializer>(iList.getInitializers().length);
     for (IASTInitializer i : iList.getInitializers()) {
-      CInitializer newI = convert(i);
+      Initializer newI = convert(i);
       if (newI != null) {
         initializerList.add(newI);
       }
     }
-    return new CInitializerList(convert(iList.getFileLocation()), initializerList);
+    return new InitializerList(convert(iList.getFileLocation()), initializerList);
   }
 
-  private CInitializer convert(IASTEqualsInitializer i) {
+  private Initializer convert(IASTEqualsInitializer i) {
     IASTInitializerClause ic = i.getInitializerClause();
     if (ic instanceof IASTExpression) {
       IASTExpression e = (IASTExpression)ic;
@@ -1475,7 +1475,7 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unsupported storage class for parameters", p);
     }
 
-    Triple<CType, CInitializer, String> declarator = convert(p.getDeclarator(), specifier.getSecond());
+    Triple<CType, Initializer, String> declarator = convert(p.getDeclarator(), specifier.getSecond());
     if (declarator.getSecond() != null) {
       throw new CFAGenerationRuntimeException("Unsupported initializer for parameters", p);
     }
@@ -1489,11 +1489,11 @@ class ASTConverter {
     return new CParameterDeclaration(convert(p.getFileLocation()), type, declarator.getThird());
   }
 
-  public CFileLocation convert(IASTFileLocation l) {
+  public FileLocation convert(IASTFileLocation l) {
     if (l == null) {
       return null;
     }
-    return new CFileLocation(l.getEndingLineNumber(), l.getFileName(), l.getNodeLength(), l.getNodeOffset(), l.getStartingLineNumber());
+    return new FileLocation(l.getEndingLineNumber(), l.getFileName(), l.getNodeLength(), l.getNodeOffset(), l.getStartingLineNumber());
   }
 
   private String convert(IASTName n) {
@@ -1506,7 +1506,7 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unsupported storage class for type ids", t);
     }
 
-    Triple<CType, CInitializer, String> declarator = convert(t.getAbstractDeclarator(), specifier.getSecond());
+    Triple<CType, Initializer, String> declarator = convert(t.getAbstractDeclarator(), specifier.getSecond());
     if (declarator.getSecond() != null) {
       throw new CFAGenerationRuntimeException("Unsupported initializer for type ids", t);
     }

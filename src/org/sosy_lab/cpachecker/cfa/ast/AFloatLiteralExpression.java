@@ -33,7 +33,7 @@ public  class AFloatLiteralExpression extends ALiteralExpression {
 
   protected final BigDecimal value;
 
-  public AFloatLiteralExpression(CFileLocation pFileLocation, Type pType, BigDecimal pValue) {
+  public AFloatLiteralExpression(FileLocation pFileLocation, Type pType, BigDecimal pValue) {
     super(pFileLocation, pType);
     value = pValue;
   }

@@ -30,14 +30,14 @@ import com.google.common.base.Function;
 
 public abstract class AstNode implements IAstNode , CAstNode{
 
-  private final CFileLocation fileLocation;
+  private final FileLocation fileLocation;
 
-  public AstNode(final CFileLocation pFileLocation) {
+  public AstNode(final FileLocation pFileLocation) {
     fileLocation = pFileLocation;
   }
 
   @Override
-  public CFileLocation getFileLocation() {
+  public FileLocation getFileLocation() {
     return fileLocation;
   }
 

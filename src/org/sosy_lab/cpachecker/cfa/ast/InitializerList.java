@@ -30,17 +30,17 @@ import java.util.List;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public class CInitializerList extends CInitializer {
+public class InitializerList extends Initializer {
 
-  private final List<CInitializer> initializerList;
+  private final List<Initializer> initializerList;
 
-  public CInitializerList(final CFileLocation pFileLocation,
-                             final List<CInitializer> pInitializerList) {
+  public InitializerList(final FileLocation pFileLocation,
+                             final List<Initializer> pInitializerList) {
     super(pFileLocation);
     initializerList = ImmutableList.copyOf(pInitializerList);
   }
 
-  public List<CInitializer> getInitializers() {
+  public List<Initializer> getInitializers() {
     return initializerList;
   }
 

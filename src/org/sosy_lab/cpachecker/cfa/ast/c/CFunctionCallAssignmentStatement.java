@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
 public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignmentStatement
                                                           implements CStatement , CAssignment, CFunctionCall {
 
-  public CFunctionCallAssignmentStatement(CFileLocation pFileLocation,
+  public CFunctionCallAssignmentStatement(FileLocation pFileLocation,
                                              CExpression pLeftHandSide,
                                              CFunctionCallExpression pRightHandSide) {
     super(pFileLocation, pLeftHandSide, pRightHandSide);

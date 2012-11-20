@@ -29,7 +29,7 @@ public class AFunctionCallStatement extends AStatement implements AFunctionCall 
 
   protected final AFunctionCallExpression functionCall;
 
-  public AFunctionCallStatement(CFileLocation pFileLocation, AFunctionCallExpression pFunctionCall) {
+  public AFunctionCallStatement(FileLocation pFileLocation, AFunctionCallExpression pFunctionCall) {
     super(pFileLocation);
     functionCall = pFunctionCall;
   }

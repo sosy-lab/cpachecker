@@ -40,7 +40,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -547,7 +547,7 @@ public class BDDTransferRelation implements TransferRelation {
 
     if (decl instanceof CVariableDeclaration) {
       CVariableDeclaration vdecl = (CVariableDeclaration) decl;
-      CInitializer initializer = vdecl.getInitializer();
+      Initializer initializer = vdecl.getInitializer();
 
       CExpression init = null;
       if (initializer == null && initAllVars) { // auto-initialize variables to zero

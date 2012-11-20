@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 public class AFunctionDeclaration extends ADeclaration {
 
 
-  public AFunctionDeclaration(CFileLocation pFileLocation, IAFunctionType pType, String pName) {
+  public AFunctionDeclaration(FileLocation pFileLocation, IAFunctionType pType, String pName) {
     super(pFileLocation, true, pType, pName , pName);
   }
 

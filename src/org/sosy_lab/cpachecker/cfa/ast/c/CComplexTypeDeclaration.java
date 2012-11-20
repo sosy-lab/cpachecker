@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 public final class CComplexTypeDeclaration extends ADeclaration implements CDeclaration {
 
-  public CComplexTypeDeclaration(CFileLocation pFileLocation,
+  public CComplexTypeDeclaration(FileLocation pFileLocation,
       boolean pIsGlobal, CType pType) {
     super(pFileLocation, pIsGlobal, pType, null, null);
   }

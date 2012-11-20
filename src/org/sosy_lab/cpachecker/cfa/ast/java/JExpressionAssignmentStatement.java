@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
 public class JExpressionAssignmentStatement extends AExpressionAssignmentStatement implements JAssignment , JStatement {
 
-  public JExpressionAssignmentStatement(CFileLocation pFileLocation, JExpression pLeftHandSide,
+  public JExpressionAssignmentStatement(FileLocation pFileLocation, JExpression pLeftHandSide,
       JExpression pRightHandSide) {
     super(pFileLocation, pLeftHandSide, pRightHandSide);
   }

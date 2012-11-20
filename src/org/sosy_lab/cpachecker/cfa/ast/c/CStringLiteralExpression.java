@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CStringLiteralExpression extends AStringLiteralExpression implements CLiteralExpression {
 
-  public CStringLiteralExpression(CFileLocation pFileLocation,
+  public CStringLiteralExpression(FileLocation pFileLocation,
                                      CType pType,
                                      String pValue) {
     super(pFileLocation, pType,  pValue);

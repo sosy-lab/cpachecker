@@ -31,12 +31,12 @@ public abstract class ADeclaration extends ASimpleDeclarations implements IADecl
 
   private final boolean   isGlobal;
 
-  public ADeclaration(CFileLocation pFileLocation,  boolean pIsGlobal, Type pType, String pName) {
+  public ADeclaration(FileLocation pFileLocation,  boolean pIsGlobal, Type pType, String pName) {
     super(pFileLocation, pType, pName, pName);
     isGlobal = pIsGlobal;
   }
 
-  public ADeclaration(CFileLocation pFileLocation,  boolean pIsGlobal, Type pType, String pName, String pOrigName) {
+  public ADeclaration(FileLocation pFileLocation,  boolean pIsGlobal, Type pType, String pName, String pOrigName) {
     super(pFileLocation, pType, pName, pOrigName);
     isGlobal = pIsGlobal;
   }

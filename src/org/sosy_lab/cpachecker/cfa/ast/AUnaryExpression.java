@@ -33,7 +33,7 @@ public class AUnaryExpression extends AExpression {
   private final IAExpression operand;
   private final AUnaryOperator  operator;
 
-  public AUnaryExpression(CFileLocation pFileLocation, Type pType, final IAExpression pOperand,
+  public AUnaryExpression(FileLocation pFileLocation, Type pType, final IAExpression pOperand,
       final AUnaryOperator pOperator) {
     super(pFileLocation, pType);
     operand = pOperand;

@@ -29,7 +29,7 @@ public class AExpressionStatement extends AStatement {
 
   protected final IAExpression expression;
 
-  public AExpressionStatement(CFileLocation pFileLocation, final IAExpression pExpression) {
+  public AExpressionStatement(FileLocation pFileLocation, final IAExpression pExpression) {
     super(pFileLocation );
     expression = pExpression;
   }

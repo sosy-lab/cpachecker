@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -210,7 +210,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     lastAdded = varName;
 
     CType type = decl.getType();
-    CInitializer initializer = decl.getInitializer();
+    Initializer initializer = decl.getInitializer();
     // initializers in CIL are always constant, so no need to check if
     // initializer expression contains uninitialized variables
     if (initializer == null &&

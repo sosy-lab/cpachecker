@@ -38,7 +38,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -607,7 +607,7 @@ public class CtoFormulaConverter {
 
     // if there is an initializer associated to this variable,
     // take it into account
-    CInitializer initializer = decl.getInitializer();
+    Initializer initializer = decl.getInitializer();
     CExpression init = null;
 
     if (initializer == null) {

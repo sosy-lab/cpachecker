@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 public final class CTypeDefDeclaration extends ADeclaration implements CDeclaration {
 
-  public CTypeDefDeclaration(CFileLocation pFileLocation, boolean pIsGlobal,
+  public CTypeDefDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
       CType pType, String pName) {
     super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), pName);
   }

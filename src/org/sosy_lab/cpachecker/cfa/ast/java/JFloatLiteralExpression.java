@@ -26,13 +26,13 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import java.math.BigDecimal;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JFloatLiteralExpression extends AFloatLiteralExpression implements JExpression{
 
-  public JFloatLiteralExpression(CFileLocation pFileLocation, JType pType, BigDecimal pValue) {
+  public JFloatLiteralExpression(FileLocation pFileLocation, JType pType, BigDecimal pValue) {
     super(pFileLocation, pType, pValue);
   }
 

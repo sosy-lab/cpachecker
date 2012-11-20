@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
@@ -32,7 +32,7 @@ public class JParameterDeclaration extends AParameterDeclaration implements JSim
 
   final boolean isFinal;
 
-  public JParameterDeclaration(CFileLocation pFileLocation, JType pType, String pName, boolean pIsFinal) {
+  public JParameterDeclaration(FileLocation pFileLocation, JType pType, String pName, boolean pIsFinal) {
     super(pFileLocation, pType, pName);
     isFinal = pIsFinal;
   }

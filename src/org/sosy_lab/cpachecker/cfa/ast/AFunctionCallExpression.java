@@ -41,7 +41,7 @@ public class AFunctionCallExpression extends ARightHandSide {
   protected final IASimpleDeclaration declaration;
 
 
-  public AFunctionCallExpression(CFileLocation pFileLocation, Type pType, final IAExpression pFunctionName,
+  public AFunctionCallExpression(FileLocation pFileLocation, Type pType, final IAExpression pFunctionName,
       final List<? extends IAExpression> pParameters,
       final IASimpleDeclaration pDeclaration) {
     super(pFileLocation, pType);

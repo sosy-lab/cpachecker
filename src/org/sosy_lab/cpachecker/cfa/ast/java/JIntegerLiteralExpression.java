@@ -26,13 +26,13 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JIntegerLiteralExpression extends AIntegerLiteralExpression implements JExpression{
 
-  public JIntegerLiteralExpression(CFileLocation pFileLocation, JType pType, BigInteger pValue) {
+  public JIntegerLiteralExpression(FileLocation pFileLocation, JType pType, BigInteger pValue) {
     super(pFileLocation, pType, pValue);
   }
 

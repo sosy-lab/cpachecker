@@ -33,7 +33,7 @@ public class AIdExpression extends AExpression {
   protected final IASimpleDeclaration declaration;
 
 
-  public AIdExpression(CFileLocation pFileLocation, Type pType, final String pName,
+  public AIdExpression(FileLocation pFileLocation, Type pType, final String pName,
       final IASimpleDeclaration pDeclaration ) {
     super(pFileLocation, pType);
     name = pName.intern();

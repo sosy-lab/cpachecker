@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public class AParameterDeclaration extends ASimpleDeclarations {
 
-  public AParameterDeclaration(CFileLocation pFileLocation, Type pType, String pName) {
+  public AParameterDeclaration(FileLocation pFileLocation, Type pType, String pName) {
     super(pFileLocation, pType, checkNotNull(pName));
 
   }

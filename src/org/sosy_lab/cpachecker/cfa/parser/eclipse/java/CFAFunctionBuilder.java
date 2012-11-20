@@ -66,8 +66,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
@@ -297,7 +297,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
 
-  private void handleReturnFromObject(CFileLocation fileloc, String rawSignature, ITypeBinding cb) {
+  private void handleReturnFromObject(FileLocation fileloc, String rawSignature, ITypeBinding cb) {
 
      assert cb.isClass() : cb.getName() + "is no Object Return";
 
@@ -333,7 +333,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       if(declaration.isConstructor()){
 
-        CFileLocation fileloc = astCreator.getFileLocation(declaration);
+        FileLocation fileloc = astCreator.getFileLocation(declaration);
         handleReturnFromObject(fileloc, declaration.toString(), declaration.resolveBinding().getDeclaringClass());
       }
 
@@ -478,7 +478,7 @@ private void handleEndVisitMethodDeclaration(){
       if (newD instanceof JVariableDeclaration) {
         scope.registerDeclaration(newD);
 
-        CInitializer initializer = ((JVariableDeclaration)newD).getInitializer();
+        Initializer initializer = ((JVariableDeclaration)newD).getInitializer();
 
         // resolve Boolean Initializer for easier analysis
         if( initializer instanceof JInitializerExpression && astCreator.isBooleanExpression( ((JInitializerExpression)initializer).getExpression()) && !(((JInitializerExpression)initializer).getExpression() instanceof JBooleanLiteralExpression) ) {
@@ -576,7 +576,7 @@ private void handleEndVisitMethodDeclaration(){
      }
 
 
-     CFileLocation fileloc = astCreator.getFileLocation(assertStatement);
+     FileLocation fileloc = astCreator.getFileLocation(assertStatement);
      CFANode prevNode = locStack.pop();
 
      //Create CFA Node for end of assert Location and push to local Stack
@@ -892,7 +892,7 @@ private boolean isReferencableVariable(JSimpleDeclaration referencedVariable, JA
 }
 
 private void handleTernaryExpression(ConditionalExpression condExp, CFANode rootNode, CFANode lastNode, JAstNode statement) {
-   CFileLocation fileLoc = astCreator.getFileLocation(condExp);
+   FileLocation fileLoc = astCreator.getFileLocation(condExp);
    int filelocStart = fileLoc.getStartingLineNumber();
 
    JIdExpression tempVar = astCreator.getConditionalTemporaryVariable();
@@ -928,7 +928,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
  }
 
  private void handleTernaryStatement(ConditionalExpression condExp, CFANode rootNode, CFANode lastNode) {
-   CFileLocation fileLoc = astCreator.getFileLocation(condExp);
+   FileLocation fileLoc = astCreator.getFileLocation(condExp);
    int filelocStart = fileLoc.getStartingLineNumber();
 
    while(astCreator.numberOfPreSideAssignments() > 0) {
@@ -1075,7 +1075,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
 
 @Override
   public boolean visit(IfStatement ifStatement) {
-   CFileLocation fileloc = astCreator.getFileLocation(ifStatement);
+   FileLocation fileloc = astCreator.getFileLocation(ifStatement);
 
    // If parent Else is not a Block
    handleElseCondition(ifStatement);
@@ -1316,7 +1316,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
     //If parent is a else Condition without block
     handleElseCondition(labelStatement);
 
-    CFileLocation fileloc = astCreator.getFileLocation(labelStatement);
+    FileLocation fileloc = astCreator.getFileLocation(labelStatement);
 
     String labelName = labelStatement.getLabel().getIdentifier();
     if (labelMap.containsKey(labelName)) {
@@ -1372,7 +1372,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
     handleElseCondition(statement);
 
 
-    CFileLocation fileloc = astCreator.getFileLocation(statement);
+    FileLocation fileloc = astCreator.getFileLocation(statement);
 
     final CFANode prevNode = locStack.pop();
 
@@ -1447,7 +1447,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
   }
 
 
-  private void handleCase(final SwitchCase statement ,CFileLocation fileloc) {
+  private void handleCase(final SwitchCase statement ,FileLocation fileloc) {
 
     final int filelocStart = fileloc.getStartingLineNumber();
 
@@ -1501,7 +1501,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
   }
 
 
-  private void handleDefault(CFileLocation fileloc) {
+  private void handleDefault(FileLocation fileloc) {
 
     final int filelocStart = fileloc.getStartingLineNumber();
 
@@ -1535,7 +1535,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
 
     handleElseCondition(whileStatement);
 
-    CFileLocation fileloc = astCreator.getFileLocation(whileStatement);
+    FileLocation fileloc = astCreator.getFileLocation(whileStatement);
 
     final CFANode prevNode = locStack.pop();
 
@@ -1576,7 +1576,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
 
     handleElseCondition(doStatement);
 
-    CFileLocation fileloc = astCreator.getFileLocation(doStatement);
+    FileLocation fileloc = astCreator.getFileLocation(doStatement);
 
     final CFANode prevNode = locStack.pop();
 
@@ -1644,7 +1644,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
 
     handleElseCondition(forStatement);
 
-    final CFileLocation fileloc = astCreator.getFileLocation(forStatement);
+    final FileLocation fileloc = astCreator.getFileLocation(forStatement);
     final int filelocStart = fileloc.getStartingLineNumber();
     final CFANode prevNode = locStack.pop();
 
@@ -1874,7 +1874,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
   private void handleBreakStatement (BreakStatement breakStatement) {
 
 
-    CFileLocation fileloc = astCreator.getFileLocation(breakStatement);
+    FileLocation fileloc = astCreator.getFileLocation(breakStatement);
     CFANode prevNode = locStack.pop();
     CFANode postLoopNode = loopNextStack.peek();
 
@@ -1893,7 +1893,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
 
   private void handleLabeledBreakStatement (BreakStatement breakStatement) {
 
-    CFileLocation fileloc = astCreator.getFileLocation(breakStatement);
+    FileLocation fileloc = astCreator.getFileLocation(breakStatement);
     CFANode prevNode = locStack.pop();
     CFANode postLoopNode = labelMap.get(breakStatement.getLabel().getIdentifier());
 
@@ -1928,7 +1928,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
 
   private void handleContinueStatement(ContinueStatement continueStatement) {
 
-    CFileLocation fileloc = astCreator.getFileLocation(continueStatement);
+    FileLocation fileloc = astCreator.getFileLocation(continueStatement);
 
     CFANode prevNode = locStack.pop();
     CFANode loopStartNode = loopStartStack.peek();
@@ -1947,7 +1947,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
   @Override
   public boolean visit(ReturnStatement returnStatement) {
 
-    CFileLocation fileloc = astCreator.getFileLocation(returnStatement);
+    FileLocation fileloc = astCreator.getFileLocation(returnStatement);
 
     CFANode prevNode = locStack.pop();
 
@@ -1995,7 +1995,7 @@ private void handleTernaryExpression(ConditionalExpression condExp, CFANode root
     final JMethodDeclaration fdef = astCreator.createDefaultConstructor(classBinding);
     handleMethodDeclaration(fdef);
     addNonStaticFieldMember();
-    handleReturnFromObject(new CFileLocation(0, "", 0, 0, 0), classBinding.getName(), classBinding);
+    handleReturnFromObject(new FileLocation(0, "", 0, 0, 0), classBinding.getName(), classBinding);
     handleEndVisitMethodDeclaration();
 
   }

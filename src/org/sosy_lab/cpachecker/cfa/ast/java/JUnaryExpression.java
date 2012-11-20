@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JUnaryExpression extends AUnaryExpression implements JExpression {
 
-  public JUnaryExpression(CFileLocation pFileLocation, JType pType, JExpression pOperand, UnaryOperator pOperator) {
+  public JUnaryExpression(FileLocation pFileLocation, JType pType, JExpression pOperand, UnaryOperator pOperator) {
     super(pFileLocation, pType, pOperand, pOperator);
 
   }

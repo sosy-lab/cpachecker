@@ -26,14 +26,14 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import java.math.BigInteger;
 
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CIntegerLiteralExpression extends AIntegerLiteralExpression implements CLiteralExpression {
 
 
-  public CIntegerLiteralExpression(CFileLocation pFileLocation,
+  public CIntegerLiteralExpression(FileLocation pFileLocation,
                                       CType pType,
                                       BigInteger pValue) {
     super(pFileLocation, pType, pValue);

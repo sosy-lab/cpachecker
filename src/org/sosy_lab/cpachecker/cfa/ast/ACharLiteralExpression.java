@@ -31,7 +31,7 @@ public  class ACharLiteralExpression extends ALiteralExpression {
 
   protected final char character;
 
-  public ACharLiteralExpression(CFileLocation pFileLocation, Type pType , char pCharacter) {
+  public ACharLiteralExpression(FileLocation pFileLocation, Type pType , char pCharacter) {
     super(pFileLocation, pType);
     character = pCharacter;
   }

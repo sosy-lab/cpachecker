@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
@@ -38,8 +38,8 @@ public class JFieldDeclaration extends JVariableDeclaration {
   private final boolean isVolatile;
 
 
-  public JFieldDeclaration(CFileLocation pFileLocation, JType pType, String pName, String pOrigName,
-      CInitializer pInitializer, boolean pIsFinal, boolean pIsStatic, boolean pIsTransient, boolean pIsVolatile,
+  public JFieldDeclaration(FileLocation pFileLocation, JType pType, String pName, String pOrigName,
+      Initializer pInitializer, boolean pIsFinal, boolean pIsStatic, boolean pIsTransient, boolean pIsVolatile,
       VisibilityModifier pVisibility) {
     super(pFileLocation, IS_FIELD, pType, pName, pOrigName, pInitializer, pIsFinal);
 

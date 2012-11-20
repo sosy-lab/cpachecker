@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -39,7 +39,7 @@ public class CDefaults {
 
   private static CType INT_TYPE = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
 
-  public static CLiteralExpression forType(CType type, CFileLocation fileLoc) {
+  public static CLiteralExpression forType(CType type, FileLocation fileLoc) {
     if (type instanceof CPointerType) {
       return new CIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
 

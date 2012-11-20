@@ -34,8 +34,8 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
+import org.sosy_lab.cpachecker.cfa.ast.InitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -702,10 +702,10 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
     if (this.variables.containsKey(variable)) {
       if (declaration instanceof CVariableDeclaration) {
         CVariableDeclaration varDecl = (CVariableDeclaration) declaration;
-        CInitializer init = varDecl.getInitializer();
+        Initializer init = varDecl.getInitializer();
         if (init instanceof CInitializerExpression) {
           return assign(variable, ((CInitializerExpression) init).getExpression(), previousRegion);
-        } else if (init instanceof CInitializerList) {
+        } else if (init instanceof InitializerList) {
           // TODO currently not supported
         }
       }

@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CIdExpression extends AIdExpression implements CExpression {
 
 
-  public CIdExpression(final CFileLocation pFileLocation,
+  public CIdExpression(final FileLocation pFileLocation,
                           final CType pType, final String pName,
                           final CSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName , pDeclaration );

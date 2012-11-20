@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CBinaryExpression extends ABinaryExpression implements CExpression {
 
-  public CBinaryExpression(final CFileLocation pFileLocation,
+  public CBinaryExpression(final FileLocation pFileLocation,
                               final CType pType,
                               final CExpression pOperand1,
                               final CExpression pOperand2,

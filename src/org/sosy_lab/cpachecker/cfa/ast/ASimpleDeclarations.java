@@ -34,14 +34,14 @@ public class ASimpleDeclarations extends AstNode implements IASimpleDeclaration 
   protected final String name;
   protected final String origName;
 
-  public ASimpleDeclarations(CFileLocation pFileLocation, final Type pType, final String pName, final String pOrigName) {
+  public ASimpleDeclarations(FileLocation pFileLocation, final Type pType, final String pName, final String pOrigName) {
     super(pFileLocation);
     type = pType;
     name = pName;
     origName = pOrigName;
   }
 
-  public ASimpleDeclarations(final CFileLocation pFileLocation,
+  public ASimpleDeclarations(final FileLocation pFileLocation,
       final Type pType, final String pName) {
     this(pFileLocation, pType, pName, pName);
   }

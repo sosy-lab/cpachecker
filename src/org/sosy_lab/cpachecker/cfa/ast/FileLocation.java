@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public final class CFileLocation {
+public final class FileLocation {
 
   private final int endineLine;
   private final String fileName;
@@ -31,7 +31,7 @@ public final class CFileLocation {
   private final int offset;
   private final int startingLine;
 
-  public CFileLocation(int pEndineLine, String pFileName, int pLength,
+  public FileLocation(int pEndineLine, String pFileName, int pLength,
       int pOffset, int pStartingLine) {
     endineLine = pEndineLine;
     fileName = pFileName;

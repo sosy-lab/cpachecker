@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 
 
@@ -31,7 +31,7 @@ public class JConstructorDeclaration extends JMethodDeclaration {
 
 
 
-  public JConstructorDeclaration(CFileLocation pFileLocation, JConstructorType pType, String pName,
+  public JConstructorDeclaration(FileLocation pFileLocation, JConstructorType pType, String pName,
       VisibilityModifier pVisibility, boolean pIsStrictfp) {
     super(pFileLocation, pType, pName, pVisibility, false, false, false, false, false,
         pIsStrictfp);

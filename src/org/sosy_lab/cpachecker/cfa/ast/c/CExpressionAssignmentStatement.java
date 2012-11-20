@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
 /**
@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
  */
 public class CExpressionAssignmentStatement extends AExpressionAssignmentStatement implements CAssignment , CStatement {
 
-  public CExpressionAssignmentStatement(CFileLocation pFileLocation,
+  public CExpressionAssignmentStatement(FileLocation pFileLocation,
                                            CExpression pLeftHandSide,
                                            CExpression pRightHandSide) {
     super(pFileLocation, pLeftHandSide , pRightHandSide);

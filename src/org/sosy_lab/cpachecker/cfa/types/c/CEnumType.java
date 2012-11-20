@@ -30,7 +30,7 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclarations;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 
 import com.google.common.base.Joiner;
@@ -97,7 +97,7 @@ public final class CEnumType implements CType {
 
     private final Long           value;
 
-    public CEnumerator(final CFileLocation pFileLocation,
+    public CEnumerator(final FileLocation pFileLocation,
                           final String pName,
         final Long pValue) {
       super(pFileLocation, INT_TYPE, pName);

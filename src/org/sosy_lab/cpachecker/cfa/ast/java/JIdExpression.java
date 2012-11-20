@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JIdExpression extends AIdExpression implements JExpression {
 
-  public JIdExpression(CFileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
+  public JIdExpression(FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName, pDeclaration);
     //assert pDeclaration != null;
   }

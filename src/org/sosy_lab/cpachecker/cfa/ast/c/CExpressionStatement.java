@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
 public class CExpressionStatement extends AExpressionStatement implements CStatement {
 
-  public CExpressionStatement(final CFileLocation pFileLocation,
+  public CExpressionStatement(final FileLocation pFileLocation,
                                  final CExpression pExpression) {
     super(pFileLocation ,  pExpression);
 

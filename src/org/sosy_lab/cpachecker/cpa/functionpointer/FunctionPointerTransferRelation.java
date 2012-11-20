@@ -37,7 +37,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
-import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -364,7 +364,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     FunctionPointerTarget initialValue = invalidFunctionPointerTarget;
 
     if (decl.getInitializer() != null) {
-      CInitializer init = decl.getInitializer();
+      Initializer init = decl.getInitializer();
       if (init instanceof CInitializerExpression) {
         initialValue = getValue(((CInitializerExpression) init).getExpression(), pNewState, functionName);
       }

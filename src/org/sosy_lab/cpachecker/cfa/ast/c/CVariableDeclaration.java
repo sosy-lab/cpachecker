@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import static com.google.common.base.Preconditions.*;
 
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -43,9 +43,9 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   private final CStorageClass    cStorageClass;
 
 
-  public CVariableDeclaration(CFileLocation pFileLocation, boolean pIsGlobal,
+  public CVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
       CStorageClass pCStorageClass, CType pType, String pName, String pOrigName,
-      CInitializer pInitializer) {
+      Initializer pInitializer) {
 
     super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), pOrigName,pInitializer);
     cStorageClass = pCStorageClass;

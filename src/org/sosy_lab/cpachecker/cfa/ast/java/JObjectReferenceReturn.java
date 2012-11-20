@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
 
@@ -32,7 +32,7 @@ public class JObjectReferenceReturn extends JReturnStatement {
 
   private final JClassType classReference;
 
-  public JObjectReferenceReturn(CFileLocation pFileLocation, JStringLiteralExpression pAbstractObjectIdentifier, JClassType pClassReference ) {
+  public JObjectReferenceReturn(FileLocation pFileLocation, JStringLiteralExpression pAbstractObjectIdentifier, JClassType pClassReference ) {
     super(pFileLocation, pAbstractObjectIdentifier);
     classReference = pClassReference;
   }

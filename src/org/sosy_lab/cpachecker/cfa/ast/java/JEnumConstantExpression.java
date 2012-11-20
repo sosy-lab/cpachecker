@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
 
@@ -32,7 +32,7 @@ public class JEnumConstantExpression extends AStringLiteralExpression implements
 
 
 
-  public JEnumConstantExpression(CFileLocation pFileLocation, JClassType pType, String value) {
+  public JEnumConstantExpression(FileLocation pFileLocation, JClassType pType, String value) {
     super(pFileLocation, pType, value);
   }
 

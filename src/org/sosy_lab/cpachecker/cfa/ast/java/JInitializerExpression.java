@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
 public class JInitializerExpression extends AInitializerExpression implements JInitializer {
 
-  public JInitializerExpression(CFileLocation pFileLocation, JExpression pExpression) {
+  public JInitializerExpression(FileLocation pFileLocation, JExpression pExpression) {
     super(pFileLocation, pExpression);
   }
 

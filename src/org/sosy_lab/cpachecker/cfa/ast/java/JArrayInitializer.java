@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 
 
@@ -34,7 +34,7 @@ public class JArrayInitializer extends AExpression implements JAstNode , JInitia
 
   private final List<JExpression> initializerExpressions;
 
-  public JArrayInitializer(CFileLocation pFileLocation , List<JExpression> pInitializerExpression , JArrayType pType) {
+  public JArrayInitializer(FileLocation pFileLocation , List<JExpression> pInitializerExpression , JArrayType pType) {
     super(pFileLocation , pType);
 
     initializerExpressions = pInitializerExpression;

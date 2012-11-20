@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
 public class JReturnStatement extends AReturnStatement implements JAstNode {
 
-  public JReturnStatement(CFileLocation pFileLocation, JExpression pExpression) {
+  public JReturnStatement(FileLocation pFileLocation, JExpression pExpression) {
     super(pFileLocation, pExpression);
 
   }

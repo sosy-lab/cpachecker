@@ -36,7 +36,7 @@ public class ABinaryExpression extends AExpression {
   protected final IAExpression operand2;
   protected final ABinaryOperator operator;
 
-  public ABinaryExpression(CFileLocation pFileLocation, Type pType,
+  public ABinaryExpression(FileLocation pFileLocation, Type pType,
       final IAExpression pOperand1,
       final IAExpression pOperand2,
       final ABinaryOperator pOperator) {

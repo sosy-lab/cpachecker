@@ -40,7 +40,7 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
@@ -221,7 +221,7 @@ public class DynamicBindingCreator {
 
 
 
-    CFileLocation fileloc = oldFunctionCallExpression.getFileLocation();
+    FileLocation fileloc = oldFunctionCallExpression.getFileLocation();
     //String callInFunction = prevNode.getFunctionName();
 
 
@@ -260,7 +260,7 @@ public class DynamicBindingCreator {
       JMethodInvocationExpression oldFunctionCallExpression =
           (JMethodInvocationExpression) ((AFunctionCall) edge.getStatement()).getFunctionCallExpression();
 
-      CFileLocation fileloc = oldFunctionCallExpression.getFileLocation();
+      FileLocation fileloc = oldFunctionCallExpression.getFileLocation();
       String callInFunction = prevNode.getFunctionName();
 
       CFANode postFunctionCallNode = new CFANode(fileloc.getStartingLineNumber(),
@@ -296,7 +296,7 @@ public class DynamicBindingCreator {
     JMethodInvocationExpression oldFunctionCallExpression = (JMethodInvocationExpression) ((AFunctionCall)edge.getStatement()).getFunctionCallExpression();
     AFunctionCall functionCall = ((AFunctionCall)edge.getStatement());
 
-    CFileLocation fileloc = oldFunctionCallExpression.getFileLocation();
+    FileLocation fileloc = oldFunctionCallExpression.getFileLocation();
     String callInFunction = prevNode.getFunctionName();
 
 
@@ -358,7 +358,7 @@ public class DynamicBindingCreator {
 
 
   private void createConditionEdges(CFANode prevNode, CFANode successfulNode,
-      CFANode unsuccessfulNode , JClassOrInterfaceType classTypeOfNewMethodInvocation , JSimpleDeclaration referencedVariable , CFileLocation fileloc) {
+      CFANode unsuccessfulNode , JClassOrInterfaceType classTypeOfNewMethodInvocation , JSimpleDeclaration referencedVariable , FileLocation fileloc) {
 
         final JExpression exp = astCreator.convertClassRunTimeCompileTimeAccord(fileloc ,referencedVariable, classTypeOfNewMethodInvocation);
 
