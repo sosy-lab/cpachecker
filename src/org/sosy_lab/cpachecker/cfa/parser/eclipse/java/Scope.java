@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -60,19 +61,22 @@ class Scope {
   private final Queue<String> classesToBeParsed = new ConcurrentLinkedQueue<String>();
   private final Set<String> registeredClasses = new HashSet<String>();
 
+  private final Map< String ,JClassOrInterfaceType> types ;
 
-  private final Map<String, JSimpleDeclaration> functions = new HashMap<String, JSimpleDeclaration>();
+  private final Map<String, JMethodDeclaration> functions = new HashMap<String, JMethodDeclaration>();
   private String currentFunctionName = null;
 
 
 
-  public Scope() {
+  public Scope(Map< String ,JClassOrInterfaceType> pTypes) {
+    types = pTypes;
     enterBlock(); // enter global scope
   }
 
-  public Scope(String qualifiedName) {
+  public Scope(String qualifiedName, Map<String ,JClassOrInterfaceType> pTypes) {
     fullyQualifiedName = qualifiedName;
     registeredClasses.add(qualifiedName);
+    types = pTypes;
     enterBlock(); // enter global scope
 
   }
@@ -142,7 +146,7 @@ class Scope {
     return null;
   }
 
-  public JSimpleDeclaration lookupFunction(String name) {
+  public JMethodDeclaration lookupFunction(String name) {
     return functions.get(checkNotNull(name));
   }
 
@@ -188,10 +192,37 @@ class Scope {
 
 
   public void registerClasses(ITypeBinding classBinding){
-    String name = classBinding.getQualifiedName();
+    String topClassName = classBinding.getQualifiedName();
+    Queue<JClassOrInterfaceType> toBeAdded = new LinkedList<JClassOrInterfaceType>();
+
     if(!registeredClasses.contains(classBinding.getQualifiedName())){
-      registeredClasses.add(name);
-      classesToBeParsed.add(name);
+      registeredClasses.add(topClassName);
+      classesToBeParsed.add(topClassName);
+
+
+    } else {
+      // If top Class already added, it is unnecessary to search for subTypes
+      // unless its the main Class
+      if(!fullyQualifiedName.equals(topClassName))
+      return;
+    }
+
+
+    //Sub Classes need to be parsed for dynamic Binding
+
+    JClassOrInterfaceType type = types.get(ASTConverter.getFullyQualifiedClassOrInterfaceName( classBinding));
+
+    toBeAdded.addAll(type.getAllSubTypesOfType());
+
+
+    for(JClassOrInterfaceType subClassType : toBeAdded){
+
+      String name = ASTConverter.getFullyQualifiedBindingNameFromType(subClassType);
+
+      if(!registeredClasses.contains(name)){
+        registeredClasses.add(name);
+        classesToBeParsed.add(name);
+      }
     }
   }
 

@@ -32,9 +32,16 @@ public abstract class DefaultJExpressionVisitor<R ,X extends Exception> implemen
     return visitDefault(e);
   }
 
+  @Override
+  public R visit(JThisExpression e) throws X {
+    return visitDefault(e);
+  }
 
 
-
+  @Override
+  public R visit(JCastExpression e) throws X {
+    return visitDefault(e);
+  }
 
   @Override
   public R visit(JBooleanLiteralExpression e) throws X{
@@ -82,7 +89,7 @@ public abstract class DefaultJExpressionVisitor<R ,X extends Exception> implemen
   }
 
   @Override
-  public R visit(JThisRunTimeType e) throws X {
+  public R visit(JVariableRunTimeType e) throws X {
     return visitDefault(e);
   }
 

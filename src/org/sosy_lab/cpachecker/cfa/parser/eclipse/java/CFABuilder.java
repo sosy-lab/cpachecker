@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.SortedSetMultimap;
@@ -91,21 +92,21 @@ class CFABuilder extends ASTVisitor {
 
   private final Scope scope ;
   private final ASTConverter astCreator;
-  private final TypeHierachie typeHierachie;
+  private final Map<String, JClassOrInterfaceType> types;
 
   private final LogManager logger;
   private final boolean ignoreCasts;
 
-  public CFABuilder(LogManager pLogger, boolean pIgnoreCasts , String fullyQualifiedNameOfMainClass, TypeHierachie pTypeHierachie) {
+  public CFABuilder(LogManager pLogger, boolean pIgnoreCasts , String fullyQualifiedNameOfMainClass, Map<String, JClassOrInterfaceType> pTypeHierachie) {
     logger = pLogger;
     ignoreCasts = pIgnoreCasts;
-    typeHierachie = pTypeHierachie;
+    types = pTypeHierachie;
 
     if (pIgnoreCasts) {
       logger.log(Level.WARNING, "Ignoring all casts in the program because of user request!");
     }
-    scope = new Scope(fullyQualifiedNameOfMainClass);
-    astCreator = new ASTConverter(scope, pIgnoreCasts, logger , typeHierachie);
+    scope = new Scope(fullyQualifiedNameOfMainClass, types);
+    astCreator = new ASTConverter(scope, pIgnoreCasts, logger , types);
 
   }
 
@@ -230,7 +231,7 @@ class CFABuilder extends ASTVisitor {
       }
 
       CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
-          scope, getAstCreator(), nonStaticFieldDeclarationsOfThisClass , typeHierachie);
+          scope, getAstCreator(), nonStaticFieldDeclarationsOfThisClass , types);
 
       declaration.accept(functionBuilder);
 
@@ -250,7 +251,7 @@ class CFABuilder extends ASTVisitor {
       if(!hasConstructor.contains(classBinding) && (classBinding.getDeclaredModifiers() & Modifier.ABSTRACT) != Modifier.ABSTRACT) {
 
         CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
-            scope, getAstCreator(), nonStaticFieldDeclarationsOfThisClass , typeHierachie);
+            scope, getAstCreator(), nonStaticFieldDeclarationsOfThisClass , types);
 
         functionBuilder.createDefaultConstructor(classBinding);
 

@@ -88,50 +88,6 @@ public class TypeHierachie {
       subInterfaceNode.registerParent(node);
      }
 
-
-
-
-
-    /*
-
-
-
-    for(JClassType subClass : pKnownInterfaceImplementingClasses){
-      if(subClass != null){
-        if(types.containsKey(subClass.getName())) {
-          knownInterfaceImplementingClasses.add((TypeHierachieClassNode) types.get(subClass.getName()));
-           types.get(subClass.getName()).registerParent(this);
-        } else {
-          List<JInterfaceType> subClassImplementedInterfaces = new ArrayList<JInterfaceType>();
-          subClassImplementedInterfaces.add(pType);
-          knownInterfaceImplementingClasses.add(new TypeHierachieClassNode(subClass,null, null, subClassImplementedInterfaces));
-        }
-      }
-    }
-
-    for(JInterfaceType subInterfaceType : pSubInterfaces){
-
-      if(subInterfaceType != null) {
-        if(types.containsKey(subInterfaceType.getName())) {
-          directSubInterfaces.add((TypeHierachieInterfaceNode) types.get(subInterfaceType.getName()));
-           types.get(subInterfaceType.getName()).registerParent(this);
-        } else {
-
-          List<JInterfaceType> subExtendedInterfaces = new ArrayList<JInterfaceType>();
-          subExtendedInterfaces.add(pType);
-
-          directSubInterfaces.add(new TypeHierachieInterfaceNode(subInterfaceType, null, null , subExtendedInterfaces));
-        }
-      }
-    }
-
-    */
-
-
-
-
-
-
   }
 
   public void add(JInterfaceType pType, List<JInterfaceType> pExtendedInterfaces)  {
@@ -157,24 +113,6 @@ public class TypeHierachie {
      extendedInterfaceNode.registerChild(node);
 
     }
-
-
-    /*
-    for(JInterfaceType extendedType : pExtendedInterfaces){
-
-      if(extendedType != null) {
-        if(types.containsKey(extendedType.getName())) {
-          extendedInterfaces.add((TypeHierachieInterfaceNode) types.get(extendedType.getName()));
-           types.get(extendedType.getName()).registerChild(this);
-        } else {
-
-          List<JInterfaceType> extendedSubInterfaces = new ArrayList<JInterfaceType>();
-          extendedSubInterfaces.add(pType);
-          extendedInterfaces.add(new TypeHierachieInterfaceNode(extendedType, null, extendedSubInterfaces , null));
-        }
-      }
-    }
-    */
 
   }
 
@@ -206,23 +144,7 @@ public class TypeHierachie {
        subClassNode.registerParent(node);
 
       }
-      /*
 
-      for(JClassType subClass : pDirectSubClasses){
-
-        if(subClass != null){
-          if(types.containsKey(subClass.getName())) {
-             directSubClasses.add((TypeHierachieClassNode) types.get(subClass.getName()));
-             types.get(subClass.getName()).registerParent(this);
-          } else {
-            JClassType subParentClass = pType;
-            directSubClasses.add(new TypeHierachieClassNode(subClass, subParentClass, null, null));
-          }
-        }
-      }
-
-
-    */
    }
 
 
@@ -257,23 +179,6 @@ public class TypeHierachie {
 
     }
 
-    /*
-    for(JInterfaceType implementedType : pImplementedInterfaces){
-
-      if(implementedType != null){
-        if(types.containsKey(implementedType.getName())) {
-           implementedInterfaces.add((TypeHierachieInterfaceNode) types.get(implementedType.getName()));
-           types.get(implementedType.getName()).registerChild(this);
-        } else {
-          List<JClassType> classImplementsInterface = new ArrayList<JClassType>();
-          classImplementsInterface.add(pType);
-
-          implementedInterfaces.add(new TypeHierachieInterfaceNode(implementedType, classImplementsInterface, null, null));
-        }
-      }
-    }
-
-    */
   }
 
   public void add(JClassType pType, JClassType pParentClass) {
@@ -294,16 +199,6 @@ public class TypeHierachie {
     node.registerParent(parent);
     parent.registerChild(node);
 
-    /*
-    if(types.containsKey(pParentClass.getName())) {
-      parentClass = (TypeHierachieClassNode) types.get(pParentClass.getName());
-      types.get(pParentClass.getName()).registerChild(this);
-    } else {
-      List<JClassType> parentSubClass = new ArrayList<JClassType>();
-      parentSubClass.add(pType);
-      parentClass = new TypeHierachieClassNode(pParentClass, null, parentSubClass, null);
-    }
-    */
 
   }
 
@@ -384,6 +279,7 @@ public class TypeHierachie {
 
      return result;
     }
+
     return null;
   }
 
@@ -600,6 +496,8 @@ public class TypeHierachie {
     return getAllSubTypesOfType(type.getName());
   }
 
+
+
   private abstract class TypeHierachieNode {
 
     private final JClassOrInterfaceType type;
@@ -735,9 +633,6 @@ public class TypeHierachie {
       } else {
         knownInterfaceImplementingClasses.add((TypeHierachieClassNode) child);
       }
-
     }
   }
-
-
 }

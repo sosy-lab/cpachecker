@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 
-public interface JAssignment extends AAssignment {
+public interface JAssignment extends IAssignment {
 
   @Override
   public JExpression getLeftHandSide();

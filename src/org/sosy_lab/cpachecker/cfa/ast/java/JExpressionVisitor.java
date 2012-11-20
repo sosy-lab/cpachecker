@@ -47,7 +47,7 @@ public interface JExpressionVisitor<R, X extends Exception>  {
 
   R visit(JArraySubscriptExpression pAArraySubscriptExpression) throws X;
 
-  R visit(JThisRunTimeType pJThisRunTimeType) throws X;
+  R visit(JVariableRunTimeType pJThisRunTimeType) throws X;
 
   R visit(JIdExpression pJIdExpression) throws X;
 
@@ -56,5 +56,9 @@ public interface JExpressionVisitor<R, X extends Exception>  {
   R visit(JNullLiteralExpression pJNullLiteralExpression) throws X;
 
   R visit(JEnumConstantExpression pJEnumConstantExpression) throws X;
+
+  R visit(JCastExpression pJCastExpression) throws X;
+
+  R visit(JThisExpression pThisExpression) throws X;
 
 }

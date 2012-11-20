@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 
 import com.google.common.base.Strings;
@@ -39,10 +40,11 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
   private final boolean isSynchronized;
   private final boolean isStrictfp;
   private final VisibilityModifier visibility;
+  private final JClassOrInterfaceType declaringClass;
 
 
   public JMethodDeclaration(FileLocation pFileLocation, JMethodType pType, String pName , VisibilityModifier pVisibility  ,final boolean pIsFinal
-      ,final boolean pIsAbstract, final boolean pIsStatic,final boolean pIsNative,final boolean pIsSynchronized,final boolean pIsStrictfp ) {
+      ,final boolean pIsAbstract, final boolean pIsStatic,final boolean pIsNative,final boolean pIsSynchronized,final boolean pIsStrictfp, JClassOrInterfaceType pDeclaringClass ) {
     super(pFileLocation, pType, pName);
     visibility = pVisibility;
     isFinal = pIsFinal;
@@ -51,6 +53,7 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
     isNative = pIsNative;
     isSynchronized = pIsSynchronized;
     isStrictfp = pIsStrictfp;
+    declaringClass = pDeclaringClass;
 
 
     assert(pVisibility != null);
@@ -128,5 +131,9 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
 
   public VisibilityModifier getVisibility() {
     return visibility;
+  }
+
+  public JClassOrInterfaceType getDeclaringClass() {
+    return declaringClass;
   }
 }

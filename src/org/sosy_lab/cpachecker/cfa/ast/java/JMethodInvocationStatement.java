@@ -47,5 +47,4 @@ public class JMethodInvocationStatement extends AFunctionCallStatement implement
   public JStatement asStatement() {
     return (JStatement) super.asStatement();
   }
-
 }

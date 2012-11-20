@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
 
@@ -54,14 +57,47 @@ public abstract class  JClassOrInterfaceType implements JReferenceType {
   @Override
   public boolean equals(Object pObj) {
 
-    return pObj instanceof JClassOrInterfaceType && ((JClassType) pObj).getName().equals(name);
+    return pObj instanceof JClassOrInterfaceType && ((JClassOrInterfaceType) pObj).getName().equals(name);
   }
 
 
   @Override
   public int hashCode() {
-    // TODO Auto-generated method stub
     return name.hashCode();
   }
+
+  @Override
+  public String toString() {
+        return name;
+  }
+
+  public List<JClassOrInterfaceType> getAllSuperTypesOfType() {
+
+    //TODO Maybe dynamic Binding of getAllSuperTypes here?
+    List<JClassOrInterfaceType> result = new LinkedList<JClassOrInterfaceType>();
+
+    if(this instanceof JClassType){
+      result.addAll(((JClassType)this).getAllSuperTypesOfClass()) ;
+    }else if(this instanceof JInterfaceType){
+      result.addAll(((JInterfaceType)this).getAllSuperTypesOfInterface());
+      return result;
+    }
+    return result;
+  }
+
+  public List<JClassOrInterfaceType> getAllSubTypesOfType() {
+
+    List<JClassOrInterfaceType> result = new LinkedList<JClassOrInterfaceType>();
+
+    if(this instanceof JClassType){
+      result.addAll(((JClassType)this).getAllSubTypesOfClass()) ;
+    }else if(this instanceof JInterfaceType){
+      result.addAll(((JInterfaceType)this).getAllSuperTypesOfInterface());
+      return result;
+    }
+    return result;
+  }
+
+
 
 }

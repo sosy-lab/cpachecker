@@ -27,15 +27,15 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JMethodInvocationExpression extends AFunctionCallExpression implements JRightHandSide{
 
   public JMethodInvocationExpression(FileLocation pFileLocation, JType pType, JExpression pFunctionName,
-      List<? extends JExpression> pParameters, JSimpleDeclaration pDeclaration) {
+      List<? extends JExpression> pParameters, JMethodDeclaration pDeclaration) {
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
-
   }
 
   @Override
@@ -49,6 +49,11 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
     return (JType) super.getExpressionType();
   }
 
+  @Override
+  public JMethodDeclaration getDeclaration() {
+    return (JMethodDeclaration) super.getDeclaration();
+  }
+
   @SuppressWarnings("unchecked")
   @Override
   public List<? extends JExpression> getParameterExpressions() {
@@ -60,4 +65,7 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
     return v.visit(this);
   }
 
+  public JClassOrInterfaceType getDeclaringClassType() {
+     return getDeclaration().getDeclaringClass();
+  }
 }

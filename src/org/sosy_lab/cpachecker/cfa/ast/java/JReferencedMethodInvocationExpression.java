@@ -32,25 +32,24 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 public class JReferencedMethodInvocationExpression extends JMethodInvocationExpression {
 
-  private final JSimpleDeclaration referencedVariable;
+  private final JIdExpression qualifier;
 
   private boolean hasKnownRunTimeBinding = false;
   private JClassType runTimeBinding = null;
 
   public JReferencedMethodInvocationExpression(FileLocation pFileLocation, JType pType, JExpression pFunctionName,
-      List<? extends JExpression> pParameters, JSimpleDeclaration pDeclaration, JSimpleDeclaration pReferencedVariable) {
+      List<? extends JExpression> pParameters, JMethodDeclaration pDeclaration, JIdExpression pQualifier) {
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
-      referencedVariable = pReferencedVariable;
-
+      qualifier = pQualifier;
   }
 
-  public JSimpleDeclaration getReferencedVariable() {
-    return referencedVariable;
+  public JIdExpression getReferencedVariable() {
+    return qualifier;
   }
 
   @Override
   public String toASTString() {
-    return referencedVariable.getName() + "_" + super.toASTString();
+    return qualifier.toASTString() + "_" + super.toASTString();
   }
 
   public void setHasKnownRunTimeBinding(boolean hasKnownRunTimeBinding) {

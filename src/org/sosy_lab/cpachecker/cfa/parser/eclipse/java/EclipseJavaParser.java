@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.Map;
@@ -41,6 +42,7 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.CFAGenerationRuntimeException;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -138,7 +140,7 @@ public  class EclipseJavaParser implements CParser {
     return parse(file , PARSE_METHOD_BODY);
   }
 
-  private TypeHierachie getTypeHierachie() throws IOException {
+  private Map<String, JClassOrInterfaceType> getTypeHierachie() throws IOException {
 
     File mainDirectory = new File(rootPath);
     assert mainDirectory.isDirectory() : "Could not find main directory at" + rootPath;
@@ -162,8 +164,8 @@ public  class EclipseJavaParser implements CParser {
       }
     }
 
-    TypeHierachie typeHierachie = new TypeHierachie(logger);
-    TypeHierachyCreator creator = new TypeHierachyCreator(logger, typeHierachie);
+    Map<String, JClassOrInterfaceType> types = new HashMap<String, JClassOrInterfaceType>();
+    TypeHierachyCreator creator = new TypeHierachyCreator(logger, types);
 
     for( File file  : sourceFileToBeParsed){
 
@@ -171,7 +173,7 @@ public  class EclipseJavaParser implements CParser {
       co.accept(creator);
     }
 
-    return typeHierachie;
+    return types;
   }
 
   private CompilationUnit parse(File file, boolean ignoreMethodBody) throws IOException {
@@ -226,12 +228,10 @@ public  class EclipseJavaParser implements CParser {
 
       //Is Needed For Complete Functionality
 
-      TypeHierachie typeHierachie = getTypeHierachie();
+      Map<String, JClassOrInterfaceType> types = getTypeHierachie();
 
-      CFABuilder builder = new CFABuilder(logger, ignoreCasts , qualifiedNameOfMainClass, typeHierachie);
+      CFABuilder builder = new CFABuilder(logger, ignoreCasts , qualifiedNameOfMainClass, types);
       try {
-
-
 
         ast.accept(checker);
         ast.accept(builder);
@@ -239,7 +239,9 @@ public  class EclipseJavaParser implements CParser {
         String nextClassToBeParsed = builder.getScope().getNextClassPath();
 
         while(nextClassToBeParsed != null ){
+          cfaTimer.stop();
           astNext = parseAdditionalClasses(nextClassToBeParsed);
+          cfaTimer.start();
           if (astNext != null) {
             astNext.accept(checker);
             astNext.accept(builder);
@@ -251,7 +253,7 @@ public  class EclipseJavaParser implements CParser {
         throw new ParserException(e);
       }
 
-      DynamicBindingCreator tracker = new DynamicBindingCreator(builder , typeHierachie);
+      DynamicBindingCreator tracker = new DynamicBindingCreator(builder , types);
       tracker.trackAndCreateDynamicBindings();
 
       return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations());
@@ -266,8 +268,9 @@ public  class EclipseJavaParser implements CParser {
 
   private CompilationUnit parseAdditionalClasses(String pFileName) throws ParserException {
 
+    parseTimer.start();
      String name = rootPath + pFileName;
-     parseTimer.start();
+
 
 
 

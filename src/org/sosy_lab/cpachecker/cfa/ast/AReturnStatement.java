@@ -30,7 +30,6 @@ public class AReturnStatement extends AstNode implements IAReturnStatement {
   public AReturnStatement(final FileLocation pFileLocation, final IAExpression pExpression) {
     super(pFileLocation);
     expression = pExpression;
-
   }
 
   @Override
@@ -44,5 +43,4 @@ public class AReturnStatement extends AstNode implements IAReturnStatement {
   public IAExpression getReturnValue() {
     return expression;
   }
-
 }

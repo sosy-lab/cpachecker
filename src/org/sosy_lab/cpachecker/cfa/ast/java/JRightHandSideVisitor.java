@@ -28,6 +28,6 @@ public interface  JRightHandSideVisitor<R, X extends Exception> extends  JExpres
 
   R visit(JMethodInvocationExpression pAFunctionCallExpression) throws X;
 
-  R visit(JClassInstanzeCreation pJClassInstanzeCreation) throws X;
+  R visit(JClassInstanceCreation pJClassInstanzeCreation) throws X;
 
 }

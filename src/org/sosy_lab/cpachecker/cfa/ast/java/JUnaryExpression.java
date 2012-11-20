@@ -66,7 +66,7 @@ public class JUnaryExpression extends AUnaryExpression implements JExpression {
     NOT      ("!"),
     PLUS        ("+"),
     COMPLEMENT        ("~"),
-    MINUS("+")
+    MINUS("-")
     ;
 
     private final String op;

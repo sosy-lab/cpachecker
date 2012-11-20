@@ -34,7 +34,7 @@ public class JConstructorDeclaration extends JMethodDeclaration {
   public JConstructorDeclaration(FileLocation pFileLocation, JConstructorType pType, String pName,
       VisibilityModifier pVisibility, boolean pIsStrictfp) {
     super(pFileLocation, pType, pName, pVisibility, false, false, false, false, false,
-        pIsStrictfp);
+        pIsStrictfp, pType.getReturnType());
   }
 
   @Override

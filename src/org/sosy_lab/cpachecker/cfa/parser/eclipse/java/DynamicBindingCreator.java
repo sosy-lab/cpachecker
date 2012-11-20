@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -57,39 +56,68 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
+import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-
+/**
+ * This class models the dynamic Bindings of Java in a CFA.
+ *
+ */
 public class DynamicBindingCreator {
-
 
 
   private final ASTConverter astCreator;
   private final CFABuilder cfaBuilder;
-  private final TypeHierachie typeHierachie;
+  //private final Map<String, JClassOrInterfaceType> types;
 
-  // Data structure for handling dynamic Binding
-  // Tracks all fully Qualified method names the  Method with the name as key overrides
+  // Data structure for handling dynamic Bindings.
+  // For every instance method, with the fully Qualified Name as key of Map,
+  // tracks all methods as FunctionEntryNodes and declared Class that override
+  // the former method.
   //  (methodName: <packagename>_<ClassName>_<MethodName>[_<TypeOfParameter>])
   private final Map<String , List<Pair<FunctionEntryNode, JClassOrInterfaceType>>> subMethodsOfMethod = new HashMap<String, List<Pair<FunctionEntryNode, JClassOrInterfaceType>>>();
 
+  // Data structure for handling dynamic Bindings.
+  // For every instance method, with the fully Qualified Name as key of Map,
+  // tracks all found possible Bindings which are to replace it. If the runTimeType is JClassOrInterface Typ,
+  // the method called is Function Entry Node.
+  //  (methodName: <packagename>_<ClassName>_<MethodName>[_<TypeOfParameter>])
+  private final Map<String , List<Pair<FunctionEntryNode, JClassOrInterfaceType>>> methodTypeBindingsOfMethod = new HashMap<String, List<Pair<FunctionEntryNode, JClassOrInterfaceType>>>();
 
-  public DynamicBindingCreator(CFABuilder builder , TypeHierachie pTypeHierachie) {
+
+  public DynamicBindingCreator(CFABuilder builder , Map<String, JClassOrInterfaceType> pTypeHierachie) {
 
     cfaBuilder = builder;
     astCreator = builder.getAstCreator();
-    typeHierachie = pTypeHierachie;
+    //types = pTypeHierachie;
+
   }
 
-  public Map<String , List<Pair<FunctionEntryNode, JClassOrInterfaceType>>> getSubMethodsOfMethod() {
-    return subMethodsOfMethod;
-  }
+
 
   public void trackAndCreateDynamicBindings() throws ParserException {
 
-     Map<String, MethodDeclaration> allParsedMethodDeclaration = cfaBuilder.getAllParsedMethodDeclaration();
-     Map<String, FunctionEntryNode> cfAs = cfaBuilder.getCFAs();
+    /*
+     *  It starts with a map of all parsed methods while parsing the Java source Code,
+     *  tracks all methods which override such a parsed method,
+     *  then calculates for every runTimeType the appropriate method binding,
+     *  then inserts all  in the CFA in place of the original method call.
+     */
+    Map<String, FunctionEntryNode> cfAs = cfaBuilder.getCFAs();
 
+
+
+    trackOverridenMethods(cfAs);
+    completeMethodBindings();
+
+    for(String functionName : cfAs.keySet()){
+      insertBindings(cfAs.get(functionName));
+    }
+  }
+
+  private void trackOverridenMethods(Map<String, FunctionEntryNode> cfAs) {
+
+    Map<String, MethodDeclaration> allParsedMethodDeclaration = cfaBuilder.getAllParsedMethodDeclaration();
 
     for(String functionName : cfAs.keySet()){
       assert allParsedMethodDeclaration.containsKey(functionName);
@@ -97,15 +125,119 @@ public class DynamicBindingCreator {
       if(  !(allParsedMethodDeclaration.get(functionName) == null  || allParsedMethodDeclaration.get(functionName).isConstructor())  )
      trackOverridenMethods(allParsedMethodDeclaration.get(functionName), cfAs.get(functionName));
     }
+  }
 
-    for(String functionName : cfAs.keySet()){
-      insertBindings(cfAs.get(functionName));
+  private void completeMethodBindings() {
+
+    for( String key :  subMethodsOfMethod.keySet()) {
+      methodTypeBindingsOfMethod.put(key, new LinkedList<Pair<FunctionEntryNode,JClassOrInterfaceType>>(subMethodsOfMethod.get(key)));
     }
 
+
+
+
+    Map<String , List<Pair<FunctionEntryNode, JClassOrInterfaceType>>> workMap = new HashMap<String, List<Pair<FunctionEntryNode, JClassOrInterfaceType>>>();
+    for( String key :  subMethodsOfMethod.keySet()) {
+      workMap.put(key, new LinkedList<Pair<FunctionEntryNode,JClassOrInterfaceType>>(subMethodsOfMethod.get(key)));
+    }
+
+
+    Map<String, MethodDeclaration> allParsedMethodDeclaration = cfaBuilder.getAllParsedMethodDeclaration();
+
+
+    for(String methodName : workMap.keySet()) {
+      if(  !(allParsedMethodDeclaration.get(methodName) == null  || allParsedMethodDeclaration.get(methodName).isConstructor())  )
+      completeBindingsOfMethod( allParsedMethodDeclaration.get(methodName) , methodName);
+    }
   }
 
 
 
+
+
+
+  private void completeBindingsOfMethod(MethodDeclaration methodDeclaration,
+      String methodName) {
+
+    JClassOrInterfaceType methodDeclaringType = astCreator.convertClassOrInterfaceType(methodDeclaration.resolveBinding().getDeclaringClass());
+
+    if(methodDeclaringType instanceof JClassType) {
+      completeBindingsForDeclaringClassType((JClassType)methodDeclaringType, methodName);
+    } else if(methodDeclaringType instanceof JInterfaceType) {
+      completeBindingsForDeclaringInterfaceType((JInterfaceType)methodDeclaringType, methodName);
+    }
+  }
+
+  private void completeBindingsForDeclaringInterfaceType(JInterfaceType methodDeclaringType, String methodName) {
+    Set<JClassType> directImpementingClasses = methodDeclaringType.getKnownInterfaceImplementingClasses();
+
+
+    for(JClassType implementingClasses : directImpementingClasses) {
+      copmleteBindingsForClassType(implementingClasses , methodName, methodName);
+    }
+
+    List<JInterfaceType> subInterfaces = methodDeclaringType.getAllSubInterfacesOfInterface();
+
+    for(JInterfaceType subInterface : subInterfaces) {
+      for(JClassType implementingClasses : subInterface.getKnownInterfaceImplementingClasses()) {
+        copmleteBindingsForClassType(implementingClasses , methodName, methodName);
+      }
+    }
+  }
+
+  private void completeBindingsForDeclaringClassType(JClassType methodDeclaringType,
+      String methodName) {
+      Set<JClassType> directSubClasses = methodDeclaringType.getDirectSubClasses();
+
+    for(JClassType subClass : directSubClasses) {
+      copmleteBindingsForClassType(subClass, methodName ,methodName);
+    }
+  }
+
+  private void copmleteBindingsForClassType(JClassType classType, String methodNametoBeRegistered,
+      String methodNameToRegister) {
+
+      String nextMethodNameToRegister = updateBinding(classType, methodNametoBeRegistered ,methodNameToRegister);
+
+      Set<JClassType> directSubClasses = classType.getDirectSubClasses();
+      for(JClassType subClass : directSubClasses) {
+        copmleteBindingsForClassType(subClass, methodNametoBeRegistered ,nextMethodNameToRegister);
+      }
+  }
+
+  private String updateBinding(JClassType classType,  String methodNametoBeRegistered ,String methodNameToRegister) {
+
+      List<Pair<FunctionEntryNode, JClassOrInterfaceType>> subMethodBindings = subMethodsOfMethod.get(methodNameToRegister);
+      String nextMethodNameToRegister = methodNameToRegister;
+
+      Pair<Boolean , String> hasBindingAndBindingMethodName = typeHasBinding( classType , subMethodBindings);
+
+      if(hasBindingAndBindingMethodName.getFirst()) {
+        //Binding already exists possibly with new subMethod
+        // Continue with sub method in this traversal Path
+        nextMethodNameToRegister = hasBindingAndBindingMethodName.getSecond();
+      } else {
+           methodTypeBindingsOfMethod.get(methodNametoBeRegistered).add(Pair.of( cfaBuilder.getCFAs().get(methodNameToRegister), (JClassOrInterfaceType) classType));
+      }
+
+    return nextMethodNameToRegister;
+  }
+
+
+
+  private Pair<Boolean, String> typeHasBinding(JClassOrInterfaceType classType,
+      List<Pair<FunctionEntryNode, JClassOrInterfaceType>> subMethodBindings) {
+
+    boolean result = false;
+
+    for(Pair<FunctionEntryNode , JClassOrInterfaceType> methodTypeBindingPair : subMethodBindings){
+      result = methodTypeBindingPair.getSecond().equals(classType);
+      if(result) {
+        return Pair.of(true, methodTypeBindingPair.getFirst().getFunctionName());
+      }
+    }
+    return Pair.of(false, null);
+  }
 
   private void insertBindings(FunctionEntryNode initialNode) throws ParserException {
     // we use a worklist algorithm
@@ -130,7 +262,7 @@ public class DynamicBindingCreator {
 
           // if statement is of the form x = call(a,b); or call(a,b);
           if (expr instanceof AFunctionCall) {
-         // To Skip new Nodes
+            // To Skip new Nodes
             createBindings(statement, (AFunctionCall)expr, processed);
 
           }
@@ -146,37 +278,48 @@ public class DynamicBindingCreator {
   }
 
   private void createBindings(AStatementEdge edge, AFunctionCall functionCall, Set<CFANode> pProcessed) {
-     // We need to add all newly created node to processed so that the algorithm works
 
+     // We need to add all newly created nodes to processed so that the algorithm works
 
      JMethodInvocationExpression functionCallExpression = (JMethodInvocationExpression) functionCall.getFunctionCallExpression();
      String functionName = functionCallExpression.getFunctionNameExpression().toASTString();
 
-    if(subMethodsOfMethod.get(functionName) != null &&    !subMethodsOfMethod.get(functionName).isEmpty() && functionCallExpression instanceof JReferencedMethodInvocationExpression){
-      if (!((JReferencedMethodInvocationExpression) functionCallExpression).hasKnownRunTimeBinding()) {
-        CFANode prevNode = edge.getPredecessor();
-        CFANode postConditionNode = edge.getSuccessor();
+    if(methodTypeBindingsOfMethod.get(functionName) != null &&    !methodTypeBindingsOfMethod.get(functionName).isEmpty() ){
 
-        // delete old edge
-        CFACreationUtils.removeEdgeFromNodes(edge);
+      if( functionCallExpression instanceof JReferencedMethodInvocationExpression) {
 
-        // insert CallExpressions for every found Sub Method
-        for (Pair<FunctionEntryNode, JClassOrInterfaceType> overridesThisMethod : subMethodsOfMethod.get(functionName)) {
-          // Only insert Call Expressions if method has a Body
-          if (!((JMethodDeclaration) (overridesThisMethod.getFirst().getFunctionDefinition())).isAbstract()) {
-            prevNode = createBinding(edge, overridesThisMethod, prevNode, postConditionNode, pProcessed);
-          }
+        if (!((JReferencedMethodInvocationExpression) functionCallExpression).hasKnownRunTimeBinding()) {
+          createMethodInvocationBindings(edge, pProcessed, functionName);
+        } else {
+          createOnlyReferencedMethodInvocationBinding(edge, subMethodsOfMethod.get(functionName));
         }
-
-        createLastBinding(edge, prevNode, postConditionNode, pProcessed);
-
-      } else {
-        createOnlyBinding(edge, subMethodsOfMethod.get(functionName));
+      } else if(!functionCallExpression.getDeclaration().isStatic() && !functionCallExpression.getDeclaration().isFinal() && !(functionCallExpression.getDeclaringClassType() instanceof JInterfaceType) && !((JClassType) functionCallExpression.getDeclaringClassType()).isFinal()){
+        createMethodInvocationBindings(edge, pProcessed, functionName);
       }
     }
   }
 
-  private void createOnlyBinding(AStatementEdge edge, List<Pair<FunctionEntryNode, JClassOrInterfaceType>> subMethods) {
+  private void createMethodInvocationBindings(AStatementEdge edge , Set<CFANode> pProcessed, String functionName) {
+    CFANode prevNode = edge.getPredecessor();
+    CFANode postConditionNode = edge.getSuccessor();
+
+    // delete old edge
+    CFACreationUtils.removeEdgeFromNodes(edge);
+
+    // insert CallExpressions for every found Sub Method
+    for (Pair<FunctionEntryNode, JClassOrInterfaceType> overridesThisMethod : methodTypeBindingsOfMethod.get(functionName)) {
+      // Only insert Call Expressions if method has a Body
+      if (!((JMethodDeclaration) (overridesThisMethod.getFirst().getFunctionDefinition())).isAbstract()) {
+        prevNode = createBinding(edge, overridesThisMethod, prevNode, postConditionNode, pProcessed);
+      }
+    }
+
+    createLastBinding(edge, prevNode, postConditionNode, pProcessed);
+  }
+
+
+
+  private void createOnlyReferencedMethodInvocationBinding(AStatementEdge edge, List<Pair<FunctionEntryNode, JClassOrInterfaceType>> subMethods) {
 
     FunctionEntryNode onlyFunction = null;
     Map<JClassOrInterfaceType, FunctionEntryNode > map = new HashMap<JClassOrInterfaceType, FunctionEntryNode>();
@@ -199,7 +342,8 @@ public class DynamicBindingCreator {
 
 
     if(onlyFunction == null) {
-      List<JClassType> superTypes = typeHierachie.getAllSuperClasses(runTimeBinding);
+
+      List<JClassType> superTypes = runTimeBinding.getAllSuperClasses();
 
       for(JClassType superType : superTypes){
         if(map.containsKey(superType)) {
@@ -252,9 +396,13 @@ public class DynamicBindingCreator {
 
     // TODO ugly, change when a clear way is found to insert
     // functionDeclaaration which weren't parsed when called
-    JMethodDeclaration decl =  (JMethodDeclaration) cfaBuilder.getScope().lookupFunction( ((AFunctionCall) edge.getStatement()).getFunctionCallExpression().getFunctionNameExpression().toASTString());
+    JMethodDeclaration decl =   cfaBuilder.getScope().lookupFunction( ((AFunctionCall) edge.getStatement()).getFunctionCallExpression().getFunctionNameExpression().toASTString());
 
+    CFANode nextPrevNode = prevNode;
+
+/*
     if (!decl.isAbstract()) {
+
 
 
       JMethodInvocationExpression oldFunctionCallExpression =
@@ -280,6 +428,8 @@ public class DynamicBindingCreator {
           new BlankEdge(edge.getRawStatement(), edge.getLineNumber(), postFunctionCallNode, postConditionNode, "");
       CFACreationUtils.addEdgeToCFA(postConditionEdge, null);
 
+
+
     } else {
 
       //Blank edge from last unsuccessful call to postConditionNode
@@ -288,6 +438,21 @@ public class DynamicBindingCreator {
       CFACreationUtils.addEdgeToCFA(postConditionEdge, null);
 
     }
+
+  */
+
+
+
+    if(!decl.isAbstract() && cfaBuilder.getCFAs().containsKey(decl.getName())) {
+     nextPrevNode = createBinding(edge, Pair.of(cfaBuilder.getCFAs().get(decl.getName()) , decl.getDeclaringClass()), prevNode, postConditionNode, pProcessed);
+    }
+
+
+    //Blank edge from last unsuccessful call to postConditionNode
+    BlankEdge postConditionEdge =
+        new BlankEdge(edge.getRawStatement(), edge.getLineNumber(), nextPrevNode, postConditionNode, "");
+    CFACreationUtils.addEdgeToCFA(postConditionEdge, null);
+
   }
 
   private CFANode createBinding(AStatementEdge edge,
@@ -300,7 +465,7 @@ public class DynamicBindingCreator {
     String callInFunction = prevNode.getFunctionName();
 
 
-    JReferencedMethodInvocationExpression newFunctionCallExpression = (JReferencedMethodInvocationExpression) astCreator.convert(overridesThisMethod.getFirst(), oldFunctionCallExpression);
+    JMethodInvocationExpression newFunctionCallExpression =  astCreator.convert(overridesThisMethod.getFirst(), oldFunctionCallExpression);
 
 
 
@@ -320,8 +485,7 @@ public class DynamicBindingCreator {
 
 
       // Create Condition which is  this.getClass().equals(functionClass.getClass())
-      createConditionEdges(prevNode, successfulNode, unsuccessfulNode, overridesThisMethod.getSecond(), newFunctionCallExpression.getReferencedVariable(), fileloc);
-
+      createConditionEdges(prevNode, successfulNode, unsuccessfulNode, overridesThisMethod.getSecond(), newFunctionCallExpression, fileloc);
 
       JStatement newFunctionCall;
 
@@ -358,9 +522,9 @@ public class DynamicBindingCreator {
 
 
   private void createConditionEdges(CFANode prevNode, CFANode successfulNode,
-      CFANode unsuccessfulNode , JClassOrInterfaceType classTypeOfNewMethodInvocation , JSimpleDeclaration referencedVariable , FileLocation fileloc) {
+      CFANode unsuccessfulNode , JClassOrInterfaceType classTypeOfNewMethodInvocation , JMethodInvocationExpression methodInvocation , FileLocation fileloc) {
 
-        final JExpression exp = astCreator.convertClassRunTimeCompileTimeAccord(fileloc ,referencedVariable, classTypeOfNewMethodInvocation);
+        final JExpression exp = astCreator.convertClassRunTimeCompileTimeAccord(fileloc ,methodInvocation, classTypeOfNewMethodInvocation);
 
         String rawSignature = exp.toASTString();
 
@@ -383,10 +547,6 @@ public class DynamicBindingCreator {
             true);
         CFACreationUtils.addEdgeToCFA(JAssumeEdgeTrue, null);
       }
-
-
-
-
 
 
   //TODO Change the way this Methods builds the methods, so any given Path
@@ -423,7 +583,9 @@ public class DynamicBindingCreator {
     }
   }
 
-  // Go Recursively through all SuperClasses, and their Interfaces and SuperInterfaces and register that the method toBeRegistered overrides
+  // Go Recursively through all SuperClasses,
+  // and their Interfaces and SuperInterfaces
+  // and register that the method toBeRegistered overrides
   // this function
   private void registerForSuperClass(ITypeBinding superClass , Pair<FunctionEntryNode , JClassOrInterfaceType> toBeRegistered, IMethodBinding bindingToBeRegistered) {
     if(superClass != null){

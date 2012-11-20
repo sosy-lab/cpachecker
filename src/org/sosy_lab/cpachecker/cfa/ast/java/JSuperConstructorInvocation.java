@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 
 
-public class JSuperConstructorInvocation extends JClassInstanzeCreation {
+public class JSuperConstructorInvocation extends JClassInstanceCreation {
 
   public JSuperConstructorInvocation(FileLocation pFileLocation, JConstructorType pType, JExpression pFunctionName,
       List<? extends JExpression> pParameters, JConstructorDeclaration pDeclaration) {

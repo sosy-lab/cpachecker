@@ -35,7 +35,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -74,8 +74,9 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanzeCreation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
@@ -91,7 +92,8 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JThisRunTimeType;
+import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -492,8 +494,8 @@ public class ExplicitTransferRelation implements TransferRelation
     throws UnrecognizedCCodeException {
     // expression is a binary operation, e.g. a = b;
 
-    if (expression instanceof AAssignment) {
-      handleAssignment(newElement, (AAssignment)expression, cfaEdge);
+    if (expression instanceof IAssignment) {
+      handleAssignment(newElement, (IAssignment)expression, cfaEdge);
 
     // external function call - do nothing
     } else if (expression instanceof AFunctionCallStatement) {
@@ -507,7 +509,7 @@ public class ExplicitTransferRelation implements TransferRelation
   }
 
 
-  private void handleAssignment(ExplicitState newElement, AAssignment assignExpression, CFAEdge cfaEdge)
+  private void handleAssignment(ExplicitState newElement, IAssignment assignExpression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException {
     IAExpression op1    = assignExpression.getLeftHandSide();
     IARightHandSide op2 = assignExpression.getRightHandSide();
@@ -568,7 +570,6 @@ public class ExplicitTransferRelation implements TransferRelation
     Long value;
 
     if(exp instanceof JRightHandSide && !(exp instanceof CRightHandSide )){
-      // TODO Here might be missin
        value = ((JRightHandSide) exp).accept(visitor);
     }else {
        value = ((CRightHandSide) exp).accept(visitor);
@@ -631,6 +632,8 @@ public class ExplicitTransferRelation implements TransferRelation
       state = pElement;
       functionName = pFunctionName;
     }
+
+
 
     @Override
     protected Long visitDefault(CExpression pExp) {
@@ -857,6 +860,11 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     @Override
+    public Long visit(JThisExpression thisExpression) throws UnrecognizedCCodeException {
+      return null;
+    }
+
+    @Override
     public Long visit(JStringLiteralExpression pPaStringLiteralExpression) throws UnrecognizedCCodeException {
       return null;
     }
@@ -1064,12 +1072,12 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     @Override
-    public Long visit(JClassInstanzeCreation pJClassInstanzeCreation) throws UnrecognizedCCodeException {
+    public Long visit(JClassInstanceCreation pJClassInstanzeCreation) throws UnrecognizedCCodeException {
       return null;
     }
 
     @Override
-    public Long visit(JThisRunTimeType pJThisRunTimeType) throws UnrecognizedCCodeException {
+    public Long visit(JVariableRunTimeType pJThisRunTimeType) throws UnrecognizedCCodeException {
       return null;
     }
 
@@ -1087,6 +1095,11 @@ public class ExplicitTransferRelation implements TransferRelation
     public Long visit(JEnumConstantExpression pJEnumConstantExpression) throws UnrecognizedCCodeException {
       missingEnumComparisonInformation = true;
       return null;
+    }
+
+    @Override
+    public Long visit(JCastExpression pJCastExpression) throws UnrecognizedCCodeException {
+      return pJCastExpression.getOperand().accept(this);
     }
   }
 
@@ -1313,7 +1326,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
         if(operand1 instanceof JFieldAccess) {
 
-          JVariableDeclaration referenceDeclaration = (JVariableDeclaration) ((JFieldAccess) operand1).getReferencedVariable().peek().getDeclaration();
+          JVariableDeclaration referenceDeclaration = (JVariableDeclaration) ((JFieldAccess) operand1).getReferencedVariable().get(0).getDeclaration();
 
 
           if(referenceDeclaration instanceof JFieldDeclaration) {
@@ -1370,7 +1383,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
         if(operand2 instanceof JFieldAccess) {
 
-          JVariableDeclaration referenceDeclaration = (JVariableDeclaration) ((JFieldAccess) operand2).getReferencedVariable().peek().getDeclaration();
+          JVariableDeclaration referenceDeclaration = (JVariableDeclaration) ((JFieldAccess) operand2).getReferencedVariable().get(0).getDeclaration();
 
 
           if(referenceDeclaration instanceof JFieldDeclaration) {
@@ -1444,7 +1457,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
       if(idExp instanceof JFieldAccess) {
 
-        JVariableDeclaration referenceDeclaration = (JVariableDeclaration) ((JFieldAccess) idExp).getReferencedVariable().peek().getDeclaration();
+        JVariableDeclaration referenceDeclaration = (JVariableDeclaration) ((JFieldAccess) idExp).getReferencedVariable().get(0).getDeclaration();
 
 
         if(referenceDeclaration instanceof JFieldDeclaration) {
@@ -1600,7 +1613,7 @@ public class ExplicitTransferRelation implements TransferRelation
     String reference = null;
 
     if(notScopedField instanceof JFieldAccess) {
-      reference = ((JFieldAccess) notScopedField).getReferencedVariable().peek().getDeclaration().getName();
+      reference = ((JFieldAccess) notScopedField).getReferencedVariable().get(0).getDeclaration().getName();
     } else {
       reference = JortState.KEYWORD_THIS;
     }

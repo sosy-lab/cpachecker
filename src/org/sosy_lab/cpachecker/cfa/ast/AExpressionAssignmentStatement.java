@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 
-public class AExpressionAssignmentStatement extends AStatement implements AAssignment {
+public class AExpressionAssignmentStatement extends AStatement implements IAssignment {
 
   protected final IAExpression leftHandSide;
   protected final IAExpression rightHandSide;

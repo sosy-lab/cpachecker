@@ -25,13 +25,17 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.EnumDeclaration;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.ASTConverter.ModifierBean;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 
@@ -40,19 +44,26 @@ public class TypeHierachyCreator extends ASTVisitor {
 
   private static final boolean VISIT_CHILDREN = true;
 
+  private static final boolean SUCCESSFUL = true;
+
+  private static final boolean UNSUCCESSFUL = false;
+
   private final LogManager logger;
 
-  private final ASTConverter astCreator;
 
-  private final TypeHierachie typeHierachie;
-
+  private final Map< String ,JClassOrInterfaceType> types ;
 
 
-  public TypeHierachyCreator(LogManager pLogger , TypeHierachie pTypeHierachie) {
+  public TypeHierachyCreator(LogManager pLogger , Map<String, JClassOrInterfaceType> pTypes) {
     logger = pLogger;
-    astCreator = new ASTConverter(logger);
-    typeHierachie = pTypeHierachie;
+    types = pTypes;
+  }
 
+  @Override
+  public boolean visit(EnumDeclaration node){
+
+    handleHierachy(node.resolveBinding());
+    return VISIT_CHILDREN;
   }
 
   @Override
@@ -60,23 +71,34 @@ public class TypeHierachyCreator extends ASTVisitor {
 
     ITypeBinding typeBinding = node.resolveBinding();
 
+    handleHierachy(typeBinding);
+
+    return VISIT_CHILDREN;
+  }
+
+
+
+
+
+
+  private void handleHierachy(ITypeBinding typeBinding) {
     if (typeBinding != null) {
-      if(typeBinding.isClass()){
+      if(typeBinding.isClass() || typeBinding.isEnum()){
 
-        JClassType type =  astCreator.convertClassType(typeBinding);
+        JClassType type =  convertClassType(typeBinding);
 
 
-        boolean doesNotexist = typeHierachie.add(type);
+        boolean doesNotexist = add(type);
 
         if (doesNotexist) {
           JClassType nextType = type;
           boolean finished = typeBinding.getSuperclass() == null;
           while (!finished) {
-            JClassType parentType = astCreator.convertClassType(typeBinding.getSuperclass());
+            JClassType parentType = convertClassType(typeBinding.getSuperclass());
             //all Parents are already added if parent type already exists
             // just connect this to parent
-            finished = typeHierachie.containsClassType(parentType);
-            typeHierachie.add(nextType, parentType);
+            finished = types.containsValue(parentType);
+            add(nextType, parentType);
 
 
             ITypeBinding[] interfaces = typeBinding.getInterfaces();
@@ -86,12 +108,12 @@ public class TypeHierachyCreator extends ASTVisitor {
               // It seems that you don't get only interfaces with getInterfaces.
               // TODO Investigate
               if (interfaceBinding.isInterface()) {
-                JInterfaceType interfaceType = astCreator.convertInterfaceType(interfaceBinding);
+                JInterfaceType interfaceType = convertInterfaceType(interfaceBinding);
                 implementedInterfaces.add(interfaceType);
               }
             }
 
-            typeHierachie.add(nextType, implementedInterfaces);
+            add(nextType, implementedInterfaces);
 
             typeBinding = typeBinding.getSuperclass();
             nextType = parentType;
@@ -101,8 +123,8 @@ public class TypeHierachyCreator extends ASTVisitor {
         }
       } else if(typeBinding.isInterface()) {
 
-        JInterfaceType type = astCreator.convertInterfaceType(typeBinding);
-        typeHierachie.add(type);
+        JInterfaceType type = convertInterfaceType(typeBinding);
+        add(type);
         Queue<Pair<JInterfaceType ,ITypeBinding[]>> next = new LinkedList<Pair<JInterfaceType ,ITypeBinding[]>>();
         next.add(Pair.of(type, typeBinding.getInterfaces()));
 
@@ -117,16 +139,183 @@ public class TypeHierachyCreator extends ASTVisitor {
 
 
             for(ITypeBinding binding : superInterfacesBinding) {
-              JInterfaceType superInterface = astCreator.convertInterfaceType(binding);
+              JInterfaceType superInterface = convertInterfaceType(binding);
               superTypes.add(superInterface);
               next.add( Pair.of(superInterface, binding.getInterfaces()));
             }
 
 
-            typeHierachie.add(nextType, superTypes);
+            add(nextType, superTypes);
         }
       }
     }
-    return VISIT_CHILDREN;
   }
+
+  private void add(JInterfaceType pType, List<JClassType> pKnownInterfaceImplementingClasses, List<JInterfaceType> pSubInterfaces , List<JInterfaceType> pExtendedInterfaces)  {
+
+
+    add(pType , pExtendedInterfaces);
+
+    for(JClassType subClass : pKnownInterfaceImplementingClasses){
+
+     if(!types.containsKey(subClass.getName())){
+       add(subClass);
+     }
+
+     pType.registerSubType(subClass);
+     subClass.registerSuperType(pType);
+
+    }
+
+    for(JInterfaceType subInterface : pSubInterfaces){
+
+      if(!types.containsKey(subInterface.getName())){
+        add(subInterface);
+      }
+
+      pType.registerSubType(subInterface);
+      subInterface.registerSuperType(pType);
+     }
+
+  }
+
+  private void add(JInterfaceType pType, List<JInterfaceType> pExtendedInterfaces)  {
+
+    assert pExtendedInterfaces != null;
+
+    if(!types.containsKey(pType.getName())){
+      add(pType);
+    }
+
+
+    for(JInterfaceType extendedInterfaces : pExtendedInterfaces){
+
+     if(!types.containsKey(extendedInterfaces.getName())){
+       add(extendedInterfaces);
+     }
+
+
+    pType.registerSuperType(extendedInterfaces);
+    extendedInterfaces.registerSubType(pType);
+
+    }
+
+  }
+
+  private boolean add(JInterfaceType pType)  {
+
+    if(!types.containsKey(pType.getName())){
+      types.put(pType.getName(),pType);
+      return SUCCESSFUL;
+    } else {
+      return UNSUCCESSFUL;
+    }
+
+  }
+
+  private void add(JClassType pType, JClassType pParentClass, List<JClassType> pDirectSubClasses, List<JInterfaceType> pImplementedInterfaces) {
+
+      add(pType, pParentClass, pImplementedInterfaces);
+
+
+
+      for(JClassType subClass : pDirectSubClasses){
+
+       if(!types.containsKey(subClass.getName())){
+         add(subClass);
+       }
+
+       pType.registerSubType(subClass);
+       subClass.registerSuperType(pType);
+
+      }
+
+   }
+
+
+  private void add(JClassType pType, JClassType pParentClass ,List<JInterfaceType> pImplementedInterfaces) {
+    add(pType , pParentClass);
+    add(pType, pImplementedInterfaces);
+  }
+
+
+  private void add(JClassType pType, List<JInterfaceType> pImplementedInterfaces) {
+
+
+    assert pImplementedInterfaces != null;
+
+    if(!types.containsKey(pType.getName())){
+      add(pType);
+    }
+
+
+    for(JInterfaceType implementedType : pImplementedInterfaces){
+
+     if(!types.containsKey(implementedType.getName())){
+       add(implementedType);
+     }
+
+     pType.registerSuperType(implementedType);
+     implementedType.registerSubType(pType);
+
+    }
+
+  }
+
+  private void add(JClassType pType, JClassType pParentClass) {
+
+    assert pParentClass != null;
+
+    if(!types.containsKey(pType.getName())){
+     add(pType);
+    }
+
+    if(!types.containsKey(pParentClass.getName())){
+      add(pParentClass);
+    }
+
+    pType.registerSuperType(pParentClass);
+    pParentClass.registerSubType(pType);
+
+  }
+
+  private boolean add(JClassType pType) {
+
+    if(!types.containsKey(pType.getName())){
+      types.put(pType.getName(), pType);
+      return SUCCESSFUL;
+    } else {
+      return UNSUCCESSFUL;
+    }
+  }
+
+  private JClassType convertClassType(ITypeBinding t) {
+
+    assert t.isClass() ||t.isEnum();
+
+    String name = ASTConverter.getFullyQualifiedClassOrInterfaceName(t);
+
+    if(types.containsKey(name)) {
+      return (JClassType) types.get(name);
+    }
+
+    ModifierBean mB = ModifierBean.getModifiers(t);
+    return new JClassType(name, mB.getVisibility(), mB.isFinal(), mB.isAbstract(), mB.isStrictFp());
+   }
+
+  private JInterfaceType convertInterfaceType(ITypeBinding t) {
+
+    assert t.isInterface();
+
+    String name = ASTConverter.getFullyQualifiedClassOrInterfaceName(t);
+
+    if(types.containsKey(name)) {
+      return (JInterfaceType) types.get(name);
+    }
+
+    ModifierBean mB = ModifierBean.getModifiers(t);
+    return new JInterfaceType(ASTConverter.getFullyQualifiedClassOrInterfaceName(t), mB.getVisibility());
+
+  }
+
 }

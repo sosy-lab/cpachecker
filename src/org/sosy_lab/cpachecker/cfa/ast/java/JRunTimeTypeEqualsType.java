@@ -32,11 +32,11 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
 public class JRunTimeTypeEqualsType extends AExpression implements JExpression {
 
-  private final JThisRunTimeType runTimeTypeExpression;
+  private final JRunTimeTypeExpression runTimeTypeExpression;
   private final JClassOrInterfaceType typeDef;
 
   public JRunTimeTypeEqualsType(FileLocation pFileLocation,
-      JThisRunTimeType pRunTimeTypeExpression, JClassOrInterfaceType pTypeDef) {
+      JRunTimeTypeExpression pRunTimeTypeExpression, JClassOrInterfaceType pTypeDef) {
     super(pFileLocation, new JSimpleType(JBasicType.BOOLEAN));
 
     runTimeTypeExpression = pRunTimeTypeExpression;
@@ -70,7 +70,7 @@ public class JRunTimeTypeEqualsType extends AExpression implements JExpression {
     return typeDef;
   }
 
-  public JThisRunTimeType getRunTimeTypeExpression() {
+  public JRunTimeTypeExpression getRunTimeTypeExpression() {
     return runTimeTypeExpression;
   }
 }

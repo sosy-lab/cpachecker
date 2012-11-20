@@ -247,7 +247,7 @@ public class JortState implements AbstractState {
       }
     }
 
-    //TODO Exception for unequal Scope
+    //TODO no this for unequal scope (Is it possible)
 
     return new JortState(newConstantsMap, newIdentificationMap, newClassTypeMap, classObjectScope, classObjectStack);
   }
@@ -280,6 +280,7 @@ public class JortState implements AbstractState {
       return false;
     }
 
+    // Is this neccessary?
     if(!getClassObjectStack().equals(other.getClassObjectStack())){
       return false;
     }
@@ -388,5 +389,27 @@ public class JortState implements AbstractState {
 
   public String getRunTimeClassOfUniqueObject(String uniqueObject) {
     return classTypeMap.get(uniqueObject);
+  }
+
+  public Object toCompactString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+
+    boolean first = true;
+    for (Map.Entry<String, String> entry: constantsMap.entrySet())
+    {
+      if (first) {
+        first = false;
+      } else {
+        sb.append(", ");
+      }
+      String key = entry.getKey();
+      sb.append(key);
+      sb.append("=");
+      sb.append(entry.getValue());
+    }
+    sb.append("]");
+
+    return sb.toString();
   }
 }

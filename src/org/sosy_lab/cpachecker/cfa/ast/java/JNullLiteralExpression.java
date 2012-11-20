@@ -52,7 +52,7 @@ public class JNullLiteralExpression extends ALiteralExpression implements JExpre
   }
 
   @Override
-  public Object getValue() {
+  public String getValue() {
     return "null";
   }
 }

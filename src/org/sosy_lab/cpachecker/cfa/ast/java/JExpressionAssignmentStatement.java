@@ -51,7 +51,6 @@ public class JExpressionAssignmentStatement extends AExpressionAssignmentStateme
 
   @Override
   public JStatement asStatement() {
-    // TODO Auto-generated method stub
     return (JStatement) super.asStatement();
   }
 

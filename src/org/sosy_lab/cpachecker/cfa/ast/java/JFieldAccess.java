@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.util.Queue;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -32,9 +32,9 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public class JFieldAccess extends JIdExpression {
 
 
-  private final Queue<JIdExpression> qualifier;
+  private final List<JIdExpression> qualifier;
 
-  public JFieldAccess(FileLocation pFileLocation, JType pType, String pName, JFieldDeclaration pDeclaration, Queue<JIdExpression> pQualifier) {
+  public JFieldAccess(FileLocation pFileLocation, JType pType, String pName, JFieldDeclaration pDeclaration, List<JIdExpression> pQualifier) {
     super(pFileLocation, pType, pName, pDeclaration);
     qualifier = pQualifier;
   }
@@ -44,7 +44,7 @@ public class JFieldAccess extends JIdExpression {
     return (JFieldDeclaration) super.getDeclaration();
   }
 
-  public Queue<JIdExpression> getReferencedVariable() {
+  public List<JIdExpression> getReferencedVariable() {
     return qualifier;
   }
 

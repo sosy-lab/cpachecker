@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.jort;
 
+import java.util.Collection;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -41,11 +43,13 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 @Options(prefix="cpa.Jort")
-public class JortCPA implements ConfigurableProgramAnalysis {
+public class JortCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(JortCPA.class);
@@ -59,13 +63,14 @@ public class JortCPA implements ConfigurableProgramAnalysis {
   private  StopOperator stopOperator;
   private  TransferRelation transferRelation;
   private  PrecisionAdjustment precisionAdjustment;
+  private final RTTCPAStatistics statistics;
 
   private final Configuration config;
   private final LogManager logger;
 
 
-  public JortCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
-    this.config = config;
+  public JortCPA(Configuration pConfig, LogManager logger, CFA cfa) throws InvalidConfigurationException {
+    this.config = pConfig;
     this.logger = logger;
 
     config.inject(this);
@@ -75,6 +80,7 @@ public class JortCPA implements ConfigurableProgramAnalysis {
     precision = SingletonPrecision.getInstance();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     transferRelation = new JortTransferRelation();
+    statistics = new RTTCPAStatistics();
 
   }
 
@@ -112,6 +118,15 @@ public class JortCPA implements ConfigurableProgramAnalysis {
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
     return precision;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(statistics);
+  }
+
+  public RTTCPAStatistics getStats() {
+    return statistics;
   }
 
 }
