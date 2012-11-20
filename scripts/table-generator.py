@@ -299,6 +299,7 @@ def insertLogFileNames(resultFile, resultElem):
     logFolder = resultElem.get('benchmarkname') + '.' + date + '.logfiles/'
     if len(parts) > 1:
         logFolder = parts[0] + '#' + logFolder
+    logFolder = os.path.join(resultElem.get('baseDir', ''), logFolder)
 
     # append begin of filename
     testname = resultElem.get('name')
@@ -318,6 +319,8 @@ def insertLogFileNames(resultFile, resultElem):
         logFileName = os.path.basename(sourcefile.get('name')) + ".log"
         sourcefile.logfile = logFolder + logFileName
 
+def getDefaultLogFolder(resultElem):
+    return logFolder
 
 
 def mergeSourceFiles(listOfTests):

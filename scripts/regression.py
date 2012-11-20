@@ -53,7 +53,7 @@ def generateHTML(fileList):
     tableGenerator.NAME_START = 'diff'
 
     # run
-    tableGenerator.main([''] +  fileList)
+    tableGenerator.main(['', '--no-diff'] + fileList)
 
 
 def getDiffXMLList(listOfTestTags):
@@ -64,6 +64,7 @@ def getDiffXMLList(listOfTestTags):
     emptyElemList = getEmptyElements(listOfTestTags)
     for elem in listOfTestTags:
         newElem = ET.Element('test', elem.attrib)
+        newElem.attrib['baseDir'] = '../'
         extendXMLElem(newElem, elem.findall('systeminfo'))
         extendXMLElem(newElem, elem.findall('columns'))
         extendXMLElem(newElem, elem.findall('time'))
