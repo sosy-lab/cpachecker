@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -58,10 +60,11 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 
 @Options(prefix="cpa.abm")
-public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvider {
+public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvider, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ABMCPA.class);
@@ -73,6 +76,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final TimedReducer reducer;
   private final ABMTransferRelation transfer;
   private final ABMPrecisionAdjustment prec;
+  private final ABMMergeOperator merge;
   private final ABMCPAStatistics stats;
   private final PartitioningHeuristic heuristic;
   private final CFA cfa;
@@ -97,8 +101,9 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM");
     }
     reducer = new TimedReducer(wrappedReducer);
-    prec = new ABMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
     transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
+    prec = new ABMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment(),transfer);
+    merge = new ABMMergeOperator(pCpa.getMergeOperator(), transfer);
 
     stats = new ABMCPAStatistics(this);
     heuristic = getPartitioningHeuristic();
@@ -138,7 +143,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   @Override
   public MergeOperator getMergeOperator() {
-    return getWrappedCpa().getMergeOperator();
+    return merge;
   }
 
   @Override
@@ -179,5 +184,18 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   ABMCPAStatistics getStatistics() {
     return stats;
+  }
+
+  @Override
+  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
+      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+    // TODO Auto-generated method stub, hier Aufruf einer Methode der TransferRelation
+    return false;
+  }
+
+  @Override
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException {
+    // TODO Auto-generated method stub, ich denke hier sollte eine Weiterleitung möglich sein, hat ja nichts mit den Blöcken zu tun
+    return false;
   }
 }

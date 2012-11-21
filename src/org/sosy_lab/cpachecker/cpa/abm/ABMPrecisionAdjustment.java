@@ -37,9 +37,11 @@ public class ABMPrecisionAdjustment implements PrecisionAdjustment {
   private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
   private boolean breakAnalysis = false;
   private final PrecisionAdjustment wrappedPrecisionAdjustment;
+  private final ABMTransferRelation trans;
 
-  public ABMPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment) {
+  public ABMPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment, ABMTransferRelation pTrans) {
     this.wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
+    trans = pTrans;
   }
 
   void setForwardPrecisionToExpandedPrecision(
@@ -54,6 +56,8 @@ public class ABMPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     Triple<AbstractState, Precision, Action> result = wrappedPrecisionAdjustment.prec(pElement, pPrecision, pElements);
+
+    result = Triple.of(trans.attachAdditionalInfoToCallNode(result.getFirst()), result.getSecond(), result.getThird());
 
     Precision newPrecision = forwardPrecisionToExpandedPrecision.get(pElement);
     if (newPrecision != null) {
