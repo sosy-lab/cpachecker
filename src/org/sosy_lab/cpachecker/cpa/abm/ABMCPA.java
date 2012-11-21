@@ -62,6 +62,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+import com.google.common.base.Preconditions;
+
 
 @Options(prefix="cpa.abm")
 public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvider, ProofChecker {
@@ -80,6 +82,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final ABMCPAStatistics stats;
   private final PartitioningHeuristic heuristic;
   private final CFA cfa;
+  private final ProofChecker wrappedProofChecker;
 
   @Option(description="Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
                     + "or any class that implements a PartitioningHeuristic")
@@ -101,12 +104,19 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM");
     }
     reducer = new TimedReducer(wrappedReducer);
+    prec = new ABMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
     transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
-    prec = new ABMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment(),transfer);
+    prec.setABMTransferRelation(transfer);
     merge = new ABMMergeOperator(pCpa.getMergeOperator(), transfer);
 
     stats = new ABMCPAStatistics(this);
     heuristic = getPartitioningHeuristic();
+
+    if (pCpa instanceof ProofChecker) {
+      this.wrappedProofChecker = (ProofChecker)pCpa;
+    } else {
+      this.wrappedProofChecker = null;
+    }
   }
 
   @Override
@@ -189,13 +199,13 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   @Override
   public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    // TODO Auto-generated method stub, hier Aufruf einer Methode der TransferRelation
-    return false;
+    Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
+    return false;//transfer.areAbstractSuccessors(pState, pCfaEdge, pSuccessors, wrappedProofChecker);
   }
 
   @Override
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException {
-    // TODO Auto-generated method stub, ich denke hier sollte eine Weiterleitung möglich sein, hat ja nichts mit den Blöcken zu tun
-    return false;
+    Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
+    return wrappedProofChecker.isCoveredBy(pState, pOtherState);
   }
 }
