@@ -116,10 +116,10 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.jort.JortState;
 import org.sosy_lab.cpachecker.cpa.pointer.Memory;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerState;
+import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -1284,9 +1284,9 @@ public class ExplicitTransferRelation implements TransferRelation
 
 
   private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
-    private final JortState jortState;
+    private final RTTState jortState;
 
-    public FieldAccessExpressionValueVisitor(CFAEdge pEdge, ExplicitState pElement, String pFunctionName, JortState pJortState) {
+    public FieldAccessExpressionValueVisitor(CFAEdge pEdge, ExplicitState pElement, String pFunctionName, RTTState pJortState) {
       super(pEdge, pElement, pFunctionName);
       jortState = pJortState;
     }
@@ -1336,7 +1336,7 @@ public class ExplicitTransferRelation implements TransferRelation
               reference = referenceDeclaration.getName();
             } else {
               // reference is non static field, is stored in this object scope
-              reference = getJortScopedVariableName(referenceDeclaration.getName() ,jortState.getUniqueObjectFor(JortState.KEYWORD_THIS));
+              reference = getJortScopedVariableName(referenceDeclaration.getName() ,jortState.getUniqueObjectFor(RTTState.KEYWORD_THIS));
             }
 
           } else {
@@ -1344,7 +1344,7 @@ public class ExplicitTransferRelation implements TransferRelation
             reference = getScopedVariableName(referenceDeclaration.getName(), functionName);
           }
         } else {
-          reference = JortState.KEYWORD_THIS;
+          reference = RTTState.KEYWORD_THIS;
         }
 
         if(decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()){
@@ -1393,7 +1393,7 @@ public class ExplicitTransferRelation implements TransferRelation
               reference = referenceDeclaration.getName();
             } else {
               // reference is non static field, is stored in this object scope
-              reference = getJortScopedVariableName(referenceDeclaration.getName() ,jortState.getUniqueObjectFor(JortState.KEYWORD_THIS));
+              reference = getJortScopedVariableName(referenceDeclaration.getName() ,jortState.getUniqueObjectFor(RTTState.KEYWORD_THIS));
             }
 
           } else {
@@ -1401,7 +1401,7 @@ public class ExplicitTransferRelation implements TransferRelation
             reference = getScopedVariableName(referenceDeclaration.getName(), functionName);
           }
         } else {
-          reference = JortState.KEYWORD_THIS;
+          reference = RTTState.KEYWORD_THIS;
         }
 
         if(decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()){
@@ -1467,7 +1467,7 @@ public class ExplicitTransferRelation implements TransferRelation
             reference = referenceDeclaration.getName();
           } else {
             // reference is non static field, is stored in this object scope
-            reference = getJortScopedVariableName(referenceDeclaration.getName() ,jortState.getUniqueObjectFor(JortState.KEYWORD_THIS));
+            reference = getJortScopedVariableName(referenceDeclaration.getName() ,jortState.getUniqueObjectFor(RTTState.KEYWORD_THIS));
           }
 
         } else {
@@ -1475,7 +1475,7 @@ public class ExplicitTransferRelation implements TransferRelation
           reference = getScopedVariableName(referenceDeclaration.getName(), functionName);
         }
       } else {
-        reference = JortState.KEYWORD_THIS;
+        reference = RTTState.KEYWORD_THIS;
       }
 
       if(decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()){
@@ -1533,8 +1533,8 @@ public class ExplicitTransferRelation implements TransferRelation
     for (AbstractState ae : elements) {
       if (ae instanceof PointerState) {
         return strengthen(explicitState, (PointerState)ae, cfaEdge);
-      } else if(ae instanceof JortState) {
-        return strengthen(explicitState, (JortState)ae, cfaEdge, precision);
+      } else if(ae instanceof RTTState) {
+        return strengthen(explicitState, (RTTState)ae, cfaEdge, precision);
       }
     }
 
@@ -1542,7 +1542,7 @@ public class ExplicitTransferRelation implements TransferRelation
     return null;
   }
 
-  private Collection<? extends AbstractState> strengthen(ExplicitState explicitState, JortState jortState, CFAEdge cfaEdge,
+  private Collection<? extends AbstractState> strengthen(ExplicitState explicitState, RTTState jortState, CFAEdge cfaEdge,
       Precision precision) throws UnrecognizedCCodeException {
 
     if(missingFieldVariableObject) {
@@ -1601,12 +1601,12 @@ public class ExplicitTransferRelation implements TransferRelation
     return null;
   }
 
-  private Long handleMissingInformationRightJExpression(JortState pJortState , ExplicitState newElement, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  private Long handleMissingInformationRightJExpression(RTTState pJortState , ExplicitState newElement, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
     return missingInformationRightJExpression.accept(new FieldAccessExpressionValueVisitor(cfaEdge , newElement, cfaEdge.getPredecessor().getFunctionName() , pJortState));
   }
 
-  private ExplicitState handleNotScopedVariable(JortState jortState , ExplicitState newElement, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  private ExplicitState handleNotScopedVariable(RTTState jortState , ExplicitState newElement, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
 
 
@@ -1615,7 +1615,7 @@ public class ExplicitTransferRelation implements TransferRelation
     if(notScopedField instanceof JFieldAccess) {
       reference = ((JFieldAccess) notScopedField).getReferencedVariable().get(0).getDeclaration().getName();
     } else {
-      reference = JortState.KEYWORD_THIS;
+      reference = RTTState.KEYWORD_THIS;
     }
 
     if(jortState.contains(reference)) {

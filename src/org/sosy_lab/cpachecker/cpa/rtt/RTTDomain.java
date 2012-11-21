@@ -21,23 +21,23 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.jort;
+package org.sosy_lab.cpachecker.cpa.rtt;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-public class JortDomain implements AbstractDomain {
+public class RTTDomain implements AbstractDomain {
 
   @Override
   public AbstractState join(AbstractState currentElement, AbstractState reachedState) {
-    return ((JortState)currentElement).join((JortState)reachedState);
+    return ((RTTState)currentElement).join((RTTState)reachedState);
   }
 
   @Override
   public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedState) throws CPAException {
-    return ((JortState)currentElement).isLessOrEqual((JortState)reachedState);
+    return ((RTTState)currentElement).isLessOrEqual((RTTState)reachedState);
   }
 
 }

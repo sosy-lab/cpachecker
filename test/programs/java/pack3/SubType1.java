@@ -41,8 +41,7 @@ public class SubType1 extends SuperType1 implements Interface1 {
   @Override
   public boolean  compare() {
     
-    boolean c;
-    
+    boolean c;    
     c = subNum1 == subNum2 && num == num2;
     
     

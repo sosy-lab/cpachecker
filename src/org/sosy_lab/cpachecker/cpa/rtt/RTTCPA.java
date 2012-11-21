@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.jort;
+package org.sosy_lab.cpachecker.cpa.rtt;
 
 import java.util.Collection;
 
@@ -48,11 +48,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-@Options(prefix="cpa.Jort")
-public class JortCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
+@Options(prefix="cpa.RTT")
+public class RTTCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(JortCPA.class);
+    return AutomaticCPAFactory.forType(RTTCPA.class);
   }
 
 
@@ -69,17 +69,17 @@ public class JortCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
   private final LogManager logger;
 
 
-  public JortCPA(Configuration pConfig, LogManager logger, CFA cfa) throws InvalidConfigurationException {
+  public RTTCPA(Configuration pConfig, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     this.config = pConfig;
     this.logger = logger;
 
     config.inject(this);
     mergeOperator = new MergeSepOperator();
-    abstractDomain = new JortDomain();
+    abstractDomain = new RTTDomain();
     stopOperator = new StopSepOperator(abstractDomain);
     precision = SingletonPrecision.getInstance();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    transferRelation = new JortTransferRelation();
+    transferRelation = new RTTTransferRelation();
     statistics = new RTTCPAStatistics();
 
   }
@@ -112,7 +112,7 @@ public class JortCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return new JortState();
+    return new RTTState();
   }
 
   @Override

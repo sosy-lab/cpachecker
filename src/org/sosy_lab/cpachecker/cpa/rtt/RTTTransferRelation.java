@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.jort;
+package org.sosy_lab.cpachecker.cpa.rtt;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
@@ -39,11 +38,12 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.java.DefaultJExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
@@ -68,8 +68,8 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSuperConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -92,9 +92,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
 
-public class JortTransferRelation implements TransferRelation {
+public class RTTTransferRelation implements TransferRelation {
 
-  private static final String NOT_IN_OBJECT_SCOPE = JortState.NULL_REFERENCE;
+  private static final String NOT_IN_OBJECT_SCOPE = RTTState.NULL_REFERENCE;
   private static final int RETURN_EDGE = 0;
   private final Set<String> staticFieldVariables = new HashSet<String>();
   private final Set<String> nonStaticFieldVariables = new HashSet<String>();
@@ -110,11 +110,11 @@ public class JortTransferRelation implements TransferRelation {
       CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
 
 
-    JortState jortState     = (JortState)element;
+    RTTState jortState     = (RTTState)element;
 
     //jortState.getToBeErased().clear();
 
-    JortState successor;
+    RTTState successor;
 
     switch (cfaEdge.getEdgeType()) {
     // this is an assumption, e.g. if (a == b)
@@ -152,7 +152,7 @@ public class JortTransferRelation implements TransferRelation {
 
   }
 
-  private void handleSimpleEdge(JortState element, CFAEdge cfaEdge) throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
+  private void handleSimpleEdge(RTTState element, CFAEdge cfaEdge) throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
 
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
@@ -195,7 +195,7 @@ public class JortTransferRelation implements TransferRelation {
 
   }
 
-  private void handleDeclaration(JortState newElement, ADeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
+  private void handleDeclaration(RTTState newElement, ADeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
 
     if (!(declarationEdge.getDeclaration() instanceof AVariableDeclaration)) {
       // nothing interesting to see here, please move along
@@ -243,7 +243,7 @@ public class JortTransferRelation implements TransferRelation {
       }
 
       // field variables without initializer are set to null
-      initialValue = JortState.NULL_REFERENCE;
+      initialValue = RTTState.NULL_REFERENCE;
     }
 
     // get initial value
@@ -262,16 +262,16 @@ public class JortTransferRelation implements TransferRelation {
       newElement.assignObject(scopedVarName, initialValue);
     } else {
       // variable References without Objects are null
-      newElement.assignObject(scopedVarName, JortState.NULL_REFERENCE);
+      newElement.assignObject(scopedVarName, RTTState.NULL_REFERENCE);
     }
   }
 
-  private String getExpressionValue(JortState element, IAExpression expression, String functionName,
+  private String getExpressionValue(RTTState element, IAExpression expression, String functionName,
       CFAEdge edge) throws UnrecognizedCCodeException {
    return ((JRightHandSide) expression).accept(new ExpressionValueVisitor(edge, element, functionName));
   }
 
-  private void handleExitFromFunction(JortState newElement, IAExpression expression, AReturnStatementEdge returnEdge) throws UnrecognizedCCodeException {
+  private void handleExitFromFunction(RTTState newElement, IAExpression expression, AReturnStatementEdge returnEdge) throws UnrecognizedCCodeException {
 
     String functionName = returnEdge.getPredecessor().getFunctionName();
 
@@ -283,7 +283,7 @@ public class JortTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleAssignmentToVariable(String lParam, IAExpression exp, String value, JortState newElement, String functionName) {
+  private void handleAssignmentToVariable(String lParam, IAExpression exp, String value, RTTState newElement, String functionName) {
 
     String assignedVar = getScopedVariableName(lParam, functionName, newElement.getClassObjectScope());
 
@@ -301,12 +301,12 @@ public class JortTransferRelation implements TransferRelation {
 
     String value;
     value = ((JRightHandSide) exp).accept(visitor);
-    JortState newElement = visitor.state;
+    RTTState newElement = visitor.state;
 
    handleAssignmentToVariable(lParam, exp, value, newElement, visitor.functionName);
   }
 
-  private void handleStatement(JortState newElement, IAStatement expression, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  private void handleStatement(RTTState newElement, IAStatement expression, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
     // expression is a binary operation, e.g. a = b;
     if (expression instanceof IAssignment) {
       handleAssignment(newElement, (IAssignment)expression, cfaEdge);
@@ -322,7 +322,7 @@ public class JortTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleAssignment(JortState newElement, IAssignment assignExpression, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  private void handleAssignment(RTTState newElement, IAssignment assignExpression, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
     IAExpression op1    = assignExpression.getLeftHandSide();
     IARightHandSide op2 = assignExpression.getRightHandSide();
@@ -341,7 +341,7 @@ public class JortTransferRelation implements TransferRelation {
 
     String value = ((JRightHandSide) exp).accept(visitor);
 
-    JortState newElement = visitor.state;
+    RTTState newElement = visitor.state;
     String assignedVar = getScopedVariableName(lParam, visitor.functionName, newElement.getClassObjectScope());
 
     if (value == null) {
@@ -353,12 +353,12 @@ public class JortTransferRelation implements TransferRelation {
     }
   }
 
-  private JortState handleFunctionReturn(JortState element, FunctionReturnEdge functionReturnEdge) throws UnrecognizedCCodeException {
+  private RTTState handleFunctionReturn(RTTState element, FunctionReturnEdge functionReturnEdge) throws UnrecognizedCCodeException {
 
     FunctionSummaryEdge summaryEdge    = functionReturnEdge.getSummaryEdge();
     AFunctionCall exprOnSummary  = summaryEdge.getExpression();
 
-    JortState newElement  = element.clone();
+    RTTState newElement  = element.clone();
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
 
@@ -395,9 +395,9 @@ public class JortTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private JortState handleFunctionCall(JortState element, FunctionCallEdge callEdge) throws UnrecognizedCCodeException {
+  private RTTState handleFunctionCall(RTTState element, FunctionCallEdge callEdge) throws UnrecognizedCCodeException {
 
-    JortState newElement = element.clone();
+    RTTState newElement = element.clone();
 
     FunctionEntryNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
@@ -441,7 +441,7 @@ public class JortTransferRelation implements TransferRelation {
     // A Object calls its super Constructor
     if(functionCall instanceof JSuperConstructorInvocation) {
 
-      newElement.assignThisAndNewObjectScope(element.getUniqueObjectFor(JortState.KEYWORD_THIS));
+      newElement.assignThisAndNewObjectScope(element.getUniqueObjectFor(RTTState.KEYWORD_THIS));
 
    // A New Object is created, which is the new classObject scope
     } else if(functionCall instanceof JClassInstanceCreation) {
@@ -473,7 +473,7 @@ public class JortTransferRelation implements TransferRelation {
       if(decl.isStatic()) {
         newElement.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
       }else {
-       newElement.assignThisAndNewObjectScope(newElement.getUniqueObjectFor(JortState.KEYWORD_THIS));
+       newElement.assignThisAndNewObjectScope(newElement.getUniqueObjectFor(RTTState.KEYWORD_THIS));
       }
      //  the method Invocation can't be handled
     } else {
@@ -484,7 +484,7 @@ public class JortTransferRelation implements TransferRelation {
 
   private String getScopedVariableName(String variableName, String functionName, String uniqueObject) {
 
-    if(variableName.equals(JortState.KEYWORD_THIS)) {
+    if(variableName.equals(RTTState.KEYWORD_THIS)) {
       return variableName;
     }
 
@@ -501,7 +501,7 @@ public class JortTransferRelation implements TransferRelation {
   }
 
 
-  private JortState handleAssumption(JortState element, IAExpression expression, CFAEdge cfaEdge,
+  private RTTState handleAssumption(RTTState element, IAExpression expression, CFAEdge cfaEdge,
       boolean truthAssumption) throws UnrecognizedCCodeException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -525,7 +525,7 @@ public class JortTransferRelation implements TransferRelation {
 
   private class FunctionExitValueVisitor extends ExpressionValueVisitor {
 
-    public FunctionExitValueVisitor(CFAEdge pEdge, JortState pElement, String pFunctionName) {
+    public FunctionExitValueVisitor(CFAEdge pEdge, RTTState pElement, String pFunctionName) {
       super(pEdge, pElement, pFunctionName);
 
     }
@@ -545,11 +545,11 @@ public class JortTransferRelation implements TransferRelation {
 
     @SuppressWarnings("unused")
     protected final CFAEdge edge;
-    protected final JortState state;
+    protected final RTTState state;
     protected final String functionName;
 
 
-    public ExpressionValueVisitor(CFAEdge pEdge, JortState pElement, String pFunctionName) {
+    public ExpressionValueVisitor(CFAEdge pEdge, RTTState pElement, String pFunctionName) {
       edge = pEdge;
       state = pElement;
       functionName = pFunctionName;
@@ -667,8 +667,8 @@ public class JortTransferRelation implements TransferRelation {
     @Override
     public String visit(JThisExpression thisExpression) {
 
-      if(state.contains(JortState.KEYWORD_THIS)) {
-        return state.getUniqueObjectFor(JortState.KEYWORD_THIS);
+      if(state.contains(RTTState.KEYWORD_THIS)) {
+        return state.getUniqueObjectFor(RTTState.KEYWORD_THIS);
       } else {
         return null;
       }
@@ -677,7 +677,7 @@ public class JortTransferRelation implements TransferRelation {
 
     @Override
     public String visit(JNullLiteralExpression pJNullLiteralExpression) throws UnrecognizedCCodeException {
-      return JortState.NULL_REFERENCE;
+      return RTTState.NULL_REFERENCE;
     }
 
     @Override

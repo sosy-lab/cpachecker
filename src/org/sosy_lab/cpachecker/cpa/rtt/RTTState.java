@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.jort;
+package org.sosy_lab.cpachecker.cpa.rtt;
 
 import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -36,7 +36,7 @@ import java.util.Stack;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 
-public class JortState implements AbstractState {
+public class RTTState implements AbstractState {
 
 
   public static final String KEYWORD_THIS = "this";
@@ -78,7 +78,7 @@ public class JortState implements AbstractState {
    */
   private final Stack<String> classObjectStack;
 
-  public JortState() {
+  public RTTState() {
     constantsMap = new HashMap<String, String>();
     identificationMap = new HashMap<String, String>();
     classTypeMap = new HashMap<String, String>();
@@ -87,7 +87,7 @@ public class JortState implements AbstractState {
     constantsMap.put(KEYWORD_THIS, NULL_REFERENCE);
   }
 
-  private JortState(Map<String, String> pConstantsMap,
+  private RTTState(Map<String, String> pConstantsMap,
       Map<String, String> pIdentificationMap, Map<String, String> pClassTypeMap,
       String pClassObjectScope, Stack<String> pClassObjectStack) {
     constantsMap = pConstantsMap;
@@ -136,7 +136,7 @@ public class JortState implements AbstractState {
     if(javaRunTimeClassName.equals(NULL_REFERENCE)){
      iD = "";
     } else {
-     iD = Integer.toString(JortTransferRelation.nextId());
+     iD = Integer.toString(RTTTransferRelation.nextId());
     }
 
     String uniqueObject = javaRunTimeClassName + iD;
@@ -215,7 +215,7 @@ public class JortState implements AbstractState {
    * @param other the other element to join with this element
    * @return a new state representing the join of this element and the other element
    */
-  JortState join(JortState other) {
+  RTTState join(RTTState other) {
     int size = Math.min(constantsMap.size(), other.constantsMap.size());
 
     Map<String, String> newConstantsMap = new HashMap<String, String>(size);
@@ -249,7 +249,7 @@ public class JortState implements AbstractState {
 
     //TODO no this for unequal scope (Is it possible)
 
-    return new JortState(newConstantsMap, newIdentificationMap, newClassTypeMap, classObjectScope, classObjectStack);
+    return new RTTState(newConstantsMap, newIdentificationMap, newClassTypeMap, classObjectScope, classObjectStack);
   }
 
   /**
@@ -258,7 +258,7 @@ public class JortState implements AbstractState {
    * @param other the other element
    * @return true, if this element is less or equal than the other element, based on the order imposed by the lattice
    */
-  boolean isLessOrEqual(JortState other) {
+  boolean isLessOrEqual(RTTState other) {
 
     // this element is not less or equal than the other element, if it contains less elements
     if (constantsMap.size() < other.constantsMap.size()) {
@@ -292,11 +292,11 @@ public class JortState implements AbstractState {
 
 
   @Override
-  public JortState clone() {
+  public RTTState clone() {
       Stack<String> newClassObjectStack = new Stack<String>();
       newClassObjectStack.addAll(classObjectStack);
       //TODO Investigate if this works
-    return new JortState(new HashMap<String, String>(constantsMap), new HashMap<String, String>(identificationMap), new HashMap<String, String>(classTypeMap), new String(classObjectScope), newClassObjectStack);
+    return new RTTState(new HashMap<String, String>(constantsMap), new HashMap<String, String>(identificationMap), new HashMap<String, String>(classTypeMap), new String(classObjectScope), newClassObjectStack);
   }
 
   @Override
@@ -313,7 +313,7 @@ public class JortState implements AbstractState {
       return false;
     }
 
-    JortState otherElement = (JortState) other;
+    RTTState otherElement = (RTTState) other;
 
     return otherElement.constantsMap.equals(constantsMap);
   }

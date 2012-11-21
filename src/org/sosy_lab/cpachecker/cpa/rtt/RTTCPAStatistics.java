@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.jort;
+package org.sosy_lab.cpachecker.cpa.rtt;
 
 import java.io.PrintStream;
 
@@ -53,7 +53,7 @@ public class RTTCPAStatistics implements Statistics {
     long totalNumberOfGlobalVariables   = 0;
 
     for (AbstractState currentAbstractState : reached.getReached()) {
-      JortState currentState = AbstractStates.extractStateByType(currentAbstractState, JortState.class);
+      RTTState currentState = AbstractStates.extractStateByType(currentAbstractState, RTTState.class);
 
       int numberOfVariables         = currentState.getConstantsMap().size();
       int numberOfGlobalVariables   = getNumberOfGlobalVariables(currentState);
@@ -73,7 +73,7 @@ public class RTTCPAStatistics implements Statistics {
 
   }
 
-  private int getNumberOfGlobalVariables(JortState state) {
+  private int getNumberOfGlobalVariables(RTTState state) {
     int numberOfGlobalVariables = 0;
 
     for(String variableName : state.getConstantsMap().keySet()) {

@@ -90,12 +90,12 @@ public class CPAMain {
     // create everything
     CPAchecker cpachecker = null;
     ShutdownHook shutdownHook = null;
-    File cFile = null;
+    File programFile = null;
     ProofGenerator proofGenerator = null;
     try {
       shutdownHook = new ShutdownHook(cpaConfig, logManager, outputDirectory);
       cpachecker = new CPAchecker(cpaConfig, logManager);
-      cFile = getCodeFile(cpaConfig);
+      programFile = getCodeFile(cpaConfig);
       proofGenerator = new ProofGenerator(cpaConfig, logManager);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
@@ -108,7 +108,7 @@ public class CPAMain {
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(cFile.getPath());
+    CPAcheckerResult result = cpachecker.run(programFile.getPath());
 
     shutdownHook.setResult(result);
 

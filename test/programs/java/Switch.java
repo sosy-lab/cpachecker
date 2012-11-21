@@ -14,14 +14,17 @@ public class Switch {
 	
       
         switch(n1){
-        case 1: assert (false);
+        case 1:// assert (false);
                     break;
-        case 5: assert (false);
+        case 5: //assert (false);
                     break;
-        case 10: assert(true);
+        case 10: //assert(true);
                     break;
-        default: assert (false);                      
+        default: //assert (false);
+          n1 = 1;
         }
+        
+        n1 = 6;
       
       	}
 		

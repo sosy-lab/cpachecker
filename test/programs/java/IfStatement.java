@@ -9,14 +9,18 @@ public class IfStatement {
 		
 
             boolean d = true;
+            boolean c = false;
             
         
-            if(d){
+            if(d || c){
             
+              int n = 1;
            
             }else {
+              
+              int n = 2;
             
-            assert(false); 
+//            assert(false); 
             
             }
 	

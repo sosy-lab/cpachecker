@@ -1,9 +1,5 @@
-
 public class IfStatement2 {
 	
-
-	
-
 	public static void main(
 			String[] args) {
 		
