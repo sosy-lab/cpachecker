@@ -45,6 +45,7 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -105,18 +106,18 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
     if (   declarations == null
         || declarations.length != 1
         || !(declarations[0] instanceof IASTFunctionDefinition)) {
-      throw new ParserException("Not a single function: " + ast.getRawSignature());
+      throw new CParserException("Not a single function: " + ast.getRawSignature());
     }
 
     IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
     IASTStatement body = func.getBody();
     if (!(body instanceof IASTCompoundStatement)) {
-      throw new ParserException("Function has an unexpected " + body.getClass().getSimpleName() + " as body: " + func.getRawSignature());
+      throw new CParserException("Function has an unexpected " + body.getClass().getSimpleName() + " as body: " + func.getRawSignature());
     }
 
     IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
     if (!(statements.length == 2 && statements[1] == null || statements.length == 1)) {
-      throw new ParserException("Not exactly one statement in function body: " + body);
+      throw new CParserException("Not exactly one statement in function body: " + body);
     }
 
     return new ASTConverter(new Scope(), logger).convert(statements[0]);
@@ -133,9 +134,9 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
       return getASTTranslationUnit(codeReader);
     } catch (CFAGenerationRuntimeException e) {
       // thrown by StubCodeReaderFactory
-      throw new ParserException(e);
+      throw new CParserException(e);
     } catch (CoreException e) {
-      throw new ParserException(e);
+      throw new CParserException(e);
     } finally {
       parseTimer.stop();
     }
@@ -150,7 +151,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
       try {
         ast.accept(builder);
       } catch (CFAGenerationRuntimeException e) {
-        throw new ParserException(e);
+        throw new CParserException(e);
       }
 
       return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations2());

@@ -28,6 +28,7 @@ import org.eclipse.cdt.core.parser.FileContent;
 import org.eclipse.cdt.core.parser.IncludeFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -64,7 +65,7 @@ public class EclipseCDT7Parser extends AbstractEclipseCParser<FileContent> {
         // Unfortunately we have to catch it in this ugly way because we cannot
         // use a stub implementation for the IncludeFileProvider.
 
-        throw new ParserException("#include is not supported");
+        throw new CParserException("#include is not supported");
 
       } else {
         throw e;

@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -151,19 +153,27 @@ public class CFACreator {
       logger.log(Level.FINE, "Starting parsing of file");
 
       ParseResult c;
+      Language language;
 
       if( filename.matches(JAVA_PATH_FILE_REGEX)){
         EclipseJavaParser par = new EclipseJavaParser(logger);
         c = par.parseFile(filename);
+        language = Language.JAVA;
       } else{
         c = parser.parseFile(filename);
+        language = Language.C;
       }
 
 
       logger.log(Level.FINE, "Parser Finished");
 
       if (c.isEmpty()) {
-        throw new ParserException("No functions found in program");
+        switch (language) {
+        case JAVA:
+          throw new JParserException("No methods found in program");
+        case C:
+          throw new CParserException("No functions found in program");
+        }
       }
 
       final FunctionEntryNode mainFunction = getMainFunction(filename, c.getFunctions());
@@ -196,7 +206,7 @@ public class CFACreator {
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
 
-        CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa.getAllFunctions());
+        CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa.getAllFunctions(), language);
         spbuilder.insertCallEdgesRecursively();
       }
 

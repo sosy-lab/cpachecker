@@ -37,11 +37,11 @@ import org.sosy_lab.common.LogManager;
  * A Visitor of eclipse jdt core dom AST that checks if there Errors in
  * the AST (from syntax errors for example)
  */
-class AstErrorChecker extends ASTVisitor {
+class AstDebugg extends ASTVisitor {
 
   private final LogManager logger;
 
-  public AstErrorChecker(LogManager logger){
+  public AstDebugg(LogManager logger){
     this.logger = logger;
   }
 
@@ -57,7 +57,6 @@ class AstErrorChecker extends ASTVisitor {
     // flags return the bitwise or of value Recovered =case 8, Malformed = case 1
     if(ASTNode.RECOVERED == (problem.getFlags() & ASTNode.RECOVERED) || ASTNode.MALFORMED == (problem.getFlags() & ASTNode.MALFORMED )){
       logger.log(Level.SEVERE, "Error " + problem.toString());
-
     }
   }
 

@@ -1117,7 +1117,7 @@ public class ASTConverter {
          return convert( (VariableDeclarationExpression)e);
     }
 
-       logger.log(Level.SEVERE, "Expression of typ "+  AstErrorChecker.getTypeName(e.getNodeType()) + " not implemented");
+       logger.log(Level.SEVERE, "Expression of typ "+  AstDebugg.getTypeName(e.getNodeType()) + " not implemented");
        return null;
   }
 

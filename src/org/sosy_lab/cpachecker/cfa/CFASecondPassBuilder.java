@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -54,13 +56,15 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 public class CFASecondPassBuilder {
 
   private final Map<String, FunctionEntryNode> cfas;
+  private final Language language;
 
   /**
    * Class constructor.
    * @param map List of all CFA's in the program.
    */
-  public CFASecondPassBuilder(Map<String, FunctionEntryNode> cfas) {
+  public CFASecondPassBuilder(Map<String, FunctionEntryNode> cfas , Language pLanguage) {
     this.cfas = cfas;
+    language = pLanguage;
   }
 
   /**
@@ -135,8 +139,6 @@ public class CFASecondPassBuilder {
    */
   private void createCallAndReturnEdges(AStatementEdge edge, AFunctionCall functionCall) throws ParserException {
 
-    //TODO Can be common?
-
     CFANode predecessorNode = edge.getPredecessor();
     CFANode successorNode = edge.getSuccessor();
     AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
@@ -145,8 +147,6 @@ public class CFASecondPassBuilder {
     FunctionEntryNode fDefNode = cfas.get(functionName);
     FunctionExitNode fExitNode = fDefNode.getExitNode();
 
-    //assert fDefNode instanceof CFunctionEntryNode : "This code creates edges from package cfa.objectmodel.c, so the nodes need to be from this package, too.";
-
     //get the parameter expression
     List<? extends IAExpression> parameters = functionCallExpression.getParameterExpressions();
 
@@ -154,10 +154,20 @@ public class CFASecondPassBuilder {
     IAFunctionType functionType = (fDefNode).getFunctionDefinition().getType();
     int declaredParameters = functionType.getParameters().size();
     int actualParameters = parameters.size();
+
     if (!functionType.takesVarArgs() && (declaredParameters != actualParameters)) {
-      throw new ParserException("Function " + functionName + " takes "
-        + declaredParameters + " parameter(s) but is called with "
-        + actualParameters + " parameter(s)", edge);
+
+      switch (language) {
+      case JAVA:
+        throw new JParserException("Function " + functionName + " takes "
+            + declaredParameters + " parameter(s) but is called with "
+            + actualParameters + " parameter(s)", edge);
+
+      case C:
+        throw new CParserException("Method " + functionName + " takes "
+            + declaredParameters + " parameter(s) but is called with "
+            + actualParameters + " parameter(s)", edge);
+      }
     }
 
     // delete old edge

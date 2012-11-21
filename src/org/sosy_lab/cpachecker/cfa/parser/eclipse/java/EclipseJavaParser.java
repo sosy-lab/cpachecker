@@ -41,8 +41,9 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -89,7 +90,7 @@ public  class EclipseJavaParser implements CParser {
 
   @Override
   public org.sosy_lab.cpachecker.cfa.ast.c.CAstNode parseSingleStatement(String pCode) throws ParserException {
-      throw new ParserException("Not Implemented");
+      throw new JParserException("Not Implemented");
   }
 
   @SuppressWarnings("unchecked")
@@ -127,9 +128,9 @@ public  class EclipseJavaParser implements CParser {
       return unit;
 
     } catch (CFAGenerationRuntimeException e) {
-      throw new ParserException(e);
+      throw new JParserException(e);
     } catch (IOException e) {
-      throw new ParserException(e);
+      throw new CParserException(e);
     } finally {
       parseTimer.stop();
     }
@@ -224,7 +225,7 @@ public  class EclipseJavaParser implements CParser {
     CompilationUnit astNext;
 
     try {
-      AstErrorChecker checker = new AstErrorChecker(logger);
+      AstDebugg checker = new AstDebugg(logger);
 
       //Is Needed For Complete Functionality
 
@@ -250,7 +251,7 @@ public  class EclipseJavaParser implements CParser {
        }
 
       } catch (CFAGenerationRuntimeException e) {
-        throw new ParserException(e);
+        throw new CParserException(e);
       }
 
       DynamicBindingCreator tracker = new DynamicBindingCreator(builder , types);
@@ -259,7 +260,7 @@ public  class EclipseJavaParser implements CParser {
       return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations());
 
     } catch (IOException e) {
-      throw new ParserException(e);
+      throw new CParserException(e);
     } finally {
       cfaTimer.stop();
     }
@@ -286,56 +287,12 @@ public  class EclipseJavaParser implements CParser {
       }
 
      } catch (CFAGenerationRuntimeException e) {
-        throw new ParserException(e);
+        throw new JParserException(e);
       } catch (IOException e) {
-        throw new ParserException(e);
+        throw new JParserException(e);
       } finally {
         parseTimer.stop();
       }
-
-       /*
-      File file = new File(name);
-
-      // There is a possibility that classes are in one and the same file
-      // in that case, the files don't exist
-      if (file.isFile()) {
-
-        String source = FileUtils.readFileToString(file);
-
-        String[] sourceFilePath = { rootPath };
-        //TODO Should be decided by user
-        String[] encoding = { "utf8" };
-
-        parser.setSource(source.toCharArray());
-        parser.setEnvironment(null, sourceFilePath, encoding, true);
-        parser.setResolveBindings(true);
-        parser.setStatementsRecovery(true);
-        parser.setBindingsRecovery(true);
-
-        // Set Compliance Options to support JDK 1.7
-        @SuppressWarnings("unchecked")
-        Hashtable<String, String> options = JavaCore.getOptions();
-        JavaCore.setComplianceOptions(JavaCore.VERSION_1_7, options);
-        parser.setCompilerOptions(options);
-
-        parser.setUnitName(unitName);
-        CompilationUnit unit = (CompilationUnit) parser.createAST(null);
-        return unit;
-      } else {
-        return null;
-      }
-
-
-
-    } catch (CFAGenerationRuntimeException e) {
-      throw new ParserException(e);
-    } catch (IOException e) {
-      throw new ParserException(e);
-    } finally {
-      parseTimer.stop();
-    }
-*/
-
   }
 
   @Override

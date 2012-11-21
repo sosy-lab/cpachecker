@@ -23,22 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
-
-
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
-import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Strings;
 
 /**
- * Handles problems during CFA generation
+ * Handles problems during CFA generation for Java program inputs
  */
 public class CFAGenerationRuntimeException extends RuntimeException {
 
-  private static final long serialVersionUID = 6850681425709171716L;
+  private static final long serialVersionUID = 6850281425209171013L;
+
+  private static final CharMatcher SEMICOLON = CharMatcher.is(';');
 
   public CFAGenerationRuntimeException(String msg) {
     super(msg);
@@ -52,15 +52,11 @@ public class CFAGenerationRuntimeException extends RuntimeException {
     this(astNode == null ? msg : createMessage(msg, astNode));
   }
 
-  public CFAGenerationRuntimeException(String msg, IAstNode astNode) {
+  public CFAGenerationRuntimeException(String msg, JAstNode astNode) {
     this(astNode == null ? msg :
-      (msg + " in line " + astNode.getFileLocation().getStartingLineNumber()
-          + ": " + astNode.toASTString()));
+        (msg + " in line " + astNode.getFileLocation().getStartingLineNumber()
+            + ": " + astNode.toASTString()));
   }
-
-  //public <P extends IASTProblemHolder & IASTNode> CFAGenerationRuntimeException2(P problem) {
-    //this(createMessage(problem.getProblem().getMessage(), problem));
-  //}
 
   private static String createMessage(String msg, ASTNode node) {
     // search the ast node for the whole statement / declaration / line
@@ -72,8 +68,7 @@ public class CFAGenerationRuntimeException extends RuntimeException {
       fullLine = fullLine.getParent();
     }
 
-    //String rawSignature = node.getRawSignature();
-    String rawSignature = "PLACEHOLDER rawSignature";
+    String rawSignature = node.toString();
     StringBuilder sb = new StringBuilder();
     if (Strings.isNullOrEmpty(msg)) {
       sb.append("Problem");
@@ -86,11 +81,16 @@ public class CFAGenerationRuntimeException extends RuntimeException {
     sb.append(rawSignature);
 
     if (fullLine != null && fullLine != node) {
+      String lineRawSignature = fullLine.toString();
 
-      //String lineRawSignature = fullLine.getRawSignature();
-      String lineRawSignature = "PLACEHOLDER rawSignature";
-      String codeWithoutWhitespace = CharMatcher.WHITESPACE.removeFrom(rawSignature);
-      String lineWithoutWhitespace = CharMatcher.WHITESPACE.removeFrom(lineRawSignature);
+      String codeWithoutWhitespace =
+          CharMatcher.WHITESPACE.removeFrom(rawSignature);
+      String lineWithoutWhitespace =
+          CharMatcher.WHITESPACE.removeFrom(lineRawSignature);
+
+      // remove all whitespaces and trailing semicolons for comparison
+      codeWithoutWhitespace = SEMICOLON.trimFrom(codeWithoutWhitespace);
+      lineWithoutWhitespace = SEMICOLON.trimFrom(lineWithoutWhitespace);
 
       if (!codeWithoutWhitespace.equals(lineWithoutWhitespace)) {
         sb.append(" (full line is ");
