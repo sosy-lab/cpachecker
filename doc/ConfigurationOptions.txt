@@ -227,10 +227,6 @@ cbmc.timelimit = 0
 # omitted.
 cegar.refiner = no default value
 
-# completely restart analysis on refinement by removing everything from the
-# reached set
-cegar.restartOnRefinement = false
-
 # export CFA as .dot file
 cfa.export = true
 

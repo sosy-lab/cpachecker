@@ -133,10 +133,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
   private Class<? extends Refiner> refiner = null;
 
-  @Option(description = "completely restart analysis on refinement "
-      + "by removing everything from the reached set")
-  private boolean restartOnRefinement = false;
-
   private final LogManager logger;
   private final Algorithm algorithm;
   private final Refiner mRefiner;
@@ -259,11 +255,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
     if (refinementResult) {
       stats.countSuccessfulRefinements++;
-
-      if (restartOnRefinement) {
-        // TODO
-      }
-
       runGC();
     }
 
