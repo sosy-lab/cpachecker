@@ -604,10 +604,6 @@ cpa.predicate.mathsat.logfile = "mathsat5.%d.smt2"
 # use a combination of theories (this is incomplete)
 cpa.predicate.mathsat.useDtc = false
 
-# Use theory of EUF in solver (recommended if UIFs are used, otherwise they
-# are useless)
-cpa.predicate.mathsat.useEUFtheory = true
-
 # Use UIFs (recommended because its more precise)
 cpa.predicate.mathsat.useUIFs = true
 

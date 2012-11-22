@@ -67,9 +67,6 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   @Option(description = "Use UIFs (recommended because its more precise)")
   private boolean useUIFs = true;
 
-  @Option(description = "Use theory of EUF in solver (recommended if UIFs are used, otherwise they are useless)")
-  private boolean useEUFtheory = true;
-
   @Option(description = "List of further options which will be passed to Mathsat. "
       + "Format is 'key1=value1,key2=value2'")
   private List<String> furtherOptions = ImmutableList.of();
@@ -156,10 +153,6 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
 
     if (ghostFilter) {
       msat_set_option(cfg, "ghost_filtering", "true");
-    }
-
-    if (!useEUFtheory) {
-      msat_set_option(cfg, "theory.euf.enabled", "false");
     }
 
     for (Map.Entry<String, String> option : furtherOptionsMap.entrySet()) {
