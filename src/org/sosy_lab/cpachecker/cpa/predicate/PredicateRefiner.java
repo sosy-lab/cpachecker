@@ -36,6 +36,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -83,6 +85,13 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
                       "of the ARG. Otherwise, only predicates from the error path " +
                       "are kept.")
   private boolean keepAllPredicates = false;
+
+  @Option(description="Do a complete restart (clearing the reached set) " +
+                      "after N refinements. 0 to disable, 1 for always.")
+  @IntegerOption(min=0)
+  private int restartAfterRefinements = 0;
+
+  private int refinementCount = 0; // this is modulo restartAfterRefinements
 
   private class Stats implements Statistics {
     @Override
@@ -178,6 +187,18 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     ARGState refinementRoot = refinementResult.getFirst();
     Multimap<CFANode, AbstractionPredicate> newPredicates = refinementResult.getSecond();
 
+    // check whether we should restart
+    refinementCount++;
+    if (restartAfterRefinements > 0 && refinementCount >= restartAfterRefinements) {
+      ARGState root = (ARGState)reached.getFirstState();
+      // we have to use the child as the refinementRoot
+      assert root.getChildren().size() == 1 : "ARG root should have exactly one child";
+      refinementRoot = Iterables.getLast(root.getChildren());
+
+      logger.log(Level.FINEST, "Restarting analysis after",refinementCount,"refinements by clearing the ARG.");
+      refinementCount = 0;
+    }
+
     // now create new precision
     PredicatePrecision basePrecision;
     if (keepAllPredicates) {
@@ -201,6 +222,8 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     argUpdate.start();
 
     pReached.removeSubtree(refinementRoot, newPrecision);
+
+    assert (refinementCount > 0) || reached.size() == 1;
 
     argUpdate.stop();
   }

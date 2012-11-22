@@ -674,6 +674,10 @@ cpa.predicate.refinement.maxRefinementSize = 0
 # reached
 cpa.predicate.refinement.msatCexFile = "counterexample.msat"
 
+# Do a complete restart (clearing the reached set) after N refinements. 0 to
+# disable, 1 for always.
+cpa.predicate.refinement.restartAfterRefinements = 0
+
 # use incremental search in counterexample analysis, to find the minimal
 # infeasible prefix
 cpa.predicate.refinement.shortestCexTrace = false
