@@ -123,9 +123,12 @@ public class CFACreator {
   public final Timer pruningTime = new Timer();
   public final Timer exportTime = new Timer();
 
+  private Configuration config;
+
   public CFACreator(Configuration config, LogManager logger)
           throws InvalidConfigurationException {
     config.inject(this);
+    this.config = config;
 
     this.logger = logger;
 
@@ -191,7 +194,7 @@ public class CFACreator {
       Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
 
       // get information about variables
-      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa));
+      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa, config));
 
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
