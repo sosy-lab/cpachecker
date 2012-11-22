@@ -53,9 +53,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.NamedTermsWrapper;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.google.common.base.Splitter.MapSplitter;
+import com.google.common.collect.ImmutableMap;
 
 @Options(prefix = "cpa.predicate.mathsat")
 public abstract class Mathsat5FormulaManager implements FormulaManager {
@@ -69,8 +68,8 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
 
   @Option(description = "List of further options which will be passed to Mathsat. "
       + "Format is 'key1=value1,key2=value2'")
-  private List<String> furtherOptions = ImmutableList.of();
-  private final Map<String, String> furtherOptionsMap = Maps.newHashMap();
+  private String furtherOptions = "";
+  private ImmutableMap<String, String> furtherOptionsMap;
 
   @Option(description = "Export solver queries in Smtlib format into a file (for Mathsat5).")
   private boolean logAllQueries = false;
@@ -112,22 +111,22 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   Mathsat5FormulaManager(Configuration config, LogManager logger, MsatType pVarType) throws InvalidConfigurationException {
     config.inject(this, Mathsat5FormulaManager.class);
 
-    Splitter optionSplitter = Splitter.on('=').trimResults().omitEmptyStrings().limit(2);
-    for (String option : furtherOptions) {
-      List<String> bits = Lists.newArrayList(optionSplitter.split(option));
-      if (bits.size() != 2) {
-        throw new InvalidConfigurationException("Invalid Mathsat option " + option);
-      }
+    MapSplitter optionSplitter = Splitter.on(',').trimResults().omitEmptyStrings()
+            .withKeyValueSeparator(Splitter.on('=').limit(2).trimResults());
 
-      furtherOptionsMap.put(bits.get(0), bits.get(1));
+    try {
+      furtherOptionsMap = ImmutableMap.copyOf(optionSplitter.split(furtherOptions));
+    } catch (IllegalArgumentException e) {
+      throw new InvalidConfigurationException("Invalid Mathsat option in \"" + furtherOptions + "\": " + e.getMessage(), e);
     }
 
     long msatConf = msat_create_config();
 
     for (Map.Entry<String, String> option : furtherOptionsMap.entrySet()) {
-      int retval = msat_set_option(msatConf, option.getKey(), option.getValue());
-      if (retval != 0) {
-        throw new InvalidConfigurationException("Could not set Mathsat option " + option + ", error code " + retval);
+      try {
+        msat_set_option_checked(msatConf, option.getKey(), option.getValue());
+      } catch (IllegalArgumentException e) {
+        throw new InvalidConfigurationException(e.getMessage(), e);
       }
     }
 
@@ -152,19 +151,18 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
     long env;
 
     if (ghostFilter) {
-      msat_set_option(cfg, "ghost_filtering", "true");
+      msat_set_option_checked(cfg, "dpll.ghost_filtering", "true");
     }
 
     for (Map.Entry<String, String> option : furtherOptionsMap.entrySet()) {
-      int retval = msat_set_option(cfg, option.getKey(), option.getValue());
-      assert retval == 0 : "Could not set Mathsat option " + option + " although it worked previously, error code " + retval;
+      msat_set_option_checked(cfg, option.getKey(), option.getValue());
     }
 
     if (logAllQueries && logfile != null) {
       String filename = String.format(logfile.getAbsolutePath(), logfileCounter++);
 
-      msat_set_option(cfg, "debug.api_call_trace", "1");
-      msat_set_option(cfg, "debug.api_call_trace_filename", filename);
+      msat_set_option_checked(cfg, "debug.api_call_trace", "1");
+      msat_set_option_checked(cfg, "debug.api_call_trace_filename", filename);
     }
 
     if (shared) {
