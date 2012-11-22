@@ -305,7 +305,8 @@ class SmtInterpolEnvironment {
     return sort(type.toString());
   }
 
-  private Sort sort(String sortname, Sort... params) {
+  /** This function returns an n-ary sort with given parameters. */
+  Sort sort(String sortname, Sort... params) {
     try {
       return script.sort(sortname, params);
     } catch (SMTLIBException e) {
