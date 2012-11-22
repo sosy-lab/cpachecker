@@ -418,13 +418,16 @@ class Run():
                                      numberOfThread,
                                      logfile)
 
-        # sometimes we should check for timeout again, 
-        # because tools can produce results after they are killed
-        # we use an overhead of 20 seconds
-        if TIMELIMIT in self.benchmark.rlimits:
-            timeLimit = self.benchmark.rlimits[TIMELIMIT] + 20
-            if self.wallTime > timeLimit or self.cpuTime > timeLimit:
-                self.status = "TIMEOUT"
+        # Tools sometimes produce a result even after a timeout.
+        # This should not be counted, so we overwrite the result with TIMEOUT
+        # here. if this is the case.
+        # However, we don't want to forget more specific results like SEGFAULT,
+        # so we do this only if the result is a "normal" one like SAFE.
+        if not self.status in ['SAFE', 'UNSAFE', 'UNKNOWN']:
+            if TIMELIMIT in self.benchmark.rlimits:
+                timeLimit = self.benchmark.rlimits[TIMELIMIT] + 20
+                if self.wallTime > timeLimit or self.cpuTime > timeLimit:
+                    self.status = "TIMEOUT"
 
         self.benchmark.outputHandler.outputAfterRun(self)
 
