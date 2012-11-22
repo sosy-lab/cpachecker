@@ -472,6 +472,12 @@ cpa.featurevars.variableWhitelist = ""
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value
 
+# Enable condition-block encoding?
+cpa.fsmbdd.conditionBlocking = true
+
+# Merge only on abstraction locations.
+cpa.fsmbdd.mergeOnlyOnEqualConditions = false
+
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
@@ -659,6 +665,10 @@ cpa.predicate.refinement.dumpInterpolationProblems = false
 # apply deletion-filter to the abstract counterexample, to get a minimal set
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
+
+# During refinement, keep predicates from all removed parts of the ARG.
+# Otherwise, only predicates from the error path are kept.
+cpa.predicate.refinement.keepAllPredicates = false
 
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
