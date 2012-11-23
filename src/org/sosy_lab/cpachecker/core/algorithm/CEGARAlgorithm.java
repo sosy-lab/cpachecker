@@ -61,7 +61,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
-    private final Timer gcTimer = new Timer();
 
     private volatile int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
@@ -86,7 +85,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         out.println("Time for refinements:             " + refinementTimer);
         out.println("Average time for refinement:      " + refinementTimer.printAvgTime());
         out.println("Max time for refinement:          " + refinementTimer.printMaxTime());
-        out.println("Time for garbage collection:      " + gcTimer);
       }
     }
   }
@@ -120,9 +118,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       return stats.refinementTimer.isRunning();
     }
   }
-
-  private static final int GC_PERIOD = 100;
-  private int gcCounter = 0;
 
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
 
@@ -255,19 +250,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
     if (refinementResult) {
       stats.countSuccessfulRefinements++;
-      runGC();
     }
 
     return refinementResult;
-  }
-
-  private void runGC() {
-    if ((++gcCounter % GC_PERIOD) == 0) {
-      stats.gcTimer.start();
-      System.gc();
-      gcCounter = 0;
-      stats.gcTimer.stop();
-    }
   }
 
   @Override
