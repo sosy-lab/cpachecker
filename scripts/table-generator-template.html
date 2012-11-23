@@ -306,6 +306,7 @@ function toggleCompleteColumn(event, listOfCheckboxes) {
 $(document).ready(function() {
   $('#columnTitles > td:first-child')
     .addClass("clickable")
+    .attr("title", "Click here to toggle visibility of columns")
     .click(function (event) {
         return createColumnToggleButtons(); });
 });
@@ -779,7 +780,9 @@ $(document).ready(function() {
   for (i = 1; i< columnTitles.length; i++) { // do not use first column (i!=0)
     var column = columnTitles[i];
     debug(column);
-    column.style.cursor = "pointer";
+    $(column)
+      .addClass("clickable")
+      .attr("title", "Click here to show a graph of this column")
     column.onclick = function (event) {
       graphData.header = event.target.textContent;
       return showPlot();
@@ -826,11 +829,11 @@ def formatOptions(str):
 
 <tbody>
 {{for line in body}}
-<tr><td><a href="{{line.filePath|url}}">{{line.shortFileName}}</a></td>
+<tr><td title="Click here to show source code"><a href="{{line.filePath|url}}">{{line.shortFileName}}</a></td>
   {{for test in line.results}}
   {{for column, value in zip(test.columns, test.values)}}
   {{if column.title == 'status'}}
-  <td class="{{test.category}}"><a href="{{test.logFile|url}}">{{value.lower()}}</a></td>
+  <td class="{{test.category}}" title="Click here to show output of tool"><a href="{{test.logFile|url}}">{{value.lower()}}</a></td>
   {{else}}
   <td class="{{test.category}}Value">{{value or '-'}}</td>
   {{endif}}
