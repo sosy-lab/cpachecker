@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Objects.equal;
-import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.Pair.zipList;
 
 import java.math.BigDecimal;
@@ -72,9 +71,6 @@ import com.google.common.annotations.VisibleForTesting;
  */
 class AutomatonASTComparator {
 
-  // TODO refactor
-  static CParser parser = null;
-
   /**
    * Every occurrence of the joker expression $? in the pattern is substituted by JOKER_EXPR.
    * This is necessary because the C-parser cannot parse the pattern if it contains Dollar-Symbols.
@@ -84,17 +80,17 @@ class AutomatonASTComparator {
   private static final String NUMBERED_JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Num";
   private static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");
 
-  static ASTMatcher generatePatternAST(String pPattern) throws InvalidAutomatonException {
+  static ASTMatcher generatePatternAST(String pPattern, CParser parser) throws InvalidAutomatonException {
     // $?-Jokers, $1-Jokers and function declaration
     String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
 
-    return parse(tmp).accept(ASTMatcherGenerator.INSTANCE);
+    return parse(tmp, parser).accept(ASTMatcherGenerator.INSTANCE);
   }
 
-  static CStatement generateSourceAST(String pSource) throws InvalidAutomatonException {
+  static CStatement generateSourceAST(String pSource, CParser parser) throws InvalidAutomatonException {
     String tmp = addFunctionDeclaration(pSource);
 
-    return parse(tmp);
+    return parse(tmp, parser);
   }
 
   @VisibleForTesting
@@ -139,8 +135,7 @@ class AutomatonASTComparator {
    * @return The AST.
    * @throws InvalidAutomatonException
    */
-  private static CStatement parse(String code) throws InvalidAutomatonException {
-    checkState(parser != null);
+  private static CStatement parse(String code, CParser parser) throws InvalidAutomatonException {
     try {
       CAstNode statement = parser.parseSingleStatement(code);
       if (!(statement instanceof CStatement)) {
