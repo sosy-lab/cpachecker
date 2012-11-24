@@ -192,11 +192,14 @@ $(document).ready(function() {
 <!-- ################## Possibility to select displayed columns by clicking on left-most cell in title row ################## -->
 
 <style type="text/css">
-  #toggleTable { font-family:arial, sans serif;
-               }
-  #toggleTableWrapper { font-family:arial, sans serif; 
-                 height: 100%; overflow: scroll; width: 100%;
-               }
+  #toggleTable { margin: auto; }
+  #toggleTable td { padding-bottom: 5px; padding-top: 5px; }
+  #toggleTable tr:hover { background-color: transparent; }
+  #toggleTable tbody td:first-child { font-family: arial, sans serif; }
+  #toggleTableWrapper { height: 100%; overflow: auto; width: 100%; }
+  .hiddenCell { background: red; }
+  .visibleCell { background: green; }
+  .clickableCell:hover { opacity: 0.5; cursor: pointer; }
 </style>
 
 <script type="text/javascript">
@@ -241,7 +244,6 @@ function decColspan(col) {
 // @param index: index of a column in row "columnTitle"
 function toggleColumn (shouldBeVisible, index) {
     if (headerArray == null) { createHeaderArray(); }
-    console.log(index + "   " + shouldBeVisible);
     var columnTitles = $('#columnTitles > td');
     // if column is hidden (or visible), we do not hide (or show) it again
     if ($(columnTitles[index]).is(":visible") != shouldBeVisible) {
@@ -266,9 +268,9 @@ function toggleCells(indices) {
     var checked = indexToCell[indices[0]].isChecked; 
     for (var i=0; i<indices.length; i++) {
         var cell = indexToCell[indices[i]];
-        console.log("TOGGLE " + indices[i]);
         toggleColumn (!checked, indices[i]);
-        cell.css("background-color", !checked ? "green" : "red");    
+        cell.removeClass(!checked ? 'hiddenCell' : 'visibleCell')
+            .addClass(checked ? 'hiddenCell' : 'visibleCell');
         cell.isChecked = !checked;
     }
 }
@@ -304,20 +306,24 @@ function createColumnToggleView() {
 
     // create header for table
     var list = []; for (var i=1; i<columnIndex; i++) { list.push(i); }
-    var cellTopLeft = $('<td>').append("TOGGLE").click(
-            {indices: list}, 
-            function(event) { toggleCells(event.data.indices); }
-        );
-    var rowHeader = $('<tr>').append(cellTopLeft);
+    var rowHeader = $('<tr>');
+    $('<td>') // create top-left cell
+        .click( {indices: list},
+                function(event) { toggleCells(event.data.indices); } )
+        .addClass('clickable')
+        .attr('title', 'Click here to toggle all columns')
+        .appendTo(rowHeader);
     for (var j = 0; j < tableColumns.length; j++) {
-        var cell = $('<td>').append(tableColumns[j]).click(
-            {indices: titlesToColumns[tableColumns[j]]}, 
-            function(event) { toggleCells(event.data.indices); }
-        );
-        rowHeader.append(cell);
+        $('<td>').append(tableColumns[j]) // create column-title-cell
+            .click( {indices: titlesToColumns[tableColumns[j]]}, 
+                    function(event) { toggleCells(event.data.indices); } )
+            .addClass('clickable')
+            .attr('title', 'Click here to toggle all columns with this title')
+            .appendTo(rowHeader);
     }
 
-    var tableHTML = $('<table>').attr('id', 'toggleTable').append($('<thead>').append(rowHeader));
+    var tableHTML = $('<table>').attr('id', 'toggleTable')
+                    .append($('<thead>').append(rowHeader));
 
     // create body for table
     var tableBody = $('<tbody>').appendTo(tableHTML);
@@ -327,29 +333,29 @@ function createColumnToggleView() {
         
         // get indices of row and create rowTitle-cell
         var rowTitle = test.tool + ' ' + (test.date ? test.date + ' ' : '') + test.name;
-        var cell = $('<td>').append(rowTitle).click(
-            {indices: test.indices}, 
-            function(event) { toggleCells(event.data.indices); }
-        );
-        rowHTML.append(cell);
+        $('<td>').append(rowTitle)
+            .click( {indices: test.indices}, 
+                    function(event) { toggleCells(event.data.indices); } )
+            .addClass('clickable')
+            .attr('title', 'Click here to toggle all columns of this test')
+            .appendTo(rowHTML);
     
         // get cells of row
         var cols = columns[i];
         for (var j = 0; j < tableColumns.length; j++) {
+            var cell = $('<td>').appendTo(rowHTML);
             var index = test.indexToColumn[j];
-            var cell = $('<td>');
-            indexToCell[index] = cell;
             if (index) {
+                indexToCell[index] = cell;
                 var childIndex = index + 1;
                 var checked = $('#columnTitles > td:nth-child(' + childIndex + ')').is(':visible');
                 cell.isChecked = checked;
-                cell.css("background-color", checked ? "green" : "red");
-                cell.click(
-                    {index: [index]}, 
-                    function(event) { toggleCells(event.data.index); }
-                );
+                cell.addClass(checked ? 'visibleCell' : 'hiddenCell')
+                    .click( {index: [index]}, 
+                            function(event) { toggleCells(event.data.index); } )
+                    .addClass('clickableCell');
+                    
             }
-            rowHTML.append(cell);
         }
     }
     $('<div>').attr('id', 'toggleTableWrapper')
@@ -857,7 +863,7 @@ $(document).ready(function() {
 <body>
 
 <div id="contentPaneBackground"></div>
-<div id="contentPane" tabindex="0"></div>
+<div id="contentPane"></div>
 
 <table id="dataTable">
 <thead>
