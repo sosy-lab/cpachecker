@@ -242,6 +242,9 @@ cfa.removeIrrelevantForSpecification = false
 # combine sequences of simple edges into a single edge
 cfa.useMultiEdges = false
 
+# Dump variable classification to a file.
+cfa.variableClassification.logfile = "VariableClassification.log"
+
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
 
@@ -595,7 +598,7 @@ cpa.predicate.lvalsAsUIFs = false
 
 # List of further options which will be passed to Mathsat. Format is
 # 'key1=value1,key2=value2'
-cpa.predicate.mathsat.furtherOptions = ImmutableList.of()
+cpa.predicate.mathsat.furtherOptions = ""
 
 # Export solver queries in Smtlib format into a file (for Mathsat5).
 cpa.predicate.mathsat.logAllQueries = false

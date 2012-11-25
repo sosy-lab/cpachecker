@@ -121,6 +121,7 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
     }
 
     long msatConf = msat_create_config();
+    msat_set_option_checked(msatConf, "theory.la.split_rat_eq", "false");
 
     for (Map.Entry<String, String> option : furtherOptionsMap.entrySet()) {
       try {
@@ -153,6 +154,7 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
     if (ghostFilter) {
       msat_set_option_checked(cfg, "dpll.ghost_filtering", "true");
     }
+    msat_set_option_checked(cfg, "theory.la.split_rat_eq", "false");
 
     for (Map.Entry<String, String> option : furtherOptionsMap.entrySet()) {
       msat_set_option_checked(cfg, option.getKey(), option.getValue());
