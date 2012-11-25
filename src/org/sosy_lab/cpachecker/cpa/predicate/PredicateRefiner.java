@@ -336,7 +336,10 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     // find all distinct precisions to merge them
     Set<Precision> precisions = Sets.newIdentityHashSet();
     for (ARGState state : refinementRoot.getSubgraph()) {
-      precisions.add(reached.getPrecision(state));
+      if (!state.isCovered()) {
+        // covered states are not in reached set
+        precisions.add(reached.getPrecision(state));
+      }
     }
 
     for (Precision prec : precisions) {
