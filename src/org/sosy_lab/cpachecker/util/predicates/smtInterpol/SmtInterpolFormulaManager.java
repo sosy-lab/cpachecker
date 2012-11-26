@@ -354,8 +354,8 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
       return (uifs.contains(t) || isAtom(t));
 
     } else if (isAnd(t)) {
-      for (int i = 0; i < getArity(t); ++i) {
-        if (!isPurelyConjunctive(getArg(t, i))) {
+      for (Term c : getArgs(t)) {
+        if (!isPurelyConjunctive(c)) {
           return false;
         }
       }
@@ -550,8 +550,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
       } else {
         // ok, go into this formula
-        for (int i = 0; i < getArity(t); ++i) {
-          Term c = getArg(t, i);
+        for (Term c : getArgs(t)) {
           if (!cache.contains(c)) {
             toProcess.push(c);
           }
@@ -582,9 +581,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
 
       } else {
         // ok, go into this formula
-        for (int i = 0; i < getArity(t); ++i){
-          Term c = getArg(t, i);
-
+        for (Term c : getArgs(t)){
           if (seen.add(c)) {
             toProcess.push(c);
           }
@@ -607,8 +604,8 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
         res = false;
 
       } else {
-        for (int i = 0; i < getArity(t); ++i) {
-          res |= isPurelyArithmetic(getArg(t, i));
+        for (Term c : getArgs(t)) {
+          res |= isPurelyArithmetic(c);
           if (!res) {
             break;
           }
@@ -635,9 +632,7 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
       }
 
       if (!isVariable(rightSubTerm)) {
-        int args = getArity(rightSubTerm);
-        for (int i = 0; i < args; ++i) {
-          Term arg = getArg(rightSubTerm, i);
+        for (Term arg : getArgs(rightSubTerm)) {
           if (!seen.contains(arg)) {
             toProcess.add(arg);
             seen.add(arg);

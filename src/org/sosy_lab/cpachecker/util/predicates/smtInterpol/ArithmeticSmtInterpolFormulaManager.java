@@ -255,9 +255,7 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
         FunctionSymbol funcSym = ((ApplicationTerm) t).getFunction();
         andFound = bitwiseAndUfDecl.equals(funcSym.getName());
       }
-      int arity = getArity(t);
-      for (int i = 0; i < arity; ++i) {
-        Term c = getArg(t, i);
+      for (Term c : getArgs(t)) {
         if (seen.add(c)) {
           // was not already contained in seen
           toProcess.add(c);

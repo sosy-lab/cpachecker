@@ -195,6 +195,15 @@ public class SmtInterpolUtil {
     return is;
   }
 
+  public static Term[] getArgs(Term t) {
+    if (t instanceof ApplicationTerm) {
+      return ((ApplicationTerm) t).getParameters();
+    } else {
+      throw new IllegalArgumentException("Cannot get children of term type "
+          + t.getClass().getSimpleName() + " in term " + t.toStringDirect());
+    }
+  }
+
   public static int getArity(Term t) {
     if (t instanceof ApplicationTerm) {
       return ((ApplicationTerm) t).getParameters().length;
