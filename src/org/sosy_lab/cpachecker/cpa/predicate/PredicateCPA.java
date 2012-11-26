@@ -178,7 +178,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     initialPrecision = readPredicatesFromFile(cfa);
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    stats = new PredicateCPAStatistics(this, blk, regionManager);
+    stats = new PredicateCPAStatistics(this, blk, regionManager, cfa);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
   }

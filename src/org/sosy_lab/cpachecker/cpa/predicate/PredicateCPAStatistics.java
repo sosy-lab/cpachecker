@@ -1,12 +1,12 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
+ *  This predmapFile is part of CPAchecker.
  *
  *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
+ *  you may not use this predmapFile except in compliance with the License.
  *  You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
@@ -23,53 +23,82 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 import com.google.common.base.Supplier;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
-@Options(prefix="cpa.predicate.predmap")
+@Options(prefix="cpa.predicate")
 class PredicateCPAStatistics implements Statistics {
 
-    @Option(description="export final predicate map, if the error location is not reached")
-    private boolean export = true;
+    @Option(description="exportPredmap final predicate map",
+            name="predmap.export")
+    private boolean exportPredmap = true;
 
-    @Option(
-        description="export final predicate map, if the error location is not reached")
+    @Option(description="predmapFile for exporting final predicate map",
+            name="predmap.file")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private File file = new File("predmap.txt");
+    private File predmapFile = new File("predmap.txt");
+
+    @Option(description="exportPredmap final loop invariants",
+            name="invariants.export")
+    private boolean exportInvariants = true;
+
+    @Option(description="predmapFile for exporting final loop invariants",
+            name="invariants.file")
+    @FileOption(FileOption.Type.OUTPUT_FILE)
+    private File invariantsFile = new File("invariants.txt");
 
     private final PredicateCPA cpa;
     private final BlockOperator blk;
     private final RegionManager rmgr;
+    private final CFA cfa;
 
-    public PredicateCPAStatistics(PredicateCPA cpa, BlockOperator blk, RegionManager rmgr) throws InvalidConfigurationException {
-      this.cpa = cpa;
-      this.blk = blk;
-      this.rmgr = rmgr;
+    public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
+        RegionManager pRmgr, CFA pCfa) throws InvalidConfigurationException {
+      cpa = pCpa;
+      blk = pBlk;
+      rmgr = pRmgr;
+      cfa = pCfa;
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
     }
 
@@ -107,9 +136,9 @@ class PredicateCPAStatistics implements Statistics {
       allPredicates.addAll(functionPredicates.values());
 
       // check if/where to dump the predicate map
-      if (export && file != null) {
+      if (exportPredmap && predmapFile != null) {
         PredicateMapWriter writer = new PredicateMapWriter(cpa);
-        writer.writePredicateMap(localPredicates, functionPredicates, globalPredicates, allPredicates, file);
+        writer.writePredicateMap(localPredicates, functionPredicates, globalPredicates, allPredicates, predmapFile);
       }
 
       int maxPredsPerLocation = 0;
@@ -122,6 +151,10 @@ class PredicateCPAStatistics implements Statistics {
       int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
 
       int allDistinctPreds = allPredicates.size();
+
+      if (result == Result.SAFE && exportInvariants && invariantsFile != null) {
+        exportInvariants(reached);
+      }
 
       PredicateAbstractionManager.Stats as = amgr.stats;
       PredicateAbstractDomain domain = cpa.getAbstractDomain();
@@ -227,6 +260,43 @@ class PredicateCPAStatistics implements Statistics {
       }
       out.println();
       rmgr.printStatistics(out);
+    }
+
+    private void exportInvariants(ReachedSet reached) {
+      Map<CFANode, Region> regions = Maps.newHashMap();
+      for (AbstractState state : reached) {
+        CFANode loc = extractLocation(state);
+        if (loc.isLoopStart()) {
+          PredicateAbstractState predicateState = extractStateByType(state, PredicateAbstractState.class);
+          assert predicateState.isAbstractionState();
+          Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
+          region = rmgr.makeOr(region, predicateState.getAbstractionFormula().asRegion());
+          regions.put(loc, region);
+        }
+      }
+
+      AbstractionManager absmgr = cpa.getAbstractionManager();
+      FormulaManager fmgr = cpa.getFormulaManager();
+      StringBuffer invariants = new StringBuffer();
+
+      for (CFANode loc : from(cfa.getAllNodes())
+                           .filter(CFAUtils.IS_LOOP_NODE)
+                           .toImmutableSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
+        Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
+        Formula formula = absmgr.toConcrete(region);
+        invariants.append("loop__");
+        invariants.append(loc.getFunctionName());
+        invariants.append("__");
+        invariants.append(loc.getLineNumber());
+        invariants.append(":\n");
+        invariants.append(fmgr.dumpFormula(formula));
+        invariants.append('\n');
+      }
+      try {
+        Files.writeFile(invariantsFile, invariants);
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write loop invariants to file");
+      }
     }
 
     private String toPercent(double val, double full) {
