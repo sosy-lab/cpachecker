@@ -48,7 +48,7 @@ public class SmtInterpolUtil {
 
   /** A Term is an Atom, iff its function is no element of {"And", "Or", "Not"}.*/
   public static boolean isAtom(Term t) {
-    boolean is = !isAnd(t) && !isOr(t) && !isNot(t);
+    boolean is = !isAnd(t) && !isOr(t) && !isNot(t) && !isImplication(t) && !isIfThenElse(t);
     if (log) {
       System.out.println("   isAtom (" + t +"): " + is);
     }
@@ -168,6 +168,20 @@ public class SmtInterpolUtil {
     if (log) {
       System.out.println("   isNot (" + t +"): " + is);
     }
+    return is;
+  }
+
+  /** t1 => t2 */
+  public static boolean isImplication(Term t) {
+    boolean is = (t instanceof ApplicationTerm)
+        && t.getTheory().m_Implies == ((ApplicationTerm) t).getFunction();
+    return is;
+  }
+
+  /** (ite t1 t2 t3) */
+  public static boolean isIfThenElse(Term t) {
+    boolean is = (t instanceof ApplicationTerm)
+        && "ite".equals(((ApplicationTerm) t).getFunction().getName());
     return is;
   }
 

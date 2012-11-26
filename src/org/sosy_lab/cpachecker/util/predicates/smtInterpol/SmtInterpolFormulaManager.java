@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
+import de.uni_freiburg.informatik.ultimate.logic.FormulaUnLet;
+import de.uni_freiburg.informatik.ultimate.logic.FormulaUnLet.UnletType;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
@@ -501,6 +503,9 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
       boolean splitArithEqualities, boolean conjunctionsOnly) {
     Set<Formula> cache = new HashSet<Formula>();
     List<Formula> atoms = new ArrayList<Formula>();
+
+    // remove all "let" terms from the formula
+    f = encapsulate(new FormulaUnLet(UnletType.EXPAND_DEFINITIONS).unlet(getTerm(f)));
 
     Deque<Formula> toProcess = new ArrayDeque<Formula>();
     toProcess.push(f);
