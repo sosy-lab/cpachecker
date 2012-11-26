@@ -91,6 +91,10 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
   @IntegerOption(min=0)
   private int restartAfterRefinements = 0;
 
+  @Option(description="During refinement, add all new predicates to the precisions " +
+                      "of all abstract states in the reached set.")
+  private boolean sharePredicates = false;
+
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
   private class Stats implements Statistics {
@@ -224,6 +228,10 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     pReached.removeSubtree(refinementRoot, newPrecision);
 
     assert (refinementCount > 0) || reached.size() == 1;
+
+    if (sharePredicates) {
+      pReached.updatePrecisionGlobally(newPrecision);
+    }
 
     argUpdate.stop();
   }

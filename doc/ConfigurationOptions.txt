@@ -685,6 +685,10 @@ cpa.predicate.refinement.msatCexFile = "counterexample.msat"
 # disable, 1 for always.
 cpa.predicate.refinement.restartAfterRefinements = 0
 
+# During refinement, add all new predicates to the precisions of all abstract
+# states in the reached set.
+cpa.predicate.refinement.sharePredicates = false
+
 # use incremental search in counterexample analysis, to find the minimal
 # infeasible prefix
 cpa.predicate.refinement.shortestCexTrace = false
