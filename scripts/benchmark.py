@@ -1800,9 +1800,9 @@ def run_cpachecker(exe, options, sourcefile, columns, rlimits, numberOfThread, f
     status = getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
     getCPAcheckerColumns(output, columns)
 
-    # Segmentation faults reference a file with more information.
+    # Segmentation faults and some memory failures reference a file with more information.
     # We append this file to the log.
-    if status == 'SEGMENTATION FAULT' or status.startswith('ERROR'):
+    if status == 'SEGMENTATION FAULT' or status.startswith('ERROR') or status == 'OUT OF MEMORY':
         next = False
         for line in output.splitlines():
             if next:
