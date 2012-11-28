@@ -1266,7 +1266,7 @@ public class CtoFormulaConverter {
 
     @Override
     public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
-      return fmgr.makeNumber(fExp.getValue().toString());
+      return fmgr.makeNumber(fExp.getValue().toPlainString());
     }
 
     @Override
