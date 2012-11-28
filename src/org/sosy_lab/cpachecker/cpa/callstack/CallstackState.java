@@ -78,9 +78,18 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
   @Override
   public String toString() {
     return "Function " + getCurrentFunction()
-         + " called from node " + getCallNode()
-         + ", stack depth " + getDepth()
-         + " [" + Integer.toHexString(super.hashCode()) + "]";
+        + " called from node " + getCallNode()
+        + ", stack depth " + getDepth()
+        + " [" + Integer.toHexString(super.hashCode()) + "]";
+  }
+
+  public boolean sameStateInProofChecking(CallstackState pOther) {
+    if (pOther.callerNode == callerNode
+        && pOther.depth == depth
+        && pOther.currentFunction.equals(currentFunction)
+        && (pOther.previousState == previousState || (previousState != null && pOther.previousState != null && previousState
+            .sameStateInProofChecking(pOther.previousState)))) { return true; }
+    return false;
   }
 
   @Override
@@ -103,7 +112,8 @@ public final class CallstackState implements AbstractState, Partitionable, Abstr
       }
     }
 
-    throw new InvalidQueryException(String.format("Evaluating %s not supported by %s", pProperty, this.getClass().getCanonicalName()));
+    throw new InvalidQueryException(String.format("Evaluating %s not supported by %s", pProperty, this.getClass()
+        .getCanonicalName()));
   }
 
   @Override
