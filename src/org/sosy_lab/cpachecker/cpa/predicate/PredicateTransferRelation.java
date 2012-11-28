@@ -323,6 +323,7 @@ public class PredicateTransferRelation implements TransferRelation {
       PredicateAbstractState successor = (PredicateAbstractState) e;
 
       if (successor.isAbstractionState()) {
+        pathFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge);
         // check abstraction
         abstractionCheckTimer.start();
         if (!formulaManager.checkCoverage(predicateElement.getAbstractionFormula(), pathFormula,
