@@ -262,7 +262,10 @@ class CFAFunctionBuilder extends ASTVisitor {
     for (CDeclaration newD : declList) {
 
       if (newD instanceof CVariableDeclaration) {
-        scope.registerDeclaration(newD);
+        // Variables are already declared by ASTConverter.
+        // This is needed to handle the binding in the initializer correctly.
+        // scope.registerDeclaration(newD);
+        assert scope.lookupVariable(newD.getOrigName()) == newD;
       } else if (newD instanceof CFunctionDeclaration) {
         scope.registerFunctionDeclaration((CFunctionDeclaration) newD);
       }

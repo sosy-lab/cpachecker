@@ -527,7 +527,7 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unsupported storage class for function definition", f);
     }
 
-    Triple<CType, CInitializer, String> declarator = convert(f.getDeclarator(), specifier.getSecond());
+    Triple<CType, IASTInitializer, String> declarator = convert(f.getDeclarator(), specifier.getSecond());
     if (!(declarator.getFirst() instanceof CFunctionType)) {
       throw new CFAGenerationRuntimeException("Unsupported nested declarator for function definition", f);
     }
@@ -578,9 +578,9 @@ class ASTConverter {
     boolean isGlobal = scope.isGlobalScope();
 
     if (d != null) {
-      Triple<CType, CInitializer, String> declarator = convert(d, type);
+      Triple<CType, IASTInitializer, String> declarator = convert(d, type);
       type = declarator.getFirst();
-      CInitializer initializer = declarator.getSecond();
+      IASTInitializer initializer = declarator.getSecond();
       String name = declarator.getThird();
 
       if (name == null) {
@@ -630,7 +630,18 @@ class ASTConverter {
         }
         name = name + sep + index;
       }
-      return new CVariableDeclaration(fileLoc, isGlobal, cStorageClass, type, name, origName, initializer);
+
+      CVariableDeclaration declaration = new CVariableDeclaration(fileLoc, isGlobal, cStorageClass, type, name, origName, null);
+      scope.registerDeclaration(declaration);
+
+      // Now that we registered the declaration, we can parse the initializer.
+      // We cannot do this before, because in the following code, the right "x"
+      // actually binds to the left "x"!
+      // int x = x;
+
+      declaration.addInitializer(convert(initializer));
+
+      return declaration;
 
     } else {
       if (type instanceof CCompositeType
@@ -687,7 +698,7 @@ class ASTConverter {
     String name = null;
 
     if (d != null) {
-      Triple<CType, CInitializer, String> declarator = convert(d, type);
+      Triple<CType, IASTInitializer, String> declarator = convert(d, type);
 
       if (declarator.getSecond() != null) {
         throw new CFAGenerationRuntimeException("Unsupported initializer inside composite type", d);
@@ -700,7 +711,7 @@ class ASTConverter {
     return new CCompositeTypeMemberDeclaration(type, name);
   }
 
-  private Triple<CType, CInitializer, String> convert(IASTDeclarator d, CType specifier) {
+  private Triple<CType, IASTInitializer, String> convert(IASTDeclarator d, CType specifier) {
     if (d instanceof IASTFunctionDeclarator) {
       return convert((IASTFunctionDeclarator)d, specifier);
 
@@ -716,7 +727,7 @@ class ASTConverter {
       // Collection of all modifiers (outermost modifier is first).
       List<IASTNode> modifiers = Lists.newArrayListWithExpectedSize(1);
 
-      CInitializer initializer = null;
+      IASTInitializer initializer = null;
       String name = null;
 
       // Descend into the nested chain of declators.
@@ -740,7 +751,7 @@ class ASTConverter {
             throw new CFAGenerationRuntimeException("Unsupported declaration with two initializers", d);
           }
           //xxx
-          initializer = convert(currentDecl.getInitializer());
+          initializer = currentDecl.getInitializer();
         }
 
         if (!currentDecl.getName().toString().isEmpty()) {
@@ -783,7 +794,7 @@ class ASTConverter {
     }
   }
 
-  private Triple<CType, CInitializer, String> convert(IASTFunctionDeclarator d, CType returnType) {
+  private Triple<CType, IASTInitializer, String> convert(IASTFunctionDeclarator d, CType returnType) {
     if (!(d instanceof IASTStandardFunctionDeclarator)) {
       throw new CFAGenerationRuntimeException("Unknown non-standard function definition", d);
     }
@@ -811,7 +822,7 @@ class ASTConverter {
 
     String name;
     if (d.getNestedDeclarator() != null) {
-      Triple<? extends CType, CInitializer, String> nestedDeclarator = convert(d.getNestedDeclarator(), type);
+      Triple<? extends CType, IASTInitializer, String> nestedDeclarator = convert(d.getNestedDeclarator(), type);
 
       assert d.getName().getRawSignature().isEmpty() : d;
       assert nestedDeclarator.getSecond() == null;
@@ -825,7 +836,7 @@ class ASTConverter {
 
     fType.setName(name);
 
-    return Triple.of(type, convert(d.getInitializer()), name);
+    return Triple.of(type, d.getInitializer(), name);
   }
 
 
@@ -1005,7 +1016,7 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unsupported storage class for parameters", p);
     }
 
-    Triple<CType, CInitializer, String> declarator = convert(p.getDeclarator(), specifier.getSecond());
+    Triple<CType, IASTInitializer, String> declarator = convert(p.getDeclarator(), specifier.getSecond());
     if (declarator.getSecond() != null) {
       throw new CFAGenerationRuntimeException("Unsupported initializer for parameters", p);
     }
@@ -1042,7 +1053,7 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unsupported storage class for type ids", t);
     }
 
-    Triple<CType, CInitializer, String> declarator = convert(t.getAbstractDeclarator(), specifier.getSecond());
+    Triple<CType, IASTInitializer, String> declarator = convert(t.getAbstractDeclarator(), specifier.getSecond());
     if (declarator.getSecond() != null) {
       throw new CFAGenerationRuntimeException("Unsupported initializer for type ids", t);
     }
