@@ -50,7 +50,7 @@ import com.google.common.base.Preconditions;
 public class FsmBddState implements AbstractState {
 
   private static Map<String, BDDDomain> declaredVariables = new HashMap<String, BDDDomain>();
-  private static ExpressionCache expressionCache = new ExpressionCache();
+  public static ExpressionCache expressionCache = new ExpressionCache();
   public static FsmBddStatistics statistic;
 
   /**
@@ -304,7 +304,7 @@ public class FsmBddState implements AbstractState {
     }
 
     String condText;
-    if (encodedAssumptions > 10) {
+    if (encodedAssumptions > 30) {
       condText = String.format("AST with %d assumptions", encodedAssumptions);
     } else if (conditionBlock == null) {
       condText = "[]";

@@ -96,6 +96,9 @@ public class FsmBddMergeOperator implements MergeOperator {
 
     if (result != state2) {
       state1.setMergedInto(result);
+//      System.out.println("+");
+    } else {
+//      System.out.println("-");
     }
 
     return result;

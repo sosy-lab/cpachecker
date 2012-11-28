@@ -44,11 +44,17 @@ public class FsmBddStatistics implements Statistics {
   public final Timer blockAbstractionAllTimer = new Timer();
   public final Timer blockAbstractionBeginOnLastEncodeTimer = new Timer();
   public final Timer blockAbstractionBeginOnFirstEncodeTimer = new Timer();
-  public final Timer blockAbstractionConjunctTimer = new Timer();
+  public final Timer blockAbstractionAndTimer = new Timer();
+  public final Timer conjunctAbstractionWithStateTimer = new Timer();
   public final Timer disjunctStateBddTimer = new Timer();
   public final Timer conjunctStateBddTimer = new Timer();
   public final Timer undefineVarInBddTimer = new Timer();
+  public final Timer assumptionEncAndTimer = new Timer();
+  public final Timer assumptionEncOrTimer = new Timer();
+  public final Timer assumptionEncNotTimer = new Timer();
+  public final Timer assumptionEncEqualityTimer = new Timer();
   public final Timer assignToVarTimer = new Timer();
+  public final StatIntValue blockBddSize = new StatIntValue();
 
   private BDDFactory bddFactory;
 
@@ -78,13 +84,19 @@ public class FsmBddStatistics implements Statistics {
     printValue(pOut, "Merges because of equal syntax",  mergesBecauseEqualSyntax);
     printValue(pOut, "Merges because of both empty syntax",  mergesBecauseBothEmptySyntax);
     printValue(pOut, "Time for condition block abstraction",  blockAbstractionAllTimer);
-    printValue(pOut, "Time for condition block abst. conj.",  blockAbstractionConjunctTimer);
+    printValue(pOut, "Time for abstraction block conjunction",  blockAbstractionAndTimer);
+    printValue(pOut, "Number of abstraction block conjunctions",  blockAbstractionAndTimer.getNumberOfIntervals());
     printValue(pOut, "Time for condition block abst. lfe.",  blockAbstractionBeginOnLastEncodeTimer);
     printValue(pOut, "Time for condition block abst. ffe",  blockAbstractionBeginOnFirstEncodeTimer);
+    printValue(pOut, "Avg. number of BDD nodes for block",  blockBddSize.getMean());
     printValue(pOut, "Time for state BDD disjunction",  disjunctStateBddTimer);
     printValue(pOut, "Time for state BDD conjunction",  conjunctStateBddTimer);
     printValue(pOut, "Time for undefining var in BDD",  undefineVarInBddTimer);
     printValue(pOut, "Time for assign values in BDD",  assignToVarTimer);
+    printValue(pOut, "Time for assum. enc. BDD OR",  assumptionEncOrTimer);
+    printValue(pOut, "Time for assum. enc. BDD AND",  assumptionEncAndTimer);
+    printValue(pOut, "Time for assum. enc. BDD NOT",  assumptionEncNotTimer);
+    printValue(pOut, "Time for assum. enc. BDD EQUAL",  assumptionEncEqualityTimer);
   }
 
   @Override

@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.UnrecognizedSyntaxException
 import org.sosy_lab.cpachecker.cpa.fsmbdd.exceptions.VariableDeclarationException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-
 public class FsmBddStateTest extends FsmBddTesting {
 
   @Test

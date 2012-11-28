@@ -84,7 +84,7 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     //
     // Initialization of the BDD library (JavaBdd)
     //
-    this.bddFactory = BDDFactory.init("java", 50000000, 2000000);
+    this.bddFactory = BDDFactory.init("java", 200000000, 2000000);
     this.bddFactory.setIncreaseFactor(1);
     this.bddFactory.setMaxIncrease(200000000);
 

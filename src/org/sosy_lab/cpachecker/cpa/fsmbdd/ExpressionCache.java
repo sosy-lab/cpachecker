@@ -76,8 +76,10 @@ public class ExpressionCache {
         key = ((CIntegerLiteralExpression) pExpr).getValue().toString();
         atomKeys.put(pExpr, key);
       }
+
     } else if (pExpr instanceof CIdExpression) {
         key = ((CIdExpression) pExpr).getName();
+
     } else {
       key = pExpr.toASTString();
     }
@@ -177,8 +179,10 @@ public class ExpressionCache {
   public CExpression lookupCachedExpressionVersion(CExpression pExpression) throws UnrecognizedSyntaxException {
     if (pExpression == null) {
       return null;
+
     } else if (cachedExpressions.contains(pExpression)) {
       return pExpression;
+
     } else if (pExpression instanceof CBinaryExpression) {
       CBinaryExpression bin = (CBinaryExpression) pExpression;
       return binaryExpression(bin.getOperator(), bin.getOperand1(), bin.getOperand2());

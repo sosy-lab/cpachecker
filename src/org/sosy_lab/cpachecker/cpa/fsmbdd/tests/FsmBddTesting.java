@@ -28,6 +28,7 @@ import java.math.BigInteger;
 import net.sf.javabdd.BDDFactory;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -37,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.fsmbdd.FsmBddStatistics;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-
+@Ignore
 public abstract class FsmBddTesting {
   protected static BDDFactory bddfactory = BDDFactory.init("java", 500000, 200000);
 
