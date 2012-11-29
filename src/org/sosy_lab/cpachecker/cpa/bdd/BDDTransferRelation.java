@@ -366,21 +366,22 @@ public class BDDTransferRelation implements TransferRelation {
     CExpression lhs = assignment.getLeftHandSide();
     if (!(lhs instanceof CIdExpression)) { return state; }
 
-    String functionName = isGlobal(lhs) ? null : cfaEdge.getPredecessor().getFunctionName();
-    String varName = lhs.toASTString();
-    final String scopedVarName = buildVarName(functionName, varName);
-    if (!precision.isTracking(functionName, varName)) { return state; }
+    final String functionName = cfaEdge.getPredecessor().getFunctionName();
+    final String scopedFunctionName = isGlobal(lhs) ? null : functionName;
+    final String varName = lhs.toASTString();
+    final String scopedVarName = buildVarName(scopedFunctionName, varName);
+    if (!precision.isTracking(scopedFunctionName, varName)) { return state; }
 
     CRightHandSide rhs = assignment.getRightHandSide();
 
     if (rhs instanceof CExpression) {
       CExpression exp = (CExpression) rhs;
-      if (isUsedInExpression(functionName, varName, exp)) {
+      if (isUsedInExpression(scopedFunctionName, varName, exp)) {
         // make tmp for assignment,
         // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
         String tmpVarName;
         if (initPartitions) {
-          tmpVarName = varsToTmpVar.get(varClass.getPartitionForVar(functionName, varName).getVars());
+          tmpVarName = varsToTmpVar.get(varClass.getPartitionForVar(scopedFunctionName, varName).getVars());
         } else {
           tmpVarName = TMP_VARIABLE;
         }
@@ -558,10 +559,11 @@ public class BDDTransferRelation implements TransferRelation {
 
       // make variable (predicate) for LEFT SIDE of declaration,
       // delete variable, if it was initialized before i.e. in another block, with an existential operator
-      String functionName = vdecl.isGlobal() ? null : cfaEdge.getPredecessor().getFunctionName();
-      String varName = vdecl.getName();
-      String scopedVarName = buildVarName(functionName, varName);
-      if (precision.isTracking(functionName, varName)) {
+      final String functionName = cfaEdge.getPredecessor().getFunctionName();
+      final String scopedFunctionName = vdecl.isGlobal() ? null : functionName;
+      final String varName = vdecl.getName();
+      final String scopedVarName = buildVarName(scopedFunctionName, varName);
+      if (precision.isTracking(scopedFunctionName, varName)) {
 
         Partition partition = varClass.getPartitionForEdge(cfaEdge);
         if (varClass.getBooleanPartitions().contains(partition)) {
@@ -571,8 +573,8 @@ public class BDDTransferRelation implements TransferRelation {
           // track vars, so we can delete them after returning from a function,
           // see handleFunctionReturnEdge(...) for detail.
           if (!vdecl.isGlobal()) {
-            assert functionName != null;
-            functionToVars.put(functionName, var);
+            assert scopedFunctionName != null;
+            functionToVars.put(scopedFunctionName, var);
           }
 
           // initializer on RIGHT SIDE available, make region for it
@@ -590,9 +592,9 @@ public class BDDTransferRelation implements TransferRelation {
           // track vars, so we can delete them after returning from a function,
           // see handleFunctionReturnEdge(...) for detail.
           if (!vdecl.isGlobal()) {
-            assert functionName != null;
+            assert scopedFunctionName != null;
             for (int i = 0; i < var.length; i++) {
-              functionToVars.put(functionName, var[i]);
+              functionToVars.put(scopedFunctionName, var[i]);
             }
           }
 
@@ -610,9 +612,9 @@ public class BDDTransferRelation implements TransferRelation {
           // track vars, so we can delete them after returning from a function,
           // see handleFunctionReturnEdge(...) for detail.
           if (!vdecl.isGlobal()) {
-            assert functionName != null;
+            assert scopedFunctionName != null;
             for (int i = 0; i < var.length; i++) {
-              functionToVars.put(functionName, var[i]);
+              functionToVars.put(scopedFunctionName, var[i]);
             }
           }
 
@@ -643,7 +645,7 @@ public class BDDTransferRelation implements TransferRelation {
     final List<CParameterDeclaration> params = cfaEdge.getSuccessor().getFunctionParameters();
     assert args.size() == params.size();
     final String innerFunctionName = cfaEdge.getSuccessor().getFunctionName();
-    final String outerFunctionName = cfaEdge.getSuccessor().getFunctionName();
+    final String outerFunctionName = cfaEdge.getPredecessor().getFunctionName();
 
     for (int i = 0; i < args.size(); i++) {
 
@@ -692,8 +694,7 @@ public class BDDTransferRelation implements TransferRelation {
       BDDPrecision precision) {
     Region newRegion = state.getRegion();
 
-    String outerFunctionName = cfaEdge.getSuccessor().getFunctionName();
-    String innerFunctionName = cfaEdge.getPredecessor().getFunctionName();// TODO correct?
+    final String innerFunctionName = cfaEdge.getPredecessor().getFunctionName();
 
     // delete variables from returning function,
     // this results in a smaller BDD and allows to call a function twice.
@@ -714,8 +715,9 @@ public class BDDTransferRelation implements TransferRelation {
 
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator
-      String function = isGlobal(lhs) ? null : outerFunctionName;
-      String varName = lhs.toASTString();
+      final String outerFunctionName = cfaEdge.getSuccessor().getFunctionName();
+      final String function = isGlobal(lhs) ? null : outerFunctionName;
+      final String varName = lhs.toASTString();
 
       if (varClass.getBooleanPartitions().contains(partition)) {
         // make region (predicate) for RIGHT SIDE
@@ -779,7 +781,6 @@ public class BDDTransferRelation implements TransferRelation {
       assert false;
     }
 
-    System.out.println(cfaEdge.getRawStatement());
     return new BDDState(rmgr, newRegion);
   }
 

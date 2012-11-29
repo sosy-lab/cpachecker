@@ -69,7 +69,7 @@ public class BDDState implements AbstractQueryableState {
   }
 
   public String toCompactString() {
-    return manager.dumpRegion(currentState);
+    return "";//manager.dumpRegion(currentState);
   }
 
   @Override
