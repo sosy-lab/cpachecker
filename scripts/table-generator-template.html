@@ -32,9 +32,16 @@
            position:fixed; top:0px; left:0px;
            background-color:green;
            opacity:0.2; display:none }
-  #contentPane { height:90%; width:90%; position:fixed; top:5%; left:5%;
-           border:solid 10px black; border-radius:15px;
-           background-color:white; opacity:1; display:none }
+  #contentPane {
+    height:90%; width:90%;
+    position:fixed;
+    top:5%; left:5%;
+    border:solid 10px black; border-radius:15px;
+    background-color:white;
+    opacity:1;
+    display:none;
+    overflow:auto;
+  }
 
 @media print {
   /* don't print tfoot on each page */
@@ -137,7 +144,6 @@ function getNameOfTest(column) {
     width: 100%;
     height: 100%;
     margin: 0;
-    overflow: auto;
   }
 </style>
 
@@ -610,35 +616,41 @@ function sortData(data) {
   return newData;
 }
 
-// if useNums: get numbers for x-direction as [[0," 0"],[1," "],...] with a number in each 5th element
-// else:       get filenames as labels for x-direction
+// Create a list which indicates at which ticks to draw grid lines
+// and which labels to put at the x-axis.
 function getXTicks(useNums) {
   var xTicks = [];
   var maxLength = 40;
   var tableBody = $('#dataTable > tbody')[0];
 
-  if (useNums) { // collect some numbers
-    var step = 1;
-    if (tableBody.rows.length > 30) { step = 5; }
-    if (tableBody.rows.length > 200) { step = 20; }
+  var numRows = tableBody.rows.length;
+  var labelStep = 1;
+  var gridStep = 1;
+  if (numRows > 30) { labelStep = 5; }
+  if (numRows > 200) { labelStep = 10; gridStep = 5; }
+  if (numRows > 1000) { labelStep = 20; gridStep = 10; }
 
-    var counter = 0;
-    for (i = 0; i < tableBody.rows.length; i++) {
-      if ($(tableBody.rows[i]).is(":visible")) {
-        xTicks.push([counter, ((counter%step)?" ":" " + counter)]);
-        counter++;
-      }
-    }
-  } else { // collect names of the files
-    for (i = 0; i < tableBody.rows.length; i++) {
-      var currentRow = tableBody.rows[i];
-      if ($(currentRow).is(":visible")) {
-        var name = currentRow.cells[0].textContent;
-        if (name.length > maxLength) { name = name.substring(0, maxLength) + "..."; }
-        xTicks.push([i, name]);
-      }
+  function getLabel(currentRow) {
+    if (useNums) {
+      return " " + counter;
+    } else {
+      var name = currentRow.cells[0].textContent;
+      if (name.length > maxLength) { name = name.substring(0, maxLength) + "..."; }
+      return name;
     }
   }
+
+  var counter = 0;
+  for (i = 0; i < numRows; i++) {
+    var currentRow = tableBody.rows[i];
+    if ($(currentRow).is(":visible")) {
+      if (!(counter%gridStep)) {
+        xTicks.push([counter, ((counter%labelStep)?" ":getLabel(currentRow))]);
+      }
+      counter++;
+    }
+  }
+
   return xTicks;
 }
 
