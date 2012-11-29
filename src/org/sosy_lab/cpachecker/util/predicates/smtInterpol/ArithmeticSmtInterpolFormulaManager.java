@@ -33,6 +33,7 @@ import java.util.Set;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.util.predicates.FormulaOperator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
@@ -65,7 +66,8 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
   private final String divUfDecl = "_/_";
   private final String modUfDecl = "_%_";
 
-  public ArithmeticSmtInterpolFormulaManager(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
+  public ArithmeticSmtInterpolFormulaManager(Configuration config, LogManager logger, boolean pUseIntegers)
+      throws InvalidConfigurationException {
     super(config, logger, pUseIntegers ? Type.INT : Type.REAL);
     useIntegers = pUseIntegers;
     initBasics(env);
@@ -290,6 +292,22 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
       formulas[i] = encapsulate(params[i]);
     }
     return formulas;
+  }
+
+  @Override
+  public FormulaOperator getOperator(Formula f) {
+    Term t = getTerm(f);
+    assert t instanceof ApplicationTerm;
+    ((ApplicationTerm) t).getParameters();
+    ;
+    String funcN = ((ApplicationTerm) t).getFunction().getName();
+    if (funcN.equals("not")) { return FormulaOperator.NOT; }
+    if (funcN.equals("and")) { return FormulaOperator.AND; }
+    if (funcN.equals("or")) { return FormulaOperator.OR; }
+    if (funcN.equals("=")) { return FormulaOperator.EQUIV; }
+    if (funcN.equals("ite")) { return FormulaOperator.ITE; }
+    if (isAnd(t)) { return FormulaOperator.ATOM; }
+    return null;
   }
 
   @Override

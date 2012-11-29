@@ -65,7 +65,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import com.google.common.base.Preconditions;
 
 
-@Options(prefix="cpa.abm")
+@Options(prefix = "cpa.abm")
 public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvider, ProofChecker {
 
   public static CPAFactory factory() {
@@ -84,25 +84,23 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final CFA cfa;
   private final ProofChecker wrappedProofChecker;
 
-  @Option(description="Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
-                    + "or any class that implements a PartitioningHeuristic")
-  @ClassOption(packagePrefix="org.sosy_lab.cpachecker.cfa.blocks.builder")
+  @Option(description = "Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
+      + "or any class that implements a PartitioningHeuristic")
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cfa.blocks.builder")
   private Class<? extends PartitioningHeuristic> blockHeuristic = FunctionAndLoopPartitioning.class;
 
-  public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException, CPAException {
+  public ABMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger,
+      ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
     config.inject(this);
 
     logger = pLogger;
     cfa = pCfa;
 
-    if (!(pCpa instanceof ConfigurableProgramAnalysisWithABM)) {
-      throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM");
-    }
-    Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)pCpa).getReducer();
-    if (wrappedReducer == null) {
-      throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM");
-    }
+    if (!(pCpa instanceof ConfigurableProgramAnalysisWithABM)) { throw new InvalidConfigurationException(
+        "ABM needs CPAs that are capable for ABM"); }
+    Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM) pCpa).getReducer();
+    if (wrappedReducer == null) { throw new InvalidConfigurationException("ABM needs CPAs that are capable for ABM"); }
     reducer = new TimedReducer(wrappedReducer);
     prec = new ABMPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
     transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
@@ -113,14 +111,14 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     heuristic = getPartitioningHeuristic();
 
     if (pCpa instanceof ProofChecker) {
-      this.wrappedProofChecker = (ProofChecker)pCpa;
+      this.wrappedProofChecker = (ProofChecker) pCpa;
     } else {
       this.wrappedProofChecker = null;
     }
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node)  {
+  public AbstractState getInitialState(CFANode node) {
     if (blockPartitioning == null) {
       blockPartitioning = heuristic.buildPartitioning(node);
       transfer.setBlockPartitioning(blockPartitioning);
@@ -143,7 +141,8 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   private PartitioningHeuristic getPartitioningHeuristic() throws CPAException, InvalidConfigurationException {
-    return Classes.createInstance(PartitioningHeuristic.class, blockHeuristic, new Class[]{LogManager.class, CFA.class}, new Object[]{logger, cfa}, CPAException.class);
+    return Classes.createInstance(PartitioningHeuristic.class, blockHeuristic, new Class[] { LogManager.class,
+        CFA.class }, new Object[] { logger, cfa }, CPAException.class);
   }
 
   @Override
@@ -200,7 +199,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
-    return false;//transfer.areAbstractSuccessors(pState, pCfaEdge, pSuccessors, wrappedProofChecker);
+    return transfer.areAbstractSuccessors(pState, pCfaEdge, pSuccessors, wrappedProofChecker);
   }
 
   @Override

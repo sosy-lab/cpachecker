@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.predicates.FormulaOperator;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
@@ -665,6 +666,31 @@ public abstract class MathsatFormulaManager implements FormulaManager {
       result[i] = encapsulate(msat_term_get_arg(t, i));
     }
     return result;
+  }
+
+  @Override
+  public FormulaOperator getOperator(Formula f) {
+    final long t = getTerm(f);
+
+    if(msat_term_is_atom(t)!=0){
+ return FormulaOperator.ATOM;
+    }
+    if(msat_term_is_not(t)!=0){
+      return FormulaOperator.NOT;
+    }
+    if(msat_term_is_and(t)!=0){
+      return FormulaOperator.AND;
+    }
+    if(msat_term_is_or(t)!=0){
+      return FormulaOperator.OR;
+    }
+    if(msat_term_is_iff(t)!=0){
+      return FormulaOperator.EQUIV;
+    }
+    if(msat_term_is_term_ite(t)!=0 || msat_term_is_bool_ite(t)!=0){
+      return FormulaOperator.ITE;
+    }
+    return null;
   }
 
   @Override

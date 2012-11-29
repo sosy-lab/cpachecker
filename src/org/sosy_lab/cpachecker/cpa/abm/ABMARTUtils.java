@@ -135,9 +135,9 @@ class ABMARTUtils {
           copyStateInner = stateToCopyElem.get(c);
         }
         copyStateInner.addParent(copyState);
-        if (!visited.contains(copyStateInner)) {
-          visited.add(copyStateInner);
-          toVisit.add(copyStateInner);
+        if (!visited.contains(c)) {
+          visited.add(c);
+          toVisit.add(c);
         }
       }
 
@@ -148,10 +148,9 @@ class ABMARTUtils {
         } else {
           copyStateInner = stateToCopyElem.get(current.getCoveringState());
         }
-        copyState.addParent(copyStateInner);
-        if (!visited.contains(copyStateInner)) {
-          visited.add(copyStateInner);
-          toVisit.add(copyStateInner);
+        if (!visited.contains(current.getCoveringState())) {
+          visited.add(current.getCoveringState());
+          toVisit.add(current.getCoveringState());
         }
         copyState.setCovered(copyStateInner);
       }

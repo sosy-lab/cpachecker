@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.predicates.FormulaOperator;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
@@ -60,6 +61,7 @@ import com.google.common.collect.ImmutableMap;
 public abstract class Mathsat5FormulaManager implements FormulaManager {
 
   protected static interface MsatType {
+
     long getVariableType(long msatEnv);
   }
 
@@ -108,16 +110,18 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   private final Formula trueFormula;
   private final Formula falseFormula;
 
-  Mathsat5FormulaManager(Configuration config, LogManager logger, MsatType pVarType) throws InvalidConfigurationException {
+  Mathsat5FormulaManager(Configuration config, LogManager logger, MsatType pVarType)
+      throws InvalidConfigurationException {
     config.inject(this, Mathsat5FormulaManager.class);
 
     MapSplitter optionSplitter = Splitter.on(',').trimResults().omitEmptyStrings()
-            .withKeyValueSeparator(Splitter.on('=').limit(2).trimResults());
+        .withKeyValueSeparator(Splitter.on('=').limit(2).trimResults());
 
     try {
       furtherOptionsMap = ImmutableMap.copyOf(optionSplitter.split(furtherOptions));
     } catch (IllegalArgumentException e) {
-      throw new InvalidConfigurationException("Invalid Mathsat option in \"" + furtherOptions + "\": " + e.getMessage(), e);
+      throw new InvalidConfigurationException(
+          "Invalid Mathsat option in \"" + furtherOptions + "\": " + e.getMessage(), e);
     }
 
     long msatConf = msat_create_config();
@@ -301,9 +305,7 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
     checkArgument(args.length > 0);
     long type = predicate ? msat_get_bool_type(msatEnv) : msatVarType;
 
-    if (!useUIFs) {
-      return buildMsatUfReplacement(type);
-    }
+    if (!useUIFs) { return buildMsatUfReplacement(type); }
 
     // only build a function when there actually are arguments
     if (args.length > 0) {
@@ -518,14 +520,12 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
     } else if (msat_term_is_not(msatEnv, t)) {
       t = msat_term_get_arg(t, 0);
       return (msat_term_is_uf(msatEnv, t)
-          || msat_term_is_atom(msatEnv, t));
+      || msat_term_is_atom(msatEnv, t));
 
     } else if (msat_term_is_and(msatEnv, t)) {
       int arity = msat_term_arity(t);
       for (int i = 0; i < arity; ++i) {
-        if (!isPurelyConjunctive(encapsulate(msat_term_get_arg(t, i)))) {
-          return false;
-        }
+        if (!isPurelyConjunctive(encapsulate(msat_term_get_arg(t, i)))) { return false; }
       }
       return true;
 
@@ -842,6 +842,18 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
       result[i] = encapsulate(msat_term_get_arg(t, i));
     }
     return result;
+  }
+
+  @Override
+  public FormulaOperator getOperator(Formula f) {
+    final long t = getTerm(f);
+    if (msat_term_is_atom(msatEnv, t)) { return FormulaOperator.ATOM; }
+    if (msat_term_is_not(msatEnv, t)) { return FormulaOperator.NOT; }
+    if (msat_term_is_and(msatEnv, t)) { return FormulaOperator.AND; }
+    if (msat_term_is_or(msatEnv, t)) { return FormulaOperator.OR; }
+    if (msat_term_is_iff(msatEnv, t)) { return FormulaOperator.EQUIV; }
+    if (msat_term_is_term_ite(msatEnv, t)) { return FormulaOperator.ITE; }
+    return null;
   }
 
   @Override

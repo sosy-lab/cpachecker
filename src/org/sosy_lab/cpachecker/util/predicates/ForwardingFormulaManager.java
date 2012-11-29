@@ -286,6 +286,11 @@ public class ForwardingFormulaManager implements FormulaManager {
   }
 
   @Override
+  public FormulaOperator getOperator(Formula pF) {
+    return delegate.getOperator(pF);
+  }
+
+  @Override
   public Formula makeUIP(String pName, FormulaList pArgs) {
     return delegate.makeUIP(pName, pArgs);
   }

@@ -21,32 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.abm;
-
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-
-public class ABMARGBlockStartState extends ARGState {
-
-  private static final long serialVersionUID = -5143941913753150639L;
-
-  private ARGState analyzedBlock = null;
-
-  public ABMARGBlockStartState(AbstractState pWrappedState, ARGState pParentElement) {
-    super(pWrappedState, pParentElement);
-  }
-
-  public void setAnalyzedBlock(ARGState pRootOfBlock) {
-    analyzedBlock = pRootOfBlock;
-  }
+package org.sosy_lab.cpachecker.util.predicates;
 
 
-  public ARGState getAnalyzedBlock() {
-    return analyzedBlock;
-  }
-
-  @Override
-  public String toString() {
-    return "ABMARGBlockStartState " + super.toString();
-  }
+public enum FormulaOperator {
+      NOT, AND, OR, EQUIV, ITE, ATOM
 }

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.util.predicates.FormulaOperator;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 
 
@@ -268,6 +269,11 @@ public interface FormulaManager {
      * "f1 or f2" gets split to "f1", "f2".
      */
     public Formula[] getArguments(Formula f);
+
+    /**
+     * Returns top level operator, null if it is an atom
+     */
+    public FormulaOperator getOperator(Formula f);
 
     /**
      * Checks whether leftFormula occurs in rightFormula.

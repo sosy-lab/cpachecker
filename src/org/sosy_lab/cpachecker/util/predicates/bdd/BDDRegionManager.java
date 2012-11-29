@@ -303,6 +303,13 @@ public class BDDRegionManager implements RegionManager {
     return wrap(unwrap(pF1).xor(unwrap(pF2)));
   }
 
+
+  @Override
+  public Region makeIte(Region pF1, Region pF2, Region pF3) {
+    cleanupReferences();
+    return wrap(unwrap(pF1).ite(unwrap(pF2),unwrap(pF3)));
+  }
+
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
     cleanupReferences();

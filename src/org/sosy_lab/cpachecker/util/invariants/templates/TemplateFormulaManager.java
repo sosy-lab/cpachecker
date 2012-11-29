@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.cpachecker.util.invariants.InfixReln;
+import org.sosy_lab.cpachecker.util.predicates.FormulaOperator;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
@@ -642,6 +643,11 @@ public class TemplateFormulaManager implements FormulaManager {
 
   @Override
   public Formula[] getArguments(Formula pF) {
+    return null;
+  }
+
+  @Override
+  public FormulaOperator getOperator(Formula pF){
     return null;
   }
 

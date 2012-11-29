@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -63,12 +64,15 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 
 @Options(prefix = "cpa.abm")
 public class ABMTransferRelation implements TransferRelation {
@@ -120,7 +124,6 @@ public class ABMTransferRelation implements TransferRelation {
     }
   }
 
-  // TODO new cache for proof checking, needs different key
   private class Cache {
 
     private final Map<AbstractStateHash, ReachedSet> preciseReachedCache = new HashMap<AbstractStateHash, ReachedSet>();
@@ -318,8 +321,10 @@ public class ABMTransferRelation implements TransferRelation {
   private final ReachedSetFactory reachedSetFactory;
   private final Reducer wrappedReducer;
   private final ABMPrecisionAdjustment prec;
+  private final ABMCPA abmCPA;
 
   private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
+  private Map<Pair<ARGState, Block>, Collection<ARGState>> correctARGsForBlocks = null;
 
   //Stats
   @Option(
@@ -352,6 +357,7 @@ public class ABMTransferRelation implements TransferRelation {
     wrappedReducer = abmCpa.getReducer();
     prec = abmCpa.getPrecisionAdjustment();
     PCCInformation.instantiate(pConfig);
+    abmCPA = abmCpa;
 
     assert wrappedReducer != null;
   }
@@ -380,6 +386,7 @@ public class ABMTransferRelation implements TransferRelation {
     forwardPrecisionToExpandedPrecision.clear();
 
     if (edge == null) {
+
       CFANode node = extractLocation(pElement);
 
       if (partitioning.isCallNode(node)) {
@@ -395,6 +402,7 @@ public class ABMTransferRelation implements TransferRelation {
           //skip main function
           return attachAdditionalInfoToCallNodes(wrappedTransfer.getAbstractSuccessors(pElement, pPrecision, edge));
         }
+
 
         //Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
         //do an CPA analysis to get the complete reachset
@@ -541,7 +549,7 @@ public class ABMTransferRelation implements TransferRelation {
       if (PCCInformation.isPCCEnabled()) {
         if (!(reached.getFirstState() instanceof ARGState)) { throw new CPATransferException(
             "Cannot build proof, ARG, for ABM analysis."); }
-        ABMARTUtils.copyARG((ARGState) reached.getFirstState());
+        rootOfBlock = ABMARTUtils.copyARG((ARGState) reached.getFirstState());
       }
       argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()), currentBlock, returnElements,
           rootOfBlock);
@@ -586,7 +594,7 @@ public class ABMTransferRelation implements TransferRelation {
 
   private ARGState createAdditionalInfo(ARGState pElem) {
     CFANode node = AbstractStates.extractLocation(pElem);
-    if (partitioning.isCallNode(node)) {
+    if (partitioning.isCallNode(node) && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
       ABMARGBlockStartState replaceWith = new ABMARGBlockStartState(pElem.getWrappedState(), null);
       replaceInARG(pElem, replaceWith);
       return replaceWith;
@@ -618,7 +626,12 @@ public class ABMTransferRelation implements TransferRelation {
     if (PCCInformation.isPCCEnabled()) {
       if (argCache.getLastAnalyzedBlock() == null || !(pElement instanceof ABMARGBlockStartState)) { throw new CPATransferException(
           "Cannot build proof, ARG, for ABM analysis."); }
-      ((ABMARGBlockStartState) pElement).setAnalyzedBlock(argCache.getLastAnalyzedBlock());
+      PredicateAbstractState pred = extractStateByType(pElement, PredicateAbstractState.class);
+      if (pred == null) {
+        ((ABMARGBlockStartState) pElement).setAnalyzedBlock(argCache.getLastAnalyzedBlock());
+      } else {
+        ((ABMARGBlockStartState) pElement).setAnalyzedBlock(argCache.getLastAnalyzedBlock());
+      }
     }
   }
 
@@ -1056,4 +1069,207 @@ public class ABMTransferRelation implements TransferRelation {
     return attachAdditionalInfoToCallNodes(wrappedTransfer.strengthen(pElement, pOtherElements, pCfaEdge, pPrecision));
   }
 
+  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
+      Collection<? extends AbstractState> pSuccessors, ProofChecker pWrappedProofChecker) throws CPATransferException,
+      InterruptedException {
+    if (pCfaEdge != null) { return pWrappedProofChecker.areAbstractSuccessors(pState, pCfaEdge, pSuccessors); }
+    return areAbstractSuccessors0(pState, pCfaEdge, pSuccessors, pWrappedProofChecker);
+  }
+
+  private boolean areAbstractSuccessors0(AbstractState pState, CFAEdge pCfaEdge,
+      Collection<? extends AbstractState> pSuccessors, ProofChecker pWrappedProofChecker) throws CPATransferException,
+      InterruptedException {
+    // currently cannot deal with blocks for which the set of call nodes and return nodes of that block is not disjunct
+    boolean successorExists;
+
+    Block analyzedBlock = currentBlock;
+    CFANode node = extractLocation(pState);
+
+    if (partitioning.isCallNode(node) && !isHeadOfMainFunction(node)
+        && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
+      // do not support nodes which are call nodes of multiple blocks
+      currentBlock = partitioning.getBlockForCallNode(node);
+      try {
+        PredicateAbstractState pred = extractStateByType(pState, PredicateAbstractState.class);
+        if (!(pState instanceof ABMARGBlockStartState)
+            || ((ABMARGBlockStartState) pState).getAnalyzedBlock() == null
+            || (pred != null
+            && (!pred.isAbstractionState() || !extractStateByType(((ABMARGBlockStartState) pState).getAnalyzedBlock(),
+                PredicateAbstractState.class).isAbstractionState()))
+            || !abmCPA.isCoveredBy(wrappedReducer.getVariableReducedStateForProofChecking(pState, currentBlock, node),
+                ((ABMARGBlockStartState) pState).getAnalyzedBlock())) { return false; }
+      } catch (CPAException e) {
+        throw new CPATransferException("Missing information about block whose analysis is expected to be started at "
+            + pState);
+      }
+      try {
+        Collection<ARGState> endOfBlock;
+        Pair<ARGState, Block> key = Pair.of(((ABMARGBlockStartState) pState).getAnalyzedBlock(), currentBlock);
+        if (correctARGsForBlocks != null && correctARGsForBlocks.containsKey(key)) {
+          endOfBlock = correctARGsForBlocks.get(key);
+        } else {
+          Pair<Boolean, Collection<ARGState>> result =
+              checkARGBlock(((ABMARGBlockStartState) pState).getAnalyzedBlock(), pWrappedProofChecker);
+          if (!result.getFirst()) { return false; }
+          endOfBlock = result.getSecond();
+          if (correctARGsForBlocks == null) {
+            correctARGsForBlocks = new HashMap<Pair<ARGState, Block>, Collection<ARGState>>();
+          }
+          correctARGsForBlocks.put(key, result.getSecond());
+        }
+
+        HashSet<AbstractState> notFoundSuccessors = new HashSet<AbstractState>(pSuccessors);
+        AbstractState expandedState;
+        PredicateAbstractState pred;
+
+        Multimap<CFANode, AbstractState> blockSuccessors = HashMultimap.create();
+        for (AbstractState absElement : pSuccessors) {
+          ARGState successorElem = (ARGState) absElement;
+          blockSuccessors.put(extractLocation(absElement), successorElem);
+          pred = extractStateByType(absElement, PredicateAbstractState.class);
+          if (pred != null && !pred.isAbstractionState()) { return false; }
+        }
+
+
+        for (ARGState leaveB : endOfBlock) {
+          successorExists = false;
+          pred = extractStateByType(leaveB, PredicateAbstractState.class);
+          if (pred != null && !pred.isAbstractionState()) { return false; }
+          expandedState = wrappedReducer.getVariableExpandedStateForProofChecking(pState, currentBlock, leaveB);
+          for (AbstractState next : blockSuccessors.get(extractLocation(leaveB))) {
+            if (abmCPA.isCoveredBy(expandedState, next)) {
+              successorExists = true;
+              notFoundSuccessors.remove(next);
+            }
+          }
+          if (!successorExists) { return false; }
+        }
+
+        if (!notFoundSuccessors.isEmpty()) { return false; }
+
+        currentBlock = analyzedBlock;
+      } catch (CPAException e) {
+        throw new CPATransferException("Checking ARG with root " + ((ABMARGBlockStartState) pState).getAnalyzedBlock()
+            + " for block " + currentBlock + "failed.");
+      }
+    } else {
+      HashSet<CFAEdge> usedEdges = new HashSet<CFAEdge>();
+      for (AbstractState absElement : pSuccessors) {
+        ARGState successorElem = (ARGState) absElement;
+        usedEdges.add(((ARGState) pState).getEdgeToChild(successorElem));
+      }
+
+      //no call node, check if successors can be constructed with help of CFA edges
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+        // edge leads to node in inner block
+        Block currentNodeBlock = partitioning.getBlockForReturnNode(node);
+        if (currentNodeBlock != null && !currentBlock.equals(currentNodeBlock)
+            && currentNodeBlock.getNodes().contains(node.getLeavingEdge(i).getSuccessor())) {
+          if (usedEdges.contains(node.getLeavingEdge(i))) { return false; }
+          continue;
+        }
+        // edge leaves block, do not analyze, check for call node since if call node is also return node analysis will go beyond current block
+        if (!currentBlock.isCallNode(node) && currentBlock.isReturnNode(node)
+            && !currentBlock.getNodes().contains(node.getLeavingEdge(i).getSuccessor())) {
+          if (usedEdges.contains(node.getLeavingEdge(i))) { return false; }
+          continue;
+        }
+        if (!pWrappedProofChecker.areAbstractSuccessors(pState, node.getLeavingEdge(i), pSuccessors)) { return false; }
+      }
+    }
+    return true;
+  }
+
+  private Pair<Boolean, Collection<ARGState>> checkARGBlock(ARGState rootNode, ProofChecker pWrappedProofChecker)
+      throws CPAException, InterruptedException {
+    Collection<ARGState> returnNodes = new ArrayList<ARGState>();
+    Set<ARGState> waitingForUnexploredParents = new HashSet<ARGState>();
+    boolean unexploredParent;
+    Stack<ARGState> waitlist = new Stack<ARGState>();
+    HashSet<ARGState> visited = new HashSet<ARGState>();
+    HashSet<ARGState> coveredNodes = new HashSet<ARGState>();
+    ARGState current;
+
+    waitlist.add(rootNode);
+    visited.add(rootNode);
+
+    while (!waitlist.isEmpty()) {
+      current = waitlist.pop();
+
+      if (current.isTarget()) {
+        returnNodes.add(current);
+      }
+
+      if (current.isCovered()) {
+        coveredNodes.clear();
+        coveredNodes.add(current);
+        do {
+          if (!abmCPA.isCoveredBy(current, current.getCoveringState())) {
+            returnNodes = Collections.emptyList();
+            return Pair.of(false, returnNodes);
+          }
+          coveredNodes.add(current);
+          if (coveredNodes.contains(current.getCoveringState())) {
+            returnNodes = Collections.emptyList();
+            return Pair.of(false, returnNodes);
+          }
+          current = current.getCoveringState();
+        } while (current.isCovered());
+
+        if (!visited.contains(current)) {
+          unexploredParent = false;
+          for (ARGState p : current.getParents()) {
+            if (!visited.contains(p) || waitlist.contains(p)) {
+              waitingForUnexploredParents.add(current);
+              unexploredParent = true;
+              break;
+            }
+          }
+          if (!unexploredParent) {
+            visited.add(current);
+            waitlist.add(current);
+          }
+        }
+        continue;
+      }
+
+      CFANode node = extractLocation(current);
+      if (currentBlock.isReturnNode(node)) {
+        returnNodes.add(current);
+      }
+
+      if (!areAbstractSuccessors0(current, null, current.getChildren(), pWrappedProofChecker)) {
+        returnNodes = Collections.emptyList();
+        return Pair.of(false, returnNodes);
+      }
+
+      for (ARGState child : current.getChildren()) {
+        unexploredParent = false;
+        for (ARGState p : child.getParents()) {
+          if (!visited.contains(p) || waitlist.contains(p)) {
+            waitingForUnexploredParents.add(child);
+            unexploredParent = true;
+            break;
+          }
+        }
+        if (unexploredParent) {
+          continue;
+        }
+        if (visited.contains(child)) {
+          returnNodes = Collections.emptyList();
+          return Pair.of(false, returnNodes);
+        } else {
+          waitingForUnexploredParents.remove(child);
+          visited.add(child);
+          waitlist.add(child);
+        }
+      }
+
+    }
+    if (!waitingForUnexploredParents.isEmpty()) {
+      returnNodes = Collections.emptyList();
+      return Pair.of(false, returnNodes);
+    }
+    return Pair.of(true, returnNodes);
+  }
 }
