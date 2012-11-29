@@ -385,18 +385,6 @@ def findCommonSourceFiles(listOfTests):
 
     return fileList
 
-def ensureEqualSourceFiles(listOfTests):
-    # take the files of the first test
-    fileNames = listOfTests[0].getSourceFileNames()
-    # check for equal files
-    def equalFiles(result):
-        if fileNames == result.getSourceFileNames(): return True
-        else: print ('    {0} contains different files, skipping resultfile'.format(result.filename))
-
-    listOfTests = list(filter(equalFiles, listOfTests))
-    return fileNames, listOfTests
-
-
 
 class Test:
     """
@@ -838,12 +826,7 @@ def main(args=None):
         action="store_true", dest="dumpCounts",
         help="Print summary statistics for the good, bad, and unknown counts."
     )
-    mergeGroup = parser.add_mutually_exclusive_group()
-    mergeGroup.add_argument("-m", "--merge",
-        action="store_true", dest="merge",
-        help="Put all sourcefiles into the table, even if the results for some runs are missing." \
-    )
-    mergeGroup.add_argument("-c", "--common",
+    parser.add_argument("-c", "--common",
         action="store_true", dest="common",
         help="Put only sourcefiles into the table for which all benchmarks contain results."
     )
@@ -903,16 +886,15 @@ def main(args=None):
             print ('Please check the filenames in your XML-file.')
         exit()
 
-    print ('merging files ...')
-    if options.merge:
-        # merge list of tests, so that all tests contain the same filenames
-        fileNames = mergeSourceFiles(listOfTests)
-    elif options.common:
+    print ('merging results ...')
+    if options.common:
         fileNames = findCommonSourceFiles(listOfTests)
     else:
-        fileNames, listOfTests = ensureEqualSourceFiles(listOfTests)
+        # merge list of tests, so that all tests contain the same filenames
+        fileNames = mergeSourceFiles(listOfTests)
 
     # collect data and find out rows with differences
+    print ('collecting data ...')
     rows     = getRows(listOfTests, fileNames, options.correctOnly)
     rowsDiff = filterRowsWithDifferences(rows) if options.writeDiffTable else []
 
