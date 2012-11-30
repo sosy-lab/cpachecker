@@ -43,12 +43,12 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
-public class ExplictPathChecker {
+public class ExplictFeasibilityChecker {
 
   /**
    * This method acts as the constructor of the class.
    */
-  public ExplictPathChecker() {}
+  public ExplictFeasibilityChecker() {}
 
   /**
    * This method checks if the given path is feasible, when not tracking the given set of variables.
@@ -58,7 +58,7 @@ public class ExplictPathChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean checkPath(Path path)
+  public boolean isFeasible(Path path)
       throws CPAException, InterruptedException {
     try {
       Configuration config = Configuration.builder().build();

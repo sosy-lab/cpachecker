@@ -111,7 +111,6 @@ public class ExplicitInterpolator {
       Pair<ARGState, CFAEdge> interpolationState = errorPath.get(offset);
 
       for(Pair<ARGState, CFAEdge> pathElement : skip(errorPath, offset)) {
-
         if(wasFeasible && interpolationState == blockingElement) {
           return interpolant;
         }

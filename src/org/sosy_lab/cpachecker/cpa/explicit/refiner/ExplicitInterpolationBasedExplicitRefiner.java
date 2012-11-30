@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
-import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictPathChecker;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -235,9 +235,9 @@ public class ExplicitInterpolationBasedExplicitRefiner {
   private boolean isPathFeasable(Path path) throws CPAException {
     try {
       // create a new ExplicitPathChecker, which does not track any of the given variables
-      ExplictPathChecker checker = new ExplictPathChecker();
+      ExplictFeasibilityChecker checker = new ExplictFeasibilityChecker();
 
-      return checker.checkPath(path);
+      return checker.isFeasible(path);
     }
     catch (InterruptedException e) {
       throw new CPAException("counterexample-check failed: ", e);
