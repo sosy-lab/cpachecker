@@ -68,8 +68,7 @@ public class AssignedVariablesCollector {
 
   private CFAEdge successorEdge = null;
 
-  public AssignedVariablesCollector() {
-  }
+  public AssignedVariablesCollector() {}
 
   public Multimap<CFAEdge, String> collectVars(Path currentErrorPath) {
     Multimap<CFAEdge, String> collectedVariables = HashMultimap.create();
@@ -90,30 +89,6 @@ public class AssignedVariablesCollector {
     case BlankEdge:
     case CallToReturnEdge:
       //nothing to do
-      break;
-
-    case ReturnStatementEdge:
-      CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)edge;
-
-      CFunctionReturnEdge returnEdge2 = (CFunctionReturnEdge)successorEdge;
-
-      CFunctionSummaryEdge cFunctionSummaryEdge2 = returnEdge2.getSummaryEdge();
-
-      CFunctionCall functionCall2 = cFunctionSummaryEdge2.getExpression();
-
-      if (functionCall2 instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall2;
-        String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), successorEdge.getSuccessor().getFunctionName());
-
-
-        collectedVariables.put(cFunctionSummaryEdge2, assignedVariable);
-        collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
-        collectVariables(returnStatementEdge, new CIdExpression(returnStatementEdge.getExpression().getFileLocation(),
-            null,
-            ExplicitTransferRelation.FUNCTION_RETURN_VAR,
-            null), collectedVariables);
-      }
-
       break;
 
     case DeclarationEdge:
@@ -139,17 +114,15 @@ public class AssignedVariablesCollector {
       break;
 
     case FunctionCallEdge:
-      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge)edge;
-      CFunctionCall functionCall     = functionCallEdge.getSummaryEdge().getExpression();
+      CFunctionCallEdge functionCallEdge   = (CFunctionCallEdge)edge;
+      CFunctionCall functionCallOfCallSite = functionCallEdge.getSummaryEdge().getExpression();
 
-      if (functionCall instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall;
+      if (functionCallOfCallSite instanceof CFunctionCallAssignmentStatement) {
+        CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCallOfCallSite;
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), currentFunction);
 
-        // track it at return (2nd statement below), not at call (next, commented statement)
-        //collectedVariables.put(edge.getSuccessor(), assignedVariable);
+        // track it also at return site, not only at call site
         collectedVariables.put(functionCallEdge.getSummaryEdge(), assignedVariable);
-
 
         collectedVariables.put(edge, assignedVariable);
         collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables);
@@ -163,6 +136,25 @@ public class AssignedVariablesCollector {
         collectedVariables.put(functionCallEdge, parameterName);
       }
 
+      break;
+
+    case ReturnStatementEdge:
+      CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)edge;
+      CFunctionReturnEdge returnEdge           = (CFunctionReturnEdge)successorEdge;
+      CFunctionSummaryEdge summaryEdge         = returnEdge.getSummaryEdge();
+      CFunctionCall functionCallOfReturnSite   = summaryEdge.getExpression();
+
+      if (functionCallOfReturnSite instanceof CFunctionCallAssignmentStatement) {
+        CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCallOfReturnSite;
+        String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), successorEdge.getSuccessor().getFunctionName());
+
+        collectedVariables.put(summaryEdge, assignedVariable);
+        collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
+        collectVariables(returnStatementEdge, new CIdExpression(returnStatementEdge.getExpression().getFileLocation(),
+            null,
+            ExplicitTransferRelation.FUNCTION_RETURN_VAR,
+            null), collectedVariables);
+      }
       break;
     }
   }
@@ -203,9 +195,7 @@ public class AssignedVariablesCollector {
 
     @Override
     public Void visit(CIdExpression pE) {
-      /*if(!(pE.getExpressionType() instanceof CFunctionPointerType))*/ {
-        collectVariable(pE.getName());
-      }
+      collectVariable(pE.getName());
 
       return null;
     }
