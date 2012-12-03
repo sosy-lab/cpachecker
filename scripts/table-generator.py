@@ -210,13 +210,15 @@ def parseTableDefinitionFile(file):
             + "    The rootelement of table-definition-file is not named 'table'.")
         exit()
 
+    defaultColumnsToShow = extractColumnsFromTableDefinitionFile(tableGenFile)
+
     for testTag in tableGenFile.findall('test'):
-        columnsToShow = extractColumnsFromTableDefinitionFile(testTag)
+        columnsToShow = extractColumnsFromTableDefinitionFile(testTag) or defaultColumnsToShow
         filelist = Util.getFileList(testTag.get('filename')) # expand wildcards
         listOfTestFiles += [Result.createFromXML(file, parseTestFile(file), columnsToShow) for file in filelist]
 
     for unionTag in tableGenFile.findall('union'):
-        columnsToShow = extractColumnsFromTableDefinitionFile(unionTag)
+        columnsToShow = extractColumnsFromTableDefinitionFile(unionTag) or defaultColumnsToShow
         result = Result([], {}, columnsToShow)
 
         for testTag in unionTag.findall('test'):
