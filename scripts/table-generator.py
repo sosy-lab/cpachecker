@@ -195,6 +195,13 @@ def parseTableDefinitionFile(file):
         print ('File {0!r} does not exist.'.format(file))
         exit()
 
+    def extractColumnsFromTableDefinitionFile(xmltag):
+        """
+        Extract all columns mentioned in the test tag of a table definition file.
+        """
+        return [Column(c.get("title"), c.text, c.get("numberOfDigits"))
+                for c in xmltag.findall('column')]
+
     listOfTestFiles = []
     tableGenFile = ET.ElementTree().parse(file)
     if 'table' != tableGenFile.tag:
@@ -203,13 +210,24 @@ def parseTableDefinitionFile(file):
             + "    The rootelement of table-definition-file is not named 'table'.")
         exit()
 
-    for test in tableGenFile.findall('test'):
-        columnsToShow = test.findall('column')
-        filelist = Util.getFileList(test.get('filename')) # expand wildcards
-        listOfTestFiles += [(file, columnsToShow) for file in filelist]
+    for testTag in tableGenFile.findall('test'):
+        columnsToShow = extractColumnsFromTableDefinitionFile(testTag)
+        filelist = Util.getFileList(testTag.get('filename')) # expand wildcards
+        listOfTestFiles += [Result.createFromXML(file, parseTestFile(file), columnsToShow) for file in filelist]
+
+    for unionTag in tableGenFile.findall('union'):
+        columnsToShow = extractColumnsFromTableDefinitionFile(unionTag)
+        result = Result([], {}, columnsToShow)
+
+        for testTag in unionTag.findall('test'):
+            filelist = Util.getFileList(testTag.get('filename')) # expand wildcards
+            for file in filelist:
+                result.append(file, parseTestFile(file))
+
+        if result.filelist:
+            listOfTestFiles.append(result)
 
     return listOfTestFiles
-
 
 
 class Column:
@@ -228,19 +246,70 @@ class Result():
     """
     The Class Result is a wrapper for some columns to show and a filelist.
     """
-    def __init__(self, resultXML, filename, columns):
-        self.filelist = resultXML.findall('sourcefile')
+    def __init__(self, filelist, attributes, columns):
+        self.filelist = filelist
+        self.attributes = attributes
         self.columns = columns
 
-        systemTag = resultXML.find('systeminfo')
+    def getSourceFileNames(self):
+        return [file.get('name') for file in self.filelist]
+
+    def append(self, resultFile, resultElem):
+        def updateAttributes(newAttributes):
+            for key in newAttributes:
+                newValue = newAttributes[key]
+                if key in self.attributes:
+                    oldValue = self.attributes[key]
+                    if not isinstance(oldValue, basestring):
+                        if not newValue in oldValue:
+                            self.attributes[key] = oldValue.append(newValue)
+                    else:
+                        if (oldValue != newValue):
+                            self.attributes[key] = [oldValue, newValue]
+                else:
+                    self.attributes[key] = newAttributes[key]
+
+        self.filelist += resultElem.findall('sourcefile')
+        updateAttributes(Result._extractAttributesFromResult(resultFile, resultElem))
+
+        if not self.columns:
+            self.columns = Result._extractExistingColumnsFromResult(resultFile, resultElem)
+
+    @staticmethod
+    def createFromXML(resultFile, resultElem, columns=None):
+        '''
+        This function extracts everything necessary for creating a Result object
+        from the "test" XML tag of a benchmark result file.
+        It returns a Result object.
+        '''
+        attributes = Result._extractAttributesFromResult(resultFile, resultElem)
+
+        if not columns:
+            columns = Result._extractExistingColumnsFromResult(resultFile, resultElem)
+
+        return Result(resultElem.findall('sourcefile'),
+                attributes, columns)
+
+    @staticmethod
+    def _extractExistingColumnsFromResult(resultFile, resultElem):
+        if resultElem.find('sourcefile') is None:
+            print("Empty resultfile found: " + resultFile)
+            columns = []
+        else: # show all available columns
+            columns = [Column(c.get("title"), None, None)
+                       for c in resultElem.find('sourcefile').findall('column')]
+
+    @staticmethod
+    def _extractAttributesFromResult(resultFile, resultTag):
+        systemTag = resultTag.find('systeminfo')
         cpuTag = systemTag.find('cpu')
-        self.attributes = {
+        attributes = {
                 'timelimit': None,
                 'memlimit':  None,
                 'options':   ' ',
-                'benchmarkname': resultXML.get('benchmarkname'),
-                'name':      resultXML.get('name', resultXML.get('benchmarkname')),
-                'branch':    os.path.basename(filename).split('#')[0] if '#' in filename else '',
+                'benchmarkname': resultTag.get('benchmarkname'),
+                'name':      resultTag.get('name', resultTag.get('benchmarkname')),
+                'branch':    os.path.basename(resultFile).split('#')[0] if '#' in resultFile else '',
                 'os':        systemTag.find('os').get('name'),
                 'cpu':       cpuTag.get('model'),
                 'cores':     cpuTag.get('cores'),
@@ -248,16 +317,14 @@ class Result():
                 'ram':       systemTag.find('ram').get('size'),
                 'host':      systemTag.get('hostname', 'unknown')
                 }
-        self.attributes.update(resultXML.attrib)
+        attributes.update(resultTag.attrib)
+        return attributes
 
-    def getSourceFileNames(self):
-        return [file.get('name') for file in self.filelist]
 
-def parseTestFile(resultFile, columnsToShow=None):
+def parseTestFile(resultFile):
     '''
-    This function parses the resultfile to a resultElem and collects
-    all columntitles from the resultfile, that should be part of the table.
-    It returns a Result object.
+    This function parses the resultfile to a resultElem.
+    It returns the "result" XML tag
     '''
     if not os.path.isfile(resultFile):
         print ('File {0!r} is not found.'.format(resultFile))
@@ -275,19 +342,8 @@ def parseTestFile(resultFile, columnsToShow=None):
             + "you should use the option '-x' or '--xml'.").replace('\n','\n    '))
         exit()
 
-    if columnsToShow: # not None
-        columns = [Column(c.get("title"), c.text, c.get("numberOfDigits"))
-                   for c in columnsToShow]
-    elif resultElem.find('sourcefile') is None:
-        print("Empty resultfile found: " + resultFile)
-        columns = []
-    else: # show all available columns
-        columns = [Column(c.get("title"), None, None)
-                   for c in resultElem.find('sourcefile').findall('column')]
-
     insertLogFileNames(resultFile, resultElem)
-    return Result(resultElem, resultFile, columns)
-
+    return resultElem
 
 def insertLogFileNames(resultFile, resultElem):
     resultFile = os.path.basename(resultFile)
@@ -850,7 +906,7 @@ def main(args=None):
         if options.tables:
             print ("Invalid additional arguments '{}'".format(" ".join(options.table)))
             exit()
-        listOfTestFiles = parseTableDefinitionFile(options.xmltablefile)
+        listOfTests = parseTableDefinitionFile(options.xmltablefile)
         name = os.path.basename(options.xmltablefile)[:-4] # remove ending '.xml'
         if not outputPath:
             outputPath = os.path.dirname(options.xmltablefile) or '.'
@@ -864,7 +920,7 @@ def main(args=None):
             inputFiles = [os.path.join(searchDir, '*.results*.xml')]
 
         inputFiles = Util.extendFileList(inputFiles) # expand wildcards
-        listOfTestFiles = [(file, None) for file in inputFiles]
+        listOfTests = [Result.createFromXML(file, parseTestFile(file)) for file in inputFiles]
         name = NAME_START + "." + time.strftime("%y-%m-%d_%H%M", time.localtime())
 
         if inputFiles and not outputPath:
@@ -873,9 +929,6 @@ def main(args=None):
                 outputPath = dir
             else:
                 outputPath = DEFAULT_OUTPUT_PATH
-
-    # parse test files
-    listOfTests = [parseTestFile(file, columnsToShow) for file, columnsToShow in listOfTestFiles]
 
     if not listOfTests:
         print ('\nError! No file with testresults found.')

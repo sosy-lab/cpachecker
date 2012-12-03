@@ -14,4 +14,12 @@
     <!-- all columns of the testfile will be part of the table -->
   </test>
 
+  <union>
+    <!-- Merge the result of several runs into one column in the table. -->
+    <test filename="test/results/benchmark-cpachecker-part1.11-??-??.????.results.xml"/>
+    <test filename="test/results/benchmark-cpachecker-part2.11-??-??.????.results.xml"/>
+    <column title="status"/>
+    <column title="cputime"/>
+  </union>
+
 </table>

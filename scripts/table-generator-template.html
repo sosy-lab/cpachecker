@@ -884,6 +884,7 @@ def formatOptions(str):
     '''Helper function for formatting the content of the options line'''
     return html(html_quote(str)
                     .replace(' -', '<br/>-')
+                    .replace('\', \'', '\',<br/>\'')
                     .replace('=', '=<wbr/>')
                )
 }}
