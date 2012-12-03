@@ -229,7 +229,6 @@ class Result():
     The Class Result is a wrapper for some columns to show and a filelist.
     """
     def __init__(self, resultXML, filename, columns):
-        self.filename = filename
         self.filelist = resultXML.findall('sourcefile')
         self.columns = columns
 
@@ -338,7 +337,7 @@ def mergeSourceFiles(listOfTests):
         currentResultNameSet = set()
         for name in result.getSourceFileNames():
             if name in currentResultNameSet:
-                print ("File {0} is present twice in {1}, skipping it.".format(name, result.filename))
+                print ("File {0} is present twice, skipping it.".format(name))
             else:
                 currentResultNameSet.add(name)
                 if name not in nameSet:
@@ -365,7 +364,7 @@ def mergeFilelists(listOfTests, filenames):
             if fileResult == None:
                 fileResult = ET.Element('sourcefile') # create an empty dummy element
                 fileResult.logfile = None
-                print ('    no result for {0} in {1}'.format(filename, result.filename))
+                print ('    no result for {0}'.format(filename))
             result.filelist.append(fileResult)
 
 
@@ -399,7 +398,7 @@ class Test:
         self.category = category
 
     @staticmethod
-    def createTestFromXML(sourcefileTag, resultFilename, listOfColumns, fileIsUnsafe, correctOnly):
+    def createTestFromXML(sourcefileTag, listOfColumns, fileIsUnsafe, correctOnly):
         '''
         This function collects the values from one tests for one file.
         Only columns, that should be part of the table, are collected.
@@ -425,8 +424,6 @@ class Test:
 
         def readLogfileLines(logfileName):
             if not logfileName: return []
-            baseDir = os.path.dirname(resultFilename)
-            logfileName = os.path.join(baseDir, logfileName)
             try:
                 with open(logfileName) as logfile:
                     return logfile.readlines()
@@ -529,7 +526,7 @@ def getRows(listOfTests, fileNames, correctOnly):
     for result in listOfTests:
         # get values for each file in a test
         for fileResult, row in zip(result.filelist, rows):
-            row.addTest(Test.createTestFromXML(fileResult, result.filename, result.columns, row.fileIsUnsafe(), correctOnly))
+            row.addTest(Test.createTestFromXML(fileResult, result.columns, row.fileIsUnsafe(), correctOnly))
 
     return rows
 
