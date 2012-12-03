@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
@@ -63,6 +65,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolati
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
@@ -150,6 +153,15 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
       .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
                                  toState(PredicateAbstractState.class)))
       .toImmutableList();
+
+    assert from(result).allMatch(new Predicate<ARGState>() {
+      @Override
+      public boolean apply(@Nullable ARGState pInput) {
+        boolean correct = pInput.getParents().size() <= 1;
+        assert correct : "PredicateRefiner expects abstraction states to have only one parent, but this state has more:" + pInput;
+        return correct;
+      }
+    });
 
     assert pPath.getLast().getFirst() == result.get(result.size()-1);
     return result;
