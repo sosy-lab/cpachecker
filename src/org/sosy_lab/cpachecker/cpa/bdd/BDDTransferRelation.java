@@ -643,11 +643,14 @@ public class BDDTransferRelation implements TransferRelation {
     // get args from functioncall and make them equal with params from functionstart
     final List<CExpression> args = cfaEdge.getArguments();
     final List<CParameterDeclaration> params = cfaEdge.getSuccessor().getFunctionParameters();
-    assert args.size() == params.size();
+
+    // var_args cannot be handled: func(int x, ...) --> we only handle the first n parameters
+    assert args.size() >= params.size();
+
     final String innerFunctionName = cfaEdge.getSuccessor().getFunctionName();
     final String outerFunctionName = cfaEdge.getPredecessor().getFunctionName();
 
-    for (int i = 0; i < args.size(); i++) {
+    for (int i = 0; i < params.size(); i++) {
 
       // make variable (predicate) for param, this variable is not global (->false)
       String varName = params.get(i).getName();
