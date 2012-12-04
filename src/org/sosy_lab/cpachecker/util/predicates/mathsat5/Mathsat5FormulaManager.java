@@ -424,14 +424,9 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   // ----------------- Complex formula manipulation -----------------
 
   @Override
-  public Formula createPredicateVariable(Formula atom) {
-    long t = getTerm(atom);
-
-    String repr = msat_term_is_atom(msatEnv, t)
-        ? msat_term_repr(t) : ("#" + msat_term_id(t));
-
+  public Formula createPredicateVariable(String pName) {
     long bool_type = msat_get_bool_type(msatEnv);
-    long d = msat_declare_function(msatEnv, "\"PRED" + repr + "\"", bool_type);
+    long d = msat_declare_function(msatEnv, pName, bool_type);
     long var = msat_make_constant(msatEnv, d);
     return encapsulate(var);
   }

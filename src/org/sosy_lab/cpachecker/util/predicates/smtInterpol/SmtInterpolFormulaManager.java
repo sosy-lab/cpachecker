@@ -99,12 +99,6 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
     return s.replace("|", "");
   }
 
-  /** ApplicationTerms can be wrapped with "|".
-   * This function replaces those chars with "\"". */
-  private static String convertQuotes(String s) {
-    return s.replace("|", "\"");
-  }
-
   private String makeName(String name, int idx) {
     return name + INDEX_SEPARATOR + idx;
   }
@@ -306,11 +300,8 @@ public abstract class SmtInterpolFormulaManager implements FormulaManager {
   // ----------------- Complex formula manipulation -----------------
 
   @Override
-  public Formula createPredicateVariable(Formula f) {
-    Term t = getTerm(f);
-    // TODO is something better than hashcode??
-    String repr = (isAtom(t) ? convertQuotes(t.toStringDirect()) : ("#" + t.hashCode()));
-    return encapsulate(buildVariable("\"PRED" + repr + "\"", env.sort(Type.BOOL)));
+  public Formula createPredicateVariable(String pName) {
+    return encapsulate(buildVariable(pName, env.sort(Type.BOOL)));
   }
 
   @Override

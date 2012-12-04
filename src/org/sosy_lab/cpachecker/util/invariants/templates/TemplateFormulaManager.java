@@ -613,7 +613,7 @@ public class TemplateFormulaManager implements FormulaManager {
    * if it is not done by the caller of this method.
    */
   @Override
-  public Formula createPredicateVariable(Formula pAtom) {
+  public Formula createPredicateVariable(String pName) {
     return null;
   }
 

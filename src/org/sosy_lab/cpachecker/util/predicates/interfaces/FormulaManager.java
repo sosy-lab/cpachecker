@@ -258,11 +258,9 @@ public interface FormulaManager {
     public Formula getBitwiseAxioms(Formula f);
 
     /**
-     * Create the variable representing a predicate for the given atom. There won't
-     * be any tracking of the correspondence between the atom and the variable,
-     * if it is not done by the caller of this method.
+     * Create a boolean variable with a given name.
      */
-    public Formula createPredicateVariable(Formula pAtom);
+    public Formula createPredicateVariable(String name);
 
     /**
      * Splits a formula into into arguments of the top level operator, e.g.,

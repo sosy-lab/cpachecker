@@ -271,8 +271,8 @@ public class ForwardingFormulaManager implements FormulaManager {
   }
 
   @Override
-  public Formula createPredicateVariable(Formula pAtom) {
-    return delegate.createPredicateVariable(pAtom);
+  public Formula createPredicateVariable(String pName) {
+    return delegate.createPredicateVariable(pName);
   }
 
   @Override

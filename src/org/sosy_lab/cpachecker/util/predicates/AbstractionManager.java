@@ -122,12 +122,11 @@ public final class AbstractionManager {
   public AbstractionPredicate makePredicate(Formula atom) {
     AbstractionPredicate result = atomToPredicate.get(atom);
     if (result == null) {
-      Formula symbVar = fmgr.createPredicateVariable(atom);
+      Formula symbVar = fmgr.createPredicateVariable("PRED"+numberOfPredicates++);
       Region absVar = rmgr.createPredicate();
 
       logger.log(Level.FINEST, "Created predicate", absVar,
           "from variable", symbVar, "and atom", atom);
-      numberOfPredicates++;
 
       result = new AbstractionPredicate(absVar, symbVar, atom);
       symbVarToPredicate.put(symbVar, result);

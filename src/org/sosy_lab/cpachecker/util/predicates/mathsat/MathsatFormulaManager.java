@@ -315,12 +315,8 @@ public abstract class MathsatFormulaManager implements FormulaManager {
   // ----------------- Complex formula manipulation -----------------
 
   @Override
-  public Formula createPredicateVariable(Formula atom) {
-    long t = getTerm(atom);
-
-    String repr = (msat_term_is_atom(t) != 0)
-                    ? msat_term_repr(t) : ("#" + msat_term_id(t));
-    long d = msat_declare_variable(msatEnv, "\"PRED" + repr + "\"", MSAT_BOOL);
+  public Formula createPredicateVariable(String pName) {
+    long d = msat_declare_variable(msatEnv, pName, MSAT_BOOL);
     long var = msat_make_variable(msatEnv, d);
 
     return encapsulate(var);
