@@ -911,7 +911,7 @@ def main(args=None):
         listOfTests = parseTableDefinitionFile(options.xmltablefile)
         name = os.path.basename(options.xmltablefile)[:-4] # remove ending '.xml'
         if not outputPath:
-            outputPath = os.path.dirname(options.xmltablefile) or '.'
+            outputPath = os.path.dirname(options.xmltablefile)
 
     else:
         if options.tables:
@@ -931,6 +931,9 @@ def main(args=None):
                 outputPath = dir
             else:
                 outputPath = DEFAULT_OUTPUT_PATH
+
+    if not outputPath:
+        outputPath = '.'
 
     if not listOfTests:
         print ('\nError! No file with testresults found.')
