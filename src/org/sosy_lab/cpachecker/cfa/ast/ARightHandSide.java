@@ -26,6 +26,13 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
+/**
+ *
+ * Abstract Super class for all possible right-hand sides of an assignment.
+ * This class is only SuperClass of all abstract Classes and their Subclasses.
+ * The Interface {@link IARightHandSide} contains all language specific
+ * AST Nodes as well.
+ */
 public  abstract class ARightHandSide extends AstNode implements IARightHandSide{
 
   protected final Type type;

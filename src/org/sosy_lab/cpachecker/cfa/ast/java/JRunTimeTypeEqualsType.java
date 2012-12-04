@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JRunTimeTypeEqualsType extends AExpression implements JExpression {
@@ -44,6 +45,11 @@ public class JRunTimeTypeEqualsType extends AExpression implements JExpression {
 
     assert getRunTimeTypeExpression() != null;
     assert getTypeDef() != null;
+  }
+
+  @Override
+  public JType getExpressionType() {
+    return (JType) super.getExpressionType();
   }
 
   @Override

@@ -27,7 +27,12 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 
-
+/**
+ * This Expression is used, if either the Run Time Type or Run Time Object
+ * of the this (Keyword) Reference  is requested.
+ * As part of a regular Expression, it denotes the Run Time Object. As Part of a
+ * JRunTimeTypeEqualsType Expression, it denotes the Run Time Type.
+ */
 public class JThisExpression extends AExpression implements JRunTimeTypeExpression {
 
   public JThisExpression(FileLocation pFileLocation, JClassOrInterfaceType pType) {

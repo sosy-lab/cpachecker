@@ -35,7 +35,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -47,11 +46,12 @@ import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -93,9 +93,9 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -365,7 +365,6 @@ public class ExplicitTransferRelation implements TransferRelation
 
 
   private ExplicitState handleAssumption(ExplicitState element, IAExpression expression, CFAEdge cfaEdge, boolean truthValue)
-
     throws UnrecognizedCCodeException {
     // convert an expression like [a + 753 != 951] to [a != 951 - 753]
     expression = optimizeAssumeForEvaluation(expression);
@@ -378,9 +377,11 @@ public class ExplicitTransferRelation implements TransferRelation
 
     // value is null, try to derive further information
     if (value == null) {
+
       AssigningValueVisitor avv = new AssigningValueVisitor(cfaEdge, element, functionName, truthValue);
 
       if(expression instanceof JExpression && ! (expression instanceof CExpression)){
+
         ((JExpression) expression).accept(avv);
 
         if(avv.missingFieldAccessInformation || avv.missingEnumComparisonInformation) {
@@ -460,10 +461,12 @@ public class ExplicitTransferRelation implements TransferRelation
       }
     } else {
 
-      //TODO What do we do with not initialized local Java Variables?
+
       if(decl instanceof JVariableDeclaration && decl.getType() instanceof JSimpleType && init == null) {
         JBasicType simpleType = ((JSimpleType) decl.getType()).getType();
 
+
+        //TODO What do we do with not initialized local Java Variables?
         switch(simpleType){
         case BOOLEAN:
         case BYTE:
@@ -545,7 +548,6 @@ public class ExplicitTransferRelation implements TransferRelation
       }
 
       return;
-
     }
 
     else if (op1 instanceof CFieldReference) {
@@ -603,7 +605,11 @@ public class ExplicitTransferRelation implements TransferRelation
       notScopedFieldValue = value;
     } else {
       if (value == null) {
-        newElement.forget(assignedVar);
+        // Don't erase it when there if it has yet to be evaluated
+        if(missingInformationRightJExpression == null) {
+          // TODO HasToBeErased Later
+         newElement.forget(assignedVar);
+        }
       } else {
         newElement.assignConstant(assignedVar, value);
       }
@@ -884,7 +890,10 @@ public class ExplicitTransferRelation implements TransferRelation
       case SHIFT_LEFT:
       case BINARY_AND:
       case BINARY_OR:
-      case BINARY_XOR: {
+      case BINARY_XOR:
+      case MODULO:
+      case SHIFT_RIGHT_SIGNED:
+      case SHIFT_RIGHT_UNSIGNED:{
         Long lVal =    ((JExpression)lVarInBinaryExp).accept(this);
         if(lVal == null) {
           return null;
@@ -924,6 +933,14 @@ public class ExplicitTransferRelation implements TransferRelation
 
         case BINARY_XOR:
           return lVal ^ rVal;
+
+        case MODULO:
+          return lVal % rVal;
+
+        case SHIFT_RIGHT_SIGNED:
+          return lVal >> rVal;
+        case SHIFT_RIGHT_UNSIGNED:
+          return lVal >>> rVal;
 
         default:
           throw new AssertionError();
@@ -973,9 +990,6 @@ public class ExplicitTransferRelation implements TransferRelation
         // return 1 if expression holds, 0 otherwise
         return (result ? 1L : 0L);
       }
-      case MODULO:
-      case SHIFT_RIGHT_SIGNED:
-      case SHIFT_RIGHT_UNSIGNED:
       default:
         // TODO check which cases can be handled
         return null;
@@ -988,7 +1002,13 @@ public class ExplicitTransferRelation implements TransferRelation
 
       IASimpleDeclaration decl = idExp.getDeclaration();
 
-      if(decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()) {
+      // Java IdExpression could not be resolved
+      if(decl == null) {
+        return null;
+      }
+
+      if(decl instanceof JFieldDeclaration
+          && !((JFieldDeclaration) decl).isStatic()) {
         missingFieldAccessInformation = true;
       }
 
@@ -1116,6 +1136,8 @@ public class ExplicitTransferRelation implements TransferRelation
       this.truthValue = truthValue;
     }
 
+
+
     private IAExpression unwrap(IAExpression expression) {
       // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
 
@@ -1194,16 +1216,17 @@ public class ExplicitTransferRelation implements TransferRelation
 
       IAExpression rVarInBinaryExp  = pE.getOperand2();
 
+
+
       Long leftValue                  = ((JExpression) lVarInBinaryExp).accept(this);
       Long rightValue                 = ((JExpression) rVarInBinaryExp).accept(this);
 
       if((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue) || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
         if(leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
+
           String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
           state.assignConstant(leftVariableName, rightValue);
-        }
-
-        else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
+        } else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
           String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
           state.assignConstant(rightVariableName, leftValue);
 
@@ -1232,7 +1255,30 @@ public class ExplicitTransferRelation implements TransferRelation
 
 
     private boolean isAssignable(IAExpression expression) {
-      return expression instanceof AIdExpression || expression instanceof CFieldReference;
+
+
+      boolean result = false;
+
+
+
+      if(expression instanceof JIdExpression ) {
+
+        JSimpleDeclaration decl = ((JIdExpression) expression).getDeclaration();
+
+        if(decl == null) {
+          result = false;
+        } else if(decl instanceof JFieldDeclaration) {
+          result = ((JFieldDeclaration) decl).isStatic();
+        } else {
+          result = true;
+        }
+      }
+
+
+
+
+
+      return result || expression instanceof CFieldReference;
     }
   }
 
@@ -1277,11 +1323,8 @@ public class ExplicitTransferRelation implements TransferRelation
     @Override
     public Long visit(JUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
         return super.visit(unaryExpression);
-
     }
-
   }
-
 
   private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
     private final RTTState jortState;
@@ -1294,145 +1337,63 @@ public class ExplicitTransferRelation implements TransferRelation
     @Override
     public Long visit(JBinaryExpression binaryExpression) throws UnrecognizedCCodeException {
 
-      if((binaryExpression.getOperator() ==    JBinaryExpression.BinaryOperator.EQUALS || binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.NOT_EQUALS) && (binaryExpression.getOperand1() instanceof JEnumConstantExpression ||  binaryExpression.getOperand2() instanceof JEnumConstantExpression)) {
-        return handleEnumComparison(binaryExpression.getOperand1() , binaryExpression.getOperand2() , binaryExpression.getOperator());
+      if((binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.EQUALS
+          || binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.NOT_EQUALS)
+          && (binaryExpression.getOperand1() instanceof JEnumConstantExpression
+              ||  binaryExpression.getOperand2() instanceof JEnumConstantExpression)) {
+        return handleEnumComparison(
+            binaryExpression.getOperand1() ,
+            binaryExpression.getOperand2() , binaryExpression.getOperator());
       }
-
-
 
       return super.visit(binaryExpression);
     }
 
-
     private Long handleEnumComparison(JExpression operand1, JExpression operand2, JBinaryExpression.BinaryOperator operator) throws UnrecognizedCCodeException {
-
-
 
       String value1;
       String value2;
 
-
-
-      if(operand1 instanceof JEnumConstantExpression) {
+      if (operand1 instanceof JEnumConstantExpression) {
         value1 = ((JEnumConstantExpression) operand1).getValue();
-      } else if(operand1 instanceof JIdExpression) {
+      } else if (operand1 instanceof JIdExpression) {
+        String scopedVarName = handleIdExpression((JIdExpression) operand1);
 
+        if (jortState.contains(scopedVarName)) {
+          String uniqueObject = jortState.getUniqueObjectFor(scopedVarName);
 
-        JSimpleDeclaration decl = ((JIdExpression) operand1).getDeclaration();
-
-        String varName = null;
-
-        String reference;
-
-        if(operand1 instanceof JFieldAccess) {
-
-          JVariableDeclaration referenceDeclaration = (JVariableDeclaration) ((JFieldAccess) operand1).getReferencedVariable().get(0).getDeclaration();
-
-
-          if(referenceDeclaration instanceof JFieldDeclaration) {
-
-            if(((JFieldDeclaration) referenceDeclaration).isStatic()) {
-              // reference is static, it is stored in global scope
-              reference = referenceDeclaration.getName();
-            } else {
-              // reference is non static field, is stored in this object scope
-              reference = getJortScopedVariableName(referenceDeclaration.getName() ,jortState.getUniqueObjectFor(RTTState.KEYWORD_THIS));
-            }
-
+          if (jortState.getConstantsMap().containsValue(uniqueObject)) {
+            value1 = jortState.getRunTimeClassOfUniqueObject(uniqueObject);
           } else {
-            // Reference Variable is local, it is stored in function Scope
-            reference = getScopedVariableName(referenceDeclaration.getName(), functionName);
-          }
-        } else {
-          reference = RTTState.KEYWORD_THIS;
-        }
-
-        if(decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()){
-
-          if(jortState.contains(reference)) {
-            varName = getJortScopedVariableName(decl.getName(), jortState.getUniqueObjectFor(reference));
-          }else {
             return null;
           }
         } else {
-          varName = getScopedVariableName(((JIdExpression) operand1).getName(), functionName);
-        }
-
-        if(jortState.contains(varName)){
-          value1 = jortState.getUniqueObjectFor(varName);
-        }else{
           return null;
         }
-
-
       } else {
         return null;
       }
 
 
-      if(operand2 instanceof JEnumConstantExpression) {
+      if (operand2 instanceof JEnumConstantExpression) {
         value2 = ((JEnumConstantExpression) operand2).getValue();
-      } else if(operand2 instanceof JIdExpression) {
+      } else if (operand1 instanceof JIdExpression) {
+        String scopedVarName = handleIdExpression((JIdExpression) operand2);
 
+        if (jortState.contains(scopedVarName)) {
+          String uniqueObject = jortState.getUniqueObjectFor(scopedVarName);
 
-        JSimpleDeclaration decl = ((JIdExpression) operand1).getDeclaration();
-
-        String varName = null;
-
-        String reference;
-
-        if(operand2 instanceof JFieldAccess) {
-
-          JVariableDeclaration referenceDeclaration = (JVariableDeclaration) ((JFieldAccess) operand2).getReferencedVariable().get(0).getDeclaration();
-
-
-          if(referenceDeclaration instanceof JFieldDeclaration) {
-
-            if(((JFieldDeclaration) referenceDeclaration).isStatic()) {
-              // reference is static, it is stored in global scope
-              reference = referenceDeclaration.getName();
-            } else {
-              // reference is non static field, is stored in this object scope
-              reference = getJortScopedVariableName(referenceDeclaration.getName() ,jortState.getUniqueObjectFor(RTTState.KEYWORD_THIS));
-            }
-
+          if (jortState.getConstantsMap().containsValue(uniqueObject)) {
+            value2 = jortState.getRunTimeClassOfUniqueObject(uniqueObject);
           } else {
-            // Reference Variable is local, it is stored in function Scope
-            reference = getScopedVariableName(referenceDeclaration.getName(), functionName);
-          }
-        } else {
-          reference = RTTState.KEYWORD_THIS;
-        }
-
-        if(decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()){
-
-          if(jortState.contains(reference)) {
-            varName = getJortScopedVariableName(decl.getName(), jortState.getUniqueObjectFor(reference));
-          }else {
             return null;
           }
         } else {
-          varName = getScopedVariableName(((JIdExpression) operand2).getName(), functionName);
-        }
-
-        if(jortState.contains(varName)) {
-          value2 = jortState.getUniqueObjectFor(varName);
-        }else{
           return null;
         }
       } else {
         return null;
       }
-
-      if(jortState.getConstantsMap().containsValue(value1)) {
-        value1 = jortState.getRunTimeClassOfUniqueObject(value1);
-      }
-
-      if(jortState.getConstantsMap().containsValue(value2)) {
-        value2 = jortState.getRunTimeClassOfUniqueObject(value2);
-      }
-
-
 
       boolean result = value1.equals(value2);
 
@@ -1441,53 +1402,27 @@ public class ExplicitTransferRelation implements TransferRelation
       case NOT_EQUALS: result = !result;
       }
 
-
-
       return  result ? 1L : 0L;
+    }
+
+    private String handleIdExpression(JIdExpression expr) {
+
+      JSimpleDeclaration decl = expr.getDeclaration();
+
+      if(decl == null) {
+        return null;
+      }
+
+      String objectScope = getObjectScope(jortState, functionName, expr);
+
+      return getRTTScopedVariableName(decl, functionName, objectScope);
+
     }
 
     @Override
     public Long visit(JIdExpression idExp) throws UnrecognizedCCodeException {
 
-      IASimpleDeclaration decl = idExp.getDeclaration();
-
-      String varName = null;
-
-      String reference;
-
-      if(idExp instanceof JFieldAccess) {
-
-        JVariableDeclaration referenceDeclaration = (JVariableDeclaration) ((JFieldAccess) idExp).getReferencedVariable().get(0).getDeclaration();
-
-
-        if(referenceDeclaration instanceof JFieldDeclaration) {
-
-          if(((JFieldDeclaration) referenceDeclaration).isStatic()) {
-            // reference is static, it is stored in global scope
-            reference = referenceDeclaration.getName();
-          } else {
-            // reference is non static field, is stored in this object scope
-            reference = getJortScopedVariableName(referenceDeclaration.getName() ,jortState.getUniqueObjectFor(RTTState.KEYWORD_THIS));
-          }
-
-        } else {
-          // Reference Variable is local, it is stored in function Scope
-          reference = getScopedVariableName(referenceDeclaration.getName(), functionName);
-        }
-      } else {
-        reference = RTTState.KEYWORD_THIS;
-      }
-
-      if(decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()){
-
-        if(jortState.contains(reference)) {
-          varName = getJortScopedVariableName(decl.getName(), jortState.getUniqueObjectFor(reference));
-        }else {
-          return null;
-        }
-      } else {
-        varName = getScopedVariableName(idExp.getName(), functionName);
-      }
+      String varName = handleIdExpression(idExp);
 
       if(state.contains(varName)) {
         return state.getValueFor(varName);
@@ -1542,13 +1477,19 @@ public class ExplicitTransferRelation implements TransferRelation
     return null;
   }
 
-  private Collection<? extends AbstractState> strengthen(ExplicitState explicitState, RTTState jortState, CFAEdge cfaEdge,
+  private Collection<? extends AbstractState> strengthen(
+      ExplicitState explicitState, RTTState rttState, CFAEdge cfaEdge,
       Precision precision) throws UnrecognizedCCodeException {
 
     if(missingFieldVariableObject) {
 
       ExplicitState newElement = explicitState.clone();
-      newElement.assignConstant(getJortScopedVariableName(fieldNameAndInitialValue.getFirst(), jortState.getKeywordThisUniqueObject() ), fieldNameAndInitialValue.getSecond());
+
+      newElement.assignConstant(getRTTScopedVariableName(
+          fieldNameAndInitialValue.getFirst(),
+          rttState.getKeywordThisUniqueObject() ),
+          fieldNameAndInitialValue.getSecond());
+
       missingFieldVariableObject = false;
       fieldNameAndInitialValue = null;
       return Collections.singleton(newElement);
@@ -1556,7 +1497,7 @@ public class ExplicitTransferRelation implements TransferRelation
     } else if(missingScopedFieldName){
 
       ExplicitState newElement = explicitState.clone();
-      newElement = handleNotScopedVariable(jortState, newElement , cfaEdge);
+      newElement = handleNotScopedVariable(rttState, newElement , cfaEdge);
       missingScopedFieldName = false;
       notScopedField = null;
       notScopedFieldValue = null;
@@ -1569,7 +1510,7 @@ public class ExplicitTransferRelation implements TransferRelation
       }
     } else if(missingAssumeInformation && missingInformationRightJExpression != null) {
       ExplicitState newElement = explicitState.clone();
-      Long value = handleMissingInformationRightJExpression(jortState, newElement, cfaEdge);
+      Long value = handleMissingInformationRightJExpression(rttState, newElement, cfaEdge);
 
 
       missingAssumeInformation = false;
@@ -1585,7 +1526,7 @@ public class ExplicitTransferRelation implements TransferRelation
     } else if(missingInformationRightJExpression != null) {
 
       ExplicitState newElement = explicitState.clone();
-      Long value = handleMissingInformationRightJExpression(jortState , newElement , cfaEdge);
+      Long value = handleMissingInformationRightJExpression(rttState , newElement , cfaEdge);
 
       if(value != null) {
         newElement.assignConstant(missingInformationLeftJVariable, value);
@@ -1595,51 +1536,92 @@ public class ExplicitTransferRelation implements TransferRelation
       } else {
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
-        return null;
+        newElement.forget(missingInformationLeftJVariable);
+        return Collections.singleton(newElement);
       }
     }
     return null;
   }
 
+  private String getRTTScopedVariableName(String fieldName, String uniqueObject) {
+    return  uniqueObject + "::"+ fieldName;
+  }
   private Long handleMissingInformationRightJExpression(RTTState pJortState , ExplicitState newElement, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
     return missingInformationRightJExpression.accept(new FieldAccessExpressionValueVisitor(cfaEdge , newElement, cfaEdge.getPredecessor().getFunctionName() , pJortState));
   }
 
-  private ExplicitState handleNotScopedVariable(RTTState jortState , ExplicitState newElement, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  private ExplicitState handleNotScopedVariable(RTTState rttState , ExplicitState newElement, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+
+   String objectScope = getObjectScope(rttState, cfaEdge.getPredecessor().getFunctionName(), notScopedField);
+
+   if(objectScope != null) {
+
+     String scopedFieldName = getRTTScopedVariableName(notScopedField.getName(), objectScope);
+
+     Long value = notScopedFieldValue;
+     if(missingInformationRightJExpression != null){
+       value = handleMissingInformationRightJExpression(rttState , newElement, cfaEdge);
+     }
+
+     if(value != null) {
+       newElement.assignConstant(scopedFieldName, value);
+       return newElement;
+     } else {
+       newElement.forget(scopedFieldName);
+       return newElement;
+     }
+   } else {
+     return null;
+   }
 
 
+  }
 
-    String reference = null;
+  private String getObjectScope(RTTState rttState, String methodName,
+      JIdExpression notScopedField) {
 
-    if(notScopedField instanceof JFieldAccess) {
-      reference = ((JFieldAccess) notScopedField).getReferencedVariable().get(0).getDeclaration().getName();
-    } else {
-      reference = RTTState.KEYWORD_THIS;
+    // Could not resolve var
+    if(notScopedField.getDeclaration() == null) {
+      return null;
     }
 
-    if(jortState.contains(reference)) {
-      String scopedFieldName = getJortScopedVariableName(notScopedField.getName(), jortState.getUniqueObjectFor(reference ));
-      Long value = notScopedFieldValue;
-      if(missingInformationRightJExpression != null){
-        value = handleMissingInformationRightJExpression(jortState , newElement, cfaEdge);
-      }
+    if(notScopedField instanceof JFieldAccess){
 
-      if(value != null) {
-        newElement.assignConstant(scopedFieldName, value);
-        return newElement;
+      JIdExpression qualifier = ((JFieldAccess) notScopedField).getReferencedVariable();
+
+      String qualifierScope = getObjectScope(rttState, methodName , qualifier);
+
+      String scopedFieldName =
+          getRTTScopedVariableName(qualifier.getDeclaration(), methodName ,qualifierScope);
+
+      if(rttState.contains(scopedFieldName)) {
+        return rttState.getUniqueObjectFor(scopedFieldName);
       } else {
         return null;
       }
     } else {
-      //TODO Logging? Expression?
-      return null;
+      if(rttState.contains(RTTState.KEYWORD_THIS)) {
+        return rttState.getUniqueObjectFor(RTTState.KEYWORD_THIS);
+      } else {
+        return null;
+      }
     }
   }
 
-  private String getJortScopedVariableName(String fieldName, String uniqueObject) {
+  private String getRTTScopedVariableName(
+      JSimpleDeclaration decl,
+      String methodName, String uniqueObject) {
 
-    return  uniqueObject + "::"+ fieldName;
+    if (decl == null) { return ""; }
+
+    if (decl instanceof JFieldDeclaration && ((JFieldDeclaration) decl).isStatic()) {
+      return decl.getName();
+    } else if (decl instanceof JFieldDeclaration) {
+      return uniqueObject + "::" + decl.getName();
+    } else {
+      return methodName + "::" + decl.getName();
+    }
   }
 
   private Collection<? extends AbstractState> strengthen(ExplicitState explicitState, PointerState pointerElement, CFAEdge cfaEdge)

@@ -211,12 +211,13 @@ public class CPAchecker {
       logger.logUserException(Level.SEVERE, e, "Parsing failed");
       logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
           + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
+
     } catch (JParserException e) {
         // only log message, not whole exception because this is a Java problem,
         // not a CPAchecker problem
         logger.logUserException(Level.SEVERE, e, "Parsing failed");
         logger.log(Level.INFO, "Make sure that the Java code could be compiled by a Compiler," +
-        		"  and the Java Version is supported.\n"
+        		"and the Java Version is supported.\n"
             + "The Java Parser of cpaChecker does not yet support the complete Java language.\n"
             + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
    } catch (ParserException e) {

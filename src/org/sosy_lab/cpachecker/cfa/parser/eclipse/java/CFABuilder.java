@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
@@ -48,73 +47,44 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 
 /**
- * Builder to traverse AST. This Class has to be reusable for ASTs.
- * Additionally, it tracks variables over the traversed ASTs.
- *
- *
- * Known Limitations:
+ * Builder to traverse AST. This Class has to be reusable for more ASTs.
  */
 class CFABuilder extends ASTVisitor {
 
-
-
   private static final boolean SKIP_CHILDREN = false;
-
-
   private static final boolean VISIT_CHILDREN = true;
-
 
   // Data structure for tracking method Declaration over ASTs
   // Used to resolve dynamic Bindings
   private final Map<String, MethodDeclaration> allParsedMethodDeclaration = new HashMap<String, MethodDeclaration>();
-
 
   // Data structures for handling method declarations
   private Queue<MethodDeclaration> methodDeclarations = new LinkedList<MethodDeclaration>();
   private final Map<String, FunctionEntryNode> cfas = new HashMap<String, FunctionEntryNode>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
-  // Data structure for storing static field declarations over this Ast
-  private final List<Pair<JDeclaration, String>> nonStaticFieldDeclarationsOfThisClass = Lists.newArrayList();
-
-  // Data structure for storing static and nonStatic field declarations over several AST
-  private final List<Pair<JDeclaration, String>> staticFieldDeclarations = Lists.newArrayList();
-  private final List<Pair<JDeclaration, String>> nonStaticFieldDeclarations = Lists.newArrayList();
-
   // Data Structure for tracking class Declaration in this Compilation Unit
   private final Set<ITypeBinding> classDeclaration = new HashSet<ITypeBinding>();
 
   private final Scope scope;
   private final ASTConverter astCreator;
-  private final Map<String, JClassOrInterfaceType> types;
 
   private final LogManager logger;
-  private final boolean ignoreCasts;
 
-  public CFABuilder(LogManager pLogger, boolean pIgnoreCasts, String fullyQualifiedNameOfMainClass,
-      Map<String, JClassOrInterfaceType> pTypeHierachie) {
+
+  public CFABuilder(LogManager pLogger, Scope pScope) {
     logger = pLogger;
-    ignoreCasts = pIgnoreCasts;
-    types = pTypeHierachie;
-
-    if (pIgnoreCasts) {
-      logger.log(Level.WARNING, "Ignoring all casts in the program because of user request!");
-    }
-    scope = new Scope(fullyQualifiedNameOfMainClass, types);
-    astCreator = new ASTConverter(scope, pIgnoreCasts, logger, types);
-
+    scope = pScope;
+    astCreator = new ASTConverter(scope, logger);
   }
 
-
   /**
-   * Retrieves list of all functions
+   * Retrieves list of all methods and constructors of program
    * @return all CFAs in the program
    */
   public Map<String, FunctionEntryNode> getCFAs() {
@@ -130,18 +100,22 @@ class CFABuilder extends ASTVisitor {
   }
 
   /**
-   * Retrieves list of all global declarations
+   * Retrieves list of all static field declarations
    * @return global declarations
    */
-  public List<Pair<IADeclaration, String>> getGlobalDeclarations() {
+  public List<Pair<IADeclaration, String>> getStaticFieldDeclarations() {
 
-    // TODO Change with PArse Result when Java unique Parse Result is introduced
+    Map<String, JFieldDeclaration> staticFieldDeclarations
+                                  = scope.getStaticFieldDeclarations();
+
     List<Pair<IADeclaration, String>> result =
-        new ArrayList<Pair<IADeclaration, String>>(staticFieldDeclarations.size());
-    for (Pair<JDeclaration, String> decl : staticFieldDeclarations) {
-      IADeclaration declaration = decl.getFirst();
-      result.add(Pair.of(declaration, decl.getSecond()));
+        new ArrayList<Pair<IADeclaration, String>> (staticFieldDeclarations.size());
+
+    for (String declName : staticFieldDeclarations.keySet()) {
+      IADeclaration declaration = staticFieldDeclarations.get(declName);
+      result.add(Pair.of(declaration, declName));
     }
+
     return result;
   }
 
@@ -149,157 +123,142 @@ class CFABuilder extends ASTVisitor {
   public boolean visit(CompilationUnit cu) {
 
     // To make the builder reusable, past declarations have to be cleared.
-    getMethodDeclarations().clear();
-    nonStaticFieldDeclarationsOfThisClass.clear();
+    methodDeclarations.clear();
     classDeclaration.clear();
-    return VISIT_CHILDREN;
 
+    return VISIT_CHILDREN;
   }
 
   @Override
   public boolean visit(TypeDeclaration typeDec) {
 
-    if (!typeDec.isInterface()) {
-      classDeclaration.add(typeDec.resolveBinding());
+    ITypeBinding classBinding = typeDec.resolveBinding();
+
+    if (!classBinding.isInterface()) {
+      classDeclaration.add(classBinding);
     }
+
+    if(!typeDec.isPackageMemberTypeDeclaration()) {
+      // inner classes not implemented
+      return SKIP_CHILDREN;
+    }
+
+    // enter Top Level Class Scope
+    scope.enterClass(astCreator.convertClassOrInterfaceType(classBinding));
+
 
     return VISIT_CHILDREN;
   }
 
-
   /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.JDeclaration)
+   *
    */
   @Override
   public boolean visit(MethodDeclaration fd) {
-
-
-    getMethodDeclarations().add(fd);
-
-    // add forward declaration to list of global declarations
-    //JDeclaration functionDefinition = getAstCreator().convert(fd);
-    if (getAstCreator().numberOfSideAssignments() > 0) { throw new CFAGenerationRuntimeException(
-        "Function definition has side effect", fd); }
-
-    //staticFieldDeclarations.add(Pair.of(functionDefinition, "What is that" + " " + "What is that"));
+    methodDeclarations.add(fd);
     return SKIP_CHILDREN;
   }
 
   @Override
   public boolean visit(FieldDeclaration fd) {
 
-
-    final List<JDeclaration> newDs = getAstCreator().convert(fd);
+    final List<JDeclaration> newDs = astCreator.convert(fd);
     assert !newDs.isEmpty();
-
-
 
     // In Java, initializer of field Variable may be Object Creation, which means Side Assignments
     //
-    if (getAstCreator().numberOfPreSideAssignments() > 0) { throw new CFAGenerationRuntimeException(
-        "Initializer of global variable has side effect", fd); }
-
-
-
-    String rawSignature = fd.toString();
-
-    // static field are declared when a class is loaded
-    // non static fields are declared when an object is created
-    for (JDeclaration newD : newDs) {
-
-      scope.registerDeclaration(newD);
-
-      if (((JFieldDeclaration) newD).isStatic()) {
-        staticFieldDeclarations.add(Pair.of(newD, rawSignature));
-      } else {
-        nonStaticFieldDeclarations.add(Pair.of(newD, rawSignature));
-        nonStaticFieldDeclarationsOfThisClass.add(Pair.of(newD, rawSignature));
-      }
-    }
+    if (astCreator.numberOfPreSideAssignments() > 0) {
+      throw new CFAGenerationRuntimeException(
+        "Initializer of field variable has side effect", fd); }
 
     return SKIP_CHILDREN;
   }
 
-
-
   @Override
-  public void endVisit(CompilationUnit translationUnit) {
+  public void endVisit(TypeDeclaration typeDef) {
 
-    Set<ITypeBinding> hasConstructor = new HashSet<ITypeBinding>();
-
-    for (MethodDeclaration declaration : getMethodDeclarations()) {
-      if (declaration.isConstructor()) {
-        hasConstructor.add(declaration.resolveBinding().getDeclaringClass());
-      }
-
-      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
-          scope, getAstCreator(), nonStaticFieldDeclarationsOfThisClass, types);
-
-      declaration.accept(functionBuilder);
-
-      FunctionEntryNode startNode = functionBuilder.getStartNode();
-      String functionName = startNode.getFunctionName();
-
-      if (cfas.containsKey(functionName)) { throw new CFAGenerationRuntimeException("Duplicate function "
-          + functionName); }
-      cfas.put(functionName, startNode);
-      cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
-      allParsedMethodDeclaration.put(functionName, declaration);
-
+    if (!typeDef.isPackageMemberTypeDeclaration()) {
+      // inner classes not implemented.
+      return;
     }
 
+    // track all classes that have Constructor
+    Set<ITypeBinding> classHasConstructor = new HashSet<ITypeBinding>();
+
+    // parse all found methods
+    for (MethodDeclaration declaration : methodDeclarations) {
+
+      if (declaration.isConstructor()) {
+        classHasConstructor.add(declaration.resolveBinding().getDeclaringClass());
+      }
+
+      CFAFunctionBuilder methodBuilder = new CFAFunctionBuilder(logger,
+          scope, astCreator);
+
+      declaration.accept(methodBuilder);
+
+      FunctionEntryNode startNode = methodBuilder.getStartNode();
+      String methodName = startNode.getFunctionName();
+
+      if (cfas.containsKey(methodName)) {
+        throw new CFAGenerationRuntimeException("Duplicate method "
+          + methodName);
+      }
+
+
+      cfas.put(methodName, startNode);
+      cfaNodes.putAll(methodName, methodBuilder.getCfaNodes());
+      allParsedMethodDeclaration.put(methodName, declaration);
+    }
+
+    // If a class declaration has no constructor, create a standard constructor
     for (ITypeBinding classBinding : classDeclaration) {
-      if (!hasConstructor.contains(classBinding)
+      if (!classHasConstructor.contains(classBinding)
           && (classBinding.getDeclaredModifiers() & Modifier.ABSTRACT) != Modifier.ABSTRACT) {
 
-        CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, ignoreCasts,
-            scope, getAstCreator(), nonStaticFieldDeclarationsOfThisClass, types);
+        CFAFunctionBuilder methodBuilder = new CFAFunctionBuilder(logger,
+            scope, astCreator);
 
-        functionBuilder.createDefaultConstructor(classBinding);
+        methodBuilder.createDefaultConstructor(classBinding);
 
-        FunctionEntryNode startNode = functionBuilder.getStartNode();
-        String functionName = startNode.getFunctionName();
+        FunctionEntryNode startNode = methodBuilder.getStartNode();
+        String methodName = startNode.getFunctionName();
 
-        if (cfas.containsKey(functionName)) { throw new CFAGenerationRuntimeException("Duplicate function "
-            + functionName); }
+        if (cfas.containsKey(methodName)) {
+          throw new CFAGenerationRuntimeException("Duplicate method "
+            + methodName);
+        }
 
-        cfas.put(functionName, startNode);
-        cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
-        hasConstructor.add(classBinding);
-        allParsedMethodDeclaration.put(functionName, null);
+        cfas.put(methodName, startNode);
+        cfaNodes.putAll(methodName, methodBuilder.getCfaNodes());
+        classHasConstructor.add(classBinding);
+        allParsedMethodDeclaration.put(methodName, null);
       }
     }
 
-  }
 
+    scope.leaveClass(); // leave Top Level Scope
+  }
 
   public Scope getScope() {
     return scope;
   }
 
-
-  public Queue<MethodDeclaration> getMethodDeclarations() {
-    return methodDeclarations;
-  }
-
-
   public Map<String, MethodDeclaration> getAllParsedMethodDeclaration() {
     return allParsedMethodDeclaration;
   }
-
 
   public ASTConverter getAstCreator() {
     return astCreator;
   }
 
 
+
   @Override
   public void preVisit(ASTNode problem) {
-    // flags return the bitwise or of value Recovered =case 8, Malformed = case 1
     if (ASTNode.RECOVERED == (problem.getFlags() & ASTNode.RECOVERED)
         || ASTNode.MALFORMED == (problem.getFlags() & ASTNode.MALFORMED)) {
-      logger.log(Level.SEVERE, "Error: " + problem.toString());
+      throw new CFAGenerationRuntimeException( "Syntaxerror in " + problem.toString() +"\n", problem);
     }
   }
-
 }

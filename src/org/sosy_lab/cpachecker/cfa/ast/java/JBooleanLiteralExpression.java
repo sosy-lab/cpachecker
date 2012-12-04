@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
@@ -34,8 +36,8 @@ public class JBooleanLiteralExpression extends ALiteralExpression implements JEx
 
   final Boolean value;
 
-  public JBooleanLiteralExpression(FileLocation pFileLocation, JType pType, boolean pValue) {
-    super(pFileLocation, pType);
+  public JBooleanLiteralExpression(FileLocation pFileLocation,  boolean pValue) {
+    super(pFileLocation, new JSimpleType(JBasicType.BOOLEAN));
     value = pValue;
   }
 
@@ -51,6 +53,11 @@ public class JBooleanLiteralExpression extends ALiteralExpression implements JEx
     }else{
       return"false";
     }
+  }
+
+  @Override
+  public JType getExpressionType() {
+    return (JType) super.getExpressionType();
   }
 
   @Override

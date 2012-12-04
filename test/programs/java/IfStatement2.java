@@ -11,7 +11,7 @@ public class IfStatement2 {
       
         if(n1 == n2){
         
-        assert(false);
+        assert false ;
         
         } else {
         

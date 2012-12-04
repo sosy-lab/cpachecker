@@ -18,9 +18,8 @@ public class IfStatement {
            
             }else {
               
-              int n = 2;
-            
-//            assert(false); 
+              assert false;
+             
             
             }
 	

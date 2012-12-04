@@ -38,10 +38,12 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 
 
-
+/**
+ * This Class is legacy Code, and will be erased when its sure that there are
+ * no Bugs in the current method of calculating the Type Hierarchy
+ *
+ */
 public class TypeHierachie {
-
-
 
   private static final boolean SUCCESSFUL = true;
 
@@ -49,6 +51,7 @@ public class TypeHierachie {
 
   private final Map< String ,TypeHierachieNode> types = new HashMap<String, TypeHierachieNode>();
 
+  @SuppressWarnings("unused")
   private final LogManager logger;
 
   public TypeHierachie(LogManager pLogger) {

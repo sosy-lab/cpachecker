@@ -18,9 +18,9 @@ public class Label {
            n1 = 5;
            
            
-           //break l1;
+           break l1;
            
-         //  assert (false);
+           assert false ;
         
            
         

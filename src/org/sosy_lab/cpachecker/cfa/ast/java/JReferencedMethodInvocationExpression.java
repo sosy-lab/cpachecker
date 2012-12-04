@@ -26,16 +26,12 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JReferencedMethodInvocationExpression extends JMethodInvocationExpression {
 
   private final JIdExpression qualifier;
-
-  private boolean hasKnownRunTimeBinding = false;
-  private JClassType runTimeBinding = null;
 
   public JReferencedMethodInvocationExpression(FileLocation pFileLocation, JType pType, JExpression pFunctionName,
       List<? extends JExpression> pParameters, JMethodDeclaration pDeclaration, JIdExpression pQualifier) {
@@ -52,20 +48,7 @@ public class JReferencedMethodInvocationExpression extends JMethodInvocationExpr
     return qualifier.toASTString() + "_" + super.toASTString();
   }
 
-  public void setHasKnownRunTimeBinding(boolean hasKnownRunTimeBinding) {
-    this.hasKnownRunTimeBinding = hasKnownRunTimeBinding;
-  }
 
-  public JClassType getRunTimeBinding() {
-    return runTimeBinding;
-  }
 
-  public void setRunTimeBinding(JClassType runTimeBinding) {
-    this.runTimeBinding = runTimeBinding;
-  }
-
-  public boolean hasKnownRunTimeBinding() {
-      return hasKnownRunTimeBinding;
-  }
 
 }

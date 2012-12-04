@@ -28,10 +28,14 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class JMethodInvocationExpression extends AFunctionCallExpression implements JRightHandSide{
+public class JMethodInvocationExpression extends AFunctionCallExpression implements JRightHandSide {
+
+  private boolean hasKnownRunTimeBinding = false;
+  private JClassType runTimeBinding = null;
 
   public JMethodInvocationExpression(FileLocation pFileLocation, JType pType, JExpression pFunctionName,
       List<? extends JExpression> pParameters, JMethodDeclaration pDeclaration) {
@@ -66,6 +70,19 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
   }
 
   public JClassOrInterfaceType getDeclaringClassType() {
-     return getDeclaration().getDeclaringClass();
+    return getDeclaration().getDeclaringClass();
+  }
+
+  public JClassType getRunTimeBinding() {
+    return runTimeBinding;
+  }
+
+  public void setRunTimeBinding(JClassType runTimeBinding) {
+    this.runTimeBinding = runTimeBinding;
+    hasKnownRunTimeBinding = true;
+  }
+
+  public boolean hasKnownRunTimeBinding() {
+    return hasKnownRunTimeBinding;
   }
 }

@@ -25,6 +25,10 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 
+/**
+ * Interface for all statements that contain an assignment.
+ * Only sub-classes of {@link JStatement} may implement this interface.
+ */
 public interface JAssignment extends IAssignment {
 
   @Override

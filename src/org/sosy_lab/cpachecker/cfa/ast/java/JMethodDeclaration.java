@@ -30,7 +30,17 @@ import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 
 import com.google.common.base.Strings;
 
-
+/**
+ *
+ * This class and its subclasses represents all methods and constructor declaration.
+ *
+ * e.g.
+ *
+ * a.type(x,y);
+ * super(a,b);
+ * Type v = new Type(a, b);
+ *
+ */
 public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclaration {
 
   private final boolean isFinal;

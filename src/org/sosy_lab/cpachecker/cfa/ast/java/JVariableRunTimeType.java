@@ -25,16 +25,22 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JVariableRunTimeType extends AExpression implements JRunTimeTypeExpression {
 
-  private final JSimpleDeclaration referencedVariable;
+  private final JIdExpression referencedVariable;
 
-  public JVariableRunTimeType(FileLocation pFileLocation, JSimpleDeclaration pReferencedVariable) {
-    super(pFileLocation, pReferencedVariable.getType());
+  public JVariableRunTimeType(FileLocation pFileLocation, JIdExpression pReferencedVariable) {
+    super(pFileLocation, pReferencedVariable.getExpressionType());
     referencedVariable = pReferencedVariable;
     assert getReferencedVariable() != null;
+  }
+
+  @Override
+  public JType getExpressionType() {
+    return (JType)super.getExpressionType();
   }
 
   @Override
@@ -52,7 +58,7 @@ public class JVariableRunTimeType extends AExpression implements JRunTimeTypeExp
     return getReferencedVariable().getName() + "_getClass()";
   }
 
-  public JSimpleDeclaration getReferencedVariable() {
+  public JIdExpression getReferencedVariable() {
     return referencedVariable;
   }
 

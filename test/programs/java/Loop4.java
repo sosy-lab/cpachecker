@@ -15,7 +15,7 @@ public class Loop4 {
       
         do{
         
-        assert (false);
+        assert false ;
         
         } while( false  );
       

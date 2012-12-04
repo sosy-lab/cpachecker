@@ -29,25 +29,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.Initializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.java.DefaultJExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
@@ -55,16 +41,23 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JObjectReferenceReturn;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
+import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSuperConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
@@ -80,10 +73,11 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JReferenceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -91,7 +85,12 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
-
+/**
+ * Transfer Relation traversing the the CFA an tracking Run Type Time Information
+ * of Java Programs.
+ *
+ *
+ */
 public class RTTTransferRelation implements TransferRelation {
 
   private static final String NOT_IN_OBJECT_SCOPE = RTTState.NULL_REFERENCE;
@@ -99,20 +98,14 @@ public class RTTTransferRelation implements TransferRelation {
   private final Set<String> staticFieldVariables = new HashSet<String>();
   private final Set<String> nonStaticFieldVariables = new HashSet<String>();
 
-  private static int  nextFreeId = 0;
-
- // private String missingInformationLeftVariable  = null;
- // private IARightHandSide missingInformationRightExpression = null;
-
+  private static int nextFreeId = 0;
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState element, Precision precision,
-      CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState element, Precision precision, CFAEdge cfaEdge)
+          throws CPATransferException, InterruptedException {
 
-
-    RTTState jortState     = (RTTState)element;
-
-    //jortState.getToBeErased().clear();
+    RTTState rttState = (RTTState) element;
 
     RTTState successor;
 
@@ -120,25 +113,30 @@ public class RTTTransferRelation implements TransferRelation {
     // this is an assumption, e.g. if (a == b)
     case AssumeEdge:
       AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
-      successor = handleAssumption(jortState.clone(), assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption());
+      JExpression exp = (JExpression) assumeEdge.getExpression();
+
+      successor =
+          handleAssumption(rttState.clone(),
+              exp, cfaEdge,
+              assumeEdge.getTruthAssumption());
       break;
 
     case FunctionCallEdge:
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
-      successor = handleFunctionCall(jortState, functionCallEdge);
+      successor = handleFunctionCall(rttState, functionCallEdge);
       break;
 
     // this is a return edge from function, this is different from return statement
     // of the function. See case for statement edge for details
     case FunctionReturnEdge:
       FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) cfaEdge;
-      successor = handleFunctionReturn(jortState, functionReturnEdge);
+      successor = handleFunctionReturn(rttState, functionReturnEdge);
 
       successor.dropFrame(functionReturnEdge.getPredecessor().getFunctionName());
       break;
 
     default:
-      successor = jortState.clone();
+      successor = rttState.clone();
       handleSimpleEdge(successor, cfaEdge);
     }
 
@@ -147,30 +145,29 @@ public class RTTTransferRelation implements TransferRelation {
     } else {
       return Collections.singleton(successor);
     }
-
-
-
   }
 
-  private void handleSimpleEdge(RTTState element, CFAEdge cfaEdge) throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
+  private void handleSimpleEdge(RTTState element, CFAEdge cfaEdge)
+        throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
 
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge:
       AStatementEdge statementEdge = (AStatementEdge) cfaEdge;
-      handleStatement(element, statementEdge.getStatement(), cfaEdge);
+      handleStatement(element, (JStatement) statementEdge.getStatement(), cfaEdge);
       break;
 
     case ReturnStatementEdge:
-      AReturnStatementEdge returnEdge = (AReturnStatementEdge)cfaEdge;
+      AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
       // this statement is a function return, e.g. return (a);
       // note that this is different from return edge
       // this is a statement edge which leads the function to the
       // last node of its CFA, where return edge is from that last node
       // to the return site of the caller function
-      if(returnEdge.getExpression() != null){
-        handleExitFromFunction(element, returnEdge.getExpression(), returnEdge);
+      if (returnEdge.getExpression() != null) {
+        JExpression exp = (JExpression) returnEdge.getExpression();
+        handleExitFromFunction(element, exp, returnEdge);
       }
       break;
 
@@ -184,8 +181,8 @@ public class RTTTransferRelation implements TransferRelation {
       break;
 
     case MultiEdge:
-      for (CFAEdge edge : (MultiEdge)cfaEdge) {
-        handleSimpleEdge(element,  edge);
+      for (CFAEdge edge : (MultiEdge) cfaEdge) {
+        handleSimpleEdge(element, edge);
       }
       break;
 
@@ -195,14 +192,17 @@ public class RTTTransferRelation implements TransferRelation {
 
   }
 
-  private void handleDeclaration(RTTState newElement, ADeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
+  private void handleDeclaration(RTTState newElement,
+      ADeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
 
-    if (!(declarationEdge.getDeclaration() instanceof AVariableDeclaration)) {
+    if (!(declarationEdge.getDeclaration() instanceof JVariableDeclaration)) {
       // nothing interesting to see here, please move along
       return;
     }
 
-    JVariableDeclaration decl = (JVariableDeclaration) declarationEdge.getDeclaration();
+
+    JVariableDeclaration decl =
+        (JVariableDeclaration) declarationEdge.getDeclaration();
 
     if(decl.getType() instanceof JSimpleType ) {
 
@@ -217,6 +217,7 @@ public class RTTTransferRelation implements TransferRelation {
           case INT:
           case LONG:
           case SHORT:
+          case UNSPECIFIED:
             // TODO Change with inclusion of Boxing, Unboxing
             // Unnecessary to track Primitive types.
             return;
@@ -226,12 +227,14 @@ public class RTTTransferRelation implements TransferRelation {
 
     // get the variable name in the declarator
     String varName = decl.getName();
-    String functionName = declarationEdge.getPredecessor().getFunctionName();
+    String methodName = declarationEdge.getPredecessor().getFunctionName();
 
-    String initialValue = null;
+    // variables without initializer are set to null
+    // until they are assigned a value
+    String initialValue = RTTState.NULL_REFERENCE;
 
     // handle field variables
-    if (decl.isGlobal() && decl instanceof JFieldDeclaration) {
+    if (decl instanceof JFieldDeclaration) {
 
       JFieldDeclaration fieldVariable = (JFieldDeclaration) decl;
 
@@ -241,122 +244,193 @@ public class RTTTransferRelation implements TransferRelation {
       } else {
         nonStaticFieldVariables.add(varName);
       }
-
-      // field variables without initializer are set to null
-      initialValue = RTTState.NULL_REFERENCE;
     }
 
     // get initial value
     Initializer init = decl.getInitializer();
 
-    if(init instanceof AInitializerExpression) {
-      IAExpression exp = ((AInitializerExpression)init).getExpression();
+    if (init instanceof JInitializerExpression) {
+      JExpression exp = ((JInitializerExpression) init).getExpression();
 
-      initialValue = getExpressionValue(newElement, exp, functionName, declarationEdge);
+      initialValue =
+          getExpressionValue(newElement, exp, methodName, declarationEdge);
+
     }
 
     // assign initial value
-    String scopedVarName = getScopedVariableName(varName, functionName, newElement.getClassObjectScope());
+    String scopedVarName =
+        getScopedVariableName(varName, methodName,
+                              newElement.getClassObjectScope());
 
-    if (initialValue != null) {
-      newElement.assignObject(scopedVarName, initialValue);
+    if(initialValue == null) {
+      newElement.forget(scopedVarName);
     } else {
-      // variable References without Objects are null
-      newElement.assignObject(scopedVarName, RTTState.NULL_REFERENCE);
+      newElement.assignObject(scopedVarName, initialValue);
     }
+
   }
 
-  private String getExpressionValue(RTTState element, IAExpression expression, String functionName,
-      CFAEdge edge) throws UnrecognizedCCodeException {
-   return ((JRightHandSide) expression).accept(new ExpressionValueVisitor(edge, element, functionName));
+  private String getExpressionValue(RTTState element, JExpression expression,
+          String methodName, CFAEdge edge) throws UnrecognizedCCodeException {
+    return expression.accept(
+        new ExpressionValueVisitor(edge, element, methodName));
   }
 
-  private void handleExitFromFunction(RTTState newElement, IAExpression expression, AReturnStatementEdge returnEdge) throws UnrecognizedCCodeException {
+  private void handleExitFromFunction(RTTState newElement,
+                  JExpression expression, AReturnStatementEdge returnEdge)
+                                        throws UnrecognizedCCodeException {
 
-    String functionName = returnEdge.getPredecessor().getFunctionName();
+    String methodName = returnEdge.getPredecessor().getFunctionName();
 
     // In Case Of Class Instance Creation, return unique Object
-    if(returnEdge.getRawAST().get() instanceof JObjectReferenceReturn) {
-      handleAssignmentToVariable("___cpa_temp_result_var_", expression, newElement.getClassObjectScope(), newElement, returnEdge.getSuccessor().getFunctionName());
+    if (returnEdge.getRawAST().get() instanceof JObjectReferenceReturn) {
+      handleAssignmentToVariable("___cpa_temp_result_var_", expression,
+          newElement.getClassObjectScope(), newElement,
+          methodName);
     } else {
-    handleAssignmentToVariable("___cpa_temp_result_var_", expression, new ExpressionValueVisitor(returnEdge, newElement, functionName));
+      handleAssignmentToVariable("___cpa_temp_result_var_", expression,
+          new ExpressionValueVisitor(returnEdge, newElement, methodName));
     }
   }
 
-  private void handleAssignmentToVariable(String lParam, IAExpression exp, String value, RTTState newElement, String functionName) {
+  private void handleAssignmentToVariable
+                        (String lParam, JExpression exp, String value,
+                            RTTState newElement, String functionName) {
 
-    String assignedVar = getScopedVariableName(lParam, functionName, newElement.getClassObjectScope());
+    String assignedVar =
+        getScopedVariableName(lParam, functionName,
+            newElement.getClassObjectScope());
 
     if (value == null) {
       newElement.forget(assignedVar);
-    }
-
-    else {
-        newElement.assignObject(assignedVar, value);
+    } else {
+      newElement.assignObject(assignedVar, value);
     }
   }
 
-  private void handleAssignmentToVariable(String lParam, IAExpression exp,
+  private void handleAssignmentToVariable(String lParam, JExpression exp,
       ExpressionValueVisitor visitor) throws UnrecognizedCCodeException {
 
     String value;
-    value = ((JRightHandSide) exp).accept(visitor);
+    value =  exp.accept(visitor);
     RTTState newElement = visitor.state;
 
    handleAssignmentToVariable(lParam, exp, value, newElement, visitor.functionName);
   }
 
-  private void handleStatement(RTTState newElement, IAStatement expression, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  private void handleStatement(RTTState newElement,
+      JStatement expression, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+
     // expression is a binary operation, e.g. a = b;
-    if (expression instanceof IAssignment) {
-      handleAssignment(newElement, (IAssignment)expression, cfaEdge);
+    if (expression instanceof JAssignment) {
+      handleAssignment(newElement, (JAssignment) expression, cfaEdge);
 
-    // external function call - do nothing
-    } else if (expression instanceof AFunctionCallStatement) {
+      // external function call - do nothing
+    } else if (expression instanceof JMethodOrConstructorInvocation) {
 
-    // there is such a case
-    } else if (expression instanceof AExpressionStatement) {
+      // there is such a case
+    } else if (expression instanceof JExpressionStatement) {
 
     } else {
       throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
   }
 
-  private void handleAssignment(RTTState newElement, IAssignment assignExpression, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  private void handleAssignment(RTTState newElement,
+                                  JAssignment assignExpression, CFAEdge cfaEdge)
+                                                throws UnrecognizedCCodeException {
 
-    IAExpression op1    = assignExpression.getLeftHandSide();
-    IARightHandSide op2 = assignExpression.getRightHandSide();
+    JExpression op1 = assignExpression.getLeftHandSide();
+    JRightHandSide op2 = assignExpression.getRightHandSide();
 
 
-    if(op1 instanceof AIdExpression) {
+
+    if (op1 instanceof JIdExpression) {
       // a = ...
-        String functionName = cfaEdge.getPredecessor().getFunctionName();
-        handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(cfaEdge, newElement, functionName));
+
+      String methodName = cfaEdge.getPredecessor().getFunctionName();
+
+      // If declaration could not be resolve, forget variable
+      if(((JIdExpression) op1).getDeclaration() == null) {
+
+        String scopedName = getScopedVariableName(
+                                              ((JIdExpression) op1).getName(),
+                                              methodName,
+                                              newElement.getClassObjectScope());
+
+        newElement.forget(scopedName);
+        return;
+      }
+
+      handleAssignmentToVariable((JIdExpression) op1,
+          op2, new ExpressionValueVisitor(cfaEdge, newElement, methodName));
     }
   }
 
-  private void handleAssignmentToVariable(String lParam, IARightHandSide exp,
+  private void handleAssignmentToVariable(JIdExpression lParam, JRightHandSide exp,
       ExpressionValueVisitor visitor) throws UnrecognizedCCodeException {
 
-
-    String value = ((JRightHandSide) exp).accept(visitor);
+    String lParamObjectScope = getObjectScope(visitor.state, visitor.functionName, lParam);
+    String value = exp.accept(visitor);
 
     RTTState newElement = visitor.state;
-    String assignedVar = getScopedVariableName(lParam, visitor.functionName, newElement.getClassObjectScope());
 
-    if (value == null) {
-      newElement.forget(assignedVar);
+    if(nonStaticFieldVariables.contains(lParam) && lParamObjectScope == null) {
+      // can't resolve lParam variable, do nothing
+      // TODO How to forget old Values?
+      return;
     }
 
-    else {
-        newElement.assignObject(assignedVar, value);
+    String assignedVar
+    = getScopedVariableName(lParam.getName(),
+        visitor.functionName, lParamObjectScope);
+
+    if (value != null && (lParam.getExpressionType() instanceof JReferenceType)) {
+      newElement.assignObject(assignedVar, value);
+
+    } else {
+      newElement.forget(assignedVar);
     }
   }
 
-  private RTTState handleFunctionReturn(RTTState element, FunctionReturnEdge functionReturnEdge) throws UnrecognizedCCodeException {
+  private String getObjectScope(RTTState rttState, String methodName,
+      JIdExpression notScopedField) {
+
+    // Could not resolve var
+    if(notScopedField.getDeclaration() == null) {
+      return null;
+    }
+
+    if(notScopedField instanceof JFieldAccess){
+
+      JIdExpression qualifier = ((JFieldAccess) notScopedField).getReferencedVariable();
+
+      String qualifierScope = getObjectScope(rttState, methodName , qualifier);
+
+      String scopedFieldName =
+          getScopedVariableName(qualifier.getDeclaration().getName(), methodName ,qualifierScope);
+
+      if(rttState.contains(scopedFieldName)) {
+        return rttState.getUniqueObjectFor(scopedFieldName);
+      } else {
+        return null;
+      }
+    } else {
+      if(rttState.contains(RTTState.KEYWORD_THIS)) {
+        return rttState.getUniqueObjectFor(RTTState.KEYWORD_THIS);
+      } else {
+        return null;
+      }
+    }
+  }
+
+
+  private RTTState handleFunctionReturn(
+      RTTState element,
+      FunctionReturnEdge functionReturnEdge) throws UnrecognizedCCodeException {
 
     FunctionSummaryEdge summaryEdge    = functionReturnEdge.getSummaryEdge();
-    AFunctionCall exprOnSummary  = summaryEdge.getExpression();
+    JMethodOrConstructorInvocation exprOnSummary  = (JMethodOrConstructorInvocation) summaryEdge.getExpression();
 
     RTTState newElement  = element.clone();
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
@@ -364,18 +438,23 @@ public class RTTTransferRelation implements TransferRelation {
 
     // expression is an assignment operation, e.g. a = g(b);
 
-    if(exprOnSummary instanceof AFunctionCallAssignmentStatement) {
-      AFunctionCallAssignmentStatement assignExp = ((AFunctionCallAssignmentStatement)exprOnSummary);
-      IAExpression op1 = assignExp.getLeftHandSide();
+    if(exprOnSummary instanceof JMethodInvocationAssignmentStatement) {
+      JMethodInvocationAssignmentStatement assignExp = ((JMethodInvocationAssignmentStatement)exprOnSummary);
+      JExpression op1 = assignExp.getLeftHandSide();
 
       // we expect left hand side of the expression to be a variable
 
-      if((op1 instanceof AIdExpression) || (op1 instanceof CFieldReference)) {
+      if((op1 instanceof JIdExpression)) {
+
         String returnVarName = getScopedVariableName("___cpa_temp_result_var_", calledFunctionName, newElement.getClassObjectScope());
 
-        String assignedVarName = getScopedVariableName(op1.toASTString(), callerFunctionName, newElement.getClassObjectStack().peek());
+        String assignedVarName = getScopedVariableName(((JIdExpression) op1).getName(), callerFunctionName, newElement.getClassObjectStack().peek());
 
-        if (element.contains(returnVarName)) {
+
+        JSimpleDeclaration decl = ((JIdExpression) op1).getDeclaration();
+
+        //Ignore not reference Types
+        if (element.contains(returnVarName) && (decl.getType() instanceof JReferenceType)) {
           newElement.assignObject(assignedVarName, element.getUniqueObjectFor(returnVarName));
         } else {
           newElement.forget(assignedVarName);
@@ -383,7 +462,7 @@ public class RTTTransferRelation implements TransferRelation {
       }
 
       // a[x] = b(); TODO: for now, nothing is done here, but cloning the current element
-      else if (op1 instanceof AArraySubscriptExpression) {
+      else if (op1 instanceof JArraySubscriptExpression) {
         return newElement;
       }
 
@@ -395,7 +474,8 @@ public class RTTTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private RTTState handleFunctionCall(RTTState element, FunctionCallEdge callEdge) throws UnrecognizedCCodeException {
+  private RTTState handleFunctionCall(RTTState element, FunctionCallEdge callEdge)
+      throws UnrecognizedCCodeException {
 
     RTTState newElement = element.clone();
 
@@ -405,10 +485,12 @@ public class RTTTransferRelation implements TransferRelation {
 
 
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
-    List<? extends IAExpression> arguments = callEdge.getArguments();
+
+    @SuppressWarnings("unchecked")
+    List<? extends JExpression> arguments = (List<? extends JExpression>) callEdge.getArguments();
 
     if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
-      assert(paramNames.size() == arguments.size());
+      assert (paramNames.size() == arguments.size());
     }
 
     // visitor for getting the Object values of the actual parameters in caller function context
@@ -417,23 +499,21 @@ public class RTTTransferRelation implements TransferRelation {
     // get value of actual parameter in caller function context
     for (int i = 0; i < paramNames.size(); i++) {
       String value = null;
-      IAExpression exp = arguments.get(i);
+      JExpression exp = arguments.get(i);
 
-      if(exp instanceof JExpression){
-        value = ((JExpression) arguments.get(i)).accept(visitor);
-      }
+      value = exp.accept(visitor);
 
+      String formalParamName =
+          getScopedVariableName(paramNames.get(i), calledFunctionName, newElement.getClassObjectScope());
 
-      String formalParamName = getScopedVariableName(paramNames.get(i), calledFunctionName, newElement.getClassObjectScope());
-
-      if (value == null) {
+      if (value == null || !(exp.getExpressionType() instanceof JReferenceType)) {
         newElement.forget(formalParamName);
       } else {
         newElement.assignObject(formalParamName, value);
       }
     }
 
-    AFunctionCallExpression functionCall = callEdge.getSummaryEdge().getExpression().getFunctionCallExpression();
+    JMethodInvocationExpression functionCall = (JMethodInvocationExpression) callEdge.getSummaryEdge().getExpression().getFunctionCallExpression();
 
 
     // There are five possibilities when assigning this and the new object Scope.
@@ -446,8 +526,6 @@ public class RTTTransferRelation implements TransferRelation {
    // A New Object is created, which is the new classObject scope
     } else if(functionCall instanceof JClassInstanceCreation) {
 
-
-
       AReturnStatementEdge returnEdge =  (AReturnStatementEdge) functionEntryNode.getExitNode().getEnteringEdge(RETURN_EDGE);
       String uniqueObject = ((JExpression) returnEdge.getExpression()).accept(  new FunctionExitValueVisitor(returnEdge, newElement, calledFunctionName));
       newElement.assignThisAndNewObjectScope(uniqueObject);
@@ -456,7 +534,7 @@ public class RTTTransferRelation implements TransferRelation {
       // of its reference variable
     } else if(functionCall instanceof JReferencedMethodInvocationExpression) {
       JReferencedMethodInvocationExpression objectMethodInvocation = (JReferencedMethodInvocationExpression) functionCall;
-      IASimpleDeclaration variableReference = objectMethodInvocation.getReferencedVariable().getDeclaration();
+      JSimpleDeclaration variableReference = objectMethodInvocation.getReferencedVariable().getDeclaration();
 
       if( newElement.contains(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope()))){
         newElement.assignThisAndNewObjectScope( newElement.getUniqueObjectFor(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope())));
@@ -465,9 +543,9 @@ public class RTTTransferRelation implements TransferRelation {
         newElement.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
       }
       //  a unreferenced Method Invocation
-    } else if (functionCall instanceof JMethodInvocationExpression) {
+    } else {
 
-      JMethodDeclaration decl = ((JMethodInvocationExpression)functionCall).getDeclaration();
+      JMethodDeclaration decl = functionCall.getDeclaration();
 
       // If the method isn't static, the object  scope remains the same
       if(decl.isStatic()) {
@@ -476,32 +554,23 @@ public class RTTTransferRelation implements TransferRelation {
        newElement.assignThisAndNewObjectScope(newElement.getUniqueObjectFor(RTTState.KEYWORD_THIS));
       }
      //  the method Invocation can't be handled
-    } else {
-      newElement.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
     }
     return newElement;
   }
 
   private String getScopedVariableName(String variableName, String functionName, String uniqueObject) {
 
-    if(variableName.equals(RTTState.KEYWORD_THIS)) {
-      return variableName;
-    }
+    if (variableName.equals(RTTState.KEYWORD_THIS)) { return variableName; }
 
-    if (staticFieldVariables.contains(variableName)) {
-      return variableName;
-    }
+    if (staticFieldVariables.contains(variableName)) { return variableName; }
 
-    if( nonStaticFieldVariables.contains(variableName)){
-      //TODO Exception for "" as ObjectScope
-      return uniqueObject + "::" + variableName;
-    }
+    if (nonStaticFieldVariables.contains(variableName)) { return uniqueObject + "::" + variableName; }
 
     return functionName + "::" + variableName;
   }
 
-
-  private RTTState handleAssumption(RTTState element, IAExpression expression, CFAEdge cfaEdge,
+  private RTTState handleAssumption(RTTState element,
+      JExpression expression, CFAEdge cfaEdge,
       boolean truthAssumption) throws UnrecognizedCCodeException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -531,17 +600,14 @@ public class RTTTransferRelation implements TransferRelation {
     }
 
     @Override
-    public String visit(JStringLiteralExpression functionTypeReturn) throws UnrecognizedCCodeException {
-      return functionTypeReturn.getValue();
+    public String visit(JThisExpression thisExp) throws UnrecognizedCCodeException {
+      return thisExp.getExpressionType().getName();
     }
 
 
   }
 
   private class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException>{
-
-
-    //TODO FieldAccess needs  to be read
 
     @SuppressWarnings("unused")
     protected final CFAEdge edge;
@@ -579,30 +645,35 @@ public class RTTTransferRelation implements TransferRelation {
     @Override
     public String visit(JBinaryExpression binaryExpression) throws UnrecognizedCCodeException {
 
+      // The only binary Expressions on Class Types is String + which is not yet supported and EnumConstant Assignment
       if((binaryExpression.getOperator() == BinaryOperator.EQUALS || binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS) && (binaryExpression.getOperand1() instanceof JEnumConstantExpression ||  binaryExpression.getOperand2() instanceof JEnumConstantExpression)) {
         return handleEnumComparison(binaryExpression.getOperand1() , binaryExpression.getOperand2() , binaryExpression.getOperator());
       }
+
       return null;
     }
 
-    private String handleEnumComparison(JExpression operand1, JExpression operand2, BinaryOperator operator) throws UnrecognizedCCodeException {
+    private String handleEnumComparison(JExpression operand1, JExpression operand2, BinaryOperator operator)
+        throws UnrecognizedCCodeException {
 
       String value1 = operand1.accept(this);
       String value2 = operand2.accept(this);
 
-      if(state.getConstantsMap().containsValue(value1)) {
+      if (state.getConstantsMap().containsValue(value1)) {
         value1 = state.getRunTimeClassOfUniqueObject(value1);
       }
 
-      if(state.getConstantsMap().containsValue(value2)) {
+      if (state.getConstantsMap().containsValue(value2)) {
         value2 = state.getRunTimeClassOfUniqueObject(value2);
       }
 
       boolean result = value1.equals(value2);
 
-      switch(operator){
-      case EQUALS:   break;
-      case NOT_EQUALS: result = !result;
+      switch (operator) {
+      case EQUALS:
+        break;
+      case NOT_EQUALS:
+        result = !result;
       }
 
       return Boolean.toString(result);
@@ -621,27 +692,57 @@ public class RTTTransferRelation implements TransferRelation {
     }
 
     @Override
-    public String visit(JVariableRunTimeType pJThisRunTimeType) throws UnrecognizedCCodeException {
-      if(state.contains(getScopedVariableName(pJThisRunTimeType.getReferencedVariable().getName(), functionName, state.getClassObjectScope()))) {
-       return state.getRunTimeClassFor( getScopedVariableName(pJThisRunTimeType.getReferencedVariable().getName(), functionName, state.getClassObjectScope()));
+    public String visit(JVariableRunTimeType vrtT) throws UnrecognizedCCodeException {
+
+      JIdExpression expr = vrtT.getReferencedVariable();
+
+      String uniqueObject = expr.accept(this);
+
+      String runTimeClass = state.getRunTimeClassOfUniqueObject(uniqueObject);
+
+      if (runTimeClass == null) {
+        return null;
       } else {
-       return null;
+        return runTimeClass;
       }
     }
 
     @Override
     public String visit(JIdExpression idExpression) throws UnrecognizedCCodeException {
 
-      //TODO Referenced Field Access...
-
-       IASimpleDeclaration variable = idExpression.getDeclaration();
-
-       Type type = variable.getType();
-
-      if(type instanceof JClassOrInterfaceType && state.contains(getScopedVariableName(idExpression.getName() , functionName, state.getClassObjectScope()))){
-        return state.getUniqueObjectFor( getScopedVariableName(idExpression.getName(), functionName, state.getClassObjectScope()));
-      } else {
+      if (idExpression.getDeclaration() == null) {
+        // IDExpression could not be Resolved, return null.
         return null;
+      }
+
+      if (idExpression instanceof JFieldAccess) {
+
+        JFieldAccess fiExpr = (JFieldAccess) idExpression;
+
+        JType type = fiExpr.getExpressionType();
+
+        JIdExpression qualifier = fiExpr.getReferencedVariable();
+
+        String uniqueQualifierObject = qualifier.accept(this);
+
+        if (type instanceof JClassOrInterfaceType
+            && state.contains(getScopedVariableName(idExpression.getName(), functionName, uniqueQualifierObject))) {
+          return state.getUniqueObjectFor(getScopedVariableName(idExpression.getName(), functionName,
+              uniqueQualifierObject));
+        } else {
+          return null;
+        }
+      } else {
+
+        JType type = idExpression.getExpressionType();
+
+        if (type instanceof JClassOrInterfaceType
+            && state.contains(getScopedVariableName(idExpression.getName(), functionName, state.getClassObjectScope()))) {
+          return state.getUniqueObjectFor(getScopedVariableName(idExpression.getName(), functionName,
+              state.getClassObjectScope()));
+        } else {
+          return null;
+        }
       }
     }
 
@@ -650,7 +751,8 @@ public class RTTTransferRelation implements TransferRelation {
 
       String jrunTimeType = jRunTimeTypeEqualsType.getRunTimeTypeExpression().accept(this);
 
-      return Boolean.toString(jrunTimeType != null && jRunTimeTypeEqualsType.getTypeDef().getName().equals(jrunTimeType));
+      return Boolean.toString(jrunTimeType != null
+          && jRunTimeTypeEqualsType.getTypeDef().getName().equals(jrunTimeType));
 
     }
 
@@ -665,14 +767,13 @@ public class RTTTransferRelation implements TransferRelation {
     }
 
     @Override
-    public String visit(JThisExpression thisExpression) {
+    public String visit(JThisExpression thisExpression) throws UnrecognizedCCodeException {
 
-      if(state.contains(RTTState.KEYWORD_THIS)) {
+      if (state.contains(RTTState.KEYWORD_THIS)) {
         return state.getUniqueObjectFor(RTTState.KEYWORD_THIS);
       } else {
         return null;
       }
-
     }
 
     @Override
@@ -682,7 +783,6 @@ public class RTTTransferRelation implements TransferRelation {
 
     @Override
     public String visit(JEnumConstantExpression e) throws UnrecognizedCCodeException {
-
       return e.getValue();
     }
 
@@ -693,6 +793,11 @@ public class RTTTransferRelation implements TransferRelation {
     return null;
   }
 
+  /**
+   * Generates different IDs per Object
+   *
+   * @return id for object
+   */
   public static int nextId(){
     nextFreeId++;
     return nextFreeId;

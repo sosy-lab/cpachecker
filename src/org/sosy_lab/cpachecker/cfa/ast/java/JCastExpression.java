@@ -30,9 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 public class JCastExpression extends ACastExpression implements JExpression {
 
-  public JCastExpression(FileLocation pFileLocation, JType pCastExpressionType, JExpression pOperand,
-      JType pTypeOfCastedExpression) {
-    super(pFileLocation, pCastExpressionType, pOperand, pTypeOfCastedExpression);
+  public JCastExpression(FileLocation pFileLocation, JType pCastType, JExpression pOperand) {
+    super(pFileLocation, pCastType, pOperand);
   }
 
   @Override
@@ -51,8 +50,9 @@ public class JCastExpression extends ACastExpression implements JExpression {
   }
 
   @Override
-  public JType getCastedExpressionType() {
-    return (JType) super.getCastedExpressionType();
+  public JType getCastType() {
+    // TODO Auto-generated method stub
+    return (JType) super.getCastType();
   }
 
   @Override

@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.Iterables;
@@ -292,6 +293,12 @@ public class ARGUtils {
     if (explicit != null) {
       builder.append("\\n");
       builder.append(explicit.toCompactString());
+    }
+
+    RTTState rtt = AbstractStates.extractStateByType(currentElement, RTTState.class);
+    if (explicit != null) {
+      builder.append("\\n");
+      builder.append(rtt.toCompactString());
     }
 
     return builder.toString();

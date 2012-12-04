@@ -50,6 +50,5 @@ public class SubType1 extends SuperType1 implements Interface1 {
   
   public int add(){
     return subNum1 + subNum2;
-  }
-  
+  }  
 }

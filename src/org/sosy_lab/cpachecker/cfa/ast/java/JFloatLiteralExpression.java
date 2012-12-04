@@ -27,13 +27,20 @@ import java.math.BigDecimal;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
 public class JFloatLiteralExpression extends AFloatLiteralExpression implements JExpression{
 
-  public JFloatLiteralExpression(FileLocation pFileLocation, JType pType, BigDecimal pValue) {
-    super(pFileLocation, pType, pValue);
+  public JFloatLiteralExpression(FileLocation pFileLocation, BigDecimal pValue) {
+    super(pFileLocation, new JSimpleType(JBasicType.FLOAT), pValue);
+  }
+
+  @Override
+  public JType getExpressionType() {
+      return (JType) super.getExpressionType();
   }
 
   @Override
@@ -50,5 +57,4 @@ public class JFloatLiteralExpression extends AFloatLiteralExpression implements 
   public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
-
 }

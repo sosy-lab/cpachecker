@@ -23,6 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+
+/**
+ * Interface for all statements that contain an assignment.
+ * Only sub-classes of {@link IAStatement} may implement this interface.
+ */
 public interface IAssignment extends IAstNode {
 
 
@@ -31,7 +36,7 @@ public interface IAssignment extends IAstNode {
   IARightHandSide getRightHandSide();
 
   /**
-   * Return "this" casted to CStatement, i.e., this methods performs an upcast.
+   * Return "this" casted to IAStatement, i.e., this methods performs an upcast.
    */
   IAStatement asStatement();
 

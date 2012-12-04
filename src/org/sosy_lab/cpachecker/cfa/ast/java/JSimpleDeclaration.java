@@ -26,7 +26,14 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
+/**
+ * This class represents the core components that occur in each declaration:
+ * a type and an (optional) name.
+ *
+ * It is part of the declaration of types and variables (see {@link JDeclaration})
+ * and methods (see {@link JMethodDeclaration}).
+ * It is also used stand-alone for the declaration of function parameters.
+ */
 public interface JSimpleDeclaration extends IASimpleDeclaration , JAstNode {
 
   @Override

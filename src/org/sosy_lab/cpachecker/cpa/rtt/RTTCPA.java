@@ -129,4 +129,8 @@ public class RTTCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
     return statistics;
   }
 
+  public LogManager getLogger() {
+    return logger;
+  }
+
 }

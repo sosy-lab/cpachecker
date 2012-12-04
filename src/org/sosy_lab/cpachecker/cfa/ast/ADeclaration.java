@@ -26,7 +26,15 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-
+/**
+ * This interface represents all sorts of top-level declarations (i.e., declarations
+ * not nested inside another type declaration).
+ * This excludes for examples function parameter declarations and struct members.
+ * It includes local and global variables and types, as well as functions.
+ * This class is only SuperClass of all abstract Classes and their Subclasses.
+ * The Interface {@link IADeclarations} contains all language specific
+ * AST Nodes as well.
+ */
 public abstract class ADeclaration extends ASimpleDeclarations implements IADeclaration {
 
   private final boolean   isGlobal;

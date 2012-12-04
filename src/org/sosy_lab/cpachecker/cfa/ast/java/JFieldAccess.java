@@ -23,18 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
+/**
+ *   JFieldAccess is no FieldAccess, but a qualified FieldAccess.
+ *   Distinction between Fields and Variables are made through
+ *   Declarations JVariableDeclaration and JFieldDeclarations
+ *   JField Access makes the distinction between non-static
+ *   fields with qualifier, and the rest.
+ *
+ */
 public class JFieldAccess extends JIdExpression {
 
+  private final JIdExpression qualifier;
 
-  private final List<JIdExpression> qualifier;
-
-  public JFieldAccess(FileLocation pFileLocation, JType pType, String pName, JFieldDeclaration pDeclaration, List<JIdExpression> pQualifier) {
+  public JFieldAccess(FileLocation pFileLocation, JType pType, String pName, JFieldDeclaration pDeclaration, JIdExpression pQualifier) {
     super(pFileLocation, pType, pName, pDeclaration);
     qualifier = pQualifier;
   }
@@ -44,8 +48,16 @@ public class JFieldAccess extends JIdExpression {
     return (JFieldDeclaration) super.getDeclaration();
   }
 
-  public List<JIdExpression> getReferencedVariable() {
+  public JIdExpression getReferencedVariable() {
     return qualifier;
+  }
+
+  @Override
+  public String toASTString() {
+    //TODO Change to something simpler.
+    // It seems some CPAs depend on this method for
+    // getting variable names, investigate and change
+      return super.toASTString();
   }
 
 }

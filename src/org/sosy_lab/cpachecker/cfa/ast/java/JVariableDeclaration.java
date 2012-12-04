@@ -28,7 +28,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
+/**
+ * This class and its subclasses represent locale Variable declarations or Field declarations.
+ *
+ * e.g. Type a = b;
+ */
 public class JVariableDeclaration extends AVariableDeclaration implements JDeclaration {
 
 
@@ -76,6 +80,5 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
   public boolean isFinal() {
     return isFinal;
   }
-
 
 }

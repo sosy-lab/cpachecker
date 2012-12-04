@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.JParserException;
 
 /**
  * This class models the dynamic Bindings of Java in a CFA.
@@ -68,7 +68,6 @@ public class DynamicBindingCreator {
 
   private final ASTConverter astCreator;
   private final CFABuilder cfaBuilder;
-  //private final Map<String, JClassOrInterfaceType> types;
 
   // Data structure for handling dynamic Bindings.
   // For every instance method, with the fully Qualified Name as key of Map,
@@ -85,17 +84,15 @@ public class DynamicBindingCreator {
   private final Map<String , List<Pair<FunctionEntryNode, JClassOrInterfaceType>>> methodTypeBindingsOfMethod = new HashMap<String, List<Pair<FunctionEntryNode, JClassOrInterfaceType>>>();
 
 
-  public DynamicBindingCreator(CFABuilder builder , Map<String, JClassOrInterfaceType> pTypeHierachie) {
+  public DynamicBindingCreator(CFABuilder builder) {
 
     cfaBuilder = builder;
     astCreator = builder.getAstCreator();
-    //types = pTypeHierachie;
-
   }
 
 
 
-  public void trackAndCreateDynamicBindings() throws ParserException {
+  public void trackAndCreateDynamicBindings() throws JParserException {
 
     /*
      *  It starts with a map of all parsed methods while parsing the Java source Code,
@@ -239,7 +236,7 @@ public class DynamicBindingCreator {
     return Pair.of(false, null);
   }
 
-  private void insertBindings(FunctionEntryNode initialNode) throws ParserException {
+  private void insertBindings(FunctionEntryNode initialNode) throws JParserException {
     // we use a worklist algorithm
     Deque<CFANode> workList = new ArrayDeque<CFANode>();
     Set<CFANode> processed = new HashSet<CFANode>();
@@ -293,7 +290,7 @@ public class DynamicBindingCreator {
         } else {
           createOnlyReferencedMethodInvocationBinding(edge, subMethodsOfMethod.get(functionName));
         }
-      } else if(!functionCallExpression.getDeclaration().isStatic() && !functionCallExpression.getDeclaration().isFinal() && !(functionCallExpression.getDeclaringClassType() instanceof JInterfaceType) && !((JClassType) functionCallExpression.getDeclaringClassType()).isFinal()){
+      } else if(!functionCallExpression.getDeclaration().isStatic() && !functionCallExpression.getDeclaration().isFinal() && !(functionCallExpression.getDeclaringClassType() instanceof JInterfaceType) && !((JClassType) functionCallExpression.getDeclaringClassType()).isFinal() && !functionCallExpression.hasKnownRunTimeBinding()){
         createMethodInvocationBindings(edge, pProcessed, functionName);
       }
     }
@@ -366,7 +363,6 @@ public class DynamicBindingCreator {
 
 
     FileLocation fileloc = oldFunctionCallExpression.getFileLocation();
-    //String callInFunction = prevNode.getFunctionName();
 
 
     JReferencedMethodInvocationExpression newFunctionCallExpression = (JReferencedMethodInvocationExpression) astCreator.convert(onlyFunction, oldFunctionCallExpression);
@@ -396,63 +392,18 @@ public class DynamicBindingCreator {
 
     // TODO ugly, change when a clear way is found to insert
     // functionDeclaaration which weren't parsed when called
-    JMethodDeclaration decl =   cfaBuilder.getScope().lookupFunction( ((AFunctionCall) edge.getStatement()).getFunctionCallExpression().getFunctionNameExpression().toASTString());
+    JMethodDeclaration decl =   cfaBuilder.getScope().lookupMethod( ((AFunctionCall) edge.getStatement()).getFunctionCallExpression().getFunctionNameExpression().toASTString());
 
     CFANode nextPrevNode = prevNode;
-
-/*
-    if (!decl.isAbstract()) {
-
-
-
-      JMethodInvocationExpression oldFunctionCallExpression =
-          (JMethodInvocationExpression) ((AFunctionCall) edge.getStatement()).getFunctionCallExpression();
-
-      FileLocation fileloc = oldFunctionCallExpression.getFileLocation();
-      String callInFunction = prevNode.getFunctionName();
-
-      CFANode postFunctionCallNode = new CFANode(fileloc.getStartingLineNumber(),
-          callInFunction);
-      cfaBuilder.getCFANodes().put(callInFunction, postFunctionCallNode);
-      pProcessed.add(postFunctionCallNode);
-
-      //TODO A Case where the function call is unknown
-      // edge from prev (unsuccessful) Node to postFunctionCallNode
-      AStatementEdge functionCallEdge =
-          new AStatementEdge(edge.getRawStatement(), edge.getStatement(), edge.getLineNumber(), prevNode,
-              postFunctionCallNode);
-      CFACreationUtils.addEdgeToCFA(functionCallEdge, null);
-
-      //Blank edge from postFunctionCall location to postConditionNode
-      BlankEdge postConditionEdge =
-          new BlankEdge(edge.getRawStatement(), edge.getLineNumber(), postFunctionCallNode, postConditionNode, "");
-      CFACreationUtils.addEdgeToCFA(postConditionEdge, null);
-
-
-
-    } else {
-
-      //Blank edge from last unsuccessful call to postConditionNode
-      BlankEdge postConditionEdge =
-          new BlankEdge(edge.getRawStatement(), edge.getLineNumber(), prevNode, postConditionNode, "");
-      CFACreationUtils.addEdgeToCFA(postConditionEdge, null);
-
-    }
-
-  */
-
-
 
     if(!decl.isAbstract() && cfaBuilder.getCFAs().containsKey(decl.getName())) {
      nextPrevNode = createBinding(edge, Pair.of(cfaBuilder.getCFAs().get(decl.getName()) , decl.getDeclaringClass()), prevNode, postConditionNode, pProcessed);
     }
 
-
     //Blank edge from last unsuccessful call to postConditionNode
     BlankEdge postConditionEdge =
         new BlankEdge(edge.getRawStatement(), edge.getLineNumber(), nextPrevNode, postConditionNode, "");
     CFACreationUtils.addEdgeToCFA(postConditionEdge, null);
-
   }
 
   private CFANode createBinding(AStatementEdge edge,
@@ -515,12 +466,6 @@ public class DynamicBindingCreator {
     return unsuccessfulNode;
   }
 
-
-
-
-
-
-
   private void createConditionEdges(CFANode prevNode, CFANode successfulNode,
       CFANode unsuccessfulNode , JClassOrInterfaceType classTypeOfNewMethodInvocation , JMethodInvocationExpression methodInvocation , FileLocation fileloc) {
 
@@ -536,7 +481,6 @@ public class DynamicBindingCreator {
             exp,
             false);
        CFACreationUtils.addEdgeToCFA(JAssumeEdgeFalse, null);
-
 
         // edge connecting last condition with thenNode
         final AssumeEdge JAssumeEdgeTrue = new AssumeEdge(rawSignature,

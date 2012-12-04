@@ -28,7 +28,9 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-
+/**
+ * This is the abstract Class for all Expressions with two Operands and one Operator.
+ */
 public class ABinaryExpression extends AExpression {
 
 

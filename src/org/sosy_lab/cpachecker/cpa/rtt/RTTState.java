@@ -61,11 +61,6 @@ public class RTTState implements AbstractState {
    */
   private final Map<String, String> classTypeMap;
 
-  /**
-   * this is a convenience set that gives marks every Object which can be erased
-   */
- // private final Set<String> toBeErased;
-
 
 
   /**

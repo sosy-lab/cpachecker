@@ -13,8 +13,11 @@ public class IfStatement3 {
       
         if(true){
         
-        assert(true);
-        
+             
+        } else {
+         
+          assert false;
+          
         }
       
 

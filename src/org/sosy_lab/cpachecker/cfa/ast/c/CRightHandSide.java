@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
 /**
- * Super class for all possible right-hand sides of an assignment.
+ * Interface for all possible right-hand sides of an assignment.
  */
 public interface CRightHandSide extends CAstNode , IARightHandSide {
 

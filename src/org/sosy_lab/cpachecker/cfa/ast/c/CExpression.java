@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 
 
 /**
- * Super class for side-effect free expressions.
+ * Interface for side-effect free expressions.
  */
 public interface  CExpression  extends CRightHandSide , IAExpression {
 

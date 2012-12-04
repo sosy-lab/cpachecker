@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 public class AVariableDeclaration extends ADeclaration {
 
 
-  protected final Initializer initializer;
+  protected Initializer initializer;
 
   public AVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName, String pOrigName, Initializer pInitializer) {
     super(pFileLocation, pIsGlobal, pType, pName, pOrigName );

@@ -25,27 +25,25 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-
+/**
+ * This is the abstract Class for  Casted Expressions.
+ *
+ */
 public class ACastExpression extends AExpression {
 
   private final IAExpression operand;
-  @SuppressWarnings("hiding")
-  private final Type     type;
+  private final Type     castType;
 
 
-  public ACastExpression(FileLocation pFileLocation, Type castExpressionType , IAExpression pOperand, Type typeOfCastedExpression ) {
+  public ACastExpression(FileLocation pFileLocation, Type castExpressionType , IAExpression pOperand ) {
     super(pFileLocation, castExpressionType);
 
     operand = pOperand;
-    type = castExpressionType;
+    castType = castExpressionType;
   }
 
   public IAExpression getOperand() {
     return operand;
-  }
-
-  public Type getCastedExpressionType() {
-    return type;
   }
 
   @Override
@@ -53,5 +51,8 @@ public class ACastExpression extends AExpression {
     return "(" + type.toASTString("") + ")" + operand.toParenthesizedASTString();
   }
 
+  public Type getCastType() {
+    return castType;
+  }
 
 }

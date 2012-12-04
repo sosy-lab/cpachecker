@@ -20,7 +20,7 @@ public class IfStatement5 {
            
             }else {
             
-            assert(false); 
+            assert false ; 
             
             }
       }   

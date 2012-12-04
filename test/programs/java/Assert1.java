@@ -1,9 +1,6 @@
 
 public class Assert1 {
 	
-
-	
-
 	public static void main(
 			String[] args) {
 		
@@ -14,7 +11,7 @@ public class Assert1 {
 	    int n3 = 0;
 	    
 	    if((n1 == n2 && n2 == n3) || n3 == n1) {
-	        b1 = false;
+	        b1 = true;
 	    }
 
         assert b1  : "Wrong";

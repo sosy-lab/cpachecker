@@ -39,7 +39,12 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 
-
+/**
+ * This Visitor Iterates the Compilation Unit for top-level Type Declarations,
+ * converts them into types, and inserts them into a type Hierarchy.
+ * Through bindings of the parser, every super type is converted and inserted
+ * as well.
+ */
 public class TypeHierachyCreator extends ASTVisitor {
 
   private static final boolean VISIT_CHILDREN = true;
@@ -48,15 +53,27 @@ public class TypeHierachyCreator extends ASTVisitor {
 
   private static final boolean UNSUCCESSFUL = false;
 
+  @SuppressWarnings("unused")
   private final LogManager logger;
 
 
-  private final Map< String ,JClassOrInterfaceType> types ;
+  private final Map< String ,JClassOrInterfaceType> types;
+  private final Map<String, String> typeOfFiles;
+  private  String fileOfCU;
 
 
-  public TypeHierachyCreator(LogManager pLogger , Map<String, JClassOrInterfaceType> pTypes) {
+/**
+ * Creates the Visitor. The types are inserted in the parameter type.
+ * The parameter typeOfFile stores the files a type was extracted from.
+ *
+ * @param pLogger Logger logging progress.
+ * @param pTypes Resulting Types are inserted in this map.
+ * @param pTypeOfFiles Maps types to the files they were extracted from.
+ */
+  public TypeHierachyCreator(LogManager pLogger, Map<String, JClassOrInterfaceType> pTypes, Map<String, String> pTypeOfFiles) {
     logger = pLogger;
     types = pTypes;
+    typeOfFiles = pTypeOfFiles;
   }
 
   @Override
@@ -69,17 +86,16 @@ public class TypeHierachyCreator extends ASTVisitor {
   @Override
   public boolean visit(TypeDeclaration node) {
 
+
+
     ITypeBinding typeBinding = node.resolveBinding();
 
     handleHierachy(typeBinding);
 
+
+
     return VISIT_CHILDREN;
   }
-
-
-
-
-
 
   private void handleHierachy(ITypeBinding typeBinding) {
     if (typeBinding != null) {
@@ -87,6 +103,7 @@ public class TypeHierachyCreator extends ASTVisitor {
 
         JClassType type =  convertClassType(typeBinding);
 
+         typeOfFiles.put(type.getName(), fileOfCU);
 
         boolean doesNotexist = add(type);
 
@@ -125,6 +142,10 @@ public class TypeHierachyCreator extends ASTVisitor {
 
         JInterfaceType type = convertInterfaceType(typeBinding);
         add(type);
+
+        typeOfFiles.put(type.getName(), fileOfCU);
+
+
         Queue<Pair<JInterfaceType ,ITypeBinding[]>> next = new LinkedList<Pair<JInterfaceType ,ITypeBinding[]>>();
         next.add(Pair.of(type, typeBinding.getInterfaces()));
 
@@ -151,6 +172,7 @@ public class TypeHierachyCreator extends ASTVisitor {
     }
   }
 
+  @SuppressWarnings("unused")
   private void add(JInterfaceType pType, List<JClassType> pKnownInterfaceImplementingClasses, List<JInterfaceType> pSubInterfaces , List<JInterfaceType> pExtendedInterfaces)  {
 
 
@@ -213,6 +235,7 @@ public class TypeHierachyCreator extends ASTVisitor {
 
   }
 
+  @SuppressWarnings("unused")
   private void add(JClassType pType, JClassType pParentClass, List<JClassType> pDirectSubClasses, List<JInterfaceType> pImplementedInterfaces) {
 
       add(pType, pParentClass, pImplementedInterfaces);
@@ -316,6 +339,16 @@ public class TypeHierachyCreator extends ASTVisitor {
     ModifierBean mB = ModifierBean.getModifiers(t);
     return new JInterfaceType(ASTConverter.getFullyQualifiedClassOrInterfaceName(t), mB.getVisibility());
 
+  }
+
+  /**
+   * Sets the File this Visitor visits at the moment.
+   * Necessary to map types to files.
+   *
+   * @param fileOfCU the file the Compilation Unit was extracted from.
+   */
+  public void setFileOfCU(String fileOfCU) {
+    this.fileOfCU = fileOfCU;
   }
 
 }

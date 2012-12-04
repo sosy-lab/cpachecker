@@ -36,81 +36,192 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 /**
- * Provides a symbol table that maps variable and functions to their declaration
+ * Provides a symbol table that maps variable and methods to their declaration
  * (if a name is visible in the current scope).
+ * Additionally, it tracks classes that still need to be parsed.
  */
 class Scope {
 
-  private String fullyQualifiedName;
+  // Stores all found class and reference types
+  private final Map< String ,JClassOrInterfaceType> types;
 
+  // Track the name of the files which the types were extracted from
+  // Key: TypeName Object: fileName
+  private final Map<String, String> fileOfType;
+
+  // symbolic tables for Fields
+  private final Map<String , LinkedList<JFieldDeclaration>>
+    typeFieldDeclarations = new HashMap<String, LinkedList<JFieldDeclaration>>();
+  private final Map<String, JFieldDeclaration> fieldDeclarations = new HashMap<String, JFieldDeclaration>();
+
+
+  // symbolic table for  Variables and other Declarations
   private final LinkedList<Map<String, JSimpleDeclaration>> varsStack = Lists.newLinkedList();
   private final LinkedList<Map<String, JSimpleDeclaration>> varsList = Lists.newLinkedList();
 
-  //Track and deliver Classes To be Parsed
+
+  // Stores all found methods and constructors
+  private final Map<String, JMethodDeclaration> methods = new HashMap<String, JMethodDeclaration>();
+
+  // Stores current class and method
+  private String currentMethodName = null;
+  private String currentClassName = null;
+
+  // fully Qualified main Class (not the ast one, but the real one with . instead of _)
+  private final String fullyQualifiedMainClassName;
+  private final String rootPathofProgram;
+
+  //Track and deliver Classes that need to be parsed
   private final Queue<String> classesToBeParsed = new ConcurrentLinkedQueue<String>();
   private final Set<String> registeredClasses = new HashSet<String>();
 
-  private final Map< String ,JClassOrInterfaceType> types ;
+  // Track depth of current Class
+  private  int depth = 0;
 
-  private final Map<String, JMethodDeclaration> functions = new HashMap<String, JMethodDeclaration>();
-  private String currentFunctionName = null;
+  private  Map<String, JSimpleDeclaration> programScopeVars;
 
-
-
-  public Scope(Map< String ,JClassOrInterfaceType> pTypes) {
+/**
+ * Creates the Scope. It stores Information about the program as well
+ * as creating symbolic tables to solve declarations.
+ *
+ * @param pFullyQualifiedMainClassName Name of the main Class of program. *
+ * @param pRootPath Path to the root folder of current program.
+ * @param pTypes Type Hierarchy of program created by {@link TypeHierachyCreator}
+ * @param pFileOfTypes Maps types to the sourceFile they were extracted from
+ */
+  public Scope(String pFullyQualifiedMainClassName, String pRootPath,
+      Map<String ,JClassOrInterfaceType> pTypes, Map<String, String> pFileOfTypes) {
+    fullyQualifiedMainClassName = pFullyQualifiedMainClassName;
     types = pTypes;
-    enterBlock(); // enter global scope
+    rootPathofProgram = pRootPath;
+    enterProgramScope();
+    registeredClasses.add(fullyQualifiedMainClassName); // Register Main Class
+    fileOfType = pFileOfTypes;
+
+    // initialize Lists in type Map for each type
+    for( String classNames : types.keySet()) {
+      typeFieldDeclarations.put(classNames, new LinkedList<JFieldDeclaration>());
+    }
   }
 
-  public Scope(String qualifiedName, Map<String ,JClassOrInterfaceType> pTypes) {
-    fullyQualifiedName = qualifiedName;
-    registeredClasses.add(qualifiedName);
-    types = pTypes;
-    enterBlock(); // enter global scope
-
+  private void enterProgramScope() {
+    varsStack.addLast(new HashMap<String, JSimpleDeclaration>());
+    varsList.addLast(varsStack.getLast());
+    programScopeVars = varsStack.getLast();
   }
 
-  public boolean isGlobalScope() {
-    return varsStack.size() == 1;
+  /**
+   * Returns true, iff Scope is not within a Class or method.
+   * In all other cases, returns false.
+   *
+   * @return true, iff Scope is not within method or Class.
+   */
+  public boolean isProgramScope() {
+    return varsStack.size() == 1 && depth == 0;
   }
 
-  public void enterFunction(JMethodDeclaration pFuncDef) {
-    currentFunctionName = pFuncDef.getOrigName();
-    registerFunctionDeclaration(pFuncDef);
+  /**
+   * Returns true, if Scope is in the top-Level class
+   * and not within a method. In all other cases false.
+   *
+   * @return true, iff Scope is within top-level class.
+   */
+  public boolean isTopClassScope() {
+    return varsStack.size() == 1 && depth == 1;
+  }
 
+  /**
+   * Is Called to indicate that a Visitor using this Scope
+   * enters a method in iterating the JDT AST:
+   *
+   * @param methodDef indicates method the Visitor enters.
+   */
+  public void enterMethod(JMethodDeclaration methodDef) {
+    currentMethodName = methodDef.getOrigName();
+    registerMethodDeclaration(methodDef);
     enterBlock();
   }
 
-  public void leaveFunction() {
-    checkState(!isGlobalScope());
+  /**
+  * Is Called to indicate that a Visitor using this Scope
+  * enters a class in iterating the JDT AST:
+  *
+  * @param enteredClassType indicates the class the Visitor enters.
+  */
+  public void enterClass(JClassOrInterfaceType enteredClassType) {
+      depth++;
+
+      if(!types.containsKey(enteredClassType.getName())) {
+        throw new CFAGenerationRuntimeException(
+            "Could not find Type for Class" + enteredClassType.getName());
+      }
+
+      currentClassName = enteredClassType.getName();
+      assert depth >= 0;
+  }
+
+  /**
+   * Indicates that the Visitor using this scope
+   * leaves current Class while traversing the JDT AST.
+   */
+  public void leaveClass() {
+    depth--;
+    currentClassName = null;
+    assert depth <= 0;
+  }
+
+  /**
+   * Indicates that the Visitor using this scope
+   * leaves current Method while traversing the JDT AST.
+   */
+  public void leaveMethod() {
+    checkState(!isTopClassScope());
     varsStack.removeLast();
     while (varsList.size() > varsStack.size()) {
       varsList.removeLast();
     }
-    currentFunctionName = null;
+    currentMethodName = null;
   }
 
+  /**
+   * Indicates that the Visitor using this scope
+   * enters a Block while traversing the JDT AST.
+   */
   public void enterBlock() {
     varsStack.addLast(new HashMap<String, JSimpleDeclaration>());
     varsList.addLast(varsStack.getLast());
   }
 
+  /**
+   * Indicates that the Visitor using this scope
+   * leaves a Block while traversing the JDT AST.
+   */
   public void leaveBlock() {
     checkState(varsStack.size() > 2);
     varsStack.removeLast();
   }
 
+  /**
+   * Checks if the name given in the parameters has already
+   * a declaration to which it is linked.
+   *
+   * @param name Given name to be checked.
+   * @param origName If the name has another Identification, it can also be given
+   * with this parameter.
+   * @return Returns true, if the name is already in use, else false.
+   */
   public boolean variableNameInUse(String name, String origName) {
       checkNotNull(name);
       checkNotNull(origName);
@@ -131,6 +242,12 @@ class Scope {
       return false;
     }
 
+  /**
+   * Returns the variable declaration with the name given as parameter.
+   *
+   * @param name Name of the Variable which declaration is to be returned.
+   * @return declaration of given name, or null, if declaration was not found.
+   */
   public JSimpleDeclaration lookupVariable(String name) {
     checkNotNull(name);
 
@@ -146,74 +263,144 @@ class Scope {
     return null;
   }
 
-  public JMethodDeclaration lookupFunction(String name) {
-    return functions.get(checkNotNull(name));
+  /**
+   * Returns the method declaration with the name given as parameter.
+   *
+   * @param name name of the method which declaration is to be returned.
+   * @return declaration of given name, or null, if declaration was not found.
+   */
+  public JMethodDeclaration lookupMethod(String name) {
+    return methods.get(checkNotNull(name));
   }
 
-  public void registerDeclaration(JSimpleDeclaration declaration) {
+  /**
+   * Checks if the method declaration with the name given as parameter
+   * is already in use.
+   *
+   * @param name name of the method.
+   * @return true, if found, else false.
+   */
+  public boolean isMethodRegistered(String name) {
+    return methods.containsKey(checkNotNull(name));
+  }
+
+
+  public void registerDeclarationOfThisClass(JSimpleDeclaration declaration) {
     assert declaration instanceof JVariableDeclaration
         || declaration instanceof JParameterDeclaration
         : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
-    assert  !(declaration.getType() instanceof CFunctionType);
 
     String name = declaration.getOrigName();
     assert name != null;
 
     Map<String, JSimpleDeclaration> vars = varsStack.getLast();
 
-    // multiple declarations of the same variable are disallowed, unless when being in global scope
-    if (vars.containsKey(name) && !isGlobalScope()) {
+    if(isProgramScope()) {
+      throw new CFAGenerationRuntimeException("Could not find Class for Declaration " + declaration.getName() , declaration);
+    }
+
+    // multiple declarations of the same variable are disallowed
+    // unless i
+    if (vars.containsKey(name)) {
       throw new CFAGenerationRuntimeException("Variable " + name + " already declared", declaration);
     }
 
     vars.put(name, declaration);
+
+    if(declaration instanceof JFieldDeclaration) {
+      registerFieldDeclarationOfThisClass((JFieldDeclaration) declaration);
+    }
   }
 
-  public void registerFunctionDeclaration(JMethodDeclaration declaration) {
-    checkState(isGlobalScope(), "nested functions not allowed");
+
+   public void registerFieldDeclarationOfClass(JFieldDeclaration decl, JType type) {
+
+     String name = decl.getName();
+
+     // multiple declarations of the same variable are disallowed
+     // unless i
+     if (programScopeVars.containsKey(name)) {
+       throw new CFAGenerationRuntimeException("Variable " + name + " already declared", decl);
+     }
+
+     programScopeVars.put(name, decl);
+
+     if(type instanceof JClassOrInterfaceType) {
+     registerFieldDeclarationOfClass(decl, ((JClassOrInterfaceType) type).getName());
+     } else {
+       registerFieldDeclarationOfUnspecifiedClass(decl);
+     }
+   }
+
+  private void registerFieldDeclarationOfUnspecifiedClass(JFieldDeclaration declaration) {
+    if (fieldDeclarations.containsKey(declaration.getName())) {
+      throw new CFAGenerationRuntimeException("Variable " +
+        declaration.getName() + " already declared", declaration);
+      }
+
+    if (isProgramScope()) {
+      throw new CFAGenerationRuntimeException("Field Declaration" +
+        "can only be declared within Classes");
+      }
+
+    fieldDeclarations.put(declaration.getName(), declaration);
+
+  }
+
+  private void registerFieldDeclarationOfClass(JFieldDeclaration declaration, String className) {
+
+    if (fieldDeclarations.containsKey(declaration.getName())) { throw new CFAGenerationRuntimeException("Variable " +
+        declaration.getName() + " already declared", declaration); }
+
+    if (isProgramScope()) { throw new CFAGenerationRuntimeException("Field Declaration" +
+        "can only be declared within Classes"); }
+
+    fieldDeclarations.put(declaration.getName(), declaration);
+    typeFieldDeclarations.get(className).add(declaration);
+
+  }
+
+  private void registerFieldDeclarationOfThisClass(JFieldDeclaration declaration) {
+    registerFieldDeclarationOfClass(declaration, currentClassName);
+  }
+
+  public void registerMethodDeclaration(JMethodDeclaration declaration) {
+    checkState(!isProgramScope(), "method was not declared in class");
+    checkState(isTopClassScope(), "nested methods not allowed");
 
     String name = declaration.getName();
     assert name != null;
 
-    functions.put(name, declaration);
+    methods.put(name, declaration);
   }
 
-
-
-  public String getCurrentFunctionName() {
-    return currentFunctionName;
+  public String getCurrentMethodName() {
+    return currentMethodName;
   }
 
   @Override
   public String toString() {
-    return "Functions: " + Joiner.on(' ').join(functions.keySet());
+    return "Functions: " + Joiner.on(' ').join(methods.keySet());
   }
 
-
-
-  public void registerClasses(ITypeBinding classBinding){
+  public void registerClass(ITypeBinding classBinding){
     String topClassName = classBinding.getQualifiedName();
     Queue<JClassOrInterfaceType> toBeAdded = new LinkedList<JClassOrInterfaceType>();
 
     if(!registeredClasses.contains(classBinding.getQualifiedName())){
       registeredClasses.add(topClassName);
       classesToBeParsed.add(topClassName);
-
-
     } else {
       // If top Class already added, it is unnecessary to search for subTypes
       // unless its the main Class
-      if(!fullyQualifiedName.equals(topClassName))
+      if(!fullyQualifiedMainClassName.equals(topClassName))
       return;
     }
 
-
     //Sub Classes need to be parsed for dynamic Binding
-
     JClassOrInterfaceType type = types.get(ASTConverter.getFullyQualifiedClassOrInterfaceName( classBinding));
 
     toBeAdded.addAll(type.getAllSubTypesOfType());
-
 
     for(JClassOrInterfaceType subClassType : toBeAdded){
 
@@ -234,7 +421,62 @@ class Scope {
     }
   }
 
-  public String getFullyQualifiedName() {
-    return fullyQualifiedName;
+  public String getfullyQualifiedMainClassName() {
+    return fullyQualifiedMainClassName.replace(".", "_");
   }
+
+  public String getCurrentClassName() {
+    return currentClassName;
+  }
+
+ public Map< String ,JClassOrInterfaceType> getTypeHierachie() {
+   return types;
+ }
+
+  public String getRootPath() {
+    return rootPathofProgram;
+  }
+
+  public Map<String, JFieldDeclaration> getFieldDeclarations() {
+    return fieldDeclarations;
+  }
+
+  public Map<String, LinkedList<JFieldDeclaration>> getTypeFieldDeclarations() {
+    return typeFieldDeclarations;
+  }
+
+  public Map<String, JFieldDeclaration> getStaticFieldDeclarations() {
+    Map<String, JFieldDeclaration> result = new HashMap<String,JFieldDeclaration>();
+
+    for( JFieldDeclaration declaration : fieldDeclarations.values()) {
+      if(declaration.isStatic()) {
+        result.put(declaration.getName(), declaration);
+      }
+    }
+    return result;
+  }
+
+
+
+  public Map<String, JFieldDeclaration> getNonStaticFieldDeclarationOfClass(String className) {
+    Map<String, JFieldDeclaration> result = new HashMap<String,JFieldDeclaration>();
+
+
+
+    for( JFieldDeclaration declaration : typeFieldDeclarations.get(className)) {
+      if(!declaration.isStatic()) {
+        result.put(declaration.getName(), declaration);
+      }
+    }
+    return result;
+  }
+
+  public String getFileOfCurrentType() {
+    if(fileOfType.containsKey( currentClassName)) {
+      return fileOfType.get(currentClassName);
+    } else {
+      return "";
+    }
+  }
+
 }

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa;
 import java.io.IOException;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -35,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.AbstractEclipseCParser;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT6Parser;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT7Parser;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  * It may offer timing of it's operations. If present, this is not expected to
  * be thread-safe.
  */
-public interface CParser {
+public interface CParser extends Parser {
 
   /**
    * Parse the content of a file into a CFA.
@@ -55,7 +55,8 @@ public interface CParser {
    * @throws IOException If file cannot be read.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseFile(String filename) throws ParserException, IOException;
+  @Override
+  ParseResult parseFile(String filename) throws CParserException, IOException;
 
   /**
    * Parse the content of a String into a CFA.
@@ -64,7 +65,8 @@ public interface CParser {
    * @return The CFA.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseString(String code) throws ParserException;
+  @Override
+  ParseResult parseString(String code) throws CParserException;
 
   /**
    * Method for parsing a string that contains exactly one function with exactly
@@ -83,20 +85,7 @@ public interface CParser {
    * @return The AST for the statement.
    * @throws ParserException If parsing fails.
    */
-  CAstNode parseSingleStatement(String code) throws ParserException;
-
-  /**
-   * Return a timer that measured the time needed for parsing.
-   * Optional method: may return null.
-   */
-  Timer getParseTime();
-
-  /**
-   * Return a timer that measured the time need for CFA construction.
-   * Optional method: may return null.
-   */
-  Timer getCFAConstructionTime();
-
+  CAstNode parseSingleStatement(String code) throws CParserException;
 
   /**
    * Enum for clients of this class to choose the C dialect the parser uses.

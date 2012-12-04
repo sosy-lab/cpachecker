@@ -40,6 +40,11 @@ public class JArrayInitializer extends AExpression implements JAstNode , JInitia
     initializerExpressions = pInitializerExpression;
   }
 
+  @Override
+  public JArrayType getExpressionType() {
+    return (JArrayType) super.getExpressionType();
+  }
+
   public List<JExpression> getInitializerExpressions(){
     return initializerExpressions;
   }

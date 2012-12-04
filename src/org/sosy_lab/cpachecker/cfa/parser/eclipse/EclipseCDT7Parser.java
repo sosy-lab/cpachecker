@@ -29,7 +29,6 @@ import org.eclipse.cdt.core.parser.IncludeFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * Wrapper for Eclipse CDT 7 (internal version number 5.2.*)
@@ -51,7 +50,7 @@ public class EclipseCDT7Parser extends AbstractEclipseCParser<FileContent> {
   }
 
   @Override
-  protected IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws ParserException, CFAGenerationRuntimeException, CoreException {
+  protected IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws CParserException, CFAGenerationRuntimeException, CoreException {
     try {
       return language.getASTTranslationUnit(pCode,
                                             StubScannerInfo.instance,

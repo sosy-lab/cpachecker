@@ -27,7 +27,14 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import com.google.common.base.Strings;
 
 
-
+/**
+ * This interface represents the core components that occur in each declaration:
+ * a type and an (optional) name.
+ *
+ * This class is only SuperClass of all abstract Classes and their Subclasses.
+ * The Interface {@link IASimpleDeclarations} contains all language specific
+ * AST Nodes as well.
+ */
 public class ASimpleDeclarations extends AstNode implements IASimpleDeclaration {
 
   protected final Type type;

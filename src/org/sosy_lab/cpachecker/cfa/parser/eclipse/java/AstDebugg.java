@@ -34,8 +34,7 @@ import org.sosy_lab.common.LogManager;
 
 
 /**
- * A Visitor of eclipse jdt core dom AST that checks if there Errors in
- * the AST (from syntax errors for example)
+ * This Visitor simply extracts the AST of the JDT Parser for debug Purposes.
  */
 class AstDebugg extends ASTVisitor {
 
@@ -49,9 +48,9 @@ class AstDebugg extends ASTVisitor {
   public void preVisit(ASTNode problem) {
 
 
-   // System.out.println(getTypeName(problem.getNodeType()));
-   // System.out.println(problem);
-   // System.out.println();
+    System.out.println(getTypeName(problem.getNodeType()));
+    System.out.println(problem);
+    System.out.println();
 
 
     // flags return the bitwise or of value Recovered =case 8, Malformed = case 1
@@ -164,6 +163,7 @@ class AstDebugg extends ASTVisitor {
      //System.out.println(mI);
      //System.out.println();
 
+    @SuppressWarnings("unused")
     IMethodBinding bind = mI.resolveMethodBinding();
 
 
@@ -180,6 +180,7 @@ public boolean visit(ClassInstanceCreation cIC) {
    //System.out.println(cIC);
    //System.out.println();
 
+  @SuppressWarnings("unused")
   IMethodBinding bind = cIC.resolveConstructorBinding();
 
   //System.out.println(bind);

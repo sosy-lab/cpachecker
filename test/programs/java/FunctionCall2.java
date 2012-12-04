@@ -30,9 +30,11 @@ public class FunctionCall2 {
             if(n1 == n1 + n2){
             assert(false);
             } else if(n1 == 2 * n2 + n3){
+              
             if((n3 != n2))
              assert(false);
-            }              
+            } 
+            
         } 
           
           des();

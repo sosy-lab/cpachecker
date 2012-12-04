@@ -95,4 +95,8 @@ public class JFieldDeclaration extends JVariableDeclaration {
     return visibility;
   }
 
+
+  public void updateInitializer(Initializer initializer) {
+    super.initializer = initializer;
+  }
 }

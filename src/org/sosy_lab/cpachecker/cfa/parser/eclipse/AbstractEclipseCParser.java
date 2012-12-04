@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * Base implementation that should work with all CDT versions we support.
@@ -84,19 +83,19 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
   protected abstract T wrapFile(String pFilename) throws IOException;
 
   @Override
-  public ParseResult parseFile(String pFilename) throws ParserException, IOException {
+  public ParseResult parseFile(String pFilename) throws CParserException, IOException {
 
     return buildCFA(parse(wrapFile(pFilename)));
   }
 
   @Override
-  public ParseResult parseString(String pCode) throws ParserException {
+  public ParseResult parseString(String pCode) throws CParserException {
 
     return buildCFA(parse(wrapCode(pCode)));
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode) throws ParserException {
+  public CAstNode parseSingleStatement(String pCode) throws CParserException {
 
     // parse
     IASTTranslationUnit ast = parse(wrapCode(pCode));
@@ -128,7 +127,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
           | ILanguage.OPTION_NO_IMAGE_LOCATIONS // we don't use IASTName#getImageLocation(), so the parse doesn't need to create them
           ;
 
-  private IASTTranslationUnit parse(T codeReader) throws ParserException {
+  private IASTTranslationUnit parse(T codeReader) throws CParserException {
     parseTimer.start();
     try {
       return getASTTranslationUnit(codeReader);
@@ -142,9 +141,9 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
     }
   }
 
-  protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws ParserException, CFAGenerationRuntimeException, CoreException;
+  protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws CParserException, CFAGenerationRuntimeException, CoreException;
 
-  private ParseResult buildCFA(IASTTranslationUnit ast) throws ParserException {
+  private ParseResult buildCFA(IASTTranslationUnit ast) throws CParserException {
     cfaTimer.start();
     try {
       CFABuilder builder = new CFABuilder(logger);

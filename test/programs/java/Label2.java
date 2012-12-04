@@ -22,17 +22,17 @@ public class Label2 {
          
          break L2;
          
-         //assert (false);
+         assert false ;
          
          }
          
-         //assert (false);
+         assert false ;
          
          }
          
          L4: {
          break L4;
-         //assert (false);
+         assert false ;
          }
          
          }

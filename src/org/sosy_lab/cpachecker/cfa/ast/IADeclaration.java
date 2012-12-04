@@ -24,7 +24,12 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 
-
+/**
+ * This interface represents all sorts of top-level declarations (i.e., declarations
+ * not nested inside another type declaration).
+ * This excludes for examples function parameter declarations and struct members.
+ * It includes local and global variables and types, as well as functions.
+ */
 public interface IADeclaration extends IASimpleDeclaration {
 
 
