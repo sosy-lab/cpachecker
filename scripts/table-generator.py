@@ -262,7 +262,7 @@ class Result():
                 newValue = newAttributes[key]
                 if key in self.attributes:
                     oldValue = self.attributes[key]
-                    if not isinstance(oldValue, basestring):
+                    if not isinstance(oldValue, str):
                         if not newValue in oldValue:
                             self.attributes[key] = oldValue.append(newValue)
                     else:
@@ -749,7 +749,7 @@ class StatValue:
                          min    = min(values),
                          max    = max(values),
                          avg    = sum(values) / len(values),
-                         median = sorted(values)[int(len(values)/2)],
+                         median = sorted(values)[len(values)//2],
                          )
 
 
