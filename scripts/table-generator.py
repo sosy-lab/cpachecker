@@ -296,10 +296,10 @@ class Result():
     def _extractExistingColumnsFromResult(resultFile, resultElem):
         if resultElem.find('sourcefile') is None:
             print("Empty resultfile found: " + resultFile)
-            columns = []
+            return []
         else: # show all available columns
-            columns = [Column(c.get("title"), None, None)
-                       for c in resultElem.find('sourcefile').findall('column')]
+            return [Column(c.get("title"), None, None)
+                    for c in resultElem.find('sourcefile').findall('column')]
 
     @staticmethod
     def _extractAttributesFromResult(resultFile, resultTag):
