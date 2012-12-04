@@ -1,0 +1,138 @@
+#!/bin/bash
+
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+	"--no-pointers" )
+	    NO_POINTERS="true"
+	    ;;
+	
+	"--"* )
+	    echo "invalid option: $1"
+	    exit 1
+	    ;;
+
+	* )
+	    program="$1"
+	    ;;
+    esac
+
+    shift
+done
+
+if [ ! -e "$program" ]; then
+    echo "path not found: $program"
+    exit 1
+fi
+
+function_printfs='
+void printf(char* c, char* v) {
+    // left empty
+}
+
+int stderr = 1;
+
+int fprintf ( int* stream, const char * format, ... ) {
+}
+
+'
+
+function_check='
+void check(int a) {
+}
+
+'
+
+# $1 input variables
+function make_scanf {
+
+    last=$(echo "$1" | tail -n 1)
+
+    echo "
+void scanf(const char * format, int* var) {
+
+    int in = __VERIFIER_nondet_int();
+    switch ( in ) {
+"
+    for input in $1; do
+	if test "$input" != "$last"; then
+echo "	case '$input':"
+	else
+echo "	default:"
+	fi;
+echo "	    *var = $input;
+	    break;"
+    done
+
+echo "
+    }
+}
+"
+
+}
+
+stripped=$(cat "$program" \
+    | sed '/include/D')
+
+
+function input_variables {
+
+    input_comment=$(echo "$stripped" \
+	| grep -n "// inputs" \
+	| head -n 1 \
+	| cut -f 1 -d ":" )
+
+    input_start=$(( $input_comment + 1 ))
+
+    next_emptyline=$(echo "$stripped" \
+	| tail -n +$input_start \
+	| egrep -n "^\s*$" \
+	| head -n 1 \
+	| cut -f 1 -d ":" )
+
+    input_count=$(( $next_emptyline - 1 ))
+
+    echo "$stripped" \
+	| tail -n +$input_start \
+	| head -n $input_count \
+	| sed 's/ *= */ /' \
+	| sed 's/\t *int //' \
+	| cut -f 1 -d " "
+
+}
+
+input_mapping=$(input_variables)
+
+
+base_program=$(echo "$(make_scanf "$input_mapping")" "$function_printfs" "$function_check" "$stripped" \
+    | sed 's/assert/check/')
+
+error_labels=$(echo "$base_program" \
+    | egrep -o -i "\S*error(_[0-9]+)?" )
+
+
+
+# create one file for every error state
+for error in $error_labels; do
+    body=$(echo "$base_program" \
+	| sed "s/$error:/ERROR:/"
+    )
+
+    if [ ! -z "$NO_POINTERS" ]; then
+	body=$(echo "$body" \
+	    | sed 's!void scanf(.*) {!int read() {!' \
+	    | sed 's!\*var *=!return !' \
+	    | sed 's!printf *(.*)!printf()!' \
+	    | sed 's!fprintf *(.*)!fprintf()!' \
+	    | sed 's!scanf("%d", &input);!input = read();!')
+
+    fi
+
+    echo "$body" \
+	> "$(basename $program .c).$error.c"
+done
+
+
+
+
+# vim:sts=4:sw=4:
