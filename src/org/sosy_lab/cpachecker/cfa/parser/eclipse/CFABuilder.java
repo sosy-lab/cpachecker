@@ -124,13 +124,14 @@ class CFABuilder extends ASTVisitor {
       functionDeclarations.add(fd);
 
       // add forward declaration to list of global declarations
-      CDeclaration functionDefinition = astCreator.convert(fd);
+      CFunctionDeclaration functionDefinition = astCreator.convert(fd);
       if (!astCreator.getAndResetPreSideAssignments().isEmpty()
           || !astCreator.getAndResetPostSideAssignments().isEmpty()) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
 
-      globalDeclarations.add(Pair.of(functionDefinition, fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
+      scope.registerFunctionDeclaration(functionDefinition);
+      globalDeclarations.add(Pair.<CDeclaration, String>of(functionDefinition, fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
 
       return PROCESS_SKIP;
 

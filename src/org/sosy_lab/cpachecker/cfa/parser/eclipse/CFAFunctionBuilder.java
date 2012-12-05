@@ -269,8 +269,8 @@ class CFAFunctionBuilder extends ASTVisitor {
         // This is needed to handle the binding in the initializer correctly.
         // scope.registerDeclaration(newD);
         assert scope.lookupVariable(newD.getOrigName()) == newD;
-      } else if (newD instanceof CFunctionDeclaration) {
-        scope.registerFunctionDeclaration((CFunctionDeclaration) newD);
+      } else {
+        assert !(newD instanceof CFunctionDeclaration) : "Function declaration inside function";
       }
 
       CFANode nextNode = newCFANode(filelocStart);

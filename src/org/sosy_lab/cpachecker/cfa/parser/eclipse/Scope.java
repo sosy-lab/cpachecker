@@ -62,7 +62,7 @@ class Scope {
 
   public void enterFunction(CFunctionDeclaration pFuncDef) {
     currentFunctionName = pFuncDef.getOrigName();
-    registerFunctionDeclaration(pFuncDef);
+    assert lookupFunction(currentFunctionName) != null;
 
     enterBlock();
   }
