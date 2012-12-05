@@ -122,6 +122,11 @@ public class CFASecondPassBuilder {
       return false;
     }
     CFunctionCallExpression f = ((CFunctionCall)s).getFunctionCallExpression();
+    if (f.getDeclaration() == null) {
+      // There might be a function pointer shadowing a function,
+      // so we need to check this explicitly here.
+      return false;
+    }
     String name = f.getFunctionNameExpression().toASTString();
     return cfa.getAllFunctionNames().contains(name);
   }
@@ -151,7 +156,7 @@ public class CFASecondPassBuilder {
     }
 
     CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
-    String functionName = functionCallExpression.getFunctionNameExpression().toASTString();
+    String functionName = functionCallExpression.getDeclaration().getName();
     int lineNumber = edge.getLineNumber();
     FunctionEntryNode fDefNode = cfa.getFunctionHead(functionName);
     FunctionExitNode fExitNode = fDefNode.getExitNode();

@@ -477,6 +477,9 @@ cpa.fsmbdd.conditionBlocking = true
 # Merge only on abstraction locations.
 cpa.fsmbdd.mergeOnlyOnEqualConditions = false
 
+# Reversed condition-block encoding?
+cpa.fsmbdd.reversedConditionEncoding = true
+
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false

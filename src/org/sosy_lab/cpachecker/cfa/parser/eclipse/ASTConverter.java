@@ -386,19 +386,13 @@ class ASTConverter {
     }
 
     CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
-    CSimpleDeclaration declaration = null;
+    CFunctionDeclaration declaration = null;
 
     if (functionName instanceof CIdExpression) {
-      CIdExpression idExpression = (CIdExpression)functionName;
-      String name = idExpression.getName();
-      declaration = scope.lookupFunction(name);
-
-      if (idExpression.getDeclaration() != null) {
-        // clone idExpression because the declaration in it is wrong
-        // (it's the declaration of an equally named variable)
-        // TODO this is ugly
-
-        functionName = new CIdExpression(idExpression.getFileLocation(), idExpression.getExpressionType(), name, declaration);
+      CSimpleDeclaration d = ((CIdExpression)functionName).getDeclaration();
+      if (d instanceof CFunctionDeclaration) {
+        // it may also be a variable declaration, when a function pointer is called
+        declaration = (CFunctionDeclaration)d;
       }
     }
 
@@ -415,9 +409,22 @@ class ASTConverter {
 
   private CIdExpression convert(IASTIdExpression e) {
     String name = convert(e.getName());
+
+    // Try to find declaration.
+    // Variables per se actually do not bind stronger than function,
+    // but local variables do.
+    // Furthermore, a global variable and a function with the same name
+    // cannot exist, so the following code works correctly.
     CSimpleDeclaration declaration = scope.lookupVariable(name);
+    if (declaration == null) {
+      declaration = scope.lookupFunction(name);
+    }
+
+    // declaration may still be null here,
+    // for example when parsing AST patterns for the AutomatonCPA.
+
     if (declaration != null) {
-      name = declaration.getName();
+      name = declaration.getName(); // may have been renamed
     }
     return new CIdExpression(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()), name, declaration);
   }
