@@ -28,4 +28,6 @@ public abstract class CInitializer extends CAstNode {
   public CInitializer(final CFileLocation pFileLocation) {
     super(pFileLocation);
   }
+
+  public abstract <R, X extends Exception> R accept(CInitializerVisitor<R, X> pV) throws X;
 }

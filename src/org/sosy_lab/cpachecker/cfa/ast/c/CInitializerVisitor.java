@@ -23,27 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-public final class CInitializerExpression extends CInitializer {
 
-  private final CExpression expression;
+public interface CInitializerVisitor<R, X extends Exception> extends CExpressionVisitor<R, X> {
 
-  public CInitializerExpression(final CFileLocation pFileLocation,
-                                   final CExpression pExpression) {
-    super(pFileLocation);
-    expression = pExpression;
-  }
+  R visit(CInitializerExpression pInitializerExpression) throws X;
 
-  public CExpression getExpression() {
-    return expression;
-  }
-
-  @Override
-  public String toASTString() {
-    return expression.toASTString();
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(CInitializerVisitor<R, X> pV) throws X {
-    return pV.visit(this);
-  }
+  R visit(CInitializerList pInitializerList) throws X;
 }
