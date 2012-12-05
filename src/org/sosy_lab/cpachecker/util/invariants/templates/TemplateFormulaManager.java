@@ -589,6 +589,28 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   /**
+   * Extracts the atoms from the given formula, does not remove SSA indices and does not split equalities,
+   * meaning does not return (x <= y) and (y <= x) instead of (x = y)
+   * @param f the formula to operate on
+   * @return a collection of (atomic) formulas
+   */
+  @Override
+  public Collection<Formula> extractAtoms(Formula pF) {
+    TemplateFormula tf = null;
+    try {
+      tf = (TemplateFormula)pF;
+    } catch (ClassCastException e) {}
+    if (tf == null) {
+      return null;
+    }
+
+    List<TemplateFormula> tfAtoms = tf.extractAtoms(false, false);
+    Collection<Formula> atoms = new Vector<Formula>(tfAtoms);
+
+    return atoms;
+  }
+
+  /**
    * Create string representation of a formula in a format which may be dumped
    * to a file.
    */

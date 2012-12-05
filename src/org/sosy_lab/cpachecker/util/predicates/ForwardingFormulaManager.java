@@ -256,6 +256,11 @@ public class ForwardingFormulaManager implements FormulaManager {
   }
 
   @Override
+  public Collection<Formula> extractAtoms(Formula pF) {
+    return delegate.extractAtoms(pF);
+  }
+
+  @Override
   public Set<String> extractVariables(Formula pF) {
     return delegate.extractVariables(pF);
   }

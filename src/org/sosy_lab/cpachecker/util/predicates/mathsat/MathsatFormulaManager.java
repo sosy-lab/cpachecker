@@ -50,13 +50,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
 
-@Options(prefix="cpa.predicate.mathsat")
+@Options(prefix = "cpa.predicate.mathsat")
 public abstract class MathsatFormulaManager implements FormulaManager {
 
-  @Option(description="use a combination of theories (this is incomplete)")
+  @Option(description = "use a combination of theories (this is incomplete)")
   private boolean useDtc = false;
 
-  @Option(description="Use UIFs (recommended because its more precise)")
+  @Option(description = "Use UIFs (recommended because its more precise)")
   private boolean useUIFs = true;
 
   // the MathSAT environment in which all terms are created
@@ -102,7 +102,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
     trueFormula = encapsulate(msat_make_true(msatEnv));
     falseFormula = encapsulate(msat_make_false(msatEnv));
 
-    stringLitUfDecl = msat_declare_uif(msatEnv, "__string__", msatVarType, new int[]{ MSAT_INT });
+    stringLitUfDecl = msat_declare_uif(msatEnv, "__string__", msatVarType, new int[] { MSAT_INT });
   }
 
   long getMsatEnv() {
@@ -132,11 +132,11 @@ public abstract class MathsatFormulaManager implements FormulaManager {
   }
 
   static long getTerm(Formula f) {
-    return ((MathsatFormula)f).getTerm();
+    return ((MathsatFormula) f).getTerm();
   }
 
   static long[] getTerm(FormulaList f) {
-    return ((MathsatFormulaList)f).getTerms();
+    return ((MathsatFormulaList) f).getTerms();
   }
 
   static Formula encapsulate(long t) {
@@ -153,9 +153,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
 
   static Pair<String, Integer> parseName(String var) {
     String[] s = var.split(INDEX_SEPARATOR);
-    if (s.length != 2) {
-      throw new IllegalArgumentException("Not an instantiated variable: " + var);
-    }
+    if (s.length != 2) { throw new IllegalArgumentException("Not an instantiated variable: " + var); }
 
     return Pair.of(s[0], Integer.parseInt(s[1]));
   }
@@ -208,16 +206,13 @@ public abstract class MathsatFormulaManager implements FormulaManager {
   // ----------------- Uninterpreted functions -----------------
 
   private long buildMsatUF(String name, long[] args, boolean predicate) {
-    if (!useUIFs) {
-      return buildMsatUfReplacement(); // shortcut
+    if (!useUIFs) { return buildMsatUfReplacement(); // shortcut
     }
 
     int[] tp = new int[args.length];
-    Arrays.fill(tp, predicate?MSAT_BOOL:msatVarType);
-    long decl = msat_declare_uif(msatEnv, name, predicate?MSAT_BOOL:msatVarType, tp);
-    if (MSAT_ERROR_DECL(decl)) {
-      return MSAT_MAKE_ERROR_TERM();
-    }
+    Arrays.fill(tp, predicate ? MSAT_BOOL : msatVarType);
+    long decl = msat_declare_uif(msatEnv, name, predicate ? MSAT_BOOL : msatVarType, tp);
+    if (MSAT_ERROR_DECL(decl)) { return MSAT_MAKE_ERROR_TERM(); }
     return buildMsatUF(decl, args);
   }
 
@@ -260,7 +255,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
   public Formula makeString(int i) {
     long n = msat_make_number(msatEnv, Integer.toString(i));
 
-    return encapsulate(buildMsatUF(stringLitUfDecl, new long[]{n}));
+    return encapsulate(buildMsatUF(stringLitUfDecl, new long[] { n }));
   }
 
   private long buildMsatVariable(String var, int type) {
@@ -348,14 +343,12 @@ public abstract class MathsatFormulaManager implements FormulaManager {
     } else if (msat_term_is_not(t) != 0) {
       t = msat_term_get_arg(t, 0);
       return ((msat_term_is_uif(t) != 0)
-          || (msat_term_is_atom(t) != 0));
+      || (msat_term_is_atom(t) != 0));
 
     } else if (msat_term_is_and(t) != 0) {
       int arity = msat_term_arity(t);
       for (int i = 0; i < arity; ++i) {
-        if (!isPurelyConjunctive(encapsulate(msat_term_get_arg(t, i)))) {
-          return false;
-        }
+        if (!isPurelyConjunctive(encapsulate(msat_term_get_arg(t, i)))) { return false; }
       }
       return true;
 
@@ -526,7 +519,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
         tt = uninstantiate(tt);
         t = getTerm(tt);
 
-        if (   splitArithEqualities
+        if (splitArithEqualities
             && (msat_term_is_equal(t) != 0)
             && isPurelyArithmetic(tt)) {
           long a1 = msat_term_get_arg(t, 0);
@@ -545,14 +538,54 @@ public abstract class MathsatFormulaManager implements FormulaManager {
         }
 
       } else if (conjunctionsOnly
-            && !((msat_term_is_not(t) != 0) || (msat_term_is_and(t) != 0))) {
+          && !((msat_term_is_not(t) != 0) || (msat_term_is_and(t) != 0))) {
         // conjunctions only, but formula is neither "not" nor "and"
         // treat this as atomic
         atoms.add(uninstantiate(tt));
 
       } else {
         // ok, go into this formula
-        for (int i = 0; i < msat_term_arity(t); ++i){
+        for (int i = 0; i < msat_term_arity(t); ++i) {
+          Formula c = encapsulate(msat_term_get_arg(t, i));
+          if (!cache.contains(c)) {
+            toProcess.push(c);
+          }
+        }
+      }
+    }
+
+    return atoms;
+  }
+
+  /**
+   * Extracts the atoms from the given formula, does not remove SSA indices and does not split equalities,
+   * meaning does not return (x <= y) and (y <= x) instead of (x = y)
+   * @param f the formula to operate on
+   * @return a collection of (atomic) formulas
+   */
+  @Override
+  public Collection<Formula> extractAtoms(Formula f) {
+    Set<Formula> cache = new HashSet<Formula>();
+    List<Formula> atoms = new ArrayList<Formula>();
+
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+    toProcess.push(f);
+
+    while (!toProcess.isEmpty()) {
+      Formula tt = toProcess.pop();
+      long t = getTerm(tt);
+      assert !cache.contains(tt);
+      cache.add(tt);
+
+      if (msat_term_is_true(t) != 0 || msat_term_is_false(t) != 0) {
+        continue;
+      }
+
+      if (msat_term_is_atom(t) != 0) {
+        atoms.add(tt);
+      } else {
+        // go into this formula
+        for (int i = 0; i < msat_term_arity(t); ++i) {
           Formula c = encapsulate(msat_term_get_arg(t, i));
           if (!cache.contains(c)) {
             toProcess.push(c);
@@ -584,7 +617,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
 
       } else {
         // ok, go into this formula
-        for (int i = 0; i < msat_term_arity(t); ++i){
+        for (int i = 0; i < msat_term_arity(t); ++i) {
           Formula c = encapsulate(msat_term_get_arg(t, i));
 
           if (seen.add(c)) {
@@ -600,9 +633,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
   // returns true if the given term is a pure arithmetic term
   private boolean isPurelyArithmetic(Formula f) {
     Boolean result = arithCache.get(f);
-    if (result != null) {
-      return result;
-    }
+    if (result != null) { return result; }
 
     long t = getTerm(f);
 
@@ -634,9 +665,7 @@ public abstract class MathsatFormulaManager implements FormulaManager {
     while (!toProcess.isEmpty()) {
       final long rightSubTerm = toProcess.pop();
 
-      if (rightSubTerm == leftTerm) {
-        return true;
-      }
+      if (rightSubTerm == leftTerm) { return true; }
 
       if (msat_term_is_variable(rightSubTerm) == 0) {
         int args = msat_term_arity(rightSubTerm);
@@ -668,24 +697,12 @@ public abstract class MathsatFormulaManager implements FormulaManager {
   public FormulaOperator getOperator(Formula f) {
     final long t = getTerm(f);
 
-    if(msat_term_is_atom(t)!=0){
- return FormulaOperator.ATOM;
-    }
-    if(msat_term_is_not(t)!=0){
-      return FormulaOperator.NOT;
-    }
-    if(msat_term_is_and(t)!=0){
-      return FormulaOperator.AND;
-    }
-    if(msat_term_is_or(t)!=0){
-      return FormulaOperator.OR;
-    }
-    if(msat_term_is_iff(t)!=0){
-      return FormulaOperator.EQUIV;
-    }
-    if(msat_term_is_term_ite(t)!=0 || msat_term_is_bool_ite(t)!=0){
-      return FormulaOperator.ITE;
-    }
+    if (msat_term_is_atom(t) != 0) { return FormulaOperator.ATOM; }
+    if (msat_term_is_not(t) != 0) { return FormulaOperator.NOT; }
+    if (msat_term_is_and(t) != 0) { return FormulaOperator.AND; }
+    if (msat_term_is_or(t) != 0) { return FormulaOperator.OR; }
+    if (msat_term_is_iff(t) != 0) { return FormulaOperator.EQUIV; }
+    if (msat_term_is_term_ite(t) != 0 || msat_term_is_bool_ite(t) != 0) { return FormulaOperator.ITE; }
     return null;
   }
 

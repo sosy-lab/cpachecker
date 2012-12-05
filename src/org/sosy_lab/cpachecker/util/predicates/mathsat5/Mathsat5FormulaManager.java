@@ -742,6 +742,47 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
     return atoms;
   }
 
+  /**
+   * Extracts the atoms from the given formula, does not remove SSA indices and does not split equalities,
+   * meaning does not return (x <= y) and (y <= x) instead of (x = y)
+   * @param f the formula to operate on
+   * @return a collection of (atomic) formulas
+   */
+  @Override
+  public Collection<Formula> extractAtoms(Formula f) {
+    Set<Formula> handled = new HashSet<Formula>();
+    List<Formula> atoms = new ArrayList<Formula>();
+
+    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+    toProcess.push(f);
+    handled.add(f);
+
+    while (!toProcess.isEmpty()) {
+      Formula tt = toProcess.pop();
+      long t = getTerm(tt);
+      assert handled.contains(tt);
+
+      if (msat_term_is_true(msatEnv, t) || msat_term_is_false(msatEnv, t)) {
+        continue;
+      }
+
+      if (msat_term_is_atom(msatEnv, t)) {
+        atoms.add(tt);
+      } else {
+        // go into this formula
+        for (int i = 0; i < msat_term_arity(t); ++i) {
+          long newt = msat_term_get_arg(t, i);
+          Formula c = encapsulate(newt);
+          if (handled.add(c)) {
+            toProcess.push(c);
+          }
+        }
+      }
+    }
+
+    return atoms;
+  }
+
   @Override
   public Set<String> extractVariables(Formula f) {
     Set<Formula> seen = new HashSet<Formula>();
