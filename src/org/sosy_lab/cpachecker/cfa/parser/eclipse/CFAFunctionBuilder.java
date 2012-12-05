@@ -1405,10 +1405,21 @@ class CFAFunctionBuilder extends ASTVisitor {
       IASTExpression condExp = astCreator.getConditionalExpression();
       astCreator.resetConditionalExpression();
 
+      CIdExpression tempVar;
+      if (resultIsUsed) {
+        tempVar = astCreator.getConditionalTemporaryVariable();
+        prevNode = createEdgesForSideEffects(prevNode, astCreator.getAndResetPreSideAssignments(), condExp.getRawSignature(), filelocStart);
+
+      } else {
+        tempVar = null;
+        // ignore side assignments
+        astCreator.getAndResetPreSideAssignments();
+      }
+
       if (condExp instanceof IASTConditionalExpression) {
-        prevNode = handleTernaryOperator((IASTConditionalExpression)condExp, prevNode, resultIsUsed);
+        prevNode = handleTernaryOperator((IASTConditionalExpression)condExp, prevNode, tempVar);
       } else if (condExp instanceof IASTBinaryExpression) {
-        prevNode = handleShortcuttingOperators((IASTBinaryExpression)condExp, prevNode, resultIsUsed);
+        prevNode = handleShortcuttingOperators((IASTBinaryExpression)condExp, prevNode, tempVar);
       } else {
         throw new AssertionError();
       }
@@ -1424,25 +1435,12 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category sideeffects
    */
   private CFANode handleShortcuttingOperators(IASTBinaryExpression binExp,
-      CFANode rootNode, boolean resultIsUsed) {
+      CFANode rootNode, CIdExpression tempVar) {
     int filelocStart = binExp.getFileLocation().getStartingLineNumber();
 
-    CIdExpression tempVar;
-    if (resultIsUsed) {
-      tempVar = astCreator.getConditionalTemporaryVariable();
-      rootNode = createEdgesForSideEffects(rootNode, astCreator.getAndResetPreSideAssignments(), binExp.getRawSignature(), filelocStart);
-
-    } else {
-      tempVar = null;
-      // ignore side assignments
-      astCreator.getAndResetPreSideAssignments();
-    }
-
-    // create necessary nodes
     CFANode intermediateNode = newCFANode(filelocStart);
     CFANode thenNode = newCFANode(filelocStart);
     CFANode elseNode = newCFANode(filelocStart);
-    CFANode lastNode = newCFANode(filelocStart);
 
     // create the four condition edges
     switch (binExp.getOperator()) {
@@ -1458,7 +1456,9 @@ class CFAFunctionBuilder extends ASTVisitor {
     createConditionEdges(binExp.getOperand2(), filelocStart, intermediateNode, thenNode, elseNode);
 
     // create the two final edges
-    if (resultIsUsed) {
+    CFANode lastNode = newCFANode(filelocStart);
+    if (tempVar != null) {
+      // assign truth value to tempVar
       CFileLocation loc = ASTConverter.getLocation(binExp);
       CType intType = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
 
@@ -1486,19 +1486,8 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category sideeffects
    */
   private CFANode handleTernaryOperator(IASTConditionalExpression condExp,
-      CFANode rootNode, boolean resultIsUsed) {
+      CFANode rootNode, CIdExpression tempVar) {
     int filelocStart = condExp.getFileLocation().getStartingLineNumber();
-
-    CIdExpression tempVar;
-    if (resultIsUsed) {
-      tempVar = astCreator.getConditionalTemporaryVariable();
-      rootNode = createEdgesForSideEffects(rootNode, astCreator.getAndResetPreSideAssignments(), condExp.getRawSignature(), filelocStart);
-
-    } else {
-      tempVar = null;
-      // ignore side assignments
-      astCreator.getAndResetPreSideAssignments();
-    }
 
     CFANode thenNode = newCFANode(filelocStart);
     CFANode elseNode = newCFANode(filelocStart);
