@@ -1128,87 +1128,67 @@ public class CtoFormulaConverter {
       CExpression e1 = exp.getOperand1();
       CExpression e2 = exp.getOperand2();
 
+      // these operators expect numeric arguments
+      Formula me1 = toNumericFormula(e1.accept(this));
+      Formula me2 = toNumericFormula(e2.accept(this));
+
       switch (op) {
-      case LOGICAL_AND:
-      case LOGICAL_OR: {
-        // these operators expect boolean arguments
-        Formula me1 = toBooleanFormula(e1.accept(this));
-        Formula me2 = toBooleanFormula(e2.accept(this));
+      case PLUS:
+        return fmgr.makePlus(me1, me2);
+      case MINUS:
+        return fmgr.makeMinus(me1, me2);
+      case MULTIPLY:
+        return fmgr.makeMultiply(me1, me2);
+      case DIVIDE:
+        return fmgr.makeDivide(me1, me2);
+      case MODULO:
+        return fmgr.makeModulo(me1, me2);
+      case BINARY_AND:
+        return fmgr.makeBitwiseAnd(me1, me2);
+      case BINARY_OR:
+        return fmgr.makeBitwiseOr(me1, me2);
+      case BINARY_XOR:
+        return fmgr.makeBitwiseXor(me1, me2);
 
-        switch (op) {
-        case LOGICAL_AND:
-          return fmgr.makeAnd(me1, me2);
-        case LOGICAL_OR:
-          return fmgr.makeOr(me1, me2);
-        default:
-          throw new AssertionError();
+      case SHIFT_LEFT:
+        // SAT-solver cannot handle bitshifts,
+        // so we try to convert a bitshift into a multiplication:
+        // x << 2 is equal to x*4
+        // TODO perhaps bitshifts are possible in future
+        if (e2 instanceof CIntegerLiteralExpression) {
+          final int factor = IntMath.pow(2, ((CIntegerLiteralExpression) e2).getValue().intValue());
+          return fmgr.makeMultiply(me1, fmgr.makeNumber(factor));
+        } else {
+          return fmgr.makeShiftLeft(me1, me2);
         }
-      }
 
-      default: {
-        // these other operators expect numeric arguments
-        Formula me1 = toNumericFormula(e1.accept(this));
-        Formula me2 = toNumericFormula(e2.accept(this));
-
-        switch (op) {
-        case PLUS:
-          return fmgr.makePlus(me1, me2);
-        case MINUS:
-          return fmgr.makeMinus(me1, me2);
-        case MULTIPLY:
-          return fmgr.makeMultiply(me1, me2);
-        case DIVIDE:
-          return fmgr.makeDivide(me1, me2);
-        case MODULO:
-          return fmgr.makeModulo(me1, me2);
-        case BINARY_AND:
-          return fmgr.makeBitwiseAnd(me1, me2);
-        case BINARY_OR:
-          return fmgr.makeBitwiseOr(me1, me2);
-        case BINARY_XOR:
-          return fmgr.makeBitwiseXor(me1, me2);
-
-        case SHIFT_LEFT:
-          // SAT-solver cannot handle bitshifts,
-          // so we try to convert a bitshift into a multiplication:
-          // x << 2 is equal to x*4
-          // TODO perhaps bitshifts are possible in future
-          if (e2 instanceof CIntegerLiteralExpression) {
-            final int factor = IntMath.pow(2, ((CIntegerLiteralExpression) e2).getValue().intValue());
-            return fmgr.makeMultiply(me1, fmgr.makeNumber(factor));
-          } else {
-            return fmgr.makeShiftLeft(me1, me2);
-          }
-
-        case SHIFT_RIGHT:
-          // SAT-solver cannot handle bitshifts,
-          // so we try to evaluate a bitshift: 4 >> 2 is equal to 1
-          // TODO perhaps bitshifts are possible in future
-          if (e1 instanceof CIntegerLiteralExpression
-              && e2 instanceof CIntegerLiteralExpression) {
-            return fmgr.makeNumber(((CIntegerLiteralExpression) e1).getValue().
-                shiftRight(((CIntegerLiteralExpression) e2).getValue().intValue()).intValue());
-          } else {
-            return fmgr.makeShiftRight(me1, me2);
-          }
-
-        case GREATER_THAN:
-          return fmgr.makeGt(me1, me2);
-        case GREATER_EQUAL:
-          return fmgr.makeGeq(me1, me2);
-        case LESS_THAN:
-          return fmgr.makeLt(me1, me2);
-        case LESS_EQUAL:
-          return fmgr.makeLeq(me1, me2);
-        case EQUALS:
-          return fmgr.makeEqual(me1, me2);
-        case NOT_EQUALS:
-          return fmgr.makeNot(fmgr.makeEqual(me1, me2));
-
-        default:
-          throw new UnrecognizedCCodeException("Unknown binary operator", edge, exp);
+      case SHIFT_RIGHT:
+        // SAT-solver cannot handle bitshifts,
+        // so we try to evaluate a bitshift: 4 >> 2 is equal to 1
+        // TODO perhaps bitshifts are possible in future
+        if (e1 instanceof CIntegerLiteralExpression
+            && e2 instanceof CIntegerLiteralExpression) {
+          return fmgr.makeNumber(((CIntegerLiteralExpression) e1).getValue().
+              shiftRight(((CIntegerLiteralExpression) e2).getValue().intValue()).intValue());
+        } else {
+          return fmgr.makeShiftRight(me1, me2);
         }
-      }
+
+      case GREATER_THAN:
+        return fmgr.makeGt(me1, me2);
+      case GREATER_EQUAL:
+        return fmgr.makeGeq(me1, me2);
+      case LESS_THAN:
+        return fmgr.makeLt(me1, me2);
+      case LESS_EQUAL:
+        return fmgr.makeLeq(me1, me2);
+      case EQUALS:
+        return fmgr.makeEqual(me1, me2);
+      case NOT_EQUALS:
+        return fmgr.makeNot(fmgr.makeEqual(me1, me2));
+
+      default:
+        throw new UnrecognizedCCodeException("Unknown binary operator", edge, exp);
       }
     }
 

@@ -817,10 +817,8 @@ public class VariableClassification {
 
       switch (exp.getOperator()) {
 
-      case LOGICAL_AND:
-      case LOGICAL_OR:
       case EQUALS:
-      case NOT_EQUALS: // &&, ||, ==, != work with boolean operands
+      case NOT_EQUALS: // ==, != work with boolean operands
         operand1.putAll(operand2);
         return operand1;
 
@@ -1016,8 +1014,6 @@ public class VariableClassification {
       case BINARY_AND:
       case BINARY_XOR:
       case BINARY_OR:
-      case LOGICAL_AND:
-      case LOGICAL_OR:
         // this calculations work with all numbers
         operand1.putAll(operand2);
         return operand1;

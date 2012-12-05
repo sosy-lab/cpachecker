@@ -114,12 +114,6 @@ public class ASTOperatorConverter {
     case IASTBinaryExpression.op_binaryOr:
       operator = BinaryOperator.BINARY_OR;
       break;
-    case IASTBinaryExpression.op_logicalAnd:
-      operator = BinaryOperator.LOGICAL_AND;
-      break;
-    case IASTBinaryExpression.op_logicalOr:
-      operator = BinaryOperator.LOGICAL_OR;
-      break;
     case IASTBinaryExpression.op_assign:
       operator = null;
       isAssign = true;
@@ -200,9 +194,7 @@ public class ASTOperatorConverter {
       BinaryOperator.GREATER_EQUAL,
       BinaryOperator.GREATER_THAN,
       BinaryOperator.LESS_EQUAL,
-      BinaryOperator.LESS_THAN,
-      BinaryOperator.LOGICAL_AND,
-      BinaryOperator.LOGICAL_OR);
+      BinaryOperator.LESS_THAN);
 
   static boolean isBooleanExpression(CExpression e) {
     if (e instanceof CBinaryExpression) {

@@ -1059,12 +1059,10 @@ public class BDDTransferRelation implements TransferRelation {
       switch (exp.getOperator()) {
 
       case BINARY_AND:
-      case LOGICAL_AND:
         returnValue = rmgr.makeAnd(operand1, operand2);
         break;
 
       case BINARY_OR:
-      case LOGICAL_OR:
         returnValue = rmgr.makeOr(operand1, operand2);
         break;
 
@@ -1223,16 +1221,8 @@ public class BDDTransferRelation implements TransferRelation {
         returnValue = bvmgr.makeBinaryAnd(operand1, operand2);
         break;
 
-      case LOGICAL_AND:
-        returnValue = bvmgr.makeLogicalAnd(operand1, operand2);
-        break;
-
       case BINARY_OR:
         returnValue = bvmgr.makeBinaryOr(operand1, operand2);
-        break;
-
-      case LOGICAL_OR:
-        returnValue = bvmgr.makeLogicalOr(operand1, operand2);
         break;
 
       case EQUALS:
