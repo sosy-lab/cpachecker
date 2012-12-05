@@ -549,7 +549,7 @@ public class PredicateAbstractionManager {
   }
 
   public Collection<AbstractionPredicate> extractPredicates(Formula pFormula) {
-    Collection<Formula> atoms = fmgr.extractAtoms(pFormula, false, false);
+    Collection<Formula> atoms = fmgr.extractAtoms(pFormula);
 
     List<AbstractionPredicate> preds = new ArrayList<AbstractionPredicate>(atoms.size());
 
