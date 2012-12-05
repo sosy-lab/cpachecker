@@ -44,6 +44,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -72,12 +73,14 @@ class CFABuilder extends ASTVisitor {
   private final ASTConverter astCreator;
 
   private final LogManager logger;
+  private final CheckBindingVisitor checkBinding;
 
   private boolean encounteredAsm = false;
 
   public CFABuilder(LogManager pLogger) {
     logger = pLogger;
     astCreator = new ASTConverter(scope, logger);
+    checkBinding = new CheckBindingVisitor(pLogger);
 
     shouldVisitDeclarations = true;
     shouldVisitEnumerators = true;
@@ -176,6 +179,12 @@ class CFABuilder extends ASTVisitor {
 
     for (CDeclaration newD : newDs) {
       if (newD instanceof CVariableDeclaration) {
+
+        CInitializer init = ((CVariableDeclaration) newD).getInitializer();
+        if (init != null) {
+          init.accept(checkBinding);
+        }
+
         scope.registerDeclaration(newD);
       } else if (newD instanceof CFunctionDeclaration) {
         scope.registerFunctionDeclaration((CFunctionDeclaration) newD);

@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
@@ -146,6 +147,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final ASTConverter astCreator;
 
   private final LogManager logger;
+  private final CheckBindingVisitor checkBinding;
 
   private boolean encounteredAsm = false;
 
@@ -154,6 +156,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     logger = pLogger;
     scope = pScope;
     astCreator = pAstCreator;
+    checkBinding = new CheckBindingVisitor(pLogger);
 
     shouldVisitDeclarations = true;
     shouldVisitEnumerators = true;
@@ -269,6 +272,12 @@ class CFAFunctionBuilder extends ASTVisitor {
         // This is needed to handle the binding in the initializer correctly.
         // scope.registerDeclaration(newD);
         assert scope.lookupVariable(newD.getOrigName()) == newD;
+
+        CInitializer init = ((CVariableDeclaration) newD).getInitializer();
+        if (init != null) {
+          init.accept(checkBinding);
+        }
+
       } else {
         assert !(newD instanceof CFunctionDeclaration) : "Function declaration inside function";
       }
@@ -528,6 +537,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     prevNode = handleAllSideEffects(prevNode, fileloc.getStartingLineNumber(), rawSignature, resultIsUsed);
 
+    statement.accept(checkBinding);
     if (resultIsUsed) {
       lastNode = newCFANode(fileloc);
 
@@ -620,6 +630,9 @@ class CFAFunctionBuilder extends ASTVisitor {
     CReturnStatement returnstmt = astCreator.convert(returnStatement);
     prevNode = handleAllSideEffects(prevNode, returnstmt.getFileLocation().getStartingLineNumber(), returnStatement.getRawSignature(), true);
 
+    if (returnstmt.getReturnValue() != null) {
+      returnstmt.getReturnValue().accept(checkBinding);
+    }
     CReturnStatementEdge edge = new CReturnStatementEdge(returnStatement.getRawSignature(),
     returnstmt, fileloc.getStartingLineNumber(), prevNode, functionExitNode);
     addToCFA(edge);
@@ -816,6 +829,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       prevNode = handleAllSideEffects(prevNode, filelocStart, rawSignature, true);
 
+      stmt.accept(checkBinding);
       if (lastNode == null) {
         lastNode = newCFANode(filelocStart);
       }
@@ -967,6 +981,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       final CExpression exp = astCreator.convertExpressionWithoutSideEffects(condition);
 
       rootNode = handleAllSideEffects(rootNode, filelocStart, rawSignature, true);
+      exp.accept(checkBinding);
 
       if (furtherThenComputation) {
         thenNodeForLastThen = thenNode;
@@ -1561,8 +1576,17 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       CFAEdge edge;
       if (sideeffect instanceof CStatement) {
+        ((CStatement) sideeffect).accept(checkBinding);
         edge = new CStatementEdge(rawSignature, (CStatement)sideeffect, filelocStart, prevNode, nextNode);
+
       } else if (sideeffect instanceof CDeclaration) {
+        if (sideeffect instanceof CVariableDeclaration) {
+          CInitializer init = ((CVariableDeclaration) sideeffect).getInitializer();
+          if (init != null) {
+            init.accept(checkBinding);
+          }
+        }
+
         edge = new CDeclarationEdge(rawSignature, filelocStart, prevNode, nextNode, (CDeclaration) sideeffect);
       } else {
         throw new AssertionError();
@@ -1579,8 +1603,10 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private CStatement createStatement(CFileLocation fileLoc,
       @Nullable CIdExpression leftHandSide, CRightHandSide rightHandSide) {
+    rightHandSide.accept(checkBinding);
 
     if (leftHandSide != null) {
+      leftHandSide.accept(checkBinding);
       // create assignments
 
       if (rightHandSide instanceof CExpression) {
