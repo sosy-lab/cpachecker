@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -270,7 +270,9 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     boolean predicatesFound = false;
     boolean newPredicatesFound = false;
     ARGState firstInterpolationPoint = null;
-    Multimap<CFANode, AbstractionPredicate> newPredicates = ArrayListMultimap.create();
+
+    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
+    pmapBuilder.putAll(oldPrecision.getLocalPredicates());
 
     // iterate through interpolationPoints and find first point with new predicates, from there we have to cut the ARG
     // also build new precision
@@ -290,7 +292,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
         if (!oldPrecision.getPredicates(loc).containsAll(localPreds)) {
           // new predicates for this location
           newPredicatesFound = true;
-          newPredicates.putAll(loc, localPreds);
+          pmapBuilder.putAll(loc, localPreds);
         }
 
       }
@@ -340,7 +342,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
         throw new CPAException("Inconsistent ARG, did not find element for " + firstInterpolationPointLocation);
       }
     }
-    return Pair.of(refinementRoot, newPredicates);
+    return Pair.of(refinementRoot, (Multimap<CFANode, AbstractionPredicate>)pmapBuilder.build());
   }
 
   /**
