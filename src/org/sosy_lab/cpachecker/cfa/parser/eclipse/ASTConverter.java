@@ -131,7 +131,10 @@ class ASTConverter {
 
   private final List<CAstNode> preSideAssignments = new ArrayList<CAstNode>();
   private final List<CAstNode> postSideAssignments = new ArrayList<CAstNode>();
-  private IASTConditionalExpression conditionalExpression = null;
+
+  // the following 2 fields store whether a ternary operator
+  // or a shortcutting operator have been encountered
+  private IASTExpression conditionalExpression = null;
   private CIdExpression conditionalTemporaryVariable = null;
 
   public ASTConverter(Scope pScope, LogManager pLogger) {
@@ -155,7 +158,7 @@ class ASTConverter {
     conditionalExpression = null;
   }
 
-  public IASTConditionalExpression getConditionalExpression() {
+  public IASTExpression getConditionalExpression() {
     return conditionalExpression;
   }
 
@@ -304,13 +307,22 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTBinaryExpression e) {
-    CFileLocation fileLoc = getLocation(e);
-    CType type = ASTTypeConverter.convert(e.getExpressionType());
-    CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getOperand1());
+    switch (e.getOperator()) {
+    case IASTBinaryExpression.op_logicalAnd:
+    case IASTBinaryExpression.op_logicalOr:
+      CIdExpression tmp = createTemporaryVariable(e, null);
+      conditionalTemporaryVariable = tmp;
+      conditionalExpression = e;
+      return tmp;
+    }
 
     Pair<BinaryOperator, Boolean> opPair = ASTOperatorConverter.convertBinaryOperator(e);
     BinaryOperator op = opPair.getFirst();
     boolean isAssign = opPair.getSecond();
+
+    CFileLocation fileLoc = getLocation(e);
+    CType type = ASTTypeConverter.convert(e.getExpressionType());
+    CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getOperand1());
 
     if (isAssign) {
 

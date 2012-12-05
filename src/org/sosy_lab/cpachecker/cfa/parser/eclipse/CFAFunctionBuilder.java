@@ -105,6 +105,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -917,6 +920,9 @@ class CFAFunctionBuilder extends ASTVisitor {
       // a && b
     } else if (condition instanceof IASTBinaryExpression
         && ((IASTBinaryExpression) condition).getOperator() == IASTBinaryExpression.op_logicalAnd) {
+      // This case is not necessary,
+      // but it prevents the need for a temporary variable in the common case of
+      // "if (a && b)"
       CFANode innerNode = newCFANode(filelocStart);
       buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), filelocStart, rootNode, innerNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, false);
       buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true);
@@ -924,6 +930,9 @@ class CFAFunctionBuilder extends ASTVisitor {
       // a || b
     } else if (condition instanceof IASTBinaryExpression
         && ((IASTBinaryExpression) condition).getOperator() == IASTBinaryExpression.op_logicalOr) {
+      // This case is not necessary,
+      // but it prevents the need for a temporary variable in the common case of
+      // "if (a || b)"
       CFANode innerNode = newCFANode(filelocStart);
       buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), filelocStart, rootNode, thenNode, innerNode, thenNodeForLastThen, elseNodeForLastElse, false, true);
       buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), filelocStart, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true);
@@ -1378,7 +1387,8 @@ class CFAFunctionBuilder extends ASTVisitor {
   /////////////////////////////////////////////////////////////////////////////
 
   /**
-   * This methods handles all side effects and an eventual ternary operator.
+   * This methods handles all side effects
+   * and an eventual ternary or shortcutting operator.
    * @param prevNode The CFANode where to start adding edges.
    * @param filelocStart The file location.
    * @param rawSignature The raw signature.
@@ -1391,17 +1401,85 @@ class CFAFunctionBuilder extends ASTVisitor {
       final String rawSignature, final boolean resultIsUsed) {
 
     if (astCreator.getConditionalExpression() != null) {
-      // in this case, there's a ternary operator
-      IASTConditionalExpression condExp = astCreator.getConditionalExpression();
+      // in this case, there's a ternary operator or && or ||
+      IASTExpression condExp = astCreator.getConditionalExpression();
       astCreator.resetConditionalExpression();
 
-      prevNode = handleTernaryOperator(condExp, prevNode, resultIsUsed);
+      if (condExp instanceof IASTConditionalExpression) {
+        prevNode = handleTernaryOperator((IASTConditionalExpression)condExp, prevNode, resultIsUsed);
+      } else if (condExp instanceof IASTBinaryExpression) {
+        prevNode = handleShortcuttingOperators((IASTBinaryExpression)condExp, prevNode, resultIsUsed);
+      } else {
+        throw new AssertionError();
+      }
 
     } else {
       prevNode = createEdgesForSideEffects(prevNode, astCreator.getAndResetPreSideAssignments(), rawSignature, filelocStart);
     }
 
     return prevNode;
+  }
+
+  /**
+   * @category sideeffects
+   */
+  private CFANode handleShortcuttingOperators(IASTBinaryExpression binExp,
+      CFANode rootNode, boolean resultIsUsed) {
+    int filelocStart = binExp.getFileLocation().getStartingLineNumber();
+
+    CIdExpression tempVar;
+    if (resultIsUsed) {
+      tempVar = astCreator.getConditionalTemporaryVariable();
+      rootNode = createEdgesForSideEffects(rootNode, astCreator.getAndResetPreSideAssignments(), binExp.getRawSignature(), filelocStart);
+
+    } else {
+      tempVar = null;
+      // ignore side assignments
+      astCreator.getAndResetPreSideAssignments();
+    }
+
+    // create necessary nodes
+    CFANode intermediateNode = newCFANode(filelocStart);
+    CFANode thenNode = newCFANode(filelocStart);
+    CFANode elseNode = newCFANode(filelocStart);
+    CFANode lastNode = newCFANode(filelocStart);
+
+    // create the four condition edges
+    switch (binExp.getOperator()) {
+    case IASTBinaryExpression.op_logicalAnd:
+      createConditionEdges(binExp.getOperand1(), filelocStart, rootNode, intermediateNode, elseNode);
+      break;
+    case IASTBinaryExpression.op_logicalOr:
+      createConditionEdges(binExp.getOperand1(), filelocStart, rootNode, thenNode, intermediateNode);
+      break;
+    default:
+      throw new AssertionError();
+    }
+    createConditionEdges(binExp.getOperand2(), filelocStart, intermediateNode, thenNode, elseNode);
+
+    // create the two final edges
+    if (resultIsUsed) {
+      CFileLocation loc = ASTConverter.getLocation(binExp);
+      CType intType = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+
+      CExpression one = new CIntegerLiteralExpression(loc, intType, BigInteger.ONE);
+      CStatement assignOne = createStatement(loc, tempVar, one);
+      CFAEdge trueEdge = new CStatementEdge(binExp.getRawSignature(), assignOne, filelocStart, thenNode, lastNode);
+      addToCFA(trueEdge);
+
+      CExpression zero = new CIntegerLiteralExpression(loc, intType, BigInteger.ZERO);
+      CStatement assignZero = createStatement(loc, tempVar, zero);
+      CFAEdge falseEdge = new CStatementEdge(binExp.getRawSignature(), assignZero, filelocStart, elseNode, lastNode);
+      addToCFA(falseEdge);
+
+    } else {
+      CFAEdge trueEdge = new BlankEdge("", filelocStart, thenNode, lastNode, "");
+      addToCFA(trueEdge);
+      CFAEdge falseEdge = new BlankEdge("", filelocStart, elseNode, lastNode, "");
+      addToCFA(falseEdge);
+    }
+
+    return lastNode;
   }
 
   /**
