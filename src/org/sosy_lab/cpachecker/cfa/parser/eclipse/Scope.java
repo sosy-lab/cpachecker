@@ -142,6 +142,12 @@ class Scope {
       throw new CFAGenerationRuntimeException("Variable " + name + " already declared", declaration);
     }
 
+    if (isGlobalScope() && functions.containsKey(name)) {
+      throw new CFAGenerationRuntimeException("Name of function "
+          + name + " from line " + functions.get(name).getFileLocation().getStartingLineNumber()
+          + " is reused as identifier in global scope", declaration);
+    }
+
     vars.put(name, declaration);
   }
 
@@ -155,6 +161,12 @@ class Scope {
       // TODO multiple function declarations are legal, as long as they are equal
       // check this and throw exception if not
 //        throw new CFAGenerationRuntimeException("Function " + name + " already declared", declaration);
+    }
+
+    if (varsStack.peek().containsKey(name)) {
+      throw new CFAGenerationRuntimeException("Name of global variable "
+          + name + " from line " + varsStack.peek().get(name).getFileLocation().getStartingLineNumber()
+          + " is reused as function declaration", declaration);
     }
 
     functions.put(name, declaration);
