@@ -198,7 +198,7 @@ public class ARGReachedSet {
     for (ARGState e : uncoveredSubTree) {
       assert !e.isCovered();
 
-      e.setCovering();
+      e.setHasCoveredParent(false);
 
       if (!e.wasExpanded()) {
         // its a leaf

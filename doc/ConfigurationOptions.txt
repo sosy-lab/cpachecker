@@ -222,6 +222,10 @@ cbmc.options.unwindings = 0
 # maximum time limit for CBMC (0 is infinite)
 cbmc.timelimit = 0
 
+# Whether to do refinement immediately after finding an error state, or
+# globally after the ARG has been unrolled completely.
+cegar.globalRefinement = false
+
 # Which refinement algorithm to use? (give class name, required for CEGAR) If
 # the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
 # omitted.

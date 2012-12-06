@@ -55,6 +55,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   private boolean wasExpanded = false;
   private boolean mayCover = true;
   private boolean destroyed = false;
+  private boolean hasCoveredParent = false;
 
   private ARGState mergedWith = null;
 
@@ -141,7 +142,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   public boolean mayCover() {
-    return mayCover && !isCovered();
+    return mayCover && !hasCoveredParent && !isCovered();
   }
 
   public void setNotCovering() {
@@ -149,10 +150,6 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     mayCover = false;
   }
 
-  public void setCovering() {
-    assert !destroyed : "Don't use destroyed ARGState " + this;
-    mayCover = true;
-  }
 
   public boolean wasExpanded() {
     return wasExpanded;
@@ -160,6 +157,16 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   void markExpanded() {
     wasExpanded = true;
+  }
+
+  public void setHasCoveredParent(boolean pHasCoveredParent) {
+    assert !destroyed : "Don't use destroyed ARGState " + this;
+    hasCoveredParent = pHasCoveredParent;
+  }
+
+  @Override
+  public boolean isTarget() {
+    return !hasCoveredParent && !isCovered() && super.isTarget();
   }
 
   @Override
