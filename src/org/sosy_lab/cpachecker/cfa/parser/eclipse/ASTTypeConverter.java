@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.math.BigInteger;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -38,12 +39,19 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IBasicType;
 import org.eclipse.cdt.core.dom.ast.IBinding;
 import org.eclipse.cdt.core.dom.ast.ICompositeType;
+import org.eclipse.cdt.core.dom.ast.IEnumeration;
 import org.eclipse.cdt.core.dom.ast.IField;
 import org.eclipse.cdt.core.dom.ast.IFunctionType;
 import org.eclipse.cdt.core.dom.ast.IPointerType;
+import org.eclipse.cdt.core.dom.ast.IQualifierType;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
+import org.eclipse.cdt.core.dom.ast.IValue;
 import org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier;
+import org.eclipse.cdt.core.dom.ast.c.ICArrayType;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -51,7 +59,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -119,6 +129,15 @@ class ASTTypeConverter {
 
       // TODO varargs
       return new CFunctionPointerType(false, false, convert(ft.getReturnType()), newParameters, false);
+
+    } else if (t instanceof ICArrayType) {
+      return conv((ICArrayType)t);
+
+    } else if (t instanceof IQualifierType) {
+      return conv((IQualifierType)t);
+
+    } else if (t instanceof IEnumeration) {
+      return conv((IEnumeration)t);
 
     } else if (t instanceof IBinding) {
       return new CComplexType(((IBinding) t).getName());
@@ -206,6 +225,61 @@ class ASTTypeConverter {
       list.add(new CCompositeTypeMemberDeclaration(convert(pFields[i].getType()), pFields[i].getName()));
     }
     return list;
+  }
+
+  private static CArrayType conv(final ICArrayType t) {
+    CExpression length = null;
+    IValue v = t.getSize();
+    if (v != null && v.numericalValue() != null) {
+      CSimpleType intType = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+      length = new CIntegerLiteralExpression(null, intType, BigInteger.valueOf(v.numericalValue()));
+    } else {
+      // TODO handle cases like int[x] by converting t.getArraySizeExpression()
+    }
+    return new CArrayType(t.isConst(), t.isVolatile(), convert(t.getType()), length);
+  }
+
+  private static CType conv(final IQualifierType t) {
+    CType i = convert(t.getType());
+    boolean isConst = t.isConst();
+    boolean isVolatile = t.isVolatile();
+
+    if (isConst == i.isConst() && isVolatile == i.isVolatile()) {
+      return i;
+    }
+
+    // return a copy of the inner type with isConst and isVolatile overwritten
+    if (i instanceof CArrayType) {
+      return new CArrayType(isConst, isVolatile, ((CArrayType) i).getType(), ((CArrayType) i).getLength());
+    } else if (i instanceof CCompositeType) {
+      CCompositeType c = (CCompositeType) i;
+      return new CCompositeType(isConst, isVolatile, c.getKey(), c.getMembers(), c.getName());
+    } else if (i instanceof CElaboratedType) {
+      return new CElaboratedType(isConst, isVolatile, ((CElaboratedType) i).getKind(), ((CElaboratedType) i).getName());
+    } else if (i instanceof CEnumType) {
+      return new CEnumType(isConst, isVolatile, ((CEnumType) i).getEnumerators(), ((CEnumType) i).getName());
+    } else if (i instanceof CFunctionPointerType) {
+      CFunctionPointerType p = (CFunctionPointerType) i;
+      return new CFunctionPointerType(isConst, isVolatile, p.getReturnType(), p.getParameters(), p.takesVarArgs());
+    } else if (i instanceof CFunctionType) {
+      // TODO what does it mean that a function is qualified with const or volatile?
+      CFunctionType f = (CFunctionType) i;
+      return new CFunctionType(isConst, isVolatile, f.getReturnType(), f.getParameters(), f.takesVarArgs());
+    } else if (i instanceof CPointerType) {
+      return new CPointerType(isConst, isVolatile, ((CPointerType) i).getType());
+    } else if (i instanceof CSimpleType) {
+      CSimpleType s = (CSimpleType)i;
+      return new CSimpleType(isConst, isVolatile, s.getType(), s.isLong(), s.isShort(), s.isSigned(), s.isUnsigned(), s.isComplex(), s.isImaginary(), s.isLongLong());
+    } else if (i instanceof CTypedefType) {
+      return new CTypedefType(isConst, isVolatile, ((CTypedefType) i).getName(), ((CTypedefType) i).getRealType());
+    } else {
+      throw new AssertionError();
+    }
+  }
+
+  private static CType conv(final IEnumeration e) {
+    // TODO we ignore the enumerators here
+    return new CElaboratedType(false, false, ElaboratedType.ENUM, e.getName());
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
