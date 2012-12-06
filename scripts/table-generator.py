@@ -212,9 +212,11 @@ def parseTableDefinitionFile(file):
 
     defaultColumnsToShow = extractColumnsFromTableDefinitionFile(tableGenFile)
 
+    baseDir = os.path.dirname(file)
+
     for testTag in tableGenFile.findall('test'):
         columnsToShow = extractColumnsFromTableDefinitionFile(testTag) or defaultColumnsToShow
-        filelist = Util.getFileList(testTag.get('filename')) # expand wildcards
+        filelist = Util.getFileList(os.path.join(baseDir, testTag.get('filename'))) # expand wildcards
         listOfTestFiles += [Result.createFromXML(file, parseTestFile(file), columnsToShow) for file in filelist]
 
     for unionTag in tableGenFile.findall('union'):
@@ -222,7 +224,7 @@ def parseTableDefinitionFile(file):
         result = Result([], {}, columnsToShow)
 
         for testTag in unionTag.findall('test'):
-            filelist = Util.getFileList(testTag.get('filename')) # expand wildcards
+            filelist = Util.getFileList(os.path.join(baseDir, testTag.get('filename'))) # expand wildcards
             for file in filelist:
                 result.append(file, parseTestFile(file))
 
@@ -348,15 +350,14 @@ def parseTestFile(resultFile):
     return resultElem
 
 def insertLogFileNames(resultFile, resultElem):
-    resultFile = os.path.basename(resultFile)
-    parts = resultFile.split("#", 1)
+    parts = os.path.basename(resultFile).split("#", 1)
 
     # get folder of logfiles
     date = resultElem.get('date').replace(':','').replace(' ','_') # from ISO-format to filename-format
     logFolder = resultElem.get('benchmarkname') + '.' + date + '.logfiles/'
     if len(parts) > 1:
         logFolder = parts[0] + '#' + logFolder
-    logFolder = os.path.join(resultElem.get('baseDir', ''), logFolder)
+    logFolder = os.path.join(os.path.dirname(resultFile), resultElem.get('baseDir', ''), logFolder)
 
     # append begin of filename
     testname = resultElem.get('name')
