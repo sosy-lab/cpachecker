@@ -29,6 +29,8 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import java.util.NoSuchElementException;
 
+import javax.annotation.CheckReturnValue;
+
 import com.google.common.collect.UnmodifiableIterator;
 
 
@@ -117,13 +119,23 @@ class Mathsat5NativeApi {
   public static native long msat_create_shared_env(long cfg, long sibling);
   public static native void msat_destroy_env(long e);
 
-  public static native int msat_set_option(long cfg, String option, String value);
+  @CheckReturnValue
+  private static native int msat_set_option(long cfg, String option, String value);
+  public static void msat_set_option_checked(long cfg, String option, String value)
+                                                 throws IllegalArgumentException {
+    int retval = msat_set_option(cfg, option, value);
+    if (retval != 0) {
+      throw new IllegalArgumentException("Could not set Mathsat option \""+option+"="+value+"\", error code " + retval);
+    }
+  }
 
   public static native long msat_get_bool_type(long e);
   public static native long msat_get_rational_type(long e);
   public static native long msat_get_integer_type(long e);
   public static native long msat_get_bv_type(long e, int size);
   public static native long msat_get_array_type(long e, long itp, long etp);
+  public static native long msat_get_fp_type(long e, int exp_with, int mant_with);
+  public static native long msat_get_fp_roundingmode_type(long e);
   public static native long msat_get_simple_type(long e, String name);
   public static native long msat_get_function_type(long e, long[] paramTypes, int size, long returnType);
 
@@ -131,7 +143,10 @@ class Mathsat5NativeApi {
   public static native boolean msat_is_rational_type(long e, long t);
   public static native boolean msat_is_integer_type(long e, long t);
   public static native boolean msat_is_bv_type(long e, long t);
+  public static native int msat_get_bv_type_size(long e, long t);
   public static native boolean msat_is_array_type(long e, long t);
+  public static native boolean msat_is_fp_type(long e, long t);
+  public static native boolean msat_is_fp_roundingmode_type(long e, long t);
 
   public static native boolean msat_type_equals(long t1, long t2);
 
@@ -250,11 +265,17 @@ class Mathsat5NativeApi {
   public static native long msat_decl_get_arg_type(long d, int n);
   public static native String msat_decl_get_name(long d);
   public static native String msat_term_repr(long t);
+
+  /*
+   * Parsing and writing formulas.
+   */
   public static native long msat_from_string(long e, String data);
   public static native long msat_from_smtlib1(long e, String data);
   public static native long msat_from_smtlib2(long e, String data);
   public static native String msat_to_smtlib1(long e, long t);
   public static native String msat_to_smtlib2(long e, long t);
+  public static native String msat_named_list_to_smtlib2(long e, NamedTermsWrapper w);
+  public static native NamedTermsWrapper msat_named_list_from_smtlib2(long e, String s);
 
 
   /*
@@ -305,6 +326,4 @@ class Mathsat5NativeApi {
    */
   public static native String msat_get_version();
   public static native String msat_last_error_message(long e);
-  public static native String msat_named_list_to_smtlib2(long e, NamedTermsWrapper w);
-  public static native NamedTermsWrapper msat_named_list_from_smtlib2(long e, String s);
 }

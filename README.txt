@@ -42,7 +42,7 @@ Verifying a Program with CPAchecker
    choose a configuration file. This file defines for example which CPAs are used.
    Standard configuration files can be found in the directory config/.
    Example: config/predicateAnalysis.properties
-   The configuration options used in this file are explained in doc/Configuration.txt.
+   The configuration of CPAchecker is explained in doc/Configuration.txt.
 
 3. Choose a specification file (you may not need this for some CPAs).
    The standard configuration files use config/specification/default.spc
@@ -74,5 +74,7 @@ Verifying a Program with CPAchecker
    Note that not all of these files will be available for all configurations.
    Also some of these files are only produced if an error is found (or vice-versa).
    CPAchecker will overwrite files in this directory!
-   These files may be used to generate a report that can be viewed in a browser.
-   Cf. BuildReport.txt for this.
+   A graphical report which can be viewed in a browser can be generated
+   from these files by running
+   scripts/report-generator.py
+   (Cf. doc/BuildReport.txt).

@@ -4,15 +4,15 @@
 
   <test>
     <sourcefiles>
-      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <includesfile>integration-ControlFlowInteger.set</includesfile>
-      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
-      <includesfile>integration-SystemC.set</includesfile>
       <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>integration-SystemC.set</includesfile>
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
-      <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
+      <option name="-setprop">analysis.machineModel=Linux64</option>
     </sourcefiles>
     <option name="-noout"/>
     <option name="-predicateAnalysis"/>

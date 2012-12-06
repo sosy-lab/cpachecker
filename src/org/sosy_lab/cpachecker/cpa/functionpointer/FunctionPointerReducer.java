@@ -45,8 +45,9 @@ public class FunctionPointerReducer implements Reducer {
       AbstractState pExpandedState, Block pContext,
       CFANode pLocation) {
 
-    FunctionPointerState funElement = (FunctionPointerState)pExpandedState;
-    return funElement.createDuplicateWithNewWrappedState(wrappedReducer.getVariableReducedState(funElement.getWrappedState(), pContext, pLocation));
+    FunctionPointerState funElement = (FunctionPointerState) pExpandedState;
+    return funElement.createDuplicateWithNewWrappedState(wrappedReducer.getVariableReducedState(
+        funElement.getWrappedState(), pContext, pLocation));
   }
 
   @Override
@@ -54,16 +55,18 @@ public class FunctionPointerReducer implements Reducer {
       AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) {
 
-    FunctionPointerState funRootState = (FunctionPointerState)pRootState;
-    FunctionPointerState funReducedState = (FunctionPointerState)pReducedState;
+    FunctionPointerState funRootState = (FunctionPointerState) pRootState;
+    FunctionPointerState funReducedState = (FunctionPointerState) pReducedState;
 
-    return funReducedState.createDuplicateWithNewWrappedState(wrappedReducer.getVariableExpandedState(funRootState.getWrappedState(), pReducedContext, funReducedState.getWrappedState()));
+    return funReducedState.createDuplicateWithNewWrappedState(wrappedReducer.getVariableExpandedState(
+        funRootState.getWrappedState(), pReducedContext, funReducedState.getWrappedState()));
   }
 
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
-    FunctionPointerState funElement = (FunctionPointerState)pElementKey;
-    return Pair.of(funElement.getTargetMap(), wrappedReducer.getHashCodeForState(funElement.getWrappedState(), pPrecisionKey));
+    FunctionPointerState funElement = (FunctionPointerState) pElementKey;
+    return Pair.of(funElement.getTargetMap(),
+        wrappedReducer.getHashCodeForState(funElement.getWrappedState(), pPrecisionKey));
   }
 
   @Override
@@ -80,6 +83,24 @@ public class FunctionPointerReducer implements Reducer {
   @Override
   public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
     return wrappedReducer.measurePrecisionDifference(pPrecision, pOtherPrecision);
+  }
+
+  @Override
+  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
+      CFANode pCallNode) {
+    FunctionPointerState funElement = (FunctionPointerState) pExpandedState;
+    return funElement.createDuplicateWithNewWrappedState(wrappedReducer.getVariableReducedStateForProofChecking(
+        funElement.getWrappedState(), pContext, pCallNode));
+  }
+
+  @Override
+  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
+      AbstractState pReducedState) {
+    FunctionPointerState funRootState = (FunctionPointerState) pRootState;
+    FunctionPointerState funReducedState = (FunctionPointerState) pReducedState;
+
+    return funReducedState.createDuplicateWithNewWrappedState(wrappedReducer.getVariableExpandedStateForProofChecking(
+        funRootState.getWrappedState(), pReducedContext, funReducedState.getWrappedState()));
   }
 
 }

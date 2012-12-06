@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -69,11 +68,10 @@ public class AssignedVariablesCollector {
 
   private CFAEdge successorEdge = null;
 
-  public AssignedVariablesCollector() {
-  }
+  public AssignedVariablesCollector() {}
 
-  public Multimap<CFANode, String> collectVars(Path currentErrorPath) {
-    Multimap<CFANode, String> collectedVariables = HashMultimap.create();
+  public Multimap<CFAEdge, String> collectVars(Path currentErrorPath) {
+    Multimap<CFAEdge, String> collectedVariables = HashMultimap.create();
 
     for (int i = 0; i < currentErrorPath.size() - 1; i++) {
       successorEdge = (i == currentErrorPath.size() - 1) ? null : currentErrorPath.get(i + 1).getSecond();
@@ -84,7 +82,7 @@ public class AssignedVariablesCollector {
     return collectedVariables;
   }
 
-  private void collectVariables(CFAEdge edge, Multimap<CFANode, String> collectedVariables) {
+  private void collectVariables(CFAEdge edge, Multimap<CFAEdge, String> collectedVariables) {
     String currentFunction = edge.getPredecessor().getFunctionName();
 
     switch (edge.getEdgeType()) {
@@ -93,35 +91,11 @@ public class AssignedVariablesCollector {
       //nothing to do
       break;
 
-    case ReturnStatementEdge:
-      CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)edge;
-
-      CFunctionReturnEdge returnEdge2 = (CFunctionReturnEdge)successorEdge;
-
-      CFunctionSummaryEdge cFunctionSummaryEdge2 = returnEdge2.getSummaryEdge();
-
-      CFunctionCall functionCall2 = cFunctionSummaryEdge2.getExpression();
-
-      if (functionCall2 instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall2;
-        String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), successorEdge.getSuccessor().getFunctionName());
-
-
-        collectedVariables.put(cFunctionSummaryEdge2.getSuccessor(), assignedVariable);
-        collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
-        collectVariables(returnStatementEdge, new CIdExpression(returnStatementEdge.getExpression().getFileLocation(),
-            null,
-            ExplicitTransferRelation.FUNCTION_RETURN_VAR,
-            null), collectedVariables);
-      }
-
-      break;
-
     case DeclarationEdge:
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
       if (declaration instanceof CVariableDeclaration && declaration.getName() != null && declaration.isGlobal()) {
         globalVariables.add(declaration.getName());
-        collectedVariables.put(edge.getSuccessor(), declaration.getName());
+        collectedVariables.put(edge, declaration.getName());
       }
       break;
 
@@ -135,24 +109,22 @@ public class AssignedVariablesCollector {
       if (statementEdge.getStatement() instanceof CAssignment) {
         CAssignment assignment = (CAssignment)statementEdge.getStatement();
         String assignedVariable = assignment.getLeftHandSide().toASTString();
-        collectedVariables.put(edge.getSuccessor(), scoped(assignedVariable, currentFunction));
+        collectedVariables.put(edge, scoped(assignedVariable, currentFunction));
       }
       break;
 
     case FunctionCallEdge:
-      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge)edge;
-      CFunctionCall functionCall     = functionCallEdge.getSummaryEdge().getExpression();
+      CFunctionCallEdge functionCallEdge   = (CFunctionCallEdge)edge;
+      CFunctionCall functionCallOfCallSite = functionCallEdge.getSummaryEdge().getExpression();
 
-      if (functionCall instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCall;
+      if (functionCallOfCallSite instanceof CFunctionCallAssignmentStatement) {
+        CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCallOfCallSite;
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), currentFunction);
 
-        // track it at return (2nd statement below), not at call (next, commented statement)
-        //collectedVariables.put(edge.getSuccessor(), assignedVariable);
-        collectedVariables.put(functionCallEdge.getSummaryEdge().getSuccessor(), assignedVariable);
+        // track it also at return site, not only at call site
+        collectedVariables.put(functionCallEdge.getSummaryEdge(), assignedVariable);
 
-
-        collectedVariables.put(edge.getSuccessor(), assignedVariable);
+        collectedVariables.put(edge, assignedVariable);
         collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables);
       }
 
@@ -161,9 +133,28 @@ public class AssignedVariablesCollector {
         String parameterName = functionName + "::" + parameter.getName();
 
         // collect the formal parameter, and make the argument a depending variable
-        collectedVariables.put(functionCallEdge.getSuccessor(), parameterName);
+        collectedVariables.put(functionCallEdge, parameterName);
       }
 
+      break;
+
+    case ReturnStatementEdge:
+      CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge)edge;
+      CFunctionReturnEdge returnEdge           = (CFunctionReturnEdge)successorEdge;
+      CFunctionSummaryEdge summaryEdge         = returnEdge.getSummaryEdge();
+      CFunctionCall functionCallOfReturnSite   = summaryEdge.getExpression();
+
+      if (functionCallOfReturnSite instanceof CFunctionCallAssignmentStatement) {
+        CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCallOfReturnSite;
+        String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), successorEdge.getSuccessor().getFunctionName());
+
+        collectedVariables.put(summaryEdge, assignedVariable);
+        collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
+        collectVariables(returnStatementEdge, new CIdExpression(returnStatementEdge.getExpression().getFileLocation(),
+            null,
+            ExplicitTransferRelation.FUNCTION_RETURN_VAR,
+            null), collectedVariables);
+      }
       break;
     }
   }
@@ -183,7 +174,7 @@ public class AssignedVariablesCollector {
     }
   }
 
-  private void collectVariables(CFAEdge edge, CRightHandSide rightHandSide, Multimap<CFANode, String> collectedVariables) {
+  private void collectVariables(CFAEdge edge, CRightHandSide rightHandSide, Multimap<CFAEdge, String> collectedVariables) {
     rightHandSide.accept(new CollectVariablesVisitor(edge, collectedVariables));
   }
 
@@ -191,20 +182,21 @@ public class AssignedVariablesCollector {
                                                implements CRightHandSideVisitor<Void, RuntimeException> {
 
     private final CFAEdge currentEdge;
-    private final Multimap<CFANode, String> collectedVariables;
+    private final Multimap<CFAEdge, String> collectedVariables;
 
-    public CollectVariablesVisitor(CFAEdge edge, Multimap<CFANode, String> collectedVariables) {
+    public CollectVariablesVisitor(CFAEdge edge, Multimap<CFAEdge, String> collectedVariables) {
       this.currentEdge          = edge;
       this.collectedVariables   = collectedVariables;
     }
 
     private void collectVariable(String var) {
-      collectedVariables.put(currentEdge.getSuccessor(), scoped(var, currentEdge.getPredecessor().getFunctionName()));
+      collectedVariables.put(currentEdge, scoped(var, currentEdge.getPredecessor().getFunctionName()));
     }
 
     @Override
     public Void visit(CIdExpression pE) {
       collectVariable(pE.getName());
+
       return null;
     }
 

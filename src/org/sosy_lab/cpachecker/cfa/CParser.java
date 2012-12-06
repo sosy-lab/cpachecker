@@ -32,8 +32,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.AbstractEclipseCParser;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT6Parser;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseCDT7Parser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -122,8 +120,6 @@ public interface CParser {
    */
   public static class Factory {
 
-    private static boolean IS_CDT_7 = isCDT7();
-
     public static ParserOptions getOptions(Configuration config) throws InvalidConfigurationException {
       ParserOptions result = new ParserOptions();
       config.inject(result);
@@ -135,24 +131,7 @@ public interface CParser {
     }
 
     public static CParser getParser(LogManager logger, ParserOptions options) {
-      AbstractEclipseCParser<?> result;
-      if (IS_CDT_7) {
-        result = new EclipseCDT7Parser(logger, options.dialect);
-      } else {
-        result = new EclipseCDT6Parser(logger, options.dialect);
-      }
-      return result;
-    }
-
-    private static boolean isCDT7() {
-      // check whether there is the IncludeFileContentProvider class
-      // if it is, we have at least CDT 7
-      try {
-        Class.forName("org.eclipse.cdt.core.parser.IncludeFileContentProvider");
-        return true;
-      } catch (ClassNotFoundException _) {
-        return false;
-      }
+      return new EclipseCDT7Parser(logger, options.dialect);
     }
   }
 }

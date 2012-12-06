@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.c;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class CLabelNode extends CFANode {
@@ -31,6 +33,7 @@ public class CLabelNode extends CFANode {
 
   public CLabelNode(int pLineNumber, String pFunctionName, String pLabel) {
     super(pLineNumber, pFunctionName);
+    checkArgument(!pLabel.isEmpty());
     label = pLabel;
   }
 

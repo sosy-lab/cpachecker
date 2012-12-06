@@ -23,9 +23,10 @@
 */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
+import java.util.AbstractCollection;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.UnmodifiableIterator;
 
 /**
  * Helper class with collection of ARG related utility methods.
@@ -425,5 +427,49 @@ public class ARGUtils {
     }
 
     return result;
+  }
+
+  /**
+   * This method gets all children from an ARGState,
+   * but replaces all covered states by their respective covering state.
+   * It can be seen as giving a view of the ARG where the covered states are
+   * transparently replaced by their covering state.
+   *
+   * The returned collection is unmodifiable and a live view of the children of
+   * the given state.
+   *
+   * @param s an ARGState
+   * @return The children with covered states transparently replaced.
+   */
+  public static final Collection<ARGState> getUncoveredChildrenView(final ARGState s) {
+    return new AbstractCollection<ARGState>() {
+
+      @Override
+      public Iterator<ARGState> iterator() {
+
+        return new UnmodifiableIterator<ARGState>() {
+          private final Iterator<ARGState> children = s.getChildren().iterator();
+
+          @Override
+          public boolean hasNext() {
+            return children.hasNext();
+          }
+
+          @Override
+          public ARGState next() {
+            ARGState child = children.next();
+            if (child.isCovered()) {
+              return checkNotNull(child.getCoveringState());
+            }
+            return child;
+          }
+        };
+      }
+
+      @Override
+      public int size() {
+        return s.getChildren().size();
+      }
+    };
   }
 }

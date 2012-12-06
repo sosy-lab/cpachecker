@@ -30,22 +30,25 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
+import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 
-public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
+public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> {
+
+  private static final int MAX_CBMC_ERROR_OUTPUT_SHOWN = 10;
 
   private Boolean result = null;
   private boolean unwindingAssertionFailed = false;
-  private boolean gaveErrorOutput = false;
+  private volatile int errorOutputCount = 0;
 
   public CBMCExecutor(LogManager logger, String[] args) throws IOException {
-    super(logger, RuntimeException.class, args);
+    super(logger, CounterexampleAnalysisFailed.class, args);
   }
 
   @Override
-  protected void handleExitCode(int pCode) {
+  protected void handleExitCode(int pCode) throws CounterexampleAnalysisFailed {
     switch (pCode) {
     case 0: // Verification successful (Path is infeasible)
-      if (gaveErrorOutput) {
+      if (errorOutputCount > 0) {
         logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings. Please check the log above!");
       } else {
         result = false;
@@ -53,7 +56,7 @@ public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
       break;
 
     case 10: // Verification failed (Path is feasible)
-      if (gaveErrorOutput) {
+      if (errorOutputCount > 0) {
         logger.log(Level.WARNING, "CBMC returned successfully, but printed warnings. Please check the log above!");
       } else {
         result = true;
@@ -66,24 +69,36 @@ public class CBMCExecutor extends ProcessExecutor<RuntimeException> {
   }
 
   @Override
-  protected void handleErrorOutput(String pLine) throws RuntimeException {
-    if (!(pLine.startsWith("Verified ") && pLine.endsWith("original clauses."))) {
-      // exclude the normal status output of CBMC
+  protected void handleErrorOutput(String pLine) throws CounterexampleAnalysisFailed {
+    // CBMC does not seem to print this anymore to stderr
+    //if (!(pLine.startsWith("Verified ") && pLine.endsWith("original clauses.")))
 
-      gaveErrorOutput = true;
-      super.handleErrorOutput(pLine);
+    if (pLine.contains("Out of memory") || pLine.equals("terminate called after throwing an instance of 'Minisat::OutOfMemoryException'")) {
+      throw new CounterexampleAnalysisFailed("CBMC run out of memory.");
+
+    } else if (!pLine.startsWith("**** WARNING: no body for function ")) {
+      // ignore warning which is not interesting for us
+
+      if (errorOutputCount == MAX_CBMC_ERROR_OUTPUT_SHOWN) {
+        logger.log(Level.WARNING, "Skipping further CBMC error output...");
+        errorOutputCount++;
+
+      } else if (errorOutputCount < MAX_CBMC_ERROR_OUTPUT_SHOWN) {
+        errorOutputCount++;
+        super.handleErrorOutput(pLine);
+      }
     }
   }
 
   @Override
-  protected void handleOutput(String pLine) throws RuntimeException {
+  protected void handleOutput(String pLine) throws CounterexampleAnalysisFailed {
     if (pLine.contains("unwinding assertion")){
       unwindingAssertionFailed = true;
     }
     super.handleOutput(pLine);
   }
 
-  public boolean didUnwindingAssertionFailed(){
+  public boolean didUnwindingAssertionFail(){
     return unwindingAssertionFailed;
   }
 

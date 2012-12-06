@@ -27,15 +27,17 @@ import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUti
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.util.predicates.FormulaOperator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
+
+import com.google.common.collect.Sets;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
@@ -64,7 +66,8 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
   private final String divUfDecl = "_/_";
   private final String modUfDecl = "_%_";
 
-  public ArithmeticSmtInterpolFormulaManager(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
+  public ArithmeticSmtInterpolFormulaManager(Configuration config, LogManager logger, boolean pUseIntegers)
+      throws InvalidConfigurationException {
     super(config, logger, pUseIntegers ? Type.INT : Type.REAL);
     useIntegers = pUseIntegers;
     initBasics(env);
@@ -237,27 +240,24 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
   // But only if an bitwise "and" occurs in the formula.
   @Override
   public Formula getBitwiseAxioms(Formula f) {
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
-    Set<Formula> seen = new HashSet<Formula>();
-    Set<Formula> allLiterals = new HashSet<Formula>();
+    Deque<Term> toProcess = new ArrayDeque<Term>();
+    Set<Term> seen = Sets.newHashSet();
+    Set<Term> allLiterals = Sets.newHashSet();
 
     boolean andFound = false;
 
-    toProcess.add(f);
+    toProcess.add(getTerm(f));
     while (!toProcess.isEmpty()) {
-      final Formula tt = toProcess.pollLast();
-      final Term t = getTerm(tt);
+      final Term t = toProcess.pollLast();
 
       if (isNumber(t)) {
-        allLiterals.add(tt);
+        allLiterals.add(t);
       }
       if (uifs.contains(t)) {
         FunctionSymbol funcSym = ((ApplicationTerm) t).getFunction();
         andFound = bitwiseAndUfDecl.equals(funcSym.getName());
       }
-      int arity = getArity(t);
-      for (int i = 0; i < arity; ++i) {
-        Formula c = encapsulate(getArg(t, i));
+      for (Term c : getArgs(t)) {
         if (seen.add(c)) {
           // was not already contained in seen
           toProcess.add(c);
@@ -268,8 +268,7 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
     Term result = getTrueTerm();
     if (andFound) {
       Term z = env.numeral("0");
-      for (Formula nn : allLiterals) {
-        Term n = getTerm(nn);
+      for (Term n : allLiterals) {
         Term u1 = env.term(bitwiseAndUfDecl, n, z);
         Term u2 = env.term(bitwiseAndUfDecl, z, n);
         Term e1;
@@ -293,6 +292,22 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
       formulas[i] = encapsulate(params[i]);
     }
     return formulas;
+  }
+
+  @Override
+  public FormulaOperator getOperator(Formula f) {
+    Term t = getTerm(f);
+    assert t instanceof ApplicationTerm;
+    ((ApplicationTerm) t).getParameters();
+    ;
+    String funcN = ((ApplicationTerm) t).getFunction().getName();
+    if (funcN.equals("not")) { return FormulaOperator.NOT; }
+    if (funcN.equals("and")) { return FormulaOperator.AND; }
+    if (funcN.equals("or")) { return FormulaOperator.OR; }
+    if (funcN.equals("=")) { return FormulaOperator.EQUIV; }
+    if (funcN.equals("ite")) { return FormulaOperator.ITE; }
+    if (isAnd(t)) { return FormulaOperator.ATOM; }
+    return null;
   }
 
   @Override

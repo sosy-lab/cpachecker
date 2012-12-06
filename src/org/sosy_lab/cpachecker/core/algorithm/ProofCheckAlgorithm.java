@@ -62,12 +62,12 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
 
-    private Timer totalTimer         = new Timer();
-    private Timer transferTimer      = new Timer();
-    private Timer stopTimer          = new Timer();
-    private Timer readTimer          = new Timer();
+    private Timer totalTimer = new Timer();
+    private Timer transferTimer = new Timer();
+    private Timer stopTimer = new Timer();
+    private Timer readTimer = new Timer();
 
-    private int   countIterations   = 0;
+    private int countIterations = 0;
 
     @Override
     public String getName() {
@@ -81,8 +81,10 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       out.println();
       out.println("Total time for proof check algorithm: " + totalTimer);
       out.println("  Time for reading in proof:          " + readTimer);
-      out.println("  Time for abstract successor checks: " + transferTimer + " (Calls: " + transferTimer.getNumberOfIntervals() + ")");
-      out.println("  Time for covering checks:           " + stopTimer  + " (Calls: " + stopTimer.getNumberOfIntervals() + ")");
+      out.println("  Time for abstract successor checks: " + transferTimer + " (Calls: "
+          + transferTimer.getNumberOfIntervals() + ")");
+      out.println("  Time for covering checks:           " + stopTimer + " (Calls: " + stopTimer.getNumberOfIntervals()
+          + ")");
     }
   }
 
@@ -96,19 +98,19 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   private final ARGState rootState;
 
 
-  public ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig, LogManager logger) throws InvalidConfigurationException {
+  public ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig, LogManager logger)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    if (!(cpa instanceof ProofChecker)) {
-      throw new InvalidConfigurationException("ProofCheckAlgorithm needs a CPA that implements the ProofChecker interface.");
-    }
-    this.cpa = (ProofChecker)cpa;
+    if (!(cpa instanceof ProofChecker)) { throw new InvalidConfigurationException(
+        "ProofCheckAlgorithm needs a CPA that implements the ProofChecker interface."); }
+    this.cpa = (ProofChecker) cpa;
     this.logger = logger;
 
     ARGState rootState = null;
     try {
       rootState = readART();
-    } catch(Throwable e) {
+    } catch (Throwable e) {
       e.printStackTrace();
       throw new RuntimeException("Failed reading ARG.", e);
     }
@@ -134,7 +136,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       //read helper storages
       int numberOfStorages = o.readInt();
       for (int i = 0; i < numberOfStorages; ++i) {
-        Serializable storage = (Serializable)o.readObject();
+        Serializable storage = (Serializable) o.readObject();
         GlobalInfo.getInstance().addHelperStorage(storage);
       }
       zis.closeEntry();
@@ -149,9 +151,8 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       assert entry.getName().equals("Proof");
       o = new ObjectInputStream(zis);
       //read ARG
-      return (ARGState)o.readObject();
-    }
-    finally {
+      return (ARGState) o.readObject();
+    } finally {
       fis.close();
       stats.readTimer.stop();
       stats.totalTimer.stop();
@@ -181,6 +182,12 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     Set<ARGState> postponedStates = new HashSet<ARGState>();
 
+    Set<ARGState> waitingForUnexploredParents = new HashSet<ARGState>();
+    Set<ARGState> inWaitlist = new HashSet<ARGState>();
+    inWaitlist.add(rootState);
+
+    boolean unexploredParent;
+
     do {
       for (ARGState e : postponedStates) {
         if (!reachedSet.contains(e.getCoveringState())) {
@@ -196,9 +203,12 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         CPAchecker.stopIfNecessary();
 
         stats.countIterations++;
-        ARGState state = (ARGState)reachedSet.popFromWaitlist();
+        ARGState state = (ARGState) reachedSet.popFromWaitlist();
+        inWaitlist.remove(state);
 
         logger.log(Level.FINE, "Looking at state", state);
+
+        if (state.isTarget()) { return false; }
 
         if (state.isCovered()) {
 
@@ -237,13 +247,34 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
           }
           stats.transferTimer.stop();
           for (ARGState e : successors) {
-            reachedSet.add(e, initialPrecision);
+            unexploredParent = false;
+            for(ARGState p:e.getParents()){
+              if(!reachedSet.contains(p) || inWaitlist.contains(p)){
+                waitingForUnexploredParents.add(e);
+                unexploredParent = true;
+                break;
+              }
+            }
+            if(unexploredParent){
+              continue;
+            }
+            if (reachedSet.contains(e)) {
+              // state unknown parent of e
+              stats.totalTimer.stop();
+              logger.log(Level.WARNING, "State", e, "has other parents than", e.getParents());
+              return false;
+            } else {
+              waitingForUnexploredParents.remove(e);
+              reachedSet.add(e, initialPrecision);
+              inWaitlist.add(e);
+            }
           }
         }
       }
     } while (!postponedStates.isEmpty());
     stats.totalTimer.stop();
-    return true;
+
+    return waitingForUnexploredParents.isEmpty();
   }
 
   private boolean isCoveringCycleFree(ARGState pState) {
@@ -252,9 +283,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     while (pState.isCovered()) {
       pState = pState.getCoveringState();
       boolean isNew = seen.add(pState);
-      if (!isNew) {
-        return false;
-      }
+      if (!isNew) { return false; }
     }
     return true;
   }

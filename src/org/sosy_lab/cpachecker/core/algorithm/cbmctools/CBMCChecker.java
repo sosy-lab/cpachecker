@@ -42,6 +42,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -75,9 +77,12 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
         min=0)
   private int timelimit = 0; // milliseconds
 
-  public CBMCChecker(Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
+  private final MachineModel machineModel;
+
+  public CBMCChecker(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException, CPAException {
     this.logger = logger;
     config.inject(this);
+    this.machineModel = cfa.getMachineModel();
   }
 
   @Override
@@ -107,7 +112,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     CBMCExecutor cbmc;
     int exitCode;
     try {
-      String cbmcArgs[] = {"cbmc", "--function", mainFunctionName + "_0", "--32", cFile.getAbsolutePath()};
+      String cbmcArgs[] = {"cbmc", "--function", mainFunctionName + "_0", getParamForMachineModel(), cFile.getAbsolutePath()};
       cbmc = new CBMCExecutor(logger, cbmcArgs);
       exitCode = cbmc.join(timelimit);
 
@@ -132,6 +137,17 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       throw new CounterexampleAnalysisFailed("CBMC could not verify the program (CBMC exit code was " + exitCode + ")!");
     }
     return cbmc.getResult();
+  }
+
+  private String getParamForMachineModel() {
+    switch (machineModel) {
+    case LINUX32:
+      return "--32";
+    case LINUX64:
+      return "--64";
+    default:
+      throw new AssertionError("Unknown machine model value " + machineModel);
+    }
   }
 
   @Override

@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.core;
 
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,6 +35,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -55,7 +58,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * algorithm, cpa and reached set.
  */
 @Options(prefix="analysis")
-class CoreComponentsFactory {
+public class CoreComponentsFactory {
 
   @Option(description="use assumption collecting algorithm")
   private boolean useAssumptionCollector = false;
@@ -73,6 +76,9 @@ class CoreComponentsFactory {
 
   @Option(description="use CBMC and the FeatureVars Restriction option")
   private boolean useFeatureVarsRestriction = false;
+
+  @Option(description="use CBMC and the BDDCPA Restriction option")
+  private boolean useBDDCPARestriction = false;
 
   @Option(description="use a BMC like algorithm that checks for satisfiability "
         + "after the analysis has finished, works only with PredicateCPA")
@@ -105,7 +111,7 @@ class CoreComponentsFactory {
   }
 
   public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
-      final String filename, final CFA cfa, final MainCPAStatistics stats)
+      final String filename, final CFA cfa, @Nullable final MainCPAStatistics stats)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
@@ -119,7 +125,7 @@ class CoreComponentsFactory {
       algorithm = new RestartAlgorithm(config, logger, filename, cfa);
 
     } else if (useImpactAlgorithm) {
-      algorithm = new ImpactAlgorithm(config, logger, cpa);
+      algorithm = new ImpactAlgorithm(config, logger, cpa, cfa);
 
     } else {
       algorithm = new CPAAlgorithm(cpa, logger, config);
@@ -133,11 +139,15 @@ class CoreComponentsFactory {
       }
 
       if (useCBMC) {
-        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
+        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, cfa, filename);
       }
 
       if (useFeatureVarsRestriction) {
-        algorithm = new FeatureVarsRestrictionAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
+        algorithm = new FeatureVarsRestrictionAlgorithm(algorithm, cpa, config, logger, cfa, filename);
+      }
+
+      if (useBDDCPARestriction) {
+        algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger, cfa, filename);
       }
 
       if (useAssumptionCollector) {
@@ -149,7 +159,7 @@ class CoreComponentsFactory {
       }
     }
 
-    if (algorithm instanceof StatisticsProvider) {
+    if (stats != null && algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
     }
     return algorithm;
@@ -167,9 +177,12 @@ class CoreComponentsFactory {
     return reached;
   }
 
-  public ConfigurableProgramAnalysis createCPA(final CFA cfa, final MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
+  public ConfigurableProgramAnalysis createCPA(final CFA cfa,
+      @Nullable final MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
-    stats.cpaCreationTime.start();
+    if (stats != null) {
+      stats.cpaCreationTime.start();
+    }
     try {
 
       if (useRestartingAlgorithm) {
@@ -179,13 +192,15 @@ class CoreComponentsFactory {
 
       ConfigurableProgramAnalysis cpa = cpaFactory.buildCPAs(cfa);
 
-      if (cpa instanceof StatisticsProvider) {
+      if (stats != null && cpa instanceof StatisticsProvider) {
         ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
       }
       return cpa;
 
     } finally {
-      stats.cpaCreationTime.stop();
+      if (stats != null) {
+        stats.cpaCreationTime.stop();
+      }
     }
   }
 }

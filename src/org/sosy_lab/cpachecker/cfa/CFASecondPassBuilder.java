@@ -29,13 +29,13 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -54,14 +54,14 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  */
 public class CFASecondPassBuilder {
 
-  private final Map<String, FunctionEntryNode> cfas;
+  private final MutableCFA cfa;
 
   /**
    * Class constructor.
    * @param map List of all CFA's in the program.
    */
-  public CFASecondPassBuilder(Map<String, FunctionEntryNode> cfas) {
-    this.cfas = cfas;
+  public CFASecondPassBuilder(MutableCFA pCfa) {
+    cfa = pCfa;
   }
 
   /**
@@ -71,7 +71,7 @@ public class CFASecondPassBuilder {
    * @throws ParserException
    */
   public void insertCallEdgesRecursively() throws ParserException {
-    for (FunctionEntryNode functionStartNode : cfas.values()) {
+    for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
       insertCallEdges(functionStartNode);
     }
   }
@@ -122,8 +122,13 @@ public class CFASecondPassBuilder {
       return false;
     }
     CFunctionCallExpression f = ((CFunctionCall)s).getFunctionCallExpression();
+    if (f.getDeclaration() == null) {
+      // There might be a function pointer shadowing a function,
+      // so we need to check this explicitly here.
+      return false;
+    }
     String name = f.getFunctionNameExpression().toASTString();
-    return cfas.containsKey(name);
+    return cfa.getAllFunctionNames().contains(name);
   }
 
   /**
@@ -136,11 +141,24 @@ public class CFASecondPassBuilder {
    */
   private void createCallAndReturnEdges(CStatementEdge edge, CFunctionCall functionCall) throws ParserException {
     CFANode predecessorNode = edge.getPredecessor();
+    assert predecessorNode.getLeavingSummaryEdge() == null;
+
     CFANode successorNode = edge.getSuccessor();
+    if (successorNode.getEnteringSummaryEdge() != null) {
+      // Control flow merging directly after two function calls.
+      // Our CFA structure currently does not support this,
+      // so insert a dummy node and a blank edge.
+      CFANode tmp = new CFANode(successorNode.getLineNumber(), successorNode.getFunctionName());
+      cfa.addNode(tmp);
+      CFAEdge tmpEdge = new BlankEdge("", successorNode.getLineNumber(), tmp, successorNode, "");
+      CFACreationUtils.addEdgeUnconditionallyToCFA(tmpEdge);
+      successorNode = tmp;
+    }
+
     CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
-    String functionName = functionCallExpression.getFunctionNameExpression().toASTString();
+    String functionName = functionCallExpression.getDeclaration().getName();
     int lineNumber = edge.getLineNumber();
-    FunctionEntryNode fDefNode = cfas.get(functionName);
+    FunctionEntryNode fDefNode = cfa.getFunctionHead(functionName);
     FunctionExitNode fExitNode = fDefNode.getExitNode();
 
     assert fDefNode instanceof CFunctionEntryNode : "This code creates edges from package cfa.objectmodel.c, so the nodes need to be from this package, too.";

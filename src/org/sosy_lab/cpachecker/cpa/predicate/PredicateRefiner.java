@@ -32,10 +32,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -62,9 +65,12 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolati
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 /**
  * This class provides the refinement strategy for the classical predicate
@@ -77,6 +83,22 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
   @Option(description="refinement will add all discovered predicates "
           + "to all the locations in the abstract trace")
   private boolean addPredicatesGlobally = false;
+
+  @Option(description="During refinement, keep predicates from all removed parts " +
+                      "of the ARG. Otherwise, only predicates from the error path " +
+                      "are kept.")
+  private boolean keepAllPredicates = false;
+
+  @Option(description="Do a complete restart (clearing the reached set) " +
+                      "after N refinements. 0 to disable, 1 for always.")
+  @IntegerOption(min=0)
+  private int restartAfterRefinements = 0;
+
+  @Option(description="During refinement, add all new predicates to the precisions " +
+                      "of all abstract states in the reached set.")
+  private boolean sharePredicates = false;
+
+  private int refinementCount = 0; // this is modulo restartAfterRefinements
 
   private class Stats implements Statistics {
     @Override
@@ -132,6 +154,15 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
                                  toState(PredicateAbstractState.class)))
       .toImmutableList();
 
+    assert from(result).allMatch(new Predicate<ARGState>() {
+      @Override
+      public boolean apply(@Nullable ARGState pInput) {
+        boolean correct = pInput.getParents().size() <= 1;
+        assert correct : "PredicateRefiner expects abstraction states to have only one parent, but this state has more:" + pInput;
+        return correct;
+      }
+    });
+
     assert pPath.getLast().getFirst() == result.get(result.size()-1);
     return result;
   }
@@ -163,25 +194,70 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
     // get previous precision
     UnmodifiableReachedSet reached = pReached.asReachedSet();
-    Precision oldPrecision = reached.getPrecision(reached.getLastState());
-    PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
-    if (oldPredicatePrecision == null) {
-      throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
+    PredicatePrecision targetStatePrecision = extractPredicatePrecision(reached.getPrecision(reached.getLastState()));
+
+    // collect predicates from refinement and find refinement root
+    Pair<ARGState, Multimap<CFANode, AbstractionPredicate>> refinementResult =
+            performRefinement(targetStatePrecision, pPath, pCounterexample, pRepeatedCounterexample);
+
+    ARGState refinementRoot = refinementResult.getFirst();
+    Multimap<CFANode, AbstractionPredicate> newPredicates = refinementResult.getSecond();
+
+    // check whether we should restart
+    refinementCount++;
+    if (restartAfterRefinements > 0 && refinementCount >= restartAfterRefinements) {
+      ARGState root = (ARGState)reached.getFirstState();
+      // we have to use the child as the refinementRoot
+      assert root.getChildren().size() == 1 : "ARG root should have exactly one child";
+      refinementRoot = Iterables.getLast(root.getChildren());
+
+      logger.log(Level.FINEST, "Restarting analysis after",refinementCount,"refinements by clearing the ARG.");
+      refinementCount = 0;
     }
 
-    Pair<ARGState, PredicatePrecision> refinementResult =
-            performRefinement(oldPredicatePrecision, pPath, pCounterexample, pRepeatedCounterexample);
+    // now create new precision
+    PredicatePrecision basePrecision;
+    if (keepAllPredicates) {
+      basePrecision = findAllPredicatesFromSubgraph(refinementRoot, reached);
+    } else {
+      basePrecision = targetStatePrecision;
+    }
+
+    PredicatePrecision newPrecision;
+    if (addPredicatesGlobally) {
+      newPrecision = basePrecision.addGlobalPredicates(newPredicates.values());
+    } else {
+      newPrecision = basePrecision.addLocalPredicates(newPredicates);
+    }
+
+    logger.log(Level.ALL, "Predicate map now is", newPrecision);
+
     precisionUpdate.stop();
+
 
     argUpdate.start();
 
-    pReached.removeSubtree(refinementResult.getFirst(), refinementResult.getSecond());
+    pReached.removeSubtree(refinementRoot, newPrecision);
+
+    assert (refinementCount > 0) || reached.size() == 1;
+
+    if (sharePredicates) {
+      pReached.updatePrecisionGlobally(newPrecision);
+    }
 
     argUpdate.stop();
   }
 
-  private Pair<ARGState, PredicatePrecision> performRefinement(PredicatePrecision oldPrecision,
-      List<ARGState> pPath,
+  private PredicatePrecision extractPredicatePrecision(Precision oldPrecision) throws IllegalStateException {
+    PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
+    if (oldPredicatePrecision == null) {
+      throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
+    }
+    return oldPredicatePrecision;
+  }
+
+  private Pair<ARGState, Multimap<CFANode, AbstractionPredicate>> performRefinement(
+      PredicatePrecision oldPrecision, List<ARGState> pPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo,
       boolean pRepeatedCounterexample) throws CPAException {
 
@@ -191,15 +267,12 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     List<ARGState> interpolationPoints = pPath.subList(0, pPath.size()-1);
     assert interpolationPoints.size() == newPreds.size();
 
-    Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
-    Set<AbstractionPredicate> globalPredicates = oldPrecision.getGlobalPredicates();
-
     boolean predicatesFound = false;
     boolean newPredicatesFound = false;
     ARGState firstInterpolationPoint = null;
-    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
 
-    pmapBuilder.putAll(oldPredicateMap);
+    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
+    pmapBuilder.putAll(oldPrecision.getLocalPredicates());
 
     // iterate through interpolationPoints and find first point with new predicates, from there we have to cut the ARG
     // also build new precision
@@ -216,12 +289,10 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
           firstInterpolationPoint = interpolationPoint;
         }
 
-        if (!oldPredicateMap.get(loc).containsAll(localPreds)) {
+        if (!oldPrecision.getPredicates(loc).containsAll(localPreds)) {
           // new predicates for this location
           newPredicatesFound = true;
-
           pmapBuilder.putAll(loc, localPreds);
-          pmapBuilder.putAll(loc, globalPredicates);
         }
 
       }
@@ -233,16 +304,6 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
       throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
     }
     assert firstInterpolationPoint != null;
-
-    ImmutableSetMultimap<CFANode, AbstractionPredicate> newPredicateMap = pmapBuilder.build();
-    PredicatePrecision newPrecision;
-    if (addPredicatesGlobally) {
-      newPrecision = new PredicatePrecision(newPredicateMap.values());
-    } else {
-      newPrecision = new PredicatePrecision(newPredicateMap, globalPredicates);
-    }
-
-    logger.log(Level.ALL, "Predicate map now is", newPredicateMap);
 
     // We have two different strategies for the refinement root: set it to
     // the firstInterpolationPoint or set it to highest location in the ARG
@@ -281,7 +342,32 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
         throw new CPAException("Inconsistent ARG, did not find element for " + firstInterpolationPointLocation);
       }
     }
-    return Pair.of(refinementRoot, newPrecision);
+    return Pair.of(refinementRoot, (Multimap<CFANode, AbstractionPredicate>)pmapBuilder.build());
+  }
+
+  /**
+   * Collect all precisions in the subgraph below refinementRoot and merge
+   * their predicates.
+   * @return a new precision with all these predicates.
+   */
+  private PredicatePrecision findAllPredicatesFromSubgraph(
+      ARGState refinementRoot, UnmodifiableReachedSet reached) {
+
+    PredicatePrecision newPrecision = PredicatePrecision.empty();
+
+    // find all distinct precisions to merge them
+    Set<Precision> precisions = Sets.newIdentityHashSet();
+    for (ARGState state : refinementRoot.getSubgraph()) {
+      if (!state.isCovered()) {
+        // covered states are not in reached set
+        precisions.add(reached.getPrecision(state));
+      }
+    }
+
+    for (Precision prec : precisions) {
+      newPrecision = newPrecision.mergeWith(extractPredicatePrecision(prec));
+    }
+    return newPrecision;
   }
 
   @Override

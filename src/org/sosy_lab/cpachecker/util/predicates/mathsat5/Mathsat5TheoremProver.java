@@ -86,7 +86,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
     Preconditions.checkState(curEnv == 0);
 
     long cfg = msat_create_config();
-    msat_set_option(cfg, "model_generation", "true");
+    msat_set_option_checked(cfg, "model_generation", "true");
     curEnv = mgr.createEnvironment(cfg, USE_SHARED_ENV, true);
   }
 
@@ -190,6 +190,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
     }
 
     private void buildBalancedOr() {
+      enumTime.startBoth();
       cubes.add(formula);
       while (cubes.size() > 1) {
         Region b1 = cubes.remove();
@@ -198,6 +199,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
       }
       assert (cubes.size() == 1);
       formula = cubes.remove();
+      enumTime.stopBoth();
     }
 
     @Override
