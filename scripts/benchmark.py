@@ -51,8 +51,6 @@ import threading
 import xml.etree.ElementTree as ET
 
 
-CSV_SEPARATOR = "\t"
-
 BUG_SUBSTRING_LIST = ['bug', 'unsafe']
 
 MEMLIMIT = "memlimit"
@@ -896,11 +894,11 @@ class OutputHandler:
 
         # write (empty) results to TXTFile and XML
         self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
-        XMLTestFileName = self.getFileName(self.test.name, "xml")
-        self.XMLTestFile = FileWriter(XMLTestFileName,
+        self.XMLTestFileName = self.getFileName(self.test.name, "xml")
+        self.XMLTestFile = FileWriter(self.XMLTestFileName,
                        Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
         self.XMLTestFile.lastModifiedTime = time.time()
-        self.allCreatedFiles.append(XMLTestFileName)
+        self.allCreatedFiles.append(self.XMLTestFileName)
 
 
     def outputForSkippingTest(self, test, reason=None):
@@ -1058,9 +1056,6 @@ class OutputHandler:
 
         # write testresults to files
         self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
-        CSVFileName = self.getFileName(self.test.name, "csv")
-        FileWriter(CSVFileName, self.testToCSV(self.test))
-        self.allCreatedFiles.append(CSVFileName)
 
         if len(self.test.blocks) > 1:
             for block in self.test.blocks:
@@ -1132,25 +1127,6 @@ class OutputHandler:
         return runElem
 
 
-    def testToCSV(self, test):
-        """
-        This function dumps a test with results into a CSV-file.
-        """
-
-        # store columntitles of tests
-        CSVLines = [CSV_SEPARATOR.join(
-                      ["sourcefile", "status", "cputime", "walltime"] \
-                    + [column.title for column in test.benchmark.columns])]
-
-        # store columnvalues of each run
-        for run in test.runs:
-            CSVLines.append(CSV_SEPARATOR.join(
-                  [run.sourcefile, run.status, run.cpuTimeStr, run.wallTimeStr] \
-                + [column.value for column in run.columns]))
-
-        return "\n".join(CSVLines) + "\n"
-
-
     def isCorrectResult(self, filename, status):
         '''
         this function return a string,
@@ -1211,14 +1187,18 @@ class OutputHandler:
     def outputAfterBenchmark(self):
         self.statistics.printToTerminal()
 
+        Util.printOut("In order to get HTML and CSV tables, run\n{0} {1}"
+                      .format(os.path.join(os.path.dirname(__file__), 'table-generator.py'),
+                              self.XMLTestFileName))
+
         if STOPPED_BY_INTERRUPT:
-            Util.printOut("\nscript was interrupted by user, some tests may not be done\n")
+            Util.printOut("\nScript was interrupted by user, some tests may not be done.\n")
 
 
     def getFileName(self, testname, fileExtension):
         '''
         This function returns the name of the file of a test
-        with an extension ("txt", "xml", "csv").
+        with an extension ("txt", "xml").
         '''
 
         fileName = OUTPUT_PATH + self.benchmark.name + "." \
