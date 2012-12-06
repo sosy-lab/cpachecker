@@ -78,6 +78,7 @@ public class FsmBddStatistics implements Statistics {
     printValue(pOut, "Size of BDD node table",    bddFactory.getNodeTableSize());
     printValue(pOut, "Size of BDD cache",         bddFactory.getCacheSize());
     printValue(pOut, "Number of BDD reorderings", bddFactory.getReorderTimes());
+    printValue(pOut, "Time for BDD garbage collection", Timer.formatTime(bddFactory.getGCStats().sumtime));
     printValue(pOut, "Max. encoded assumptions",  maxEncodedAssumptions);
     printValue(pOut, "Merge called",  mergeCalls);
     printValue(pOut, "Merges because of equal BDD",  mergesBecauseEqualBdd);
