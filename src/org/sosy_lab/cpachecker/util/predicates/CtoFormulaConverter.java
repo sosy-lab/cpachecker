@@ -92,7 +92,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -304,8 +304,8 @@ public class CtoFormulaConverter {
     if (tp instanceof CPointerType) {
       return getTypeName(((CPointerType)tp).getType());
 
-    } else if (tp instanceof CTypedef) {
-      return getTypeName(((CTypedef)tp).getType());
+    } else if (tp instanceof CTypedefType) {
+      return getTypeName(((CTypedefType)tp).getRealType());
 
     } else if (tp instanceof CComplexType){
       return ((CComplexType)tp).getName();

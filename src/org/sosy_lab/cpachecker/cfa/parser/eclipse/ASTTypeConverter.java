@@ -52,12 +52,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -196,8 +195,8 @@ class ASTTypeConverter {
       return new CPointerType(t.isConst(), t.isVolatile(), convert(t.getType()));
   }
 
-  private static CTypedef conv(final ITypedef t) {
-      return new CTypedef(t.getName(), convert(t.getType()));
+  private static CTypedefType conv(final ITypedef t) {
+      return new CTypedefType(false, false, t.getName(), convert(t.getType()));
   }
 
   private static List<CCompositeTypeMemberDeclaration> conv(IField[] pFields) {
@@ -258,8 +257,13 @@ class ASTTypeConverter {
         dd.isComplex(), dd.isImaginary(), dd.isLongLong());
   }
 
-  static CNamedType convert(final IASTNamedTypeSpecifier d) {
-    return new CNamedType(d.isConst(), d.isVolatile(), ASTConverter.convert(d.getName()));
+  static CTypedefType convert(final IASTNamedTypeSpecifier d) {
+    org.eclipse.cdt.core.dom.ast.IASTName name = d.getName();
+    org.eclipse.cdt.core.dom.ast.IBinding binding = name.resolveBinding();
+    if (!(binding instanceof IType)) {
+      throw new CFAGenerationRuntimeException("Unknown binding of typedef", d);
+    }
+    return new CTypedefType(d.isConst(), d.isVolatile(), ASTConverter.convert(name), convert((IType)binding));
   }
 
   static CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {

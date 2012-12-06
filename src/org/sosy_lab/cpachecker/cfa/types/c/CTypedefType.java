@@ -23,18 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-public final class CNamedType extends CType {
+import static com.google.common.base.Preconditions.checkNotNull;
 
-  private final String name;
+/**
+ * This represents a type which was created by using typedef.
+ */
+public final class CTypedefType extends CType {
 
-  public CNamedType(final boolean pConst, final boolean pVolatile,
-      final String pName) {
+  private final String name; // the typedef name
+  private final CType realType; // the real type this typedef points to
+
+  public CTypedefType(final boolean pConst, final boolean pVolatile,
+      final String pName, CType pRealType ) {
     super(pConst, pVolatile);
     name = pName.intern();
+    realType = checkNotNull(pRealType);
   }
 
   public String getName() {
     return name;
+  }
+
+  public CType getRealType() {
+    return realType;
   }
 
   @Override
