@@ -800,7 +800,7 @@ def getCounts(rows): # for options.dumpCounts
     return countsList
 
 
-def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, libUrl):
+def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, outputFilePattern, libUrl):
     '''
     create tables and write them to files
     '''
@@ -814,13 +814,12 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, libUr
     testData = [test.attributes for test in listOfTests]
     testColumns = [[column.title for column in test.columns] for test in listOfTests]
 
-    def writeTable(outfile, name, rows):
-        outfile = os.path.join(outputPath, outfile)
-
+    def writeTable(type, title, rows):
         stats = getStats(rows)
 
         for format in TEMPLATE_FORMATS:
-            print ('writing {0} into {1}.{0} ...'.format(format, outfile))
+            outfile = os.path.join(outputPath, outputFilePattern.format(name=name, type=type, ext=format))
+            print ('writing {0} into {1} ...'.format(format.upper().ljust(4), outfile))
 
             # read template
             Template = tempita.HTMLTemplate if format == 'html' else tempita.Template
@@ -829,9 +828,9 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, libUr
                                               encoding='UTF-8')
 
             # write file
-            with open(outfile + "." + format, 'w') as file:
+            with open(outfile, 'w') as file:
                 file.write(template.substitute(
-                        title=name,
+                        title=title,
                         head=head,
                         body=rows,
                         foot=stats,
@@ -842,11 +841,11 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, libUr
 
 
     # write normal tables
-    writeTable(name + ".table", name, rows)
+    writeTable("table", name, rows)
 
     # write difference tables
     if rowsDiff:
-        writeTable(name + ".diff", name + " differences", rowsDiff)
+        writeTable("diff", name + " differences", rowsDiff)
 
 
 def main(args=None):
@@ -903,13 +902,17 @@ def main(args=None):
     options = parser.parse_args(args[1:])
 
     outputPath = options.outputPath
+    outputFilePattern = "{name}.{type}.{ext}"
 
     if options.xmltablefile:
         if options.tables:
             print ("Invalid additional arguments '{}'".format(" ".join(options.table)))
             exit()
         listOfTests = parseTableDefinitionFile(options.xmltablefile)
-        name = os.path.basename(options.xmltablefile)[:-4] # remove ending '.xml'
+        name = os.path.basename(options.xmltablefile)
+        if name.endswith(".xml"):
+            name = name[:-4]
+
         if not outputPath:
             outputPath = os.path.dirname(options.xmltablefile)
 
@@ -923,7 +926,14 @@ def main(args=None):
 
         inputFiles = Util.extendFileList(inputFiles) # expand wildcards
         listOfTests = [Result.createFromXML(file, parseTestFile(file)) for file in inputFiles]
-        name = NAME_START + "." + time.strftime("%y-%m-%d_%H%M", time.localtime())
+
+        if len(inputFiles) == 1:
+            name = os.path.basename(inputFiles[0])
+            if name.endswith(".xml"):
+                name = name[:-4]
+            outputFilePattern = "{name}.{ext}"
+        else:
+            name = NAME_START + "." + time.strftime("%y-%m-%d_%H%M", time.localtime())
 
         if inputFiles and not outputPath:
             dir = os.path.dirname(inputFiles[0])
@@ -955,7 +965,7 @@ def main(args=None):
 
     print ('generating table ...')
     if not os.path.isdir(outputPath): os.makedirs(outputPath)
-    createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, options.libUrl)
+    createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, outputFilePattern, options.libUrl)
 
     print ('done')
 
