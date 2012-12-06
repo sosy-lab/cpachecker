@@ -24,35 +24,34 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 /**
- * Fake class, should not be used by CPAs.
+ * This type is used when the parser could not determine the correct type.
  */
-public class CComplexType extends CType {
+public class CProblemType extends CType {
 
-  private final String name;
+  private final String typeName;
 
-  public CComplexType(final String pName) {
+  public CProblemType(String pTypeName) {
     super(false, false);
-    name = pName.intern();
+    typeName = pTypeName;
   }
 
-  public String getName() {
-    return name;
+  @Override
+  public String toString() {
+    return typeName;
   }
 
   @Override
   public boolean isConst() {
-    // TODO is this correct?
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean isVolatile() {
-    // TODO is this correct?
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
-  public String toASTString(String pDeclator) {
-    return name + " " + pDeclator;
+  public String toASTString(String pDeclarator) {
+    return typeName + " " + pDeclarator;
   }
 }

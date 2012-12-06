@@ -37,12 +37,13 @@ import org.eclipse.cdt.core.dom.ast.IASTPointer;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IBasicType;
-import org.eclipse.cdt.core.dom.ast.IBinding;
 import org.eclipse.cdt.core.dom.ast.ICompositeType;
 import org.eclipse.cdt.core.dom.ast.IEnumeration;
 import org.eclipse.cdt.core.dom.ast.IField;
 import org.eclipse.cdt.core.dom.ast.IFunctionType;
 import org.eclipse.cdt.core.dom.ast.IPointerType;
+import org.eclipse.cdt.core.dom.ast.IProblemBinding;
+import org.eclipse.cdt.core.dom.ast.IProblemType;
 import org.eclipse.cdt.core.dom.ast.IQualifierType;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
@@ -53,10 +54,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
@@ -139,11 +139,17 @@ class ASTTypeConverter {
     } else if (t instanceof IEnumeration) {
       return conv((IEnumeration)t);
 
-    } else if (t instanceof IBinding) {
-      return new CComplexType(((IBinding) t).getName());
+    } else if (t instanceof IProblemType) {
+      // Of course, the obvious idea would be to throw an exception here.
+      // However, CDT seems to give us ProblemTypes even for perfectly legal C code,
+      // e.g. in cdaudio_safe.i.cil.c
+      return new CProblemType(t.toString() + ": " + ((IProblemType)t).getMessage());
+
+    } else if (t instanceof IProblemBinding) {
+      throw new CFAGenerationRuntimeException(((IProblemBinding) t).getMessage(), ((IProblemBinding) t).getASTNode());
 
     } else {
-      return new CDummyType(t.toString());
+      throw new CFAGenerationRuntimeException("unknown type " + t.getClass().getSimpleName());
     }
   }
 

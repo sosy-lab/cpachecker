@@ -86,7 +86,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -306,9 +305,6 @@ public class CtoFormulaConverter {
 
     } else if (tp instanceof CTypedefType) {
       return getTypeName(((CTypedefType)tp).getRealType());
-
-    } else if (tp instanceof CComplexType){
-      return ((CComplexType)tp).getName();
 
     } else {
       throw new AssertionError("wrong type");
