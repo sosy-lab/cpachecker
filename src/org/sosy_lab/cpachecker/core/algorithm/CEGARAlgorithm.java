@@ -130,6 +130,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
   private Class<? extends Refiner> refiner = null;
 
+  @Option(description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
+  private boolean globalRefinement = false;
+
   private final LogManager logger;
   private final Algorithm algorithm;
   private final Refiner mRefiner;
@@ -218,8 +221,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         isComplete &= algorithm.run(reached);
 
         // if there is any target state do refinement
-        if (isTargetState(reached.getLastState())
-            || from(reached).anyMatch(IS_TARGET_STATE)) {
+        if (refinementNecessary(reached)) {
 
           refinementSuccessful = refine(reached);
 
@@ -234,6 +236,17 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       stats.totalTimer.stop();
     }
     return isComplete;
+  }
+
+  private boolean refinementNecessary(ReachedSet reached) {
+    if (globalRefinement) {
+      // check other states
+      return from(reached).anyMatch(IS_TARGET_STATE);
+
+    } else {
+      // check only last state
+      return isTargetState(reached.getLastState());
+    }
   }
 
   private boolean refine(ReachedSet reached) throws CPAException, InterruptedException {
