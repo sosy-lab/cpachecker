@@ -8,6 +8,8 @@ CPAchecker now supports several new analyses:
   Example: -cmc explicitAnalysis-100s-generate-cmc-condition -cmc predicateAnalysis-use-cmc-condition
 
 * CEGAR for ExplicitCPA (as submitted to SV-COMP13)
+  This can be enabled with the "explicitAnalysis-ItpRefiner*" configurations
+  (explicitAnalysis-ItpRefiner-ABElf is recommended).
 
 * Sequential composition of analyses (as submitted to SV-COMP13)
   The "-cmc" command-line argument can be used for this, too.
@@ -22,7 +24,7 @@ CPAchecker now supports several new analyses:
   This can be enabled with the "explicit-BDD-*" configurations.
 
 Other changes to CPAchecker:
-* Pre-processing the C fils with CIL is no longer needed.
+* Pre-processing the C files with CIL is no longer needed.
 * Mathsat5 can be used as SMT solver by setting
   cpa.predicate.solver=Mathsat5
 * In configuration files, #include directives can be used
@@ -61,4 +63,3 @@ Other changes to CPAchecker:
   the base directory of the relative path is now the directory of the file which contains the #include,
   not the CPAchecker root directory.
   If #include is used with relative paths in a specification file, it most probably needs adjustment.
-
