@@ -51,6 +51,7 @@ LIB_URL_OFFLINE = "lib/javascript"
 
 TEMPLATE_FILE_NAME = os.path.join(os.path.dirname(__file__), 'table-generator-template.{format}')
 TEMPLATE_FORMATS = ['html', 'csv']
+TEMPLATE_ENCODING = 'UTF-8'
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case!
@@ -815,6 +816,11 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, outpu
     testData = [test.attributes for test in listOfTests]
     testColumns = [[column.title for column in test.columns] for test in listOfTests]
 
+    templateNamespace={'flatten': Util.flatten,
+                       'json': Util.json,
+                       'relpath': os.path.relpath,
+                       }
+
     def writeTable(type, title, rows):
         stats = getStats(rows)
 
@@ -825,8 +831,8 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, outpu
             # read template
             Template = tempita.HTMLTemplate if format == 'html' else tempita.Template
             template = Template.from_filename(TEMPLATE_FILE_NAME.format(format=format),
-                                              namespace={'flatten': Util.flatten, 'json': Util.json},
-                                              encoding='UTF-8')
+                                              namespace=templateNamespace,
+                                              encoding=TEMPLATE_ENCODING)
 
             # write file
             with open(outfile, 'w') as file:
@@ -838,6 +844,7 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, outpu
                         tests=testData,
                         columns=testColumns,
                         lib_url=libUrl,
+                        baseDir=outputPath,
                         ))
 
 
