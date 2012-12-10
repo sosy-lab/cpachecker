@@ -791,7 +791,7 @@ def getCounts(rows): # for options.dumpCounts
 
     for testResults in rowsToColumns(rows):
         statusList = [test.category for test in testResults]
-        sum, correctSafe, correctUnsafe, wrongSafe, wrongUnsafe = getStatsOfStatusColumn(statusList)
+        correctSafe, correctUnsafe, wrongSafe, wrongUnsafe = getCategoryCount(statusList)
 
         correct = correctSafe + correctUnsafe
         wrong = wrongSafe + wrongUnsafe
