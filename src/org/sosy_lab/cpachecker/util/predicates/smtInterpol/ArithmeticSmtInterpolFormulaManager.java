@@ -298,8 +298,6 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
   public FormulaOperator getOperator(Formula f) {
     Term t = getTerm(f);
     assert t instanceof ApplicationTerm;
-    ((ApplicationTerm) t).getParameters();
-    ;
     String funcN = ((ApplicationTerm) t).getFunction().getName();
     if (funcN.equals("not")) { return FormulaOperator.NOT; }
     if (funcN.equals("and")) { return FormulaOperator.AND; }
