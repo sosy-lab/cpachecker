@@ -68,6 +68,12 @@ public class BDDRegionManager implements RegionManager {
   // documentation of the packages can be found at source of BDDFactory.init()
   private String bddPackage = "java";
 
+  @Option(description="Initial size of the BDD node table.")
+  private int initBddNodeTableSize = 10000;
+
+  @Option(description="Initial size of the BDD cache.")
+  private int initBddCacheSize = 1000;
+
   private final LogManager logger;
   private final BDDFactory factory;
   private final Region trueFormula;
@@ -79,7 +85,7 @@ public class BDDRegionManager implements RegionManager {
   private BDDRegionManager(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    factory = BDDFactory.init(bddPackage, 10000, 1000);
+    factory = BDDFactory.init(bddPackage, initBddNodeTableSize, initBddCacheSize);
 
     // register callbacks for logging
     try {
