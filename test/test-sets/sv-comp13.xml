@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="900" memlimit="15000">
+  <option name="-disable-java-assertions"/>
+  <option name="-heap">12000M</option>
+
+  <sourcefiles>
+    <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlowInteger-MemPrecise.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
+    <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
+    <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
+  </sourcefiles>
+  <sourcefiles>
+    <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
+    <option name="-setprop">analysis.machineModel=Linux64</option>
+  </sourcefiles>
+
+  <test name="combinations">
+    <option name="-sv-comp13--combinations"/>
+  </test>
+
+  <test name="explitp-pred">
+    <option name="-sv-comp13--explitp-pred"/>
+  </test>
+</benchmark>
