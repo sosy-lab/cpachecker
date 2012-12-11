@@ -30,6 +30,7 @@ import net.sf.javabdd.BDDFactory;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -61,6 +62,12 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     return AutomaticCPAFactory.forType(FsmBddCPA.class);
   }
 
+  @Option(description="Initial size of the BDD node table.")
+  private int initBddNodeTableSize = 200000000;
+
+  @Option(description="Initial size of the BDD cache.")
+  private int initBddCacheSize = 2000000;
+
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
@@ -84,7 +91,7 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     //
     // Initialization of the BDD library (JavaBdd)
     //
-    this.bddFactory = BDDFactory.init("java", 200000000, 2000000);
+    this.bddFactory = BDDFactory.init("java", initBddNodeTableSize, initBddCacheSize);
     this.bddFactory.setIncreaseFactor(1);
     this.bddFactory.setMaxIncrease(200000000);
 
