@@ -137,11 +137,11 @@ public enum MachineModel {
 
   public int getSizeof(CSimpleType type) {
     switch (type.getType()) {
-    case UNSPECIFIED: return getSizeofInt(); // the default type in C is int
     case VOID:        return getSizeofVoid();
     case BOOL:        return getSizeofBool();
     case CHAR:        return getSizeofChar();
     case FLOAT:       return getSizeofFloat();
+    case UNSPECIFIED: // unspecified is the same as int
     case INT:
       if (type.isLongLong()) {
         return getSizeofLongLongInt();
