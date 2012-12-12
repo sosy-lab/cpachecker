@@ -1187,7 +1187,7 @@ class OutputHandler:
     def outputAfterBenchmark(self):
         self.statistics.printToTerminal()
 
-        Util.printOut("In order to get HTML and CSV tables, run\n{0} {1}"
+        Util.printOut("In order to get HTML and CSV tables, run\n{0} '{1}'"
                       .format(os.path.join(os.path.dirname(__file__), 'table-generator.py'),
                               self.XMLTestFileName))
 
