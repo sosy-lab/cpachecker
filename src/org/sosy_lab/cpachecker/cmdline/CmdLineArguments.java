@@ -94,6 +94,8 @@ class CmdLineArguments {
     Map<String, String> properties = new HashMap<String, String>();
     List<String> programs = new ArrayList<String>();
 
+    String javaRootPath = null;
+
     Iterator<String> argsIt = Arrays.asList(args).iterator();
 
     while (argsIt.hasNext()) {
@@ -101,6 +103,7 @@ class CmdLineArguments {
       if (   handleArgument0("-cbmc",    "analysis.useCBMC", "true",            arg, properties)
           || handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
           || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
+          || handleArgument0("-java", "language.java", "true",                  arg, properties)
           || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
@@ -109,6 +112,19 @@ class CmdLineArguments {
           || handleMultipleArgument1("-spec",  "specification",           arg, argsIt, properties)
       ) {
         // nothing left to do
+
+      } else if(arg.equals("-javaRoot")) {
+        handleArgument1("-javaRoot",    "java.rootPath", arg, argsIt, properties);
+
+        injectAbsolutPath(properties);
+        javaRootPath = properties.get("java.rootPath");
+
+
+
+        if(!javaRootPath.endsWith(File.separator)) {
+          javaRootPath = javaRootPath + File.separator;
+          properties.put("java.rootPath", javaRootPath);
+        }
 
       } else if (arg.equals("-cmc")) {
         handleCmc(argsIt, properties);
@@ -180,11 +196,34 @@ class CmdLineArguments {
       }
     }
 
+    if(javaRootPath != null) {
+      programs = addJavaRootPathToProgramms(programs, javaRootPath);
+    }
+
     // arguments with non-specified options are considered as file names
     if (!programs.isEmpty()) {
       putIfNotExistent(properties, "analysis.programNames", Joiner.on(", ").join(programs));
     }
+
     return properties;
+  }
+
+  private static void injectAbsolutPath(Map<String, String> properties) {
+    File rootPath = new File(properties.get("java.rootPath"));
+    properties.put("java.rootPath", rootPath.getAbsolutePath());
+
+  }
+
+  private static List<String> addJavaRootPathToProgramms
+                                    (List<String> programs, String javaRootPath) {
+    List<String> programPaths = new ArrayList<String>(programs.size());
+
+    for(String path : programs) {
+      programPaths.add(
+          javaRootPath + File.separatorChar + path.replace('.', File.separatorChar) + ".java");
+    }
+
+    return programPaths;
   }
 
   private static void handleCmc(Iterator<String> argsIt, Map<String, String> properties)

@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.logging.Level;
 
+import org.eclipse.jdt.core.JavaCore;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -66,8 +67,6 @@ import com.google.common.collect.Iterables;
 @Options
 public class CFACreator {
 
-  private static final String JAVA_PATH_FILE_REGEX = ".*.java";
-
   @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
       description="entry function")
   private String mainFunctionName = "main";
@@ -101,6 +100,26 @@ public class CFACreator {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File exportCfaFile = new File("cfa.dot");
 
+  @Option(name ="language.java",
+      description="use Language java with " +
+          "following src Path")
+  private boolean useJava = false;
+
+  @Option(name ="java.rootPath",
+      description="use Language java with " +
+          "following src Path")
+  private String javaRootPath = null;
+
+  @Option(name ="java.encoding",
+      description="use Language java with " +
+          "following src Path")
+  private String encoding = "utf8";
+
+  @Option(name ="java.version",
+      description="use Language java with " +
+          "following src Path")
+  private String version = JavaCore.VERSION_1_7;
+
   private final LogManager logger;
   private final CParser parser;
   private final CFAReduction cfaReduction;
@@ -113,6 +132,8 @@ public class CFACreator {
   public final Timer processingTime = new Timer();
   public final Timer pruningTime = new Timer();
   public final Timer exportTime = new Timer();
+
+
 
   public CFACreator(Configuration config, LogManager logger)
           throws InvalidConfigurationException {
@@ -155,10 +176,10 @@ public class CFACreator {
       ParseResult c;
       Language language;
 
-      if( filename.matches(JAVA_PATH_FILE_REGEX)){
-        EclipseJavaParser par = new EclipseJavaParser(logger);
-        c = par.parseFile(filename);
+      if(useJava){
         language = Language.JAVA;
+        EclipseJavaParser par = new EclipseJavaParser(logger, javaRootPath, encoding, version);
+        c = par.parseFile(filename);
       } else{
         c = parser.parseFile(filename);
         language = Language.C;
