@@ -257,7 +257,7 @@ class Result():
         self.columns = columns
 
     def getSourceFileNames(self):
-        return [file.get('name') for file in self.filelist]
+        return [file.get('name') for file in self.filelist if Util.getColumnValue(file, 'status')]
 
     def append(self, resultFile, resultElem):
         def updateAttributes(newAttributes):
@@ -914,7 +914,7 @@ def main(args=None):
 
     if options.xmltablefile:
         if options.tables:
-            print ("Invalid additional arguments '{}'".format(" ".join(options.table)))
+            print ("Invalid additional arguments '{}'".format(" ".join(options.tables)))
             exit()
         listOfTests = parseTableDefinitionFile(options.xmltablefile)
         name = os.path.basename(options.xmltablefile)
