@@ -2,17 +2,6 @@ Libraries Used by CPAchecker
 ============================
 
 
-Source-Code Libraries
----------------------
-
-Libraries in source code should be stored under lib/source/.
-
-- ccvisu: CCVisu
-  http://ccvisu.sosy-lab.org/
-  Open-source license: licence_lgpl.txt
-  Clustering algorithm for graphs
-
-
 Binary Libraries
 ----------------
 
