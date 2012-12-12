@@ -248,7 +248,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     argUpdate.stop();
   }
 
-  private PredicatePrecision extractPredicatePrecision(Precision oldPrecision) throws IllegalStateException {
+  protected PredicatePrecision extractPredicatePrecision(Precision oldPrecision) throws IllegalStateException {
     PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
     if (oldPredicatePrecision == null) {
       throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
