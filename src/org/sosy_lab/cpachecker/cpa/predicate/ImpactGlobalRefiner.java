@@ -184,7 +184,7 @@ public class ImpactGlobalRefiner<T> implements Refiner {
       try {
         if (itpProver.isUnsat()) {
           logger.log(Level.FINE, "Found unreachable state", succ);
-          performRefinement(Lists.newArrayList(itpStack), succ, predecessors, pReached);
+          performRefinementOnPath(Lists.newArrayList(itpStack), succ, predecessors, pReached);
 
         } else if (targets.contains(succ)) {
           // We have found a reachable target state, immediately abort refinement.
@@ -217,54 +217,87 @@ public class ImpactGlobalRefiner<T> implements Refiner {
   }
 
   /**
-   * Actually perform refinement, i.e., strengthen states by adding interpolants
-   * to their state formulas.
+   * Actually perform refinement on one path.
    * @param itpStack The list with the interpolation groups.
-   * @param unreachableState The first state in the path which is infeasible.
+   * @param unreachableState The first state in the path which is infeasible (this identifies the path).
    * @param predecessors The predecessor relation of abstraction states.
    * @param reached The reached set.
    * @throws CPAException
    */
-  private void performRefinement(List<T> itpStack, final ARGState unreachableState,
+  private void performRefinementOnPath(List<T> itpStack, final ARGState unreachableState,
       Map<ARGState, ARGState> predecessors, ReachedSet reached) throws CPAException {
     assert !itpStack.isEmpty();
     assert itpProver.getInterpolant(itpStack).isFalse(); // last interpolant is False
 
-    List<ARGState> strengthenedStates = Lists.newArrayList();
+    List<ARGState> affectedStates = Lists.newArrayList();
 
-    // going upwards from unreachableState strengthening states with interpolants
+    // going upwards from unreachableState refining states with interpolants
     ARGState currentState = unreachableState;
     do {
       itpStack.remove(itpStack.size()-1); // remove last
       currentState = predecessors.get(currentState);
       assert itpStack.isEmpty() == currentState.getParents().isEmpty();
 
-      Formula currentItp = fmgr.uninstantiate(itpProver.getInterpolant(itpStack));
+      Formula currentItp = itpProver.getInterpolant(itpStack);
 
       if (currentItp.isTrue()) {
         // from here to the ARG root, all interpolants will be True
         break;
       }
 
-      Formula stateFormula = getStateFormula(currentState);
-
-      boolean isNewItp = !solver.implies(stateFormula, currentItp);
-
-      if (isNewItp) {
-        addFormulaToState(currentItp, currentState, fmgr);
-        strengthenedStates.add(currentState);
-      } else {
-        // If the currentItp is implied by the stateFormula,
-        // then we don't need any of the interpolants between the ARG root
-        // and this state.
+      if (performRefinementForState(currentItp, currentState)) {
         break;
+      } else {
+        affectedStates.add(currentState);
       }
 
     } while (!itpStack.isEmpty());
 
+    finishRefinementOfPath(unreachableState, affectedStates, reached);
+  }
+
+  /**
+   * Perform refinement on one state given the interpolant that was determined
+   * by the solver for this state. This strengthens the state by conjunctively
+   * adding the interpolant to its state formula.
+   * @param interpolant The interpolant.
+   * @param state The state.
+   * @return True if no refinement was necessary (this implies that refinement
+   *          on all of the state's parents is also not necessary)
+   */
+  private boolean performRefinementForState(Formula interpolant,
+      ARGState state) {
+
+    interpolant = fmgr.uninstantiate(interpolant);
+
+    Formula stateFormula = getStateFormula(state);
+
+    boolean isNewItp = !solver.implies(stateFormula, interpolant);
+
+    if (isNewItp) {
+      addFormulaToState(interpolant, state, fmgr);
+      return false;
+    } else {
+      // If the currentItp is implied by the stateFormula,
+      // then we don't need any of the interpolants between the ARG root
+      // and this state.
+      return true;
+    }
+  }
+
+  /**
+   * Do any necessary work after one path has been refined.
+   *
+   * @param unreachableState The first state in the path which is infeasible (this identifies the path).
+   * @param affectedStates The list of states that were affected by the refinement.
+   * @param reached The reached set.
+   * @throws CPAException
+   */
+  private void finishRefinementOfPath(final ARGState unreachableState, List<ARGState> affectedStates,
+      ReachedSet reached) throws CPAException {
     ARGReachedSet arg = new ARGReachedSet(reached);
 
-    for (ARGState w : strengthenedStates) {
+    for (ARGState w : affectedStates) {
       arg.removeCoverageOf(w);
     }
 
@@ -272,7 +305,7 @@ public class ImpactGlobalRefiner<T> implements Refiner {
     removeInfeasiblePartofARG(unreachableState, arg);
 
 
-    for (ARGState w : Lists.reverse(strengthenedStates)) {
+    for (ARGState w : Lists.reverse(affectedStates)) {
       if (cover(w, arg, argCpa)) {
         break; // all further elements are covered anyway
       }
