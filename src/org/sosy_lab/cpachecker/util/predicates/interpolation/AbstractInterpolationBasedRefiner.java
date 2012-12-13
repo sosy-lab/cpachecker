@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -72,8 +73,16 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File dumpCexFile = new File("counterexample.msat");
 
-  public final Timer totalRefinement = new Timer();
-  public final Timer errorPathProcessing = new Timer();
+
+  // statistics
+  private int totalPathLength = 0; // measured in blocks
+  protected int totalUnchangedPrefixLength = 0; // measured in blocks
+  protected int totalNumberOfStatesWithNonTrivialInterpolant = 0;
+  protected int totalNumberOfAffectedStates = 0;
+
+  private final Timer totalRefinement = new Timer();
+  private final Timer errorPathProcessing = new Timer();
+
 
   protected final LogManager logger;
 
@@ -109,6 +118,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
     final List<ARGState> path = transformPath(pPath);
+    totalPathLength += path.size();
 
     logger.log(Level.ALL, "Abstraction trace is", path);
 
@@ -232,12 +242,20 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
   }
 
   protected void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    int numberOfRefinements = totalRefinement.getNumberOfIntervals();
 
-    if (totalRefinement.getSumTime() > 0) {
-      out.println("Time for refinement:              " + totalRefinement);
+    if (numberOfRefinements > 0) {
+      out.println("Avg. length of target path (in blocks):     " + div(totalPathLength, numberOfRefinements));
+      out.println("Avg. number of blocks unchanged in path:    " + div(totalUnchangedPrefixLength, numberOfRefinements));
+      out.println("Avg. number of states with non-trivial itp: " + div(totalNumberOfStatesWithNonTrivialInterpolant, numberOfRefinements));
+      out.println("Avg. number of affected states:             " + div(totalNumberOfAffectedStates, numberOfRefinements));
+      out.println();
+      out.println("Time for refinement:                  " + totalRefinement);
       formulaManager.stats.printStatistics(out, result, reached);
-      out.println("  Error path post-processing:     " + errorPathProcessing);
+      out.println("  Error path post-processing:         " + errorPathProcessing);
     }
   }
-
+  private static String div(int l1, int l2) {
+    return String.format(Locale.ROOT, "%.2f", (double)l1/l2);
+  }
 }

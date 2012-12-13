@@ -126,11 +126,17 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       PredicateRefiner.this.printStatistics(out, pResult, pReached);
-      out.println("  Precision update:               " + precisionUpdate);
-      out.println("  ARG update:                     " + argUpdate);
+      out.println("  Predicate creation:                 " + predicateCreation);
+      out.println("  Precision update:                   " + precisionUpdate);
+      out.println("  ARG update:                         " + argUpdate);
+      out.println();
+      out.println("Number of refs with location-based cutoff: " + numberOfRefinementsWithStrategy2);
     }
   }
 
+  private int numberOfRefinementsWithStrategy2 = 0;
+
+  private final Timer predicateCreation = new Timer();
   private final Timer precisionUpdate = new Timer();
   private final Timer argUpdate = new Timer();
 
@@ -218,10 +224,12 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
       boolean pRepeatedCounterexample) throws CPAException {
 
     // extract predicates from interpolants
+    predicateCreation.start();
     List<Collection<AbstractionPredicate>> newPreds = Lists.newArrayList();
     for (Formula interpolant : pCounterexample.getInterpolants()) {
       newPreds.add(convertInterpolant(interpolant));
     }
+    predicateCreation.stop();
 
     performRefinement(pReached, pPath, newPreds, pRepeatedCounterexample);
   }
@@ -241,6 +249,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
     if (interpolant.isFalse()) {
       preds = ImmutableSet.of(amgr.makeFalsePredicate());
     } else {
+      totalNumberOfStatesWithNonTrivialInterpolant++;
       preds = getAtomsAsPredicates(interpolant);
     }
     assert !preds.isEmpty();
@@ -374,8 +383,10 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
           // new predicates for this location
           newPredicatesFound = true;
           pmapBuilder.putAll(loc, localPreds);
+          totalNumberOfAffectedStates++;
         }
-
+      } else {
+        totalUnchangedPrefixLength++;
       }
     }
     if (!predicatesFound) {
@@ -404,6 +415,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
       if (pRepeatedCounterexample) {
         throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
       }
+      numberOfRefinementsWithStrategy2++;
 
       CFANode firstInterpolationPointLocation = AbstractStates.extractLocation(firstInterpolationPoint);
 

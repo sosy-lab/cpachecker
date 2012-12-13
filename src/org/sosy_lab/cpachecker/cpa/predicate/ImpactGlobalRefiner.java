@@ -28,19 +28,26 @@ import static java.util.Collections.unmodifiableList;
 import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -61,7 +68,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 
 
-public class ImpactGlobalRefiner<T> implements Refiner {
+public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
 
   private final LogManager logger;
 
@@ -69,6 +76,43 @@ public class ImpactGlobalRefiner<T> implements Refiner {
   private Solver solver;
   private InterpolatingTheoremProver<T> itpProver;
   private ARGCPA argCpa;
+
+  // statistics
+  private int refinementCalls = 0;
+  private int refinementIterations = 0;
+  private int totalNumberOfTargetStates = 0;
+  private int pathsRefined = 0;
+  private int totalPathLengthToInfeasibility = 0; // measured in blocks
+  private int totalNumberOfAffectedStates = 0;
+
+  private final Timer totalTime = new Timer();
+  private final Timer satCheckTime = new Timer();
+  private final Timer getInterpolantTime = new Timer();
+  private final Timer interpolantCheckTime  = new Timer();
+  private final Timer coverTime = new Timer();
+  private final Timer argUpdate = new Timer();
+
+  private void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+    if (refinementCalls > 0) {
+      out.println("Avg. number of iterations per refinement:   " + div(refinementIterations, refinementCalls));
+      out.println("Avg. number of target states per iteration: " + div(totalNumberOfTargetStates, refinementIterations));
+      out.println("Avg. number of refined paths per iteration: " + div(pathsRefined, refinementIterations));
+      out.println("Avg. number of sat checks per iteration:    " + div(satCheckTime.getNumberOfIntervals(), refinementIterations));
+      out.println("Avg. length of refined path (in blocks):    " + div(totalPathLengthToInfeasibility, pathsRefined));
+      out.println("Avg. number of affected states per path:    " + div(totalNumberOfAffectedStates, pathsRefined));
+      out.println();
+      out.println("Total time for predicate refinement:  " + totalTime);
+      out.println("  Refinement sat check:               " + satCheckTime);
+      out.println("  Interpolant computation:            " + getInterpolantTime);
+      out.println("  Checking whether itp is new:        " + interpolantCheckTime);
+      out.println("  Coverage checks:                    " + coverTime);
+      out.println("  ARG update:                         " + argUpdate);
+    }
+  }
+  private static String div(int l1, int l2) {
+    return String.format(Locale.ROOT, "%.2f", (double)l1/l2);
+  }
+
 
   @SuppressWarnings({"unchecked", "rawtypes"})
   public static ImpactGlobalRefiner<?> create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
@@ -103,28 +147,38 @@ public class ImpactGlobalRefiner<T> implements Refiner {
 
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    List<AbstractState> targets = from(pReached)
+    totalTime.start();
+    refinementCalls++;
+    try {
+
+      List<AbstractState> targets = from(pReached)
         .filter(AbstractStates.IS_TARGET_STATE)
         .toImmutableList();
-    assert !targets.isEmpty();
+      assert !targets.isEmpty();
 
-    do {
-      boolean successful = performRefinement0(pReached, targets);
+      do {
+        refinementIterations++;
+        totalNumberOfTargetStates += targets.size();
+        boolean successful = performRefinement0(pReached, targets);
 
-      if (!successful) {
-        return false;
-      }
+        if (!successful) {
+          return false;
+        }
 
-      // there might be target states which were previously covered
-      // and are now uncovered
+        // there might be target states which were previously covered
+        // and are now uncovered
 
-      targets = from(pReached)
-          .filter(AbstractStates.IS_TARGET_STATE)
-          .toImmutableList();
+        targets = from(pReached)
+            .filter(AbstractStates.IS_TARGET_STATE)
+            .toImmutableList();
 
-    } while (!targets.isEmpty());
+      } while (!targets.isEmpty());
 
-    return true;
+      return true;
+
+    } finally {
+      totalTime.stop();
+    }
   }
 
   private boolean performRefinement0(ReachedSet pReached, List <AbstractState> targets) throws CPAException, InterruptedException {
@@ -183,7 +237,10 @@ public class ImpactGlobalRefiner<T> implements Refiner {
       Formula blockFormula = extractStateByType(succ, PredicateAbstractState.class).getAbstractionFormula().getBlockFormula();
       itpStack.add(itpProver.addFormula(blockFormula));
       try {
-        if (itpProver.isUnsat()) {
+        satCheckTime.start();
+        boolean isUnsat = itpProver.isUnsat();
+        satCheckTime.stop();
+        if (isUnsat) {
           logger.log(Level.FINE, "Found unreachable state", succ);
           performRefinementOnPath(unmodifiableList(itpStack), succ, predecessors, pReached);
 
@@ -230,6 +287,9 @@ public class ImpactGlobalRefiner<T> implements Refiner {
     assert !itpStack.isEmpty();
     assert itpProver.getInterpolant(itpStack).isFalse(); // last interpolant is False
 
+    pathsRefined++;
+    totalPathLengthToInfeasibility += itpStack.size();
+
     itpStack = Lists.newArrayList(itpStack); // copy because we will modify it
     List<ARGState> affectedStates = Lists.newArrayList();
 
@@ -238,9 +298,15 @@ public class ImpactGlobalRefiner<T> implements Refiner {
     do {
       itpStack.remove(itpStack.size()-1); // remove last
       currentState = predecessors.get(currentState);
-      assert itpStack.isEmpty() == currentState.getParents().isEmpty(); // we should have reached the ARG root
+      if (itpStack.isEmpty()) {
+        assert currentState.getParents().isEmpty(); // we should have reached the ARG root
+        assert itpProver.getInterpolant(itpStack).isTrue();
+        break;
+      }
 
+      getInterpolantTime.start();
       Formula currentItp = itpProver.getInterpolant(itpStack);
+      getInterpolantTime.stop();
 
       if (currentItp.isTrue()) {
         // from here to the ARG root, all interpolants will be True
@@ -254,6 +320,7 @@ public class ImpactGlobalRefiner<T> implements Refiner {
       }
 
     } while (!itpStack.isEmpty());
+    totalNumberOfAffectedStates += affectedStates.size();
 
     finishRefinementOfPath(unreachableState, affectedStates, reached);
   }
@@ -274,7 +341,9 @@ public class ImpactGlobalRefiner<T> implements Refiner {
 
     Formula stateFormula = getStateFormula(state);
 
+    interpolantCheckTime.start();
     boolean isNewItp = !solver.implies(stateFormula, interpolant);
+    interpolantCheckTime.stop();
 
     if (isNewItp) {
       addFormulaToState(interpolant, state, fmgr);
@@ -299,18 +368,40 @@ public class ImpactGlobalRefiner<T> implements Refiner {
       ReachedSet reached) throws CPAException {
     ARGReachedSet arg = new ARGReachedSet(reached);
 
+    argUpdate.start();
     for (ARGState w : affectedStates) {
       arg.removeCoverageOf(w);
     }
 
     // remove ARG part from unreachableState downwards
     removeInfeasiblePartofARG(unreachableState, arg);
+    argUpdate.stop();
 
-
-    for (ARGState w : Lists.reverse(affectedStates)) {
-      if (cover(w, arg, argCpa)) {
-        break; // all further elements are covered anyway
+    coverTime.start();
+    try {
+      for (ARGState w : Lists.reverse(affectedStates)) {
+        if (cover(w, arg, argCpa)) {
+          break; // all further elements are covered anyway
+        }
       }
+    } finally {
+      coverTime.stop();
     }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(new Statistics() {
+
+      @Override
+      public String getName() {
+        return "ImpactGlobalRefiner";
+      }
+
+      @Override
+      public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+        ImpactGlobalRefiner.this.printStatistics(pOut, pResult, pReached);
+      }
+    });
   }
 }

@@ -64,8 +64,6 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
 
   private class Stats implements Statistics {
 
-    private int newItpWasAdded = 0;
-
     private final Timer itpCheck  = new Timer();
     private final Timer coverTime = new Timer();
     private final Timer argUpdate = new Timer();
@@ -78,12 +76,9 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       ImpactRefiner.this.printStatistics(out, pResult, pReached);
-      out.println("  Checking whether itp is new:    " + itpCheck);
-      out.println("  Coverage checks:                " + coverTime);
-      out.println("  ARG update:                     " + argUpdate);
-      out.println();
-      out.println("Number of interpolants added:     " + newItpWasAdded);
-      out.println("Number of non-new interpolants:   " + (itpCheck.getNumberOfIntervals() - newItpWasAdded));
+      out.println("  Checking whether itp is new:        " + itpCheck);
+      out.println("  Coverage checks:                    " + coverTime);
+      out.println("  ARG update:                         " + argUpdate);
     }
   }
 
@@ -179,6 +174,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
 
       if (itp.isTrue()) {
         // do nothing
+        totalUnchangedPrefixLength++;
         continue;
       }
 
@@ -187,6 +183,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
         infeasiblePartOfART = w;
         break;
       }
+      totalNumberOfStatesWithNonTrivialInterpolant++;
 
       itp = fmgr.uninstantiate(itp);
       Formula stateFormula = getStateFormula(w);
@@ -196,11 +193,11 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
       stats.itpCheck.stop();
 
       if (isNewItp) {
-        stats.newItpWasAdded++;
         addFormulaToState(itp, w, fmgr);
         changedElements.add(w);
       }
     }
+    totalNumberOfAffectedStates += changedElements.size();
 
     if (changedElements.isEmpty() && pRepeatedCounterexample) {
       // TODO One cause for this exception is that the CPAAlgorithm sometimes

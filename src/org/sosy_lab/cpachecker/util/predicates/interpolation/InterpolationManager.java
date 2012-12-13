@@ -80,18 +80,20 @@ public final class InterpolationManager {
 
   static class Stats {
     private final Timer cexAnalysisTimer = new Timer();
-    private final Timer cexAnalysisSolverTimer = new Timer();
+    private final Timer satCheckTime = new Timer();
+    private final Timer getInterpolantTime = new Timer();
     private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
     private final Timer interpolantVerificationTimer = new Timer();
 
     void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      out.println("  Counterexample analysis:        " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.printMaxTime() + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
+      out.println("  Counterexample analysis:            " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.printMaxTime() + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
       if (cexAnalysisGetUsefulBlocksTimer.getMaxTime() != 0) {
-        out.println("    Cex.focusing:                 " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
+        out.println("    Cex.focusing:                     " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
       }
-      out.println("    Solving time only:            " + cexAnalysisSolverTimer + " (Max: " + cexAnalysisSolverTimer.printMaxTime() + ", Calls: " + cexAnalysisSolverTimer.getNumberOfIntervals() + ")");
+      out.println("    Refinement sat check:             " + satCheckTime);
+      out.println("    Interpolant computation:          " + getInterpolantTime);
       if (interpolantVerificationTimer.getNumberOfIntervals() > 0) {
-        out.println("    Interpolant verification:     " + interpolantVerificationTimer);
+        out.println("    Interpolant verification:         " + interpolantVerificationTimer);
       }
     }
   }
@@ -275,7 +277,7 @@ public final class InterpolationManager {
 
       // Check feasibility of counterexample
       logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
-      stats.cexAnalysisSolverTimer.start();
+      stats.satCheckTime.start();
 
       boolean spurious;
       List<T> itpGroupsIds;
@@ -302,7 +304,7 @@ public final class InterpolationManager {
         assert !itpGroupsIds.contains(null); // has to be filled completely
 
       } finally {
-        stats.cexAnalysisSolverTimer.stop();
+        stats.satCheckTime.stop();
       }
 
       logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
@@ -619,9 +621,9 @@ public final class InterpolationManager {
       logger.log(Level.ALL, "Looking for interpolant for formulas from",
           start_of_a, "to", i);
 
-      stats.cexAnalysisSolverTimer.start();
+      stats.getInterpolantTime.start();
       Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
-      stats.cexAnalysisSolverTimer.stop();
+      stats.getInterpolantTime.stop();
 
       if (dumpInterpolationProblems) {
         dumpFormulaToFile("interpolant", itp, i);
