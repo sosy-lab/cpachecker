@@ -322,6 +322,8 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
     } while (!itpStack.isEmpty());
     totalNumberOfAffectedStates += affectedStates.size();
 
+    affectedStates = Lists.reverse(affectedStates); // reverse so that they are in top-down order
+
     finishRefinementOfPath(unreachableState, affectedStates, reached);
   }
 
@@ -360,7 +362,7 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
    * Do any necessary work after one path has been refined.
    *
    * @param unreachableState The first state in the path which is infeasible (this identifies the path).
-   * @param affectedStates The list of states that were affected by the refinement.
+   * @param affectedStates The list of states that were affected by the refinement (ordered from top of ARG to target state).
    * @param reached The reached set.
    * @throws CPAException
    */
@@ -379,7 +381,7 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
 
     coverTime.start();
     try {
-      for (ARGState w : Lists.reverse(affectedStates)) {
+      for (ARGState w : affectedStates) {
         if (cover(w, arg, argCpa)) {
           break; // all further elements are covered anyway
         }
