@@ -1187,9 +1187,10 @@ class OutputHandler:
     def outputAfterBenchmark(self):
         self.statistics.printToTerminal()
 
-        Util.printOut("In order to get HTML and CSV tables, run\n{0} '{1}'"
-                      .format(os.path.join(os.path.dirname(__file__), 'table-generator.py'),
-                              self.XMLTestFileName))
+        if hasattr(self, 'XMLTestFileName'):
+            Util.printOut("In order to get HTML and CSV tables, run\n{0} '{1}'"
+                          .format(os.path.join(os.path.dirname(__file__), 'table-generator.py'),
+                                  self.XMLTestFileName))
 
         if STOPPED_BY_INTERRUPT:
             Util.printOut("\nScript was interrupted by user, some tests may not be done.\n")
