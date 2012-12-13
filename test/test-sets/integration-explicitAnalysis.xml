@@ -8,8 +8,6 @@
   <option name="-setprop">cpa.conditions.global.time.wall=1min</option>
 
   <test>
-    <option name="-setprop">analysis.useRefinement=true</option>
-    <option name="-setprop">cegar.refiner=cpa.explicit.refiner.DelegatingExplicitRefiner</option>
     <sourcefiles>
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <includesfile>integration-ControlFlowInteger.set</includesfile>
