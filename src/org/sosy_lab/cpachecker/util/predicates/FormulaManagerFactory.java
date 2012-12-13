@@ -75,7 +75,7 @@ public class FormulaManagerFactory {
 
   @Option(values={MATHSAT4, MATHSAT5, SMTINTERPOL}, toUppercase=true,
       description="Whether to use MathSAT 4, MathSAT 5, or SmtInterpol as SMT solver")
-  private String solver = MATHSAT4;
+  private String solver = MATHSAT5;
 
   private final FormulaManager fmgr;
   private final TheoremProver prover;

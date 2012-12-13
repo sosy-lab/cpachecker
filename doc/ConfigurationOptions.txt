@@ -152,6 +152,12 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 assumptions.export = true
 assumptions.file = "assumptions.txt"
 
+# Initial size of the BDD cache.
+bdd.initBddCacheSize = 1000
+
+# Initial size of the BDD node table.
+bdd.initBddNodeTableSize = 10000
+
 # Which BDD package should be used?
 # - java:  JavaBDD (default, no dependencies, many features)
 # - cudd:  CUDD (native library required, reordering not supported)
@@ -478,6 +484,12 @@ cpa.forcedCovering = no default value
 # Enable condition-block encoding?
 cpa.fsmbdd.conditionBlocking = true
 
+# Initial size of the BDD cache.
+cpa.fsmbdd.initBddCacheSize = 2000000
+
+# Initial size of the BDD node table.
+cpa.fsmbdd.initBddNodeTableSize = 200000000
+
 # Merge only on abstraction locations.
 cpa.fsmbdd.mergeOnlyOnEqualConditions = false
 
@@ -729,7 +741,7 @@ cpa.predicate.smtinterpol.logAllQueries = false
 cpa.predicate.smtinterpol.logfile = "smtinterpol.smt2"
 
 # Whether to use MathSAT 4, MathSAT 5, or SmtInterpol as SMT solver
-cpa.predicate.solver = MATHSAT4
+cpa.predicate.solver = MATHSAT5
   allowed values: [MATHSAT4, MATHSAT5, SMTINTERPOL]
 
 # With of the bitvectors if useBitvectors is true.
