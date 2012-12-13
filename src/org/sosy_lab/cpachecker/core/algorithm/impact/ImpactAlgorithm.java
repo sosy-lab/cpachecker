@@ -67,8 +67,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.DefaultInterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -141,7 +141,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, cfa.getMachineModel()));
     prover = factory.createTheoremProver();
     solver = new Solver(fmgr, prover);
-    imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, solver, factory, config, logger);
+    imgr = new DefaultInterpolationManager(fmgr, pfmgr, solver, factory, config, logger);
   }
 
   public AbstractState getInitialState(CFANode location) {
@@ -223,6 +223,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         if (itp.isTrue()) {
           continue;
         }
+
+        itp = fmgr.uninstantiate(itp);
 
         Formula stateFormula = w.getStateFormula();
         if (!solver.implies(stateFormula, itp)) {
@@ -349,6 +351,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       if (itp.isTrue()) {
         continue;
       }
+
+      itp = fmgr.uninstantiate(itp);
 
       Formula stateFormula = p.getStateFormula();
       if (!solver.implies(stateFormula, itp)) {

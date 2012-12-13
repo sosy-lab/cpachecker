@@ -55,8 +55,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.DefaultInterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
@@ -109,7 +109,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
     ExtendedFormulaManager fmgr = predicateCpa.getFormulaManager();
     Solver solver = predicateCpa.getSolver();
 
-    InterpolationManager<Formula> manager = new UninstantiatingInterpolationManager(
+    InterpolationManager<Formula> manager = new DefaultInterpolationManager(
                                                   fmgr,
                                                   predicateCpa.getPathFormulaManager(),
                                                   solver,
@@ -189,6 +189,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
         break;
       }
 
+      itp = fmgr.uninstantiate(itp);
       Formula stateFormula = getStateFormula(w);
 
       stats.itpCheck.start();

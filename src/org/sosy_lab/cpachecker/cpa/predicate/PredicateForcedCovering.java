@@ -60,8 +60,8 @@ import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager.SymbolicReg
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.DefaultInterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -125,7 +125,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
       throw new InvalidConfigurationException(PredicateForcedCovering.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    imgr = new UninstantiatingInterpolationManager(predicateCpa.getFormulaManager(),
+    imgr = new DefaultInterpolationManager(predicateCpa.getFormulaManager(),
                                                    predicateCpa.getPathFormulaManager(),
                                                    predicateCpa.getSolver(),
                                                    predicateCpa.getFormulaManagerFactory(),
@@ -243,6 +243,8 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
           if (itp.isTrue()) {
             continue;
           }
+
+          itp = fmgr.uninstantiate(itp);
 
           PredicateAbstractState predElement = getPredicateState(element);
           AbstractionFormula af = predElement.getAbstractionFormula();
