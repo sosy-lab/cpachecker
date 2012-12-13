@@ -64,7 +64,7 @@ public class PredicatingExplicitRefiner extends PredicateRefiner {
 
   protected PredicatingExplicitRefiner(Configuration pConfig,
       LogManager pLogger, ConfigurableProgramAnalysis pCpa,
-      InterpolationManager<Formula> pInterpolationManager,
+      InterpolationManager pInterpolationManager,
       PredicateRefinementManager pPredicateManager)
           throws CPAException, InvalidConfigurationException {
     super(pConfig, pLogger, pCpa, pInterpolationManager, pPredicateManager);

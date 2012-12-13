@@ -53,9 +53,7 @@ import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.DefaultInterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 import com.google.common.collect.Multimap;
@@ -110,7 +108,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner {
       AbstractionManager absManager               = predicateCpa.getAbstractionManager();
       pathFormulaManager                          = predicateCpa.getPathFormulaManager();
 
-      InterpolationManager<Formula> manager = new DefaultInterpolationManager(
+      InterpolationManager manager = new InterpolationManager(
           formulaManager,
           pathFormulaManager,
           solver,

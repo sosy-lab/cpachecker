@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.DefaultInterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 import com.google.common.collect.Iterables;
@@ -88,7 +87,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   private final PathFormulaManager pfmgr;
   private final TheoremProver prover;
   private final Solver solver;
-  private final InterpolationManager<Formula> imgr;
+  private final InterpolationManager imgr;
 
   private final Timer expandTime = new Timer();
   private final Timer forceCoverTime = new Timer();
@@ -141,7 +140,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, cfa.getMachineModel()));
     prover = factory.createTheoremProver();
     solver = new Solver(fmgr, prover);
-    imgr = new DefaultInterpolationManager(fmgr, pfmgr, solver, factory, config, logger);
+    imgr = new InterpolationManager(fmgr, pfmgr, solver, factory, config, logger);
   }
 
   public AbstractState getInitialState(CFANode location) {

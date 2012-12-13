@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.DefaultInterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 import com.google.common.base.Function;
@@ -130,7 +129,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
 
     LogManager logger = predicateCpa.getLogger();
 
-    InterpolationManager<Formula> manager = new DefaultInterpolationManager(predicateCpa.getFormulaManager(),
+    InterpolationManager manager = new InterpolationManager(predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
                                           predicateCpa.getSolver(),
                                           predicateCpa.getFormulaManagerFactory(),
@@ -148,7 +147,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
 
   protected PredicateRefiner(final Configuration config, final LogManager logger,
       final ConfigurableProgramAnalysis pCpa,
-      final InterpolationManager<Formula> pInterpolationManager,
+      final InterpolationManager pInterpolationManager,
       final PredicateRefinementManager pPredicateManager) throws CPAException, InvalidConfigurationException {
 
     super(config, logger, pCpa, pInterpolationManager);

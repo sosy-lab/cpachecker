@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager.SymbolicReg
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.DefaultInterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 import com.google.common.base.Predicates;
@@ -107,7 +106,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   private final ForcedCoveringStopOperator stop;
 
   private final FormulaManager fmgr;
-  private final InterpolationManager<Formula> imgr;
+  private final InterpolationManager imgr;
   private final Solver solver;
 
   public PredicateForcedCovering(Configuration config, LogManager pLogger,
@@ -125,7 +124,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
       throw new InvalidConfigurationException(PredicateForcedCovering.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    imgr = new DefaultInterpolationManager(predicateCpa.getFormulaManager(),
+    imgr = new InterpolationManager(predicateCpa.getFormulaManager(),
                                                    predicateCpa.getPathFormulaManager(),
                                                    predicateCpa.getSolver(),
                                                    predicateCpa.getFormulaManagerFactory(),

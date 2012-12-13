@@ -77,12 +77,12 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
 
   protected final LogManager logger;
 
-  private final InterpolationManager<I> formulaManager;
+  private final InterpolationManager formulaManager;
 
   // the previously analyzed counterexample to detect repeated counterexamples
   private List<Formula> lastErrorPath = null;
 
-  protected AbstractInterpolationBasedRefiner(final Configuration config, LogManager pLogger, final ConfigurableProgramAnalysis pCpa, InterpolationManager<I> pInterpolationManager) throws CPAException, InvalidConfigurationException {
+  protected AbstractInterpolationBasedRefiner(final Configuration config, LogManager pLogger, final ConfigurableProgramAnalysis pCpa, InterpolationManager pInterpolationManager) throws CPAException, InvalidConfigurationException {
     super(pCpa);
     config.inject(this, AbstractInterpolationBasedRefiner.class);
 
@@ -117,7 +117,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
     assert path.size() == formulas.size();
 
     // build the counterexample
-    final CounterexampleTraceInfo<I> counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
+    final CounterexampleTraceInfo<Formula> counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -135,10 +135,10 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
       final Path targetPath;
-      final CounterexampleTraceInfo<I> preciseCounterexample;
+      final CounterexampleTraceInfo<Formula> preciseCounterexample;
 
       if (branchingOccurred) {
-        Pair<Path, CounterexampleTraceInfo<I>> preciseInfo = findPreciseErrorPath(pPath, counterexample);
+        Pair<Path, CounterexampleTraceInfo<Formula>> preciseInfo = findPreciseErrorPath(pPath, counterexample);
 
         if (preciseInfo != null) {
           targetPath = preciseInfo.getFirst();
@@ -180,9 +180,9 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
   protected abstract List<Formula> getFormulasForPath(List<ARGState> path, ARGState initialState) throws CPATransferException;
 
   protected abstract void performRefinement(ARGReachedSet pReached, List<ARGState> path,
-      CounterexampleTraceInfo<I> counterexample, boolean pRepeatedCounterexample) throws CPAException;
+      CounterexampleTraceInfo<Formula> counterexample, boolean pRepeatedCounterexample) throws CPAException;
 
-  private Pair<Path, CounterexampleTraceInfo<I>> findPreciseErrorPath(Path pPath, CounterexampleTraceInfo<I> counterexample) {
+  private Pair<Path, CounterexampleTraceInfo<Formula>> findPreciseErrorPath(Path pPath, CounterexampleTraceInfo<Formula> counterexample) {
     errorPathProcessing.start();
     try {
 
@@ -208,7 +208,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
       }
 
       // try to create a better satisfying assignment by replaying this single path
-      CounterexampleTraceInfo<I> info2;
+      CounterexampleTraceInfo<Formula> info2;
       try {
         info2 = formulaManager.checkPath(targetPath.asEdgesList());
 
