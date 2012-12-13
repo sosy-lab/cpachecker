@@ -61,9 +61,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -127,14 +129,9 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
                                           predicateCpa.getConfiguration(),
                                           logger);
 
-    PredicateRefinementManager predManager = new PredicateRefinementManager(
-                                          predicateCpa.getAbstractionManager(),
-                                          predicateCpa.getFormulaManager(),
-                                          predicateCpa.getConfiguration(),
-                                          logger);
-
     this.refiner = new ExtendedPredicateRefiner(predicateCpa.getConfiguration(),
-        logger, pCpa, predicateCpa, manager, predManager);
+        logger, pCpa, predicateCpa, manager, predicateCpa.getFormulaManager(),
+        predicateCpa.getAbstractionManager());
   }
 
   @Override
@@ -163,9 +160,10 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         final ConfigurableProgramAnalysis pCpa,
         final ABMPredicateCPA predicateCpa,
         final InterpolationManager pInterpolationManager,
-        final PredicateRefinementManager pPredicateManager) throws CPAException, InvalidConfigurationException {
+        final FormulaManager pFormulaManager,
+        final AbstractionManager pAbstractionManager) throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pCpa, pInterpolationManager, pPredicateManager);
+      super(config, logger, pCpa, pInterpolationManager, pFormulaManager, pAbstractionManager);
 
       pfmgr = predicateCpa.getPathFormulaManager();
 

@@ -43,11 +43,12 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.PredicateMap;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
@@ -56,8 +57,6 @@ import com.google.common.collect.Lists;
 // TODO: check whether this class is needed at all or if it can just be replaced by PredicateRefiner
 public class PredicatingExplicitRefiner extends PredicateRefiner {
 
-  private final PredicateRefinementManager predicateManager;
-
   protected List<Pair<ARGState, CFAEdge>> currentErrorPath  = null;
 
   private int numberOfPredicateRefinements                    = 0;
@@ -65,11 +64,10 @@ public class PredicatingExplicitRefiner extends PredicateRefiner {
   protected PredicatingExplicitRefiner(Configuration pConfig,
       LogManager pLogger, ConfigurableProgramAnalysis pCpa,
       InterpolationManager pInterpolationManager,
-      PredicateRefinementManager pPredicateManager)
+      final FormulaManager pFormulaManager,
+      final AbstractionManager pAbstractionManager)
           throws CPAException, InvalidConfigurationException {
-    super(pConfig, pLogger, pCpa, pInterpolationManager, pPredicateManager);
-
-    predicateManager = pPredicateManager;
+    super(pConfig, pLogger, pCpa, pInterpolationManager, pFormulaManager, pAbstractionManager);
   }
 
   // overridden just for visibility
@@ -108,7 +106,7 @@ public class PredicatingExplicitRefiner extends PredicateRefiner {
     // extract predicates from interpolants
     List<Collection<AbstractionPredicate>> newPreds = Lists.newArrayList();
     for (Formula interpolant : pInfo.getInterpolants()) {
-      newPreds.add(predicateManager.convertInterpolant(interpolant));
+      newPreds.add(convertInterpolant(interpolant));
     }
 
     // create the mapping of CFA nodes to predicates, based on the counter example trace info

@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -116,18 +115,13 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner {
           config,
           logger);
 
-      PredicateRefinementManager predManager = new PredicateRefinementManager(
-          absManager,
-          formulaManager,
-          config,
-          logger);
-
       backupRefiner = new PredicatingExplicitRefiner(
           config,
           logger,
           cpa,
           manager,
-          predManager);
+          formulaManager,
+          absManager);
 
     } else {
       FormulaManagerFactory factory         = new FormulaManagerFactory(config, logger);

@@ -27,7 +27,9 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -59,8 +61,10 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -68,6 +72,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -81,6 +86,13 @@ import com.google.common.collect.Sets;
  */
 @Options(prefix="cpa.predicate.refinement")
 public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula> implements StatisticsProvider {
+
+  @Option(description="use only the atoms from the interpolants as predicates, "
+    + "and not the whole interpolant")
+  private boolean atomicPredicates = true;
+
+  @Option(description="split each arithmetic equality into two inequalities when extracting predicates from interpolants")
+  private boolean splitItpAtoms = false;
 
   @Option(description="refinement will add all discovered predicates "
           + "to all the locations in the abstract trace")
@@ -102,7 +114,8 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
 
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
-  private final PredicateRefinementManager predManager;
+  private final AbstractionManager amgr;
+  private final FormulaManager fmgr;
 
   private class Stats implements Statistics {
     @Override
@@ -136,25 +149,27 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
                                           predicateCpa.getConfiguration(),
                                           logger);
 
-    PredicateRefinementManager predManager = new PredicateRefinementManager(
-                                          predicateCpa.getAbstractionManager(),
-                                          predicateCpa.getFormulaManager(),
-                                          predicateCpa.getConfiguration(),
-                                          logger);
-
-    return new PredicateRefiner(predicateCpa.getConfiguration(), logger, pCpa, manager, predManager);
+    return new PredicateRefiner(
+        predicateCpa.getConfiguration(),
+        logger,
+        pCpa,
+        manager,
+        predicateCpa.getFormulaManager(),
+        predicateCpa.getAbstractionManager());
   }
 
   protected PredicateRefiner(final Configuration config, final LogManager logger,
       final ConfigurableProgramAnalysis pCpa,
       final InterpolationManager pInterpolationManager,
-      final PredicateRefinementManager pPredicateManager) throws CPAException, InvalidConfigurationException {
+      final FormulaManager pFormulaManager,
+      final AbstractionManager pAbstractionManager) throws CPAException, InvalidConfigurationException {
 
     super(config, logger, pCpa, pInterpolationManager);
 
     config.inject(this, PredicateRefiner.class);
 
-    predManager = pPredicateManager;
+    amgr = pAbstractionManager;
+    fmgr = pFormulaManager;
   }
 
   @Override
@@ -205,10 +220,50 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
     // extract predicates from interpolants
     List<Collection<AbstractionPredicate>> newPreds = Lists.newArrayList();
     for (Formula interpolant : pCounterexample.getInterpolants()) {
-      newPreds.add(predManager.convertInterpolant(interpolant));
+      newPreds.add(convertInterpolant(interpolant));
     }
 
     performRefinement(pReached, pPath, newPreds, pRepeatedCounterexample);
+  }
+
+  /**
+   * Get the predicates out of an interpolant.
+   * @param interpolant The interpolant formula.
+   * @return A set of predicates.
+   */
+  protected Collection<AbstractionPredicate> convertInterpolant(Formula interpolant) {
+
+    Collection<AbstractionPredicate> preds;
+
+    if (interpolant.isFalse()) {
+      preds = ImmutableSet.of(amgr.makeFalsePredicate());
+    } else {
+      preds = getAtomsAsPredicates(interpolant);
+    }
+    assert !preds.isEmpty();
+
+    logger.log(Level.FINEST, "Got predicates", preds);
+
+    return preds;
+  }
+
+  /**
+   * Create predicates for all atoms in a formula.
+   */
+  private List<AbstractionPredicate> getAtomsAsPredicates(Formula f) {
+    Collection<Formula> atoms;
+    if (atomicPredicates) {
+      atoms = fmgr.extractAtoms(f, splitItpAtoms, false);
+    } else {
+      atoms = Collections.singleton(fmgr.uninstantiate(f));
+    }
+
+    List<AbstractionPredicate> preds = new ArrayList<AbstractionPredicate>(atoms.size());
+
+    for (Formula atom : atoms) {
+      preds.add(amgr.makePredicate(atom));
+    }
+    return preds;
   }
 
   protected final void performRefinement(ARGReachedSet pReached,
