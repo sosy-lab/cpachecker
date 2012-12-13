@@ -220,12 +220,18 @@ class Test:
 
         # get name of test, name is optional, the result can be "None"
         self.name = testTag.get("name")
+        self.realName = self.name
 
         # get all test-specific options from testTag
         self.options = getOptions(testTag)
 
         # get all runs, a run contains one sourcefile with options
         self.getRuns(globalSourcefileTags + testTag.findall("sourcefiles"))
+
+
+    def shouldBeRun(self):
+        return not options.testRunOnly \
+            or self.realName in options.testRunOnly
 
 
     def getRuns(self, sourcefilesTagList):
@@ -239,8 +245,15 @@ class Test:
 
         for sourcefilesTag in sourcefilesTagList:
             blockName = sourcefilesTag.get("name", str(sourcefilesTagList.index(sourcefilesTag)))
-            if (blockName not in options.sourcefilesOnly):
+            if (options.sourcefilesOnly and blockName not in options.sourcefilesOnly):
                 continue
+
+            if (options.sourcefilesOnly and len(options.sourcefilesOnly) == 1) \
+                    or len(sourcefilesTagList) == 1:
+                # there is exactly one block to run, append block name to test name
+                givenBlockName = sourcefilesTag.get("name", None)
+                if givenBlockName:
+                    self.name = self.name + "." + givenBlockName if self.name else givenBlockName
 
             # get list of filenames
             sourcefiles = self.getSourcefiles(sourcefilesTag)
@@ -731,7 +744,7 @@ class OutputHandler:
             testname = self.benchmark.tests[0].name
         elif options.testRunOnly and len(options.testRunOnly) == 1:
             # in case we run only a single test, we can use this name
-            testname = options.testRunOnly[0]
+            testname = [test for test in self.benchmark.tests if test.shouldBeRun][0].name
 
         # write to file
         self.TXTContent = self.description
@@ -1975,7 +1988,7 @@ def runBenchmark(benchmarkFile):
         testnumber = benchmark.tests.index(test) + 1 # the first test has number 1
         (mod, rest) = options.moduloAndRest
 
-        if (options.testRunOnly and test.name not in options.testRunOnly) \
+        if not test.shouldBeRun() \
                 or (testnumber % mod != rest):
             outputHandler.outputForSkippingTest(test)
 
