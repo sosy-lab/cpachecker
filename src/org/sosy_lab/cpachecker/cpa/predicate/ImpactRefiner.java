@@ -168,12 +168,12 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
     assert lastElement.isTarget();
 
     path = path.subList(0, path.size()-1); // skip last element, itp is always false there
-    assert cex.getPredicatesForRefinement().size() ==  path.size();
+    assert cex.getInterpolants().size() ==  path.size();
 
     List<ARGState> changedElements = new ArrayList<ARGState>();
     ARGState infeasiblePartOfART = lastElement;
 
-    for (Pair<Formula, ARGState> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
+    for (Pair<Formula, ARGState> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
       Formula itp = interpolationPoint.getFirst();
       ARGState w = interpolationPoint.getSecond();
 

@@ -204,7 +204,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
 
     // extract predicates from interpolants
     List<Collection<AbstractionPredicate>> newPreds = Lists.newArrayList();
-    for (Formula interpolant : pCounterexample.getPredicatesForRefinement()) {
+    for (Formula interpolant : pCounterexample.getInterpolants()) {
       newPreds.add(predManager.convertInterpolant(interpolant));
     }
 

@@ -128,7 +128,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
       List<ARGState> path = predicateRefiner.transformPath(pPath);
-      predicateRefiner.performRefinement(pReached, path, counterexample.getPredicatesForRefinement(), false);
+      predicateRefiner.performRefinement(pReached, path, counterexample.getInterpolants(), false);
 
       totalRefinement.stop();
       return CounterexampleInfo.spurious();
@@ -230,9 +230,9 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
         boolean atomic = true;
         //Collection<AbstractionPredicate> phiPreds = makeAbstractionPredicates(phi);
         Collection<AbstractionPredicate> phiPreds = makeAbstrPreds(phi, atomic);
-        ceti.addPredicatesForRefinement(phiPreds);
+        ceti.addInterpolant(phiPreds);
       } else {
-        ceti.addPredicatesForRefinement(trueFormula);
+        ceti.addInterpolant(trueFormula);
       }
     }
   }

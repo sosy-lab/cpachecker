@@ -187,7 +187,7 @@ public final class InterpolationManager {
   }
 
   /**
-   * Counterexample analysis and predicate discovery.
+   * Counterexample analysis.
    * This method is just an helper to delegate the actual work
    * This is used to detect timeouts for interpolation
    *
@@ -739,7 +739,7 @@ public final class InterpolationManager {
     int i = 1;
     for (Formula itp : interpolants) {
       logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
-      info.addPredicatesForRefinement(itp);
+      info.addInterpolant(itp);
     }
 
     return info;

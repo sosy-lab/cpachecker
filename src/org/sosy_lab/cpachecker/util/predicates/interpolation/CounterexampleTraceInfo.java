@@ -39,13 +39,11 @@ import com.google.common.collect.Lists;
 
 /**
  * A class that stores information about a counterexample trace.
- * For spurious counterexamples, this stores a predicate map
- * with new predicates that are sufficient to rule out the trace in the
- * refined abstract model.
+ * For spurious counterexamples, this stores the interpolants.
  */
 public class CounterexampleTraceInfo<I> {
     private final boolean spurious;
-    private final List<I> pmap;
+    private final List<I> interpolants;
     private final Model mCounterexampleModel;
     private final List<Formula> mCounterexampleFormula;
     private final Map<Integer, Boolean> branchingPreds;
@@ -54,7 +52,7 @@ public class CounterexampleTraceInfo<I> {
       mCounterexampleFormula = Collections.emptyList();
       mCounterexampleModel = null;
       spurious = true;
-      pmap = Lists.newArrayList();
+      interpolants = Lists.newArrayList();
       branchingPreds = ImmutableMap.of();
     }
 
@@ -62,7 +60,7 @@ public class CounterexampleTraceInfo<I> {
       mCounterexampleFormula = checkNotNull(pCounterexampleFormula);
       mCounterexampleModel = checkNotNull(pModel);
       spurious = false;
-      pmap = ImmutableList.of();
+      interpolants = ImmutableList.of();
       branchingPreds = preds;
     }
 
@@ -73,32 +71,28 @@ public class CounterexampleTraceInfo<I> {
     public boolean isSpurious() { return spurious; }
 
     /**
-     * returns the list of Predicates that were discovered during
-     * counterexample analysis for the given AbstractState. The invariant is
-     * that the union of all the predicates for all the AbstractStates in
-     * the spurious counterexample is sufficient for refining the abstract
-     * model such that this trace is no longer feasible in it
+     * Returns the list of interpolants that were discovered during
+     * counterexample analysis.
      *
-     * @return a list of predicates
+     * @return a list of interpolants
      */
-    public List<I> getPredicatesForRefinement() {
+    public List<I> getInterpolants() {
       checkState(spurious);
-      return pmap;
+      return interpolants;
     }
 
     /**
-     * Adds some predicates to the list of those corresponding to the given
-     * AbstractState
+     * Add an interpolant to the end of the list of interpolants.
      */
-    public void addPredicatesForRefinement(I preds) {
+    public void addInterpolant(I itp) {
       checkState(spurious);
-      pmap.add(preds);
+      interpolants.add(itp);
     }
 
     @Override
     public String toString() {
       return "Spurious: " + isSpurious() +
-        (isSpurious() ? ", new predicates: " + pmap : "");
+        (isSpurious() ? ", interpolants: " + interpolants : "");
     }
 
     public List<Formula> getCounterExampleFormulas() {

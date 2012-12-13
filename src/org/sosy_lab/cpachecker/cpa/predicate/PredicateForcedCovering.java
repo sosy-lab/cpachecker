@@ -231,7 +231,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         stats.successfulForcedCoverings++;
         logger.log(Level.FINER, "Forced covering successful.");
 
-        List<Formula> interpolants = interpolantInfo.getPredicatesForRefinement();
+        List<Formula> interpolants = interpolantInfo.getInterpolants();
         assert interpolants.size() == formulas.size() - 1 : "Number of interpolants is wrong";
         assert interpolants.size() == path.size();
 

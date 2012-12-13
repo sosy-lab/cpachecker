@@ -211,11 +211,11 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.FINER, "Refinement successful");
 
       path = path.subList(0, path.size()-1); // skip last element, itp is always false there
-      assert cex.getPredicatesForRefinement().size() ==  path.size();
+      assert cex.getInterpolants().size() ==  path.size();
 
       List<Vertex> changedElements = new ArrayList<Vertex>();
 
-      for (Pair<Formula, Vertex> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
+      for (Pair<Formula, Vertex> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
         Formula itp = interpolationPoint.getFirst();
         Vertex w = interpolationPoint.getSecond();
 
@@ -337,7 +337,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     logger.log(Level.FINER, "Forced covering successful.");
 
 
-    List<Formula> interpolants = interpolantInfo.getPredicatesForRefinement();
+    List<Formula> interpolants = interpolantInfo.getInterpolants();
     assert interpolants.size() == formulas.size() - 1;
     assert interpolants.size() ==  path.size();
 

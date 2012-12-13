@@ -107,7 +107,7 @@ public class PredicatingExplicitRefiner extends PredicateRefiner {
 
     // extract predicates from interpolants
     List<Collection<AbstractionPredicate>> newPreds = Lists.newArrayList();
-    for (Formula interpolant : pInfo.getPredicatesForRefinement()) {
+    for (Formula interpolant : pInfo.getInterpolants()) {
       newPreds.add(predicateManager.convertInterpolant(interpolant));
     }
 
