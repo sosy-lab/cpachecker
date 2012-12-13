@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
+import static java.util.Collections.unmodifiableList;
 import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
@@ -184,7 +185,7 @@ public class ImpactGlobalRefiner<T> implements Refiner {
       try {
         if (itpProver.isUnsat()) {
           logger.log(Level.FINE, "Found unreachable state", succ);
-          performRefinementOnPath(Lists.newArrayList(itpStack), succ, predecessors, pReached);
+          performRefinementOnPath(unmodifiableList(itpStack), succ, predecessors, pReached);
 
         } else if (targets.contains(succ)) {
           // We have found a reachable target state, immediately abort refinement.
@@ -229,6 +230,7 @@ public class ImpactGlobalRefiner<T> implements Refiner {
     assert !itpStack.isEmpty();
     assert itpProver.getInterpolant(itpStack).isFalse(); // last interpolant is False
 
+    itpStack = Lists.newArrayList(itpStack); // copy because we will modify it
     List<ARGState> affectedStates = Lists.newArrayList();
 
     // going upwards from unreachableState refining states with interpolants
@@ -236,7 +238,7 @@ public class ImpactGlobalRefiner<T> implements Refiner {
     do {
       itpStack.remove(itpStack.size()-1); // remove last
       currentState = predecessors.get(currentState);
-      assert itpStack.isEmpty() == currentState.getParents().isEmpty();
+      assert itpStack.isEmpty() == currentState.getParents().isEmpty(); // we should have reached the ARG root
 
       Formula currentItp = itpProver.getInterpolant(itpStack);
 
