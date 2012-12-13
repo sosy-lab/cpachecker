@@ -329,6 +329,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     final FunctionEntryNode startNode = new CFunctionEntryNode(
         fileloc.getStartingLineNumber(), fdef, returnNode, parameterNames);
     cfaNodes.add(startNode);
+    returnNode.setEntryNode(startNode);
     cfa = startNode;
 
     final CFANode nextNode = newCFANode(fileloc);
