@@ -47,10 +47,16 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+
+import com.google.common.collect.Lists;
 
 // TODO: check whether this class is needed at all or if it can just be replaced by PredicateRefiner
 public class PredicatingExplicitRefiner extends PredicateRefiner {
+
+  private final PredicateRefinementManager predicateManager;
 
   protected List<Pair<ARGState, CFAEdge>> currentErrorPath  = null;
 
@@ -58,9 +64,12 @@ public class PredicatingExplicitRefiner extends PredicateRefiner {
 
   protected PredicatingExplicitRefiner(Configuration pConfig,
       LogManager pLogger, ConfigurableProgramAnalysis pCpa,
-      PredicateRefinementManager pInterpolationManager)
+      InterpolationManager<Formula> pInterpolationManager,
+      PredicateRefinementManager pPredicateManager)
           throws CPAException, InvalidConfigurationException {
-    super(pConfig, pLogger, pCpa, pInterpolationManager);
+    super(pConfig, pLogger, pCpa, pInterpolationManager, pPredicateManager);
+
+    predicateManager = pPredicateManager;
   }
 
   // overridden just for visibility
@@ -75,7 +84,7 @@ public class PredicatingExplicitRefiner extends PredicateRefiner {
   protected void performRefinement(
       ARGReachedSet pReached,
       List<ARGState> errorPath,
-      CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexampleTraceInfo,
+      CounterexampleTraceInfo<Formula> counterexampleTraceInfo,
       boolean pRepeatedCounterexample)
       throws CPAException {
 
@@ -94,9 +103,16 @@ public class PredicatingExplicitRefiner extends PredicateRefiner {
       UnmodifiableReachedSet reachedSet,
       Precision oldPrecision,
       List<ARGState> errorPath,
-      CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo) throws CPAException {
+      CounterexampleTraceInfo<Formula> pInfo) throws CPAException {
+
+    // extract predicates from interpolants
+    List<Collection<AbstractionPredicate>> newPreds = Lists.newArrayList();
+    for (Formula interpolant : pInfo.getPredicatesForRefinement()) {
+      newPreds.add(predicateManager.convertInterpolant(interpolant));
+    }
+
     // create the mapping of CFA nodes to predicates, based on the counter example trace info
-    PredicateMap predicateMap = new PredicateMap(pInfo.getPredicatesForRefinement(), errorPath);
+    PredicateMap predicateMap = new PredicateMap(newPreds, errorPath);
 
     Precision precision = extractPredicatePrecision(oldPrecision)
         .addLocalPredicates(predicateMap.getPredicateMapping());

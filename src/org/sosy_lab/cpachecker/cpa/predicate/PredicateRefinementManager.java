@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,22 +36,19 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 
 
 @Options(prefix="cpa.predicate.refinement")
-public class PredicateRefinementManager extends InterpolationManager<Collection<AbstractionPredicate>> {
+public class PredicateRefinementManager {
+
+  private final LogManager logger;
 
   private final AbstractionManager amgr;
+  private final FormulaManager fmgr;
 
   @Option(description="use only the atoms from the interpolants as predicates, "
     + "and not the whole interpolant")
@@ -62,27 +58,23 @@ public class PredicateRefinementManager extends InterpolationManager<Collection<
   private boolean splitItpAtoms = false;
 
   public PredicateRefinementManager(
-      ExtendedFormulaManager pFmgr,
-      PathFormulaManager pPmgr,
-      Solver pSolver,
       AbstractionManager pAmgr,
-      FormulaManagerFactory pFmgrFactory,
+      FormulaManager pFmgr,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
-    super(pFmgr, pPmgr, pSolver, pFmgrFactory, config, pLogger);
     config.inject(this, PredicateRefinementManager.class);
 
+    logger = pLogger;
     amgr = pAmgr;
+    fmgr = pFmgr;
   }
 
   /**
    * Get the predicates out of an interpolant.
    * @param interpolant The interpolant formula.
-   * @param index The index in the list of formulas (just for debugging)
    * @return A set of predicates.
    */
-  @Override
-  protected Collection<AbstractionPredicate> convertInterpolant(Formula interpolant, int index) {
+  public Collection<AbstractionPredicate> convertInterpolant(Formula interpolant) {
 
     Collection<AbstractionPredicate> preds;
 
@@ -93,17 +85,7 @@ public class PredicateRefinementManager extends InterpolationManager<Collection<
     }
     assert !preds.isEmpty();
 
-    logger.log(Level.FINEST, "For step", index, "got:", "predicates", preds);
-
-    File dumpFile = formatFormulaOutputFile("atoms", index);
-    Collection<Formula> atoms = Collections2.transform(preds,
-        new Function<AbstractionPredicate, Formula>(){
-              @Override
-              public Formula apply(AbstractionPredicate pArg0) {
-                return pArg0.getSymbolicAtom();
-              }
-        });
-    fmgr.printFormulasToFile(atoms, dumpFile);
+    logger.log(Level.FINEST, "Got predicates", preds);
 
     return preds;
   }
@@ -125,10 +107,5 @@ public class PredicateRefinementManager extends InterpolationManager<Collection<
       preds.add(amgr.makePredicate(atom));
     }
     return preds;
-  }
-
-  @Override
-  protected Collection<AbstractionPredicate> getTrueInterpolant() {
-    return Collections.emptySet();
   }
 }

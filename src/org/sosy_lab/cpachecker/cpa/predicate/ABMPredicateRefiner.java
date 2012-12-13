@@ -67,6 +67,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.DefaultInterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -119,16 +121,21 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
 
     LogManager logger = predicateCpa.getLogger();
 
-    PredicateRefinementManager manager = new PredicateRefinementManager(predicateCpa.getFormulaManager(),
+    InterpolationManager<Formula> manager = new DefaultInterpolationManager(predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
                                           predicateCpa.getSolver(),
-                                          predicateCpa.getAbstractionManager(),
                                           predicateCpa.getFormulaManagerFactory(),
                                           predicateCpa.getConfiguration(),
                                           logger);
 
+    PredicateRefinementManager predManager = new PredicateRefinementManager(
+                                          predicateCpa.getAbstractionManager(),
+                                          predicateCpa.getFormulaManager(),
+                                          predicateCpa.getConfiguration(),
+                                          logger);
+
     this.refiner = new ExtendedPredicateRefiner(predicateCpa.getConfiguration(),
-        logger, pCpa, predicateCpa, manager);
+        logger, pCpa, predicateCpa, manager, predManager);
   }
 
   @Override
@@ -156,9 +163,10 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     private ExtendedPredicateRefiner(final Configuration config, final LogManager logger,
         final ConfigurableProgramAnalysis pCpa,
         final ABMPredicateCPA predicateCpa,
-        final PredicateRefinementManager pInterpolationManager) throws CPAException, InvalidConfigurationException {
+        final InterpolationManager<Formula> pInterpolationManager,
+        final PredicateRefinementManager pPredicateManager) throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pCpa, pInterpolationManager);
+      super(config, logger, pCpa, pInterpolationManager, pPredicateManager);
 
       pfmgr = predicateCpa.getPathFormulaManager();
 
@@ -202,7 +210,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     protected void performRefinement(
         ARGReachedSet pReached,
         List<ARGState> pPath,
-        CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample,
+        CounterexampleTraceInfo<Formula> pCounterexample,
         boolean pRepeatedCounterexample) throws CPAException {
 
       // overriding this method is needed, as, in principle, it is possible to get two successive spurious counterexamples
