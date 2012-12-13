@@ -67,7 +67,15 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 
-
+/**
+ * Refiner implementation that does "global" refinements, uses interpolation,
+ * and performs an Impact-like update of the ARG.
+ * Global refinements mean that we do not refine a path from the ARG root
+ * to a single target states, but instead all paths from the ARG root to all
+ * existing target states.
+ * We do so by recursively traversing the ARG in a DFS order,
+ * refining infeasible paths one by one.
+ */
 public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
 
   private final LogManager logger;
@@ -181,6 +189,14 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
     }
   }
 
+  /**
+   * Do refinement for a set of target states.
+   *
+   * The strategy is to first build the predecessor/successor relations for all
+   * abstraction states on the paths to the target states, and then call
+   * {@link #performRefinementOnSubgraph(ARGState, List, SetMultimap, Map, ReachedSet, List)}
+   * on the root state of the ARG.
+   */
   private boolean performRefinement0(ReachedSet pReached, List <AbstractState> targets) throws CPAException, InterruptedException {
     logger.log(Level.FINE, "Starting refinement for", targets.size(), "elements.");
 
@@ -226,6 +242,30 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
     return successful;
   }
 
+  /**
+   * Recursively perform refinement on the subgraph of the ARG starting with a given state.
+   * Each recursion step corresponds to one "block" of the ARG. As one block
+   * may have several successors, this is recursion on a tree.
+   * We proceed in a DFS order.
+   * Recursion stops as soon as the path has been determined to be infeasible
+   * (so we do refinement as soon as possible) or a target state is reached
+   * (then we found a feasible counterexample).
+   * When an infeasible state was found, we call
+   * {@link #performRefinementOnPath(List, ARGState, Map, ReachedSet)}
+   * to do the actual refinement.
+   *
+   * Note that the successor and predecessor relation contains only states
+   * that belong to paths to a target state, so we refine only such paths,
+   * and not all paths in the ARG.
+   *
+   * @param current The ARG state that is the root of the to-be-refined ARG part.
+   * @param itpStack The stack of interpolation groups added to the solver environment so far.
+   * @param successors The successor relation between abstraction states.
+   * @param predecessors The predecessor relation between abstraction states.
+   * @param pReached The complete reached set.
+   * @param targets The set of target states.
+   * @return False if a feasible counterexample was found, True if refinement was successful.
+   */
   private boolean step(ARGState current, List<T> itpStack, SetMultimap<ARGState, ARGState> successors,
       Map<ARGState, ARGState> predecessors, ReachedSet pReached, List<AbstractState> targets)
       throws InterruptedException, CPAException {
@@ -276,6 +316,13 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
 
   /**
    * Actually perform refinement on one path.
+   * We compute the interpolants and then start with the unreachable state
+   * going back up in the ARG until the interpolants are simply "true",
+   * calling {@link #performRefinementForState(Formula, ARGState)} once for each
+   * interpolant and its corresponding state.
+   * Afterwards we call {@link #finishRefinementOfPath(ARGState, List, ReachedSet)}
+   * once.
+   *
    * @param itpStack The list with the interpolation groups.
    * @param unreachableState The first state in the path which is infeasible (this identifies the path).
    * @param predecessors The predecessor relation of abstraction states.
@@ -329,8 +376,12 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
 
   /**
    * Perform refinement on one state given the interpolant that was determined
-   * by the solver for this state. This strengthens the state by conjunctively
-   * adding the interpolant to its state formula.
+   * by the solver for this state. This method is only called for states for
+   * which there is a non-trivial interpolant (i.e., neither True nor False).
+   *
+   * For each interpolant, we strengthen the corresponding state by
+   * conjunctively adding the interpolant to its state formula.
+   *
    * @param interpolant The interpolant.
    * @param state The state.
    * @return True if no refinement was necessary (this implies that refinement
@@ -360,6 +411,11 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
 
   /**
    * Do any necessary work after one path has been refined.
+   *
+   * After a path was strengthened, we need to take care of the coverage relation.
+   * We also remove the infeasible part from the ARG,
+   * and re-establish the coverage invariant (i.e., that states on the path
+   * are either covered or cannot be covered).
    *
    * @param unreachableState The first state in the path which is infeasible (this identifies the path).
    * @param affectedStates The list of states that were affected by the refinement (ordered from top of ARG to target state).
