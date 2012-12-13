@@ -43,9 +43,10 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   private final CStorageClass    cStorageClass;
 
 
+
   public CVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
       CStorageClass pCStorageClass, CType pType, String pName, String pOrigName,
-      Initializer pInitializer) {
+      CInitializer pInitializer) {
 
     super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), pOrigName,pInitializer);
     cStorageClass = pCStorageClass;
@@ -67,7 +68,24 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     return cStorageClass;
   }
 
+  @Override
+  public CInitializer getInitializer() {
+    // TODO Auto-generated method stub
+    return (CInitializer) super.getInitializer();
+  }
 
+
+
+  /**
+   * Add an initializer.
+   * This is only possible if there is no initializer already.
+   * DO NOT CALL this method after CFA construction!
+   * @param pInitializer the new initializer
+   */
+  public void addInitializer(Initializer pInitializer) {
+    checkState(initializer == null);
+    initializer = pInitializer;
+  }
 
   @Override
   public String toASTString() {

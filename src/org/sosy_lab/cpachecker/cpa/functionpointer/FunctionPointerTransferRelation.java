@@ -37,7 +37,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
-import org.sosy_lab.cpachecker.cfa.ast.Initializer;
+import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -185,7 +186,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
           // now substitute the real edge with the fake edge
           cfaEdge = callEdge;
         } else {
-          throw new UnrecognizedCCodeException("function pointer points to unknown function " + functionName, pCfaEdge);
+          logger.log(Level.WARNING, "Ignoring function pointer call to external function", functionName);
+          cfaEdge = pCfaEdge;
         }
 
       } else if (target instanceof UnknownTarget) {
@@ -263,6 +265,10 @@ class FunctionPointerTransferRelation implements TransferRelation {
       } else {
         throw new UnrecognizedCCodeException("unknown function call expression", pCfaEdge, nameExp);
       }
+    }
+
+    if (nameExp instanceof CCastExpression) {
+      nameExp = ((CCastExpression) nameExp).getOperand();
     }
 
     if (nameExp instanceof CIdExpression) {
@@ -364,7 +370,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     FunctionPointerTarget initialValue = invalidFunctionPointerTarget;
 
     if (decl.getInitializer() != null) {
-      Initializer init = decl.getInitializer();
+      IAInitializer init = decl.getInitializer();
       if (init instanceof CInitializerExpression) {
         initialValue = getValue(((CInitializerExpression) init).getExpression(), pNewState, functionName);
       }
@@ -533,6 +539,10 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     @Override
     public FunctionPointerTarget visit(CIdExpression pE) {
+      if (pE.getExpressionType() instanceof CFunctionPointerType) {
+        return new NamedFunctionTarget(pE.getName());
+      }
+
       return state.getTarget(scopedIfNecessary(pE, function));
     }
 

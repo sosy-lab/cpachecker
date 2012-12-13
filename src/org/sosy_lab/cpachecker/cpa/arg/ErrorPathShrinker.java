@@ -30,14 +30,16 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -211,13 +213,15 @@ public final class ErrorPathShrinker {
    * @param exp the expression to be divided and added
    * @param importantVars all currently important variables
    * @param importantVarsForGlobalVars variables, that influence global vars */
-  private void addAllVarsInExpToSet(final IAExpression exp,
+  private void addAllVarsInExpToSet(final IARightHandSide exp,
       final Set<String> importantVars,
       final Set<String> importantVarsForGlobalVars) {
 
     // exp = 8.2 or "return;" (when exp == null),
     // this does not change the Set importantVars,
-    if (exp instanceof ALiteralExpression || exp == null) {
+    if (exp instanceof ALiteralExpression ||
+        exp instanceof AFunctionCallExpression ||
+        exp == null) {
       // do nothing
     }
 
@@ -561,8 +565,8 @@ public final class ErrorPathShrinker {
           ((AStatementEdge) currentCFAEdgePair.getSecond()).getStatement();
 
       // expression is an assignment operation, e.g. a = b;
-      if (statementExp instanceof AExpressionAssignmentStatement) {
-        handleAssignment((AExpressionAssignmentStatement) statementExp);
+      if (statementExp instanceof IAssignment) {
+        handleAssignment((IAssignment) statementExp);
       }
 
       // ext();
@@ -574,10 +578,12 @@ public final class ErrorPathShrinker {
     /** This method handles assignments (?a = ??).
      *
      * @param binaryExpression the expression to prove */
-    private void handleAssignment(final AExpressionAssignmentStatement assignmentExpression) {
+    private void handleAssignment(final IAssignment statementExp) {
 
-      IAExpression lParam = assignmentExpression.getLeftHandSide();
-      IAExpression rightExp = assignmentExpression.getRightHandSide();
+
+
+      IAExpression lParam = statementExp.getLeftHandSide();
+      IARightHandSide rightExp = statementExp.getRightHandSide();
 
       // a = ?
       if (lParam instanceof AIdExpression) {
@@ -611,7 +617,8 @@ public final class ErrorPathShrinker {
      * @param lParam the local name of the variable to assign to
      * @param rightExp the assigning expression */
     private void handleAssignmentToVariable(final String lParam,
-        final IAExpression rightExp) {
+        final IARightHandSide rightExp) {
+
 
       // FIRST add edge to the Path, THEN remove lParam from Set
       if (importantVars.contains(lParam)

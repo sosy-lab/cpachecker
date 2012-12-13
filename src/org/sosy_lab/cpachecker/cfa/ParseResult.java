@@ -52,12 +52,16 @@ public class ParseResult {
 
   private final List<Pair<IADeclaration, String>> globalDeclarations;
 
+  private final Language language;
+
   public ParseResult(Map<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pCfaNodes,
-      List<Pair<IADeclaration, String>> pGlobalDeclarations) {
+      List<Pair<IADeclaration, String>> pGlobalDeclarations,
+      Language pLanguage) {
     functions = pFunctions;
     cfaNodes = pCfaNodes;
     globalDeclarations = pGlobalDeclarations;
+    language = pLanguage;
 
   }
 
@@ -75,5 +79,9 @@ public class ParseResult {
 
   public List<Pair<IADeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
+  }
+
+  public Language getLanguage() {
+    return language;
   }
 }

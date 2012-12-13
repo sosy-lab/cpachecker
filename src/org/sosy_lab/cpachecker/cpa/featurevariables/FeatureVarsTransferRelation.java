@@ -361,12 +361,6 @@ public class FeatureVarsTransferRelation implements TransferRelation {
     Region returnValue = null;
     // binary expression
     switch (opType) {
-    case LOGICAL_AND:
-      returnValue = rmgr.makeAnd(operand1, operand2);
-      break;
-    case LOGICAL_OR:
-      returnValue = rmgr.makeOr(operand1, operand2);
-      break;
     case EQUALS:
       returnValue = rmgr.makeOr(
               rmgr.makeAnd(operand1, operand2),

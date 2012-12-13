@@ -29,7 +29,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.Initializer;
+import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -854,7 +854,7 @@ class OctTransferRelation implements TransferRelation{
 
         Long v;
 
-        Initializer init = decl.getInitializer();
+        IAInitializer init = decl.getInitializer();
         if (init != null) {
           if (init instanceof CInitializerExpression) {
             CExpression exp = ((CInitializerExpression)init).getExpression();

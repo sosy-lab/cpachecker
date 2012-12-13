@@ -40,6 +40,7 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
@@ -249,7 +250,7 @@ public class EclipseJavaParser implements Parser {
       DynamicBindingCreator tracker = new DynamicBindingCreator(builder);
       tracker.trackAndCreateDynamicBindings();
 
-      return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getStaticFieldDeclarations());
+      return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getStaticFieldDeclarations(), Language.JAVA);
     } catch (CFAGenerationRuntimeException e) {
       throw new JParserException(e);
     } finally {

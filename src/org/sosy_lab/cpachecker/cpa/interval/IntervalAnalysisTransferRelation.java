@@ -36,7 +36,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.Initializer;
+import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -623,7 +623,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
           Interval interval;
 
-          Initializer init = decl.getInitializer();
+          IAInitializer init = decl.getInitializer();
 
           // global variables may be initialized explicitly on the spot ...
           if (init instanceof CInitializerExpression)

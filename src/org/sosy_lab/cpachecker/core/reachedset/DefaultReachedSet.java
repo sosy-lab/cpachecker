@@ -172,7 +172,7 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public Set<AbstractState> getReached() {
+  public Set<AbstractState> asCollection() {
     return unmodifiableReached;
   }
 
@@ -188,12 +188,12 @@ class DefaultReachedSet implements ReachedSet {
 
   @Override
   public Collection<AbstractState> getReached(AbstractState state) {
-    return getReached();
+    return asCollection();
   }
 
   @Override
   public Collection<AbstractState> getReached(CFANode location) {
-    return getReached();
+    return asCollection();
   }
 
   @Override

@@ -34,12 +34,11 @@ public class CFunctionCallExpression extends AFunctionCallExpression implements 
 
 
 
-
   public CFunctionCallExpression(final FileLocation pFileLocation,
                                     final CType pType,
                                     final CExpression pFunctionName,
                                     final List<CExpression> pParameters,
-                                    final CSimpleDeclaration pDeclaration) {
+                                    final CFunctionDeclaration pDeclaration) {
 
     super(pFileLocation, pType , pFunctionName ,  pParameters , pDeclaration);
 
@@ -70,9 +69,11 @@ public class CFunctionCallExpression extends AFunctionCallExpression implements 
    * The result may be null if the function was not declared, or if a complex
    * function name expression is used (i.e., a function pointer).
    */
+
   @Override
-  public CSimpleDeclaration getDeclaration() {
-    return (CSimpleDeclaration) declaration;
+  public CFunctionDeclaration getDeclaration() {
+
+    return  (CFunctionDeclaration) declaration;
   }
 
   @Override

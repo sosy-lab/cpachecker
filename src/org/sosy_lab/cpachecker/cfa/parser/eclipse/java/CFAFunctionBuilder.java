@@ -69,7 +69,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.Initializer;
+import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
@@ -588,7 +588,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       scope.registerDeclarationOfThisClass(newD);
 
-      Initializer initializer = ((JVariableDeclaration) newD).getInitializer();
+      IAInitializer initializer = ((JVariableDeclaration) newD).getInitializer();
 
       // resolve Boolean Initializer for easier analysis
       // if initializer is boolean. Not necessary for simple boolean literal.
@@ -613,7 +613,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private CFANode resolveBooleanInitializer(JVariableDeclaration newD,
                                                         CFANode prevNode) {
 
-    Initializer initializer = newD.getInitializer();
+    IAInitializer initializer = newD.getInitializer();
 
     int fileLocStart = newD.getFileLocation().getStartingLineNumber();
 

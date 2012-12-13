@@ -26,4 +26,5 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public interface IAInitializer extends IAstNode {
 
+
 }

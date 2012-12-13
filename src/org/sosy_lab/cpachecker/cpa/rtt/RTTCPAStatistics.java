@@ -52,7 +52,7 @@ public class RTTCPAStatistics implements Statistics {
     long totalNumberOfVariables         = 0;
     long totalNumberOfGlobalVariables   = 0;
 
-    for (AbstractState currentAbstractState : reached.getReached()) {
+    for (AbstractState currentAbstractState : reached) {
       RTTState currentState = AbstractStates.extractStateByType(currentAbstractState, RTTState.class);
 
       int numberOfVariables         = currentState.getConstantsMap().size();

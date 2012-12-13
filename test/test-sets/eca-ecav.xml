@@ -2,8 +2,8 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="ecav" timelimit="300" memlimit="15000">
   <sourcefiles>
-    <include>test/programs/eca/*.c</include>
-    <include>test/programs/eca-simplified/*.c</include>
+    <include>../programs/eca/*.c</include>
+    <include>../programs/eca-simplified/*.c</include>
   </sourcefiles>
   
   <option name="-specToCheck">ERROR</option>

@@ -342,7 +342,7 @@ CONF_RETURN
 /*
  * void msat_destroy_config(msat_config cfg);
  */
-DEFINE_FUNC(void, 1destroy_config) WITH_ONE_ARG(jconf)
+DEFINE_FUNC(void, 1destroy_1config) WITH_ONE_ARG(jconf)
 CONF_ARG(1)
 VOID_CALL1(destroy_config)
 
@@ -434,6 +434,24 @@ CALL3(msat_type, get_array_type)
 TYPE_RETURN
 
 /*
+ * msat_type msat_get_fp_type(msat_env env, size_t exp_with, size_t mant_with);
+ */
+DEFINE_FUNC(jtype, 1get_1fp_1type) WITH_THREE_ARGS(jenv, int, int)
+ENV_ARG(1)
+SIMPLE_ARG(size_t, 2)
+SIMPLE_ARG(size_t, 3)
+CALL3(msat_type, get_fp_type)
+TYPE_RETURN
+
+/*
+ * msat_type msat_get_fp_roundingmode_type(msat_env env);
+ */
+DEFINE_FUNC(jtype, 1get_1fp_1roundingmode_1type) WITH_ONE_ARG(jenv)
+ENV_ARG(1)
+CALL1(msat_type, get_fp_roundingmode_type)
+TYPE_RETURN
+
+/*
  * msat_type msat_get_function_type(msat_env env, msat_type *param_types,
  *                               size_t num_params, msat_type return_type);
  */
@@ -476,10 +494,22 @@ BOOLEAN_RETURN
 DEFINE_FUNC(jboolean, 1is_1bv_1type) WITH_TWO_ARGS(jenv, jtype)
 ENV_ARG(1)
 TYPE_ARG(2)
+NULL_ARG(size_t, 3);
+CALL3(int, is_bv_type)
+BOOLEAN_RETURN
+
+DEFINE_FUNC(int, 1get_1bv_1type_1size) WITH_TWO_ARGS(jenv, jtype)
+ENV_ARG(1)
+TYPE_ARG(2)
 size_t r_arg3;
 size_t *m_arg3 = &r_arg3;
 CALL3(int, is_bv_type)
-BOOLEAN_RETURN
+  if (retval != 1) { \
+    throwException(jenv, "java/lang/IllegalArgumentException", "Cannot get size of non-bv term"); \
+    return -1;
+  } \
+  return (jint)r_arg3; \
+}
 
 
 DEFINE_FUNC(jboolean, 1is_1array_1type) WITH_TWO_ARGS(jenv, jtype)
@@ -488,6 +518,20 @@ TYPE_ARG(2)
 NULL_ARG(msat_type, 3)
 NULL_ARG(msat_type, 4)
 CALL4(int, is_array_type)
+BOOLEAN_RETURN
+
+DEFINE_FUNC(jboolean, 1is_1fp_1type) WITH_TWO_ARGS(jenv, jtype)
+ENV_ARG(1)
+TYPE_ARG(2)
+NULL_ARG(size_t, 3)
+NULL_ARG(size_t, 4)
+CALL4(int, is_fp_type)
+BOOLEAN_RETURN
+
+DEFINE_FUNC(jboolean, 1is_1fp_1roundingmode_1type) WITH_TWO_ARGS(jenv, jtype)
+ENV_ARG(1)
+TYPE_ARG(2)
+CALL2(int, is_fp_roundingmode_type)
 BOOLEAN_RETURN
 
 DEFINE_FUNC(jboolean, 1type_1equals) WITH_TWO_ARGS(jtype, jtype)

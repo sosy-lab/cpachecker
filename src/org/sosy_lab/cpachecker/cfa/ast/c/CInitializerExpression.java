@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
-public final class CInitializerExpression extends AInitializerExpression {
+public final class CInitializerExpression extends AInitializerExpression implements CInitializer {
 
 
 
@@ -43,4 +43,9 @@ public final class CInitializerExpression extends AInitializerExpression {
   }
 
 
+
+  @Override
+  public <R, X extends Exception> R accept(CInitializerVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
 }

@@ -43,6 +43,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -153,7 +154,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
         throw new CParserException(e);
       }
 
-      return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations2());
+      return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations2(), Language.C);
     } finally {
       cfaTimer.stop();
     }

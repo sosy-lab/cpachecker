@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -83,10 +84,12 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
 
   private final Configuration config;
   private final LogManager logger;
+  private final MachineModel machineModel;
 
   private ExplicitCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;
+    this.machineModel = cfa.getMachineModel();
 
     config.inject(this);
 
@@ -98,10 +101,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     reducer             = new ExplicitReducer();
     statistics          = new ExplicitCPAStatistics();
-
-    static_stats = statistics;
   }
-  public static ExplicitCPAStatistics static_stats = null;
 
   private MergeOperator initializeMergeOperator() {
     if (mergeType.equals("SEP")) {
@@ -180,6 +180,10 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
 
   public LogManager getLogger() {
     return logger;
+  }
+
+  public MachineModel getMachineModel() {
+    return machineModel;
   }
 
   @Override

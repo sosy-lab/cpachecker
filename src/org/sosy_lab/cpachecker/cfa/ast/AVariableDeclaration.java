@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
 public class AVariableDeclaration extends ADeclaration {
 
 
-  protected Initializer initializer;
+  protected IAInitializer initializer;
 
-  public AVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName, String pOrigName, Initializer pInitializer) {
+  public AVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName, String pOrigName, IAInitializer pInitializer) {
     super(pFileLocation, pIsGlobal, pType, pName, pOrigName );
     initializer = pInitializer;
 
@@ -41,7 +42,7 @@ public class AVariableDeclaration extends ADeclaration {
    * The initial value of the variable
    * (only if present, null otherwise).
    */
-  public Initializer getInitializer() {
+  public IAInitializer getInitializer() {
     return initializer;
   }
 

@@ -37,7 +37,7 @@ public class Mathsat5FormulaList implements FormulaList, Serializable {
   /**
    * Do not modify the terms array afterwards, for performance reasons it's not copied!
    */
-  public Mathsat5FormulaList(long... terms) {
+  Mathsat5FormulaList(long... terms) {
     for (long t : terms) {
       assert t != 0;
     }
@@ -74,7 +74,7 @@ public class Mathsat5FormulaList implements FormulaList, Serializable {
     out.defaultWriteObject();
     out.writeInt(terms.length);
     for (int i = 0; i < terms.length; ++i) {
-      out.writeObject(new Mathsat5Formula(0, terms[i]));
+      out.writeObject(new Mathsat5Formula(terms[i]));
     }
   }
 

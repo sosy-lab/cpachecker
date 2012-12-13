@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import java.util.regex.Pattern;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -44,15 +46,29 @@ public class BDDPrecision implements Precision {
   @Option(description = "track variables, only used in simple calculations, from cfa as bitvectors")
   private boolean trackSimpleCalcs = true;
 
+  @Option(name="forceTrackingPattern",
+      description="Pattern for variablenames that will always be tracked with BDDs." +
+      		"This pattern should only be used for known variables, i.e. for boolean vars.")
+  private String forceTrackingPatternStr = "";
+
+  private final Pattern forceTrackingPattern;
+
   private final Optional<VariableClassification> varClass;
 
   public BDDPrecision(Configuration config, Optional<VariableClassification> vc)
       throws InvalidConfigurationException {
     config.inject(this);
+    if (forceTrackingPatternStr != "") {
+      this.forceTrackingPattern = Pattern.compile(forceTrackingPatternStr);
+    } else {
+      this.forceTrackingPattern = null;
+    }
     this.varClass = vc;
   }
 
   public boolean isDisabled() {
+    if (forceTrackingPattern != null) return false;
+
     if (!varClass.isPresent()) { return true; }
 
     boolean trackSomeBooleans = trackBooleans &&
@@ -73,6 +89,12 @@ public class BDDPrecision implements Precision {
    * @return true, if the variable has to be tracked, else false
    */
   public boolean isTracking(String function, String var) {
+
+    // this pattern should only be used, if we know the class of the matching variables
+    if (this.forceTrackingPattern!= null && this.forceTrackingPattern.matcher(var).matches()) {
+      return true;
+    }
+
     if (!varClass.isPresent()) { return false; }
 
     boolean isTrackedBoolean = trackBooleans &&

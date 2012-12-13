@@ -30,7 +30,7 @@ import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.Initializer;
+import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -254,7 +254,7 @@ public class AndersenTransferRelation implements TransferRelation {
     String varName = decl.getName();
 
     // get initial value
-    Initializer init = decl.getInitializer();
+    IAInitializer init = decl.getInitializer();
     if (init instanceof CInitializerExpression) {
 
       CRightHandSide exp = ((CInitializerExpression) init).getExpression();

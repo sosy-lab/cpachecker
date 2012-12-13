@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Pair;
@@ -227,13 +225,7 @@ public class ExplicitPrecision implements Precision {
      * @return true, when the variable is allowed to be tracked, else false
      */
     boolean allowsTrackingOf(String variable) {
-      boolean result = (mapping == null) || mapping.containsEntry(currentLocation, variable);
-
-       if(useScopedInterpolation && !result) {
-         result = mapping.containsValue(variable);
-       }
-
-       return result;
+      return allowsTrackingAt(currentLocation, variable);
     }
 
     /**
@@ -244,8 +236,19 @@ public class ExplicitPrecision implements Precision {
      * @return true, if the given variable is being tracked at the given location, else false
      */
     public boolean allowsTrackingAt(CFANode location, String variable) {
-      return ((mapping != null) && mapping.containsEntry(location, variable))
-          || (useScopedInterpolation && mapping.containsValue(variable));
+      if(mapping == null) {
+        return true;
+      }
+
+      // when using scoped interpolation, it suffices to have the (scoped) variable identifier in the precision
+      if(useScopedInterpolation) {
+        return mapping.containsValue(variable);
+      }
+
+      // when not using scoped interpolation, there must a pair of location -> variable identifier in the mapping
+      else {
+        return mapping.containsEntry(location, variable);
+      }
     }
 
     /**
@@ -255,10 +258,6 @@ public class ExplicitPrecision implements Precision {
      */
     public void addToMapping(Multimap<CFANode, String> additionalMapping) {
       mapping.putAll(additionalMapping);
-    }
-
-    public Collection<String> getVariablesInPrecision() {
-      return new HashSet<String>(mapping.values());
     }
 
     @Override

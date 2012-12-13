@@ -181,6 +181,9 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** This function declares a new functionSymbol, that has a given (result-) sort.
+   * The params for the functionSymbol also have sorts.
+   * If you want to declare a new variable, i.e. "X", paramSorts is an empty array. */
   public void declareFun(String fun, Sort[] paramSorts, Sort resultSort) {
     declareFun(fun, paramSorts, resultSort, true);
   }
@@ -258,6 +261,8 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** This function adds the term on top of the stack.
+   * In most cases LBool.UNKNOWN is returned. */
   public LBool assertTerm(Term term) {
     assert stack.size() > 0 : "assertions should be on higher levels";
     LBool result = null;
@@ -269,6 +274,8 @@ class SmtInterpolEnvironment {
     return result;
   }
 
+  /** This function causes the SatSolver to check all the terms on the stack,
+   * if their conjunction is SAT or UNSAT. */
   public LBool checkSat() {
     LBool result = LBool.UNKNOWN;
     try {
@@ -279,6 +286,8 @@ class SmtInterpolEnvironment {
     return result;
   }
 
+  /** This function returns a map,
+   * that contains assignments term->term for all terms in terms. */
   public Valuation getValue(Term[] terms) {
     try {
       return script.getValue(terms);
@@ -296,7 +305,8 @@ class SmtInterpolEnvironment {
     return sort(type.toString());
   }
 
-  public Sort sort(String sortname, Sort... params) {
+  /** This function returns an n-ary sort with given parameters. */
+  Sort sort(String sortname, Sort... params) {
     try {
       return script.sort(sortname, params);
     } catch (SMTLIBException e) {
@@ -376,6 +386,9 @@ class SmtInterpolEnvironment {
     }
   }
 
+  /** This function returns a list of interpolants for the partitions.
+   * Each partition must be a named term or a conjunction of named terms.
+   * There should be (n-1) interpolants for n partitions. */
   public Term[] getInterpolants(Term[] partition) {
     assert stack.size() > 0 : "interpolants should be on higher levels";
     try {

@@ -4,15 +4,15 @@
 
   <test>
     <sourcefiles>
-      <includesfile>test/programs/benchmarks/Concurrency.set</includesfile>
-      <includesfile>test/test-sets/integration-ControlFlowInteger-abm.set</includesfile>
-      <includesfile>test/test-sets/integration-HeapManipulation-abm.set</includesfile>
-      <includesfile>test/test-sets/integration-SystemC-abm.set</includesfile>
-      <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <includesfile>integration-ControlFlowInteger-abm.set</includesfile>
+      <includesfile>integration-HeapManipulation-abm.set</includesfile>
+      <includesfile>integration-SystemC-abm.set</includesfile>
+      <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
     </sourcefiles>
     <sourcefiles>
-      <includesfile>test/test-sets/integration-DeviceDrivers64.set</includesfile>
-      <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
+      <includesfile>integration-DeviceDrivers64.set</includesfile>
+      <option name="-setprop">analysis.machineModel=Linux64</option>
     </sourcefiles>
     <option name="-noout"/>
     <option name="-predicateAnalysis-abm"/>

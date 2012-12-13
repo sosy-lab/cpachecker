@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateMapParser.PredicateMapParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
@@ -64,13 +65,11 @@ import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.io.Files;
+import com.google.common.collect.ImmutableSetMultimap;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -87,7 +86,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private String abstractionType = "BDD";
 
   @Option(name="abstraction.initialPredicates",
-      description="get an initial set of predicates from a file in MSAT format")
+      description="get an initial map of predicates from a file (see source doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private File predicatesFile = null;
 
@@ -138,7 +137,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     formulaManager = new ExtendedFormulaManager(formulaManagerFactory.getFormulaManager(), config, logger);
     String libraries = formulaManager.getVersion();
 
-    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger);
+    PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, cfa.getMachineModel());
     if (useCache) {
       pfMgr = new CachingPathFormulaManager(pfMgr);
     }
@@ -176,46 +175,38 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     prec = new PredicatePrecisionAdjustment(this);
     stop = new PredicateStopOperator(domain);
 
-    Collection<AbstractionPredicate> predicates = readPredicatesFromFile();
+    initialPrecision = readPredicatesFromFile(cfa);
+    logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    if (checkBlockFeasibility) {
-      AbstractionPredicate p = abstractionManager.makeFalsePredicate();
-      if (predicates == null) {
-        predicates = ImmutableSet.of(p);
-      } else {
-        predicates.add(p);
-      }
-    }
-    initialPrecision = new PredicatePrecision(predicates);
-
-    stats = new PredicateCPAStatistics(this, blk, regionManager);
+    stats = new PredicateCPAStatistics(this, blk, regionManager, cfa);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
   }
 
-  private Collection<AbstractionPredicate> readPredicatesFromFile() {
+  private PredicatePrecision readPredicatesFromFile(CFA cfa) {
+
+    Set<AbstractionPredicate> initialPredicates = checkBlockFeasibility
+        ? Collections.<AbstractionPredicate>singleton(abstractionManager.makeFalsePredicate())
+        : Collections.<AbstractionPredicate>emptySet();
+
     if (predicatesFile != null) {
-        try {
-        String fileContent = Files.toString(predicatesFile, Charset.defaultCharset());
-        Formula f = formulaManager.parse(fileContent);
+      try {
+        return PredicateMapParser.parsePredicates(predicatesFile,
+            cfa, initialPredicates, formulaManager, abstractionManager);
 
-        Collection<Formula> atoms = formulaManager.extractAtoms(f, false, false);
-
-        Collection<AbstractionPredicate> predicates = new ArrayList<AbstractionPredicate>(atoms.size());
-
-        for (Formula atom : atoms) {
-          predicates.add(abstractionManager.makePredicate(atom));
-        }
-        return predicates;
-
-      } catch (IllegalArgumentException e) {
-        logger.logUserException(Level.WARNING, e, "Could not read predicates from file " + predicatesFile);
       } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not read predicates from file");
+        logger.logUserException(Level.WARNING, e, "Could not read predicate map from file");
+        return PredicatePrecision.empty();
+      } catch (PredicateMapParsingFailedException e) {
+        logger.logUserException(Level.WARNING, e, "Could not read predicate map");
+        return PredicatePrecision.empty();
       }
     }
 
-    return null;
+    return new PredicatePrecision(
+        ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
+        ImmutableSetMultimap.<String, AbstractionPredicate>of(),
+        initialPredicates);
   }
 
   @Override

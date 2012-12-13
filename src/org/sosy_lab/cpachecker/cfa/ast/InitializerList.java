@@ -32,16 +32,16 @@ import com.google.common.collect.ImmutableList;
 
 public class InitializerList extends Initializer {
 
-  private final List<Initializer> initializerList;
+  private final List<? extends IAInitializer> initializerList;
 
   public InitializerList(final FileLocation pFileLocation,
-                             final List<Initializer> pInitializerList) {
+                             final List<? extends IAInitializer> pInitializerList) {
     super(pFileLocation);
     initializerList = ImmutableList.copyOf(pInitializerList);
   }
 
-  public List<Initializer> getInitializers() {
-    return initializerList;
+  public List<? extends IAInitializer> getInitializers() {
+    return    initializerList;
   }
 
   @Override

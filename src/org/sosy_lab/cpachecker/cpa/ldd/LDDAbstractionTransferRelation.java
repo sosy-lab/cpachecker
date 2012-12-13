@@ -34,7 +34,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.Initializer;
+import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.InitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -188,10 +188,8 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
         operator = operator == BinaryOperator.GREATER_EQUAL ? BinaryOperator.LESS_EQUAL : BinaryOperator.LESS_THAN;
         break;
       case BINARY_AND:
-      case LOGICAL_AND:
         return this.regionManager.makeAnd(assumeToRegion(left), assumeToRegion(right));
       case BINARY_OR:
-      case LOGICAL_OR:
         return this.regionManager.makeOr(assumeToRegion(left), assumeToRegion(right));
       case BINARY_XOR:
         return this.regionManager.makeXor(assumeToRegion(left), assumeToRegion(right));
@@ -702,7 +700,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
     if (this.variables.containsKey(variable)) {
       if (declaration instanceof CVariableDeclaration) {
         CVariableDeclaration varDecl = (CVariableDeclaration) declaration;
-        Initializer init = varDecl.getInitializer();
+        IAInitializer init = varDecl.getInitializer();
         if (init instanceof CInitializerExpression) {
           return assign(variable, ((CInitializerExpression) init).getExpression(), previousRegion);
         } else if (init instanceof InitializerList) {

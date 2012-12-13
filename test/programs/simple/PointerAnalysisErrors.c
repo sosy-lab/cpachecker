@@ -1,11 +1,11 @@
+extern int __VERIFIER_nondet_int();
 
 int main() {
 
-	// some user input so CPAchecker must check all if branches
-	i = someUserFunction();
+	int i = __VERIFIER_nondet_int();
 	if (i == 0) {
 		// Trigger UNSAFE_DEREFERENCE
-		int* j = NULL;
+		int* j = 0;
 		*j = 6;
 	} else if (i == 1) {
 		// Trigger Memory Leak
@@ -23,7 +23,7 @@ int main() {
 		*a = 5;
 	} else if (i == 3) {
 		//trigger INVALID FREE
-		int *ptr = null;
+		int *ptr = 0;
 		free(ptr);
 	}  else if (i == 4) {
 		// trigger DOUBLE_FREE

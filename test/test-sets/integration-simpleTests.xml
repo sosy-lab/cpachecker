@@ -5,9 +5,9 @@
 
   <test>
     <sourcefiles>
-      <include>test/programs/simple/functionCall.c</include>
-      <include>test/programs/simple/loop1.c</include>
-      <include>test/programs/simple/uninitVars.cil.c</include>
+      <include>../programs/simple/functionCall.c</include>
+      <include>../programs/simple/loop1.c</include>
+      <include>../programs/simple/uninitVars.cil.c</include>
     </sourcefiles>
     <option name="-config">test/config/alwaysTopAnalysis.properties</option>
   </test>

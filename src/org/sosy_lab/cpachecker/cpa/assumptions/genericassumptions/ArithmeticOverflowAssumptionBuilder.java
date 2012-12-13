@@ -46,6 +46,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+import com.google.common.collect.Lists;
+
 /**
  * Class to generate assumptions related to over/underflow
  * of integer arithmetic operations
@@ -103,9 +105,9 @@ implements GenericAssumptionBuilder
      * expression, ignoring bounds if applicable. The method does
      * not check that the expression is indeed an arithmetic expression.
      */
-    private static CExpression conjunctPredicateForArithmeticExpression(CExpression exp, CExpression result)
-    {
-      return conjunctPredicateForArithmeticExpression(exp.getExpressionType(), exp, result);
+    private static void conjunctPredicateForArithmeticExpression(
+        CExpression exp, List<CExpression> result) {
+      conjunctPredicateForArithmeticExpression(exp.getExpressionType(), exp, result);
     }
 
   /**
@@ -114,33 +116,28 @@ implements GenericAssumptionBuilder
    * The two last, boolean arguments allow to avoid generating
    * lower and/or upper bounds predicates.
    */
-  private static CExpression conjunctPredicateForArithmeticExpression(CType typ,
-      CExpression exp, CExpression result) {
+  private static void conjunctPredicateForArithmeticExpression(CType typ,
+      CExpression exp, List<CExpression> result) {
 
     Pair<CIntegerLiteralExpression, CIntegerLiteralExpression> bounds =
         boundsForType(typ);
 
     if (bounds.getFirst() != null) {
 
-      final CBinaryExpression secondExp = new CBinaryExpression(null, null, exp,
-              bounds.getFirst(), BinaryOperator.GREATER_EQUAL);
-      result = new CBinaryExpression(null, null,
-              result, secondExp, BinaryOperator.LOGICAL_AND);
+      result.add(new CBinaryExpression(null, null, exp,
+              bounds.getFirst(), BinaryOperator.GREATER_EQUAL));
     }
 
     if (bounds.getSecond() != null) {
 
-      final CBinaryExpression secondExp = new CBinaryExpression(null, null, exp,
-              bounds.getSecond(), BinaryOperator.LESS_EQUAL);
-      result =new CBinaryExpression(null, null,
-              result, secondExp, BinaryOperator.LOGICAL_AND);
+      result.add(new CBinaryExpression(null, null, exp,
+              bounds.getSecond(), BinaryOperator.LESS_EQUAL));
     }
-    return result;
   }
 
-    private static CExpression visit(CExpression pExpression, CExpression result) {
+    private static void visit(CExpression pExpression, List<CExpression> result) {
       if (pExpression instanceof CIdExpression){
-        result = conjunctPredicateForArithmeticExpression(pExpression, result);
+        conjunctPredicateForArithmeticExpression(pExpression, result);
       }
       else if (pExpression instanceof CBinaryExpression)
       {
@@ -148,7 +145,7 @@ implements GenericAssumptionBuilder
         CExpression op1 = binexp.getOperand1();
         // Only variables for now, ignoring * & operators
         if (op1 instanceof CIdExpression){
-          result = conjunctPredicateForArithmeticExpression(op1, result);
+          conjunctPredicateForArithmeticExpression(op1, result);
         }
       }
       else if (pExpression instanceof CUnaryExpression)
@@ -157,26 +154,25 @@ implements GenericAssumptionBuilder
         CExpression op1 = unexp.getOperand();
         // Only variables. Ignoring * & operators for now
         if (op1 instanceof CIdExpression){
-          result = conjunctPredicateForArithmeticExpression(op1, result);
+          conjunctPredicateForArithmeticExpression(op1, result);
         }
       }
       else if (pExpression instanceof CCastExpression)
       {
         CCastExpression castexp = (CCastExpression)pExpression;
         CType toType = castexp.getExpressionType();
-        result = conjunctPredicateForArithmeticExpression(toType, castexp.getOperand(), result);
+        conjunctPredicateForArithmeticExpression(toType, castexp.getOperand(), result);
       }
-      return result;
     }
 
   @Override
-  public CExpression assumptionsForEdge(CFAEdge pEdge) {
-    CExpression result = CNumericTypes.TRUE;
+  public List<CExpression> assumptionsForEdge(CFAEdge pEdge) {
+    List<CExpression> result = Lists.newArrayList();
 
     switch (pEdge.getEdgeType()) {
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
-      result = visit(assumeEdge.getExpression(), result);
+      visit(assumeEdge.getExpression(), result);
       break;
     case FunctionCallEdge:
       CFunctionCallEdge fcallEdge = (CFunctionCallEdge) pEdge;
@@ -188,7 +184,7 @@ implements GenericAssumptionBuilder
           String name = paramdecl.getName();
           CType type = paramdecl.getType();
           CExpression exp = new CIdExpression(paramdecl.getFileLocation(), type, name, paramdecl);
-          result = visit(exp, result);
+          visit(exp, result);
         }
       }
       break;
@@ -197,14 +193,14 @@ implements GenericAssumptionBuilder
 
       CStatement stmt = stmtEdge.getStatement();
       if (stmt instanceof CAssignment) {
-        result = visit(((CAssignment)stmt).getLeftHandSide(), result);
+        visit(((CAssignment)stmt).getLeftHandSide(), result);
       }
       break;
     case ReturnStatementEdge:
       CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
 
       if (returnEdge.getExpression() != null){
-        result = visit(returnEdge.getExpression(), result);
+        visit(returnEdge.getExpression(), result);
       }
       break;
     }

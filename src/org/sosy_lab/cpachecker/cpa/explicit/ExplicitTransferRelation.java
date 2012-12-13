@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -47,11 +48,11 @@ import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -60,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -123,10 +125,18 @@ import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+
+import com.google.common.collect.ImmutableMap;
 
 @Options(prefix="cpa.explicit")
 public class ExplicitTransferRelation implements TransferRelation
 {
+
+  // set of functions that may not appear in the source code
+  // the value of the map entry is the explanation for the user
+  private static final Map<String, String> UNSUPPORTED_FUNCTIONS
+      = ImmutableMap.of("pthread_create", "threads");
 
   @Option(description = "if there is an assumption like (x!=0), "
       + "this option sets unknown (uninitialized) variables to 1L, "
@@ -436,7 +446,7 @@ public class ExplicitTransferRelation implements TransferRelation
     }
 
     // get initial value
-    Initializer init = decl.getInitializer();
+    IAInitializer init = decl.getInitializer();
 
     if(init instanceof AInitializerExpression) {
       IAExpression exp = ((AInitializerExpression)init).getExpression();
@@ -495,6 +505,16 @@ public class ExplicitTransferRelation implements TransferRelation
   private void handleStatement(ExplicitState newElement, IAStatement expression, CFAEdge cfaEdge)
 
     throws UnrecognizedCCodeException {
+    if (expression instanceof CFunctionCall) {
+      CExpression fn = ((CFunctionCall)expression).getFunctionCallExpression().getFunctionNameExpression();
+      if (fn instanceof CIdExpression) {
+        String func = ((CIdExpression)fn).getName();
+        if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
+          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+        }
+      }
+    }
+
     // expression is a binary operation, e.g. a = b;
 
     if (expression instanceof IAssignment) {

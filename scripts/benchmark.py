@@ -40,7 +40,7 @@ except ImportError: # Queue was renamed to queue in Python 3
 import time
 import glob
 import logging
-import optparse
+import argparse
 import os
 import platform
 import re
@@ -50,8 +50,6 @@ import subprocess
 import threading
 import xml.etree.ElementTree as ET
 
-
-CSV_SEPARATOR = "\t"
 
 BUG_SUBSTRING_LIST = ['bug', 'unsafe']
 
@@ -257,16 +255,16 @@ class Test:
 
     def getSourcefiles(self, sourcefilesTag):
         sourcefiles = []
+        baseDir = os.path.dirname(self.benchmark.benchmarkFile)
 
         # get included sourcefiles
         for includedFiles in sourcefilesTag.findall("include"):
-            sourcefiles += self.getFileList(includedFiles.text)
+            sourcefiles += self.getFileList(includedFiles.text, baseDir)
 
         # get sourcefiles from list in file
         for includesFilesFile in sourcefilesTag.findall("includesfile"):
 
-            for file in self.getFileList(includesFilesFile.text):
-                fileDir = os.path.dirname(file)
+            for file in self.getFileList(includesFilesFile.text, baseDir):
 
                 # check for code (if somebody changes 'include' and 'includesfile')
                 if Util.isCode(file):
@@ -283,25 +281,26 @@ class Test:
 
                     # ignore comments and empty lines
                     if not Util.isComment(line):
-                        sourcefiles += self.getFileList(line, fileDir)
+                        sourcefiles += self.getFileList(line, os.path.dirname(file))
 
                 fileWithList.close()
 
         # remove excluded sourcefiles
         for excludedFiles in sourcefilesTag.findall("exclude"):
-            excludedFilesList = self.getFileList(excludedFiles.text)
+            excludedFilesList = self.getFileList(excludedFiles.text, baseDir)
             for excludedFile in excludedFilesList:
                 sourcefiles = Util.removeAll(sourcefiles, excludedFile)
 
         return sourcefiles
 
 
-    def getFileList(self, shortFile, root=""):
+    def getFileList(self, shortFile, root):
         """
         The function getFileList expands a short filename to a sorted list
         of filenames. The short filename can contain variables and wildcards.
         If root is given and shortFile is not absolute, root and shortFile are joined.
         """
+
         # store shortFile for fallback
         shortFileFallback = shortFile
 
@@ -330,19 +329,17 @@ class Test:
             logging.debug("Expanded tilde and/or shell variables in expression {0} to {1}."
                 .format(repr(shortFile), repr(expandedFile)))
 
-        if len(fileList) == 0:
+        if len(fileList) == 0 and root != "":
 
-            if root == "":
-                logging.warning("No files found matching {0}."
-                                .format(repr(shortFile)))
-
-            else: # Fallback for older test-sets
-                logging.warning("Perpaps old or invalid test-set. Trying fallback for {0}."
-                                .format(repr(shortFileFallback)))
-                fileList = self.getFileList(shortFileFallback)
+            if root != "":
+                # try fallback for older test-sets
+                fileList = self.getFileList(shortFileFallback, "")
                 if len(fileList) != 0:
-                    logging.warning("Fallback has found some files for {0}."
-                                .format(repr(shortFileFallback)))
+                    logging.warning("Test definition uses old-style paths. Please change the path {0} to be relative to {1}."
+                                .format(repr(shortFileFallback), repr(root)))
+                else:
+                    logging.warning("No files found matching {0}."
+                                .format(repr(shortFile)))
 
         return fileList
 
@@ -419,13 +416,16 @@ class Run():
                                      numberOfThread,
                                      logfile)
 
-        # sometimes we should check for timeout again, 
-        # because tools can produce results after they are killed
-        # we use an overhead of 20 seconds
-        if TIMELIMIT in self.benchmark.rlimits:
-            timeLimit = self.benchmark.rlimits[TIMELIMIT] + 20
-            if self.wallTime > timeLimit or self.cpuTime > timeLimit:
-                self.status = "TIMEOUT"
+        # Tools sometimes produce a result even after a timeout.
+        # This should not be counted, so we overwrite the result with TIMEOUT
+        # here. if this is the case.
+        # However, we don't want to forget more specific results like SEGFAULT,
+        # so we do this only if the result is a "normal" one like SAFE.
+        if not self.status in ['SAFE', 'UNSAFE', 'UNKNOWN']:
+            if TIMELIMIT in self.benchmark.rlimits:
+                timeLimit = self.benchmark.rlimits[TIMELIMIT] + 20
+                if self.wallTime > timeLimit or self.cpuTime > timeLimit:
+                    self.status = "TIMEOUT"
 
         self.benchmark.outputHandler.outputAfterRun(self)
 
@@ -559,6 +559,62 @@ class Util:
         return "%.{0}f".format(numberOfDigits) % number
 
 
+    @staticmethod
+    def addFilesToGitRepository(files, description):
+        """
+        Add and commit all files given in a list into a git repository in the
+        OUTPUT_PATH directory. Nothing is done if the git repository has
+        local changes.
+
+        @param files: the files to commit
+        @param description: the commit message
+        """
+        if not os.path.isdir(OUTPUT_PATH):
+            Util.printOut('Output path is not a directory, cannot add files to git repository.')
+            return
+
+        # find out root directory of repository
+        gitRoot = subprocess.Popen(['git', 'rev-parse', '--show-toplevel'],
+                                   cwd=OUTPUT_PATH,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout = gitRoot.communicate()[0]
+        if gitRoot.returncode != 0:
+            Util.printOut('Cannot commit results to repository: git rev-parse failed, perhaps output path is not a git directory?')
+            return
+        gitRootDir = Util.decodeToString(stdout).splitlines()[0]
+
+        # check whether repository is clean
+        gitStatus = subprocess.Popen(['git','status','--porcelain', '--untracked-files=no'],
+                                     cwd=gitRootDir,
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdout, stderr) = gitStatus.communicate()
+        if gitStatus.returncode != 0:
+            Util.printOut('Git status failed! Output was:\n' + Util.decodeToString(stderr))
+            return
+
+        if stdout:
+            Util.printOut('Git repository has local changes, not commiting results.')
+            return
+
+        # add files to staging area
+        files = [os.path.realpath(file) for file in files]
+        gitAdd = subprocess.Popen(['git', 'add', '--'] + files,
+                                   cwd=gitRootDir)
+        if gitAdd.wait() != 0:
+            Util.printOut('Git add failed, will not commit results!')
+            return
+
+        # commit files
+        Util.printOut('Committing results files to git repository in ' + gitRootDir)
+        gitCommit = subprocess.Popen(['git', 'commit', '--file=-', '--quiet'],
+                                     cwd=gitRootDir,
+                                     stdin=subprocess.PIPE)
+        gitCommit.communicate(description.encode('UTF-8'))
+        if gitCommit.returncode != 0:
+            Util.printOut('Git commit failed!')
+            return
+
+
 class OutputHandler:
     """
     The class OutputHandler manages all outputs to the terminal and to files.
@@ -572,6 +628,7 @@ class OutputHandler:
         and collects information about the benchmark and the computer.
         """
 
+        self.allCreatedFiles = []
         self.benchmark = benchmark
         self.statistics = Statistics()
 
@@ -663,6 +720,8 @@ class OutputHandler:
                 + "ram:".ljust(columnWidth) + memory + "\n"\
                 + simpleLine
 
+        self.description = header + systemInfo
+
         testname = None
         if len(self.benchmark.tests) == 1:
             # in case there is only a single test, we can use this name
@@ -672,9 +731,10 @@ class OutputHandler:
             testname = options.testRunOnly[0]
 
         # write to file
-        self.TXTContent = header + systemInfo
-        self.TXTFile = FileWriter(self.getFileName(testname, "txt"), self.TXTContent)
-
+        self.TXTContent = self.description
+        TXTFileName = self.getFileName(testname, "txt")
+        self.TXTFile = FileWriter(TXTFileName, self.TXTContent)
+        self.allCreatedFiles.append(TXTFileName)
 
     def getToolnameForPrinting(self):
         tool = self.benchmark.tool.lower()
@@ -834,9 +894,11 @@ class OutputHandler:
 
         # write (empty) results to TXTFile and XML
         self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
-        self.XMLTestFile = FileWriter(self.getFileName(self.test.name, "xml"),
+        self.XMLTestFileName = self.getFileName(self.test.name, "xml")
+        self.XMLTestFile = FileWriter(self.XMLTestFileName,
                        Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
         self.XMLTestFile.lastModifiedTime = time.time()
+        self.allCreatedFiles.append(self.XMLTestFileName)
 
 
     def outputForSkippingTest(self, test, reason=None):
@@ -859,6 +921,7 @@ class OutputHandler:
             testInfo += test.name + "\n"
         testInfo += "test {0} of {1}: skipped {2}\n".format(
                 numberOfTest, len(self.benchmark.tests), reason or "")
+        self.TXTContent += testInfo
         self.TXTFile.append(testInfo)
 
 
@@ -914,6 +977,7 @@ class OutputHandler:
         if run.test.name is not None:
             logfileName += run.test.name + "."
         logfileName += os.path.basename(run.sourcefile) + ".log"
+        self.allCreatedFiles.append(logfileName)
         return logfileName
 
 
@@ -992,7 +1056,6 @@ class OutputHandler:
 
         # write testresults to files
         self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
-        FileWriter(self.getFileName(self.test.name, "csv"), self.testToCSV(self.test))
 
         if len(self.test.blocks) > 1:
             for block in self.test.blocks:
@@ -1064,25 +1127,6 @@ class OutputHandler:
         return runElem
 
 
-    def testToCSV(self, test):
-        """
-        This function dumps a test with results into a CSV-file.
-        """
-
-        # store columntitles of tests
-        CSVLines = [CSV_SEPARATOR.join(
-                      ["sourcefile", "status", "cputime", "walltime"] \
-                    + [column.title for column in test.benchmark.columns])]
-
-        # store columnvalues of each run
-        for run in test.runs:
-            CSVLines.append(CSV_SEPARATOR.join(
-                  [run.sourcefile, run.status, run.cpuTimeStr, run.wallTimeStr] \
-                + [column.value for column in run.columns]))
-
-        return "\n".join(CSVLines) + "\n"
-
-
     def isCorrectResult(self, filename, status):
         '''
         this function return a string,
@@ -1143,14 +1187,18 @@ class OutputHandler:
     def outputAfterBenchmark(self):
         self.statistics.printToTerminal()
 
+        Util.printOut("In order to get HTML and CSV tables, run\n{0} '{1}'"
+                      .format(os.path.join(os.path.dirname(__file__), 'table-generator.py'),
+                              self.XMLTestFileName))
+
         if STOPPED_BY_INTERRUPT:
-            Util.printOut("\nscript was interrupted by user, some tests may not be done\n")
+            Util.printOut("\nScript was interrupted by user, some tests may not be done.\n")
 
 
     def getFileName(self, testname, fileExtension):
         '''
         This function returns the name of the file of a test
-        with an extension ("txt", "xml", "csv").
+        with an extension ("txt", "xml").
         '''
 
         fileName = OUTPUT_PATH + self.benchmark.name + "." \
@@ -1168,7 +1216,6 @@ class OutputHandler:
         '''
         fileName = fileName.replace(self.commonPrefix, '', 1)
         return fileName.ljust(self.maxLengthOfFileName + 4)
-
 
 class Statistics:
 
@@ -1733,9 +1780,9 @@ def run_cpachecker(exe, options, sourcefile, columns, rlimits, numberOfThread, f
     status = getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
     getCPAcheckerColumns(output, columns)
 
-    # Segmentation faults reference a file with more information.
+    # Segmentation faults and some memory failures reference a file with more information.
     # We append this file to the log.
-    if status == 'SEGMENTATION FAULT' or status.startswith('ERROR'):
+    if status == 'SEGMENTATION FAULT' or status.startswith('ERROR') or status == 'OUT OF MEMORY':
         next = False
         for line in output.splitlines():
             if next:
@@ -1800,6 +1847,8 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
             status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
         elif 'Could not reserve enough space for object heap' in line:
             status = 'JAVA HEAP ERROR'
+        elif line.startswith('Error: '):
+            status = 'ERROR'
         
         elif line.startswith('Verification result: '):
             line = line[21:].strip()
@@ -1809,7 +1858,7 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
                 newStatus = 'UNSAFE'
             else:
                 newStatus = 'UNKNOWN'
-            status = newStatus if status is None else "%s (%s)".format(status, newStatus) 
+            status = newStatus if status is None else "{0} ({1})".format(status, newStatus)
             
         elif (status is None) and line.startswith('#Test cases computed:'):
             status = 'OK'
@@ -1910,6 +1959,7 @@ def runBenchmark(benchmarkFile):
                 repr(benchmarkFile), len(benchmark.tests)))
 
     outputHandler = benchmark.outputHandler
+    testsRun = 0
 
     logging.debug("I will use {0} threads.".format(benchmark.numOfThreads))
 
@@ -1929,6 +1979,7 @@ def runBenchmark(benchmarkFile):
             outputHandler.outputForSkippingTest(test, "because it has no files")
 
         else:
+            testsRun += 1
             # get times before test
             ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
             wallTimeBefore = time.time()
@@ -1970,84 +2021,96 @@ def runBenchmark(benchmarkFile):
             outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
 
     outputHandler.outputAfterBenchmark()
+    if options.commit and not STOPPED_BY_INTERRUPT and testsRun > 0:
+        Util.addFilesToGitRepository(outputHandler.allCreatedFiles,
+                                     options.commitMessage+'\n\n'+outputHandler.description)
 
 
 def main(argv=None):
 
     if argv is None:
         argv = sys.argv
-    parser = optparse.OptionParser(usage=
-        """%prog [OPTION]... [FILE]...
+    parser = argparse.ArgumentParser(description=
+        """Run benchmarks with a verification tool.
+        Documented example files for the benchmark definitions
+        can be found as 'doc/examples/benchmark*.xml'.
+        Use the table-generator.py script to create nice tables
+        from the output of this script.""")
 
-INFO: Documented example-files can be found as 'doc/examples/benchmark*.xml'.
-
-Use the table-generator.py script to create nice tables
-from the output of this script.""")
-
-    parser.add_option("-d", "--debug",
+    parser.add_argument("files", nargs='+', metavar="FILE",
+                      help="XML file with benchmark definition")
+    parser.add_argument("-d", "--debug",
                       action="store_true",
                       help="Enable debug output")
 
-    parser.add_option("-t", "--test", dest="testRunOnly",
+    parser.add_argument("-t", "--test", dest="testRunOnly",
                       action="append",
-                      help="Run only the given TEST from the xml-file. "
+                      help="Run only the specified TEST from the benchmark definition. "
                             + "This option can be specified several times.",
                       metavar="TEST")
 
-    parser.add_option("-o", "--outputpath",
-                      dest="output_path", type="string",
+    parser.add_argument("-o", "--outputpath",
+                      dest="output_path", type=str,
                       default="./test/results/",
                       help="Output prefix for the generated results. "
                             + "If the path is a folder files are put into it,"
-                            + "otherwise the string is used as a prefix for the resulting files.")
+                            + "otherwise it is used as a prefix for the resulting files.")
 
-    parser.add_option("-T", "--timelimit",
+    parser.add_argument("-T", "--timelimit",
                       dest="timelimit", default=None,
                       help="Time limit in seconds for each run (-1 to disable)",
                       metavar="SECONDS")
 
-    parser.add_option("-M", "--memorylimit",
+    parser.add_argument("-M", "--memorylimit",
                       dest="memorylimit", default=None,
                       help="Memory limit in MB (-1 to disable)",
                       metavar="MB")
 
-    parser.add_option("-N", "--numOfThreads",
+    parser.add_argument("-N", "--numOfThreads",
                       dest="numOfThreads", default=None,
                       help="Run n benchmarks in parallel",
                       metavar="n")
 
-    parser.add_option("-x", "--moduloAndRest",
-                      dest="moduloAndRest", default=(1,0), nargs=2, type="int",
-                      help="Run only a subset of tests for which (i % a == b) holds" +
-                            "with i being the index of the test in the xml-file " +
+    parser.add_argument("-x", "--moduloAndRest",
+                      dest="moduloAndRest", default=(1,0), nargs=2, type=int,
+                      help="Run only a subset of tests for which (i %% a == b) holds" +
+                            "with i being the index of the test in the benhcmark definition file " +
                             "(starting with 1).",
-                      metavar="a b")
+                      metavar=("a","b"))
 
-    parser.add_option("-D", "--memdata", dest="memdata",
+    parser.add_argument("-D", "--memdata", dest="memdata",
                       action="store_true",
                       help="When limiting memory usage, restrict only the data segments instead of the virtual address space.")
 
-    parser.add_option("-c", "--limitCores", dest="limitCores",
+    parser.add_argument("-c", "--limitCores", dest="limitCores",
                       action="store_true",
-                      help="When limiting core usage, every run in the benchmark is only allowed to use one core of the cpu.")
+                      help="Limit each run of the tool to a single CPU core.")
+
+    parser.add_argument("--commit", dest="commit",
+                      action="store_true",
+                      help="If the output path is a git repository without local changes,"
+                            + "add and commit the result files.")
+
+    parser.add_argument("--message",
+                      dest="commitMessage", type=str,
+                      default="Results for benchmark run",
+                      help="Commit message if --commit is used.")
 
     global options, OUTPUT_PATH
-    (options, args) = parser.parse_args(argv)
+    options = parser.parse_args(argv[1:])
     if os.path.isdir(options.output_path):
         OUTPUT_PATH = os.path.normpath(options.output_path) + os.sep
     else:
         OUTPUT_PATH = options.output_path
 
-    
-    if len(args) < 2:
-        parser.error("invalid number of arguments")
+
     if (options.debug):
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
                             level=logging.DEBUG)
     else:
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s")
 
-    for arg in args[1:]:
+    for arg in options.files:
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
 
@@ -2059,7 +2122,7 @@ from the output of this script.""")
     except OSError:
         pass # this does not work on Windows
 
-    for arg in args[1:]:
+    for arg in options.files:
         if STOPPED_BY_INTERRUPT: break
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
         runBenchmark(arg)
