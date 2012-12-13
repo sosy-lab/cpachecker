@@ -232,6 +232,9 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
    * @return A set of predicates.
    */
   protected Collection<AbstractionPredicate> convertInterpolant(Formula interpolant) {
+    if (interpolant.isTrue()) {
+      return Collections.<AbstractionPredicate>emptySet();
+    }
 
     Collection<AbstractionPredicate> preds;
 
