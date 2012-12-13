@@ -316,7 +316,14 @@ public final class InterpolationManager {
         if (verifyInterpolants) {
           verifyInterpolants(interpolants, f, pItpProver);
         }
-        info = extractPredicates(interpolants);
+
+        info = new CounterexampleTraceInfo<Formula>();
+
+        int i = 1;
+        for (Formula itp : interpolants) {
+          logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
+          info.addInterpolant(itp);
+        }
 
       } else {
         // this is a real bug
@@ -617,8 +624,7 @@ public final class InterpolationManager {
       stats.cexAnalysisSolverTimer.stop();
 
       if (dumpInterpolationProblems) {
-        File dumpFile = formatFormulaOutputFile("interpolant", i);
-        fmgr.dumpFormulaToFile(itp, dumpFile);
+        dumpFormulaToFile("interpolant", itp, i);
       }
 
       interpolants.add(itp);
@@ -723,29 +729,6 @@ public final class InterpolationManager {
   }
 
   /**
-   * Get the predicates out of the interpolants.
-   *
-   * @param interpolants the interpolants
-   * @return Information about the counterexample, including the predicates.
-   */
-  private <T> CounterexampleTraceInfo<Formula> extractPredicates(
-      List<Formula> interpolants) {
-
-    // the counterexample is spurious. Extract the predicates from
-    // the interpolants
-
-    CounterexampleTraceInfo<Formula> info = new CounterexampleTraceInfo<Formula>();
-
-    int i = 1;
-    for (Formula itp : interpolants) {
-      logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
-      info.addInterpolant(itp);
-    }
-
-    return info;
-  }
-
-  /**
    * Get information about the error path from the solver after the formulas
    * have been proved to be satisfiable.
    *
@@ -785,8 +768,7 @@ public final class InterpolationManager {
       logger.log(Level.WARNING, "Could not get precise error path information because of inconsistent reachingPathsFormula!");
 
       dumpInterpolationProblem(f);
-      File dumpFile = formatFormulaOutputFile("formula", f.size());
-      fmgr.dumpFormulaToFile(branchingFormula, dumpFile);
+      dumpFormulaToFile("formula", branchingFormula, f.size());
 
       return new CounterexampleTraceInfo<Formula>(f, new Model(fmgr), Collections.<Integer, Boolean>emptyMap());
     }
@@ -841,11 +823,12 @@ public final class InterpolationManager {
     }
   }
 
+  private void dumpFormulaToFile(String name, Formula f, int i) {
+    File dumpFile = formatFormulaOutputFile(name, i);
+    fmgr.dumpFormulaToFile(f, dumpFile);
+  }
+
   private File formatFormulaOutputFile(String formula, int index) {
-    if (dumpInterpolationProblems) {
-      return fmgr.formatFormulaOutputFile("interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), formula, index);
-    } else {
-      return null;
-    }
+    return fmgr.formatFormulaOutputFile("interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), formula, index);
   }
 }
