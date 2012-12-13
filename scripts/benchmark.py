@@ -238,6 +238,10 @@ class Test:
         self.runs = []
 
         for sourcefilesTag in sourcefilesTagList:
+            blockName = sourcefilesTag.get("name", str(sourcefilesTagList.index(sourcefilesTag)))
+            if (blockName not in options.sourcefilesOnly):
+                continue
+
             # get list of filenames
             sourcefiles = self.getSourcefiles(sourcefilesTag)
 
@@ -249,7 +253,6 @@ class Test:
                 runs.append(Run(sourcefile, fileOptions, self))
             self.runs.extend(runs)
 
-            blockName = sourcefilesTag.get("name", str(sourcefilesTagList.index(sourcefilesTag)))
             self.blocks.append(Block(blockName,runs))
 
 
@@ -2049,6 +2052,12 @@ def main(argv=None):
                       help="Run only the specified TEST from the benchmark definition. "
                             + "This option can be specified several times.",
                       metavar="TEST")
+
+    parser.add_argument("-s", "--sourcefiles", dest="sourcefilesOnly",
+                      action="append",
+                      help="Run only the files from the sourcefiles tag with SOURCE as name. "
+                            + "This option can be specified several times.",
+                      metavar="SOURCES")
 
     parser.add_argument("-o", "--outputpath",
                       dest="output_path", type=str,
