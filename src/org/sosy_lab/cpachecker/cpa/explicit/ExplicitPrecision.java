@@ -71,18 +71,18 @@ public class ExplicitPrecision implements Precision {
   @Option(description = "ignore boolean variables. if this option is used, "
       + "booleans from the cfa should tracked with another CPA, "
       + "i.e. with BDDCPA.")
-  private boolean ignoreBooleans = false;
+  private boolean ignoreBoolean = false;
 
-  @Option(description = "ignore variables with only discrete values "
-  		+ "and no calculations except checks for equality. "
+  @Option(description = "ignore variables, that are only compared for equality. "
       + "if this option is used, these variables from the cfa should "
       + "tracked with another CPA, i.e. with BDDCPA.")
-  private boolean ignoreDiscretes = false;
+  private boolean ignoreIntEqual = false;
 
-  @Option(description = "ignore variables, that are only used in simple calculations. "
+  @Option(description = "ignore variables, that are only used in simple " +
+  		"calculations (add, sub, lt, gt, eq). "
       + "if this option is used, these variables from the cfa should "
       + "tracked with another CPA, i.e. with BDDCPA.")
-  private boolean ignoreSimpleCalcs = false;
+  private boolean ignoreIntAdd = false;
 
   private Optional<VariableClassification> varClass;
 
@@ -157,20 +157,19 @@ public class ExplicitPrecision implements Precision {
 
     Pair<String, String> var = splitVar(variable);
 
-    boolean isIgnoredBoolean = ignoreBooleans &&
-        varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond());
+    final boolean isBoolean = varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond());
+    final boolean isIntEqual = varClass.get().getIntEqualVars().containsEntry(var.getFirst(), var.getSecond());
+    final boolean isIntAdd = varClass.get().getIntAddVars().containsEntry(var.getFirst(), var.getSecond());
 
-    // if a var is boolean and discrete, it is handled as boolean only.
-    boolean isIgnoredDiscrete = ignoreDiscretes &&
-        !varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond()) &&
-            varClass.get().getDiscreteValueVars().containsEntry(var.getFirst(), var.getSecond());
+    final boolean isIgnoredBoolean = ignoreBoolean && isBoolean;
 
-    boolean isIgnoredSimpleCalc = ignoreSimpleCalcs &&
-        !varClass.get().getBooleanVars().containsEntry(var.getFirst(), var.getSecond()) &&
-            !varClass.get().getDiscreteValueVars().containsEntry(var.getFirst(), var.getSecond()) &&
-            varClass.get().getSimpleCalcVars().containsEntry(var.getFirst(), var.getSecond());
+    // if a var is boolean and intEqual, it is not handled as intEqual.
+    final boolean isIgnoredIntEqual = ignoreIntEqual && !isBoolean && isIntEqual;
 
-    return isIgnoredBoolean || isIgnoredDiscrete || isIgnoredSimpleCalc;
+    // if a var is (boolean or intEqual) and intAdd, it is not handled as intAdd.
+    final boolean isIgnoredIntAdd = ignoreIntAdd && !isBoolean && !isIntEqual && isIntAdd;
+
+    return isIgnoredBoolean || isIgnoredIntEqual || isIgnoredIntAdd;
   }
 
   /** split var into function and varName */

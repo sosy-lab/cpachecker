@@ -89,6 +89,7 @@ public class BitvectorManager {
   }
 
   /** 1100 && 1010 --> 0001 */
+  @Deprecated // logical AND (&&) is not allowed in the AST any more
   public Region[] makeLogicalAnd(Region[] r1, Region[] r2) {
     int bitsize = getBitSize(r1, r2);
 
@@ -113,6 +114,7 @@ public class BitvectorManager {
   }
 
   /** 1100 || 1010 --> 0001 */
+  @Deprecated // logical OR (||) is not allowed in the AST any more
   public Region[] makeLogicalOr(Region[] r1, Region[] r2) {
     int bitsize = getBitSize(r1, r2);
 
