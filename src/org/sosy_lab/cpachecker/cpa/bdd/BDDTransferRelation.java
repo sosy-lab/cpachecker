@@ -119,8 +119,8 @@ public class BDDTransferRelation implements TransferRelation {
   @Option(description = "default bitsize for values and vars")
   private int bitsize = 32;
 
-  @Option(description = "use a smaller bitsize for all vars, that have only discrete values")
-  private boolean compressDiscretes = true;
+  @Option(description = "use a smaller bitsize for all vars, that have only intEqual values")
+  private boolean compressIntEqual = true;
 
   private final VariableClassification varClass;
   private final Map<Multimap<String, String>, String> varsToTmpVar =
@@ -132,7 +132,7 @@ public class BDDTransferRelation implements TransferRelation {
   private final BitvectorManager bvmgr;
   private final NamedRegionManager rmgr;
 
-  /** This map contains tuples (int, region[]) for each discrete-value-partition. */
+  /** This map contains tuples (int, region[]) for each intEqual-partition. */
   private final Map<Partition, Map<BigInteger, Region[]>> intToRegionsMap = Maps.newHashMap();
 
   /** The Constructor of BDDVectorTransferRelation sets the NamedRegionManager
@@ -153,7 +153,7 @@ public class BDDTransferRelation implements TransferRelation {
       initVars(precision, cfa);
     }
 
-    if (compressDiscretes) {
+    if (compressIntEqual) {
       initMappingIntToRegions();
     }
   }
@@ -171,16 +171,16 @@ public class BDDTransferRelation implements TransferRelation {
       partitions = varClass.getPartitions();
     }
 
-    Collection<Partition> booleanPartitions = varClass.getBooleanPartitions();
-    Collection<Partition> discreteValuePartitions = varClass.getIntEqualPartitions();
+    final Collection<Partition> booleanPartitions = varClass.getBooleanPartitions();
+    final Collection<Partition> intEqualValuePartitions = varClass.getIntEqualPartitions();
     for (Partition partition : partitions) {
 
-      // default value i.e. for simpleCalcVars or for discreteValueVars without compression
+      // default value i.e. for intAddVars or for intEqualVars without compression
       int size = bitsize;
 
       if (booleanPartitions.contains(partition)) {
         size = 0; // we use 0 instead of 1, special case for real boolean vars
-      } else if (compressDiscretes && discreteValuePartitions.contains(partition)) {
+      } else if (compressIntEqual && intEqualValuePartitions.contains(partition)) {
         size = partitionToBitsize(partition);
       }
       createPredicates(partition.getVars(), precision, size);
@@ -502,7 +502,7 @@ public class BDDTransferRelation implements TransferRelation {
 
       /* special case: external functioncall with possible side-effect!
        * this is the only statement, where a pointer-operation is allowed
-       * and the var can be boolean, discrete or simple calc,
+       * and the var can be boolean, intEqual or intAdd,
        * because we know, the variable can have a random (unknown) value after the functioncall.
        * example: "scanf("%d", &input);" */
       if (param instanceof CUnaryExpression &&
@@ -979,7 +979,7 @@ public class BDDTransferRelation implements TransferRelation {
     return rmgr.makeExists(region, existing);
   }
 
-  /** This function creates a mapping of discrete partitions to a mapping of number to bitvector.
+  /** This function creates a mapping of intEqual partitions to a mapping of number to bitvector.
    * This allows to compress big numbers to a small number of bits in the BDD. */
   private void initMappingIntToRegions() {
     for (Partition partition : Sets.difference(
@@ -1003,7 +1003,7 @@ public class BDDTransferRelation implements TransferRelation {
    * (one for each value and one for the whole rest).
    * For N+1 different values we need at least log_2(N+1) bits in the representation. */
   private int partitionToBitsize(Partition partition) {
-    if (compressDiscretes && partition != null) {
+    if (compressIntEqual && partition != null) {
       return (int) Math.ceil(Math.log(partition.getValues().size() + 1) / Math.log(2));
     } else {
       return bitsize;
@@ -1195,7 +1195,7 @@ public class BDDTransferRelation implements TransferRelation {
       // for numeral values
       Region[] operand1;
       BigInteger val1 = VariableClassification.getNumber(exp.getOperand1());
-      if (compressDiscretes && partition != null && val1 != null) {
+      if (compressIntEqual && partition != null && val1 != null) {
         operand1 = mapIntToRegions(val1, partition);
         assert operand1 != null;
       } else {
@@ -1205,7 +1205,7 @@ public class BDDTransferRelation implements TransferRelation {
       // for numeral values
       BigInteger val2 = VariableClassification.getNumber(exp.getOperand2());
       Region[] operand2;
-      if (compressDiscretes && partition != null && val2 != null) {
+      if (compressIntEqual && partition != null && val2 != null) {
         operand2 = mapIntToRegions(val2, partition);
         assert operand2 != null;
       } else {
@@ -1299,7 +1299,7 @@ public class BDDTransferRelation implements TransferRelation {
 
     @Override
     public Region[] visit(CIntegerLiteralExpression exp) {
-      if (compressDiscretes && partition != null) {
+      if (compressIntEqual && partition != null) {
         return mapIntToRegions(exp.getValue(), partition);
       } else {
         return bvmgr.makeNumber(exp.getValue(), bitsize);
@@ -1321,7 +1321,7 @@ public class BDDTransferRelation implements TransferRelation {
 
       // for numeral values
       BigInteger val = VariableClassification.getNumber(exp);
-      if (compressDiscretes && partition != null && val != null) { return mapIntToRegions(val, partition); }
+      if (compressIntEqual && partition != null && val != null) { return mapIntToRegions(val, partition); }
 
       // for vars
       Region[] operand = exp.getOperand().accept(this);
@@ -1437,33 +1437,33 @@ public class BDDTransferRelation implements TransferRelation {
 
   void printStatistics(final PrintStream out) {
     final Set<Partition> booleans = varClass.getBooleanPartitions();
-    final Set<Partition> discretes = varClass.getIntEqualPartitions();
-    final Set<Partition> simpleCalcs = varClass.getIntAddPartitions();
+    final Set<Partition> intEquals = varClass.getIntEqualPartitions();
+    final Set<Partition> intAdds = varClass.getIntAddPartitions();
 
     int numOfBooleans = 0;
     for (Partition p : booleans) {
       numOfBooleans += p.getVars().size();
     }
 
-    int numOfDiscretes = 0;
-    final Set<Partition> realDiscrete = Sets.difference(discretes, booleans);
-    for (Partition p : realDiscrete) {
-      numOfDiscretes += p.getVars().size();
+    int numOfIntEquals = 0;
+    final Set<Partition> realIntEquals= Sets.difference(intEquals, booleans);
+    for (Partition p : realIntEquals) {
+      numOfIntEquals += p.getVars().size();
     }
 
-    int numOfSimpleCalcVars = 0;
-    final Set<Partition> realSimpleCalc = Sets.difference(simpleCalcs, Sets.union(booleans, discretes));
-    for (Partition p : realSimpleCalc) {
-      numOfSimpleCalcVars += p.getVars().size();
+    int numOfIntAdds = 0;
+    final Set<Partition> realIntAdds = Sets.difference(intAdds, Sets.union(booleans, intEquals));
+    for (Partition p : realIntAdds) {
+      numOfIntAdds += p.getVars().size();
     }
 
     out.println("Number of boolean vars:           " + numOfBooleans);
-    out.println("Number of discrete vars:          " + numOfDiscretes);
-    out.println("Number of simple calc vars:       " + numOfSimpleCalcVars);
+    out.println("Number of intEqual vars:          " + numOfIntEquals);
+    out.println("Number of intAdd vars:            " + numOfIntAdds);
     out.println("Number of all vars:               " + varClass.getAllVars().size());
     out.println("Number of boolean partitions:     " + booleans.size());
-    out.println("Number of discrete partitions:    " + realDiscrete.size());
-    out.println("Number of simple calc partitions: " + realSimpleCalc.size());
+    out.println("Number of intEqual partitions:    " + realIntEquals.size());
+    out.println("Number of intAdd partitions:      " + realIntAdds.size());
     out.println("Number of all partitions:         " + varClass.getPartitions().size());
     rmgr.printStatistics(out);
   }
