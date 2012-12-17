@@ -27,8 +27,8 @@ call "ant report-dependencies".
   Used for octagon abstract domain
   Source for wrapper in native/source/octagon-libJOct.so/
 
-- libmathsatj.so: Mathsat4
-  http://mathsat4.disi.unitn.it/
+- libmathsat5j.so: MathSAT5
+  http://mathsat.fbk.eu/
   CPAchecker-specific license: license-libmathsatj.txt
   SMT-solver (used for predicate analysis)
   Source for Java wrapper library in native/source/libmathsatj/

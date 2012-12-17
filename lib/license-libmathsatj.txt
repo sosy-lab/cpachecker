@@ -14,4 +14,4 @@
 
   The MathSAT version available here (libmathsatj.so) can be used only
   from within CPAChecker. For any other use, please visit
-  http://mathsat4.disi.unitn.it or write to mathsat@fbk.eu
+  http://mathsat.fbk.eu or write to mathsat@fbk.eu

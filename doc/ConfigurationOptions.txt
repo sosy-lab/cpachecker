@@ -616,9 +616,6 @@ cpa.predicate.mathsat.furtherOptions = ""
 cpa.predicate.mathsat.logAllQueries = false
 cpa.predicate.mathsat.logfile = "mathsat5.%d.smt2"
 
-# use a combination of theories (this is incomplete)
-cpa.predicate.mathsat.useDtc = false
-
 # Use UIFs (recommended because its more precise)
 cpa.predicate.mathsat.useUIFs = true
 
@@ -727,9 +724,9 @@ cpa.predicate.satCheck = 0
 cpa.predicate.smtinterpol.logAllQueries = false
 cpa.predicate.smtinterpol.logfile = "smtinterpol.smt2"
 
-# Whether to use MathSAT 4, MathSAT 5, or SmtInterpol as SMT solver
+# Whether to use MathSAT 5 or SmtInterpol as SMT solver
 cpa.predicate.solver = MATHSAT5
-  allowed values: [MATHSAT4, MATHSAT5, SMTINTERPOL]
+  allowed values: [MATHSAT5, SMTINTERPOL]
 
 # With of the bitvectors if useBitvectors is true.
 cpa.predicate.solver.bitWidth = 32

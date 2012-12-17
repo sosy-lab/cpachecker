@@ -1,3 +1,9 @@
+Changes since CPAchecker 1.2
+----------------------------
+
+* r7005: MathSAT4 is no longer available as SMT solver.
+
+
 Changes from CPAchecker 1.1 to CPAchecker 1.2
 ---------------------------------------------
 
