@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.*;
 
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -80,11 +79,11 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
    * Add an initializer.
    * This is only possible if there is no initializer already.
    * DO NOT CALL this method after CFA construction!
-   * @param pInitializer the new initializer
+   * @param pCInitializer the new initializer
    */
-  public void addInitializer(Initializer pInitializer) {
+  public void addInitializer(CInitializer pCInitializer) {
     checkState(initializer == null);
-    initializer = pInitializer;
+    initializer = pCInitializer;
   }
 
   @Override

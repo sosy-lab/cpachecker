@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefinementManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -54,6 +53,7 @@ import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 import com.google.common.collect.Multimap;
 
@@ -107,16 +107,21 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner {
       AbstractionManager absManager               = predicateCpa.getAbstractionManager();
       pathFormulaManager                          = predicateCpa.getPathFormulaManager();
 
-      PredicateRefinementManager manager = new PredicateRefinementManager(
+      InterpolationManager manager = new InterpolationManager(
           formulaManager,
           pathFormulaManager,
           solver,
-          absManager,
           factory,
           config,
           logger);
 
-      backupRefiner = new PredicatingExplicitRefiner(config, logger, cpa, manager);
+      backupRefiner = new PredicatingExplicitRefiner(
+          config,
+          logger,
+          cpa,
+          manager,
+          formulaManager,
+          absManager);
 
     } else {
       FormulaManagerFactory factory         = new FormulaManagerFactory(config, logger);

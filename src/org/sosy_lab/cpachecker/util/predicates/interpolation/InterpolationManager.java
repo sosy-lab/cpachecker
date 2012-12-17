@@ -76,22 +76,24 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 
 @Options(prefix="cpa.predicate.refinement")
-public abstract class InterpolationManager<I> {
+public final class InterpolationManager {
 
   static class Stats {
     private final Timer cexAnalysisTimer = new Timer();
-    private final Timer cexAnalysisSolverTimer = new Timer();
+    private final Timer satCheckTime = new Timer();
+    private final Timer getInterpolantTime = new Timer();
     private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
     private final Timer interpolantVerificationTimer = new Timer();
 
     void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      out.println("  Counterexample analysis:        " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.printMaxTime() + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
+      out.println("  Counterexample analysis:            " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.printMaxTime() + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
       if (cexAnalysisGetUsefulBlocksTimer.getMaxTime() != 0) {
-        out.println("    Cex.focusing:                 " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
+        out.println("    Cex.focusing:                     " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
       }
-      out.println("    Solving time only:            " + cexAnalysisSolverTimer + " (Max: " + cexAnalysisSolverTimer.printMaxTime() + ", Calls: " + cexAnalysisSolverTimer.getNumberOfIntervals() + ")");
+      out.println("    Refinement sat check:             " + satCheckTime);
+      out.println("    Interpolant computation:          " + getInterpolantTime);
       if (interpolantVerificationTimer.getNumberOfIntervals() > 0) {
-        out.println("    Interpolant verification:     " + interpolantVerificationTimer);
+        out.println("    Interpolant verification:         " + interpolantVerificationTimer);
       }
     }
   }
@@ -182,12 +184,12 @@ public abstract class InterpolationManager<I> {
 //    }
   }
 
-  public String dumpCounterexample(CounterexampleTraceInfo<I> cex) {
+  public String dumpCounterexample(CounterexampleTraceInfo<Formula> cex) {
     return fmgr.dumpFormula(fmgr.makeConjunction(cex.getCounterExampleFormulas()));
   }
 
   /**
-   * Counterexample analysis and predicate discovery.
+   * Counterexample analysis.
    * This method is just an helper to delegate the actual work
    * This is used to detect timeouts for interpolation
    *
@@ -196,7 +198,7 @@ public abstract class InterpolationManager<I> {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public CounterexampleTraceInfo<I> buildCounterexampleTrace(
+  public CounterexampleTraceInfo<Formula> buildCounterexampleTrace(
       final List<Formula> pFormulas,
       final Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
 
@@ -207,14 +209,14 @@ public abstract class InterpolationManager<I> {
 
     assert executor != null;
 
-    Callable<CounterexampleTraceInfo<I>> tc = new Callable<CounterexampleTraceInfo<I>>() {
+    Callable<CounterexampleTraceInfo<Formula>> tc = new Callable<CounterexampleTraceInfo<Formula>>() {
       @Override
-      public CounterexampleTraceInfo<I> call() throws CPAException, InterruptedException {
+      public CounterexampleTraceInfo<Formula> call() throws CPAException, InterruptedException {
         return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
       }
     };
 
-    Future<CounterexampleTraceInfo<I>> future = executor.submit(tc);
+    Future<CounterexampleTraceInfo<Formula>> future = executor.submit(tc);
 
     try {
       // here we get the result of the post computation but there is a time limit
@@ -241,7 +243,7 @@ public abstract class InterpolationManager<I> {
    * @return counterexample info with predicated information
    * @throws CPAException
    */
-  private <T> CounterexampleTraceInfo<I> buildCounterexampleTraceWithSpecifiedItp(
+  private <T> CounterexampleTraceInfo<Formula> buildCounterexampleTraceWithSpecifiedItp(
       List<Formula> pFormulas, Set<ARGState> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
 
     logger.log(Level.FINEST, "Building counterexample trace");
@@ -275,7 +277,7 @@ public abstract class InterpolationManager<I> {
 
       // Check feasibility of counterexample
       logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
-      stats.cexAnalysisSolverTimer.start();
+      stats.satCheckTime.start();
 
       boolean spurious;
       List<T> itpGroupsIds;
@@ -302,21 +304,28 @@ public abstract class InterpolationManager<I> {
         assert !itpGroupsIds.contains(null); // has to be filled completely
 
       } finally {
-        stats.cexAnalysisSolverTimer.stop();
+        stats.satCheckTime.stop();
       }
 
       logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
 
 
       // Get either interpolants or error path information
-      CounterexampleTraceInfo<I> info;
+      CounterexampleTraceInfo<Formula> info;
       if (spurious) {
 
         List<Formula> interpolants = getInterpolants(pItpProver, itpGroupsIds);
         if (verifyInterpolants) {
           verifyInterpolants(interpolants, f, pItpProver);
         }
-        info = extractPredicates(interpolants);
+
+        info = new CounterexampleTraceInfo<Formula>();
+
+        int i = 1;
+        for (Formula itp : interpolants) {
+          logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
+          info.addInterpolant(itp);
+        }
 
       } else {
         // this is a real bug
@@ -612,13 +621,12 @@ public abstract class InterpolationManager<I> {
       logger.log(Level.ALL, "Looking for interpolant for formulas from",
           start_of_a, "to", i);
 
-      stats.cexAnalysisSolverTimer.start();
+      stats.getInterpolantTime.start();
       Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
-      stats.cexAnalysisSolverTimer.stop();
+      stats.getInterpolantTime.stop();
 
       if (dumpInterpolationProblems) {
-        File dumpFile = formatFormulaOutputFile("interpolant", i);
-        fmgr.dumpFormulaToFile(itp, dumpFile);
+        dumpFormulaToFile("interpolant", itp, i);
       }
 
       interpolants.add(itp);
@@ -723,43 +731,6 @@ public abstract class InterpolationManager<I> {
   }
 
   /**
-   * Get the predicates out of the interpolants.
-   *
-   * @param interpolants the interpolants
-   * @return Information about the counterexample, including the predicates.
-   */
-  private <T> CounterexampleTraceInfo<I> extractPredicates(
-      List<Formula> interpolants) {
-
-    // the counterexample is spurious. Extract the predicates from
-    // the interpolants
-
-    CounterexampleTraceInfo<I> info = new CounterexampleTraceInfo<I>();
-
-    int i = 1;
-    for (Formula itp : interpolants) {
-      I preds;
-
-      if (itp.isTrue()) {
-        logger.log(Level.ALL, "For step", i, "got no interpolant.");
-        preds = getTrueInterpolant();
-
-      } else {
-        logger.log(Level.ALL, "For step", i, "got:", "interpolant", itp);
-        preds = convertInterpolant(itp, i);
-      }
-      info.addPredicatesForRefinement(preds);
-      i++;
-    }
-
-    return info;
-  }
-
-  protected abstract I convertInterpolant(Formula itp, int step);
-
-  protected abstract I getTrueInterpolant();
-
-  /**
    * Get information about the error path from the solver after the formulas
    * have been proved to be satisfiable.
    *
@@ -770,7 +741,7 @@ public abstract class InterpolationManager<I> {
    * @throws CPATransferException
    * @throws InterruptedException
    */
-  private <T> CounterexampleTraceInfo<I> getErrorPath(List<Formula> f,
+  private <T> CounterexampleTraceInfo<Formula> getErrorPath(List<Formula> f,
       InterpolatingTheoremProver<T> pItpProver, Set<ARGState> elementsOnPath)
       throws CPATransferException, InterruptedException {
 
@@ -780,7 +751,7 @@ public abstract class InterpolationManager<I> {
     Formula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
     if (branchingFormula.isTrue()) {
-      return new CounterexampleTraceInfo<I>(f, getModel(pItpProver), Collections.<Integer, Boolean>emptyMap());
+      return new CounterexampleTraceInfo<Formula>(f, getModel(pItpProver), Collections.<Integer, Boolean>emptyMap());
     }
 
     // add formula to solver environment
@@ -792,17 +763,16 @@ public abstract class InterpolationManager<I> {
 
     if (stillSatisfiable) {
       Model model = getModel(pItpProver);
-      return new CounterexampleTraceInfo<I>(f, model, pmgr.getBranchingPredicateValuesFromModel(model));
+      return new CounterexampleTraceInfo<Formula>(f, model, pmgr.getBranchingPredicateValuesFromModel(model));
 
     } else {
       // this should not happen
       logger.log(Level.WARNING, "Could not get precise error path information because of inconsistent reachingPathsFormula!");
 
       dumpInterpolationProblem(f);
-      File dumpFile = formatFormulaOutputFile("formula", f.size());
-      fmgr.dumpFormulaToFile(branchingFormula, dumpFile);
+      dumpFormulaToFile("formula", branchingFormula, f.size());
 
-      return new CounterexampleTraceInfo<I>(f, new Model(fmgr), Collections.<Integer, Boolean>emptyMap());
+      return new CounterexampleTraceInfo<Formula>(f, new Model(fmgr), Collections.<Integer, Boolean>emptyMap());
     }
   }
 
@@ -816,7 +786,7 @@ public abstract class InterpolationManager<I> {
     }
   }
 
-  public CounterexampleTraceInfo<I> checkPath(List<CFAEdge> pPath) throws CPATransferException {
+  public CounterexampleTraceInfo<Formula> checkPath(List<CFAEdge> pPath) throws CPATransferException {
     Formula f = pmgr.makeFormulaForPath(pPath).getFormula();
 
     TheoremProver thmProver = solver.getTheoremProver();
@@ -824,9 +794,9 @@ public abstract class InterpolationManager<I> {
     try {
       thmProver.push(f);
       if (thmProver.isUnsat()) {
-        return new CounterexampleTraceInfo<I>();
+        return new CounterexampleTraceInfo<Formula>();
       } else {
-        return new CounterexampleTraceInfo<I>(Collections.singletonList(f), getModel(thmProver), ImmutableMap.<Integer, Boolean>of());
+        return new CounterexampleTraceInfo<Formula>(Collections.singletonList(f), getModel(thmProver), ImmutableMap.<Integer, Boolean>of());
       }
     } finally {
       thmProver.reset();
@@ -855,11 +825,12 @@ public abstract class InterpolationManager<I> {
     }
   }
 
-  protected File formatFormulaOutputFile(String formula, int index) {
-    if (dumpInterpolationProblems) {
-      return fmgr.formatFormulaOutputFile("interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), formula, index);
-    } else {
-      return null;
-    }
+  private void dumpFormulaToFile(String name, Formula f, int i) {
+    File dumpFile = formatFormulaOutputFile(name, i);
+    fmgr.dumpFormulaToFile(f, dumpFile);
+  }
+
+  private File formatFormulaOutputFile(String formula, int index) {
+    return fmgr.formatFormulaOutputFile("interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), formula, index);
   }
 }

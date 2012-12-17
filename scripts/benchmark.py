@@ -220,12 +220,18 @@ class Test:
 
         # get name of test, name is optional, the result can be "None"
         self.name = testTag.get("name")
+        self.realName = self.name
 
         # get all test-specific options from testTag
         self.options = getOptions(testTag)
 
         # get all runs, a run contains one sourcefile with options
         self.getRuns(globalSourcefileTags + testTag.findall("sourcefiles"))
+
+
+    def shouldBeRun(self):
+        return not options.testRunOnly \
+            or self.realName in options.testRunOnly
 
 
     def getRuns(self, sourcefilesTagList):
@@ -238,6 +244,17 @@ class Test:
         self.runs = []
 
         for sourcefilesTag in sourcefilesTagList:
+            blockName = sourcefilesTag.get("name", str(sourcefilesTagList.index(sourcefilesTag)))
+            if (options.sourcefilesOnly and blockName not in options.sourcefilesOnly):
+                continue
+
+            if (options.sourcefilesOnly and len(options.sourcefilesOnly) == 1) \
+                    or len(sourcefilesTagList) == 1:
+                # there is exactly one block to run, append block name to test name
+                givenBlockName = sourcefilesTag.get("name", None)
+                if givenBlockName:
+                    self.name = self.name + "." + givenBlockName if self.name else givenBlockName
+
             # get list of filenames
             sourcefiles = self.getSourcefiles(sourcefilesTag)
 
@@ -249,7 +266,6 @@ class Test:
                 runs.append(Run(sourcefile, fileOptions, self))
             self.runs.extend(runs)
 
-            blockName = sourcefilesTag.get("name", str(sourcefilesTagList.index(sourcefilesTag)))
             self.blocks.append(Block(blockName,runs))
 
 
@@ -728,7 +744,7 @@ class OutputHandler:
             testname = self.benchmark.tests[0].name
         elif options.testRunOnly and len(options.testRunOnly) == 1:
             # in case we run only a single test, we can use this name
-            testname = options.testRunOnly[0]
+            testname = [test for test in self.benchmark.tests if test.shouldBeRun][0].name
 
         # write to file
         self.TXTContent = self.description
@@ -1187,9 +1203,10 @@ class OutputHandler:
     def outputAfterBenchmark(self):
         self.statistics.printToTerminal()
 
-        Util.printOut("In order to get HTML and CSV tables, run\n{0} '{1}'"
-                      .format(os.path.join(os.path.dirname(__file__), 'table-generator.py'),
-                              self.XMLTestFileName))
+        if hasattr(self, 'XMLTestFileName'):
+            Util.printOut("In order to get HTML and CSV tables, run\n{0} '{1}'"
+                          .format(os.path.join(os.path.dirname(__file__), 'table-generator.py'),
+                                  self.XMLTestFileName))
 
         if STOPPED_BY_INTERRUPT:
             Util.printOut("\nScript was interrupted by user, some tests may not be done.\n")
@@ -1971,7 +1988,7 @@ def runBenchmark(benchmarkFile):
         testnumber = benchmark.tests.index(test) + 1 # the first test has number 1
         (mod, rest) = options.moduloAndRest
 
-        if (options.testRunOnly and test.name not in options.testRunOnly) \
+        if not test.shouldBeRun() \
                 or (testnumber % mod != rest):
             outputHandler.outputForSkippingTest(test)
 
@@ -2048,6 +2065,12 @@ def main(argv=None):
                       help="Run only the specified TEST from the benchmark definition. "
                             + "This option can be specified several times.",
                       metavar="TEST")
+
+    parser.add_argument("-s", "--sourcefiles", dest="sourcefilesOnly",
+                      action="append",
+                      help="Run only the files from the sourcefiles tag with SOURCE as name. "
+                            + "This option can be specified several times.",
+                      metavar="SOURCES")
 
     parser.add_argument("-o", "--outputpath",
                       dest="output_path", type=str,

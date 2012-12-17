@@ -100,7 +100,11 @@ public class ARGStatistics implements Statistics {
   public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
     config.inject(this);
 
-    toCFile = Boolean.parseBoolean(config.getProperty("errorPath.toCFile"));
+    String str = config.getProperty("errorPath.toCFile");
+
+    if(str != null && str.equals("false")) {
+      toCFile = false;
+    }
 
     this.cpa = cpa;
   }

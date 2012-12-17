@@ -23,10 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
+import static com.google.common.base.Preconditions.*;
+
 
 public class FunctionExitNode extends CFANode {
 
+  private FunctionEntryNode entryNode;
+
   public FunctionExitNode(int pLineNumber, String pFunctionName) {
     super(pLineNumber, pFunctionName);
+  }
+
+  public void setEntryNode(FunctionEntryNode pEntryNode) {
+    checkState(entryNode == null);
+    entryNode = checkNotNull(pEntryNode);
+  }
+
+  public FunctionEntryNode getEntryNode() {
+    return entryNode;
   }
 }

@@ -76,8 +76,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.Initializer;
-import org.sosy_lab.cpachecker.cfa.ast.InitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -95,7 +93,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
@@ -967,7 +967,7 @@ class ASTConverter {
     return result;
   }
 
-  private Initializer convert(IASTInitializer i) {
+  private CInitializer convert(IASTInitializer i) {
     if (i == null) {
       return null;
 
@@ -999,19 +999,19 @@ class ASTConverter {
     return new CInitializerExpression(getLocation(i), (CExpression)initializer);
   }
 
-  private InitializerList convert(IASTInitializerList iList) {
-    List<Initializer> initializerList = new ArrayList<Initializer>(iList.getInitializers().length);
+  private CInitializerList convert(IASTInitializerList iList) {
+    List<CInitializer> initializerList = new ArrayList<CInitializer>(iList.getInitializers().length);
     for (IASTInitializer i : iList.getInitializers()) {
-      Initializer newI = convert(i);
+      CInitializer newI = convert(i);
       if (newI != null) {
         initializerList.add(newI);
       }
     }
 
-    return new InitializerList(getLocation(iList), initializerList);
+    return new CInitializerList(getLocation(iList), initializerList);
   }
 
-  private Initializer convert(IASTEqualsInitializer i) {
+  private CInitializer convert(IASTEqualsInitializer i) {
     IASTInitializerClause ic = i.getInitializerClause();
     if (ic instanceof IASTExpression) {
       IASTExpression e = (IASTExpression)ic;

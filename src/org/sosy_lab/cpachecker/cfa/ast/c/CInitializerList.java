@@ -26,10 +26,10 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.InitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializerList;
 
 
-public class CInitializerList extends InitializerList implements CInitializer , CAstNode {
+public class CInitializerList extends AInitializerList implements CInitializer , CAstNode {
 
   public CInitializerList(FileLocation pFileLocation, List<CInitializer> pInitializerList) {
     super(pFileLocation, pInitializerList);

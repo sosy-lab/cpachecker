@@ -32,11 +32,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.ArithmeticMathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.BitwiseMathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatInterpolatingProver;
-import org.sosy_lab.cpachecker.util.predicates.mathsat.MathsatTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.ArithmeticMathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.BitwiseMathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
@@ -50,7 +45,6 @@ import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolTheoremPro
 @Options(prefix="cpa.predicate")
 public class FormulaManagerFactory {
 
-  private static final String MATHSAT4 = "MATHSAT4";
   private static final String MATHSAT5 = "MATHSAT5";
   private static final String SMTINTERPOL = "SMTINTERPOL";
 
@@ -73,9 +67,9 @@ public class FormulaManagerFactory {
       description="Whether to use signed or unsigned variables if useBitvectors is true.")
   private boolean signed = true;
 
-  @Option(values={MATHSAT4, MATHSAT5, SMTINTERPOL}, toUppercase=true,
-      description="Whether to use MathSAT 4, MathSAT 5, or SmtInterpol as SMT solver")
-  private String solver = MATHSAT4;
+  @Option(values={MATHSAT5, SMTINTERPOL}, toUppercase=true,
+      description="Whether to use MathSAT 5 or SmtInterpol as SMT solver")
+  private String solver = MATHSAT5;
 
   private final FormulaManager fmgr;
   private final TheoremProver prover;
@@ -100,29 +94,17 @@ public class FormulaManagerFactory {
 
     } else {
       try {
+        assert solver.equals(MATHSAT5);
 
-        if (solver.equals(MATHSAT5)) {
-          if (useBitvectors) {
-            lFmgr = new BitwiseMathsat5FormulaManager(config, logger, bitWidth, signed);
-
-          } else {
-            lFmgr = new ArithmeticMathsat5FormulaManager(config, logger, useIntegers);
-          }
-
-          lProver = new Mathsat5TheoremProver((Mathsat5FormulaManager) lFmgr);
+        if (useBitvectors) {
+          lFmgr = new BitwiseMathsat5FormulaManager(config, logger, bitWidth, signed);
 
         } else {
-          assert solver.equals(MATHSAT4);
-
-          if (useBitvectors) {
-            lFmgr = new BitwiseMathsatFormulaManager(config, logger, bitWidth, signed);
-
-          } else {
-            lFmgr = new ArithmeticMathsatFormulaManager(config, logger, useIntegers);
-          }
-
-          lProver = new MathsatTheoremProver((MathsatFormulaManager) lFmgr);
+          lFmgr = new ArithmeticMathsat5FormulaManager(config, logger, useIntegers);
         }
+
+        lProver = new Mathsat5TheoremProver((Mathsat5FormulaManager) lFmgr);
+
       } catch (UnsatisfiedLinkError e) {
         throw new InvalidConfigurationException("The SMT solver " + solver
             + " is not available on this machine."
@@ -143,14 +125,11 @@ public class FormulaManagerFactory {
   }
 
   public InterpolatingTheoremProver<?> createInterpolatingTheoremProver(boolean shared) {
-    if (solver.equals(MATHSAT5)) {
-      return new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
-
-    } else if (solver.equals(SMTINTERPOL)) {
+    if (solver.equals(SMTINTERPOL)) {
       return new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) fmgr);
     } else {
-      assert solver.equals(MATHSAT4);
-      return new MathsatInterpolatingProver((MathsatFormulaManager) fmgr, shared);
+      assert solver.equals(MATHSAT5);
+      return new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
     }
   }
 }

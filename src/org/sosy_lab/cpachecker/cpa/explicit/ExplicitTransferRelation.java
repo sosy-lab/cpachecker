@@ -1276,6 +1276,9 @@ public class ExplicitTransferRelation implements TransferRelation
 
     private boolean isAssignable(IAExpression expression) {
 
+      if(expression instanceof CIdExpression || expression instanceof CFieldReference) {
+        return true;
+      }
 
       boolean result = false;
 
@@ -1298,7 +1301,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
 
 
-      return result || expression instanceof CFieldReference;
+      return result;
     }
   }
 

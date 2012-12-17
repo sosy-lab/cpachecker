@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -107,7 +106,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   private final ForcedCoveringStopOperator stop;
 
   private final FormulaManager fmgr;
-  private final InterpolationManager<Formula> imgr;
+  private final InterpolationManager imgr;
   private final Solver solver;
 
   public PredicateForcedCovering(Configuration config, LogManager pLogger,
@@ -125,7 +124,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
       throw new InvalidConfigurationException(PredicateForcedCovering.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    imgr = new UninstantiatingInterpolationManager(predicateCpa.getFormulaManager(),
+    imgr = new InterpolationManager(predicateCpa.getFormulaManager(),
                                                    predicateCpa.getPathFormulaManager(),
                                                    predicateCpa.getSolver(),
                                                    predicateCpa.getFormulaManagerFactory(),
@@ -232,7 +231,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         stats.successfulForcedCoverings++;
         logger.log(Level.FINER, "Forced covering successful.");
 
-        List<Formula> interpolants = interpolantInfo.getPredicatesForRefinement();
+        List<Formula> interpolants = interpolantInfo.getInterpolants();
         assert interpolants.size() == formulas.size() - 1 : "Number of interpolants is wrong";
         assert interpolants.size() == path.size();
 
@@ -243,6 +242,8 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
           if (itp.isTrue()) {
             continue;
           }
+
+          itp = fmgr.uninstantiate(itp);
 
           PredicateAbstractState predElement = getPredicateState(element);
           AbstractionFormula af = predElement.getAbstractionFormula();

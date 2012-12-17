@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
@@ -64,8 +63,6 @@ import com.google.common.base.Predicates;
 public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> implements StatisticsProvider {
 
   private class Stats implements Statistics {
-
-    private int newItpWasAdded = 0;
 
     private final Timer itpCheck  = new Timer();
     private final Timer coverTime = new Timer();
@@ -79,12 +76,9 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
       ImpactRefiner.this.printStatistics(out, pResult, pReached);
-      out.println("  Checking whether itp is new:    " + itpCheck);
-      out.println("  Coverage checks:                " + coverTime);
-      out.println("  ARG update:                     " + argUpdate);
-      out.println();
-      out.println("Number of interpolants added:     " + newItpWasAdded);
-      out.println("Number of non-new interpolants:   " + (itpCheck.getNumberOfIntervals() - newItpWasAdded));
+      out.println("  Checking whether itp is new:        " + itpCheck);
+      out.println("  Coverage checks:                    " + coverTime);
+      out.println("  ARG update:                         " + argUpdate);
     }
   }
 
@@ -109,7 +103,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
     ExtendedFormulaManager fmgr = predicateCpa.getFormulaManager();
     Solver solver = predicateCpa.getSolver();
 
-    InterpolationManager<Formula> manager = new UninstantiatingInterpolationManager(
+    InterpolationManager manager = new InterpolationManager(
                                                   fmgr,
                                                   predicateCpa.getPathFormulaManager(),
                                                   solver,
@@ -122,7 +116,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
 
   protected ImpactRefiner(final Configuration config, final LogManager logger,
       final ConfigurableProgramAnalysis pCpa,
-      final InterpolationManager<Formula> pInterpolationManager,
+      final InterpolationManager pInterpolationManager,
       final ExtendedFormulaManager pFmgr, final Solver pSolver) throws InvalidConfigurationException, CPAException {
 
     super(config, logger, pCpa, pInterpolationManager);
@@ -169,17 +163,18 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
     assert lastElement.isTarget();
 
     path = path.subList(0, path.size()-1); // skip last element, itp is always false there
-    assert cex.getPredicatesForRefinement().size() ==  path.size();
+    assert cex.getInterpolants().size() ==  path.size();
 
     List<ARGState> changedElements = new ArrayList<ARGState>();
     ARGState infeasiblePartOfART = lastElement;
 
-    for (Pair<Formula, ARGState> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
+    for (Pair<Formula, ARGState> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
       Formula itp = interpolationPoint.getFirst();
       ARGState w = interpolationPoint.getSecond();
 
       if (itp.isTrue()) {
         // do nothing
+        totalUnchangedPrefixLength++;
         continue;
       }
 
@@ -188,7 +183,9 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
         infeasiblePartOfART = w;
         break;
       }
+      totalNumberOfStatesWithNonTrivialInterpolant++;
 
+      itp = fmgr.uninstantiate(itp);
       Formula stateFormula = getStateFormula(w);
 
       stats.itpCheck.start();
@@ -196,11 +193,11 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
       stats.itpCheck.stop();
 
       if (isNewItp) {
-        stats.newItpWasAdded++;
         addFormulaToState(itp, w, fmgr);
         changedElements.add(w);
       }
     }
+    totalNumberOfAffectedStates += changedElements.size();
 
     if (changedElements.isEmpty() && pRepeatedCounterexample) {
       // TODO One cause for this exception is that the CPAAlgorithm sometimes

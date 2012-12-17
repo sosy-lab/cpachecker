@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import java.io.Serializable;
 
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegion;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
@@ -98,6 +99,7 @@ public class AbstractionFormula implements Serializable {
 
   @Override
   public String toString() {
-    return "ABS" + id + ": " + formula;
+    // we print the formula only when using BDDs because it might be very very large otherwise
+    return "ABS" + id + (region instanceof BDDRegion ? ": " + formula : "");
   }
 }

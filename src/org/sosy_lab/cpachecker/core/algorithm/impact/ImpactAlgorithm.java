@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -88,7 +87,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   private final PathFormulaManager pfmgr;
   private final TheoremProver prover;
   private final Solver solver;
-  private final InterpolationManager<Formula> imgr;
+  private final InterpolationManager imgr;
 
   private final Timer expandTime = new Timer();
   private final Timer forceCoverTime = new Timer();
@@ -141,7 +140,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, cfa.getMachineModel()));
     prover = factory.createTheoremProver();
     solver = new Solver(fmgr, prover);
-    imgr = new UninstantiatingInterpolationManager(fmgr, pfmgr, solver, factory, config, logger);
+    imgr = new InterpolationManager(fmgr, pfmgr, solver, factory, config, logger);
   }
 
   public AbstractState getInitialState(CFANode location) {
@@ -212,17 +211,19 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.FINER, "Refinement successful");
 
       path = path.subList(0, path.size()-1); // skip last element, itp is always false there
-      assert cex.getPredicatesForRefinement().size() ==  path.size();
+      assert cex.getInterpolants().size() ==  path.size();
 
       List<Vertex> changedElements = new ArrayList<Vertex>();
 
-      for (Pair<Formula, Vertex> interpolationPoint : Pair.zipList(cex.getPredicatesForRefinement(), path)) {
+      for (Pair<Formula, Vertex> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
         Formula itp = interpolationPoint.getFirst();
         Vertex w = interpolationPoint.getSecond();
 
         if (itp.isTrue()) {
           continue;
         }
+
+        itp = fmgr.uninstantiate(itp);
 
         Formula stateFormula = w.getStateFormula();
         if (!solver.implies(stateFormula, itp)) {
@@ -336,7 +337,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     logger.log(Level.FINER, "Forced covering successful.");
 
 
-    List<Formula> interpolants = interpolantInfo.getPredicatesForRefinement();
+    List<Formula> interpolants = interpolantInfo.getInterpolants();
     assert interpolants.size() == formulas.size() - 1;
     assert interpolants.size() ==  path.size();
 
@@ -349,6 +350,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       if (itp.isTrue()) {
         continue;
       }
+
+      itp = fmgr.uninstantiate(itp);
 
       Formula stateFormula = p.getStateFormula();
       if (!solver.implies(stateFormula, itp)) {

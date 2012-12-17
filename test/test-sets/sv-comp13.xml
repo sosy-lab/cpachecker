@@ -4,21 +4,39 @@
   <option name="-disable-java-assertions"/>
   <option name="-heap">12000M</option>
 
-  <sourcefiles>
+  <sourcefiles name="BitVectors">
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
-    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
-    <includesfile>../programs/benchmarks/ControlFlowInteger-MemPrecise.set</includesfile>
-    <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
-    <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
-    <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
-    <includesfile>../programs/benchmarks/Loops.set</includesfile>
-    <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
-    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
-    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
   </sourcefiles>
-  <sourcefiles>
+  <sourcefiles name="Concurrency">
+    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ControlFlowInteger-MemPrecise">
+    <includesfile>../programs/benchmarks/ControlFlowInteger-MemPrecise.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ControlFlowInteger-MemSimple">
+    <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
     <option name="-setprop">analysis.machineModel=Linux64</option>
+  </sourcefiles>
+  <sourcefiles name="FeatureChecks">
+    <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="HeapManipulation">
+    <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Loops">
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="MemorySafety">
+    <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ProductLines">
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="SystemC">
+    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
   </sourcefiles>
 
   <test name="combinations">

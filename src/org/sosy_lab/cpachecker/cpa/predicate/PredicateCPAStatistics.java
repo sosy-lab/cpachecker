@@ -70,20 +70,20 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.predicate")
 class PredicateCPAStatistics implements Statistics {
 
-    @Option(description="exportPredmap final predicate map",
+    @Option(description="export final predicate map",
             name="predmap.export")
     private boolean exportPredmap = true;
 
-    @Option(description="predmapFile for exporting final predicate map",
+    @Option(description="file for exporting final predicate map",
             name="predmap.file")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private File predmapFile = new File("predmap.txt");
 
-    @Option(description="exportPredmap final loop invariants",
+    @Option(description="export final loop invariants",
             name="invariants.export")
     private boolean exportInvariants = true;
 
-    @Option(description="predmapFile for exporting final loop invariants",
+    @Option(description="file for exporting final loop invariants",
             name="invariants.file")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private File invariantsFile = new File("invariants.txt");

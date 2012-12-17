@@ -38,13 +38,15 @@ import com.google.common.base.Optional;
 public class BDDPrecision implements Precision {
 
   @Option(description = "track boolean variables from cfa")
-  private boolean trackBooleans = true;
+  private boolean trackBoolean = true;
 
-  @Option(description = "track simple numeral variables from cfa as bitvectors")
-  private boolean trackDiscretes = true;
+  @Option(description = "track variables from cfa, that are only compared " +
+  		"for equality, they are tracked as (small) bitvectors")
+  private boolean trackIntEqual = true;
 
-  @Option(description = "track variables, only used in simple calculations, from cfa as bitvectors")
-  private boolean trackSimpleCalcs = true;
+  @Option(description = "track variables, only used in simple calculations " +
+  		"(add, sub, gt, lt, eq,...) from cfa as bitvectors with (default) 32 bits")
+  private boolean trackIntAdd = true;
 
   @Option(name="forceTrackingPattern",
       description="Pattern for variablenames that will always be tracked with BDDs." +
@@ -71,14 +73,14 @@ public class BDDPrecision implements Precision {
 
     if (!varClass.isPresent()) { return true; }
 
-    boolean trackSomeBooleans = trackBooleans &&
+    boolean trackSomeBooleans = trackBoolean &&
         !varClass.get().getBooleanVars().isEmpty();
-    boolean trackSomeDiscretes = trackDiscretes &&
-        !varClass.get().getDiscreteValueVars().isEmpty();
-    boolean trackSomeSimpleCalcs = trackSimpleCalcs &&
-        !varClass.get().getSimpleCalcVars().isEmpty();
+    boolean trackSomeIntEquals = trackIntEqual &&
+        !varClass.get().getIntEqualVars().isEmpty();
+    boolean trackSomeIntAdds = trackIntAdd &&
+        !varClass.get().getIntAddVars().isEmpty();
 
-    return !(trackSomeBooleans || trackSomeDiscretes || trackSomeSimpleCalcs);
+    return !(trackSomeBooleans || trackSomeIntEquals || trackSomeIntAdds);
   }
 
   /**
@@ -91,26 +93,25 @@ public class BDDPrecision implements Precision {
   public boolean isTracking(String function, String var) {
 
     // this pattern should only be used, if we know the class of the matching variables
-    if (this.forceTrackingPattern!= null && this.forceTrackingPattern.matcher(var).matches()) {
+    if (this.forceTrackingPattern != null &&
+        this.forceTrackingPattern.matcher(var).matches()) {
       return true;
     }
 
     if (!varClass.isPresent()) { return false; }
 
-    boolean isTrackedBoolean = trackBooleans &&
-        varClass.get().getBooleanVars().containsEntry(function, var);
+    final boolean isBoolean = varClass.get().getBooleanVars().containsEntry(function, var);
+    final boolean isIntEqual = varClass.get().getIntEqualVars().containsEntry(function, var);
+    final boolean isIntAdd = varClass.get().getIntAddVars().containsEntry(function, var);
 
-    // if a var is both boolean AND discrete, do NOT track it as discrete var!
-    boolean isTrackedDiscrete = trackDiscretes &&
-        !varClass.get().getBooleanVars().containsEntry(function, var) &&
-        varClass.get().getDiscreteValueVars().containsEntry(function, var);
+    final boolean isTrackedBoolean = trackBoolean && isBoolean;
 
-    // if a var is boolean, discrete and part of simple calcs, do NOT track it as simple-calc-var!
-    boolean isTrackedSimpleNumber = trackSimpleCalcs &&
-        !varClass.get().getBooleanVars().containsEntry(function, var) &&
-        !varClass.get().getDiscreteValueVars().containsEntry(function, var) &&
-        varClass.get().getSimpleCalcVars().containsEntry(function, var);
+    // if a var is both boolean and intEqual, do NOT track it as intEqual!
+    final boolean isTrackedIntEqual = trackIntEqual && !isBoolean && isIntEqual;
 
-    return isTrackedBoolean || isTrackedDiscrete || isTrackedSimpleNumber;
+    // if a var is (boolean or intEqual) and intAdd, do NOT track it as intAdd!
+    final boolean isTrackedIntAdd = trackIntAdd && !isBoolean && !isIntEqual && isIntAdd;
+
+    return isTrackedBoolean || isTrackedIntEqual || isTrackedIntAdd;
   }
 }
