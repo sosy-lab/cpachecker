@@ -4,8 +4,9 @@ Changes from CPAchecker 1.1 to CPAchecker 1.2
 CPAchecker now supports several new analyses:
 
 * CEGAR for ExplicitCPA (as submitted to SV-COMP'13)
-  This can be enabled with the "explicitAnalysis-ItpRefiner*" configurations
-  (explicitAnalysis-ItpRefiner-ABElf is recommended).
+  (c.f. "Explicit-State Software Model Checking Based on CEGAR and Interpolation", to appear in FASE'13)
+  This can be enabled with the "explicitAnalysis" and "explicitAnalysis-ItpRefiner*" configurations
+  (explicitAnalysis-ItpRefiner-ABElf is recommended)
 
 * Conditional Model Checking (CMC)
   (c.f. "Conditional Model Checking: A Technique to Pass Information between Verifiers", FSE'12)
