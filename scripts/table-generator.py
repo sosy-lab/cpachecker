@@ -267,7 +267,7 @@ class Result():
                     oldValue = self.attributes[key]
                     if not isinstance(oldValue, str):
                         if not newValue in oldValue:
-                            self.attributes[key] = oldValue.append(newValue)
+                            oldValue.append(newValue)
                     else:
                         if (oldValue != newValue):
                             self.attributes[key] = [oldValue, newValue]
