@@ -93,17 +93,17 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -140,7 +140,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final Map<String, List<Pair<CFANode,ContinueStatement>>> registeredContinues = new HashMap<String, List<Pair<CFANode,ContinueStatement>>>();
 
   // Data structures for handling method declarations
-  private FunctionEntryNode cfa = null;
+  private JMethodEntryNode cfa = null;
   private final Set<CFANode> cfaNodes = new HashSet<CFANode>();
 
 
@@ -156,7 +156,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     astCreator = pAstCreator;
   }
 
-  FunctionEntryNode getStartNode() {
+  JMethodEntryNode getStartNode() {
     checkState(cfa != null);
     return cfa;
   }
@@ -261,8 +261,8 @@ class CFAFunctionBuilder extends ASTVisitor {
         new FunctionExitNode(fileLocEnd, nameOfFunction);
     cfaNodes.add(returnNode);
 
-    final FunctionEntryNode startNode =
-        new FunctionEntryNode(fileLocStart, fdef, returnNode, parameterNames);
+    final JMethodEntryNode startNode =
+        new JMethodEntryNode(fileLocStart, fdef, returnNode, parameterNames);
     cfaNodes.add(startNode);
     cfa = startNode;
 
@@ -323,8 +323,8 @@ class CFAFunctionBuilder extends ASTVisitor {
         astCreator.getConstructorObjectReturn(cb, fileloc);
 
 
-    AReturnStatementEdge edge =
-        new AReturnStatementEdge("", cfaObjectReturn, fileLocStart,
+    JReturnStatementEdge edge =
+        new JReturnStatementEdge("", cfaObjectReturn, fileLocStart,
                                  prevNode, functionExitNode);
     addToCFA(edge);
 
@@ -517,23 +517,23 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     if (sideeffect instanceof JStatement) {
 
-      previous = new AStatementEdge(rawSignature, (JStatement) sideeffect,
+      previous = new JStatementEdge(rawSignature, (JStatement) sideeffect,
                                            filelocStart, prevNode, nextNode);
 
     } else if (sideeffect instanceof JAssignment) {
 
-      previous = new AStatementEdge(rawSignature, (JStatement) sideeffect,
+      previous = new JStatementEdge(rawSignature, (JStatement) sideeffect,
                                            filelocStart, prevNode, nextNode);
 
     } else if (sideeffect instanceof JIdExpression) {
 
-      previous = new AStatementEdge(rawSignature,
+      previous = new JStatementEdge(rawSignature,
                       new JExpressionStatement(sideeffect.getFileLocation(),
                                                 (JExpression) sideeffect),
                                                 filelocStart, prevNode, nextNode);
 
     } else {
-      previous = new ADeclarationEdge(rawSignature, filelocStart,
+      previous = new JDeclarationEdge(rawSignature, filelocStart,
                                                 prevNode, nextNode,
                                                   (JDeclaration) sideeffect);
     }
@@ -576,8 +576,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode nextNode = new CFANode(fileLocStart, cfa.getFunctionName());
     cfaNodes.add(nextNode);
 
-    final ADeclarationEdge edge =
-        new ADeclarationEdge(rawSignature, fileLocStart, prevNode, nextNode, newD);
+    final JDeclarationEdge edge =
+        new JDeclarationEdge(rawSignature, fileLocStart, prevNode, nextNode, newD);
     addToCFA(edge);
 
     prevNode = nextNode;
@@ -868,8 +868,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       } else {
 
-        AStatementEdge edge =
-            new AStatementEdge(rawSignature, statement,
+        JStatementEdge edge =
+            new JStatementEdge(rawSignature, statement,
                 fileLocStart, nextNode, lastNode);
         addToCFA(edge);
       }
@@ -901,8 +901,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode nextNode = handleSideassignments(prevNode, rawSignature, fileLocStart);
 
-    AStatementEdge edge =
-        new AStatementEdge(rawSignature, statement, fileLocStart,
+    JStatementEdge edge =
+        new JStatementEdge(rawSignature, statement, fileLocStart,
             nextNode, lastNode);
     addToCFA(edge);
 
@@ -945,13 +945,13 @@ class CFAFunctionBuilder extends ASTVisitor {
     JExpressionAssignmentStatement falseAssign =
         astCreator.getBooleanAssign(variableExpression, false);
 
-    AStatementEdge trueAssignmentEdge =
-        new AStatementEdge(rawSignature, trueAssign,
+    JStatementEdge trueAssignmentEdge =
+        new JStatementEdge(rawSignature, trueAssign,
             fileLocStart, trueNode, afterResolvedBooleanExpressionNode);
     addToCFA(trueAssignmentEdge);
 
-    AStatementEdge falseAssignmentEdge =
-        new AStatementEdge(rawSignature, falseAssign,
+    JStatementEdge falseAssignmentEdge =
+        new JStatementEdge(rawSignature, falseAssign,
             fileLocStart, falseNode, afterResolvedBooleanExpressionNode);
     addToCFA(falseAssignmentEdge);
 
@@ -985,7 +985,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       if (currentEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
 
-        JStatement statement = (JStatement) ((AStatementEdge) currentEdge).getStatement();
+        JStatement statement =  ((JStatementEdge) currentEdge).getStatement();
 
         if (statement instanceof JExpressionAssignmentStatement) {
 
@@ -1191,7 +1191,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
       }
 
-      AStatementEdge edge;
+      JStatementEdge edge;
 
       FileLocation fileLoc = astCreator.getFileLocation(condExp);
       String rawSignature = condExp.toString();
@@ -1202,7 +1202,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
             new JExpressionAssignmentStatement(
                   fileLoc, tempVar, (JExpression) exp);
 
-        edge = new AStatementEdge(rawSignature, assignment,
+        edge = new JStatementEdge(rawSignature, assignment,
                                     filelocStart, prevNode, lastNode);
         addToCFA(edge);
       } else if (exp instanceof JMethodInvocationExpression) {
@@ -1211,7 +1211,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
             new JMethodInvocationAssignmentStatement(
                 fileLoc, tempVar, (JMethodInvocationExpression) exp);
 
-        edge = new AStatementEdge(rawSignature, assignment,
+        edge = new JStatementEdge(rawSignature, assignment,
                                     filelocStart, prevNode, lastNode);
         addToCFA(edge);
 
@@ -1219,7 +1219,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
         CFANode middle = new CFANode(filelocStart, cfa.getFunctionName());
         cfaNodes.add(middle);
-        edge = new AStatementEdge(rawSignature, (JStatement) exp,
+        edge = new JStatementEdge(rawSignature, (JStatement) exp,
                                      filelocStart, prevNode, middle);
         addToCFA(edge);
 
@@ -1227,7 +1227,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
             new JExpressionAssignmentStatement(
                fileLoc, tempVar, ((JAssignment) exp).getLeftHandSide());
 
-        edge = new AStatementEdge(condExp.toString(),
+        edge = new JStatementEdge(condExp.toString(),
             assignment, filelocStart, middle, lastNode);
         addToCFA(edge);
       }
@@ -1255,26 +1255,26 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         prevNode = tmp;
       }
 
-      AStatementEdge edge;
+      JStatementEdge edge;
 
 
 
       if (exp instanceof JExpression) {
-        edge = new AStatementEdge(condExp.toString(),
+        edge = new JStatementEdge(condExp.toString(),
             new JExpressionStatement(astCreator.getFileLocation(condExp), (JExpression) exp),
             filelocStart, prevNode, lastNode);
         addToCFA(edge);
       } else if (exp instanceof JMethodInvocationExpression) {
-        edge = new AStatementEdge(condExp.toString(),
+        edge = new JStatementEdge(condExp.toString(),
             (new JMethodInvocationStatement(astCreator.getFileLocation(condExp), (JMethodInvocationExpression) exp)),
             filelocStart, prevNode, lastNode);
         addToCFA(edge);
       } else {
         CFANode middle = new CFANode(filelocStart, cfa.getFunctionName());
         cfaNodes.add(middle);
-        edge = new AStatementEdge(condExp.toString(), (JStatement) exp, filelocStart, prevNode, middle);
+        edge = new JStatementEdge(condExp.toString(), (JStatement) exp, filelocStart, prevNode, middle);
         addToCFA(edge);
-        edge = new AStatementEdge(condExp.toString(),
+        edge = new JStatementEdge(condExp.toString(),
             new JExpressionStatement(astCreator.getFileLocation(condExp),
                 ((JExpressionAssignmentStatement) exp).getLeftHandSide()),
             filelocStart, middle, lastNode);
@@ -1297,7 +1297,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     handleTernaryExpression(condExp, branchNode, nextNode, exp);
     JStatement stmt = new JExpressionAssignmentStatement(exp.getFileLocation(), leftHandSide, rightHandSide);
-    addToCFA(new AStatementEdge(stmt.toASTString(), stmt, filelocStart, nextNode, lastNode));
+    addToCFA(new JStatementEdge(stmt.toASTString(), stmt, filelocStart, nextNode, lastNode));
   }
 
   private void handleTernaryStatementTail(JAstNode exp, int filelocStart, CFANode branchNode, CFANode lastNode) {
@@ -1312,7 +1312,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     handleTernaryExpression(condExp, branchNode, nextNode);
     JStatement stmt = new JExpressionStatement(exp.getFileLocation(), rightHandSide);
-    addToCFA(new AStatementEdge(stmt.toASTString(), stmt, filelocStart, nextNode, lastNode));
+    addToCFA(new JStatementEdge(stmt.toASTString(), stmt, filelocStart, nextNode, lastNode));
   }
 
   @Override
@@ -1551,7 +1551,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     }
 
     // edge connecting last condition with elseNode
-    final AssumeEdge JAssumeEdgeFalse = new AssumeEdge("!(" + rawSignature + ")",
+    final JAssumeEdge JAssumeEdgeFalse = new JAssumeEdge("!(" + rawSignature + ")",
         filelocStart,
         nextNode,
         elseNodeForLastElse,
@@ -1560,7 +1560,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     addToCFA(JAssumeEdgeFalse);
 
     // edge connecting last condition with thenNode
-    final AssumeEdge JAssumeEdgeTrue = new AssumeEdge(rawSignature,
+    final JAssumeEdge JAssumeEdgeTrue = new JAssumeEdge(rawSignature,
         filelocStart,
         nextNode,
         thenNodeForLastThen,
@@ -1822,12 +1822,12 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     locStack.push(caseNode);
 
     // edge connecting rootNode with notCaseNode, "!(a==2)"
-    final AssumeEdge JAssumeEdgeFalse = new AssumeEdge("!(" + binExp.toASTString() + ")",
+    final JAssumeEdge JAssumeEdgeFalse = new JAssumeEdge("!(" + binExp.toASTString() + ")",
         filelocStart, rootNode, notCaseNode, binExp, false);
     addToCFA(JAssumeEdgeFalse);
 
     // edge connecting rootNode with caseNode, "a==2"
-    final AssumeEdge JAssumeEdgeTrue = new AssumeEdge(binExp.toASTString(),
+    final JAssumeEdge JAssumeEdgeTrue = new JAssumeEdge(binExp.toASTString(),
         filelocStart, rootNode, caseNode, binExp, true);
     addToCFA(JAssumeEdgeTrue);
 
@@ -2113,7 +2113,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
           // "counter++;"
         } else if (node instanceof JExpressionAssignmentStatement) {
 
-          final AStatementEdge lastEdge = new AStatementEdge(exp.toString(),
+          final JStatementEdge lastEdge = new JStatementEdge(exp.toString(),
               (JExpressionAssignmentStatement) node,
               filelocStart, prevNode, nextNode);
           addToCFA(lastEdge);
@@ -2121,7 +2121,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
         } else if (node instanceof JMethodInvocationAssignmentStatement) {
 
-          final AStatementEdge edge = new AStatementEdge(exp.toString(),
+          final JStatementEdge edge = new JStatementEdge(exp.toString(),
               (JMethodInvocationAssignmentStatement) node,
               filelocStart, prevNode, nextNode);
           addToCFA(edge);
@@ -2184,7 +2184,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         cfaNodes.add(nextNode);
 
 
-        final AStatementEdge lastEdge = new AStatementEdge(exp.toString(),
+        final JStatementEdge lastEdge = new JStatementEdge(exp.toString(),
             (JExpressionAssignmentStatement) node, filelocStart, loopInit, nextNode);
         addToCFA(lastEdge);
 
@@ -2196,7 +2196,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         cfaNodes.add(nextNode);
 
 
-        final AStatementEdge edge = new AStatementEdge(exp.toString(),
+        final JStatementEdge edge = new JStatementEdge(exp.toString(),
             (JMethodInvocationAssignmentStatement) node, filelocStart, loopInit, nextNode);
         addToCFA(edge);
 
@@ -2358,7 +2358,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       astCreator.resetConditionalExpression();
     }
 
-    AReturnStatementEdge edge = new AReturnStatementEdge(returnStatement.toString(),
+    JReturnStatementEdge edge = new JReturnStatementEdge(returnStatement.toString(),
         cfJReturnStatement , fileloc.getStartingLineNumber(), prevNode, functionExitNode);
     addToCFA(edge);
 

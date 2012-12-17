@@ -21,24 +21,21 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.model;
+package org.sosy_lab.cpachecker.cfa.model.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 import com.google.common.base.Optional;
 
+public class JAssumeEdge extends AssumeEdge {
 
-public class AssumeEdge extends AbstractCFAEdge{
+  public JAssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
+      CFANode pSuccessor, JExpression pExpression, boolean pTruthAssumption) {
 
-  private final boolean truthAssumption;
-  protected final IAExpression expression;
-
-  protected AssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
-      CFANode pSuccessor, IAExpression pExpression, boolean pTruthAssumption) {
-
-    super("[" + pRawStatement + "]", pLineNumber, pPredecessor, pSuccessor);
-    truthAssumption = pTruthAssumption;
-    expression = pExpression;
+    super( pRawStatement, pLineNumber, pPredecessor, pSuccessor, pExpression, pTruthAssumption);
   }
 
   @Override
@@ -46,26 +43,11 @@ public class AssumeEdge extends AbstractCFAEdge{
     return CFAEdgeType.AssumeEdge;
   }
 
-  public boolean getTruthAssumption() {
-    return truthAssumption;
-  }
-
-  public IAExpression getExpression() {
-    return expression;
-  }
-
   @Override
-  public String getCode() {
-    if (truthAssumption) {
-      return expression.toASTString();
-    }
-    return "!(" + expression.toASTString() + ")";
+  public JExpression getExpression() {
+    return (JExpression) expression;
   }
 
-  @Override
-  public String getDescription() {
-    return "[" + getCode() + "]";
-  }
 
   /**
    * TODO
@@ -74,7 +56,7 @@ public class AssumeEdge extends AbstractCFAEdge{
    * of {@link #getRawStatement()} (it misses the outer negation of the expression).
    */
   @Override
-  public Optional<? extends IAExpression> getRawAST() {
-    return Optional.of(expression);
+  public Optional<JExpression> getRawAST() {
+    return Optional.of((JExpression)expression);
   }
 }

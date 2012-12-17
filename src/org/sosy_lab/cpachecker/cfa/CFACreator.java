@@ -52,12 +52,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -195,6 +196,7 @@ public class CFACreator {
 
       if(useJava){
         language = Language.JAVA;
+
         EclipseJavaParser par = new EclipseJavaParser(logger, javaRootPath, encoding, version);
         c = par.parseFile(filename);
       } else{
@@ -395,9 +397,9 @@ public class CFACreator {
             d.getFileLocation().getStartingLineNumber(), cur, n, (CDeclaration) d);
         addToCFA(e);
         cur = n;
-      } else {
-        ADeclarationEdge e = new ADeclarationEdge(rawSignature,
-            d.getFileLocation().getStartingLineNumber(), cur, n, d);
+      } else if(cfa.getLanguage() == Language.JAVA){
+        JDeclarationEdge e = new JDeclarationEdge(rawSignature,
+            d.getFileLocation().getStartingLineNumber(), cur, n, (JDeclaration) d);
         addToCFA(e);
         cur = n;
       }

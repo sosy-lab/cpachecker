@@ -33,7 +33,7 @@ public class AReturnStatementEdge extends AbstractCFAEdge {
 
   protected final AReturnStatement rawAST;
 
-  public AReturnStatementEdge(String pRawStatement, AReturnStatement pRawAST,
+  protected AReturnStatementEdge(String pRawStatement, AReturnStatement pRawAST,
       int pLineNumber, CFANode pPredecessor, FunctionExitNode pSuccessor) {
 
     super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);

@@ -21,41 +21,37 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.model;
+package org.sosy_lab.cpachecker.cfa.model.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JReturnStatement;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 import com.google.common.base.Optional;
 
+public class JReturnStatementEdge extends AReturnStatementEdge {
 
-public class ADeclarationEdge extends AbstractCFAEdge {
 
-  protected final IADeclaration declaration;
+  public JReturnStatementEdge(String pRawStatement, JReturnStatement pRawAST,
+      int pLineNumber, CFANode pPredecessor, FunctionExitNode pSuccessor) {
 
-  protected ADeclarationEdge(final String pRawSignature, final int pLineNumber,
-      final CFANode pPredecessor, final CFANode pSuccessor, final IADeclaration pDeclaration) {
+    super(pRawStatement, pRawAST ,pLineNumber, pPredecessor, pSuccessor);
 
-    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor);
-    declaration = pDeclaration;
+  }
+
+
+
+  @Override
+  public JExpression getExpression() {
+    return (JExpression)rawAST.getReturnValue();
   }
 
   @Override
-  public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.DeclarationEdge;
-  }
-
-  public IADeclaration getDeclaration() {
-    return declaration;
-  }
-
-  @Override
-  public Optional<? extends IADeclaration> getRawAST() {
-    return Optional.of(declaration);
-  }
-
-  @Override
-  public String getCode() {
-    return declaration.toASTString();
+  public Optional<JReturnStatement> getRawAST() {
+    return Optional.of((JReturnStatement)rawAST);
   }
 
 }

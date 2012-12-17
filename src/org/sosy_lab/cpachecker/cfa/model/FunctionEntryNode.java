@@ -41,7 +41,7 @@ public  class FunctionEntryNode extends CFANode {
   private final FunctionExitNode exitNode;
 
 
-  public FunctionEntryNode(final int pLineNumber,
+  protected FunctionEntryNode(final int pLineNumber,
       final AFunctionDeclaration pFunctionDefinition,
       final FunctionExitNode pExitNode,
       final List<String> pParameterNames) {

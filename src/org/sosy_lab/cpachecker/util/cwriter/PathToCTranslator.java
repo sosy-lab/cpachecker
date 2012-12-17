@@ -78,23 +78,19 @@ public class PathToCTranslator {
   private PathToCTranslator() { }
 
   public static String translatePaths(ARGState argRoot, Set<ARGState> elementsOnErrorPath) {
-    //PathToCTranslator translator = new PathToCTranslator();
+    PathToCTranslator translator = new PathToCTranslator();
 
-    //translator.translatePaths0(argRoot, elementsOnErrorPath);
+    translator.translatePaths0(argRoot, elementsOnErrorPath);
 
-    return "";
-
-    //return translator.generateCCode();
+    return translator.generateCCode();
   }
 
   public static String translateSinglePath(Path pPath) {
-    //PathToCTranslator translator = new PathToCTranslator();
+    PathToCTranslator translator = new PathToCTranslator();
 
-    //translator.translateSinglePath0(pPath);
+    translator.translateSinglePath0(pPath);
 
-    return "";
-
-    //return translator.generateCCode();
+    return translator.generateCCode();
   }
 
   private String generateCCode() {

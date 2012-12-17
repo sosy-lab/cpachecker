@@ -21,41 +21,26 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.model;
+package org.sosy_lab.cpachecker.cfa.model.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 
-import com.google.common.base.Optional;
+public class JMethodReturnEdge extends FunctionReturnEdge {
 
 
-public class AStatementEdge extends AbstractCFAEdge {
+  public JMethodReturnEdge(int pLineNumber,
+      FunctionExitNode pPredecessor, CFANode pSuccessor,
+      JMethodSummaryEdge pSummaryEdge) {
 
-  protected final IAStatement statement;
+    super(pLineNumber, pPredecessor, pSuccessor , pSummaryEdge);
 
-  protected AStatementEdge(String pRawStatement, IAStatement pStatement,
-      int pLineNumber, CFANode pPredecessor, CFANode pSuccessor) {
-
-    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
-    statement = pStatement;
   }
 
   @Override
-  public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.StatementEdge;
-  }
-
-  public IAStatement getStatement() {
-    return statement;
-  }
-
-  @Override
-  public Optional< ? extends IAStatement> getRawAST() {
-    return Optional.of(statement);
-  }
-
-  @Override
-  public String getCode() {
-    return statement.toASTString();
+  public JMethodSummaryEdge getSummaryEdge() {
+    return (JMethodSummaryEdge) summaryEdge;
   }
 
 }

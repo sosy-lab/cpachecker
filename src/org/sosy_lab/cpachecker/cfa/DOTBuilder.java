@@ -63,7 +63,9 @@ public final class DOTBuilder {
     sb.append("node [shape=\"circle\"]\n");
 
     for (FunctionEntryNode fnode : cfasMapList) {
-      sb.append("subgraph cluster_" + fnode.getFunctionName() + " {\n");
+      // If Array belongs to functionCall in Parameter, replace [].
+      sb.append("subgraph cluster_" + fnode.getFunctionName()
+          .replace("[", "").replace("]", "_array") + " {\n");
       sb.append("label=\"" + fnode.getFunctionName() + "()\"\n");
       JOINER_ON_NEWLINE.appendTo(sb, dotGenerator.edges.get(fnode.getFunctionName()));
       sb.append("}\n");

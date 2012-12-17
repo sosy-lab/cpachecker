@@ -38,7 +38,7 @@ public class FunctionCallEdge extends AbstractCFAEdge {
   protected final FunctionSummaryEdge summaryEdge;
 
 
-  public FunctionCallEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor, CFANode pSuccessor,
+  protected FunctionCallEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor, CFANode pSuccessor,
       AFunctionCall pFunctionCall, FunctionSummaryEdge pSummaryEdge) {
     super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
     functionCall = pFunctionCall;

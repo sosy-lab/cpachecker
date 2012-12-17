@@ -305,7 +305,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    *
    * @param element the analysis element
    * @param expression the expression
-   * @param CReturnStatementEdge the CFA edge corresponding to this statement
+   * @param JReturnStatementEdge the CFA edge corresponding to this statement
    * @return the successor elements
    */
   private IntervalAnalysisState handleExitFromFunction(IntervalAnalysisState element, CExpression expression, CReturnStatementEdge returnEdge, CFAEdge edge)

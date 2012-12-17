@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
@@ -81,6 +82,11 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   public CBMCChecker(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException, CPAException {
     this.logger = logger;
+
+    if(cfa.getLanguage() == Language.JAVA) {
+      throw new UnsupportedOperationException("CBMC can't be used with the language Java");
+    }
+
     config.inject(this);
     this.machineModel = cfa.getMachineModel();
   }

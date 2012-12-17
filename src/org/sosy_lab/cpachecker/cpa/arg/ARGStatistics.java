@@ -91,10 +91,17 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File errorPathGraphFile = new File("ErrorPath.dot");
 
+  @Option(name ="errorPath.toCFile",
+      description="translate Error Path to C File ")
+  private boolean toCFile = true;
+
   private final ARGCPA cpa;
 
   public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
     config.inject(this);
+
+    toCFile = Boolean.parseBoolean(config.getProperty("errorPath.toCFile"));
+
     this.cpa = cpa;
   }
 
@@ -150,11 +157,13 @@ public class ARGStatistics implements Statistics {
 
           ARGState rootState = targetPath.getFirst().getFirst();
           Set<ARGState> pathElements;
-          String pathProgram;
+          String pathProgram = null;
           if (counterexample != null && counterexample.getTargetPath() != null) {
             // precise error path
             pathElements = targetPath.getStateSet();
-            pathProgram = PathToCTranslator.translateSinglePath(targetPath);
+
+            if (toCFile)
+              pathProgram = PathToCTranslator.translateSinglePath(targetPath);
 
           } else {
             // Imprecise error path.
@@ -164,13 +173,17 @@ public class ARGStatistics implements Statistics {
             ARGState lastElement = (ARGState)pReached.getLastState();
             pathElements = ARGUtils.getAllStatesOnPathsTo(lastElement);
 
-
-            pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
+            if (toCFile)
+              pathProgram =
+                  PathToCTranslator.translatePaths(rootState, pathElements);
           }
 
           writeErrorPathFile(errorPathFile, targetPath);
           writeErrorPathFile(errorPathCoreFile, shrinkedErrorPath);
-          writeErrorPathFile(errorPathSourceFile, pathProgram);
+
+          if(toCFile)
+            writeErrorPathFile(errorPathSourceFile, pathProgram);
+
           writeErrorPathFile(errorPathJson, targetPath.toJSON());
           writeErrorPathFile(errorPathGraphFile, ARGUtils.convertARTToDot(rootState, pathElements, getEdgesOfPath(targetPath)));
 

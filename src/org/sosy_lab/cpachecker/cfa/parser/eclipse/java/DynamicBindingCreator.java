@@ -54,6 +54,8 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
@@ -382,7 +384,7 @@ public class DynamicBindingCreator {
 
     // new FuncionCallExpressionEdge
     AStatementEdge functionCallEdge =
-        new AStatementEdge(newFunctionCall.toASTString(),  newFunctionCall , edge.getLineNumber(), prevNode,
+        new JStatementEdge(newFunctionCall.toASTString(),  newFunctionCall , edge.getLineNumber(), prevNode,
             postNode);
     CFACreationUtils.addEdgeToCFA(functionCallEdge, null);
 
@@ -456,7 +458,7 @@ public class DynamicBindingCreator {
         pProcessed.add(postFunctionCallNode);
 
       //AStatementEdge from successful Node to  postFunctionCall location
-      AStatementEdge functionCallEdge = new AStatementEdge(edge.getRawStatement(), newFunctionCall  , edge.getLineNumber(), successfulNode, postFunctionCallNode);
+      AStatementEdge functionCallEdge = new JStatementEdge(edge.getRawStatement(), newFunctionCall  , edge.getLineNumber(), successfulNode, postFunctionCallNode);
       CFACreationUtils.addEdgeToCFA(functionCallEdge, null);
 
       //Blank edge from postFunctionCall location to postConditionNode
@@ -474,7 +476,7 @@ public class DynamicBindingCreator {
         String rawSignature = exp.toASTString();
 
         // edge connecting last condition with elseNode
-        final AssumeEdge JAssumeEdgeFalse = new AssumeEdge("!(" + rawSignature + ")",
+        final AssumeEdge JAssumeEdgeFalse = new JAssumeEdge("!(" + rawSignature + ")",
             fileloc.getStartingLineNumber(),
             prevNode,
             unsuccessfulNode,
@@ -483,7 +485,7 @@ public class DynamicBindingCreator {
        CFACreationUtils.addEdgeToCFA(JAssumeEdgeFalse, null);
 
         // edge connecting last condition with thenNode
-        final AssumeEdge JAssumeEdgeTrue = new AssumeEdge(rawSignature,
+        final AssumeEdge JAssumeEdgeTrue = new JAssumeEdge(rawSignature,
             fileloc.getStartingLineNumber(),
             prevNode,
             successfulNode,

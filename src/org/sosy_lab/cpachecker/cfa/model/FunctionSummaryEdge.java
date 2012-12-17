@@ -30,7 +30,7 @@ public  class FunctionSummaryEdge extends AbstractCFAEdge {
 
   protected final AFunctionCall expression;
 
-  public FunctionSummaryEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor, CFANode pSuccessor, AFunctionCall pExpression) {
+  protected FunctionSummaryEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor, CFANode pSuccessor, AFunctionCall pExpression) {
     super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
     expression = pExpression;
   }

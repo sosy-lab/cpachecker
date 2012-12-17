@@ -28,7 +28,7 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
 
   protected final FunctionSummaryEdge summaryEdge;
 
-  public FunctionReturnEdge(int pLineNumber,
+  protected FunctionReturnEdge(int pLineNumber,
       FunctionExitNode pPredecessor, CFANode pSuccessor,
       FunctionSummaryEdge pSummaryEdge) {
 

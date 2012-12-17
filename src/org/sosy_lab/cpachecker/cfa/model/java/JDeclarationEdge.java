@@ -21,41 +21,34 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.model;
+package org.sosy_lab.cpachecker.cfa.model.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+
+
+import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 import com.google.common.base.Optional;
 
+public class JDeclarationEdge extends ADeclarationEdge {
 
-public class ADeclarationEdge extends AbstractCFAEdge {
 
-  protected final IADeclaration declaration;
 
-  protected ADeclarationEdge(final String pRawSignature, final int pLineNumber,
-      final CFANode pPredecessor, final CFANode pSuccessor, final IADeclaration pDeclaration) {
+  public JDeclarationEdge(final String pRawSignature, final int pLineNumber,
+      final CFANode pPredecessor, final CFANode pSuccessor, final JDeclaration pDeclaration) {
 
-    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor);
-    declaration = pDeclaration;
+    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor, pDeclaration);
+
   }
 
   @Override
-  public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.DeclarationEdge;
-  }
-
-  public IADeclaration getDeclaration() {
-    return declaration;
+  public JDeclaration getDeclaration() {
+    return (JDeclaration) declaration;
   }
 
   @Override
-  public Optional<? extends IADeclaration> getRawAST() {
-    return Optional.of(declaration);
+  public Optional<JDeclaration> getRawAST() {
+    return Optional.of((JDeclaration)declaration);
   }
-
-  @Override
-  public String getCode() {
-    return declaration.toASTString();
-  }
-
 }
