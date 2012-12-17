@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
 <project basedir="." default="build" name="CPAchecker" xmlns:ivy="antlib:org.apache.ivy.ant">
-    <property name="version" value="1.1-svn"/> <!-- change here for a release -->
+    <property name="version" value="1.2"/> <!-- change here for a release -->
 
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
