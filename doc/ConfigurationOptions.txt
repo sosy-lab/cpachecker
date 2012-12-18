@@ -294,13 +294,15 @@ cpa.arg.errorPath.assignment = "ErrorPathAssignment.txt"
 # export error path to file, if one is found
 cpa.arg.errorPath.core = "ErrorPathCore.txt"
 cpa.arg.errorPath.export = true
+
+# translate error path to C program
+cpa.arg.errorPath.exportAsSource = true
+
+# export error path to file, if one is found
 cpa.arg.errorPath.file = "ErrorPath.txt"
 cpa.arg.errorPath.graph = "ErrorPath.dot"
 cpa.arg.errorPath.json = "ErrorPath.json"
 cpa.arg.errorPath.source = "ErrorPath.c"
-
-# translate Error Path to C File 
-cpa.arg.errorPath.toCFile = true
 
 # export final ARG as .dot file
 cpa.arg.export = true
