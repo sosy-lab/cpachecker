@@ -135,6 +135,14 @@ public class ARGStatistics implements Statistics {
       Object assignment = null;
 
       if (counterexample != null) {
+        ARGState targetState = counterexample.getTargetPath().getLast().getFirst();
+        if (!pReached.contains(targetState)) {
+          // counterexample is outdated
+          counterexample = null;
+        }
+      }
+
+      if (counterexample != null) {
         targetPath = counterexample.getTargetPath();
         assignment = counterexample.getTargetPathAssignment();
       }
