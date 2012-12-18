@@ -124,9 +124,6 @@ analysis.useBMC = false
 # use CBMC to double-check counter-examples
 analysis.useCBMC = false
 
-# use CBMC and the FeatureVars Restriction option
-analysis.useFeatureVarsRestriction = false
-
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
@@ -476,9 +473,6 @@ cpa.explicit.stop = "SEP"
 
 # blacklist regex for variables that won't be tracked by ExplicitCPA
 cpa.explicit.variableBlacklist = ""
-
-# whitelist regex for variables that will be tracked by FeatureVarsCPA
-cpa.featurevars.variableWhitelist = ""
 
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value

@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.FeatureVarsRestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
@@ -73,9 +72,6 @@ public class CoreComponentsFactory {
 
   @Option(description="use CBMC to double-check counter-examples")
   private boolean useCBMC = false;
-
-  @Option(description="use CBMC and the FeatureVars Restriction option")
-  private boolean useFeatureVarsRestriction = false;
 
   @Option(description="use CBMC and the BDDCPA Restriction option")
   private boolean useBDDCPARestriction = false;
@@ -140,10 +136,6 @@ public class CoreComponentsFactory {
 
       if (useCBMC) {
         algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, cfa, filename);
-      }
-
-      if (useFeatureVarsRestriction) {
-        algorithm = new FeatureVarsRestrictionAlgorithm(algorithm, cpa, config, logger, cfa, filename);
       }
 
       if (useBDDCPARestriction) {
