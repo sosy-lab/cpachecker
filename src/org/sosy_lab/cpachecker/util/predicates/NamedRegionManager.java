@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -241,6 +242,10 @@ public class NamedRegionManager implements RegionManager {
   public void printStatistics(PrintStream out) {
     out.println("Number of named predicates:          " + (regionMap.size() - anonymousPredicateCounter));
     delegate.printStatistics(out);
+  }
+
+  public Set<String> getPredicates() {
+    return this.regionMap.keySet();
   }
 
   @Override

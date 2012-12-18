@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
+import com.google.common.base.Joiner;
+
 public class BDDState implements AbstractQueryableState {
 
   private Region currentState;
@@ -100,6 +102,10 @@ public class BDDState implements AbstractQueryableState {
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.equals("VALUES")) {
       return manager.dumpRegion(this.currentState);
+    } else if (pProperty.equals("VARSET")) {
+      return "(" + Joiner.on(", ").join(manager.getPredicates()) + ")";
+    } else if (pProperty.equals("VARSETSIZE")) {
+      return manager.getPredicates().size();
     } else {
       throw new InvalidQueryException("BDDCPA Element can only return the current values (\"VALUES\")");
     }
