@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class JIntegerLiteralExpression extends AIntegerLiteralExpression implements JExpression{
+public class JIntegerLiteralExpression extends AIntegerLiteralExpression implements JLiteralExpression {
 
   public JIntegerLiteralExpression(FileLocation pFileLocation,  BigInteger pValue) {
     super(pFileLocation, new JSimpleType(JBasicType.INT), pValue);

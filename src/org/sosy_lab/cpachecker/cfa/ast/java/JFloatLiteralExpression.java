@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class JFloatLiteralExpression extends AFloatLiteralExpression implements JExpression{
+public class JFloatLiteralExpression extends AFloatLiteralExpression implements JLiteralExpression {
 
   public JFloatLiteralExpression(FileLocation pFileLocation, BigDecimal pValue) {
     super(pFileLocation, new JSimpleType(JBasicType.FLOAT), pValue);

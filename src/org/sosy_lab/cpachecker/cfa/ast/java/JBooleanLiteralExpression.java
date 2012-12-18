@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class JBooleanLiteralExpression extends ALiteralExpression implements JExpression {
+public class JBooleanLiteralExpression extends ALiteralExpression implements JLiteralExpression {
 
 
   final Boolean value;

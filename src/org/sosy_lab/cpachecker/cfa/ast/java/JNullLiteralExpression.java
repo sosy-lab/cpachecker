@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JNullType;
 
 
-public class JNullLiteralExpression extends ALiteralExpression implements JExpression {
+public class JNullLiteralExpression extends ALiteralExpression implements JLiteralExpression {
 
   public JNullLiteralExpression(FileLocation pFileLocation) {
     super(pFileLocation, new JNullType());

@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class JStringLiteralExpression extends AStringLiteralExpression implements JExpression {
+public class JStringLiteralExpression extends AStringLiteralExpression implements JLiteralExpression {
 
   public JStringLiteralExpression(FileLocation pFileLocation, JType pType, String pValue) {
     super(pFileLocation, pType, pValue);
