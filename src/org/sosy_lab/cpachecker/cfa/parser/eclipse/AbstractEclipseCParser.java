@@ -43,9 +43,10 @@ import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 /**
  * Base implementation that should work with all CDT versions we support.
@@ -83,19 +84,19 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
   protected abstract T wrapFile(String pFilename) throws IOException;
 
   @Override
-  public ParseResult parseFile(String pFilename) throws ParserException, IOException {
+  public ParseResult parseFile(String pFilename) throws CParserException, IOException {
 
     return buildCFA(parse(wrapFile(pFilename)));
   }
 
   @Override
-  public ParseResult parseString(String pCode) throws ParserException {
+  public ParseResult parseString(String pCode) throws CParserException {
 
     return buildCFA(parse(wrapCode(pCode)));
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode) throws ParserException {
+  public CAstNode parseSingleStatement(String pCode) throws CParserException {
 
     // parse
     IASTTranslationUnit ast = parse(wrapCode(pCode));
@@ -105,18 +106,18 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
     if (   declarations == null
         || declarations.length != 1
         || !(declarations[0] instanceof IASTFunctionDefinition)) {
-      throw new ParserException("Not a single function: " + ast.getRawSignature());
+      throw new CParserException("Not a single function: " + ast.getRawSignature());
     }
 
     IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
     IASTStatement body = func.getBody();
     if (!(body instanceof IASTCompoundStatement)) {
-      throw new ParserException("Function has an unexpected " + body.getClass().getSimpleName() + " as body: " + func.getRawSignature());
+      throw new CParserException("Function has an unexpected " + body.getClass().getSimpleName() + " as body: " + func.getRawSignature());
     }
 
     IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
     if (!(statements.length == 2 && statements[1] == null || statements.length == 1)) {
-      throw new ParserException("Not exactly one statement in function body: " + body);
+      throw new CParserException("Not exactly one statement in function body: " + body);
     }
 
     return new ASTConverter(new Scope(), logger).convert(statements[0]);
@@ -127,33 +128,33 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
           | ILanguage.OPTION_NO_IMAGE_LOCATIONS // we don't use IASTName#getImageLocation(), so the parse doesn't need to create them
           ;
 
-  private IASTTranslationUnit parse(T codeReader) throws ParserException {
+  private IASTTranslationUnit parse(T codeReader) throws CParserException {
     parseTimer.start();
     try {
       return getASTTranslationUnit(codeReader);
     } catch (CFAGenerationRuntimeException e) {
       // thrown by StubCodeReaderFactory
-      throw new ParserException(e);
+      throw new CParserException(e);
     } catch (CoreException e) {
-      throw new ParserException(e);
+      throw new CParserException(e);
     } finally {
       parseTimer.stop();
     }
   }
 
-  protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws ParserException, CFAGenerationRuntimeException, CoreException;
+  protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws CParserException, CFAGenerationRuntimeException, CoreException;
 
-  private ParseResult buildCFA(IASTTranslationUnit ast) throws ParserException {
+  private ParseResult buildCFA(IASTTranslationUnit ast) throws CParserException {
     cfaTimer.start();
     try {
       CFABuilder builder = new CFABuilder(logger);
       try {
         ast.accept(builder);
       } catch (CFAGenerationRuntimeException e) {
-        throw new ParserException(e);
+        throw new CParserException(e);
       }
 
-      return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations());
+      return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations2(), Language.C);
     } finally {
       cfaTimer.stop();
     }

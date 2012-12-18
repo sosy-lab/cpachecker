@@ -23,40 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import static com.google.common.collect.Iterables.transform;
-
 import java.util.List;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializerList;
 
-public class CInitializerList extends CInitializer {
 
-  private final List<CInitializer> initializerList;
+public class CInitializerList extends AInitializerList implements CInitializer , CAstNode {
 
-  public CInitializerList(final CFileLocation pFileLocation,
-                             final List<CInitializer> pInitializerList) {
-    super(pFileLocation);
-    initializerList = ImmutableList.copyOf(pInitializerList);
+  public CInitializerList(FileLocation pFileLocation, List<CInitializer> pInitializerList) {
+    super(pFileLocation, pInitializerList);
   }
 
+  @Override
+  public <R, X extends Exception> R accept(CInitializerVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
   public List<CInitializer> getInitializers() {
-    return initializerList;
+    return (List<CInitializer>) super.getInitializers();
   }
 
-  @Override
-  public String toASTString() {
-    StringBuilder lASTString = new StringBuilder();
-
-    lASTString.append("{ ");
-    Joiner.on(", ").appendTo(lASTString, transform(initializerList, TO_AST_STRING));
-    lASTString.append(" }");
-
-    return lASTString.toString();
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(CInitializerVisitor<R, X> pV) throws X {
-    return pV.visit(this);
-  }
 }

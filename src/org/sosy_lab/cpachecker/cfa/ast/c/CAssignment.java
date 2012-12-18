@@ -23,18 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+
+
+
+
 /**
  * Interface for all statements that contain an assignment.
  * Only sub-classes of {@link CStatement} may implement this interface.
  */
-public interface CAssignment {
+public interface CAssignment extends IAssignment{
 
+  @Override
   CExpression getLeftHandSide();
 
+  @Override
   CRightHandSide getRightHandSide();
 
   /**
    * Return "this" casted to CStatement, i.e., this methods performs an upcast.
    */
+  @Override
   CStatement asStatement();
 }

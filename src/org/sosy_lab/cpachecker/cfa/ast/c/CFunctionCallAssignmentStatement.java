@@ -23,33 +23,32 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-public final class CFunctionCallAssignmentStatement extends CStatement
-                                                          implements CAssignment, CFunctionCall {
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-  private final CExpression leftHandSide;
-  private final CFunctionCallExpression rightHandSide;
 
-  public CFunctionCallAssignmentStatement(CFileLocation pFileLocation,
+public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignmentStatement
+                                                          implements CStatement , CAssignment, CFunctionCall {
+
+  public CFunctionCallAssignmentStatement(FileLocation pFileLocation,
                                              CExpression pLeftHandSide,
                                              CFunctionCallExpression pRightHandSide) {
-    super(pFileLocation);
-    leftHandSide = pLeftHandSide;
-    rightHandSide = pRightHandSide;
+    super(pFileLocation, pLeftHandSide, pRightHandSide);
   }
 
   @Override
   public CExpression getLeftHandSide() {
-    return leftHandSide;
+    return (CExpression)leftHandSide;
   }
 
   @Override
   public CFunctionCallExpression getRightHandSide() {
-    return rightHandSide;
+    return (CFunctionCallExpression)rightHandSide;
   }
 
   @Override
   public CFunctionCallExpression getFunctionCallExpression() {
-    return rightHandSide;
+    return (CFunctionCallExpression) rightHandSide;
   }
 
   @Override

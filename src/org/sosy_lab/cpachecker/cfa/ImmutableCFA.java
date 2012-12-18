@@ -53,6 +53,7 @@ class ImmutableCFA implements CFA {
   private final FunctionEntryNode mainFunction;
   private final Optional<ImmutableMultimap<String, Loop>> loopStructure;
   private final Optional<VariableClassification> varClassification;
+  private final Language language;
 
   ImmutableCFA(
       MachineModel pMachineModel,
@@ -60,7 +61,8 @@ class ImmutableCFA implements CFA {
       SetMultimap<String, CFANode> pAllNodes,
       FunctionEntryNode pMainFunction,
       Optional<ImmutableMultimap<String, Loop>> pLoopStructure,
-      Optional<VariableClassification> pVarClassification) {
+      Optional<VariableClassification> pVarClassification,
+      Language pLanguage) {
 
     machineModel = pMachineModel;
     functions = ImmutableMap.copyOf(pFunctions);
@@ -68,21 +70,23 @@ class ImmutableCFA implements CFA {
     mainFunction = checkNotNull(pMainFunction);
     loopStructure = pLoopStructure;
     varClassification = pVarClassification;
+    language = pLanguage;
 
     checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
   }
 
-  private ImmutableCFA(MachineModel pMachineModel) {
+  private ImmutableCFA(MachineModel pMachineModel, Language pLanguage) {
     machineModel = pMachineModel;
     functions = ImmutableMap.of();
     allNodes = ImmutableSortedSet.of();
     mainFunction = null;
     loopStructure = Optional.absent();
     varClassification = Optional.absent();
+    language = pLanguage;
   }
 
-  static ImmutableCFA empty(MachineModel pMachineModel) {
-    return new ImmutableCFA(pMachineModel);
+  static ImmutableCFA empty(MachineModel pMachineModel, Language pLanguage) {
+    return new ImmutableCFA(pMachineModel, pLanguage);
   }
 
   @Override
@@ -138,5 +142,10 @@ class ImmutableCFA implements CFA {
   @Override
   public Optional<VariableClassification> getVarClassification() {
     return varClassification;
+  }
+
+  @Override
+  public Language getLanguage() {
+    return language;
   }
 }

@@ -25,22 +25,27 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
 /**
  * This is the declaration of a function parameter. It contains a type and a name.
  */
-public final class CParameterDeclaration extends CSimpleDeclaration {
+public final class CParameterDeclaration extends AParameterDeclaration implements CSimpleDeclaration {
 
-  public CParameterDeclaration(CFileLocation pFileLocation,
+  public CParameterDeclaration(FileLocation pFileLocation,
                                   CType pType,
                                   String pName) {
     super(pFileLocation, pType, checkNotNull(pName));
   }
 
+
+
   @Override
-  public String toASTString() {
-    return getType().toASTString(getName());
+  public CType getType(){
+    return (CType)type;
   }
+
 }

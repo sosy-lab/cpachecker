@@ -23,15 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CFieldReference extends CExpression {
+public final class CFieldReference extends AExpression implements CExpression {
 
   private final String         name;
   private final CExpression owner;
   private final boolean        isPointerDereference;
 
-  public CFieldReference(final CFileLocation pFileLocation,
+  public CFieldReference(final FileLocation pFileLocation,
                             final CType pType,
                             final String pName,
                             final CExpression pOwner,
@@ -40,6 +42,11 @@ public final class CFieldReference extends CExpression {
     name = pName;
     owner = pOwner;
     isPointerDereference = pIsPointerDereference;
+  }
+
+  @Override
+  public CType getExpressionType() {
+    return (CType) type;
   }
 
   public String getFieldName() {
@@ -70,4 +77,5 @@ public final class CFieldReference extends CExpression {
     String op = isPointerDereference ? "->" : ".";
     return left + op  + name;
   }
+
 }

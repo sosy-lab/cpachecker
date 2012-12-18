@@ -91,17 +91,16 @@ public class CPAMain {
     // create everything
     CPAchecker cpachecker = null;
     ShutdownHook shutdownHook = null;
-    File cFile = null;
+    File programFile = null;
     ProofGenerator proofGenerator = null;
     try {
       MainOptions options = new MainOptions();
       cpaConfig.inject(options);
       dumpConfiguration(options, cpaConfig, logManager);
-      cFile = getCodeFile(options);
+      programFile = getCodeFile(options);
 
       shutdownHook = new ShutdownHook(cpaConfig, logManager, outputDirectory);
       cpachecker = new CPAchecker(cpaConfig, logManager);
-
       proofGenerator = new ProofGenerator(cpaConfig, logManager);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
@@ -114,7 +113,7 @@ public class CPAMain {
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(cFile.getPath());
+    CPAcheckerResult result = cpachecker.run(programFile.getPath());
 
     shutdownHook.setResult(result);
 
@@ -161,6 +160,7 @@ public class CPAMain {
           throws InvalidCmdlineArgumentException, IOException, InvalidConfigurationException {
     // if there are some command line arguments, process them
     Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
+
 
     // get name of config file (may be null)
     // and remove this from the list of options (it's not a real option)

@@ -28,7 +28,7 @@ import org.eclipse.cdt.core.parser.FileContent;
 import org.eclipse.cdt.core.parser.IncludeFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 /**
  * Wrapper for Eclipse CDT 7.0 and 8.0 (internal version number 5.2.* and 5.3.*)
@@ -50,7 +50,7 @@ public class EclipseCDT7Parser extends AbstractEclipseCParser<FileContent> {
   }
 
   @Override
-  protected IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws ParserException, CFAGenerationRuntimeException, CoreException {
+  protected IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws CParserException, CFAGenerationRuntimeException, CoreException {
     try {
       return language.getASTTranslationUnit(pCode,
                                             StubScannerInfo.instance,
@@ -64,7 +64,7 @@ public class EclipseCDT7Parser extends AbstractEclipseCParser<FileContent> {
         // Unfortunately we have to catch it in this ugly way because we cannot
         // use a stub implementation for the IncludeFileProvider.
 
-        throw new ParserException("#include is not supported");
+        throw new CParserException("#include is not supported");
 
       } else {
         throw e;

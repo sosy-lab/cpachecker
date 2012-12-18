@@ -23,20 +23,28 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CCastExpression extends CExpression {
+public final class CCastExpression extends AExpression implements CExpression {
 
   private final CExpression operand;
+  @SuppressWarnings("hiding")
   private final CType     type;
 
-  public CCastExpression(final CFileLocation pFileLocation,
+  public CCastExpression(final FileLocation pFileLocation,
                             final CType pExpressionType,
                             final CExpression pOperand,
                             final CType pType) {
     super(pFileLocation, pExpressionType);
     operand = pOperand;
     type = pType;
+  }
+
+  @Override
+  public CType getExpressionType() {
+    return type;
   }
 
   public CExpression getOperand() {
@@ -61,4 +69,5 @@ public final class CCastExpression extends CExpression {
   public String toASTString() {
     return "(" + type.toASTString("") + ")" + operand.toParenthesizedASTString();
   }
+
 }

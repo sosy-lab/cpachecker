@@ -32,8 +32,11 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public class CFunctionPointerType extends CType {
+public class CFunctionPointerType implements CType {
 
+
+  private boolean   isConst;
+  private boolean   isVolatile;
   private final CType returnType;
   private String name = null;
   private final List<CType> parameters;
@@ -45,7 +48,11 @@ public class CFunctionPointerType extends CType {
       CType pReturnType,
       List<CType> pParameters,
       boolean pTakesVarArgs) {
-    super(pConst, pVolatile);
+
+
+    isConst = pConst;
+    isVolatile = pVolatile;
+
     returnType = pReturnType;
     parameters = ImmutableList.copyOf(pParameters);
     takesVarArgs = pTakesVarArgs;
@@ -111,5 +118,15 @@ public class CFunctionPointerType extends CType {
     lASTString.append(")");
 
     return lASTString.toString();
+  }
+
+  @Override
+  public boolean isConst() {
+    return isConst;
+  }
+
+  @Override
+  public boolean isVolatile() {
+    return isVolatile;
   }
 }

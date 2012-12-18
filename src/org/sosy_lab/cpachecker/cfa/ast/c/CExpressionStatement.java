@@ -23,27 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-public class CExpressionStatement extends CStatement {
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-  private final CExpression expression;
 
-  public CExpressionStatement(final CFileLocation pFileLocation,
+public class CExpressionStatement extends AExpressionStatement implements CStatement {
+
+  public CExpressionStatement(final FileLocation pFileLocation,
                                  final CExpression pExpression) {
-    super(pFileLocation);
-    expression = pExpression;
+    super(pFileLocation ,  pExpression);
+
   }
 
+  @Override
   public CExpression getExpression() {
-    return expression;
+    return ((CExpression) expression);
   }
 
   @Override
   public <R, X extends Exception> R accept(CStatementVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public String toASTString() {
-    return expression.toASTString() + ";";
   }
 }

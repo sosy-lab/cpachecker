@@ -49,6 +49,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
@@ -203,13 +205,27 @@ public class CPAchecker {
     } catch (IOException e) {
       logger.logUserException(Level.SEVERE, e, "Could not read file");
 
-    } catch (ParserException e) {
+    } catch (CParserException e) {
       // only log message, not whole exception because this is a C problem,
       // not a CPAchecker problem
       logger.logUserException(Level.SEVERE, e, "Parsing failed");
       logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
           + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
 
+    } catch (JParserException e) {
+        // only log message, not whole exception because this is a Java problem,
+        // not a CPAchecker problem
+        logger.logUserException(Level.SEVERE, e, "Parsing failed");
+        logger.log(Level.INFO, "Make sure that the Java code could be compiled by a Compiler," +
+        		"and the Java Version is supported.\n"
+            + "The Java Parser of cpaChecker does not yet support the complete Java language.\n"
+            + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
+   } catch (ParserException e) {
+          // only log message, not whole exception because this is a C problem,
+          // not a CPAchecker problem
+          logger.logUserException(Level.SEVERE, e, "Parsing failed");
+          logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
+              + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
     } catch (InvalidConfigurationException e) {
       logger.logUserException(Level.SEVERE, e, "Invalid configuration");
 

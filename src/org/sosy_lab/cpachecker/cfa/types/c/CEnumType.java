@@ -29,22 +29,36 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclarations;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public final class CEnumType extends CType {
+public final class CEnumType implements CType {
 
   private final ImmutableList<CEnumerator> enumerators;
   private final String                     name;
+  private boolean   isConst;
+  private boolean   isVolatile;
 
   public CEnumType(final boolean pConst, final boolean pVolatile,
       final List<CEnumerator> pEnumerators, final String pName) {
-    super(pConst, pVolatile);
+    isConst = pConst;
+    isVolatile = pVolatile;
     enumerators = ImmutableList.copyOf(pEnumerators);
     name = pName;
+  }
+
+  @Override
+  public boolean isConst() {
+    return isConst;
+  }
+
+  @Override
+  public boolean isVolatile() {
+    return isVolatile;
   }
 
   public ImmutableList<CEnumerator> getEnumerators() {
@@ -77,19 +91,24 @@ public final class CEnumType extends CType {
     return lASTString.toString();
   }
 
-  public static final class CEnumerator extends CSimpleDeclaration {
+  public static final class CEnumerator extends ASimpleDeclarations implements CSimpleDeclaration {
 
     private static final CType INT_TYPE = new CSimpleType(true, false, CBasicType.INT, false, false, true, false, false, false, false);
 
     private final Long           value;
 
-    public CEnumerator(final CFileLocation pFileLocation,
+    public CEnumerator(final FileLocation pFileLocation,
                           final String pName,
         final Long pValue) {
       super(pFileLocation, INT_TYPE, pName);
 
       checkNotNull(pName);
       value = pValue;
+    }
+
+    @Override
+    public CType getType(){
+      return (CType ) type;
     }
 
     public long getValue() {

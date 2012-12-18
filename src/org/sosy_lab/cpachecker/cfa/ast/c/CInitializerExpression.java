@@ -23,24 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-public final class CInitializerExpression extends CInitializer {
+import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-  private final CExpression expression;
 
-  public CInitializerExpression(final CFileLocation pFileLocation,
+public final class CInitializerExpression extends AInitializerExpression implements CInitializer {
+
+
+
+  public CInitializerExpression(final FileLocation pFileLocation,
                                    final CExpression pExpression) {
-    super(pFileLocation);
-    expression = pExpression;
-  }
+    super(pFileLocation,pExpression);
 
-  public CExpression getExpression() {
-    return expression;
   }
 
   @Override
-  public String toASTString() {
-    return expression.toASTString();
+  public CExpression getExpression() {
+    return (CExpression) expression;
   }
+
+
 
   @Override
   public <R, X extends Exception> R accept(CInitializerVisitor<R, X> pV) throws X {

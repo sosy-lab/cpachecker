@@ -26,12 +26,11 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 /**
  * This type is used when the parser could not determine the correct type.
  */
-public class CProblemType extends CType {
+public class CProblemType implements CType {
 
   private final String typeName;
 
   public CProblemType(String pTypeName) {
-    super(false, false);
     typeName = pTypeName;
   }
 

@@ -30,15 +30,19 @@ import java.util.List;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
-public final class CCompositeType extends CType {
+public final class CCompositeType implements CType {
 
   private final int                   key;
   private List<CCompositeTypeMemberDeclaration> members;
   private final String                name;
+  private boolean   isConst;
+  private boolean   isVolatile;
 
   public CCompositeType(final boolean pConst, final boolean pVolatile,
       final int pKey, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName) {
-    super(pConst, pVolatile);
+
+    isConst= pConst;
+    isVolatile=pVolatile;
     key = pKey;
     members = ImmutableList.copyOf(pMembers);
     name = pName.intern();
@@ -104,27 +108,44 @@ public final class CCompositeType extends CType {
   public static final class CCompositeTypeMemberDeclaration {
 
 
+
     private final CType    type;
     private final String   name;
 
     public CCompositeTypeMemberDeclaration(CType pType,
                                            String pName) {
+
       type = checkNotNull(pType);
       name = pName;
 
     }
 
-    public CType getType() {
+
+
+    public CType getType(){
       return type;
-    }
+  }
+
 
     public String getName() {
       return name;
     }
 
+
     public String toASTString() {
       String name = Strings.nullToEmpty(getName());
       return getType().toASTString(name) + ";";
     }
+
+  }
+
+  @Override
+  public boolean isConst() {
+    return isConst;
+  }
+
+  @Override
+  public boolean isVolatile() {
+    return isVolatile;
   }
 }

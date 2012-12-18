@@ -23,20 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public abstract class CLiteralExpression extends CExpression {
 
-  public CLiteralExpression(final CFileLocation pFileLocation,
-                               final CType pType) {
-    super(pFileLocation, pType);
-  }
+public interface CLiteralExpression extends CExpression {
 
-  public abstract Object getValue();
-
-  @Override
-  protected String toParenthesizedASTString() {
-    // literal expression never need parentheses
-    return toASTString();
-  }
 }

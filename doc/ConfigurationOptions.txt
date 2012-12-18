@@ -299,6 +299,9 @@ cpa.arg.errorPath.graph = "ErrorPath.dot"
 cpa.arg.errorPath.json = "ErrorPath.json"
 cpa.arg.errorPath.source = "ErrorPath.c"
 
+# translate Error Path to C File 
+cpa.arg.errorPath.toCFile = true
+
 # export final ARG as .dot file
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
@@ -764,6 +767,12 @@ cpa.uninitvars.stop = "sep"
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
+
+# use Language java with following src Path
+java.encoding = "utf8"
+java.rootPath = no default value
+java.version = JavaCore.VERSION_1_7
+language.java = false
 
 # C dialect for parser
 parser.dialect = GNUC

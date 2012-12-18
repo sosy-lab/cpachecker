@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-public abstract class CInitializer extends CAstNode {
+import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 
-  public CInitializer(final CFileLocation pFileLocation) {
-    super(pFileLocation);
-  }
 
-  public abstract <R, X extends Exception> R accept(CInitializerVisitor<R, X> pV) throws X;
+public interface CInitializer extends IAInitializer, CAstNode{
+
+  <R, X extends Exception>R accept(CInitializerVisitor<R, X> pV) throws X;
+
+
 }

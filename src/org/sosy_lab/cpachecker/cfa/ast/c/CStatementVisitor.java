@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+
 public interface CStatementVisitor<R, X extends Exception> {
 
   R visit(CExpressionStatement pIastExpressionStatement) throws X;

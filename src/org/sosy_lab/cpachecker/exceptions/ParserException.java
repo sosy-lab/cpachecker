@@ -23,25 +23,50 @@
  */
 package org.sosy_lab.cpachecker.exceptions;
 
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
  * Exception thrown if an error occurs during parsing step (e.g. because the
  * parser library throws an exception).
  */
-public class ParserException extends Exception {
+public  class ParserException extends Exception {
 
   private static final long serialVersionUID = 2377475523222364935L;
 
+  private final Language language;
+
+  protected ParserException(String msg, Language pLanguage) {
+    super(msg);
+    language = pLanguage;
+  }
+
+  protected ParserException(Throwable cause, Language pLanguage) {
+    super(cause.getMessage(), cause);
+    language = pLanguage;
+  }
+
+  protected ParserException(String msg, CFAEdge edge, Language pLanguage) {
+    super(UnrecognizedCCodeException.createMessage(msg, null, edge, null));
+    language = pLanguage;
+  }
+
   public ParserException(String msg) {
     super(msg);
+    language = Language.UNSPECIFIED;
   }
 
   public ParserException(Throwable cause) {
     super(cause.getMessage(), cause);
+    language = Language.UNSPECIFIED;
   }
 
   public ParserException(String msg, CFAEdge edge) {
     super(UnrecognizedCCodeException.createMessage(msg, null, edge, null));
+    language = Language.UNSPECIFIED;
+  }
+
+  public Language getLanguage() {
+    return language;
   }
 }

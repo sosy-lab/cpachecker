@@ -23,16 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 
-public abstract class FunctionSummaryEdge extends AbstractCFAEdge {
 
-  public FunctionSummaryEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor, CFANode pSuccessor) {
+public  class FunctionSummaryEdge extends AbstractCFAEdge {
+
+  protected final AFunctionCall expression;
+
+  protected FunctionSummaryEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor, CFANode pSuccessor, AFunctionCall pExpression) {
     super(pRawStatement, pLineNumber, pPredecessor, pSuccessor);
+    expression = pExpression;
+  }
+
+  public AFunctionCall getExpression() {
+    return expression;
   }
 
   @Override
   public CFAEdgeType getEdgeType() {
     return CFAEdgeType.CallToReturnEdge;
+  }
+
+  @Override
+  public String getCode() {
+    return expression.asStatement().toASTString();
   }
 
 }

@@ -23,30 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+
+
 /**
  * AST node for the expression "a = b".
  */
-public class CExpressionAssignmentStatement extends CStatement implements CAssignment {
+public class CExpressionAssignmentStatement extends AExpressionAssignmentStatement implements CAssignment , CStatement {
 
-  private final CExpression leftHandSide;
-  private final CExpression rightHandSide;
-
-  public CExpressionAssignmentStatement(CFileLocation pFileLocation,
+  public CExpressionAssignmentStatement(FileLocation pFileLocation,
                                            CExpression pLeftHandSide,
                                            CExpression pRightHandSide) {
-    super(pFileLocation);
-    leftHandSide = pLeftHandSide;
-    rightHandSide = pRightHandSide;
+    super(pFileLocation, pLeftHandSide , pRightHandSide);
+
   }
 
   @Override
   public CExpression getLeftHandSide() {
-    return leftHandSide;
+    return (CExpression)leftHandSide;
   }
 
   @Override
   public CExpression getRightHandSide() {
-    return rightHandSide;
+    return (CExpression)rightHandSide;
   }
 
   @Override
@@ -57,11 +57,5 @@ public class CExpressionAssignmentStatement extends CStatement implements CAssig
   @Override
   public <R, X extends Exception> R accept(CStatementVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public String toASTString() {
-    return leftHandSide.toASTString()
-        + " = " + rightHandSide.toASTString() + ";";
   }
 }

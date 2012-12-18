@@ -30,16 +30,16 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public class CFunctionType extends CType {
+public class CFunctionType extends AFunctionType implements CType {
 
-  private final CType returnType;
-  private String name = null;
-  private final List<CParameterDeclaration> parameters;
-  private final boolean takesVarArgs;
+  private boolean   isConst;
+  private boolean   isVolatile;
+
 
   public CFunctionType(
       boolean pConst,
@@ -47,29 +47,37 @@ public class CFunctionType extends CType {
       CType pReturnType,
       List<CParameterDeclaration> pParameters,
       boolean pTakesVarArgs) {
-    super(pConst, pVolatile);
-    returnType = pReturnType;
-    parameters = ImmutableList.copyOf(pParameters);
-    takesVarArgs = pTakesVarArgs;
+
+    super(pReturnType, ImmutableList.copyOf(pParameters), pTakesVarArgs );
+
+    isConst = pConst;
+    isVolatile = pVolatile;
+
   }
 
+  @Override
   public CType getReturnType() {
-    return returnType;
+    return (CType) returnType;
   }
 
+  @Override
   public String getName() {
     return name;
   }
 
+  @Override
   public void setName(String pName) {
     checkState(name == null);
     name = pName;
   }
 
+  @SuppressWarnings("unchecked")
+  @Override
   public List<CParameterDeclaration> getParameters() {
-    return parameters;
+    return (List<CParameterDeclaration>) parameters;
   }
 
+  @Override
   public boolean takesVarArgs() {
     return takesVarArgs;
   }
@@ -108,5 +116,15 @@ public class CFunctionType extends CType {
     lASTString.append(")");
 
     return lASTString.toString();
+  }
+
+  @Override
+  public boolean isConst() {
+    return isConst;
+  }
+
+  @Override
+  public boolean isVolatile() {
+    return isVolatile;
   }
 }

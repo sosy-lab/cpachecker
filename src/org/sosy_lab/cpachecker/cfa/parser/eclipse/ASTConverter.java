@@ -75,6 +75,7 @@ import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -87,7 +88,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -203,7 +203,7 @@ class ASTConverter {
 
   private CIdExpression addSideAssignmentsForUnaryExpressions(IASTExpression e,
                                                               CExpression exp,
-                                                              CFileLocation fileLoc,
+                                                              FileLocation fileLoc,
                                                               CType type,
                                                               BinaryOperator op) {
     CIdExpression tmp = createTemporaryVariable(e, null);
@@ -307,6 +307,7 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTBinaryExpression e) {
+
     switch (e.getOperator()) {
     case IASTBinaryExpression.op_logicalAnd:
     case IASTBinaryExpression.op_logicalOr:
@@ -320,7 +321,7 @@ class ASTConverter {
     BinaryOperator op = opPair.getFirst();
     boolean isAssign = opPair.getSecond();
 
-    CFileLocation fileLoc = getLocation(e);
+    FileLocation fileLoc = getLocation(e);
     CType type = ASTTypeConverter.convert(e.getExpressionType());
     CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getOperand1());
 
@@ -420,8 +421,10 @@ class ASTConverter {
       declaration = scope.lookupFunction(name);
     }
 
+
     // declaration may still be null here,
     // for example when parsing AST patterns for the AutomatonCPA.
+
 
     if (declaration != null) {
       name = declaration.getName(); // may have been renamed
@@ -436,8 +439,10 @@ class ASTConverter {
       return operand;
     }
 
-    CFileLocation fileLoc = getLocation(e);
+
+    FileLocation fileLoc = getLocation(e);
     CType type = ASTTypeConverter.convert(e.getExpressionType());
+
 
 
     switch (e.getOperator()) {
@@ -552,7 +557,9 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unsupported storage class for function definition", f);
     }
 
+
     Triple<CType, IASTInitializer, String> declarator = convert(f.getDeclarator(), specifier.getSecond());
+
     if (!(declarator.getFirst() instanceof CFunctionType)) {
       throw new CFAGenerationRuntimeException("Unsupported nested declarator for function definition", f);
     }
@@ -566,13 +573,16 @@ class ASTConverter {
     CFunctionType declSpec = (CFunctionType)declarator.getFirst();
     String name = declarator.getThird();
 
-    CFileLocation fileLoc = getLocation(f);
+
+    FileLocation fileLoc = getLocation(f);
 
     return new CFunctionDeclaration(fileLoc, declSpec, name);
   }
 
   public List<CDeclaration> convert(final IASTSimpleDeclaration d) {
-    CFileLocation fileLoc = getLocation(d);
+
+    FileLocation fileLoc = getLocation(d);
+
     Pair<CStorageClass, ? extends CType> specifier = convert(d.getDeclSpecifier());
     CStorageClass cStorageClass = specifier.getFirst();
     CType type = specifier.getSecond();
@@ -599,13 +609,16 @@ class ASTConverter {
     return result;
   }
 
-  private CDeclaration createDeclaration(CFileLocation fileLoc, CStorageClass cStorageClass, CType type, IASTDeclarator d) {
+  private CDeclaration createDeclaration(FileLocation fileLoc, CStorageClass cStorageClass, CType type, IASTDeclarator d) {
     boolean isGlobal = scope.isGlobalScope();
 
     if (d != null) {
       Triple<CType, IASTInitializer, String> declarator = convert(d, type);
+
       type = declarator.getFirst();
+
       IASTInitializer initializer = declarator.getSecond();
+
       String name = declarator.getThird();
 
       if (name == null) {
@@ -725,6 +738,7 @@ class ASTConverter {
     if (d != null) {
       Triple<CType, IASTInitializer, String> declarator = convert(d, type);
 
+
       if (declarator.getSecond() != null) {
         throw new CFAGenerationRuntimeException("Unsupported initializer inside composite type", d);
       }
@@ -736,7 +750,9 @@ class ASTConverter {
     return new CCompositeTypeMemberDeclaration(type, name);
   }
 
+
   private Triple<CType, IASTInitializer, String> convert(IASTDeclarator d, CType specifier) {
+
     if (d instanceof IASTFunctionDeclarator) {
       return convert((IASTFunctionDeclarator)d, specifier);
 
@@ -751,6 +767,7 @@ class ASTConverter {
 
       // Collection of all modifiers (outermost modifier is first).
       List<IASTNode> modifiers = Lists.newArrayListWithExpectedSize(1);
+
 
       IASTInitializer initializer = null;
       String name = null;
@@ -819,7 +836,9 @@ class ASTConverter {
     }
   }
 
+
   private Triple<CType, IASTInitializer, String> convert(IASTFunctionDeclarator d, CType returnType) {
+
     if (!(d instanceof IASTStandardFunctionDeclarator)) {
       throw new CFAGenerationRuntimeException("Unknown non-standard function definition", d);
     }
@@ -847,7 +866,9 @@ class ASTConverter {
 
     String name;
     if (d.getNestedDeclarator() != null) {
+
       Triple<? extends CType, IASTInitializer, String> nestedDeclarator = convert(d.getNestedDeclarator(), type);
+
 
       assert d.getName().getRawSignature().isEmpty() : d;
       assert nestedDeclarator.getSecond() == null;
@@ -986,6 +1007,7 @@ class ASTConverter {
         initializerList.add(newI);
       }
     }
+
     return new CInitializerList(getLocation(iList), initializerList);
   }
 
@@ -1041,7 +1063,9 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unsupported storage class for parameters", p);
     }
 
+
     Triple<CType, IASTInitializer, String> declarator = convert(p.getDeclarator(), specifier.getSecond());
+
     if (declarator.getSecond() != null) {
       throw new CFAGenerationRuntimeException("Unsupported initializer for parameters", p);
     }
@@ -1055,16 +1079,18 @@ class ASTConverter {
     return new CParameterDeclaration(getLocation(p), type, declarator.getThird());
   }
 
+
   /** This function returns the converted file-location of an IASTNode. */
-  static CFileLocation getLocation(final IASTNode n) {
+  static FileLocation getLocation(final IASTNode n) {
     return convert(n.getFileLocation());
   }
 
-  static CFileLocation convert(IASTFileLocation l) {
+  static FileLocation convert(IASTFileLocation l) {
     if (l == null) {
       return null;
     }
-    return new CFileLocation(l.getEndingLineNumber(), l.getFileName(),
+
+    return new FileLocation(l.getEndingLineNumber(), l.getFileName(),
         l.getNodeLength(), l.getNodeOffset(), l.getStartingLineNumber());
   }
 
@@ -1079,6 +1105,7 @@ class ASTConverter {
     }
 
     Triple<CType, IASTInitializer, String> declarator = convert(t.getAbstractDeclarator(), specifier.getSecond());
+
     if (declarator.getSecond() != null) {
       throw new CFAGenerationRuntimeException("Unsupported initializer for type ids", t);
     }

@@ -24,14 +24,27 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 
-public final class CPointerType extends CType {
+public final class CPointerType implements CType {
 
   private final CType type;
+  private boolean   isConst;
+  private boolean   isVolatile;
 
   public CPointerType(final boolean pConst, final boolean pVolatile,
       final CType pType) {
-    super(pConst, pVolatile);
+    isConst = pConst;
+    isVolatile = pVolatile;
     type = pType;
+  }
+
+  @Override
+  public boolean isConst() {
+    return isConst;
+  }
+
+  @Override
+  public boolean isVolatile() {
+    return isVolatile;
   }
 
   public CType getType() {

@@ -23,34 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-public abstract class CType {
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
-  private boolean   isConst;
-  private boolean   isVolatile;
+public interface CType extends Type {
 
-  public CType(final boolean pConst, final boolean pVolatile) {
-    isConst = pConst;
-    isVolatile = pVolatile;
-  }
+  public boolean isConst();
 
-  public boolean isConst() {
-    return isConst;
-  }
+  public boolean isVolatile();
 
-  public boolean isVolatile() {
-    return isVolatile;
-  }
-
-  /**
-   * Return a string representation of a variable declaration with a given name
-   * and this type.
-   *
-   * Example:
-   * If this type is array of int, and we call <code>toASTString("foo")</code>,
-   * the result is <pre>int foo[]</pre>.
-   *
-   * @param declarator The name of the variable to declare.
-   * @return A string representation of this type.
-   */
-  public abstract String toASTString(String declarator);
 }

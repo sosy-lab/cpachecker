@@ -25,23 +25,22 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.math.BigDecimal;
 
+import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CFloatLiteralExpression extends CLiteralExpression {
+public final class CFloatLiteralExpression extends AFloatLiteralExpression implements CLiteralExpression{
 
-  // use a BigDecimal here because C code might have floating point types with bigger precision than double
-  private final BigDecimal value;
-
-  public CFloatLiteralExpression(CFileLocation pFileLocation,
+  public CFloatLiteralExpression(FileLocation pFileLocation,
                                     CType pType,
                                     BigDecimal pValue) {
-    super(pFileLocation, pType);
-    value = pValue;
+    super(pFileLocation, pType, pValue );
+
   }
 
   @Override
-  public BigDecimal getValue() {
-    return value;
+  public CType getExpressionType() {
+    return (CType) type;
   }
 
   @Override
@@ -58,4 +57,5 @@ public final class CFloatLiteralExpression extends CLiteralExpression {
   public String toASTString() {
     return value.toString();
   }
+
 }

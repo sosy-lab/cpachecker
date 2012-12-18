@@ -30,8 +30,8 @@ import java.math.BigInteger;
 
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
@@ -48,7 +48,7 @@ public class ASTLiteralConverter {
 
   /** This function converts literals like chars or numbers. */
   static CLiteralExpression convert(final IASTLiteralExpression e) {
-    final CFileLocation fileLoc = ASTConverter.getLocation(e);
+    final FileLocation fileLoc = ASTConverter.getLocation(e);
     final CType type = ASTTypeConverter.convert(e.getExpressionType());
 
     String valueStr = String.valueOf(e.getValue());

@@ -23,19 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CTypeIdExpression extends CExpression {
+public final class CTypeIdExpression extends AExpression implements CExpression {
 
   private final TypeIdOperator operator;
+  @SuppressWarnings("hiding")
   private final CType type;
 
-  public CTypeIdExpression(final CFileLocation pFileLocation,
+  public CTypeIdExpression(final FileLocation pFileLocation,
                               final CType pExpressionType, final TypeIdOperator pOperator,
                               final CType pType) {
     super(pFileLocation, pExpressionType);
     operator = pOperator;
     type = pType;
+  }
+
+  @Override
+  public CType getExpressionType() {
+    return type;
   }
 
   public TypeIdOperator getOperator() {
@@ -75,4 +83,5 @@ public final class CTypeIdExpression extends CExpression {
   public String toASTString() {
     return operator.getOperator() + "(" + type.toASTString("") + ")";
   }
+
 }

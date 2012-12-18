@@ -24,39 +24,29 @@
 package org.sosy_lab.cpachecker.cfa.model.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 import com.google.common.base.Optional;
 
-public class CDeclarationEdge extends AbstractCFAEdge {
+public class CDeclarationEdge extends ADeclarationEdge {
 
-  private final CDeclaration declaration;
+
 
   public CDeclarationEdge(final String pRawSignature, final int pLineNumber,
       final CFANode pPredecessor, final CFANode pSuccessor, final CDeclaration pDeclaration) {
 
-    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor);
-    declaration = pDeclaration;
+    super(pRawSignature, pLineNumber, pPredecessor, pSuccessor, pDeclaration);
+
   }
 
   @Override
-  public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.DeclarationEdge;
-  }
-
   public CDeclaration getDeclaration() {
-    return declaration;
+    return (CDeclaration) declaration;
   }
 
   @Override
   public Optional<CDeclaration> getRawAST() {
-    return Optional.of(declaration);
-  }
-
-  @Override
-  public String getCode() {
-    return declaration.toASTString();
+    return Optional.of((CDeclaration)declaration);
   }
 }

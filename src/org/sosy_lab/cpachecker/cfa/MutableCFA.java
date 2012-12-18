@@ -45,17 +45,20 @@ public class MutableCFA implements CFA {
   private final Map<String, FunctionEntryNode> functions;
   private final SortedSetMultimap<String, CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
+  private final Language language;
 
   public MutableCFA(
       MachineModel pMachineModel,
       Map<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pAllNodes,
-      FunctionEntryNode pMainFunction) {
+      FunctionEntryNode pMainFunction,
+      Language pLanguage) {
 
     machineModel = pMachineModel;
     functions = pFunctions;
     allNodes = pAllNodes;
     mainFunction = pMainFunction;
+    language = pLanguage;
 
     assert functions.keySet().equals(allNodes.keySet());
     assert functions.get(mainFunction.getFunctionName()) == mainFunction;
@@ -137,11 +140,16 @@ public class MutableCFA implements CFA {
 
   public ImmutableCFA makeImmutableCFA(Optional<ImmutableMultimap<String,
       Loop>> pLoopStructure, Optional<VariableClassification> pVarClassification) {
-    return new ImmutableCFA(machineModel, functions, allNodes, mainFunction, pLoopStructure, pVarClassification);
+    return new ImmutableCFA(machineModel, functions, allNodes, mainFunction, pLoopStructure, pVarClassification, language);
   }
 
   @Override
   public Optional<VariableClassification> getVarClassification() {
     return Optional.absent();
+  }
+
+  @Override
+  public Language getLanguage() {
+      return language;
   }
 }

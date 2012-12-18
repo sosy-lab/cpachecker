@@ -28,14 +28,18 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * This represents a type which was created by using typedef.
  */
-public final class CTypedefType extends CType {
+public final class CTypedefType implements CType {
 
   private final String name; // the typedef name
   private final CType realType; // the real type this typedef points to
+  private boolean   isConst;
+  private boolean   isVolatile;
 
   public CTypedefType(final boolean pConst, final boolean pVolatile,
       final String pName, CType pRealType ) {
-    super(pConst, pVolatile);
+
+    isConst = pConst;
+    isVolatile = pVolatile;
     name = pName.intern();
     realType = checkNotNull(pRealType);
   }
@@ -54,5 +58,15 @@ public final class CTypedefType extends CType {
         + (isVolatile() ? "volatile " : "")
         + name
         + " " + pDeclarator;
+  }
+
+  @Override
+  public boolean isConst() {
+    return isConst;
+  }
+
+  @Override
+  public boolean isVolatile() {
+    return isVolatile;
   }
 }

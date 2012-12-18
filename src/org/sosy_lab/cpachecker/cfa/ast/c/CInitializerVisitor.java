@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 
+
 public interface CInitializerVisitor<R, X extends Exception> extends CExpressionVisitor<R, X> {
 
   R visit(CInitializerExpression pInitializerExpression) throws X;

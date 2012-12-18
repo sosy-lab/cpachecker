@@ -23,23 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CStringLiteralExpression extends CLiteralExpression {
+public final class CStringLiteralExpression extends AStringLiteralExpression implements CLiteralExpression {
 
-  private final String value;
-
-  public CStringLiteralExpression(CFileLocation pFileLocation,
+  public CStringLiteralExpression(FileLocation pFileLocation,
                                      CType pType,
                                      String pValue) {
-    super(pFileLocation, pType);
-
-    value = pValue;
+    super(pFileLocation, pType,  pValue);
   }
 
   @Override
-  public String getValue() {
-    return value;
+  public CType getExpressionType() {
+    return (CType) type;
   }
 
   @Override
@@ -56,5 +54,4 @@ public final class CStringLiteralExpression extends CLiteralExpression {
   public String toASTString() {
     return value;
   }
-
 }

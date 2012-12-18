@@ -23,45 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.c;
 
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 
-public class CFunctionReturnEdge extends AbstractCFAEdge {
+public class CFunctionReturnEdge extends FunctionReturnEdge {
 
-  private final CFunctionSummaryEdge summaryEdge;
 
   public CFunctionReturnEdge(int pLineNumber,
       FunctionExitNode pPredecessor, CFANode pSuccessor,
       CFunctionSummaryEdge pSummaryEdge) {
 
-    super("", pLineNumber, pPredecessor, pSuccessor);
-    summaryEdge = pSummaryEdge;
+    super(pLineNumber, pPredecessor, pSuccessor , pSummaryEdge);
+
   }
 
+  @Override
   public CFunctionSummaryEdge getSummaryEdge() {
-    return summaryEdge;
+    return (CFunctionSummaryEdge) summaryEdge;
   }
 
-  @Override
-  public String getCode() {
-    return "";
-  }
-
-  @Override
-  public String getDescription() {
-    return "Return edge from " + getPredecessor().getFunctionName() + " to " + getSuccessor().getFunctionName();
-  }
-
-  @Override
-  public CFAEdgeType getEdgeType() {
-    return CFAEdgeType.FunctionReturnEdge;
-  }
-
-  @Override
-  public FunctionExitNode getPredecessor() {
-    // the constructor enforces that the predecessor is always a FunctionExitNode
-    return (FunctionExitNode)super.getPredecessor();
-  }
 }

@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -129,7 +130,7 @@ public class CPASelfCheck {
 
     CParser parser = CParser.Factory.getParser(logManager, CParser.Factory.getDefaultOptions());
     ParseResult cfas = parser.parseString(code);
-    MutableCFA cfa = new MutableCFA(MachineModel.LINUX32, cfas.getFunctions(), cfas.getCFANodes(), cfas.getFunctions().get("main"));
+    MutableCFA cfa = new MutableCFA(MachineModel.LINUX32, cfas.getFunctions(), cfas.getCFANodes(), cfas.getFunctions().get("main"), Language.C);
     return cfa.makeImmutableCFA(Optional.<ImmutableMultimap<String,Loop>>absent(),
         Optional.<VariableClassification>absent());
   }
