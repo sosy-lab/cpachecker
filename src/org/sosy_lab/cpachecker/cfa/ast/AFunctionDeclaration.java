@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 
 
-public class AFunctionDeclaration extends ADeclaration {
+public abstract class AFunctionDeclaration extends ADeclaration {
 
 
   public AFunctionDeclaration(FileLocation pFileLocation, IAFunctionType pType, String pName) {

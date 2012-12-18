@@ -27,7 +27,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public class AIdExpression extends AExpression {
+public abstract class AIdExpression extends AExpression {
 
   private final String name;
   protected final IASimpleDeclaration declaration;

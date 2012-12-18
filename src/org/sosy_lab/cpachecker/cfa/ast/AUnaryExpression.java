@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public class AUnaryExpression extends AExpression {
+public abstract class AUnaryExpression extends AExpression {
 
   private final IAExpression operand;
   private final AUnaryOperator  operator;

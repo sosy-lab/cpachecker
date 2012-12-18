@@ -29,7 +29,7 @@ import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public  class AIntegerLiteralExpression extends ALiteralExpression {
+public abstract class AIntegerLiteralExpression extends ALiteralExpression {
 
   protected final BigInteger value;
 

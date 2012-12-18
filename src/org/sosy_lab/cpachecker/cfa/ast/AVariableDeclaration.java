@@ -27,7 +27,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public class AVariableDeclaration extends ADeclaration {
+public abstract class AVariableDeclaration extends ADeclaration {
 
 
   protected IAInitializer initializer;

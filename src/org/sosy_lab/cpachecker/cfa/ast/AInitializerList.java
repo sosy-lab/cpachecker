@@ -30,7 +30,7 @@ import java.util.List;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public class AInitializerList extends Initializer {
+public abstract class AInitializerList extends Initializer {
 
   private final List<? extends IAInitializer> initializerList;
 

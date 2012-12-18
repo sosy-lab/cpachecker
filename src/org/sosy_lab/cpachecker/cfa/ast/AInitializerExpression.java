@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 
 
-public class AInitializerExpression extends Initializer {
+public abstract class AInitializerExpression extends Initializer {
 
   protected final IAExpression expression;
 

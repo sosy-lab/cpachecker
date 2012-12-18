@@ -29,7 +29,7 @@ import java.math.BigDecimal;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public  class AFloatLiteralExpression extends ALiteralExpression {
+public abstract class AFloatLiteralExpression extends ALiteralExpression {
 
   protected final BigDecimal value;
 

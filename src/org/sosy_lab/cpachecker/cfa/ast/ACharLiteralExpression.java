@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 /**
  * This is the abstract Class for Character Literals.
  */
-public  class ACharLiteralExpression extends ALiteralExpression {
+public abstract class ACharLiteralExpression extends ALiteralExpression {
 
 
   protected final char character;

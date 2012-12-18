@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-public class AReturnStatement extends AstNode implements IAReturnStatement {
+public abstract class AReturnStatement extends AstNode implements IAReturnStatement {
 
   protected final IAExpression expression;
 

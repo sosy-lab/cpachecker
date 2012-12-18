@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 
 
-public class AFunctionCallAssignmentStatement extends AStatement implements IAssignment, AFunctionCall {
+public abstract class AFunctionCallAssignmentStatement extends AStatement implements IAssignment, AFunctionCall {
 
 
   protected final IAExpression leftHandSide;

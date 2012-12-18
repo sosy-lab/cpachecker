@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 
 
-public class AExpressionStatement extends AStatement {
+public abstract class AExpressionStatement extends AStatement {
 
   protected final IAExpression expression;
 

@@ -33,7 +33,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 
-public class AFunctionCallExpression extends ARightHandSide {
+public abstract class AFunctionCallExpression extends ARightHandSide {
 
 
   protected final IAExpression functionName;
