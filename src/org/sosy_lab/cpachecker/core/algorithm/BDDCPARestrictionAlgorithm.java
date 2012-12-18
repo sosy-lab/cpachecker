@@ -98,7 +98,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
       throw new InvalidConfigurationException("ARG CPA needed for counterexample check");
     }
     cpa = (ARGCPA)pCpa;
-    logger.log(Level.INFO, "using the FeatureVars Restriction Algorithm");
+    logger.log(Level.INFO, "using the BDDCPA Restriction Algorithm");
 
     if (checkerName.equals("CBMC")) {
       checker = new CBMCChecker(config, logger, cfa);
@@ -156,7 +156,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
           for (AbstractState x : ((CompositeState)errorState.getWrappedState()).getWrappedStates()) {
             if (x instanceof BDDState) {
               errorBDD = ((BDDState) x).getRegion();
-              //logger.log(Level.INFO,"BDD: " + ((FeatureVarsState) x).toString());
+              //logger.log(Level.INFO,"BDD: " + ((BDDState) x).toString());
               if (manager==null) {
                 manager = ((BDDState)x).getManager();
                 errorSummary=manager.makeFalse();

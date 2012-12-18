@@ -1,6 +1,7 @@
-OBSERVER AUTOMATON ErrorLocationAutomaton
-// This automaton detects error locations that are specified either
+OBSERVER AUTOMATON BDDCPAErrorLocationAutomaton
+// This automaton detects error locations that are specified
 // by the label "ERROR"
+// it then prints the current content of the BDDCPA state.
 
 INITIAL STATE Init;
 
