@@ -36,15 +36,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
@@ -65,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -87,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
@@ -1702,35 +1701,71 @@ public class ExplicitTransferRelation implements TransferRelation
    */
 
   private IAExpression optimizeAssumeForEvaluation(IAExpression expression) {
-    if(expression instanceof ABinaryExpression) {
-      ABinaryExpression binaryExpression = (ABinaryExpression)expression;
+    if (expression instanceof CBinaryExpression) {
+      CBinaryExpression binaryExpression = (CBinaryExpression)expression;
 
-      ABinaryOperator operator = binaryExpression.getOperator();
-      IAExpression leftOperand = binaryExpression.getOperand1();
-      IAExpression riteOperand = binaryExpression.getOperand2();
+      BinaryOperator operator = binaryExpression.getOperator();
+      CExpression leftOperand = binaryExpression.getOperand1();
+      CExpression riteOperand = binaryExpression.getOperand2();
 
 
       if(operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS) {
-        if(leftOperand instanceof ABinaryExpression && riteOperand instanceof ALiteralExpression) {
+        if(leftOperand instanceof CBinaryExpression && riteOperand instanceof CLiteralExpression) {
           CBinaryExpression expr = (CBinaryExpression)leftOperand;
 
           BinaryOperator operation = expr.getOperator();
-          IAExpression leftAddend = expr.getOperand1();
-          IAExpression riteAddend = expr.getOperand2();
+          CExpression leftAddend = expr.getOperand1();
+          CExpression riteAddend = expr.getOperand2();
 
           // [(a + 753) != 951] => [a != 951 + 753]
 
-          if(riteAddend instanceof ALiteralExpression && (operation == BinaryOperator.PLUS || operation == BinaryOperator.MINUS)) {
+          if(riteAddend instanceof CLiteralExpression && (operation == BinaryOperator.PLUS || operation == BinaryOperator.MINUS)) {
             BinaryOperator newOperation = (operation == BinaryOperator.PLUS) ? BinaryOperator.MINUS : BinaryOperator.PLUS;
 
-            ABinaryExpression sum = new ABinaryExpression(expr.getFileLocation(),
+            CBinaryExpression sum = new CBinaryExpression(expr.getFileLocation(),
                                                                 expr.getExpressionType(),
                                                                 riteOperand,
                                                                 riteAddend,
                                                                 newOperation);
 
-            ABinaryExpression assume = new ABinaryExpression(expression.getFileLocation(),
-                                                                   expression.getExpressionType(),
+            CBinaryExpression assume = new CBinaryExpression(expression.getFileLocation(),
+                                                                   binaryExpression.getExpressionType(),
+                                                                   leftAddend,
+                                                                   sum,
+                                                                   operator);
+            return assume;
+          }
+        }
+      }
+    } else if (expression instanceof JBinaryExpression) {
+      JBinaryExpression binaryExpression = (JBinaryExpression)expression;
+
+      JBinaryExpression.BinaryOperator operator = binaryExpression.getOperator();
+      JExpression leftOperand = binaryExpression.getOperand1();
+      JExpression riteOperand = binaryExpression.getOperand2();
+
+
+      if(operator == JBinaryExpression.BinaryOperator.EQUALS || operator == JBinaryExpression.BinaryOperator.NOT_EQUALS) {
+        if(leftOperand instanceof JBinaryExpression && riteOperand instanceof JLiteralExpression) {
+          JBinaryExpression expr = (JBinaryExpression)leftOperand;
+
+          JBinaryExpression.BinaryOperator operation = expr.getOperator();
+          JExpression leftAddend = expr.getOperand1();
+          JExpression riteAddend = expr.getOperand2();
+
+          // [(a + 753) != 951] => [a != 951 + 753]
+
+          if(riteAddend instanceof JLiteralExpression && (operation == JBinaryExpression.BinaryOperator.PLUS || operation == JBinaryExpression.BinaryOperator.MINUS)) {
+            JBinaryExpression.BinaryOperator newOperation = (operation == JBinaryExpression.BinaryOperator.PLUS) ? JBinaryExpression.BinaryOperator.MINUS : JBinaryExpression.BinaryOperator.PLUS;
+
+            JBinaryExpression sum = new JBinaryExpression(expr.getFileLocation(),
+                                                                expr.getExpressionType(),
+                                                                riteOperand,
+                                                                riteAddend,
+                                                                newOperation);
+
+            JBinaryExpression assume = new JBinaryExpression(expression.getFileLocation(),
+                                                                   binaryExpression.getExpressionType(),
                                                                    leftAddend,
                                                                    sum,
                                                                    operator);
