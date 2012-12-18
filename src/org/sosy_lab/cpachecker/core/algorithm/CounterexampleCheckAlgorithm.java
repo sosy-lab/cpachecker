@@ -66,6 +66,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   private final Algorithm algorithm;
   private final CounterexampleChecker checker;
   private final LogManager logger;
+  private final ARGCPA cpa;
 
   private final Timer checkTime = new Timer();
   private int numberOfInfeasiblePaths = 0;
@@ -92,6 +93,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     if (!(pCpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException("ARG CPA needed for counterexample check");
     }
+    cpa = (ARGCPA)pCpa;
 
     if (checkerName.equals("CBMC")) {
       checker = new CBMCChecker(config, logger, cfa);
@@ -144,6 +146,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
         } else {
           numberOfInfeasiblePaths++;
           logger.log(Level.INFO, "Error path found, but identified as infeasible by counterexample check with " + checkerName + ".");
+          cpa.clearCounterexample();
 
           if (continueAfterInfeasibleError) {
             // This counterexample is infeasible, so usually we would remove it
