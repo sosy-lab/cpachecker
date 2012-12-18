@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 
-import org.apache.commons.io.FileUtils;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
@@ -46,6 +45,9 @@ import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 
 /**
  * Wrapper around the JDT Parser and CFA-Builder Implementation.
@@ -206,7 +208,7 @@ public class EclipseJavaParser implements Parser {
     String source;
 
     try {
-      source = FileUtils.readFileToString(file);
+      source = Files.toString(file, Charsets.UTF_8);
       parser.setUnitName(file.getCanonicalPath());
       parser.setSource(source.toCharArray());
       parser.setIgnoreMethodBodies(ignoreMethodBody);
