@@ -70,6 +70,10 @@ public class SMGState implements AbstractState {
     CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap);
   }
 
+  @Override
+  public String toString(){
+    return heap.toString();
+  }
 
   public void addStackFrame(CFunctionDeclaration pFunctionDefinition) {
     heap.addStackFrame(pFunctionDefinition);
