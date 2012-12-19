@@ -31,6 +31,11 @@ import com.google.common.base.Strings;
 
 public final class CSimpleType implements CType {
 
+  @Override
+  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
+  }
+
   private final CBasicType type;
   private final boolean isLong;
   private final boolean isShort;

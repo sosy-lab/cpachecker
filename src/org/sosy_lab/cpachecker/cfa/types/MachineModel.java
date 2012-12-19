@@ -24,15 +24,20 @@
 package org.sosy_lab.cpachecker.cfa.types;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
 /**
@@ -173,56 +178,81 @@ public enum MachineModel {
     }
   }
 
-  public int getSizeof(CType type){
-    if (type instanceof CSimpleType){
-      return getSizeof((CSimpleType)type);
-    }
-
-    if (type instanceof CCompositeType)
-    {
-      CCompositeType cType = (CCompositeType)type;
-      int size = 0;
-      for (CCompositeTypeMemberDeclaration decl : cType.getMembers()) {
-        size += getSizeof(decl.getType());
+  public int getSizeof(CType type) {
+    return type.accept(new CTypeVisitor<Integer, IllegalArgumentException>() {
+      @Override
+      public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
+        // TODO: This has to be checked (Example: Char pathbuf[1 + 1];)
+        return getSizeofInt();
       }
-      return size;
-    }
 
-    if (type instanceof CEnumType){
-      return getSizeofInt();
-    }
+      @Override
+      public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
+        int size = 0;
+        for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
+          size += getSizeof(decl.getType());
+        }
+        return size;
+      }
 
-    // TODO: This has to be checked
-    if (type instanceof CFunctionPointerType){
-      return getSizeofInt();
-    }
+      @Override
+      public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
+        // TODO: This has to be checked
+        return getSizeofInt();
+      }
 
-    if (type instanceof CFunctionType){
-      CFunctionType funcType = (CFunctionType)type;
-      return getSizeof(funcType.getReturnType());
-    }
+      @Override
+      public Integer visit(CEnumType pEnumType) throws IllegalArgumentException {
+        return getSizeofInt();
+      }
 
-    // TODO: This has to be checked (Example: Char*)
-    if (type instanceof CPointerType){
-      return getSizeofInt();
-    }
+      @Override
+      public Integer visit(CFunctionPointerType pFunctionPointerType) throws IllegalArgumentException {
+        // TODO: This has to be checked
+        return getSizeofInt();
+      }
 
-    // TODO: This has to be checked
-    if (type instanceof CElaboratedType){
-      CElaboratedType eType = (CElaboratedType)type;
-      return getSizeofInt();
-    }
+      @Override
+      public Integer visit(CFunctionType pFunctionType) throws IllegalArgumentException {
+        // TODO: This has to be checked
+        return getSizeof(pFunctionType.getReturnType());
+      }
 
-    // TODO: This has to be checked (Example: Char pathbuf[1 + 1];)
-    if (type instanceof CArrayType){
-      return getSizeofInt();
-    }
+      @Override
+      public Integer visit(CPointerType pPointerType) throws IllegalArgumentException {
+        // TODO: This has to be checked (Example: Char*)
+        return getSizeofInt();
+      }
 
-    // TODO: This has to be checked (Example: (sizeof(*buff)))
-    if (type instanceof CTypedefType){
-      return getSizeofInt();
-    }
+      @Override
+      public Integer visit(CProblemType pProblemType) throws IllegalArgumentException {
+        throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass().toString());
+      }
 
-    throw new IllegalArgumentException("Unknwon CType: " + type.getClass().toString());
+      @Override
+      public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
+        return getSizeof(pSimpleType);
+      }
+
+      @Override
+      public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
+        // TODO: This has to be checked (Example: *buff)
+        return getSizeof(pTypedefType.getRealType());
+      }
+
+      @Override
+      public Integer visit(CNamedType pCNamedType) throws IllegalArgumentException {
+        throw new IllegalArgumentException("Unknown C-Type: " + pCNamedType.getClass().toString());
+      }
+
+      @Override
+      public Integer visit(CDummyType pCDummyType) throws IllegalArgumentException {
+        throw new IllegalArgumentException("Unknown C-Type: " + pCDummyType.getClass().toString());
+      }
+
+      @Override
+      public Integer visit(CComplexType pCComplexType) throws IllegalArgumentException {
+        throw new IllegalArgumentException("Unknown C-Type: " + pCComplexType.getClass().toString());
+      }});
   }
 }

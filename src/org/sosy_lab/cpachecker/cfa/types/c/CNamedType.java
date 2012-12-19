@@ -57,4 +57,9 @@ public final class CNamedType implements CType {
         + name
         + " " + pDeclarator;
   }
+
+  @Override
+  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
+  }
 }

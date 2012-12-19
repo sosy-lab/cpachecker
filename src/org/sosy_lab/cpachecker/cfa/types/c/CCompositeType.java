@@ -33,6 +33,11 @@ import com.google.common.collect.ImmutableList;
 public final class CCompositeType implements CType {
 
   @Override
+  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
+  }
+
+  @Override
   public int hashCode() {
     final int prime = 31;
     int result = super.hashCode();

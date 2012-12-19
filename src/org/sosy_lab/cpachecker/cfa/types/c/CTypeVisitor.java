@@ -23,40 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-/**
- * Fake class, should not be used by CPAs.
- */
-public class CComplexType implements CType {
 
-  private final String name;
 
-  public CComplexType(final String pName) {
-    name = pName.intern();
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  @Override
-  public boolean isConst() {
-    // TODO is this correct?
-    return false;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    // TODO is this correct?
-    return false;
-  }
-
-  @Override
-  public String toASTString(String pDeclator) {
-    return name + " " + pDeclator;
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
-  }
+public interface CTypeVisitor<R, X extends Exception> {
+  R visit(CArrayType pArrayType) throws X;
+  R visit(CCompositeType pCompositeType) throws X;
+  R visit(CElaboratedType pElaboratedType) throws X;
+  R visit(CEnumType pEnumType) throws X;
+  R visit(CFunctionPointerType pFunctionPointerType) throws X;
+  R visit(CFunctionType pFunctionType) throws X;
+  R visit(CPointerType pPointerType) throws X;
+  R visit(CProblemType pProblemType) throws X;
+  R visit(CSimpleType pSimpleType) throws X;
+  R visit(CTypedefType pTypedefType) throws X;
+  R visit(CNamedType pCNamedType) throws X;
+  R visit(CDummyType pCDummyType) throws X;
+  R visit(CComplexType pCComplexType) throws X;
 }

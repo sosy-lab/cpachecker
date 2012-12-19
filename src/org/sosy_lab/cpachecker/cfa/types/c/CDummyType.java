@@ -52,4 +52,8 @@ public class CDummyType implements CType {
   }
 
 
+  @Override
+  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
+  }
 }

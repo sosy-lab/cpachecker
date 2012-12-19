@@ -27,6 +27,11 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 public final class CPointerType implements CType {
 
   @Override
+  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
+  }
+
+  @Override
   public int hashCode() {
     final int prime = 31;
     int result = super.hashCode();
@@ -92,4 +97,5 @@ public final class CPointerType implements CType {
         + (isVolatile() ? "volatile " : "")
         + decl;
   }
+
 }
