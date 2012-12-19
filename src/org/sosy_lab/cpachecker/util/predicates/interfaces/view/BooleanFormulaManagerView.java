@@ -33,8 +33,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 
 public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> implements BooleanFormulaManager {
 
@@ -207,7 +205,7 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
 //    if (msat_term_is_or(msatEnv, t)) { return FormulaOperator.OR; }
 //    if (msat_term_is_iff(msatEnv, t)) { return FormulaOperator.EQUIV; }
 //    if (msat_term_is_term_ite(msatEnv, t)) { return FormulaOperator.ITE; }
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
 }

@@ -30,8 +30,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 /**
  * Simplifies building a solver from the specific theories.
  * @param <TFormulaInfo> The solver specific type.
@@ -117,7 +115,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
   @Override
   public AbstractRationalFormulaManager<TFormulaInfo> getRationalFormulaManager() {
     if (rationalManager == null){
-      throw new NotImplementedException();
+      throw new UnsupportedOperationException();
     }
     return rationalManager;
   }
@@ -130,7 +128,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
   @Override
   public AbstractBitvectorFormulaManager<TFormulaInfo> getBitvectorFormulaManager() {
     if (bitvectorManager == null){
-      throw new NotImplementedException();
+      throw new UnsupportedOperationException();
     }
     return bitvectorManager;
   }
