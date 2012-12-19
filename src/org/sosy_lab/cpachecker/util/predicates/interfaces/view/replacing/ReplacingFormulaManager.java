@@ -174,7 +174,7 @@ public class ReplacingFormulaManager implements FormulaManager {
         t = FormulaType.RationalType;
       } else if (pFormula instanceof WrappingBitvectorFormula<?>) {
         t =
-            FormulaType.BitvectorType.getBitvectorType(
+            bitvectorTheory.getFormulaType(
                 bitvectorTheory.getLength((BitvectorFormula)pFormula));
       }else {
         throw new IllegalArgumentException("Invalid wrapping formula");

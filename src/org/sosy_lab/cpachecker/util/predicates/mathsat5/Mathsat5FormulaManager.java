@@ -26,15 +26,12 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRationalFormulaManager;
@@ -88,17 +85,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     final long msatEnv = msat_create_env(msatConf);
 
     // Create Mathsat5FormulaCreator
-    AbstractFormulaCreator.CreateBitType<Long> bitTypeCreator =
-        new AbstractFormulaCreator.CreateBitType<Long>() {
-          @Override
-          public Long fromSize(int pSize) {
-            return msat_get_bv_type(msatEnv, pSize);
-          }
-        };
-
-    Mathsat5FormulaCreator creator =
-        new Mathsat5FormulaCreator(msatEnv, msat_get_bool_type(msatEnv), msat_get_rational_type(msatEnv), bitTypeCreator);
-
+    Mathsat5FormulaCreator creator = new Mathsat5FormulaCreator(msatEnv);
 
     // Create managers
     Mathsat5UnsafeFormulaManager unsafeManager = new Mathsat5UnsafeFormulaManager(creator);
@@ -168,28 +155,4 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     return mathsatEnv;
   }
 
-  private static Pattern BITVECTOR_PATTERN = Pattern.compile("^0d\\d+_(\\d+)$");
-
-  //TODO: change this to the latest version (if possible try to use a BitvectorFormula instance here)
-  public Object interpreteBitvector(long pBv) {
-
-    String lTermRepresentation = msat_term_repr(pBv);
-    // the term is of the format "0d<WIDTH>_<VALUE>"
-    Matcher matcher =  BITVECTOR_PATTERN.matcher(lTermRepresentation);
-    if (!matcher.matches()) {
-      throw new NumberFormatException("Unknown bitvector format: " + lTermRepresentation);
-    }
-
-    String term = matcher.group(1);
-    long value = Long.valueOf(term);
-
-//    if (signed && (bitWidth <= 63)) {
-//      if (value >= (1L << (bitWidth-1))) {
-//        // positive number that should be interpreted as negative
-//        value = value - (1L << bitWidth);
-//      }
-//    }
-
-    return value;
-  }
 }

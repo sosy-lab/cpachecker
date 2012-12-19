@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -132,7 +133,7 @@ public class ABMPredicateReducer implements Reducer {
       //there still should be at least _some_ index for each variable of the abstraction formula.
       SSAMapBuilder builder = oldSSA.builder();
       SSAMap rootSSA = rootState.getPathFormula().getSsa();
-      for (String var : rootSSA.allVariables()) {
+      for (Variable<?> var : rootSSA.allVariables()) {
         //if we do not have the index in the reduced map..
         if (oldSSA.getIndex(var) == -1) {
           //add an index (with the value of rootSSA)
@@ -390,7 +391,7 @@ public class ABMPredicateReducer implements Reducer {
     //there still should be at least _some_ index for each variable of the abstraction formula.
     SSAMapBuilder builder = oldSSA.builder();
     SSAMap rootSSA = rootState.getPathFormula().getSsa();
-    for (String var : rootSSA.allVariables()) {
+    for (Variable<?> var : rootSSA.allVariables()) {
       //if we do not have the index in the reduced map..
       if (oldSSA.getIndex(var) == -1) {
         //add an index (with the value of rootSSA)

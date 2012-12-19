@@ -85,6 +85,16 @@ public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManag
     public FormulaType<T> getReturnType() {
       return ret;
     }
+
+    @Override
+    public String toString() {
+      String args = "";
+      for (FormulaType<? extends Formula> arg : this.args) {
+        args += arg.toString() + ",";
+      }
+
+      return "(" + ret.toString() + ") func(" + args.substring(0, args.length() - 1) + ")";
+    }
   }
 
   @Override

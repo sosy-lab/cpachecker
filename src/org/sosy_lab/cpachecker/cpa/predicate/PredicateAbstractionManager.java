@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -445,7 +446,7 @@ public class PredicateAbstractionManager {
     //check ssa maps
     SSAMap map1 = a1.getSsa();
     SSAMap map2 = a2.getSsa();
-    for (String var : map1.allVariables()) {
+    for (Variable<?> var : map1.allVariables()) {
       if (map2.getIndex(var) < map1.getIndex(var)) { return false; }
     }
 

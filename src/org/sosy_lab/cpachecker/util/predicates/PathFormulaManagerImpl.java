@@ -140,7 +140,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     BooleanFormula mt1 = bfmgr.makeBoolean(true);
     BooleanFormula mt2 = bfmgr.makeBoolean(true);
 
-    for (String var : result.allVariables()) {
+    for (Variable<?> var : result.allVariables()) {
       if (var.equals(CtoFormulaConverter.NONDET_VARIABLE)) {
         continue; // do not add index adjustment terms for __nondet__
       }
@@ -177,8 +177,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       }
     }
 
-    for (Pair<String, FormulaList> f : result.allFunctions()) {
-      String name = f.getFirst();
+    for (Pair<Variable<?>, FormulaList> f : result.allFunctions()) {
+      Variable<?> name = f.getFirst();
       FormulaList args = f.getSecond();
       int i1 = ssa1.getIndex(f);
       int i2 = ssa2.getIndex(f);
@@ -201,17 +201,17 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }
 
   private BooleanFormula makeNondetFlagMerger(int iSmaller, int iBigger) {
-    return makeMerger(CtoFormulaConverter.NONDET_FLAG_VARIABLE, iSmaller, iBigger, efmgr.makeBitvector(getNondetType(), 0));
+    return makeMerger(CtoFormulaConverter.NONDET_FLAG_VARIABLE, iSmaller, iBigger, fmgr.makeNumber(getNondetType(), 0));
   }
 
-  private BooleanFormula makeMerger(String var, int iSmaller, int iBigger, BitvectorFormula pInitialValue) {
+  private BooleanFormula makeMerger(String var, int iSmaller, int iBigger, Formula pInitialValue) {
     assert iSmaller < iBigger;
 
     BooleanFormula lResult = bfmgr.makeBoolean(true);
 
     for (int i = iSmaller+1; i <= iBigger; ++i) {
-      BitvectorFormula currentVar = efmgr.makeVariable(fmgr.getFormulaType(pInitialValue), var, i);
-      BooleanFormula e = efmgr.equal(currentVar, pInitialValue);
+      Formula currentVar = fmgr.makeVariable(fmgr.getFormulaType(pInitialValue), var, i);
+      BooleanFormula e = fmgr.makeEqual(currentVar, pInitialValue);
       lResult = bfmgr.and(lResult, e);
     }
 
@@ -220,27 +220,23 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   // creates the mathsat terms
   // (var@iSmaller = var@iSmaller+1; ...; var@iSmaller = var@iBigger)
-  private BooleanFormula makeSSAMerger(String var, int iSmaller, int iBigger) {
-    //TODO: because of this we will need so save the formula-types in the ssa map?
-    //TODO: currently this is a bug
-    return makeMerger(var, iSmaller, iBigger, efmgr.makeVariable(getNondetType(), var, iSmaller));
+  private BooleanFormula makeSSAMerger(Variable<?> var, int iSmaller, int iBigger) {
+    return makeMerger(var.getName(), iSmaller, iBigger, fmgr.makeVariable(var.getType(), var.getName(), iSmaller));
   }
 
-  private BooleanFormula makeSSAMerger(String name,
+  private BooleanFormula makeSSAMerger(Variable<?> var,
       FormulaList args, int iSmaller, int iBigger) {
     assert iSmaller < iBigger;
 
-    //TODO: because of this we will need so save the formula-types in the ssa map?
-    //TODO: currently this is a bug
-    FormulaType<BitvectorFormula> t = getNondetType();
-    BitvectorFormula initialFunc = ffmgr.createFuncAndCall(name, iSmaller, t, fromList(args));
+    FormulaType<?> t = var.getType();
+    Formula initialFunc = ffmgr.createFuncAndCall(var.getName(), iSmaller, t, fromList(args));
     //BooleanFormula intialFunc = fmgr.makeUIF(name, args, iSmaller);
     BooleanFormula result = bfmgr.makeBoolean(true);
 
     for (int i = iSmaller+1; i <= iBigger; ++i) {
       //BooleanFormula currentFunc = fmgr.makeUIF(name, args, i);
-      BitvectorFormula currentFunc = ffmgr.createFuncAndCall(name, i, t, fromList(args));
-      BooleanFormula e = efmgr.equal(currentFunc, initialFunc);
+      Formula currentFunc = ffmgr.createFuncAndCall(var.getName(), i, t, fromList(args));
+      BooleanFormula e = fmgr.makeEqual(currentFunc, initialFunc);
       result = bfmgr.and(result, e);
     }
     return result;

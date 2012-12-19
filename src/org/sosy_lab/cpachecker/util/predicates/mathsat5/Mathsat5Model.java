@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Model;
@@ -89,22 +92,14 @@ public class Mathsat5Model {
       String lTermRepresentation = msat_term_repr(lArgument);
 
       Object lValue;
-
-      try {
-        lValue = Double.valueOf(lTermRepresentation);
-      }
-      catch (NumberFormatException e) {
-        // lets try special case for mathsat
-        String[] lNumbers = lTermRepresentation.split("/");
-
-        if (lNumbers.length != 2) {
-          throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
-        }
-
-        double lNumerator = Double.valueOf(lNumbers[0]);
-        double lDenominator = Double.valueOf(lNumbers[1]);
-
-        lValue = lNumerator/lDenominator;
+      long msatType = msat_term_get_type(lArgument);
+      if (msat_is_integer_type(env, msatType)
+          || msat_is_rational_type(env, msatType)){
+        lValue = parseReal(lTermRepresentation);
+      }else if (msat_is_bv_type(env, msatType)){
+        lValue = interpreteBitvector(lTermRepresentation);
+      }else{
+        throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
       }
 
       lArguments[lArgumentIndex] = lValue;
@@ -183,23 +178,7 @@ public class Mathsat5Model {
         }
         break;
       case Real:
-        try {
-          lValue = Double.valueOf(lTermRepresentation);
-        }
-        catch (NumberFormatException e) {
-          // lets try special case for mathsat
-          String[] lNumbers = lTermRepresentation.split("/");
-
-          if (lNumbers.length != 2) {
-            throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
-          }
-
-          double lNumerator = Double.valueOf(lNumbers[0]);
-          double lDenominator = Double.valueOf(lNumbers[1]);
-
-          lValue = lNumerator/lDenominator;
-        }
-
+        lValue = parseReal(lTermRepresentation);
         break;
 
       case Integer:
@@ -207,7 +186,7 @@ public class Mathsat5Model {
         break;
 
       case Bitvector:
-        lValue = fmgr.interpreteBitvector(lValueTerm);
+        lValue = interpreteBitvector(lTermRepresentation);
         break;
 
       default:
@@ -219,6 +198,50 @@ public class Mathsat5Model {
 
     lModelIterator.free();
     return new Model(model.build(), fmgr.encapsulateTerm(BooleanFormula.class, modelFormula));
+  }
+
+  private static Pattern BITVECTOR_PATTERN = Pattern.compile("^(\\d+)_(\\d+)$");
+
+  //TODO: change this to the latest version (if possible try to use a BitvectorFormula instance here)
+  public static Object interpreteBitvector(String lTermRepresentation) {
+    // the term is of the format "<VALUE>_<WIDTH>"
+    Matcher matcher =  BITVECTOR_PATTERN.matcher(lTermRepresentation);
+    if (!matcher.matches()) {
+      throw new NumberFormatException("Unknown bitvector format: " + lTermRepresentation);
+    }
+
+    String term = matcher.group(1);
+    long value = Long.valueOf(term);
+
+//    if (signed && (bitWidth <= 63)) {
+//      if (value >= (1L << (bitWidth-1))) {
+//        // positive number that should be interpreted as negative
+//        value = value - (1L << bitWidth);
+//      }
+//    }
+
+    return value;
+  }
+
+  private static Object parseReal(String lTermRepresentation) {
+    Object lValue;
+    try {
+      lValue = Double.valueOf(lTermRepresentation);
+    }
+    catch (NumberFormatException e) {
+      // lets try special case for mathsat
+      String[] lNumbers = lTermRepresentation.split("/");
+
+      if (lNumbers.length != 2) {
+        throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
+      }
+
+      double lNumerator = Double.valueOf(lNumbers[0]);
+      double lDenominator = Double.valueOf(lNumbers[1]);
+
+      lValue = lNumerator/lDenominator;
+    }
+    return lValue;
   }
 
 }

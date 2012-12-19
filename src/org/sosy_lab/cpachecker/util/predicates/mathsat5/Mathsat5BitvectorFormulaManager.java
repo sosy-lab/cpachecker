@@ -60,22 +60,16 @@ public class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaMan
     return msat_make_bv_extract(mathsatEnv, pMsb, pLsb, pFirst);
   }
 
-//  Map<Integer, FunctionFormulaType<RationalFormula>> numericConverterUFs = new Hashtable<Integer, FunctionFormulaType<RationalFormula>>();
-//
-//  @SuppressWarnings("unchecked")
-//  private FunctionFormulaType<RationalFormula> getToNumericUF(int fromSize, boolean asSigned){
-//    int hash = asSigned ? -fromSize : fromSize;
-//    FunctionFormulaType<RationalFormula> toNumericUfDecl = numericConverterUFs.get(hash);
-//    if (toNumericUfDecl == null) {
-//      toNumericUfDecl = functionManager.createFunction("_toNumeric_", FormulaType.NumericType, FormulaType.BitpreciseType.getBitpreciseType(fromSize, asSigned));
-//      numericConverterUFs.put(hash, toNumericUfDecl);
-//    }
-//
-//    return toNumericUfDecl;
-//  }
-
   @Override
   public Long makeBitvectorImpl(int pLength, long pI) {
+    if (pI < 0){
+      long max = (long)Math.pow(2, pLength - 1);
+      if (pI < -max){
+        throw new IllegalArgumentException(pI + " is to small for a bitvector with length " + pLength);
+      }
+      long n = (long)Math.pow(2, pLength);
+      pI = pI + n;
+    }
     return msat_make_bv_number(mathsatEnv, Long.toString(pI), pLength, 10);
   }
 
@@ -288,7 +282,9 @@ public class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaMan
 
   @Override
   public int getLength(Long pParam) {
-    return msat_get_bv_type_size(mathsatEnv, pParam);
+    long type = msat_term_get_type(pParam);
+    assert msat_is_bv_type(mathsatEnv, type);
+    return msat_get_bv_type_size(mathsatEnv, type);
   }
 
 }
