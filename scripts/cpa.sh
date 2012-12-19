@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # the location of the java command
-JAVA=java
+[ -z "$JAVA" ] && JAVA=java
 
 # the default heap size of the javaVM
 DEFAULT_HEAP_SIZE="1200m"
