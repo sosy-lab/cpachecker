@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +45,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
@@ -58,6 +56,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
 /**
@@ -242,17 +241,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     return result;
   }
 
-  @SuppressWarnings("unchecked")
   private List<Formula> fromList(FormulaList pArgs) {
-    return
-        from(Arrays.asList(((AbstractFormulaList<BitvectorFormula>)pArgs).getTerms()))
-        .transform(
-            new Function<BitvectorFormula, Formula>() {
-
-              @Override
-              public Formula apply(BitvectorFormula pArg0) {
-                return pArg0;
-              }}).toImmutableList();
+    return ImmutableList.copyOf(((AbstractFormulaList)pArgs).getTerms());
   }
 
   @Override

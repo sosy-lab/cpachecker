@@ -222,11 +222,10 @@ public class TemplateUIF extends TemplateNumericValue {
     }
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public Formula translate(FormulaManagerView fmgr) {
   	Formula form = null;
-  	List<Formula> fl = Arrays.asList(((AbstractFormulaList<Formula>)args.translate(fmgr)).getTerms());
+  	List<Formula> fl = Arrays.asList(((AbstractFormulaList)args.translate(fmgr)).getTerms());
   	FunctionFormulaManagerView ffmgr = fmgr.getFunctionFormulaManager();
   	if (hasIndex()) {
   	  form = ffmgr.createFuncAndCall(name, index.intValue(), getFormulaType(), fl);

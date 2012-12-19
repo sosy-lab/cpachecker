@@ -747,7 +747,7 @@ public class FormulaManagerView implements FormulaManager {
             assert name != null;
 
             if (ufCanBeLvalue(name)) {
-              int idx = ssa.getIndex(name, new AbstractFormulaList<>(newargs));
+              int idx = ssa.getIndex(name, new AbstractFormulaList(newargs));
               if (idx > 0) {
                 // ok, the variable has an instance in the SSA, replace it
                 newt = unsafeManager.replaceArgsAndName(tt, makeName(name, idx), newargs);

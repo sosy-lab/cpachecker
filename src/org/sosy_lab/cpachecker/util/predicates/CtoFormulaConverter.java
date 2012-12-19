@@ -1693,7 +1693,7 @@ public class CtoFormulaConverter {
 
     private Formula makeUIF(Variable<Formula> var, SSAMapBuilder ssa, Formula... args) {
       String name = var.getName();
-      FormulaList l = makeList(args);
+      FormulaList l = new AbstractFormulaList(args);
       int idx = ssa.getIndex(name, l);
       if (idx <= 0) {
         logger.log(Level.ALL, "DEBUG_3",
@@ -1713,10 +1713,6 @@ public class CtoFormulaConverter {
 
       String ufname = OP_ARRAY_SUBSCRIPT;
       return makeUIF(Variable.create(ufname,getFormulaTypeFromCType(aexp.getExpressionType())), ssa, aterm, sterm);
-    }
-
-    private FormulaList makeList(Formula... terms) {
-      return new AbstractFormulaList<>(terms);
     }
 
     @Override
@@ -2414,7 +2410,7 @@ public class CtoFormulaConverter {
       String ufname =
         (fexp.isPointerDereference() ? "->{" : ".{") +
         tpname + "," + field + "}";
-      FormulaList args = new AbstractFormulaList<>(term);
+      FormulaList args = new AbstractFormulaList(term);
 
 
       FormulaType<Formula> formulaType = getFormulaTypeFromCType(fexp.getExpressionType());
@@ -2433,7 +2429,7 @@ public class CtoFormulaConverter {
       Formula sterm = buildTerm(subexp, edge, function, ssa, constraints);
 
       String ufname = OP_ARRAY_SUBSCRIPT;
-      FormulaList args = new AbstractFormulaList<>(aterm, sterm);
+      FormulaList args = new AbstractFormulaList(aterm, sterm);
       FormulaType<Formula> formulaType = getFormulaTypeFromCType(aexp.getExpressionType());
       int idx = makeLvalIndex(Variable.create(ufname,formulaType), args, ssa);
 

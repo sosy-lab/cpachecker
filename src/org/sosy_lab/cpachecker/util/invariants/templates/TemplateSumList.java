@@ -212,7 +212,7 @@ public class TemplateSumList extends TemplateFormulaList {
   	for (int i = 0; i < sums.length; i++) {
   		lf[i] = ( sums[i].translate(fmgr) );
   	}
-  	return new AbstractFormulaList<>(lf);
+  	return new AbstractFormulaList(lf);
   }
 
 //------------------------------------------------------------------

@@ -25,20 +25,20 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import java.util.Arrays;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
 /**
  * A generic FormulaList implementation used to minimize the code changes for legacy code.
- * @param <TFormulaInfo> the solver specific type.
  */
-public class AbstractFormulaList<TFormulaInfo> implements FormulaList {
-  private transient TFormulaInfo[] terms;
+public class AbstractFormulaList implements FormulaList {
+  private transient Formula[] terms;
 
   /**
    * Do not modify the terms array afterwards, for performance reasons it's not copied!
    */
-  public AbstractFormulaList(TFormulaInfo... terms) {
-    for (TFormulaInfo t : terms) {
+  public AbstractFormulaList(Formula... terms) {
+    for (Formula t : terms) {
       assert t != null;
     }
     this.terms = terms;
@@ -47,7 +47,7 @@ public class AbstractFormulaList<TFormulaInfo> implements FormulaList {
   /**
    * Do not modify the returned array, for performance reasons it's not copied!
    */
-  public TFormulaInfo[] getTerms() {
+  public Formula[] getTerms() {
     return terms;
   }
 
@@ -56,13 +56,12 @@ public class AbstractFormulaList<TFormulaInfo> implements FormulaList {
     return Arrays.toString(terms);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public boolean equals(Object pObj) {
     if (!(pObj instanceof AbstractFormulaList)) {
       return false;
     }
-    return Arrays.equals(terms, ((AbstractFormulaList<TFormulaInfo>)pObj).terms);
+    return Arrays.equals(terms, ((AbstractFormulaList)pObj).terms);
   }
 
   @Override
