@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
 /**
  * This enum stores the sizes for all the basic types that exist.
@@ -201,7 +202,7 @@ public enum MachineModel {
       return getSizeof(funcType.getReturnType());
     }
 
-    // TODO: This has to be checked
+    // TODO: This has to be checked (Example: Char*)
     if (type instanceof CPointerType){
       return getSizeofInt();
     }
@@ -212,11 +213,16 @@ public enum MachineModel {
       return getSizeofInt();
     }
 
-    // TODO: This has to be checked
+    // TODO: This has to be checked (Example: Char pathbuf[1 + 1];)
     if (type instanceof CArrayType){
       return getSizeofInt();
     }
 
-    throw new IllegalArgumentException("Unknwon CType!");
+    // TODO: This has to be checked (Example: (sizeof(*buff)))
+    if (type instanceof CTypedefType){
+      return getSizeofInt();
+    }
+
+    throw new IllegalArgumentException("Unknwon CType: " + type.getClass().toString());
   }
 }
