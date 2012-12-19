@@ -94,8 +94,6 @@ public class CLangSMG extends SMG {
     return null;
   }
 
-  public void addHasValueEdge(SMGEdgeHasValue pNewEdge) {
-    hv_edges.add(pNewEdge);
 
   public void addStackFrame(CFunctionDeclaration pFunctionDeclaration) {
     CLangStackFrame newFrame = new CLangStackFrame(pFunctionDeclaration);

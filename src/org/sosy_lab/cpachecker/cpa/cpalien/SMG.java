@@ -61,4 +61,7 @@ public class SMG {
   public void addPointsToEdge(SMGEdgePointsTo pEdge){
     this.pt_edges.add(pEdge);
   }
+  public void addHasValueEdge(SMGEdgeHasValue pNewEdge) {
+    this.hv_edges.add(pNewEdge);
+  }
 }
