@@ -85,7 +85,7 @@ class MainCPAStatistics implements Statistics {
    *    (Java heap and non-heap memory)
    * 3) The {@link java.lang.management.MemoryPoolMXBean}.
    *    (Java heap and non-heap memory per memory pool)
-   * 4) The method {@link com.sun.management.OperatingSystemMXBean#getCommittedVirtualMemorySize()}.
+   * 4) The method com.sun.management.OperatingSystemMXBean#getCommittedVirtualMemorySize().
    *    (Total memory usage of process)
    *
    * 1) gives the same numbers as 2) for the heap memory.
