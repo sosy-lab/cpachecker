@@ -98,6 +98,9 @@ public class SMGTransferRelation implements TransferRelation {
     {
       newState = new SMGState(pState);
     }
+
+    newState.visualize("line-" + pCfaEdge.getLineNumber());
+
     return newState;
   }
 

@@ -70,6 +70,10 @@ public class SMGState implements AbstractState {
     CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap);
   }
 
+  public void visualize(String name){
+    SMGPlotter.produceAsDotFile(heap, name, logger);
+  }
+
   @Override
   public String toString(){
     return heap.toString();
