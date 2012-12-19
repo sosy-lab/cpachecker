@@ -29,7 +29,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator.CreateBitType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
@@ -119,16 +118,8 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
     return env.getVersion();
   }
 
-  protected static Term[] getTerm(FormulaList f) {
-    return ((SmtInterpolFormulaList) f).getTerms();
-  }
-
   protected <T extends Formula > T encapsulate(Class<T> pClazz, Term t) {
     return encapsulateTerm(pClazz, t);
-  }
-
-  protected static FormulaList encapsulate(Term[] t) {
-    return new SmtInterpolFormulaList(t);
   }
 
 
