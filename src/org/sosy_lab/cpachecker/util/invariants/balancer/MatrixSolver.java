@@ -138,7 +138,7 @@ public class MatrixSolver {
    */
   private void zeroSubs(Matrix mat, AssumptionSet zeros) {
     // Compute substitutions based on the assumptions.
-    List<Substitution> subs = new Vector<Substitution>();
+    List<Substitution> subs = new Vector<>();
     for (Assumption a : zeros) {
       // We can only use assumptions of type ZERO.
       if (a.getAssumptionType() != AssumptionType.ZERO) {
@@ -168,8 +168,8 @@ public class MatrixSolver {
     private final Vector<Integer> pointers;
 
     public ZeroPolynomialManager() {
-      stack = new Vector<List<Polynomial>>();
-      pointers = new Vector<Integer>();
+      stack = new Vector<>();
+      pointers = new Vector<>();
     }
 
     @Override
@@ -183,7 +183,7 @@ public class MatrixSolver {
         return;
       }
       // Extract list of polynomials from the list of assumptions.
-      List<Polynomial> polys = new Vector<Polynomial>(aset.size());
+      List<Polynomial> polys = new Vector<>(aset.size());
       for (Assumption a : aset) {
         polys.add( a.getNumerator() );
       }

@@ -78,7 +78,7 @@ public final class DOTBuilder {
 
   private static class DotGenerator implements CFATraversal.CFAVisitor {
 
-    private final List<String> nodes = new ArrayList<String>();
+    private final List<String> nodes = new ArrayList<>();
 
     // edges for each function
     private final ListMultimap<String, String> edges = ArrayListMultimap.create();

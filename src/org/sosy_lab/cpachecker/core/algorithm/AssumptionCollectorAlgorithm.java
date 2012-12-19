@@ -140,7 +140,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private final AssumptionStorageCPA cpa;
 
   // store only the ids, not the states in order to prevent memory leaks
-  private final Set<Integer> exceptionStates = new HashSet<Integer>();
+  private final Set<Integer> exceptionStates = new HashSet<>();
 
 
   private final BooleanFormulaManager bfmgr;
@@ -283,7 +283,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     // scan reached set for all relevant states with an assumption
     // Invariant: relevantStates does not contain any covered state.
     // A covered state is always replaced by its covering state.
-    Set<ARGState> relevantStates = new TreeSet<ARGState>();
+    Set<ARGState> relevantStates = new TreeSet<>();
     for (AbstractState state : reached) {
       ARGState e = (ARGState)state;
       AssumptionStorageState asmptState = AbstractStates.extractStateByType(e, AssumptionStorageState.class);
@@ -409,7 +409,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * @param parentSet
    */
   private void findAllParents(ARGState s, Set<ARGState> parentSet) {
-    Deque<ARGState> toAdd = new ArrayDeque<ARGState>();
+    Deque<ARGState> toAdd = new ArrayDeque<>();
     toAdd.add(s);
     while (!toAdd.isEmpty()) {
       ARGState current = toAdd.pop();

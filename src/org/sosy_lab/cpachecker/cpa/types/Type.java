@@ -319,7 +319,7 @@ public static final class ArrayType extends AbstractType {
 
     public CompositeType(String name, boolean constant) {
       super(constant);
-      this.members = new LinkedHashMap<String, Type>();
+      this.members = new LinkedHashMap<>();
       this.name = name;
     }
 
@@ -467,7 +467,7 @@ public static final class ArrayType extends AbstractType {
 
     public EnumType(String name, boolean constant) {
       super(constant);
-      this.enumerators = new HashMap<String, Long>();
+      this.enumerators = new HashMap<>();
       this.name = name;
     }
 
@@ -564,7 +564,7 @@ public static final class ArrayType extends AbstractType {
       super(false);
       this.name = name;
       this.returnType = returnType;
-      this.parameters = new LinkedHashMap<String, Type>();
+      this.parameters = new LinkedHashMap<>();
       this.hasVarArgs = hasVarArgs;
     }
 

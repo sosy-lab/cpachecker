@@ -42,8 +42,8 @@ public class BlockPartitioning {
 
   public BlockPartitioning(Collection<Block> subtrees, CFANode mainFunction) {
     Block mainBlock = null;
-    Map<CFANode, Block> callNodeToSubtree = new HashMap<CFANode, Block>();
-    Map<CFANode, Block> returnNodeToBlock = new HashMap<CFANode, Block>();
+    Map<CFANode, Block> callNodeToSubtree = new HashMap<>();
+    Map<CFANode, Block> returnNodeToBlock = new HashMap<>();
 
     for (Block subtree : subtrees) {
       for (CFANode callNode : subtree.getCallNodes()) {

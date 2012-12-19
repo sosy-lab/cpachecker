@@ -95,8 +95,8 @@ public class RTTTransferRelation implements TransferRelation {
 
   private static final String NOT_IN_OBJECT_SCOPE = RTTState.NULL_REFERENCE;
   private static final int RETURN_EDGE = 0;
-  private final Set<String> staticFieldVariables = new HashSet<String>();
-  private final Set<String> nonStaticFieldVariables = new HashSet<String>();
+  private final Set<String> staticFieldVariables = new HashSet<>();
+  private final Set<String> nonStaticFieldVariables = new HashSet<>();
 
   private static int nextFreeId = 0;
 

@@ -51,7 +51,7 @@ public class AcyclicColumnRelianceBalancer extends AbstractBalancer {
     paramVars = makeParamVars();
 
     // Build all the matrices
-    List<Matrix> mats = new Vector<Matrix>();
+    List<Matrix> mats = new Vector<>();
     for (Transition t : tnet.getTransitions()) {
       mats.addAll( getMatricesForTransition(t) );
     }

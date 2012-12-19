@@ -161,9 +161,9 @@ public class ASTConverter {
 
   private Scope scope;
 
-  private LinkedList<JDeclaration> forInitDeclarations = new LinkedList<JDeclaration>();
-  private LinkedList<JAstNode> preSideAssignments = new LinkedList<JAstNode>();
-  private LinkedList<JAstNode> postSideAssignments = new LinkedList<JAstNode>();
+  private LinkedList<JDeclaration> forInitDeclarations = new LinkedList<>();
+  private LinkedList<JAstNode> preSideAssignments = new LinkedList<>();
+  private LinkedList<JAstNode> postSideAssignments = new LinkedList<>();
 
   private ConditionalExpression conditionalExpression = null;
   private JIdExpression conditionalTemporaryVariable = null;
@@ -648,7 +648,7 @@ public class ASTConverter {
   private List<JParameterDeclaration> convertParameterList(
                                              List<SingleVariableDeclaration> ps) {
     List<JParameterDeclaration> paramsList
-            = new ArrayList<JParameterDeclaration>(ps.size());
+            = new ArrayList<>(ps.size());
 
     for (org.eclipse.jdt.core.dom.SingleVariableDeclaration c : ps) {
       paramsList.add(convertParameter(c));
@@ -677,7 +677,7 @@ public class ASTConverter {
    */
   public List<JDeclaration> convert(FieldDeclaration fd) {
 
-    List<JDeclaration> result = new ArrayList<JDeclaration>();
+    List<JDeclaration> result = new ArrayList<>();
 
     Type type = fd.getType();
 
@@ -801,7 +801,7 @@ public class ASTConverter {
  */
   public List<JDeclaration> convert(VariableDeclarationStatement vds) {
 
-    List<JDeclaration> variableDeclarations = new ArrayList<JDeclaration>();
+    List<JDeclaration> variableDeclarations = new ArrayList<>();
 
     @SuppressWarnings("unchecked")
     List<VariableDeclarationFragment> variableDeclarationFragments = vds.fragments();
@@ -1026,7 +1026,7 @@ public class ASTConverter {
       params = convert(p);
 
     } else {
-      params = new ArrayList<JExpression>();
+      params = new ArrayList<>();
     }
 
     String name;
@@ -1181,7 +1181,7 @@ public class ASTConverter {
     if (p.size() > 0) {
       params = convert(p);
     } else {
-      params = new ArrayList<JExpression>();
+      params = new ArrayList<>();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(e.getName());
@@ -1284,7 +1284,7 @@ public class ASTConverter {
 
   private JIdExpression convert(VariableDeclarationExpression vde) {
 
-    List<JDeclaration> variableDeclarations = new ArrayList<JDeclaration>();
+    List<JDeclaration> variableDeclarations = new ArrayList<>();
 
     @SuppressWarnings("unchecked")
     List<VariableDeclarationFragment> variableDeclarationFragments =
@@ -1468,7 +1468,7 @@ public class ASTConverter {
       params = convert(p);
 
     } else {
-      params = new ArrayList<JExpression>();
+      params = new ArrayList<>();
     }
 
     String name;
@@ -1535,7 +1535,7 @@ public class ASTConverter {
 
     JArrayType type = (JArrayType) convert(initializer.resolveTypeBinding());
 
-    List<JExpression> initializerExpressions = new ArrayList<JExpression>();
+    List<JExpression> initializerExpressions = new ArrayList<>();
 
     @SuppressWarnings("unchecked")
     List<Expression> expressions = initializer.expressions();
@@ -1557,7 +1557,7 @@ public class ASTConverter {
                                       Ace.getInitializer());
 
     JArrayType type = convert(Ace.getType());
-    List<JExpression> length = new ArrayList<JExpression>(type.getDimensions());
+    List<JExpression> length = new ArrayList<>(type.getDimensions());
 
 
 
@@ -1717,7 +1717,7 @@ public class ASTConverter {
     if (p.size() > 0) {
       params = convert(p);
     } else {
-      params = new ArrayList<JExpression>();
+      params = new ArrayList<>();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(mi.getName());
@@ -1779,7 +1779,7 @@ public class ASTConverter {
 
   private List<JExpression> convert(List<Expression> el) {
 
-    List<JExpression> result = new ArrayList<JExpression>(el.size());
+    List<JExpression> result = new ArrayList<>(el.size());
     for (Expression expression : el) {
       result.add(convertExpressionWithoutSideEffects(expression));
     }
@@ -2333,7 +2333,7 @@ public class ASTConverter {
   public JMethodDeclaration createDefaultConstructor(ITypeBinding classBinding) {
 
 
-    List<JParameterDeclaration> param = new LinkedList<JParameterDeclaration>();
+    List<JParameterDeclaration> param = new LinkedList<>();
 
     // TODO File Location of Default Constructor???
     FileLocation fileLoc = new FileLocation(0, "", 0, 0, 0);

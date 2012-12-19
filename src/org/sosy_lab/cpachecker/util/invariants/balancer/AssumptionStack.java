@@ -33,7 +33,7 @@ public class AssumptionStack {
   private Stack<Frame> frames;
 
   public AssumptionStack() {
-    frames = new Stack<Frame>();
+    frames = new Stack<>();
   }
 
   void addNewFrame(AssumptionSet as, List<Matrix> ml, Assumption a) {
@@ -62,7 +62,7 @@ public class AssumptionStack {
   }
 
   private List<Matrix> copyMatrices(List<Matrix> ml) {
-    List<Matrix> n = new Vector<Matrix>(ml.size());
+    List<Matrix> n = new Vector<>(ml.size());
     for (Matrix m : ml) {
       n.add(m.copy());
     }

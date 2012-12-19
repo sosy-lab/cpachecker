@@ -98,8 +98,8 @@ public class CFASecondPassBuilder {
    */
   private void insertCallEdges(FunctionEntryNode initialNode) throws ParserException {
     // we use a worklist algorithm
-    Deque<CFANode> workList = new ArrayDeque<CFANode>();
-    Set<CFANode> processed = new HashSet<CFANode>();
+    Deque<CFANode> workList = new ArrayDeque<>();
+    Set<CFANode> processed = new HashSet<>();
 
     workList.addLast(initialNode);
 

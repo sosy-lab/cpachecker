@@ -699,8 +699,8 @@ public class FormulaManagerView implements FormulaManager {
 
   private <T extends Formula> T myInstanciate(SSAMap ssa, T f) {
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
-    Map<Formula, Formula> cache = new HashMap<Formula, Formula>();
+    Deque<Formula> toProcess = new ArrayDeque<>();
+    Map<Formula, Formula> cache = new HashMap<>();
 
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
@@ -782,10 +782,10 @@ public class FormulaManagerView implements FormulaManager {
   // various caches for speeding up expensive tasks
   //
   // cache for splitting arithmetic equalities in extractAtoms
-  private final Map<Formula, Boolean> arithCache = new HashMap<Formula, Boolean>();
+  private final Map<Formula, Boolean> arithCache = new HashMap<>();
 
   // cache for uninstantiating terms (see uninstantiate() below)
-  private final Map<Formula, Formula> uninstantiateCache = new HashMap<Formula, Formula>();
+  private final Map<Formula, Formula> uninstantiateCache = new HashMap<>();
 
   public static Pair<String, Integer> parseName(String var) {
     String[] s = var.split(INDEX_SEPARATOR);
@@ -798,7 +798,7 @@ public class FormulaManagerView implements FormulaManager {
 
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Map<Formula, Formula> cache = uninstantiateCache;
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+    Deque<Formula> toProcess = new ArrayDeque<>();
 
     toProcess.push(f);
     while (!toProcess.isEmpty()) {
@@ -860,7 +860,7 @@ public class FormulaManagerView implements FormulaManager {
   public Collection<BooleanFormula> extractAtoms(BooleanFormula f, boolean splitArithEqualities, boolean conjunctionsOnly) {
     Collection<BooleanFormula> unwrapped = myExtractAtoms(extractFromView(f), splitArithEqualities, conjunctionsOnly);
 
-    List<BooleanFormula> atoms = new ArrayList<BooleanFormula>(unwrapped.size());
+    List<BooleanFormula> atoms = new ArrayList<>(unwrapped.size());
     for (Iterator<BooleanFormula> iterator = unwrapped.iterator(); iterator.hasNext();) {
       BooleanFormula booleanFormula = iterator.next();
       atoms.add(wrapInView(booleanFormula));
@@ -875,10 +875,10 @@ public class FormulaManagerView implements FormulaManager {
     RationalFormulaManager rawNumericManager = manager.getRationalFormulaManager();
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
 
-    Set<BooleanFormula> handled = new HashSet<BooleanFormula>();
-    List<BooleanFormula> atoms = new ArrayList<BooleanFormula>();
+    Set<BooleanFormula> handled = new HashSet<>();
+    List<BooleanFormula> atoms = new ArrayList<>();
 
-    Deque<BooleanFormula> toProcess = new ArrayDeque<BooleanFormula>();
+    Deque<BooleanFormula> toProcess = new ArrayDeque<>();
     toProcess.push(f);
     handled.add(f);
 
@@ -975,10 +975,10 @@ public class FormulaManagerView implements FormulaManager {
 
   private Set<String> myExtractVariables(Formula f) {
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
-    Set<Formula> seen = new HashSet<Formula>();
-    Set<String> vars = new HashSet<String>();
+    Set<Formula> seen = new HashSet<>();
+    Set<String> vars = new HashSet<>();
 
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
+    Deque<Formula> toProcess = new ArrayDeque<>();
     toProcess.push(f);
 
     while (!toProcess.isEmpty()) {
@@ -1017,8 +1017,8 @@ public class FormulaManagerView implements FormulaManager {
   protected boolean myCheckSyntacticEntails(Formula leftFormula, Formula rightFormula) {
 
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
-    Set<Formula> seen = new HashSet<Formula>();
+    Deque<Formula> toProcess = new ArrayDeque<>();
+    Set<Formula> seen = new HashSet<>();
 
     toProcess.push(rightFormula);
     while (!toProcess.isEmpty()) {
@@ -1087,9 +1087,9 @@ public class FormulaManagerView implements FormulaManager {
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     BooleanFormulaManager rawBooleanManager = manager.getBooleanFormulaManager();
 
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
-    Set<Formula> seen = new HashSet<Formula>();
-    Set<Formula> allLiterals = new HashSet<Formula>();
+    Deque<Formula> toProcess = new ArrayDeque<>();
+    Set<Formula> seen = new HashSet<>();
+    Set<Formula> allLiterals = new HashSet<>();
 
     boolean andFound = false;
 

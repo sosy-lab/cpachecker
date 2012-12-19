@@ -60,7 +60,7 @@ public class UninitializedVariablesStatistics implements Statistics {
 
     if (printWarnings) {
 
-      Set<Pair<Integer, String>> warningsDisplayed = new HashSet<Pair<Integer, String>>();
+      Set<Pair<Integer, String>> warningsDisplayed = new HashSet<>();
       Iterable<UninitializedVariablesState> projectedReached = AbstractStates.projectToType(pReached, UninitializedVariablesState.class);
 
       //find all UninitializedVariablesElements and get their warnings

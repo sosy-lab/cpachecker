@@ -225,7 +225,7 @@ class ASTTypeConverter {
   }
 
   private static List<CCompositeTypeMemberDeclaration> conv(IField[] pFields) {
-    List<CCompositeTypeMemberDeclaration> list = new LinkedList<CCompositeTypeMemberDeclaration>();
+    List<CCompositeTypeMemberDeclaration> list = new LinkedList<>();
 
     for(int i = 0; i < pFields.length; i++) {
       list.add(new CCompositeTypeMemberDeclaration(convert(pFields[i].getType()), pFields[i].getName()));

@@ -265,7 +265,7 @@ public class TemplateFormulaManager implements FormulaManager {
 //    }
 //
 //    List<TemplateFormula> tfAtoms = tf.extractAtoms(splitArithEqualities, conjunctionsOnly);
-//    Collection<BooleanFormula> atoms = new Vector<BooleanFormula>(tfAtoms);
+//    Collection<BooleanFormula> atoms = new Vector<>(tfAtoms);
 //
 //  	return atoms;
 //  }

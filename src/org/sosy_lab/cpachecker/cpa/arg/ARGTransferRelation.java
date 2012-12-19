@@ -67,7 +67,7 @@ public class ARGTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
 
-    Collection<ARGState> wrappedSuccessors = new ArrayList<ARGState>();
+    Collection<ARGState> wrappedSuccessors = new ArrayList<>();
     for (AbstractState absElement : successors) {
       ARGState successorElem = new ARGState(absElement, element);
       wrappedSuccessors.add(successorElem);

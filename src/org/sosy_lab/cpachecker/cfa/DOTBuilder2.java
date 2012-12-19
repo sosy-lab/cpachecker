@@ -102,8 +102,8 @@ public final class DOTBuilder2 {
    */
   private static class DOTViewBuilder extends DefaultCFAVisitor {
     // global state for all functions
-    private final Map<Object, Object> node2combo = new HashMap<Object, Object>();
-    private final Map<Object, Object> virtFuncCallEdges = new HashMap<Object, Object>();
+    private final Map<Object, Object> node2combo = new HashMap<>();
+    private final Map<Object, Object> virtFuncCallEdges = new HashMap<>();
     private int virtFuncCallNodeIdCounter = 100000;
 
     // local state per function
@@ -288,12 +288,12 @@ public final class DOTBuilder2 {
    * output information about CFA nodes and edges as JSON
    */
   private static class CFAJSONBuilder extends DefaultCFAVisitor {
-    private final Map<Object, Object> nodes = new HashMap<Object, Object>();
-    private final Map<Object, Object> edges = new HashMap<Object, Object>();
+    private final Map<Object, Object> nodes = new HashMap<>();
+    private final Map<Object, Object> edges = new HashMap<>();
 
     @Override
     public TraversalProcess visitNode(CFANode node) {
-      Map<String, Object> jnode = new HashMap<String, Object>();
+      Map<String, Object> jnode = new HashMap<>();
       jnode.put("no", node.getNodeNumber());
       jnode.put("line", node.getLineNumber());
       jnode.put("func", node.getFunctionName());
@@ -304,7 +304,7 @@ public final class DOTBuilder2 {
 
     @Override
     public TraversalProcess visitEdge(CFAEdge edge) {
-      Map<String, Object> jedge = new HashMap<String, Object>();
+      Map<String, Object> jedge = new HashMap<>();
       int src = edge.getPredecessor().getNodeNumber();
       int target = edge.getSuccessor().getNodeNumber();
       jedge.put("line", edge.getLineNumber());
@@ -319,7 +319,7 @@ public final class DOTBuilder2 {
     }
 
     Map<String, Object> getJSON() {
-      Map<String, Object> obj = new HashMap<String, Object>();
+      Map<String, Object> obj = new HashMap<>();
       obj.put("nodes", nodes);
       obj.put("edges", edges);
       return obj;

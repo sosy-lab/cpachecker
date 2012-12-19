@@ -265,7 +265,7 @@ public class SmtInterpolUtil {
   /** this function returns all variables in the terms.
    * Doubles are removed. */
   public static Term[] getVars(Iterable<Term> termList) {
-    Set<Term> vars = new HashSet<Term>();
+    Set<Term> vars = new HashSet<>();
     for (Term t : termList) {
       getVars(t, vars);
     }
@@ -317,7 +317,7 @@ public class SmtInterpolUtil {
     assert params.length >= 2 && ("and".equals(function) || "or".equals(function));
 
     String childFunction = "and".equals(function) ? "or" : "and";
-    List<Set<Term>> children = new ArrayList<Set<Term>>(params.length);
+    List<Set<Term>> children = new ArrayList<>(params.length);
 
     // collect children of params
     for (Term param : params) {

@@ -79,6 +79,6 @@ public class Variable<T extends Formula> {
   }
 
   public static <T extends Formula> Variable<T> create(String pName, FormulaType<T> pT) {
-    return new Variable<T>(pName, pT);
+    return new Variable<>(pName, pT);
   }
 }

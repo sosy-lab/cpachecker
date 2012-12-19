@@ -137,7 +137,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private String[] buildCBMCArguments(String fileName) {
-    List<String> paramsList = new ArrayList<String>();
+    List<String> paramsList = new ArrayList<>();
 
     paramsList.add("cbmc");
     paramsList.add("--function");

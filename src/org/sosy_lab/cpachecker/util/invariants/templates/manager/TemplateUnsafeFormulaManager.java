@@ -57,7 +57,7 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
   @Override
   public Formula[] getArguments(Formula pF) {
     int arity = getArity(pF);
-    List<Formula> rets = new ArrayList<Formula>(arity);
+    List<Formula> rets = new ArrayList<>(arity);
     for (int i = 0; i < arity; i++) {
       rets.add(getArg(pF, i));
     }

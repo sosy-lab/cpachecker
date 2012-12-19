@@ -82,7 +82,7 @@ public class NamedRegionManager implements RegionManager {
    * Returns a String representation of a region.
    */
   public String dumpRegion(Region r) {
-    Map<Region, String> cache = new HashMap<Region, String>(); // map for same regions
+    Map<Region, String> cache = new HashMap<>(); // map for same regions
     return dumpRegion(r, cache);
   }
 
@@ -141,7 +141,7 @@ public class NamedRegionManager implements RegionManager {
   /** Returns a representation of a region in dot-format (graphviz). */
   public String regionToDot(Region r) {
     nodeCounter = 2; // counter for nodes, values 0 and 1 are used for nodes FALSE and TRUE
-    Map<Region, Integer> cache = new HashMap<Region, Integer>(); // map for same regions
+    Map<Region, Integer> cache = new HashMap<>(); // map for same regions
     StringBuilder str = new StringBuilder("digraph G {\n");
 
     // make nodes for FALSE and TRUE

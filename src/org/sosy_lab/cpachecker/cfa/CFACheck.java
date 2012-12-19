@@ -51,8 +51,8 @@ public class CFACheck {
    */
   public static boolean check(FunctionEntryNode cfa, Collection<CFANode> nodes) {
 
-    Set<CFANode> visitedNodes = new HashSet<CFANode>();
-    Deque<CFANode> waitingNodeList = new ArrayDeque<CFANode>();
+    Set<CFANode> visitedNodes = new HashSet<>();
+    Deque<CFANode> waitingNodeList = new ArrayDeque<>();
 
     waitingNodeList.add(cfa);
     while (!waitingNodeList.isEmpty()) {
@@ -127,8 +127,8 @@ public class CFACheck {
    * @param pNode Node to be checked
    */
   private static void isConsistent(CFANode pNode) {
-    Set<CFAEdge> seenEdges = new HashSet<CFAEdge>();
-    Set<CFANode> seenNodes = new HashSet<CFANode>();
+    Set<CFAEdge> seenEdges = new HashSet<>();
+    Set<CFANode> seenNodes = new HashSet<>();
 
     for (CFAEdge edge : leavingEdges(pNode)) {
       if (!seenEdges.add(edge)) {

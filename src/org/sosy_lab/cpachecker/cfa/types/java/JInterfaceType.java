@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
 public class JInterfaceType extends JClassOrInterfaceType implements JReferenceType {
 
-  private final Set<JClassType> interfaceImplementingClasses = new HashSet<JClassType>();
-  private final Set<JInterfaceType> extendedInterfaces = new HashSet<JInterfaceType>();
-  private final Set<JInterfaceType> directSubInterfaces = new HashSet<JInterfaceType>();
+  private final Set<JClassType> interfaceImplementingClasses = new HashSet<>();
+  private final Set<JInterfaceType> extendedInterfaces = new HashSet<>();
+  private final Set<JInterfaceType> directSubInterfaces = new HashSet<>();
 
 
 
@@ -91,8 +91,8 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
 
   public List<JInterfaceType> getAllSubInterfacesOfInterface(){
 
-     List<JInterfaceType> result = new ArrayList<JInterfaceType>();
-     Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<Set<JInterfaceType>>();
+     List<JInterfaceType> result = new ArrayList<>();
+     Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<>();
 
 
      for( JInterfaceType subInterface : getDirectSubInterfaces()) {
@@ -123,8 +123,8 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
   public List<JInterfaceType> getAllSuperTypesOfInterface(){
 
 
-     List<JInterfaceType> result = new ArrayList<JInterfaceType>();
-     Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<Set<JInterfaceType>>();
+     List<JInterfaceType> result = new ArrayList<>();
+     Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<>();
 
 
      for( JInterfaceType superInterface : getExtendedInterfaces()) {
@@ -156,8 +156,8 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
 
   public List<JClassType>  getAllKnownImplementedClassesOfInterface(){
 
-    List<JClassType> result = new LinkedList<JClassType>();
-    List<JInterfaceType> subInterfaces = new LinkedList<JInterfaceType>();
+    List<JClassType> result = new LinkedList<>();
+    List<JInterfaceType> subInterfaces = new LinkedList<>();
 
 
     result.addAll(this.getAllKnownDirectlyImplementedClassesOfInterface());
@@ -181,12 +181,12 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
   private List<JClassType> getAllKnownDirectlyImplementedClassesOfInterface(){
 
 
-    List<JInterfaceType> subInterfaces = new LinkedList<JInterfaceType>();
+    List<JInterfaceType> subInterfaces = new LinkedList<>();
 
     subInterfaces.addAll(getAllSubInterfacesOfInterface());
 
-     List<JClassType> result = new LinkedList<JClassType>();
-     Queue<Set<JClassType>> toBeAdded = new LinkedList<Set<JClassType>>();
+     List<JClassType> result = new LinkedList<>();
+     Queue<Set<JClassType>> toBeAdded = new LinkedList<>();
 
      for( JClassType subClasses : getKnownInterfaceImplementingClasses()) {
        result.add(subClasses);
@@ -206,7 +206,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
 
   public List<JClassOrInterfaceType> getAllSubTypesOfInterfaces() {
 
-    List<JClassOrInterfaceType> result = new LinkedList<JClassOrInterfaceType>();
+    List<JClassOrInterfaceType> result = new LinkedList<>();
     result.addAll(getAllSubInterfacesOfInterface());
     result.addAll(getAllKnownImplementedClassesOfInterface());
     return result;

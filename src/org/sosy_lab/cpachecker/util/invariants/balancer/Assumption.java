@@ -255,7 +255,7 @@ public class Assumption {
     FALSE         ("0 <> 0");
 
     private final String text;
-    private static final Vector<AssumptionType> codes = new Vector<AssumptionType>(8);
+    private static final Vector<AssumptionType> codes = new Vector<>(8);
 
     // static block to initialize the static field 'codes'
     // Here, we use the position in the vector to represent the code assigned to

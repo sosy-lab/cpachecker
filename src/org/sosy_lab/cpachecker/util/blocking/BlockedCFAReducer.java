@@ -78,7 +78,7 @@ public class BlockedCFAReducer implements BlockComputer {
       pConfig.inject(this);
     }
 
-    this.inliningStack = new ArrayDeque<FunctionEntryNode>();
+    this.inliningStack = new ArrayDeque<>();
   }
 
   private boolean isAbstractionNode(ReducedNode pNode) {
@@ -104,8 +104,8 @@ public class BlockedCFAReducer implements BlockComputer {
     boolean result = false;
     // TODO: ensure that this function is not applied across the scope of a loop.
 
-    Queue<ReducedNode> toTraverse = new ArrayDeque<ReducedNode>();
-    Set<ReducedEdge> traverseDone = new HashSet<ReducedEdge>();
+    Queue<ReducedNode> toTraverse = new ArrayDeque<>();
+    Set<ReducedEdge> traverseDone = new HashSet<>();
 
     toTraverse.add(pApplyTo.getEntryNode());
     while (toTraverse.size() > 0) {
@@ -177,8 +177,8 @@ public class BlockedCFAReducer implements BlockComputer {
   protected boolean applyChoiceRule(ReducedFunction pApplyTo) {
     boolean result = false;
 
-    Deque<ReducedNode> toTraverse = new ArrayDeque<ReducedNode>();
-    Set<ReducedNode> traverseDone = new HashSet<ReducedNode>();
+    Deque<ReducedNode> toTraverse = new ArrayDeque<>();
+    Set<ReducedNode> traverseDone = new HashSet<>();
 
     toTraverse.add(pApplyTo.getEntryNode());
     while (toTraverse.size() > 0) {
@@ -239,7 +239,7 @@ public class BlockedCFAReducer implements BlockComputer {
   }
 
   private static class FunctionNodeManager {
-    private Map<CFANode, ReducedNode> nodeMapping = new HashMap<CFANode, ReducedNode>();
+    private Map<CFANode, ReducedNode> nodeMapping = new HashMap<>();
     private int functionCallId;
 
     public ReducedNode getWrapper(CFANode pNode) {
@@ -267,8 +267,8 @@ public class BlockedCFAReducer implements BlockComputer {
     this.functionCallSeq++;
     this.inliningStack.push(pFunctionNode);
 
-    Set<CFAEdge> traversed = new HashSet<CFAEdge>();
-    Deque<ReducedNode> openEndpoints = new ArrayDeque<ReducedNode>();
+    Set<CFAEdge> traversed = new HashSet<>();
+    Deque<ReducedNode> openEndpoints = new ArrayDeque<>();
     FunctionNodeManager functionNodes = new FunctionNodeManager(this.functionCallSeq);
 
     ReducedNode entryNode = functionNodes.getWrapper(pFunctionNode);
@@ -395,7 +395,7 @@ public class BlockedCFAReducer implements BlockComputer {
     }
 
     Set<ReducedNode> abstractionNodes = reducedProgram.getAllActiveNodes();
-    Set<CFANode> result = new HashSet<CFANode>(abstractionNodes.size());
+    Set<CFANode> result = new HashSet<>(abstractionNodes.size());
     for (ReducedNode n : abstractionNodes) {
       result.add(n.getWrapped());
     }

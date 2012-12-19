@@ -191,8 +191,8 @@ public class IntervalAnalysisState implements AbstractState
    */
   public IntervalAnalysisState join(IntervalAnalysisState reachedState)
   {
-    Map<String, Interval> newIntervals = new HashMap<String, Interval>();
-    Map<String, Integer> newReferences = new HashMap<String, Integer>();
+    Map<String, Interval> newIntervals = new HashMap<>();
+    Map<String, Integer> newReferences = new HashMap<>();
 
     newReferences.putAll(referenceCounts);
 

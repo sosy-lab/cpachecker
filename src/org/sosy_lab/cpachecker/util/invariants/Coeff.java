@@ -92,7 +92,7 @@ public class Coeff {
 
   /*
   public static Vector<Coeff> makeCoeffList(String[] C) {
-    Vector<Coeff> coeffs = new Vector<Coeff>();
+    Vector<Coeff> coeffs = new Vector<>();
     for (int i = 0; i < C.length; i++) {
       coeffs.add( new Coeff( C[i] ) );
     }

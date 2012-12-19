@@ -71,7 +71,7 @@ public class SubsetGenerator {
     // If hasMore returned false, you get null.
     HashSet<Integer> R = null;
     if (part == 0) {
-      R = new HashSet<Integer>();
+      R = new HashSet<>();
       hasmore = false;
     } else if (rest.hasMore()) {
       R = rest.getNext();

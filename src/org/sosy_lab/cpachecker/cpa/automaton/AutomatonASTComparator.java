@@ -258,7 +258,7 @@ class AutomatonASTComparator {
 
     @Override
     public ASTMatcher visit(CFunctionCallExpression exp) {
-      List<ASTMatcher> parameterPatterns = new ArrayList<ASTMatcher>(exp.getParameterExpressions().size());
+      List<ASTMatcher> parameterPatterns = new ArrayList<>(exp.getParameterExpressions().size());
       for (CExpression parameter : exp.getParameterExpressions()) {
         parameterPatterns.add(parameter.accept(this));
       }

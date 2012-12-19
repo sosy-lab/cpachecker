@@ -61,8 +61,8 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     @Override
     public void init() {
       env = mgr.createEnvironment();
-      assertedFormulas = new ArrayList<String>();
-      annotatedTerms = new HashMap<String, Term>();
+      assertedFormulas = new ArrayList<>();
+      annotatedTerms = new HashMap<>();
     }
 
     @Override
@@ -98,7 +98,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
         Preconditions.checkNotNull(env);
 
         // wrap terms into annotated term, collect their names as "termNamesOfA"
-        Set<String> termNamesOfA = new HashSet<String>();
+        Set<String> termNamesOfA = new HashSet<>();
         for (int i=0; i<formulasOfA.size(); i++) {
           final Term t = formulasOfA.get(i);
           assert t instanceof AnnotatedTerm;
@@ -109,7 +109,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
         }
 
         // calc difference: termNamesOfB := assertedFormulas - termNamesOfA
-        List<String> termNamesOfB = new ArrayList<String>();
+        List<String> termNamesOfB = new ArrayList<>();
         for (String assertedFormulaName : assertedFormulas) {
           if (!termNamesOfA.contains(assertedFormulaName)) {
             termNamesOfB.add(assertedFormulaName);
@@ -165,7 +165,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     @Override
     public Model getModel() {
       Preconditions.checkNotNull(env);
-      List<Term> terms = new ArrayList<Term>(assertedFormulas.size());
+      List<Term> terms = new ArrayList<>(assertedFormulas.size());
       for (String termname : assertedFormulas) {
         terms.add(annotatedTerms.get(termname));
       }

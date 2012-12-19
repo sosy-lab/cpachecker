@@ -163,7 +163,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
     private int count = 0;
 
     private Region formula;
-    private final Deque<Region> cubes = new ArrayDeque<Region>();
+    private final Deque<Region> cubes = new ArrayDeque<>();
     private long env;
 
     private Mathsat5TheoremProver prover;
@@ -223,7 +223,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
       // of all the models found by msat_all_sat, and storing them
       // in a BDD
       // first, let's create the BDD corresponding to the model
-      Deque<Region> curCube = new ArrayDeque<Region>(model.length + 1);
+      Deque<Region> curCube = new ArrayDeque<>(model.length + 1);
       Region m = rmgr.makeTrue();
       for (long t : model) {
         Region v;

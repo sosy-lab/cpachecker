@@ -119,7 +119,7 @@ public class TypeHierachyCreator extends ASTVisitor {
 
 
             ITypeBinding[] interfaces = typeBinding.getInterfaces();
-            List<JInterfaceType> implementedInterfaces = new LinkedList<JInterfaceType>();
+            List<JInterfaceType> implementedInterfaces = new LinkedList<>();
 
             for (ITypeBinding interfaceBinding : interfaces) {
               // It seems that you don't get only interfaces with getInterfaces.
@@ -146,7 +146,7 @@ public class TypeHierachyCreator extends ASTVisitor {
         typeOfFiles.put(type.getName(), fileOfCU);
 
 
-        Queue<Pair<JInterfaceType ,ITypeBinding[]>> next = new LinkedList<Pair<JInterfaceType ,ITypeBinding[]>>();
+        Queue<Pair<JInterfaceType ,ITypeBinding[]>> next = new LinkedList<>();
         next.add(Pair.of(type, typeBinding.getInterfaces()));
 
 
@@ -154,7 +154,7 @@ public class TypeHierachyCreator extends ASTVisitor {
 
           ITypeBinding[] superInterfacesBinding = next.peek().getSecond();
           JInterfaceType nextType = next.poll().getFirst();
-          List<JInterfaceType> superTypes = new LinkedList<JInterfaceType>();
+          List<JInterfaceType> superTypes = new LinkedList<>();
 
 
 

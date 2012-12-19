@@ -164,7 +164,7 @@ public class CFATraversal {
    */
   public void traverse(final CFANode startingNode, final CFATraversal.CFAVisitor visitor) {
 
-    Deque<CFANode> toProcess = new ArrayDeque<CFANode>();
+    Deque<CFANode> toProcess = new ArrayDeque<>();
 
     toProcess.addLast(startingNode);
 
@@ -240,7 +240,7 @@ public class CFATraversal {
    */
   public final static class NodeCollectingCFAVisitor extends ForwardingCFAVisitor {
 
-    private final Set<CFANode> visitedNodes = new HashSet<CFANode>();
+    private final Set<CFANode> visitedNodes = new HashSet<>();
 
     /**
      * Creates a new instance which delegates calls to another visitor, but
@@ -289,7 +289,7 @@ public class CFATraversal {
    */
   public final static class EdgeCollectingCFAVisitor extends ForwardingCFAVisitor {
 
-    private final List<CFAEdge> visitedEdges = new ArrayList<CFAEdge>();
+    private final List<CFAEdge> visitedEdges = new ArrayList<>();
 
     /**
      * Creates a new instance which delegates calls to another visitor.

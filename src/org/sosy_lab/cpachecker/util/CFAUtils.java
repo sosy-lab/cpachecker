@@ -247,7 +247,7 @@ public class CFAUtils {
 
   // wrapper class for Set<CFANode> because Java arrays don't like generics
   private static class Edge {
-    private final Set<CFANode> nodes = new HashSet<CFANode>(1);
+    private final Set<CFANode> nodes = new HashSet<>(1);
 
     private void add(Edge n) {
       nodes.addAll(n.nodes);
@@ -290,8 +290,8 @@ public class CFAUtils {
         assert outgoingEdges != null;
       }
 
-      Set<CFAEdge> incomingEdges = new HashSet<CFAEdge>();
-      Set<CFAEdge> outgoingEdges = new HashSet<CFAEdge>();
+      Set<CFAEdge> incomingEdges = new HashSet<>();
+      Set<CFAEdge> outgoingEdges = new HashSet<>();
 
       for (CFANode n : nodes) {
         for (int i = 0; i < n.getNumEnteringEdges(); i++) {
@@ -376,7 +376,7 @@ public class CFAUtils {
     final int max = nodes.last().getNodeNumber();
     final int size = max + 1 - min;
 
-    nodes = new TreeSet<CFANode>(nodes); // copy nodes because we change it
+    nodes = new TreeSet<>(nodes); // copy nodes because we change it
 
     // all nodes of the graph
     // Fields may be null, iff there is no node with this number.
@@ -403,7 +403,7 @@ public class CFAUtils {
     }
 
     // SECOND step: simplify graph and identify loops
-    List<Loop> loops = new ArrayList<Loop>();
+    List<Loop> loops = new ArrayList<>();
     boolean changed;
     do {
       // first try without the "reverse merge" strategy
@@ -429,7 +429,7 @@ public class CFAUtils {
     // check all pairs of loops if one is an inner loop of the other
     // the check is symmetric, so we need to check only (i1, i2) with i1 < i2
 
-    NavigableSet<Integer> toRemove = new TreeSet<Integer>();
+    NavigableSet<Integer> toRemove = new TreeSet<>();
     for (int i1 = 0; i1 < loops.size(); i1++) {
       Loop l1 = loops.get(i1);
 

@@ -37,8 +37,8 @@ public class CFANode implements Comparable<CFANode> {
   private final int nodeNumber;
   private final int lineNumber;
 
-  private final List<CFAEdge> leavingEdges = new ArrayList<CFAEdge>(1);
-  private final List<CFAEdge> enteringEdges = new ArrayList<CFAEdge>(1);
+  private final List<CFAEdge> leavingEdges = new ArrayList<>(1);
+  private final List<CFAEdge> enteringEdges = new ArrayList<>(1);
 
   // is start node of a loop?
   private boolean isLoopStart = false;

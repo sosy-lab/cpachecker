@@ -34,7 +34,7 @@ public class Substitution {
   public Substitution() {}
 
   public Substitution(String[] vars, int[] values) {
-    map = new HashMap<String, Rational>();
+    map = new HashMap<>();
 
     int n = (vars.length < values.length ? vars.length : values.length);
     String v;

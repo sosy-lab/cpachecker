@@ -49,7 +49,7 @@ public class TypeHierachie {
 
   private static final boolean UNSUCCESSFUL = false;
 
-  private final Map< String ,TypeHierachieNode> types = new HashMap<String, TypeHierachieNode>();
+  private final Map< String ,TypeHierachieNode> types = new HashMap<>();
 
   @SuppressWarnings("unused")
   private final LogManager logger;
@@ -274,7 +274,7 @@ public class TypeHierachie {
     if(containsClassType(fullyQualifiedName)){
      TypeHierachieClassNode node = (TypeHierachieClassNode) types.get(fullyQualifiedName);
 
-     List<JClassType> result = new ArrayList<JClassType>();
+     List<JClassType> result = new ArrayList<>();
      while(node.getParentClass() != null){
        result.add(node.getParentClass().getType() );
        node = node.getParentClass();
@@ -294,8 +294,8 @@ public class TypeHierachie {
     if(containsClassType(fullyQualifiedName)){
      TypeHierachieClassNode node = (TypeHierachieClassNode) types.get(fullyQualifiedName);
 
-     List<JInterfaceType> result = new ArrayList<JInterfaceType>();
-     Queue<Set<TypeHierachieInterfaceNode>> toBeAdded = new LinkedList<Set<TypeHierachieInterfaceNode>>();
+     List<JInterfaceType> result = new ArrayList<>();
+     Queue<Set<TypeHierachieInterfaceNode>> toBeAdded = new LinkedList<>();
 
 
      for( TypeHierachieInterfaceNode implementedInterface : node.getImplementedInterfaces()) {
@@ -321,7 +321,7 @@ public class TypeHierachie {
 
   public List<JClassOrInterfaceType> getAllSuperTypesOfClass(String fullyQualifiedName) {
 
-    List<JClassOrInterfaceType> result = new LinkedList<JClassOrInterfaceType>();
+    List<JClassOrInterfaceType> result = new LinkedList<>();
     result.addAll(getAllSuperClasses(fullyQualifiedName));
     result.addAll(getAllImplementedInterfaces(fullyQualifiedName));
     return result;
@@ -335,8 +335,8 @@ public class TypeHierachie {
     if(containsClassType(fullyQualifiedName)){
      TypeHierachieClassNode node = (TypeHierachieClassNode) types.get(fullyQualifiedName);
 
-     List<JClassType> result = new LinkedList<JClassType>();
-     Queue<Set<TypeHierachieClassNode>> toBeAdded = new LinkedList<Set<TypeHierachieClassNode>>();
+     List<JClassType> result = new LinkedList<>();
+     Queue<Set<TypeHierachieClassNode>> toBeAdded = new LinkedList<>();
 
 
      for( TypeHierachieClassNode subClasses : node.getDirectSubClasses()) {
@@ -364,8 +364,8 @@ public class TypeHierachie {
     if(containsInterfaceType(fullyQualifiedName)){
      TypeHierachieInterfaceNode node = (TypeHierachieInterfaceNode) types.get(fullyQualifiedName);
 
-     List<JClassType> result = new LinkedList<JClassType>();
-     Queue<Set<TypeHierachieClassNode>> toBeAdded = new LinkedList<Set<TypeHierachieClassNode>>();
+     List<JClassType> result = new LinkedList<>();
+     Queue<Set<TypeHierachieClassNode>> toBeAdded = new LinkedList<>();
 
 
      for( TypeHierachieClassNode subClasses : node.getKnownInterfaceImplementingClasses()) {
@@ -393,8 +393,8 @@ public class TypeHierachie {
     if(containsInterfaceType(fullyQualifiedName)){
      TypeHierachieInterfaceNode node = (TypeHierachieInterfaceNode) types.get(fullyQualifiedName);
 
-     List<JInterfaceType> result = new ArrayList<JInterfaceType>();
-     Queue<Set<TypeHierachieInterfaceNode>> toBeAdded = new LinkedList<Set<TypeHierachieInterfaceNode>>();
+     List<JInterfaceType> result = new ArrayList<>();
+     Queue<Set<TypeHierachieInterfaceNode>> toBeAdded = new LinkedList<>();
 
 
      for( TypeHierachieInterfaceNode superInterface : node.getExtendedInterfaces()) {
@@ -422,8 +422,8 @@ public class TypeHierachie {
     if(containsInterfaceType(fullyQualifiedName)){
      TypeHierachieInterfaceNode node = (TypeHierachieInterfaceNode) types.get(fullyQualifiedName);
 
-     List<JInterfaceType> result = new ArrayList<JInterfaceType>();
-     Queue<Set<TypeHierachieInterfaceNode>> toBeAdded = new LinkedList<Set<TypeHierachieInterfaceNode>>();
+     List<JInterfaceType> result = new ArrayList<>();
+     Queue<Set<TypeHierachieInterfaceNode>> toBeAdded = new LinkedList<>();
 
 
      for( TypeHierachieInterfaceNode subInterface : node.getDirectSubInterfaces()) {
@@ -449,7 +449,7 @@ public class TypeHierachie {
 
   public List<JClassOrInterfaceType> getAllSubTypesOfInterfaces(String fullyQualifiedName) {
 
-    List<JClassOrInterfaceType> result = new LinkedList<JClassOrInterfaceType>();
+    List<JClassOrInterfaceType> result = new LinkedList<>();
     result.addAll(getAllKnownImplementedClassesOfInterface(fullyQualifiedName));
     result.addAll(getAllSubInterfacesOfInterface(fullyQualifiedName));
     return result;
@@ -462,7 +462,7 @@ public class TypeHierachie {
 
   public List<JClassOrInterfaceType> getAllSubTypesOfType(String fullyQualifiedName) {
 
-    List<JClassOrInterfaceType> result = new LinkedList<JClassOrInterfaceType>();
+    List<JClassOrInterfaceType> result = new LinkedList<>();
 
     if(containsClassType(fullyQualifiedName)){
       result.addAll(getAllSubTypesOfClass(fullyQualifiedName));
@@ -481,7 +481,7 @@ public class TypeHierachie {
 
   public List<JClassOrInterfaceType> getAllSuperTypesOfType(String fullyQualifiedName) {
 
-    List<JClassOrInterfaceType> result = new LinkedList<JClassOrInterfaceType>();
+    List<JClassOrInterfaceType> result = new LinkedList<>();
 
     if(containsClassType(fullyQualifiedName)){
       result.addAll(getAllSuperTypesOfClass(fullyQualifiedName));
@@ -537,8 +537,8 @@ public class TypeHierachie {
 
 
     private  TypeHierachieClassNode parentClass;
-    private final  Set<TypeHierachieClassNode> directSubClasses = new HashSet<TypeHierachieClassNode>();
-    private final  Set<TypeHierachieInterfaceNode> implementedInterfaces = new HashSet<TypeHierachieInterfaceNode>();
+    private final  Set<TypeHierachieClassNode> directSubClasses = new HashSet<>();
+    private final  Set<TypeHierachieInterfaceNode> implementedInterfaces = new HashSet<>();
 
     public TypeHierachieClassNode(JClassType pType) {
       super(pType);
@@ -589,9 +589,9 @@ public class TypeHierachie {
 
  private final class TypeHierachieInterfaceNode extends TypeHierachieNode{
 
-    private final Set<TypeHierachieClassNode> knownInterfaceImplementingClasses = new HashSet<TypeHierachieClassNode>();
-    private final Set<TypeHierachieInterfaceNode> extendedInterfaces = new HashSet<TypeHierachieInterfaceNode>();
-    private final Set<TypeHierachieInterfaceNode> directSubInterfaces = new HashSet<TypeHierachieInterfaceNode>();
+    private final Set<TypeHierachieClassNode> knownInterfaceImplementingClasses = new HashSet<>();
+    private final Set<TypeHierachieInterfaceNode> extendedInterfaces = new HashSet<>();
+    private final Set<TypeHierachieInterfaceNode> directSubInterfaces = new HashSet<>();
 
 
     public TypeHierachieInterfaceNode(JInterfaceType pType)  {

@@ -53,14 +53,14 @@ public class SubstitutionManager {
   private final Vector<Substitution> subList;
 
   public SubstitutionManager(Collection<Substitution> s, LogManager lm) {
-    subList = new Vector<Substitution>(s);
+    subList = new Vector<>(s);
     logger = lm;
   }
 
   public SubstitutionManager(AssumptionSet aset, LogManager lm) {
     logger = lm;
     // Compute substitutions based on the assumptions.
-    subList = new Vector<Substitution>();
+    subList = new Vector<>();
     for (Assumption a : aset) {
       // We can only use assumptions of type ZERO.
       if (a.getAssumptionType() != AssumptionType.ZERO) {
@@ -129,7 +129,7 @@ public class SubstitutionManager {
     logger.log(Level.ALL,"Substitutions:\n", subList);
     Substitution s = subList.get(0);
     // Now we apply s to the remaining substitutions.
-    Set<Substitution> toRemove = new HashSet<Substitution>();
+    Set<Substitution> toRemove = new HashSet<>();
     // We will remove the one we just popped off the front of the list.
     toRemove.add(s);
     // Now consider the rest (if there are any more).

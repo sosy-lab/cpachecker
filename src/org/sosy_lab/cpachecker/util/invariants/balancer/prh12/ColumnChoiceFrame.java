@@ -42,7 +42,7 @@ public class ColumnChoiceFrame {
   private List<ChallengeType> ctypes;
 
   public ColumnChoiceFrame(List<PivotRow2> r, ChallengeType c) {
-    List<ChallengeType> ct = new Vector<ChallengeType>(r.size());
+    List<ChallengeType> ct = new Vector<>(r.size());
     for (int i = 0; i < r.size(); i++) {
       ct.add(c);
     }
@@ -58,7 +58,7 @@ public class ColumnChoiceFrame {
     assert(r.size() == c.size());
     rows = r;
     ctypes = c;
-    choices = new HashMap<PivotRow2,UsableColumn>();
+    choices = new HashMap<>();
     if (r.size() > 0) {
       PivotRow2 pr = r.get(0);
       ChallengeType ct = c.get(0);
@@ -138,15 +138,15 @@ public class ColumnChoiceFrame {
       uc = pr.getFreeOption(ptr);
     }
     // Add it to the choices map for the next frame.
-    Map<PivotRow2,UsableColumn> nextChoices = new HashMap<PivotRow2,UsableColumn>(choices);
+    Map<PivotRow2,UsableColumn> nextChoices = new HashMap<>(choices);
     nextChoices.put(pr, uc);
     // Prepare the row list for the next frame.
     // Start by simply copying the present row list into a deque...
-    LinkedList<PivotRow2> nextRows = new LinkedList<PivotRow2>(rows);
+    LinkedList<PivotRow2> nextRows = new LinkedList<>(rows);
     // ...and deleting the first row.
     nextRows.removeFirst();
     // Now do likewise with the list of challenge types.
-    LinkedList<ChallengeType> nextCtypes = new LinkedList<ChallengeType>(ctypes);
+    LinkedList<ChallengeType> nextCtypes = new LinkedList<>(ctypes);
     nextCtypes.removeFirst();
     // Have we seen this column before?
     if (!choices.values().contains(uc)) {
@@ -156,7 +156,7 @@ public class ColumnChoiceFrame {
       // But first we discard those rows in 'challenged' which are already in
       // choices.keySet(), EXCEPT that among such rows, if the choice they have already made
       // is the aug col, then they DO need to be rechallenged, since it is now a pivot challenge.
-      List<PivotRow2> discard = new Vector<PivotRow2>();
+      List<PivotRow2> discard = new Vector<>();
       for (PivotRow2 p : challenged) {
         if (choices.keySet().contains(p)) {
           UsableColumn u = choices.get(p);

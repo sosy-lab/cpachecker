@@ -126,13 +126,13 @@ public class ABMTransferRelation implements TransferRelation {
 
   private class Cache {
 
-    private final Map<AbstractStateHash, ReachedSet> preciseReachedCache = new HashMap<AbstractStateHash, ReachedSet>();
+    private final Map<AbstractStateHash, ReachedSet> preciseReachedCache = new HashMap<>();
     private final Map<AbstractStateHash, ReachedSet> unpreciseReachedCache =
         new HashMap<AbstractStateHash, ReachedSet>();
 
     private final Map<AbstractStateHash, Collection<AbstractState>> returnCache =
         new HashMap<AbstractStateHash, Collection<AbstractState>>();
-    private final Map<AbstractStateHash, ARGState> blockARGCache = new HashMap<AbstractStateHash, ARGState>();
+    private final Map<AbstractStateHash, ARGState> blockARGCache = new HashMap<>();
 
     private ARGState lastAnalyzedBlock = null;
 
@@ -308,8 +308,8 @@ public class ABMTransferRelation implements TransferRelation {
 
   private final Cache argCache = new Cache();
 
-  private final Map<AbstractState, ReachedSet> abstractStateToReachedSet = new HashMap<AbstractState, ReachedSet>();
-  private final Map<AbstractState, AbstractState> expandedToReducedCache = new HashMap<AbstractState, AbstractState>();
+  private final Map<AbstractState, ReachedSet> abstractStateToReachedSet = new HashMap<>();
+  private final Map<AbstractState, AbstractState> expandedToReducedCache = new HashMap<>();
 
   private Block currentBlock;
   private BlockPartitioning partitioning;
@@ -426,7 +426,7 @@ public class ABMTransferRelation implements TransferRelation {
 
         addBlockAnalysisInfo(pElement);
 
-        List<AbstractState> expandedResult = new ArrayList<AbstractState>(reducedResult.size());
+        List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
         for (Pair<AbstractState, Precision> reducedPair : reducedResult) {
           AbstractState reducedState = reducedPair.getFirst();
           Precision reducedPrecision = reducedPair.getSecond();
@@ -451,7 +451,7 @@ public class ABMTransferRelation implements TransferRelation {
         return attachAdditionalInfoToCallNodes(expandedResult);
       }
       else {
-        List<AbstractState> result = new ArrayList<AbstractState>();
+        List<AbstractState> result = new ArrayList<>();
         for (int i = 0; i < node.getNumLeavingEdges(); i++) {
           CFAEdge e = node.getLeavingEdge(i);
           result.addAll(getAbstractSuccessors0(pElement, pPrecision, e));
@@ -563,7 +563,7 @@ public class ABMTransferRelation implements TransferRelation {
 
   private List<Pair<AbstractState, Precision>> imbueAbstractStatesWithPrecision(
       ReachedSet pReached, Collection<AbstractState> pElements) {
-    List<Pair<AbstractState, Precision>> result = new ArrayList<Pair<AbstractState, Precision>>();
+    List<Pair<AbstractState, Precision>> result = new ArrayList<>();
     for (AbstractState ele : pElements) {
       result.add(Pair.of(ele, pReached.getPrecision(ele)));
     }
@@ -573,7 +573,7 @@ public class ABMTransferRelation implements TransferRelation {
   private Collection<? extends AbstractState> attachAdditionalInfoToCallNodes(
       Collection<? extends AbstractState> pSuccessors) {
     if (PCCInformation.isPCCEnabled()) {
-      List<AbstractState> successorsWithExtendedInfo = new ArrayList<AbstractState>(pSuccessors.size());
+      List<AbstractState> successorsWithExtendedInfo = new ArrayList<>(pSuccessors.size());
       for (AbstractState elem : pSuccessors) {
         if (!(elem instanceof ARGState)) { return pSuccessors; }
         if (!(elem instanceof ABMARGBlockStartState)) {
@@ -612,7 +612,7 @@ public class ABMTransferRelation implements TransferRelation {
     if (toReplace.isCovered()) {
       replaceWith.setCovered(toReplace.getCoveringState());
     }
-    List<ARGState> willCover = new ArrayList<ARGState>(toReplace.getCoveredByThis().size());
+    List<ARGState> willCover = new ArrayList<>(toReplace.getCoveredByThis().size());
     for (ARGState cov : toReplace.getCoveredByThis()) {
       willCover.add(cov);
     }
@@ -650,8 +650,8 @@ public class ABMTransferRelation implements TransferRelation {
 
     Set<ARGState> relevantCallNodes = getRelevantDefinitionNodes(path);
 
-    Set<Pair<ARGReachedSet, ARGState>> neededRemoveSubtreeCalls = new HashSet<Pair<ARGReachedSet, ARGState>>();
-    Set<Pair<ARGState, ARGState>> neededRemoveCachedSubtreeCalls = new HashSet<Pair<ARGState, ARGState>>();
+    Set<Pair<ARGReachedSet, ARGState>> neededRemoveSubtreeCalls = new HashSet<>();
+    Set<Pair<ARGState, ARGState>> neededRemoveCachedSubtreeCalls = new HashSet<>();
 
     ARGState lastElement = null;
     //iterate from root to element and remove all subtrees for subgraph calls
@@ -706,7 +706,7 @@ public class ABMTransferRelation implements TransferRelation {
     Set<ARGState> callNodes = pair.getFirst();
     Set<ARGState> returnNodes = pair.getSecond();
 
-    Deque<ARGState> remainingPathElements = new LinkedList<ARGState>();
+    Deque<ARGState> remainingPathElements = new LinkedList<>();
     for (int i = 0; i < pPath.size(); i++) {
       remainingPathElements.addLast(pPath.get(i).getFirst());
     }
@@ -864,7 +864,7 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
   private List<ARGState> trimPath(Path pPath, ARGState pElement) {
-    List<ARGState> result = new ArrayList<ARGState>();
+    List<ARGState> result = new ArrayList<>();
 
     for (Pair<ARGState, CFAEdge> e : pPath) {
       result.add(e.getFirst());
@@ -874,8 +874,8 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
   private Set<ARGState> getRelevantDefinitionNodes(List<ARGState> path) {
-    Deque<ARGState> openCallElements = new ArrayDeque<ARGState>();
-    Deque<Block> openSubtrees = new ArrayDeque<Block>();
+    Deque<ARGState> openCallElements = new ArrayDeque<>();
+    Deque<Block> openSubtrees = new ArrayDeque<>();
 
     ARGState prevElement = path.get(1);
     for (ARGState currentElement : Iterables.skip(path, 2)) {
@@ -903,18 +903,18 @@ public class ABMTransferRelation implements TransferRelation {
       openCallElements.push(lastElement);
     }
 
-    return new HashSet<ARGState>(openCallElements);
+    return new HashSet<>(openCallElements);
   }
 
   private Pair<Set<ARGState>, Set<ARGState>> getCallAndReturnNodes(Path path,
       Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet, UnmodifiableReachedSet mainReachedSet,
       Map<ARGState, ARGState> pPathElementToReachedState) {
-    Set<ARGState> callNodes = new HashSet<ARGState>();
-    Set<ARGState> returnNodes = new HashSet<ARGState>();
+    Set<ARGState> callNodes = new HashSet<>();
+    Set<ARGState> returnNodes = new HashSet<>();
 
-    Deque<Block> openSubtrees = new ArrayDeque<Block>();
+    Deque<Block> openSubtrees = new ArrayDeque<>();
 
-    Deque<UnmodifiableReachedSet> openReachedSets = new ArrayDeque<UnmodifiableReachedSet>();
+    Deque<UnmodifiableReachedSet> openReachedSets = new ArrayDeque<>();
     openReachedSets.push(mainReachedSet);
 
     ARGState prevElement = path.get(1).getFirst();
@@ -962,8 +962,8 @@ public class ABMTransferRelation implements TransferRelation {
     assert reachedSet.asReachedSet().contains(target);
 
     //start by creating ARGElements for each node needed in the tree
-    Map<ARGState, ARGState> elementsMap = new HashMap<ARGState, ARGState>();
-    Stack<ARGState> openElements = new Stack<ARGState>();
+    Map<ARGState, ARGState> elementsMap = new HashMap<>();
+    Stack<ARGState> openElements = new Stack<>();
     ARGState root = null;
 
     pPathElementToReachedState.put(newTreeTarget, target);
@@ -1118,7 +1118,7 @@ public class ABMTransferRelation implements TransferRelation {
           correctARGsForBlocks.put(key, result.getSecond());
         }
 
-        HashSet<AbstractState> notFoundSuccessors = new HashSet<AbstractState>(pSuccessors);
+        HashSet<AbstractState> notFoundSuccessors = new HashSet<>(pSuccessors);
         AbstractState expandedState;
         PredicateAbstractState pred;
 
@@ -1153,7 +1153,7 @@ public class ABMTransferRelation implements TransferRelation {
             + " for block " + currentBlock + "failed.");
       }
     } else {
-      HashSet<CFAEdge> usedEdges = new HashSet<CFAEdge>();
+      HashSet<CFAEdge> usedEdges = new HashSet<>();
       for (AbstractState absElement : pSuccessors) {
         ARGState successorElem = (ARGState) absElement;
         usedEdges.add(((ARGState) pState).getEdgeToChild(successorElem));
@@ -1182,12 +1182,12 @@ public class ABMTransferRelation implements TransferRelation {
 
   private Pair<Boolean, Collection<ARGState>> checkARGBlock(ARGState rootNode, ProofChecker pWrappedProofChecker)
       throws CPAException, InterruptedException {
-    Collection<ARGState> returnNodes = new ArrayList<ARGState>();
-    Set<ARGState> waitingForUnexploredParents = new HashSet<ARGState>();
+    Collection<ARGState> returnNodes = new ArrayList<>();
+    Set<ARGState> waitingForUnexploredParents = new HashSet<>();
     boolean unexploredParent;
-    Stack<ARGState> waitlist = new Stack<ARGState>();
-    HashSet<ARGState> visited = new HashSet<ARGState>();
-    HashSet<ARGState> coveredNodes = new HashSet<ARGState>();
+    Stack<ARGState> waitlist = new Stack<>();
+    HashSet<ARGState> visited = new HashSet<>();
+    HashSet<ARGState> coveredNodes = new HashSet<>();
     ARGState current;
 
     waitlist.add(rootNode);

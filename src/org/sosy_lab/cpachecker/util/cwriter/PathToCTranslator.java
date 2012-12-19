@@ -68,12 +68,12 @@ public class PathToCTranslator {
     }
   };
 
-  private final List<String> mGlobalDefinitionsList = new ArrayList<String>();
-  private final List<String> mFunctionDecls = new ArrayList<String>();
+  private final List<String> mGlobalDefinitionsList = new ArrayList<>();
+  private final List<String> mFunctionDecls = new ArrayList<>();
   private int mFunctionIndex = 0;
 
   // list of functions
-  private final List<FunctionBody> mFunctionBodies = new ArrayList<FunctionBody>();
+  private final List<FunctionBody> mFunctionBodies = new ArrayList<>();
 
   private PathToCTranslator() { }
 
@@ -102,14 +102,14 @@ public class PathToCTranslator {
 
   private void translatePaths0(final ARGState firstElement, Set<ARGState> elementsOnPath) {
     // waitlist for the edges to be processed
-    List<Edge> waitlist = new ArrayList<Edge>();
+    List<Edge> waitlist = new ArrayList<>();
 
     // map of nodes to check end of a condition
-    Map<Integer, MergeNode> mergeNodes = new HashMap<Integer, MergeNode>();
+    Map<Integer, MergeNode> mergeNodes = new HashMap<>();
 
     // create initial element
     {
-      Stack<FunctionBody> newStack = new Stack<FunctionBody>();
+      Stack<FunctionBody> newStack = new Stack<>();
 
       // create the first function and put in into newStack
       startFunction(firstElement, newStack);
@@ -154,7 +154,7 @@ public class PathToCTranslator {
     Pair<ARGState, CFAEdge> parentPair = pathIt.next();
     ARGState firstElement = parentPair.getFirst();
 
-    Stack<FunctionBody> functionStack = new Stack<FunctionBody>();
+    Stack<FunctionBody> functionStack = new Stack<>();
 
     // create the first function and put in into the stack
     startFunction(firstElement, functionStack);
@@ -249,7 +249,7 @@ public class PathToCTranslator {
       // if there are more than one relevant child, then this is a condition
       // we need to update the stack
       assert relevantChildrenOfElement.size() == 2;
-      Collection<Edge> result = new ArrayList<Edge>(2);
+      Collection<Edge> result = new ArrayList<>(2);
       int ind = 0;
       for (ARGState elem: relevantChildrenOfElement) {
         Stack<FunctionBody> newStack = cloneStack(functionStack);
@@ -411,7 +411,7 @@ public class PathToCTranslator {
 
   private Stack<FunctionBody> cloneStack(Stack<FunctionBody> pStack) {
 
-    Stack<FunctionBody>  ret = new Stack<FunctionBody>();
+    Stack<FunctionBody>  ret = new Stack<>();
     for (FunctionBody functionBody : pStack) {
       ret.push(new FunctionBody(functionBody));
     }

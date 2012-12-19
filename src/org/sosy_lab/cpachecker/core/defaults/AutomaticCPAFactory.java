@@ -230,7 +230,7 @@ public class AutomaticCPAFactory implements CPAFactory {
       throw new IllegalArgumentException("Constructor of options holder class declares illegal checked exception: " + exception);
     }
 
-    return new AutomaticCPAFactoryWithOptions<T>(type, injects, optionsClass, constructor);
+    return new AutomaticCPAFactoryWithOptions<>(type, injects, optionsClass, constructor);
   }
 
   private static final class AutomaticCPAFactoryWithOptions<T> extends AutomaticCPAFactory {

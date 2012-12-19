@@ -42,7 +42,7 @@ class OctDomain implements AbstractDomain{
   @Override
   public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
 
-    Map<OctState, Set<OctState>> covers = new HashMap<OctState, Set<OctState>>();
+    Map<OctState, Set<OctState>> covers = new HashMap<>();
 
     long start = System.currentTimeMillis();
     OctState octState1 = (OctState) element1;
@@ -69,7 +69,7 @@ class OctDomain implements AbstractDomain{
         if (covers.containsKey(octState2)) {
           s = covers.get(octState2);
         } else {
-          s = new HashSet<OctState>();
+          s = new HashSet<>();
         }
         s.add(octState1);
         covers.put(octState2, s);

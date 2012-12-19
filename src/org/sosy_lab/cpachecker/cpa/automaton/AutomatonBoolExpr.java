@@ -44,8 +44,8 @@ import com.google.common.base.Optional;
  * The Expression can be evaluated multiple times.
  */
 interface AutomatonBoolExpr extends AutomatonExpression {
-  static final ResultValue<Boolean> CONST_TRUE = new ResultValue<Boolean>(Boolean.TRUE);
-  static final ResultValue<Boolean> CONST_FALSE = new ResultValue<Boolean>(Boolean.FALSE);
+  static final ResultValue<Boolean> CONST_TRUE = new ResultValue<>(Boolean.TRUE);
+  static final ResultValue<Boolean> CONST_FALSE = new ResultValue<>(Boolean.FALSE);
 
   @Override
   abstract ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
@@ -88,7 +88,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
         }
       } else {
         return CONST_FALSE;
-        //return new ResultValue<Boolean>("cannot evaluate if the CFAEdge is not a CLabelNode", "MatchLabelRegEx.eval(..)");
+        //return new ResultValue<>("cannot evaluate if the CFAEdge is not a CLabelNode", "MatchLabelRegEx.eval(..)");
       }
     }
 
@@ -199,12 +199,12 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       if (pArgs.getAbstractStates().isEmpty()) {
-        return new ResultValue<Boolean>("No CPA elements available", "AutomatonBoolExpr.ALLCPAQuery");
+        return new ResultValue<>("No CPA elements available", "AutomatonBoolExpr.ALLCPAQuery");
       } else {
         // replace transition variables
         String modifiedQueryString = pArgs.replaceVariables(queryString);
         if (modifiedQueryString == null) {
-          return new ResultValue<Boolean>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.ALLCPAQuery");
+          return new ResultValue<>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.ALLCPAQuery");
         }
         for (AbstractState ae : pArgs.getAbstractStates()) {
           if (ae instanceof AbstractQueryableState) {
@@ -246,7 +246,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       // replace transition variables
       String modifiedQueryString = pArgs.replaceVariables(queryString);
       if (modifiedQueryString == null) {
-        return new ResultValue<Boolean>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.CPAQuery");
+        return new ResultValue<>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.CPAQuery");
       }
 
       for (AbstractState ae : pArgs.getAbstractStates()) {
@@ -285,7 +285,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
           }
         }
       }
-      return new ResultValue<Boolean>("No State of CPA \"" + cpaName + "\" was found!", "AutomatonBoolExpr.CPAQuery");
+      return new ResultValue<>("No State of CPA \"" + cpaName + "\" was found!", "AutomatonBoolExpr.CPAQuery");
     }
 
     @Override
@@ -300,7 +300,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       if (pArgs.getAbstractStates().isEmpty()) {
-        return new ResultValue<Boolean>("No CPA elements available", "AutomatonBoolExpr.CheckAllCpasForTargetState");
+        return new ResultValue<>("No CPA elements available", "AutomatonBoolExpr.CheckAllCpasForTargetState");
       } else {
         for (AbstractState ae : pArgs.getAbstractStates()) {
           if (AbstractStates.isTargetState(ae)) {
@@ -363,10 +363,10 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       ResultValue<Integer> resA = a.eval(pArgs);
       ResultValue<Integer> resB = b.eval(pArgs);
       if (resA.canNotEvaluate()) {
-        return new ResultValue<Boolean>(resA);
+        return new ResultValue<>(resA);
       }
       if (resB.canNotEvaluate()) {
-        return new ResultValue<Boolean>(resB);
+        return new ResultValue<>(resB);
       }
       if (resA.getValue().equals(resB.getValue())) {
         return CONST_TRUE;
@@ -399,10 +399,10 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       ResultValue<Integer> resA = a.eval(pArgs);
       ResultValue<Integer> resB = b.eval(pArgs);
       if (resA.canNotEvaluate()) {
-        return new ResultValue<Boolean>(resA);
+        return new ResultValue<>(resA);
       }
       if (resB.canNotEvaluate()) {
-        return new ResultValue<Boolean>(resB);
+        return new ResultValue<>(resB);
       }
       if (! resA.getValue().equals(resB.getValue())) {
         return CONST_TRUE;

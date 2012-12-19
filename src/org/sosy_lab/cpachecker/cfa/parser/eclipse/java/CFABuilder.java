@@ -61,15 +61,15 @@ class CFABuilder extends ASTVisitor {
 
   // Data structure for tracking method Declaration over ASTs
   // Used to resolve dynamic Bindings
-  private final Map<String, MethodDeclaration> allParsedMethodDeclaration = new HashMap<String, MethodDeclaration>();
+  private final Map<String, MethodDeclaration> allParsedMethodDeclaration = new HashMap<>();
 
   // Data structures for handling method declarations
-  private Queue<MethodDeclaration> methodDeclarations = new LinkedList<MethodDeclaration>();
-  private final Map<String, FunctionEntryNode> cfas = new HashMap<String, FunctionEntryNode>();
+  private Queue<MethodDeclaration> methodDeclarations = new LinkedList<>();
+  private final Map<String, FunctionEntryNode> cfas = new HashMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
   // Data Structure for tracking class Declaration in this Compilation Unit
-  private final Set<ITypeBinding> classDeclaration = new HashSet<ITypeBinding>();
+  private final Set<ITypeBinding> classDeclaration = new HashSet<>();
 
   private final Scope scope;
   private final ASTConverter astCreator;
@@ -183,7 +183,7 @@ class CFABuilder extends ASTVisitor {
     }
 
     // track all classes that have Constructor
-    Set<ITypeBinding> classHasConstructor = new HashSet<ITypeBinding>();
+    Set<ITypeBinding> classHasConstructor = new HashSet<>();
 
     // parse all found methods
     for (MethodDeclaration declaration : methodDeclarations) {

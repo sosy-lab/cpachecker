@@ -47,13 +47,13 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   private final PathFormulaManager delegate;
 
   private final Map<Pair<PathFormula, CFAEdge>, PathFormula> andFormulaCache
-            = new HashMap<Pair<PathFormula, CFAEdge>, PathFormula>();
+            = new HashMap<>();
 
   private final Map<Pair<PathFormula, PathFormula>, PathFormula> orFormulaCache
-            = new HashMap<Pair<PathFormula, PathFormula>, PathFormula>();
+            = new HashMap<>();
 
   private final Map<PathFormula, PathFormula> emptyFormulaCache
-            = new HashMap<PathFormula, PathFormula>();
+            = new HashMap<>();
 
   private final PathFormula emptyFormula;
 

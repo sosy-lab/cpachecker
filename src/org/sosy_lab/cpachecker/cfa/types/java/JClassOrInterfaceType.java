@@ -74,7 +74,7 @@ public abstract class  JClassOrInterfaceType implements JReferenceType {
   public List<JClassOrInterfaceType> getAllSuperTypesOfType() {
 
     //TODO Maybe dynamic Binding of getAllSuperTypes here?
-    List<JClassOrInterfaceType> result = new LinkedList<JClassOrInterfaceType>();
+    List<JClassOrInterfaceType> result = new LinkedList<>();
 
     if(this instanceof JClassType){
       result.addAll(((JClassType)this).getAllSuperTypesOfClass()) ;
@@ -87,7 +87,7 @@ public abstract class  JClassOrInterfaceType implements JReferenceType {
 
   public List<JClassOrInterfaceType> getAllSubTypesOfType() {
 
-    List<JClassOrInterfaceType> result = new LinkedList<JClassOrInterfaceType>();
+    List<JClassOrInterfaceType> result = new LinkedList<>();
 
     if(this instanceof JClassType){
       result.addAll(((JClassType)this).getAllSubTypesOfClass()) ;

@@ -89,7 +89,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
 
   public List<TFormulaInfo> getArguments(TFormulaInfo pT){
     int arity = getArity(pT);
-    List<TFormulaInfo> rets = new ArrayList<TFormulaInfo>(arity);
+    List<TFormulaInfo> rets = new ArrayList<>(arity);
     for (int i = 0; i < arity; i++) {
       rets.add(getArg(pT, i));
     }

@@ -89,7 +89,7 @@ class OctTransferRelation implements TransferRelation{
    */
   public OctTransferRelation ()
   {
-    globalVars = new ArrayList<String>();
+    globalVars = new ArrayList<>();
   }
 
   @Override

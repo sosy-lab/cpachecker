@@ -77,7 +77,7 @@ public class TreeReader {
     // is zero, and in this way we will never get caught trying to
     // evaluate a term in which division by zero is taking place.
 
-    Vector<CAstNode> denoms = new Vector<CAstNode>();
+    Vector<CAstNode> denoms = new Vector<>();
 
     // Recursion first, for depth-first search.
     CAstNode[] children = N.getChildren();
@@ -110,7 +110,7 @@ public class TreeReader {
     // in the expression N, which we assume involves only binary
     // and unary expressions, and integers and variables.
 
-    HashSet<String> vars = new HashSet<String>();
+    HashSet<String> vars = new HashSet<>();
 
     // Recursion first.
     CAstNode[] children = N.getChildren();

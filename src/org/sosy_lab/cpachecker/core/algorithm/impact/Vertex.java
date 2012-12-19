@@ -58,12 +58,12 @@ class Vertex extends AbstractSingleWrapperState {
   private final Vertex parent;
   private final BooleanFormulaManager bfmgr;
 
-  private final List<Vertex> children = new ArrayList<Vertex>(2);
+  private final List<Vertex> children = new ArrayList<>(2);
 
   private BooleanFormula stateFormula;
 
   private Vertex coveredBy = null;
-  private List<Vertex> coveredNodes = new ArrayList<Vertex>(0);
+  private List<Vertex> coveredNodes = new ArrayList<>(0);
 
   public Vertex(BooleanFormulaManager bfmgr, BooleanFormula pStateFormula, AbstractState pElement) {
     super(pElement);
@@ -110,7 +110,7 @@ class Vertex extends AbstractSingleWrapperState {
     }
 
     List<Vertex> result = coveredNodes;
-    coveredNodes = new ArrayList<Vertex>(0);
+    coveredNodes = new ArrayList<>(0);
 
     for (Vertex v : result) {
       assert v.coveredBy == this;
@@ -134,7 +134,7 @@ class Vertex extends AbstractSingleWrapperState {
   }
 
   public List<Vertex> getSubtree() {
-    List<Vertex> subtreeNodes = new ArrayList<Vertex>();
+    List<Vertex> subtreeNodes = new ArrayList<>();
     subtreeNodes.add(this);
     getSubtree(subtreeNodes);
     return subtreeNodes;

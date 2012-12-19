@@ -120,7 +120,7 @@ public class Matrix implements MatrixI {
     m.outOfPivots = outOfPivots;
     m.verbose = verbose;
     // Copy pivot rows:
-    m.pivotRows = new Vector<Integer>(pivotRows.size());
+    m.pivotRows = new Vector<>(pivotRows.size());
     for (Integer i : pivotRows) {
       m.pivotRows.add( new Integer(i.intValue()) );
     }
@@ -404,7 +404,7 @@ public class Matrix implements MatrixI {
     int n = colNum;
     int i0 = nextI0;
     int j0 = nextJ0;
-    pivotRows = new Vector<Integer>();
+    pivotRows = new Vector<>();
 
     AssumptionSet aset = new AssumptionSet();
 
@@ -537,7 +537,7 @@ public class Matrix implements MatrixI {
     int i0 = nextI0;
     int j0 = nextJ0;
     if (i0 == 0 && j0 == 0) {
-      pivotRows = new Vector<Integer>();
+      pivotRows = new Vector<>();
     }
 
     int M = m;
@@ -693,7 +693,7 @@ public class Matrix implements MatrixI {
     int[] pivot = {-1, -1};
     // Wrap all entries in the remaining submatrix as SortablePivotEntries,
     // so that they can be sorted according to how well we prefer them as pivots.
-    List<SortablePivotEntry> spes = new Vector<SortablePivotEntry>();
+    List<SortablePivotEntry> spes = new Vector<>();
     for (int j = j0; j < n; j++) {
       for (int i = i0; i < m; i++) {
         spes.add( new SortablePivotEntry(i,j,entry[i][j]) );
@@ -770,7 +770,7 @@ public class Matrix implements MatrixI {
         "for submatrix starting at",i0,",",j0,"in matrix:","\n"+this);
 
     // Start by forming the nonzero assumption on the numerator of each remaining nonzero entry.
-    List<PointedAssumption> nz = new Vector<PointedAssumption>();
+    List<PointedAssumption> nz = new Vector<>();
     for (int j = j0; j < n; j++) {
       for (int i = i0; i < m; i++) {
         Polynomial p = entry[i][j].getNumerator();
@@ -802,8 +802,8 @@ public class Matrix implements MatrixI {
     //   A = those which are already implied by the current assumption set.
     //   B = those which are not already implied, but at least do not immediately contradict
     //       the current assumption set.
-    List<PointedAssumption> implied = new Vector<PointedAssumption>();
-    List<PointedAssumption> noncontra = new Vector<PointedAssumption>();
+    List<PointedAssumption> implied = new Vector<>();
+    List<PointedAssumption> noncontra = new Vector<>();
     for (PointedAssumption a : nz) {
       AssumptionRelation rel = amgr.matchAgainst(a.getAssumption());
       switch (rel) {
@@ -854,7 +854,7 @@ public class Matrix implements MatrixI {
    * Return an array listing those rows i, with i0 <= i < m, that have nonzero entries in column j.
    */
   private int[] findNonzeroEntriesInColumn(int j, int i0, int m) {
-    Vector<Integer> rows = new Vector<Integer>();
+    Vector<Integer> rows = new Vector<>();
     for (int i = i0; i < m; i++) {
       if (!entry[i][j].isZero()) {
         rows.add(new Integer(i));
@@ -1027,7 +1027,7 @@ public class Matrix implements MatrixI {
     String spaces = new String(sps);
 
     // Now write.
-    List<String> abbreviatedEntries = new Vector<String>();
+    List<String> abbreviatedEntries = new Vector<>();
     String s = "";
     String e;
     int W;

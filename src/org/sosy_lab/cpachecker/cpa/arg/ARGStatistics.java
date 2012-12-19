@@ -235,7 +235,7 @@ public class ARGStatistics implements Statistics {
       return Collections.emptySet();
     }
 
-    Set<Pair<ARGState, ARGState>> result = new HashSet<Pair<ARGState, ARGState>>(pPath.size());
+    Set<Pair<ARGState, ARGState>> result = new HashSet<>(pPath.size());
     Iterator<Pair<ARGState, CFAEdge>> it = pPath.iterator();
     assert it.hasNext();
     ARGState lastElement = it.next().getFirst();

@@ -82,7 +82,7 @@ public class Transition {
   }
 
   public Set<String> writeAllParameters(VariableWriteMode vwm) {
-    Set<String> params = new HashSet<String>();
+    Set<String> params = new HashSet<>();
     // First build the set of all TemplateVariables.
     Template t = tmap.getTemplate(start);
     Set<TemplateVariable> pvars = t.getAllParmeters();
@@ -96,7 +96,7 @@ public class Transition {
   }
 
   public Vector<TemplateBoolean> getAllNonzeroParameterClauses() {
-    Vector<TemplateBoolean> clauses = new Vector<TemplateBoolean>();
+    Vector<TemplateBoolean> clauses = new Vector<>();
     Template t = tmap.getTemplate(start);
     clauses.add( t.getNonzeroParameterClause() );
     t = tmap.getTemplate(end);

@@ -88,12 +88,12 @@ public class CPABuilder {
   }
 
   public ConfigurableProgramAnalysis buildCPAs(final CFA cfa) throws InvalidConfigurationException, CPAException {
-    Set<String> usedAliases = new HashSet<String>();
+    Set<String> usedAliases = new HashSet<>();
 
     // create automata cpas for specification given in specification file
     List<ConfigurableProgramAnalysis> cpas = null;
     if (specificationFiles != null) {
-      cpas = new ArrayList<ConfigurableProgramAnalysis>();
+      cpas = new ArrayList<>();
 
       for (File specFile : specificationFiles) {
         List<Automaton> automata = AutomatonParser.parseAutomatonFile(specFile, config, logger);

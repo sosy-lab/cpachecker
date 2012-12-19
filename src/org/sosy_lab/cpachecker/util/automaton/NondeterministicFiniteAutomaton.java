@@ -95,7 +95,7 @@ public class NondeterministicFiniteAutomaton<T> {
 
     private StatePool() {
       mNextStateId = 0;
-      mPool = new ArrayList<State>();
+      mPool = new ArrayList<>();
     }
 
     public State get(NondeterministicFiniteAutomaton<?> pAutomaton) {
@@ -188,12 +188,12 @@ public class NondeterministicFiniteAutomaton<T> {
   public NondeterministicFiniteAutomaton() {
     mStateIterable = new StatePool.StateIterable(this);
 
-    mFinalStates = new HashSet<State>();
+    mFinalStates = new HashSet<>();
 
-    mOutgoingEdges = new ArrayList<Set<Edge>>();
-    mIncomingEdges = new ArrayList<Set<Edge>>();
+    mOutgoingEdges = new ArrayList<>();
+    mIncomingEdges = new ArrayList<>();
 
-    mEdges = new ArrayList<Edge>();
+    mEdges = new ArrayList<>();
 
     setInitialState(createState());
   }
@@ -265,7 +265,7 @@ public class NondeterministicFiniteAutomaton<T> {
   }
 
   public NondeterministicFiniteAutomaton<T> getLambdaFreeAutomaton() {
-    NondeterministicFiniteAutomaton<T> lLambdaFreeAutomaton = new NondeterministicFiniteAutomaton<T>();
+    NondeterministicFiniteAutomaton<T> lLambdaFreeAutomaton = new NondeterministicFiniteAutomaton<>();
 
     // mStatesCounter - 1 because the initial state of lLambdaFreeAutomaton
     // exists already
@@ -311,8 +311,8 @@ public class NondeterministicFiniteAutomaton<T> {
   }
 
   private Set<State> getLambdaClosure(State pState) {
-    Set<State> lClosure = new HashSet<State>();
-    Set<State> lWorkset = new HashSet<State>();
+    Set<State> lClosure = new HashSet<>();
+    Set<State> lWorkset = new HashSet<>();
 
     lWorkset.add(pState);
 

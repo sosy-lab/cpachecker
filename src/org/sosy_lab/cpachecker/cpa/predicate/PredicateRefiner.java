@@ -272,7 +272,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<BooleanF
       atoms = Collections.singleton(fmgr.uninstantiate(f));
     }
 
-    List<AbstractionPredicate> preds = new ArrayList<AbstractionPredicate>(atoms.size());
+    List<AbstractionPredicate> preds = new ArrayList<>(atoms.size());
 
     for (BooleanFormula atom : atoms) {
       preds.add(amgr.makePredicate(atom));

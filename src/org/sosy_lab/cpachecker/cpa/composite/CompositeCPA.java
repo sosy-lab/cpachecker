@@ -199,7 +199,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.precisionAdjustment = precisionAdjustment;
     this.cpas = cpas;
 
-    List<Reducer> wrappedReducers = new ArrayList<Reducer>();
+    List<Reducer> wrappedReducers = new ArrayList<>();
     for (ConfigurableProgramAnalysis cpa : cpas) {
       if (cpa instanceof ConfigurableProgramAnalysisWithABM) {
         wrappedReducers.add(((ConfigurableProgramAnalysisWithABM) cpa).getReducer());

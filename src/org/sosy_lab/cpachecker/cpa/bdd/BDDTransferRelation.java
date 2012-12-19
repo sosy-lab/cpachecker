@@ -985,7 +985,7 @@ public class BDDTransferRelation implements TransferRelation {
     for (Partition partition : Sets.difference(
         varClass.getIntEqualPartitions(), varClass.getBooleanPartitions())) {
       int size = partitionToBitsize(partition);
-      Map<BigInteger, Region[]> currentMapping = new HashMap<BigInteger, Region[]>();
+      Map<BigInteger, Region[]> currentMapping = new HashMap<>();
       int i = 0;
       for (BigInteger num : partition.getValues()) {
         currentMapping.put(num, bvmgr.makeNumber(BigInteger.valueOf(i), size));

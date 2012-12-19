@@ -612,7 +612,7 @@ public class PointerTransferRelation implements TransferRelation {
     if (formalParameters != null && formalParameters.size() > 0
         && !actualParameters.isEmpty()) {
 
-      ArrayList<Pointer> actualValues = new ArrayList<Pointer>();
+      ArrayList<Pointer> actualValues = new ArrayList<>();
 
       assert formalParameters.size() == actualParameters.size();
 
@@ -816,7 +816,7 @@ public class PointerTransferRelation implements TransferRelation {
                                                         cfaEdge, parameter);
       }
 
-      List<PointerTarget> newTargets = new ArrayList<PointerTarget>();
+      List<PointerTarget> newTargets = new ArrayList<>();
       boolean success = false;
       MemoryAddress freeMem = null;
 
@@ -1373,11 +1373,11 @@ public class PointerTransferRelation implements TransferRelation {
 
       } catch (UnrecognizedCCodeException e) {
         addError(e.getMessage(), cfaEdge);
-        return new ArrayList<AbstractState>();
+        return new ArrayList<>();
 
       } catch (InvalidPointerException e) {
         addError(e.getMessage(), cfaEdge);
-        return new ArrayList<AbstractState>();
+        return new ArrayList<>();
       }
     }
 

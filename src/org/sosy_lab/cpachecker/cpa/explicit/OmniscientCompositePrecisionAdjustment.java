@@ -219,7 +219,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   private List<String> getVariablesToDrop(ExplicitState explicitState, ExplicitPrecision explicitPrecision) {
     Set<String> candidates = useDeltaPrecision ? explicitState.getDelta() : explicitState.getTrackedVariableNames();
 
-    List<String> toDrop = new ArrayList<String>();
+    List<String> toDrop = new ArrayList<>();
     if(candidates != null) {
       for(String variableName : candidates) {
         if(!explicitPrecision.isTracking(variableName)) {

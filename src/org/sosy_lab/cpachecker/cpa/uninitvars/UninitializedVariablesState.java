@@ -46,9 +46,9 @@ public class UninitializedVariablesState implements AbstractQueryableState {
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
 
   public UninitializedVariablesState(String entryFunction) {
-    globalVars = new ArrayList<String>();
+    globalVars = new ArrayList<>();
     localVars = new LinkedList<Pair<String, Collection<String>>>();
-    warnings = new ArrayList<Triple<Integer, String, String>>();
+    warnings = new ArrayList<>();
     // create context of the entry function
     callFunction(entryFunction);
   }

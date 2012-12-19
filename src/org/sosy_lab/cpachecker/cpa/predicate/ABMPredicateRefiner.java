@@ -238,7 +238,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
 
       BlockPartitioning partitioning = predicateCpa.getPartitioning();
-      Deque<Block> openBlocks = new ArrayDeque<Block>();
+      Deque<Block> openBlocks = new ArrayDeque<>();
       openBlocks.push(partitioning.getMainBlock());
       for (ARGState pathElement : pPath) {
         CFANode currentNode = AbstractStates.extractLocation(pathElement);
@@ -278,9 +278,9 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
 
     private List<BooleanFormula> computeBlockFormulas(ARGState pRoot) throws CPATransferException {
 
-      Map<ARGState, PathFormula> formulas = new HashMap<ARGState, PathFormula>();
+      Map<ARGState, PathFormula> formulas = new HashMap<>();
       List<BooleanFormula> abstractionFormulas = Lists.newArrayList();
-      Deque<ARGState> todo = new ArrayDeque<ARGState>();
+      Deque<ARGState> todo = new ArrayDeque<>();
 
       // initialize
       assert pRoot.getParents().isEmpty();

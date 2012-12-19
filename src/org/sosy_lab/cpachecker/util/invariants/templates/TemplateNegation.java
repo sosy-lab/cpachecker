@@ -204,7 +204,7 @@ public class TemplateNegation extends TemplateBoolean {
 
   @Override
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
-    List<TemplateFormula> atoms = new Vector<TemplateFormula>();
+    List<TemplateFormula> atoms = new Vector<>();
     if (cO) {
       atoms.add(this);
     } else {

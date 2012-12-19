@@ -43,8 +43,8 @@ public class OptionManager {
 
   public OptionManager(LogManager lm) {
     logger = lm;
-    cols = new HashMap<Integer,UsableColumn>();
-    rows = new Vector<PivotRow>();
+    cols = new HashMap<>();
+    rows = new Vector<>();
     initialized = false;
   }
 
@@ -118,7 +118,7 @@ public class OptionManager {
    * We also remove any such rows from further consideration.
    */
   public AssumptionSet getSoleOptionRowsAssumptions() {
-    List<PivotRow> discard = new Vector<PivotRow>();
+    List<PivotRow> discard = new Vector<>();
     for (PivotRow pr : rows) {
       boolean madeRequest = pr.makeSoleRequest();
       if (madeRequest) {

@@ -61,7 +61,7 @@ public class BasicFormulaMatriciser extends FormulaMatriciser {
     List<RationalFunction> rfs;
     Coeff rhs;
     InfixReln reln;
-    List<Matrix> cols = new Vector<Matrix>();
+    List<Matrix> cols = new Vector<>();
 
     // Prepend a "true" column, if requested.
     if (prependTrue) {
@@ -113,7 +113,7 @@ public class BasicFormulaMatriciser extends FormulaMatriciser {
 
   private static Matrix booleanMatrix(VariableManager vmgr, boolean trueStatement) {
     int n = vmgr.getNumVars();
-    List<RationalFunction> rfs = new Vector<RationalFunction>(Collections.nCopies(n, new RationalFunction(0)));
+    List<RationalFunction> rfs = new Vector<>(Collections.nCopies(n, new RationalFunction(0)));
     RationalFunction constant;
     if (trueStatement) {
       constant = new RationalFunction(-1);

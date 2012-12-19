@@ -106,14 +106,14 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
 
   @Override
   public TemplateBoolean makeCNF() {
-    Vector<TemplateBoolean> v = new Vector<TemplateBoolean>(1);
+    Vector<TemplateBoolean> v = new Vector<>(1);
     v.add(this);
     return new TemplateConjunction(v);
   }
 
   @Override
   public TemplateBoolean makeDNF() {
-    Vector<TemplateBoolean> v = new Vector<TemplateBoolean>(1);
+    Vector<TemplateBoolean> v = new Vector<>(1);
     v.add(this);
     return new TemplateDisjunction(v);
   }
@@ -129,7 +129,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
       tb = new TemplateConstraint(RHS.copy(), InfixReln.LEQ, LHS.copy());
       break;
     case EQUAL:
-      Vector<TemplateBoolean> v = new Vector<TemplateBoolean>(2);
+      Vector<TemplateBoolean> v = new Vector<>(2);
       TemplateConstraint tc1 = new TemplateConstraint(LHS.copy(), InfixReln.LT, RHS.copy());
       TemplateConstraint tc2 = new TemplateConstraint(RHS.copy(), InfixReln.LT, LHS.copy());
       v.add(tc1);
@@ -210,7 +210,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
 
   @Override
   public Set<TemplateVariable> getAllVariables() {
-    HashSet<TemplateVariable> vars = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> vars = new HashSet<>();
     vars.addAll(LHS.getAllVariables());
     vars.addAll(RHS.getAllVariables());
     return vars;
@@ -218,14 +218,14 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
 
   @Override
   public Set<TemplateVariable> getAllParameters() {
-    HashSet<TemplateVariable> params = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> params = new HashSet<>();
     params.addAll(LHS.getAllParameters());
     params.addAll(RHS.getAllParameters());
     return params;
   }
 
   public Set<TemplateVariable> getTopLevelParameters() {
-    HashSet<TemplateVariable> tlp = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> tlp = new HashSet<>();
     tlp.addAll(LHS.getTopLevelParameters());
     tlp.addAll(RHS.getTopLevelParameters());
     return tlp;
@@ -268,7 +268,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
 
   @Override
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
-    List<TemplateFormula> atoms = new Vector<TemplateFormula>();
+    List<TemplateFormula> atoms = new Vector<>();
   	if (!sAE) {
   		atoms.add(this);
   	} else {
@@ -295,7 +295,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   public Set<TemplateTerm> getTopLevelTerms() {
     List<TemplateTerm> terms = LHS.getTerms();
     terms.addAll(RHS.getTerms());
-    Set<TemplateTerm> set = new HashSet<TemplateTerm>(terms);
+    Set<TemplateTerm> set = new HashSet<>(terms);
     return set;
   }
 
@@ -321,7 +321,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
 
     // Forming the set throws away all but one of each form.
     Vector<TemplateTerm> terms = copy.getTerms();
-    Set<TermForm> forms = new HashSet<TermForm>();
+    Set<TermForm> forms = new HashSet<>();
     for (TemplateTerm t : terms) {
       forms.add( new TermForm(t) );
     }
@@ -333,14 +333,14 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
 
   @Override
   public Vector<TemplateConstraint> getConstraints() {
-    Vector<TemplateConstraint> v = new Vector<TemplateConstraint>();
+    Vector<TemplateConstraint> v = new Vector<>();
     v.add(this);
     return v;
   }
 
   @Override
   public Set<TemplateTerm> getRHSTerms() {
-    Set<TemplateTerm> s = new HashSet<TemplateTerm>(RHS.getTerms());
+    Set<TemplateTerm> s = new HashSet<>(RHS.getTerms());
     return s;
   }
 

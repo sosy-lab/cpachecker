@@ -129,8 +129,8 @@ public class PredicateAbstractionManager {
       abstractionCache = null;
     }
     if (useCache && cartesianAbstraction) {
-      cartesianAbstractionCache = new HashMap<Pair<BooleanFormula, AbstractionPredicate>, Byte>();
-      feasibilityCache = new HashMap<BooleanFormula, Boolean>();
+      cartesianAbstractionCache = new HashMap<>();
+      feasibilityCache = new HashMap<>();
     } else {
       cartesianAbstractionCache = null;
       feasibilityCache = null;
@@ -339,7 +339,7 @@ public class PredicateAbstractionManager {
     // also collect all predicate variables so that the solver knows for which
     // variables we want to have the satisfying assignments
     BooleanFormula predDef = bfmgr.makeBoolean(true);
-    List<BooleanFormula> predVars = new ArrayList<BooleanFormula>(predicates.size());
+    List<BooleanFormula> predVars = new ArrayList<>(predicates.size());
 
     for (AbstractionPredicate p : predicates) {
       // get propositional variable and definition of predicate
@@ -561,7 +561,7 @@ public class PredicateAbstractionManager {
   public Collection<AbstractionPredicate> extractPredicates(BooleanFormula pFormula) {
     Collection<BooleanFormula> atoms = fmgr.extractAtoms(pFormula);
 
-    List<AbstractionPredicate> preds = new ArrayList<AbstractionPredicate>(atoms.size());
+    List<AbstractionPredicate> preds = new ArrayList<>(atoms.size());
 
     for (BooleanFormula atom : atoms) {
       preds.add(amgr.makePredicate(atom));

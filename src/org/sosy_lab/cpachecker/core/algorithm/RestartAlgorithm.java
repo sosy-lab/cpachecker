@@ -75,7 +75,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     public RestartAlgorithmStatistics(int pNoOfAlgorithms) {
       noOfAlgorithms = pNoOfAlgorithms;
-      subStats = new ArrayList<Statistics>();
+      subStats = new ArrayList<>();
     }
 
     public Collection<Statistics> getSubStatistics() {

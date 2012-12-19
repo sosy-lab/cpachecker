@@ -114,7 +114,7 @@ public final class AbstractionManager {
     bfmgr = pFmgr.getBooleanFormulaManager();
 
     if (useCache) {
-      toConcreteCache = new HashMap<Region, BooleanFormula>();
+      toConcreteCache = new HashMap<>();
     } else {
       toConcreteCache = null;
     }
@@ -173,9 +173,9 @@ public final class AbstractionManager {
     if (useCache) {
       cache = toConcreteCache;
     } else {
-      cache = new HashMap<Region, BooleanFormula>();
+      cache = new HashMap<>();
     }
-    Deque<Region> toProcess = new ArrayDeque<Region>();
+    Deque<Region> toProcess = new ArrayDeque<>();
 
     cache.put(rmgr.makeTrue(), bfmgr.makeBoolean(true));
     cache.put(rmgr.makeFalse(), bfmgr.makeBoolean(false));
@@ -240,9 +240,9 @@ public final class AbstractionManager {
   }
 
   public Collection<AbstractionPredicate> extractPredicates(Region af) {
-    Collection<AbstractionPredicate> vars = new HashSet<AbstractionPredicate>();
+    Collection<AbstractionPredicate> vars = new HashSet<>();
 
-    Deque<Region> toProcess = new ArrayDeque<Region>();
+    Deque<Region> toProcess = new ArrayDeque<>();
     toProcess.push(af);
     while (!toProcess.isEmpty()) {
       Region n = toProcess.pop();

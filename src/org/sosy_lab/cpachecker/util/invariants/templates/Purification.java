@@ -37,19 +37,19 @@ public class Purification {
   private AtomicInteger nextUsableIndex = new AtomicInteger(0);
 
   // map from UIF signature to fresh variable:
-  private HashMap<String,TemplateTerm> defs = new HashMap<String,TemplateTerm>();
+  private HashMap<String,TemplateTerm> defs = new HashMap<>();
 
   // map from fresh variable subscript to a UIF that the fresh variable stands for:
-  private HashMap<Integer,TemplateUIF> UIFByIndex = new HashMap<Integer,TemplateUIF>();
+  private HashMap<Integer,TemplateUIF> UIFByIndex = new HashMap<>();
 
   // map from fresh variable string to a UIF that the fresh variable stands for:
-  private HashMap<String,TemplateUIF> UIFByVarString = new HashMap<String,TemplateUIF>();
+  private HashMap<String,TemplateUIF> UIFByVarString = new HashMap<>();
 
   // map from fresh variable string to TemplateTerm representing it:
-  private HashMap<String,TemplateTerm> TTByVarString = new HashMap<String,TemplateTerm>();
+  private HashMap<String,TemplateTerm> TTByVarString = new HashMap<>();
 
   // map from function name to the set of indices of fresh variables for UIFs with this function
-  private HashMap<String,Set<String>> varsByFunctionName = new HashMap<String,Set<String>>();
+  private HashMap<String,Set<String>> varsByFunctionName = new HashMap<>();
 
   public Purification() {
     prefix = "u";
@@ -72,7 +72,7 @@ public class Purification {
   }
 
   public Set<String> getVarsForFunction(String func_name) {
-    Set<String> vars = new HashSet<String>();
+    Set<String> vars = new HashSet<>();
     if (varsByFunctionName.containsKey(func_name)) {
       vars = varsByFunctionName.get(func_name);
     }
@@ -135,7 +135,7 @@ public class Purification {
     if (varsByFunctionName.containsKey(name)) {
       varsByFunctionName.get(name).add(ui);
     } else {
-      Set<String> S = new HashSet<String>();
+      Set<String> S = new HashSet<>();
       S.add(ui);
       varsByFunctionName.put(name, S);
     }

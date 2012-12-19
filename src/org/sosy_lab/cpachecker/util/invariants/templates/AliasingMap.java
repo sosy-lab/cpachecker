@@ -40,7 +40,7 @@ public class AliasingMap {
    */
   public AliasingMap(String prefix) {
     this.prefix = prefix;
-    map = new HashMap<Pair<String,Integer>,Integer>();
+    map = new HashMap<>();
   }
 
   public int size() {

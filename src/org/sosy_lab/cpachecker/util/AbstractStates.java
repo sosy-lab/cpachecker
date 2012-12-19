@@ -174,7 +174,7 @@ public final class AbstractStates {
    */
   public static FluentIterable<AbstractState> asIterable(final AbstractState as) {
 
-    return new TreeIterable<AbstractState>(as, ABSTRACT_STATE_CHILDREN_FUNCTION);
+    return new TreeIterable<>(as, ABSTRACT_STATE_CHILDREN_FUNCTION);
   }
 
   private static final Function<AbstractState, Iterator<? extends AbstractState>> ABSTRACT_STATE_CHILDREN_FUNCTION

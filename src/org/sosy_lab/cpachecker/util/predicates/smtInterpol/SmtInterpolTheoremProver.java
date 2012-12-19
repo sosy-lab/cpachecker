@@ -89,7 +89,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   public void init() {
     Preconditions.checkNotNull(mgr);
     assert (env == null);
-    assertedTerms = new ArrayList<Term>();
+    assertedTerms = new ArrayList<>();
     env = mgr.createEnvironment();
   }
 
@@ -187,7 +187,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     private int count = 0;
 
     private Region formula;
-    private final Deque<Region> cubes = new ArrayDeque<Region>();
+    private final Deque<Region> cubes = new ArrayDeque<>();
 
     public SmtInterpolAllSatCallback(RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime) {
       this.rmgr = rmgr;
@@ -240,7 +240,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       // the abstraction is created simply by taking the disjunction
       // of all the models found by msat_all_sat, and storing them in a BDD
       // first, let's create the BDD corresponding to the model
-      Deque<Region> curCube = new ArrayDeque<Region>(model.length + 1);
+      Deque<Region> curCube = new ArrayDeque<>(model.length + 1);
       Region m = rmgr.makeTrue();
       for (Term t : model) {
         Region region;

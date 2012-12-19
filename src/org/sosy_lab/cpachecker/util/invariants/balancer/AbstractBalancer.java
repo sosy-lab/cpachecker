@@ -99,7 +99,7 @@ public abstract class AbstractBalancer implements Balancer {
 
   Map<String,Variable> makeParamVars() {
     Set<String> params = tnet.writeAllParameters(VariableWriteMode.REDLOG);
-    Map<String,Variable> paramVars = new HashMap<String,Variable>();
+    Map<String,Variable> paramVars = new HashMap<>();
     for (String p : params) {
       Variable v = new Variable(p);
       paramVars.put(p,v);
@@ -128,7 +128,7 @@ public abstract class AbstractBalancer implements Balancer {
 
     // If set is empty, then there are no conditions on the parameters.
     if (aset.size() == 0) {
-      map = new HashMap<String,Rational>();
+      map = new HashMap<>();
     } else {
       // Write the QE formula for the assumptions.
       String phi = aset.writeQEformula();
@@ -263,7 +263,7 @@ public abstract class AbstractBalancer implements Balancer {
       logger.log(Level.ALL, "Warning: Ignoring path formula disjunctions.");
       TemplateConjunction c = (TemplateConjunction) antB.makeSCNF();
       c.deleteNonConstraints();
-      Vector<TemplateBoolean> onedisjunct = new Vector<TemplateBoolean>(1);
+      Vector<TemplateBoolean> onedisjunct = new Vector<>(1);
       onedisjunct.add(c);
       antD = new TemplateDisjunction(onedisjunct);
     } else {
@@ -275,7 +275,7 @@ public abstract class AbstractBalancer implements Balancer {
 
   private List<Matrix> consec(TemplateDisjunction ant, TemplateFormula t2,
       VariableManager vmgr) {
-    Vector<UIFAxiom> U = new Vector<UIFAxiom>();
+    Vector<UIFAxiom> U = new Vector<>();
     return consec(ant,t2,U,vmgr);
   }
 
@@ -283,11 +283,11 @@ public abstract class AbstractBalancer implements Balancer {
       Vector<UIFAxiom> U, VariableManager vmgr) {
 
     // Initialize collection of matrices.
-    List<Matrix> matrices = new Vector<Matrix>();
+    List<Matrix> matrices = new Vector<>();
 
     // Build matrices.
     // Create Vector containing the linearization of each disjunct in ant:
-    Vector<Matrix> matrixAntParts = new Vector<Matrix>(ant.getNumDisjuncts());
+    Vector<Matrix> matrixAntParts = new Vector<>(ant.getNumDisjuncts());
     Vector<TemplateBoolean> disjuncts = ant.getDisjuncts();
     for (TemplateBoolean d : disjuncts) {
       // According to the formulation of Farkas's lemma in

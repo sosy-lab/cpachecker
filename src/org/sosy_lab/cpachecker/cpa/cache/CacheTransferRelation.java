@@ -52,7 +52,7 @@ public class CacheTransferRelation implements TransferRelation {
     //mSuccessorsCache = new HashMap<CFAEdge, Map<AbstractState, Map<Precision, Collection<? extends AbstractState>>>>();
     mSuccessorsCache = new HashMap<Precision, Map<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>>>();
 
-    //mHitEdges = new HashSet<CFAEdge>();
+    //mHitEdges = new HashSet<>();
   }
 
   @Override
@@ -76,7 +76,7 @@ public class CacheTransferRelation implements TransferRelation {
     Map<Precision, Collection<? extends AbstractState>> lLevel2Cache = lLevel1Cache.get(pElement);
 
     if (lLevel2Cache == null) {
-      lLevel2Cache = new HashMap<Precision, Collection<? extends AbstractState>>();
+      lLevel2Cache = new HashMap<>();
       lLevel1Cache.put(pElement, lLevel2Cache);
     }
 
@@ -108,7 +108,7 @@ public class CacheTransferRelation implements TransferRelation {
     Map<AbstractState, Collection<? extends AbstractState>> lLevel2Cache = lLevel1Cache.get(pCfaEdge);
 
     if (lLevel2Cache == null) {
-      lLevel2Cache = new HashMap<AbstractState, Collection<? extends AbstractState>>();
+      lLevel2Cache = new HashMap<>();
       lLevel1Cache.put(pCfaEdge, lLevel2Cache);
     }
 

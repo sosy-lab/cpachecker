@@ -74,10 +74,10 @@ public class RTTState implements AbstractState {
   private final Stack<String> classObjectStack;
 
   public RTTState() {
-    constantsMap = new HashMap<String, String>();
-    identificationMap = new HashMap<String, String>();
-    classTypeMap = new HashMap<String, String>();
-    classObjectStack = new Stack<String>();
+    constantsMap = new HashMap<>();
+    identificationMap = new HashMap<>();
+    classTypeMap = new HashMap<>();
+    classObjectStack = new Stack<>();
     classObjectScope = NULL_REFERENCE;
     constantsMap.put(KEYWORD_THIS, NULL_REFERENCE);
   }
@@ -158,7 +158,7 @@ public class RTTState implements AbstractState {
    * @param functionName the name of the function that is about to be left
    */
   void dropFrame(String functionName) {
-    List<String> toDropAll = new ArrayList<String>();
+    List<String> toDropAll = new ArrayList<>();
 
     for(String variableName : constantsMap.keySet()) {
       if(variableName.startsWith(functionName + "::")) {
@@ -213,9 +213,9 @@ public class RTTState implements AbstractState {
   RTTState join(RTTState other) {
     int size = Math.min(constantsMap.size(), other.constantsMap.size());
 
-    Map<String, String> newConstantsMap = new HashMap<String, String>(size);
-    Map<String, String> newIdentificationMap = new HashMap<String, String>(size);
-    Map<String, String> newClassTypeMap = new HashMap<String, String>(size);
+    Map<String, String> newConstantsMap = new HashMap<>(size);
+    Map<String, String> newIdentificationMap = new HashMap<>(size);
+    Map<String, String> newClassTypeMap = new HashMap<>(size);
 
 
     for (Map.Entry<String, String> otherEntry : other.constantsMap.entrySet()) {
@@ -288,10 +288,10 @@ public class RTTState implements AbstractState {
 
   @Override
   public RTTState clone() {
-      Stack<String> newClassObjectStack = new Stack<String>();
+      Stack<String> newClassObjectStack = new Stack<>();
       newClassObjectStack.addAll(classObjectStack);
       //TODO Investigate if this works
-    return new RTTState(new HashMap<String, String>(constantsMap), new HashMap<String, String>(identificationMap), new HashMap<String, String>(classTypeMap), new String(classObjectScope), newClassObjectStack);
+    return new RTTState(new HashMap<String, String>(constantsMap), new HashMap<String, String>(identificationMap), new HashMap<>(classTypeMap), new String(classObjectScope), newClassObjectStack);
   }
 
   @Override

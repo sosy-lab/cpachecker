@@ -105,7 +105,7 @@ public class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaMa
     Sort returnType = toSmtInterpolType(pReturnType);
     String decl = createFunctionImpl(pName, returnType, msatTypes);
 
-    return new SmtInterpolFunctionType<T>(formulaType.getReturnType(), formulaType.getArgumentTypes(), decl);
+    return new SmtInterpolFunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), decl);
   }
 
   public String createFunctionImpl(String pName, Sort returnType, Sort[] msatTypes) {

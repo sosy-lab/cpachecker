@@ -48,8 +48,8 @@ public abstract class PartitioningHeuristic {
     BlockPartitioningBuilder builder = new BlockPartitioningBuilder(mainFunctionBody);
 
     //traverse CFG
-    Set<CFANode> seen = new HashSet<CFANode>();
-    Deque<CFANode> stack = new ArrayDeque<CFANode>();
+    Set<CFANode> seen = new HashSet<>();
+    Deque<CFANode> stack = new ArrayDeque<>();
 
     seen.add(mainFunction);
     stack.push(mainFunction);

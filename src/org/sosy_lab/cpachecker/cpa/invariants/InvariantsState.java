@@ -46,11 +46,11 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   private final Map<String, SimpleInterval> vars;
 
   InvariantsState() {
-    vars = new HashMap<String, SimpleInterval>();
+    vars = new HashMap<>();
   }
 
   InvariantsState(Map<String, SimpleInterval> pVars) {
-    vars = new HashMap<String, SimpleInterval>(pVars);
+    vars = new HashMap<>(pVars);
   }
 
   public SimpleInterval get(String var) {

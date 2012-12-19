@@ -54,14 +54,14 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
  * Helper class that collects all <code>ReferencedVariable</code>s in a given set of nodes.
  */
 public class ReferencedVariablesCollector {
-  Set<String> globalVars = new HashSet<String>();
+  Set<String> globalVars = new HashSet<>();
 
   public ReferencedVariablesCollector(Collection<CFANode> mainNodes) {
     collectVars(mainNodes);
   }
 
   public Set<ReferencedVariable> collectVars(Collection<CFANode> nodes) {
-    Set<ReferencedVariable> collectedVars = new HashSet<ReferencedVariable>();
+    Set<ReferencedVariable> collectedVars = new HashSet<>();
 
     for (CFANode node : nodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {

@@ -64,7 +64,7 @@ import com.google.common.collect.Multimap;
  * that they either appear on the left hand side of an assignment or within an assume edge.
  */
 public class AssignedVariablesCollector {
-  private Set<String> globalVariables = new HashSet<String>();
+  private Set<String> globalVariables = new HashSet<>();
 
   private CFAEdge successorEdge = null;
 

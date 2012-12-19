@@ -68,7 +68,7 @@ public class JSimpleType implements JType {
 
   @Override
   public String toASTString(String pDeclarator) {
-    List<String> parts = new ArrayList<String>();
+    List<String> parts = new ArrayList<>();
 
     parts.add(Strings.emptyToNull(type.toASTString()));
     parts.add(Strings.emptyToNull(pDeclarator));

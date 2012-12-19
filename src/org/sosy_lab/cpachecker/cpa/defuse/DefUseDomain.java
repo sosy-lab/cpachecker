@@ -45,7 +45,7 @@ public class DefUseDomain implements AbstractDomain
             DefUseState defUseState1 = (DefUseState) element1;
             DefUseState defUseState2 = (DefUseState) element2;
 
-            Set<DefUseDefinition> joined = new HashSet<DefUseDefinition> ();
+            Set<DefUseDefinition> joined = new HashSet<> ();
             for (DefUseDefinition definition : defUseState1) {
               joined.add(definition);
             }

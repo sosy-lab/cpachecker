@@ -101,7 +101,7 @@ public class OptionTable {
      * Return a list of those rows that have just a single option.
      */
     public List<Integer> getSoleOptionRows() {
-      List<Integer> sole = new Vector<Integer>();
+      List<Integer> sole = new Vector<>();
       for (Integer i : remainingRows) {
         List<Integer> l = usableColumns.get(i);
         if (l.size() == 1) {
@@ -114,7 +114,7 @@ public class OptionTable {
     public AssumptionSet takeSoleOptions() {
       AssumptionSet aset = new AssumptionSet();
       List<Integer> rows = getSoleOptionRows();
-      List<Integer> discard = new Vector<Integer>();
+      List<Integer> discard = new Vector<>();
       for (Integer i0 : rows) {
         // Get the number j0 of the one column that row i0 can use.
         int j0 = usableColumns.get(i0).get(0);
@@ -200,13 +200,13 @@ public class OptionTable {
      * that row i could use.
      */
     private List<List<Integer>> computeUsableColumns() {
-      List<List<Integer>> usable = new Vector<List<Integer>>(m);
+      List<List<Integer>> usable = new Vector<>(m);
       for (int i = 0; i < m; i++) {
         usable.add(new Vector<Integer>());
       }
       for (Integer i : remainingRows) {
         // Which columns are usable for row i?
-        List<Integer> u = new Vector<Integer>();
+        List<Integer> u = new Vector<>();
         // Consider the conditionally unblocked columns.
         for (Integer j : CU) {
           // A column is usable iff it has a 2, 3, 4, or 6.

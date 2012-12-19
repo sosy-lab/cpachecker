@@ -69,31 +69,31 @@ implements GenericAssumptionBuilder
           (CNumericTypes.INT_MIN, CNumericTypes.INT_MAX);
           //          if (btyp.isLong())
           //            if (btyp.isUnsigned())
-          //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //              return new Pair<>
           //          (DummyASTNumericalLiteralExpression.ULONG_MIN, DummyASTNumericalLiteralExpression.ULONG_MAX);
           //            else
-          //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //              return new Pair<>
           //          (DummyASTNumericalLiteralExpression.LONG_MIN, DummyASTNumericalLiteralExpression.LONG_MAX);
           //          else if (btyp.isShort())
           //            if (btyp.isUnsigned())
-          //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //              return new Pair<>
           //          (DummyASTNumericalLiteralExpression.USHRT_MIN, DummyASTNumericalLiteralExpression.USHRT_MAX);
           //            else
-          //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //              return new Pair<>
           //          (DummyASTNumericalLiteralExpression.SHRT_MIN, DummyASTNumericalLiteralExpression.SHRT_MAX);
           //          else
           //            if (btyp.isUnsigned())
-          //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //              return new Pair<>
           //          (DummyASTNumericalLiteralExpression.UINT_MIN, DummyASTNumericalLiteralExpression.UINT_MAX);
           //            else
-          //              return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //              return new Pair<>
           //          (DummyASTNumericalLiteralExpression.INT_MIN, DummyASTNumericalLiteralExpression.INT_MAX);
           //        case IBasicType.t_char:
           //          if (btyp.isUnsigned())
-          //            return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //            return new Pair<>
           //          (DummyASTNumericalLiteralExpression.UCHAR_MIN, DummyASTNumericalLiteralExpression.UCHAR_MAX);
           //          else
-          //            return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
+          //            return new Pair<>
           //          (DummyASTNumericalLiteralExpression.CHAR_MIN, DummyASTNumericalLiteralExpression.CHAR_MAX);
       }
     }

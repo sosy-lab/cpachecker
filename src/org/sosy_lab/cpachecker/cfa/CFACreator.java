@@ -417,7 +417,7 @@ public class CFACreator {
    */
   private static void addDefaultInitializers(List<Pair<IADeclaration, String>> globalVars) {
     // first, collect all variables which do have an explicit initializer
-    Set<String> initializedVariables = new HashSet<String>();
+    Set<String> initializedVariables = new HashSet<>();
     for (Pair<IADeclaration, String> p : globalVars) {
       if (p.getFirst() instanceof AVariableDeclaration) {
         AVariableDeclaration v = (AVariableDeclaration)p.getFirst();
@@ -431,7 +431,7 @@ public class CFACreator {
     // adding a default initializer to the first  of a variable.
     // All subsequent declarations of a variable after the one with the initializer
     // will be removed.
-    Set<String> previouslyInitializedVariables = new HashSet<String>();
+    Set<String> previouslyInitializedVariables = new HashSet<>();
     ListIterator<Pair<IADeclaration, String>> iterator = globalVars.listIterator();
     while (iterator.hasNext()) {
       Pair<IADeclaration, String> p = iterator.next();

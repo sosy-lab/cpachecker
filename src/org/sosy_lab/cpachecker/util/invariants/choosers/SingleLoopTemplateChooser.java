@@ -157,8 +157,8 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     Set<TemplateTerm> tailVars = getUnindexedVarsAsTerms(loopFormulaTail);
 
     // Declare a list of terms for each conjunct.
-    List<TemplateTerm> headTerms = new Vector<TemplateTerm>();
-    List<TemplateTerm> tailTerms = new Vector<TemplateTerm>();
+    List<TemplateTerm> headTerms = new Vector<>();
+    List<TemplateTerm> tailTerms = new Vector<>();
 
     // Add the loop vars.
     headTerms.addAll(headVars);
@@ -204,7 +204,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     Map<String,Integer> uifNA = getTopLevelUIFnamesAndArities(loopFormula);
 
     // Declare the list of terms for the template.
-    List<TemplateTerm> templateTerms = new Vector<TemplateTerm>();
+    List<TemplateTerm> templateTerms = new Vector<>();
 
     // First add one term for each UIF name.
     int arity;
@@ -248,11 +248,11 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
 
   private Set<TemplateTerm> getUnindexedVarsAsTerms(TemplateFormula f) {
     Set<TemplateVariable> vars = f.getAllVariables();
-    Set<String> varNames = new HashSet<String>();
+    Set<String> varNames = new HashSet<>();
     for (TemplateVariable v : vars) {
       varNames.add(v.getName());
     }
-    Set<TemplateTerm> terms = new HashSet<TemplateTerm>();
+    Set<TemplateTerm> terms = new HashSet<>();
     TemplateTerm t;
     for (String name : varNames) {
       t = new TemplateTerm(type);
@@ -264,7 +264,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
 
   private Map<String,Integer> getTopLevelUIFnamesAndArities(TemplateFormula f) {
     Set<TemplateUIF> topLevelUIFs = f.getAllTopLevelUIFs();
-    HashMap<String,Integer> map = new HashMap<String,Integer>();
+    HashMap<String,Integer> map = new HashMap<>();
     String name;
     Integer arity;
     for (TemplateUIF u : topLevelUIFs) {
@@ -284,7 +284,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     forms.addAll( exitFormula.getTopLevelTermForms() );
 
     // Convert to terms, and sum up for LHS.
-    Vector<TemplateTerm> terms = new Vector<TemplateTerm>();
+    Vector<TemplateTerm> terms = new Vector<>();
     for (TermForm f : forms) {
       terms.add( f.getTemplate() );
     }
@@ -361,7 +361,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     Set<TemplateTerm> terms = exitFormulaTail.getTopLevelTerms();
 
     // Keep just those that have max index 1.
-    Set<TemplateTerm> indexone = new HashSet<TemplateTerm>();
+    Set<TemplateTerm> indexone = new HashSet<>();
     int n;
     for (TemplateTerm t : terms) {
       n = t.getMaxIndex();
@@ -395,7 +395,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
    * of the parameters in the passed set be zero.
    */
   private TemplateFormula makeBasicParamClause(Set<TemplateVariable> params) {
-    Vector<TemplateBoolean> conjuncts = new Vector<TemplateBoolean>();
+    Vector<TemplateBoolean> conjuncts = new Vector<>();
     TemplateConstraint c;
     for (TemplateVariable p : params) {
       c = new TemplateConstraint(p,InfixReln.EQUAL);

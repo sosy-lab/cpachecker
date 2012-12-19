@@ -59,7 +59,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   private Set<String> delta = null;
 
   public ExplicitState() {
-    constantsMap = new HashMap<String, Long>();
+    constantsMap = new HashMap<>();
   }
 
   public ExplicitState(Map<String, Long> constantsMap) {
@@ -75,7 +75,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     constantsMap.put(checkNotNull(variableName), checkNotNull(value));
 
     if(delta == null) {
-      delta = new HashSet<String>();
+      delta = new HashSet<>();
     }
     delta.add(variableName);
   }
@@ -106,7 +106,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param functionName the name of the function that is about to be left
    */
   void dropFrame(String functionName) {
-    List<String> toDropAll = new ArrayList<String>();
+    List<String> toDropAll = new ArrayList<>();
 
     for(String variableName : constantsMap.keySet()) {
       if(variableName.startsWith(functionName + "::")) {
@@ -140,7 +140,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   ExplicitState join(ExplicitState reachedState) {
     int size = Math.min(constantsMap.size(), reachedState.constantsMap.size());
 
-    Map<String, Long> newConstantsMap = new HashMap<String, Long>(size);
+    Map<String, Long> newConstantsMap = new HashMap<>(size);
 
     for (Map.Entry<String, Long> otherEntry : reachedState.constantsMap.entrySet()) {
       String key = otherEntry.getKey();

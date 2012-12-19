@@ -66,11 +66,11 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   public ARGState(AbstractState pWrappedState, ARGState pParentElement) {
     super(pWrappedState);
     stateId = ++nextArgStateId;
-    parents = new LinkedHashSet<ARGState>(1); // TODO Is HashSet enough? It would be more memory-efficient.
+    parents = new LinkedHashSet<>(1); // TODO Is HashSet enough? It would be more memory-efficient.
     if (pParentElement != null){
       addParent(pParentElement);
     }
-    children = new LinkedHashSet<ARGState>(1);
+    children = new LinkedHashSet<>(1);
   }
 
   public Set<ARGState> getParents(){
@@ -98,7 +98,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     mCoveredBy = pCoveredBy;
     if (pCoveredBy.mCoveredByThis == null) {
       // lazy initialization because rarely needed
-      pCoveredBy.mCoveredByThis = new HashSet<ARGState>(2);
+      pCoveredBy.mCoveredByThis = new HashSet<>(2);
     }
     pCoveredBy.mCoveredByThis.add(this);
   }
@@ -211,8 +211,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   // TODO check
   public Set<ARGState> getSubgraph() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    Set<ARGState> result = new HashSet<ARGState>();
-    Deque<ARGState> workList = new ArrayDeque<ARGState>();
+    Set<ARGState> result = new HashSet<>();
+    Deque<ARGState> workList = new ArrayDeque<>();
 
     workList.add(this);
 
@@ -306,7 +306,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     if (mCoveredByThis != null) {
       if (replacement.mCoveredByThis == null) {
         // lazy initialization because rarely needed
-        replacement.mCoveredByThis = new HashSet<ARGState>(mCoveredByThis.size());
+        replacement.mCoveredByThis = new HashSet<>(mCoveredByThis.size());
       }
 
       for (ARGState covered : mCoveredByThis) {

@@ -49,7 +49,7 @@ enum InvariantsDomain implements AbstractDomain {
       return element2;
     }
 
-    Map<String, SimpleInterval> result = new HashMap<String, SimpleInterval>(element1.getIntervals().size());
+    Map<String, SimpleInterval> result = new HashMap<>(element1.getIntervals().size());
     result.putAll(differences.entriesInCommon());
 
     for (Entry<String, ValueDifference<SimpleInterval>> entry : differences.entriesDiffering().entrySet()) {

@@ -183,7 +183,7 @@ public class TemplateUIF extends TemplateNumericValue {
 
   @Override
   public Set<TemplateVariable> getAllVariables() {
-    HashSet<TemplateVariable> vars = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> vars = new HashSet<>();
     if (args != null) {
       vars.addAll(args.getAllVariables());
     }
@@ -192,7 +192,7 @@ public class TemplateUIF extends TemplateNumericValue {
 
   @Override
   public Set<TemplateVariable> getAllParameters() {
-    HashSet<TemplateVariable> params = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> params = new HashSet<>();
     if (args != null) {
       params.addAll(args.getAllParameters());
     }

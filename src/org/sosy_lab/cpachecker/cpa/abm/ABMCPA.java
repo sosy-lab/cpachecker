@@ -128,7 +128,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
         predicateCpa.setPartitioning(blockPartitioning);
       }
 
-      Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision = new HashMap<AbstractState, Precision>();
+      Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision = new HashMap<>();
       transfer.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
       prec.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
     }

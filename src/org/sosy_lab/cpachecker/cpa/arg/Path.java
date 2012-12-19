@@ -55,9 +55,9 @@ public class Path extends LinkedList<Pair<ARGState, CFAEdge>> {
   }
 
   public String toJSON() {
-    List<Map<?,?>> path = new ArrayList<Map<?,?>>(this.size());
+    List<Map<?,?>> path = new ArrayList<>(this.size());
     for (Pair<ARGState, CFAEdge> pair : this) {
-      Map<String, Object> elem = new HashMap<String, Object>();
+      Map<String, Object> elem = new HashMap<>();
       ARGState argelem = pair.getFirst();
       CFAEdge edge = pair.getSecond();
       if (edge == null) continue; // in this case we do not need the edge

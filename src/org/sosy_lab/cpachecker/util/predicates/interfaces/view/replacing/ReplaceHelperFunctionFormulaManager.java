@@ -106,7 +106,7 @@ public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManag
     FormulaType<?> ret = unwrapTypes.apply(pReturnType);
     FunctionFormulaType<?> funcType = rawFunctionFormulaManager.createFunction(pName, ret, newArgs);
 
-    return new ReplaceFunctionFormulaType<T>(funcType, pReturnType, pArgs);
+    return new ReplaceFunctionFormulaType<>(funcType, pReturnType, pArgs);
   }
 
   @Override

@@ -122,26 +122,26 @@ class CFAFunctionBuilder extends ASTVisitor {
   private static final int ONLY_EDGE = 0;
 
   // Data structure for maintaining our scope stack in a function
-  private final Deque<CFANode> locStack = new ArrayDeque<CFANode>();
+  private final Deque<CFANode> locStack = new ArrayDeque<>();
 
   // Data structures for handling loops & else conditions
-  private final Deque<CFANode> loopStartStack = new ArrayDeque<CFANode>();
-  private final Deque<CFANode> loopNextStack  = new ArrayDeque<CFANode>(); // For the node following the current if / while block
-  private final Deque<CFANode> elseStack      = new ArrayDeque<CFANode>();
+  private final Deque<CFANode> loopStartStack = new ArrayDeque<>();
+  private final Deque<CFANode> loopNextStack  = new ArrayDeque<>(); // For the node following the current if / while block
+  private final Deque<CFANode> elseStack      = new ArrayDeque<>();
 
   // Data structure for handling switch-statements
   private final Deque<JExpression> switchExprStack =
     new ArrayDeque<JExpression>();
-  private final Deque<CFANode> switchCaseStack = new ArrayDeque<CFANode>();
+  private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
 
   // Data structures for label , continue , break
   private final Map<String, CLabelNode> labelMap
-                                          = new HashMap<String, CLabelNode>();
+                                          = new HashMap<>();
   private final Map<String, List<Pair<CFANode,ContinueStatement>>> registeredContinues = new HashMap<String, List<Pair<CFANode,ContinueStatement>>>();
 
   // Data structures for handling method declarations
   private JMethodEntryNode cfa = null;
-  private final Set<CFANode> cfaNodes = new HashSet<CFANode>();
+  private final Set<CFANode> cfaNodes = new HashSet<>();
 
 
   private final Scope scope;
@@ -225,7 +225,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     for (JDeclaration decl : classFieldDeclaration) {
 
-      List<JDeclaration> declaration = new LinkedList<JDeclaration>();
+      List<JDeclaration> declaration = new LinkedList<>();
       declaration.add(decl);
 
       int filelocStart = decl.getFileLocation().getStartingLineNumber();
@@ -249,7 +249,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     scope.enterMethod(fdef);
 
     final List<JParameterDeclaration> parameters = fdef.getType().getParameters();
-    final List<String> parameterNames = new ArrayList<String>(parameters.size());
+    final List<String> parameterNames = new ArrayList<>(parameters.size());
 
     for (JParameterDeclaration param : parameters) {
       scope.registerDeclarationOfThisClass(param); // declare parameter as local variable
@@ -664,7 +664,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     int fileLocStart = astCreator.getFileLocation(sd).getStartingLineNumber();
 
-    final List<JDeclaration> declList = new ArrayList<JDeclaration>(1);
+    final List<JDeclaration> declList = new ArrayList<>(1);
     declList.add(astCreator.convert(sd));
 
     final String rawSignature = sd.toString();

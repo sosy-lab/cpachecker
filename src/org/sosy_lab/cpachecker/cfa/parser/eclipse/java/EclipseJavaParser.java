@@ -109,7 +109,7 @@ public class EclipseJavaParser implements Parser {
 
     List<Pair<CompilationUnit,String>> astsOfFoundFiles = getASTsOfProgram();
 
-    Map<String, String> typeOfFiles = new HashMap<String,String>();
+    Map<String, String> typeOfFiles = new HashMap<>();
     Map<String, JClassOrInterfaceType> types = getTypeHieachie(astsOfFoundFiles, typeOfFiles);
     String mainClassName = getMainClassName(FileName);
 
@@ -123,7 +123,7 @@ public class EclipseJavaParser implements Parser {
 
   private Map<String, JClassOrInterfaceType> getTypeHieachie( List<Pair<CompilationUnit, String>> astsOfFoundFiles, Map<String, String> pTypeOfFiles) {
 
-    Map<String, JClassOrInterfaceType> types = new HashMap<String, JClassOrInterfaceType>();
+    Map<String, JClassOrInterfaceType> types = new HashMap<>();
 
     TypeHierachyCreator creator = new TypeHierachyCreator(logger, types, pTypeOfFiles);
 
@@ -137,7 +137,7 @@ public class EclipseJavaParser implements Parser {
 
   private List<Pair<CompilationUnit, String>> getASTsOfProgram() throws JParserException {
     Queue<File> sourceFileToBeParsed = getProgramFilesInRootPath();
-    List<Pair<CompilationUnit,String>> astsOfFoundFiles = new LinkedList<Pair<CompilationUnit,String>>();
+    List<Pair<CompilationUnit,String>> astsOfFoundFiles = new LinkedList<>();
 
     for (File file : sourceFileToBeParsed) {
       astsOfFoundFiles.add(Pair.of(parse(file, IGNORE_METHOD_BODY), file.getName()));
@@ -162,8 +162,8 @@ public class EclipseJavaParser implements Parser {
     File mainDirectory = new File(javaRootPath);
     assert mainDirectory.isDirectory() : "Could not find main directory at" + javaRootPath;
 
-    Queue<File> directorysToBeSearched = new LinkedList<File>();
-    Queue<File> sourceFileToBeParsed = new LinkedList<File>();
+    Queue<File> directorysToBeSearched = new LinkedList<>();
+    Queue<File> sourceFileToBeParsed = new LinkedList<>();
     directorysToBeSearched.add(mainDirectory);
 
     while (!directorysToBeSearched.isEmpty()) {

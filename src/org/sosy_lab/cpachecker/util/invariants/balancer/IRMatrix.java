@@ -404,7 +404,7 @@ public class IRMatrix implements MatrixI {
    * Return an array listing those rows i, with i0 <= i < m, that have nonzero entries in column j.
    */
   private int[] findNonzeroEntriesInColumn(int j, int i0, int m) {
-    Vector<Integer> rows = new Vector<Integer>();
+    Vector<Integer> rows = new Vector<>();
     for (int i = i0; i < m; i++) {
       if (!entry[i][j].isZero()) {
         rows.add(new Integer(i));

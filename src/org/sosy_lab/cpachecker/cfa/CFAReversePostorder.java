@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class CFAReversePostorder {
 
-  private final Set<CFANode> visited   = new HashSet<CFANode>();
+  private final Set<CFANode> visited   = new HashSet<>();
   private int                reversePostorderId = 0;
 
   public void assignSorting(CFANode node) {

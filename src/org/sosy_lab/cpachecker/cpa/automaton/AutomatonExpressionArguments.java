@@ -40,7 +40,7 @@ class AutomatonExpressionArguments {
   private Map<String, AutomatonVariable> automatonVariables;
   // Variables that are only valid for one transition ($1,$2,...)
   // these will be set in a MATCH statement, and are erased when the transitions actions are executed.
-  private Map<Integer, String> transitionVariables = new HashMap<Integer, String>();
+  private Map<Integer, String> transitionVariables = new HashMap<>();
   private List<AbstractState> abstractStates;
   private CFAEdge cfaEdge;
   private LogManager logger;

@@ -124,24 +124,24 @@ import com.google.common.collect.Multimap;
 class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structure for maintaining our scope stack in a function
-  private final Deque<CFANode> locStack = new ArrayDeque<CFANode>();
+  private final Deque<CFANode> locStack = new ArrayDeque<>();
 
   // Data structures for handling loops & else conditions
-  private final Deque<CFANode> loopStartStack = new ArrayDeque<CFANode>();
-  private final Deque<CFANode> loopNextStack  = new ArrayDeque<CFANode>(); // For the node following the current if / while block
-  private final Deque<CFANode> elseStack      = new ArrayDeque<CFANode>();
+  private final Deque<CFANode> loopStartStack = new ArrayDeque<>();
+  private final Deque<CFANode> loopNextStack  = new ArrayDeque<>(); // For the node following the current if / while block
+  private final Deque<CFANode> elseStack      = new ArrayDeque<>();
 
   // Data structure for handling switch-statements
-  private final Deque<CExpression> switchExprStack = new ArrayDeque<CExpression>();
-  private final Deque<CFANode> switchCaseStack = new ArrayDeque<CFANode>();
+  private final Deque<CExpression> switchExprStack = new ArrayDeque<>();
+  private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
 
   // Data structures for handling goto
-  private final Map<String, CLabelNode> labelMap = new HashMap<String, CLabelNode>();
+  private final Map<String, CLabelNode> labelMap = new HashMap<>();
   private final Multimap<String, CFANode> gotoLabelNeeded = ArrayListMultimap.create();
 
   // Data structures for handling function declarations
   private FunctionEntryNode cfa = null;
-  private final List<CFANode> cfaNodes = new ArrayList<CFANode>();
+  private final List<CFANode> cfaNodes = new ArrayList<>();
 
   private final Scope scope;
   private final ASTConverter astCreator;
@@ -316,7 +316,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     scope.enterFunction(fdef);
 
     final List<CParameterDeclaration> parameters = fdef.getType().getParameters();
-    final List<String> parameterNames = new ArrayList<String>(parameters.size());
+    final List<String> parameterNames = new ArrayList<>(parameters.size());
 
     for (CParameterDeclaration param : parameters) {
       scope.registerDeclaration(param); // declare parameter as local variable
@@ -747,10 +747,10 @@ class CFAFunctionBuilder extends ASTVisitor {
     // Optimization: do two DFS searches in parallel:
     // 1) search forwards from fromNode
     // 2) search backwards from toNode
-    Deque<CFANode> toProcessForwards = new ArrayDeque<CFANode>();
-    Deque<CFANode> toProcessBackwards = new ArrayDeque<CFANode>();
-    Set<CFANode> visitedForwards = new HashSet<CFANode>();
-    Set<CFANode> visitedBackwards = new HashSet<CFANode>();
+    Deque<CFANode> toProcessForwards = new ArrayDeque<>();
+    Deque<CFANode> toProcessBackwards = new ArrayDeque<>();
+    Set<CFANode> visitedForwards = new HashSet<>();
+    Set<CFANode> visitedBackwards = new HashSet<>();
 
     toProcessForwards.addLast(fromNode);
     visitedForwards.add(fromNode);

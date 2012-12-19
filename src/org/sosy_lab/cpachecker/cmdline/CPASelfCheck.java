@@ -179,7 +179,7 @@ public class CPASelfCheck {
                                             Class<ConfigurableProgramAnalysis> pCpa,
                                             ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException {
     StopOperator stop = pCpaInst.getStopOperator();
-    HashSet<AbstractState> reached = new HashSet<AbstractState>();
+    HashSet<AbstractState> reached = new HashSet<>();
     AbstractState initial = pCpaInst.getInitialState(pMain);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
 
@@ -189,7 +189,7 @@ public class CPASelfCheck {
   private static boolean checkStopReached(Class<ConfigurableProgramAnalysis> pCpa,
                                        ConfigurableProgramAnalysis pCpaInst, FunctionEntryNode pMain) throws CPAException {
     StopOperator stop = pCpaInst.getStopOperator();
-    HashSet<AbstractState> reached = new HashSet<AbstractState>();
+    HashSet<AbstractState> reached = new HashSet<>();
     AbstractState initial = pCpaInst.getInitialState(pMain);
     reached.add(initial);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
@@ -199,7 +199,7 @@ public class CPASelfCheck {
 
   private static List<Class<ConfigurableProgramAnalysis>> getCPAs() throws ClassNotFoundException, IOException {
     List<Class<?>> cpaCandidates = getClasses("org.sosy_lab.cpachecker.cpa");
-    List<Class<ConfigurableProgramAnalysis>> cpas = new ArrayList<Class<ConfigurableProgramAnalysis>>();
+    List<Class<ConfigurableProgramAnalysis>> cpas = new ArrayList<>();
 
     Class<ConfigurableProgramAnalysis> targetType = null;
 
@@ -236,7 +236,7 @@ public class CPASelfCheck {
     String path = packageName.replace('.', '/');
     Enumeration<URL> resources = classLoader.getResources(path);
 
-    ArrayList<Class<?>> classes = new ArrayList<Class<?>>();
+    ArrayList<Class<?>> classes = new ArrayList<>();
     while (resources.hasMoreElements()) {
       URL resource = resources.nextElement();
       collectClasses(new File(resource.getFile()), packageName, classes);

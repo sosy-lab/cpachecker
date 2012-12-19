@@ -37,16 +37,16 @@ public class TemplateVariableManager implements VariableManager {
   private List<TemplateVariable> vars;
 
   public TemplateVariableManager() {
-    vars = new Vector<TemplateVariable>();
+    vars = new Vector<>();
   }
 
   public TemplateVariableManager(Collection<TemplateVariable> vars) {
-    this.vars = new Vector<TemplateVariable>(vars);
+    this.vars = new Vector<>(vars);
   }
 
   public TemplateVariableManager(FormulaType<?> type,  int n, int m) {
     // Create vars v1, v2, ..., vn, u1, u2, ..., um
-    vars = new Vector<TemplateVariable>();
+    vars = new Vector<>();
     for (int i = 1; i <= n; i++) {
       vars.add(new TemplateVariable(type, "v", i));
     }
@@ -68,7 +68,7 @@ public class TemplateVariableManager implements VariableManager {
    */
   @Override
   public Iterator<GeneralVariable> iterator() {
-    Vector<GeneralVariable> gvars = new Vector<GeneralVariable>();
+    Vector<GeneralVariable> gvars = new Vector<>();
     GeneralVariable GV;
     for (int i = 0; i < vars.size(); i++) {
       GV = vars.get(i);

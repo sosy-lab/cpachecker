@@ -33,7 +33,7 @@ public class MatrixList {
   private int pointer;
 
   public MatrixList() {
-    matrices = new Vector<Matrix>();
+    matrices = new Vector<>();
     pointer = 0;
   }
 
@@ -41,7 +41,7 @@ public class MatrixList {
    * Make a COPY of the passed matrices.
    */
   public MatrixList(List<Matrix> l) {
-    matrices = new Vector<Matrix>(l.size());
+    matrices = new Vector<>(l.size());
     for (Matrix m : l) {
       matrices.add( m.copy() );
     }

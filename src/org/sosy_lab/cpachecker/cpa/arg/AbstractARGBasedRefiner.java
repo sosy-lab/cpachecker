@@ -170,8 +170,8 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
   private static boolean checkART(ReachedSet pReached) {
 
-    Deque<AbstractState> workList = new ArrayDeque<AbstractState>();
-    Set<ARGState> arg = new HashSet<ARGState>();
+    Deque<AbstractState> workList = new ArrayDeque<>();
+    Set<ARGState> arg = new HashSet<>();
 
     workList.add(pReached.getFirstState());
     while (!workList.isEmpty()) {

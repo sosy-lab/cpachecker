@@ -76,7 +76,7 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
   private final LDDAbstractState initialState;
 
   public LDDAbstractionCPA(CFA cfa, Configuration config, LogManager logger) throws InvalidConfigurationException {
-    Map<String, Integer> variables = new HashMap<String, Integer>();
+    Map<String, Integer> variables = new HashMap<>();
 
     for (CFANode node : cfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {

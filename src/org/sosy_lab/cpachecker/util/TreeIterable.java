@@ -53,7 +53,7 @@ public class TreeIterable<T> extends FluentIterable<T> implements Iterable<T> {
   public Iterator<T> iterator() {
     return new Iterator<T>() {
 
-      private final Deque<Iterator<? extends T>> stack = new ArrayDeque<Iterator<? extends T>>();
+      private final Deque<Iterator<? extends T>> stack = new ArrayDeque<>();
       {
         stack.push(Iterators.singletonIterator(root));
       }

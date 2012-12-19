@@ -205,7 +205,7 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
     Map<ARGState, ARGState> predecessors = Maps.newHashMap();
     SetMultimap<ARGState, ARGState> successors = HashMultimap.create();
 
-    Deque<AbstractState> todo = new ArrayDeque<AbstractState>(targets);
+    Deque<AbstractState> todo = new ArrayDeque<>(targets);
 
     while (!todo.isEmpty()) {
       final ARGState currentAbstractionState = (ARGState)todo.removeFirst();
@@ -236,7 +236,7 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
     // but instead perform refinement on them.
 
     itpProver.init();
-    List<T> itpStack = new ArrayList<T>();
+    List<T> itpStack = new ArrayList<>();
     boolean successful = step(root, itpStack, successors, predecessors, pReached, targets);
     assert itpStack.isEmpty();
     itpProver.reset();

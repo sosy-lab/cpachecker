@@ -218,7 +218,7 @@ public class TemplateTerm extends TemplateSum {
 
   @Override
   public Set<TemplateVariable> getAllVariables() {
-    HashSet<TemplateVariable> vars = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> vars = new HashSet<>();
     if (hasVariable()) {
       vars.add(var);
     } else if (hasUIF()) {
@@ -229,7 +229,7 @@ public class TemplateTerm extends TemplateSum {
 
   @Override
   public Set<TemplateVariable> getAllParameters() {
-    HashSet<TemplateVariable> params = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> params = new HashSet<>();
     if (hasParameter()) {
       params.add(param);
     }
@@ -241,7 +241,7 @@ public class TemplateTerm extends TemplateSum {
 
   @Override
   public Set<TemplateVariable> getAllPurificationVariables() {
-    Set<TemplateVariable> pvs = new HashSet<TemplateVariable>();
+    Set<TemplateVariable> pvs = new HashSet<>();
     if (uif!=null && uif.isPurified()) {
       pvs.add( uif.getPurifiedName().getVariable() );
     }
@@ -274,7 +274,7 @@ public class TemplateTerm extends TemplateSum {
   @Override
   public TemplateVariableManager getVariableManager() {
     TemplateVariableManager tvm;
-    HashSet<TemplateVariable> var = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> var = new HashSet<>();
     if (hasAnyVariable()) {
       var.add(getAnyVariable());
     //} else if (hasUIF() && uif.isPurified()) {
@@ -318,7 +318,7 @@ public class TemplateTerm extends TemplateSum {
   @Override
   public Formula translate(FormulaManagerView fmgr) {
   	Formula form = null;
-  	Vector<Formula> factors = new Vector<Formula>(4);
+  	Vector<Formula> factors = new Vector<>(4);
 
   	if (hasCoefficient()) {
   		factors.add( getCoefficient().translate(fmgr) );
@@ -524,7 +524,7 @@ public class TemplateTerm extends TemplateSum {
 
   @Override
   public Vector<TemplateTerm> getTerms() {
-    Vector<TemplateTerm> V = new Vector<TemplateTerm>();
+    Vector<TemplateTerm> V = new Vector<>();
     V.add(this);
     return V;
   }

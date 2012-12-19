@@ -49,7 +49,7 @@ class Scope {
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = Lists.newLinkedList();
   private final Deque<Map<String, CSimpleDeclaration>> varsList = Lists.newLinkedList();
 
-  private final Map<String, CSimpleDeclaration> functions = new HashMap<String, CSimpleDeclaration>();
+  private final Map<String, CSimpleDeclaration> functions = new HashMap<>();
   private String currentFunctionName = null;
 
   public Scope() {

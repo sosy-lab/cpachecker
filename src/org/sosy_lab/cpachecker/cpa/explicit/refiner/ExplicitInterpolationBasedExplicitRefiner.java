@@ -96,7 +96,7 @@ public class ExplicitInterpolationBasedExplicitRefiner {
       Multimap<CFAEdge, String> referencedVariableMapping = determineReferencedVariableMapping(errorPath);
 
       ExplicitInterpolator interpolator     = new ExplicitInterpolator();
-      Map<String, Long> currentInterpolant  = new HashMap<String, Long>();
+      Map<String, Long> currentInterpolant  = new HashMap<>();
 
       for(int i = 0; i < errorPath.size(); i++) {
         numberOfErrorPathElements++;
@@ -109,7 +109,7 @@ public class ExplicitInterpolationBasedExplicitRefiner {
         Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge);
         // do interpolation
         if(!referencedVariablesAtEdge.isEmpty()) {
-          Map<String, Long> inputInterpolant = new HashMap<String, Long>(currentInterpolant);
+          Map<String, Long> inputInterpolant = new HashMap<>(currentInterpolant);
 
           // check for each variable, if ignoring it makes the error path feasible
           for(String currentVariable : referencedVariablesAtEdge) {
@@ -172,7 +172,7 @@ public class ExplicitInterpolationBasedExplicitRefiner {
    * @return
    */
   private Map<String, Long> clearInterpolant(Map<String, Long> currentInterpolant, String functionName) {
-    List<String> toDrop = new ArrayList<String>();
+    List<String> toDrop = new ArrayList<>();
 
     for(String variableName : currentInterpolant.keySet()) {
       if(variableName.startsWith(functionName + "::") && !variableName.contains(ExplicitTransferRelation.FUNCTION_RETURN_VAR)) {

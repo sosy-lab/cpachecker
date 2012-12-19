@@ -54,8 +54,8 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
 
   public CacheCPA(ConfigurableProgramAnalysis pCachedCPA) {
     mCachedCPA = pCachedCPA;
-    mInitialStatesCache = new HashMap<CFANode, AbstractState>();
-    mInitialPrecisionsCache = new HashMap<CFANode, Precision>();
+    mInitialStatesCache = new HashMap<>();
+    mInitialPrecisionsCache = new HashMap<>();
     mCacheTransferRelation = new CacheTransferRelation(mCachedCPA.getTransferRelation());
     mCachePrecisionAdjustment = new CachePrecisionAdjustment(mCachedCPA.getPrecisionAdjustment());
     mCacheMergeOperator = new CacheMergeOperator(mCachedCPA.getMergeOperator());

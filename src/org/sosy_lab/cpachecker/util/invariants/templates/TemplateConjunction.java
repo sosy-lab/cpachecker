@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 public class TemplateConjunction extends TemplateBoolean implements Template {
 
-  private Vector<TemplateBoolean> conjuncts = new Vector<TemplateBoolean>();
+  private Vector<TemplateBoolean> conjuncts = new Vector<>();
 
   // ----------------------------------------------------------------
   // Constructors
@@ -57,7 +57,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
    * Conjoin two booleans.
    */
   public TemplateConjunction(TemplateBoolean b1, TemplateBoolean b2) {
-    conjuncts = new Vector<TemplateBoolean>();
+    conjuncts = new Vector<>();
     conjuncts.add(b1);
     conjuncts.add(b2);
     flatten();
@@ -109,7 +109,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
    * disjunction, and we return the result.
    */
   public static TemplateDisjunction distribute(Collection<TemplateDisjunction> tds) {
-    Vector<TemplateDisjunction> tdlist = new Vector<TemplateDisjunction>(tds);
+    Vector<TemplateDisjunction> tdlist = new Vector<>(tds);
     TemplateDisjunction disj = null;
     int N = tdlist.size();
     if (N == 1) {
@@ -120,14 +120,14 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
       // do the expansion.
       TemplateDisjunction a = tdlist.get(0);
       TemplateDisjunction b = tdlist.get(1);
-      Vector<TemplateBoolean> disjuncts = new Vector<TemplateBoolean>();
+      Vector<TemplateBoolean> disjuncts = new Vector<>();
       Vector<TemplateBoolean> aC = a.getDisjuncts();
       Vector<TemplateBoolean> bC = b.getDisjuncts();
       TemplateConjunction d;
       Vector<TemplateBoolean> p;
       for (TemplateBoolean ac : aC) {
         for (TemplateBoolean bc : bC) {
-          p = new Vector<TemplateBoolean>(2);
+          p = new Vector<>(2);
           p.add(ac);
           p.add(bc);
           d = new TemplateConjunction(p);
@@ -138,13 +138,13 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
     } else if (N >= 3) {
       // There are more than two. Expand all but the first; then
       // expand the list containing just the result preceded by the first.
-      Vector<TemplateDisjunction> tail = new Vector<TemplateDisjunction>(N-1);
+      Vector<TemplateDisjunction> tail = new Vector<>(N-1);
       for (int i = 1; i < N; i++) {
         tail.add(tdlist.get(i));
       }
       TemplateDisjunction b = TemplateConjunction.distribute(tail);
       TemplateDisjunction a = tdlist.get(0);
-      Vector<TemplateDisjunction> pair = new Vector<TemplateDisjunction>(2);
+      Vector<TemplateDisjunction> pair = new Vector<>(2);
       pair.add(a);
       pair.add(b);
       disj = TemplateConjunction.distribute(pair);
@@ -157,7 +157,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
     // This object may get altered, in that it will be flattened.
     // We could avoid this, but we don't really care.
     flatten();
-    Vector<TemplateBoolean> newconjuncts = new Vector<TemplateBoolean>();
+    Vector<TemplateBoolean> newconjuncts = new Vector<>();
     TemplateBoolean tb;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tb = getConjunct(i);
@@ -178,8 +178,8 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
     TemplateDisjunction td;
 
     // Partition the conjuncts into literals and disjunctions.
-    Vector<TemplateBoolean> literals = new Vector<TemplateBoolean>();
-    ArrayDeque<TemplateDisjunction> disjunctions = new ArrayDeque<TemplateDisjunction>();
+    Vector<TemplateBoolean> literals = new Vector<>();
+    ArrayDeque<TemplateDisjunction> disjunctions = new ArrayDeque<>();
     for (int i = 0; i < getNumConjuncts(); i++) {
       tb = getConjunct(i);
       if (tb instanceof TemplateDisjunction) {
@@ -204,7 +204,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
     // Then add k0 to the beginning of the deque 'disjunctions'.
     if (literals.size() > 0) {
       TemplateConjunction cj = new TemplateConjunction(literals);
-      Vector<TemplateBoolean> justCj = new Vector<TemplateBoolean>();
+      Vector<TemplateBoolean> justCj = new Vector<>();
       justCj.add(cj);
       TemplateDisjunction k0 = new TemplateDisjunction(justCj);
       disjunctions.addFirst(k0);
@@ -219,7 +219,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
 
   @Override
   public TemplateBoolean logicNegate() {
-    Vector<TemplateBoolean> disjuncts = new Vector<TemplateBoolean>();
+    Vector<TemplateBoolean> disjuncts = new Vector<>();
     TemplateBoolean tb;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tb = getConjunct(i);
@@ -231,7 +231,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
 
   @Override
   public TemplateBoolean absorbNegations() {
-    Vector<TemplateBoolean> conjuncts = new Vector<TemplateBoolean>();
+    Vector<TemplateBoolean> conjuncts = new Vector<>();
     TemplateBoolean tb;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tb = getConjunct(i).absorbNegations();
@@ -242,7 +242,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
 
   @Override
   public void flatten() {
-    Vector<TemplateBoolean> newconjuncts = new Vector<TemplateBoolean>();
+    Vector<TemplateBoolean> newconjuncts = new Vector<>();
     TemplateBoolean tb;
     Vector<TemplateBoolean> subconjuncts;
     TemplateConjunction tc;
@@ -265,7 +265,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
 
   @Override
   public TemplateConjunction copy() {
-    Vector<TemplateBoolean> v = new Vector<TemplateBoolean>();
+    Vector<TemplateBoolean> v = new Vector<>();
     for (TemplateBoolean c : conjuncts) {
       v.add(c.copy());
     }
@@ -365,7 +365,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
 
   @Override
   public Vector<TemplateConstraint> getConstraints() {
-    Vector<TemplateConstraint> v = new Vector<TemplateConstraint>();
+    Vector<TemplateConstraint> v = new Vector<>();
     TemplateBoolean tb;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tb = getConjunct(i);
@@ -376,7 +376,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
 
   @Override
   public Set<TemplateVariable> getAllVariables() {
-    HashSet<TemplateVariable> vars = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> vars = new HashSet<>();
     TemplateBoolean tc;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tc = getConjunct(i);
@@ -387,7 +387,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
 
   @Override
   public Set<TemplateVariable> getAllParameters() {
-    HashSet<TemplateVariable> params = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> params = new HashSet<>();
     TemplateBoolean tc;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tc = getConjunct(i);
@@ -438,7 +438,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
 
   @Override
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
-  	List<TemplateFormula> atoms = new Vector<TemplateFormula>();
+  	List<TemplateFormula> atoms = new Vector<>();
   	TemplateBoolean tc;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tc = getConjunct(i);
@@ -455,7 +455,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
    * Delete all conjuncts which are not constraints.
    */
   public void deleteNonConstraints() {
-    Vector<TemplateBoolean> newconj = new Vector<TemplateBoolean>();
+    Vector<TemplateBoolean> newconj = new Vector<>();
     for (TemplateBoolean tb : conjuncts) {
       if (tb instanceof TemplateConstraint) {
         newconj.add(tb);
@@ -466,7 +466,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
 
   @Override
   public Set<TermForm> getTopLevelTermForms() {
-    Set<TermForm> forms = new HashSet<TermForm>();
+    Set<TermForm> forms = new HashSet<>();
     TemplateBoolean tc;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tc = getConjunct(i);
@@ -492,7 +492,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
 
   @Override
   public Set<TemplateTerm> getRHSTerms() {
-    Set<TemplateTerm> s = new HashSet<TemplateTerm>();
+    Set<TemplateTerm> s = new HashSet<>();
     for (TemplateBoolean c : conjuncts) {
       s.addAll(c.getRHSTerms());
     }

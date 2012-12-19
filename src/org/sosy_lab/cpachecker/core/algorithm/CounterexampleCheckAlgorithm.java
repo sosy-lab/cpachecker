@@ -191,7 +191,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     // coverage relations (and re-adding the covered states)
     // and preventing new ones via ARGState#setNotCovering().
 
-    Collection<ARGState> coveredByErrorPath = new ArrayList<ARGState>();
+    Collection<ARGState> coveredByErrorPath = new ArrayList<>();
 
     for (ARGState errorPathState : statesOnErrorPath) {
       // schedule for coverage removal
@@ -234,8 +234,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
   private boolean isTransitiveChildOf(ARGState potentialChild, ARGState potentialParent) {
 
-    Set<ARGState> seen = new HashSet<ARGState>();
-    Deque<ARGState> waitlist = new ArrayDeque<ARGState>(); // use BFS
+    Set<ARGState> seen = new HashSet<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>(); // use BFS
 
     waitlist.addAll(potentialChild.getParents());
     while (!waitlist.isEmpty()) {

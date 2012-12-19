@@ -129,8 +129,8 @@ class ASTConverter {
 
   private final Scope scope;
 
-  private final List<CAstNode> preSideAssignments = new ArrayList<CAstNode>();
-  private final List<CAstNode> postSideAssignments = new ArrayList<CAstNode>();
+  private final List<CAstNode> preSideAssignments = new ArrayList<>();
+  private final List<CAstNode> postSideAssignments = new ArrayList<>();
 
   // the following 2 fields store whether a ternary operator
   // or a shortcutting operator have been encountered
@@ -143,13 +143,13 @@ class ASTConverter {
   }
 
   public List<CAstNode> getAndResetPreSideAssignments() {
-    List<CAstNode> result = new ArrayList<CAstNode>(preSideAssignments);
+    List<CAstNode> result = new ArrayList<>(preSideAssignments);
     preSideAssignments.clear();
     return result;
   }
 
   public List<CAstNode> getAndResetPostSideAssignments() {
-    List<CAstNode> result = new ArrayList<CAstNode>(postSideAssignments);
+    List<CAstNode> result = new ArrayList<>(postSideAssignments);
     postSideAssignments.clear();
     return result;
   }
@@ -380,7 +380,7 @@ class ASTConverter {
       params = convert((IASTExpressionList)p);
 
     } else {
-      params = new ArrayList<CExpression>();
+      params = new ArrayList<>();
       if (p != null) {
         params.add(convertExpressionWithoutSideEffects(p));
       }
@@ -401,7 +401,7 @@ class ASTConverter {
   }
 
   private List<CExpression> convert(IASTExpressionList es) {
-    List<CExpression> result = new ArrayList<CExpression>(es.getExpressions().length);
+    List<CExpression> result = new ArrayList<>(es.getExpressions().length);
     for (IASTExpression expression : es.getExpressions()) {
       result.add(convertExpressionWithoutSideEffects(expression));
     }
@@ -599,7 +599,7 @@ class ASTConverter {
       result = Collections.singletonList(newD);
 
     } else {
-      result = new ArrayList<CDeclaration>(declarators.length);
+      result = new ArrayList<>(declarators.length);
       for (IASTDeclarator c : declarators) {
 
         result.add(createDeclaration(fileLoc, cStorageClass, type, c));
@@ -722,7 +722,7 @@ class ASTConverter {
       result = Collections.singletonList(newD);
 
     } else {
-      result = new ArrayList<CCompositeTypeMemberDeclaration>(declarators.length);
+      result = new ArrayList<>(declarators.length);
       for (IASTDeclarator c : declarators) {
 
         result.add(createDeclarationForCompositeType(type, c));
@@ -910,7 +910,7 @@ class ASTConverter {
   }
 
   private CCompositeType convert(IASTCompositeTypeSpecifier d) {
-    List<CCompositeTypeMemberDeclaration> list = new ArrayList<CCompositeTypeMemberDeclaration>(d.getMembers().length);
+    List<CCompositeTypeMemberDeclaration> list = new ArrayList<>(d.getMembers().length);
 
     for (IASTDeclaration c : d.getMembers()) {
       List<CCompositeTypeMemberDeclaration> newCs = convertDeclarationInCompositeType(c);
@@ -921,7 +921,7 @@ class ASTConverter {
   }
 
   private CEnumType convert(IASTEnumerationSpecifier d) {
-    List<CEnumerator> list = new ArrayList<CEnumerator>(d.getEnumerators().length);
+    List<CEnumerator> list = new ArrayList<>(d.getEnumerators().length);
     Long lastValue = -1L; // initialize with -1, so the first one gets value 0
     for (IASTEnumerationSpecifier.IASTEnumerator c : d.getEnumerators()) {
       CEnumerator newC = convert(c, lastValue);
@@ -1000,7 +1000,7 @@ class ASTConverter {
   }
 
   private CInitializerList convert(IASTInitializerList iList) {
-    List<CInitializer> initializerList = new ArrayList<CInitializer>(iList.getInitializers().length);
+    List<CInitializer> initializerList = new ArrayList<>(iList.getInitializers().length);
     for (IASTInitializer i : iList.getInitializers()) {
       CInitializer newI = convert(i);
       if (newI != null) {
@@ -1044,7 +1044,7 @@ class ASTConverter {
   }
 
   private List<CParameterDeclaration> convert(IASTParameterDeclaration[] ps) {
-    List<CParameterDeclaration> paramsList = new ArrayList<CParameterDeclaration>(ps.length);
+    List<CParameterDeclaration> paramsList = new ArrayList<>(ps.length);
     for (IASTParameterDeclaration c : ps) {
       if (!c.getRawSignature().equals("void")) {
         paramsList.add(convert(c));

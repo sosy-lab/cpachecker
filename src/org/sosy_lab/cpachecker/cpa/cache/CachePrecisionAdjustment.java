@@ -56,7 +56,7 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
     /*Map<Precision, Triple<AbstractState, Precision, Action>> lCache = mCache.get(pElement);
 
     if (lCache == null) {
-      lCache = new HashMap<Precision, Triple<AbstractState, Precision, Action>>();
+      lCache = new HashMap<>();
       mCache.put(pElement, lCache);
     }
 
@@ -72,7 +72,7 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
     Map<AbstractState, Triple<AbstractState, Precision, Action>> lCache = mCache.get(pPrecision);
 
     if (lCache == null) {
-      lCache = new HashMap<AbstractState, Triple<AbstractState, Precision, Action>>();
+      lCache = new HashMap<>();
       mCache.put(pPrecision, lCache);
     }
 

@@ -120,7 +120,7 @@ class AutomatonTransferRelation implements TransferRelation {
       return Collections.singleton(state);
     }
 
-    Collection<AbstractState> lSuccessors = new HashSet<AbstractState>(2);
+    Collection<AbstractState> lSuccessors = new HashSet<>(2);
     AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     boolean nonDetState = state.getInternalState().isNonDetState();
@@ -210,7 +210,7 @@ class AutomatonTransferRelation implements TransferRelation {
   }
 
   private static Map<String, AutomatonVariable> deepCloneVars(Map<String, AutomatonVariable> pOld) {
-    Map<String, AutomatonVariable> result = new HashMap<String, AutomatonVariable>(pOld.size());
+    Map<String, AutomatonVariable> result = new HashMap<>(pOld.size());
     for (Entry<String, AutomatonVariable> e : pOld.entrySet()) {
       result.put(e.getKey(), e.getValue().clone());
     }

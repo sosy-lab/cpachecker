@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
 class OctWideningControl {
 
-  HashMap<Integer, LoopNode> loopNodeList = new HashMap<Integer, LoopNode>();
+  HashMap<Integer, LoopNode> loopNodeList = new HashMap<>();
 
   static class LoopNode{
     @SuppressWarnings("unused")

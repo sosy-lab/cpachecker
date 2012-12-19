@@ -215,9 +215,9 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     BooleanFormulaManagerView bfmgr = emgr.getBooleanFormulaManager();
 
     // Make true and false formulas.
-    Collection<AbstractionPredicate> trueFormula = new Vector<AbstractionPredicate>();
+    Collection<AbstractionPredicate> trueFormula = new Vector<>();
     trueFormula.add(amgr.makePredicate(bfmgr.makeBoolean(true)));
-    Collection<AbstractionPredicate> falseFormula = new Vector<AbstractionPredicate>();
+    Collection<AbstractionPredicate> falseFormula = new Vector<>();
     falseFormula.add(amgr.makePredicate(bfmgr.makeBoolean(false)));
 
     // Get the list of abstraction elements.
@@ -263,7 +263,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
         templateView.extractAtoms(
             templateView.wrapInView((TemplateBoolean)invariant), splitItpAtoms, false);
 
-    Collection<AbstractionPredicate> preds = new Vector<AbstractionPredicate>();
+    Collection<AbstractionPredicate> preds = new Vector<>();
 
     for (BooleanFormula atom : atoms) {
       try {
@@ -282,7 +282,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
   private Collection<AbstractionPredicate> makeAbstractionPredicatesNonatomic(TemplateFormula invariant) {
     // Like makeAbstractionPredicates, only does /not/ split the passed
     // invariant into atoms, but keeps it whole.
-    Collection<AbstractionPredicate> preds = new Vector<AbstractionPredicate>();
+    Collection<AbstractionPredicate> preds = new Vector<>();
     BooleanFormula formula = ((TemplateBoolean)invariant).translate(emgr);
     preds.add( amgr.makePredicate(formula) );
     return preds;

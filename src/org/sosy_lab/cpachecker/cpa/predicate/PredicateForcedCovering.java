@@ -185,7 +185,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         assert commonParent != null : "Elements do not have common parent, but are in the same reached set";
 
 
-        List<ARGState> path = new ArrayList<ARGState>();
+        List<ARGState> path = new ArrayList<>();
         for (ARGState pathElement : parentList) {
           if (pathElement == commonParent) {
             break;
@@ -204,7 +204,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         // 1) state formula of commonParent instantiated with indices of commonParent
         // 2) block formulas from commonParent to argElement
         // 3) negated state formula of reachedState instantiated with indices of argElement
-        List<BooleanFormula> formulas = new ArrayList<BooleanFormula>(path.size()+2);
+        List<BooleanFormula> formulas = new ArrayList<>(path.size()+2);
         {
           formulas.add(getPredicateState(commonParent).getAbstractionFormula().asInstantiatedFormula());
 

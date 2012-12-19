@@ -36,18 +36,18 @@ public class AssumptionSet implements Iterable<Assumption> {
   private Vector<Assumption> aset;
 
   public AssumptionSet() {
-    aset = new Vector<Assumption>();
+    aset = new Vector<>();
   }
 
   public AssumptionSet(Collection<Assumption> ca) {
-    aset = new Vector<Assumption>();
+    aset = new Vector<>();
     for (Assumption a : ca) {
       add(a);
     }
   }
 
   public AssumptionSet(AssumptionSet as) {
-    aset = new Vector<Assumption>();
+    aset = new Vector<>();
     for (Assumption a : as) {
       // We can use the vector method, since 'as' should already contain no obvious logical redundancies.
       aset.add(a);
@@ -55,7 +55,7 @@ public class AssumptionSet implements Iterable<Assumption> {
   }
 
   public AssumptionSet copy() {
-    Vector<Assumption> v = new Vector<Assumption>(aset.size());
+    Vector<Assumption> v = new Vector<>(aset.size());
     for (Assumption a : aset) {
       v.add(a);
     }

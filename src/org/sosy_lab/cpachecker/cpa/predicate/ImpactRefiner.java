@@ -166,7 +166,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<BooleanForm
     path = path.subList(0, path.size()-1); // skip last element, itp is always false there
     assert cex.getInterpolants().size() ==  path.size();
 
-    List<ARGState> changedElements = new ArrayList<ARGState>();
+    List<ARGState> changedElements = new ArrayList<>();
     ARGState infeasiblePartOfART = lastElement;
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {

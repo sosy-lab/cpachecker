@@ -46,7 +46,7 @@ public class AssumptionWithLocation {
   private final FormulaManager manager;
 
   // map from location to (conjunctive) list of invariants
-  private final Map<CFANode, BooleanFormula> map = new HashMap<CFANode, BooleanFormula>();
+  private final Map<CFANode, BooleanFormula> map = new HashMap<>();
 
   public AssumptionWithLocation(FormulaManager pManager) {
     manager = pManager;

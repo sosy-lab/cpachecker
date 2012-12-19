@@ -50,9 +50,9 @@ interface AutomatonExpression {
       // replace Transition Variables and AutomatonVariables
       str = pArgs.replaceVariables(str);
       if (str == null) {
-        return new ResultValue<Object>("Failure in Variable Replacement in String \"" + toPrint + "\"","ActionExpr.Print");
+        return new ResultValue<>("Failure in Variable Replacement in String \"" + toPrint + "\"","ActionExpr.Print");
       } else {
-        return new ResultValue<String>(str);
+        return new ResultValue<>(str);
       }
     }
   }
@@ -73,7 +73,7 @@ interface AutomatonExpression {
       // replace transition variables
       String modifiedQueryString = pArgs.replaceVariables(queryString);
       if (modifiedQueryString == null) {
-        return new ResultValue<String>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.CPAQuery");
+        return new ResultValue<>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.CPAQuery");
       }
 
       for (AbstractState ae : pArgs.getAbstractStates()) {
@@ -82,18 +82,18 @@ interface AutomatonExpression {
           if (aqe.getCPAName().equals(cpaName)) {
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
-              return new ResultValue<String>(result.toString());
+              return new ResultValue<>(result.toString());
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
                   + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription());
-              return new ResultValue<String>("Automaton encountered an Exception during Query of the "
+              return new ResultValue<>("Automaton encountered an Exception during Query of the "
                   + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription(), "AutomatonExpression.CPAQuery");
             }
           }
         }
       }
-      return new ResultValue<String>("No State of CPA \"" + cpaName + "\" was found!", "AutomatonExpression.CPAQuery");
+      return new ResultValue<>("No State of CPA \"" + cpaName + "\" was found!", "AutomatonExpression.CPAQuery");
     }
 
     @Override

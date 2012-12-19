@@ -100,7 +100,7 @@ public class SmtInterpolEnvironment {
 
   /** This Set stores declared functions.
    * It is used to guarantee, that functions are only declared once. */
-  private Set<String> declaredFunctions = new HashSet<String>();
+  private Set<String> declaredFunctions = new HashSet<>();
 
   /** The stack contains a List of Declarations for each levels on the assertion-stack.
    * It is used to declare functions again, if stacklevels are popped. */
@@ -237,7 +237,7 @@ public class SmtInterpolEnvironment {
     }
 
     for (int i = 0; i < levels; i++) {
-      currentDeclarations = new ArrayList<Triple<String, Sort[], Sort>>();
+      currentDeclarations = new ArrayList<>();
       stack.add(currentDeclarations);
     }
   }

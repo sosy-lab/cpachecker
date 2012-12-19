@@ -79,8 +79,8 @@ public class Farkas {
     String a, b, rel;
     boolean begun_statements = false;
     boolean begun_terms = false;
-    HashSet<String> jUsed = new HashSet<String>();
-    HashSet<String> allc = new HashSet<String>();
+    HashSet<String> jUsed = new HashSet<>();
+    HashSet<String> allc = new HashSet<>();
     Iterator<String> thecj;
     int[] cColumn = new int[J];
 
@@ -249,8 +249,8 @@ public class Farkas {
     InfixReln rel;
     boolean begun_statements = false;
     boolean begun_terms = false;
-    HashSet<String> jUsed = new HashSet<String>();
-    HashSet<String> allc = new HashSet<String>();
+    HashSet<String> jUsed = new HashSet<>();
+    HashSet<String> allc = new HashSet<>();
     Iterator<String> thecj;
     int[] cColumn = new int[J];
 
@@ -428,8 +428,8 @@ public class Farkas {
     String a, b;
     boolean begun_statements = false;
     boolean begun_terms = false;
-    HashSet<String> jUsed = new HashSet<String>();
-    HashSet<String> allx = new HashSet<String>();
+    HashSet<String> jUsed = new HashSet<>();
+    HashSet<String> allx = new HashSet<>();
     Iterator<String> thexjk;
 
     for (int k = 0; k < K; k++) {

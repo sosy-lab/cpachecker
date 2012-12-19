@@ -180,10 +180,10 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     reachedSet.add(rootState, initialPrecision);
 
-    Set<ARGState> postponedStates = new HashSet<ARGState>();
+    Set<ARGState> postponedStates = new HashSet<>();
 
-    Set<ARGState> waitingForUnexploredParents = new HashSet<ARGState>();
-    Set<ARGState> inWaitlist = new HashSet<ARGState>();
+    Set<ARGState> waitingForUnexploredParents = new HashSet<>();
+    Set<ARGState> inWaitlist = new HashSet<>();
     inWaitlist.add(rootState);
 
     boolean unexploredParent;
@@ -278,7 +278,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private boolean isCoveringCycleFree(ARGState pState) {
-    HashSet<ARGState> seen = new HashSet<ARGState>();
+    HashSet<ARGState> seen = new HashSet<>();
     seen.add(pState);
     while (pState.isCovered()) {
       pState = pState.getCoveringState();

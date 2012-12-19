@@ -97,8 +97,8 @@ class CmdLineArguments {
       throw new InvalidCmdlineArgumentException("Configuration file or list of CPAs needed. Use -help for more information.");
     }
 
-    Map<String, String> properties = new HashMap<String, String>();
-    List<String> programs = new ArrayList<String>();
+    Map<String, String> properties = new HashMap<>();
+    List<String> programs = new ArrayList<>();
 
     String javaRootPath = null;
 
@@ -222,7 +222,7 @@ class CmdLineArguments {
 
   private static List<String> addJavaRootPathToProgramms
                                     (List<String> programs, String javaRootPath) {
-    List<String> programPaths = new ArrayList<String>(programs.size());
+    List<String> programPaths = new ArrayList<>(programs.size());
 
     for(String path : programs) {
       programPaths.add(

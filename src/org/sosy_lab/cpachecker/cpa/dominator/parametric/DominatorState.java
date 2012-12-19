@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 public class DominatorState implements AbstractStateWithLocation, AbstractState {
 
   private AbstractState dominatedState;
-  private Set<AbstractState> dominators = new HashSet<AbstractState>();
+  private Set<AbstractState> dominators = new HashSet<>();
 
   public DominatorState(AbstractState dominatedElement) {
     if (dominatedElement == null) {

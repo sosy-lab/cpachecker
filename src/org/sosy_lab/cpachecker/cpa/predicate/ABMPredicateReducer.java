@@ -171,7 +171,7 @@ public class ABMPredicateReducer implements Reducer {
     return Pair.of(element.getAbstractionFormula().asRegion(), precision);
   }
 
-  private Map<Pair<Integer, Block>, Precision> reduceCache = new HashMap<Pair<Integer, Block>, Precision>();
+  private Map<Pair<Integer, Block>, Precision> reduceCache = new HashMap<>();
 
   public void clearCaches() {
     reduceCache.clear();

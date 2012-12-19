@@ -271,7 +271,7 @@ public class ExplicitPrecision implements Precision {
      *
      * a value of null means, that the variable has reached its threshold and is no longer tracked
      */
-    protected HashMap<String, Integer> thresholds = new HashMap<String, Integer>();
+    protected HashMap<String, Integer> thresholds = new HashMap<>();
 
     /**
      * This method decides whether or not a variable is being tracked by this precision.
@@ -314,7 +314,7 @@ public class ExplicitPrecision implements Precision {
      */
     private ReachedSetThresholds(ReachedSetThresholds original) {
       defaultThreshold  = original.defaultThreshold;
-      thresholds        = new HashMap<String, Integer>(original.thresholds);
+      thresholds        = new HashMap<>(original.thresholds);
     }
 
     /**
@@ -359,7 +359,7 @@ public class ExplicitPrecision implements Precision {
      */
     private PathThresholds(PathThresholds original) {
       defaultThreshold  = original.defaultThreshold;
-      thresholds        = new HashMap<String, Integer>(original.thresholds);
+      thresholds        = new HashMap<>(original.thresholds);
     }
 
     /**

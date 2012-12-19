@@ -256,7 +256,7 @@ public final class InterpolationManager {
     try {
 
       // Final adjustments to the list of formulas
-      List<BooleanFormula> f = new ArrayList<BooleanFormula>(pFormulas); // copy because we will change the list
+      List<BooleanFormula> f = new ArrayList<>(pFormulas); // copy because we will change the list
 
       if (bfmgr.useBitwiseAxioms()) {
         addBitwiseAxioms(f);
@@ -296,7 +296,7 @@ public final class InterpolationManager {
         }
 
         // initialize all interpolation group ids with "null"
-        itpGroupsIds = new ArrayList<T>(Collections.<T>nCopies(f.size(), null));
+        itpGroupsIds = new ArrayList<>(Collections.<T>nCopies(f.size(), null));
 
         if (getUsefulBlocks || !shortestTrace) {
           spurious = checkInfeasibilityOfFullTrace(f, itpGroupsIds, pItpProver);
@@ -614,7 +614,7 @@ public final class InterpolationManager {
     // if we don't want "well-scoped" predicates, A always starts at the beginning
     Deque<Integer> entryPoints = null;
     if (wellScopedPredicates) {
-      entryPoints = new ArrayDeque<Integer>();
+      entryPoints = new ArrayDeque<>();
       entryPoints.push(0);
     }
 
@@ -695,13 +695,13 @@ public final class InterpolationManager {
 
       for (int i = 0; i < interpolants.size(); i++) {
 
-        Set<String> variablesInA = new HashSet<String>();
+        Set<String> variablesInA = new HashSet<>();
         for (int j = 0; j <= i; j++) {
           // formula i is in group A
           variablesInA.addAll(variablesInFormulas.get(j));
         }
 
-        Set<String> variablesInB = new HashSet<String>();
+        Set<String> variablesInB = new HashSet<>();
         for (int j = i+1; j < formulas.size(); j++) {
           // formula i is in group A
           variablesInB.addAll(variablesInFormulas.get(j));
@@ -755,7 +755,7 @@ public final class InterpolationManager {
     BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
     if (bfmgr.isTrue(branchingFormula)) {
-      return new CounterexampleTraceInfo<BooleanFormula>(f, getModel(pItpProver), Collections.<Integer, Boolean>emptyMap());
+      return new CounterexampleTraceInfo<>(f, getModel(pItpProver), Collections.<Integer, Boolean>emptyMap());
     }
 
     // add formula to solver environment
@@ -767,7 +767,7 @@ public final class InterpolationManager {
 
     if (stillSatisfiable) {
       Model model = getModel(pItpProver);
-      return new CounterexampleTraceInfo<BooleanFormula>(f, model, pmgr.getBranchingPredicateValuesFromModel(model));
+      return new CounterexampleTraceInfo<>(f, model, pmgr.getBranchingPredicateValuesFromModel(model));
 
     } else {
       // this should not happen
@@ -776,7 +776,7 @@ public final class InterpolationManager {
       dumpInterpolationProblem(f);
       dumpFormulaToFile("formula", branchingFormula, f.size());
 
-      return new CounterexampleTraceInfo<BooleanFormula>(f, new Model(fmgr), Collections.<Integer, Boolean>emptyMap());
+      return new CounterexampleTraceInfo<>(f, new Model(fmgr), Collections.<Integer, Boolean>emptyMap());
     }
   }
 
@@ -798,9 +798,9 @@ public final class InterpolationManager {
     try {
       thmProver.push(f);
       if (thmProver.isUnsat()) {
-        return new CounterexampleTraceInfo<BooleanFormula>();
+        return new CounterexampleTraceInfo<>();
       } else {
-        return new CounterexampleTraceInfo<BooleanFormula>(Collections.singletonList(f), getModel(thmProver), ImmutableMap.<Integer, Boolean>of());
+        return new CounterexampleTraceInfo<>(Collections.singletonList(f), getModel(thmProver), ImmutableMap.<Integer, Boolean>of());
       }
     } finally {
       thmProver.reset();

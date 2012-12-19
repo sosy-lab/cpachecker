@@ -131,7 +131,7 @@ public class BasicBalancer implements Balancer {
 
     // If set is empty, then there are no conditions on the parameters.
     if (aset.size() == 0) {
-      map = new HashMap<String,Rational>();
+      map = new HashMap<>();
     } else {
       // Write the QE formula for the assumptions.
       String phi = writeRREFassumptionQEformula(aset);
@@ -162,7 +162,7 @@ public class BasicBalancer implements Balancer {
   }
 
   private Map<String,Variable> makeParamVars(Set<String> params) {
-    Map<String,Variable> paramVars = new HashMap<String,Variable>();
+    Map<String,Variable> paramVars = new HashMap<>();
     for (String p : params) {
       Variable v = new Variable(p);
       paramVars.put(p,v);
@@ -209,7 +209,7 @@ public class BasicBalancer implements Balancer {
     // Build the combined elimination formula,
     // and combine the elimination parameters.
     String Phi = "";
-    Set<String> params = new HashSet<String>();
+    Set<String> params = new HashSet<>();
     for (Transition t : transitions) {
       Phi += " and " + t.getEliminationFormula();
       params.addAll(t.writeAllParameters(VariableWriteMode.REDLOG));
@@ -474,7 +474,7 @@ public class BasicBalancer implements Balancer {
   }
 
   private List<String> getParameters(TemplateFormula[] F, Vector<UIFAxiom> U, VariableWriteMode vwm) {
-    Vector<String> params = new Vector<String>();
+    Vector<String> params = new Vector<>();
 
     for (TemplateFormula f : F) {
       params.addAll( f.getAllParameters(vwm) );
@@ -505,18 +505,18 @@ public class BasicBalancer implements Balancer {
 
   @Deprecated
   public String consecQE(TemplateFormula P, TemplateFormula R, TemplateFormula Q, VariableManager vmgr) {
-    Vector<UIFAxiom> U = new Vector<UIFAxiom>();
+    Vector<UIFAxiom> U = new Vector<>();
     return consecQE(P,R,Q,U,vmgr);
   }
 
   public AssumptionSet consecRREF(TemplateDisjunction ant, TemplateFormula t2,
       VariableManager vmgr, TemplateNetwork tnet) {
-    Vector<UIFAxiom> U = new Vector<UIFAxiom>();
+    Vector<UIFAxiom> U = new Vector<>();
     return consecRREF(ant,t2,U,vmgr,tnet);
   }
 
   public String consecQE(TemplateDisjunction ant, TemplateFormula t2, VariableManager vmgr) {
-    Vector<UIFAxiom> U = new Vector<UIFAxiom>();
+    Vector<UIFAxiom> U = new Vector<>();
     return consecQE(ant,t2,U,vmgr);
   }
 
@@ -575,7 +575,7 @@ public class BasicBalancer implements Balancer {
     // Linearize
     LinearInequality li;
     // Create Vector containing the linearization of each disjunct in ant:
-    Vector<LinearInequality> linearAntParts = new Vector<LinearInequality>(ant.getNumDisjuncts());
+    Vector<LinearInequality> linearAntParts = new Vector<>(ant.getNumDisjuncts());
     Vector<TemplateBoolean> disjuncts = ant.getDisjuncts();
     for (TemplateBoolean d : disjuncts) {
       li = TemplateLinearizer.linearize(d, vmgr);
@@ -586,7 +586,7 @@ public class BasicBalancer implements Balancer {
      * This would be needed only if con could be an arbitrary SCNF formula.
      * Delete this when we are sure we don't want to allow that.
     // Create Vector containing the linearization of each conjunct in con:
-    Vector<LinearInequality> linearConParts = new Vector<LinearInequality>(con.getNumConjuncts());
+    Vector<LinearInequality> linearConParts = new Vector<>(con.getNumConjuncts());
     Vector<TemplateBoolean> conjuncts = con.getConjuncts();
     for (TemplateBoolean c : conjuncts) {
       li = TemplateLinearizer.linearize(c, vmgr);
@@ -648,7 +648,7 @@ public class BasicBalancer implements Balancer {
 
     // Build matrices.
     // Create Vector containing the linearization of each disjunct in ant:
-    Vector<MatrixI> matrixAntParts = new Vector<MatrixI>(ant.getNumDisjuncts());
+    Vector<MatrixI> matrixAntParts = new Vector<>(ant.getNumDisjuncts());
     Vector<TemplateBoolean> disjuncts = ant.getDisjuncts();
     for (TemplateBoolean d : disjuncts) {
       // According to the formulation of Farkas's lemma in

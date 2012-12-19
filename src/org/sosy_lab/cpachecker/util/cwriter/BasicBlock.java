@@ -45,13 +45,13 @@ class BasicBlock {
 
   public BasicBlock(int pElementId, String pFunctionName) {
     stateId = pElementId;
-    codeList = new ArrayList<Object>();
+    codeList = new ArrayList<>();
     firstCodeLine = pFunctionName;
   }
 
   public BasicBlock(int pElementId, CAssumeEdge pEdge, String pConditionString) {
     stateId = pElementId;
-    codeList = new ArrayList<Object>();
+    codeList = new ArrayList<>();
     boolean truthAssumption = pEdge.getTruthAssumption();
     condition = truthAssumption;
     firstCodeLine = pConditionString;

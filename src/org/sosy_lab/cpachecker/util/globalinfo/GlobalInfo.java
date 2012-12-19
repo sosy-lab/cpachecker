@@ -38,7 +38,7 @@ public class GlobalInfo {
   private CFAInfo cfaInfo;
   private AutomatonInfo automatonInfo = new AutomatonInfo();
   private FormulaManagerView formulaManager;
-  private ArrayList<Serializable> helperStorages = new ArrayList<Serializable>();
+  private ArrayList<Serializable> helperStorages = new ArrayList<>();
 
   private GlobalInfo() {
 

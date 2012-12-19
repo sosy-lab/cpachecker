@@ -48,14 +48,14 @@ public class CacheMergeOperator implements MergeOperator {
     Map<AbstractState, Map<AbstractState, AbstractState>> lCache1 = mCache.get(pPrecision);
 
     if (lCache1 == null) {
-      lCache1 = new HashMap<AbstractState, Map<AbstractState, AbstractState>>();
+      lCache1 = new HashMap<>();
       mCache.put(pPrecision, lCache1);
     }
 
     Map<AbstractState, AbstractState> lCache2 = lCache1.get(pElement2);
 
     if (lCache2 == null) {
-      lCache2 = new HashMap<AbstractState, AbstractState>();
+      lCache2 = new HashMap<>();
       lCache1.put(pElement2, lCache2);
     }
 

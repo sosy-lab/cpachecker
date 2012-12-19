@@ -236,7 +236,7 @@ class MainCPAStatistics implements Statistics {
         logger = pLogger;
         config.inject(this);
 
-        subStats = new ArrayList<Statistics>();
+        subStats = new ArrayList<>();
 
         if (monitorMemoryUsage) {
           memStats = new MemoryStatistics(pLogger);
@@ -400,7 +400,7 @@ class MainCPAStatistics implements Statistics {
 
     private void printMemoryStatistics(PrintStream out) {
       List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
-      Set<String> gcNames = new HashSet<String>();
+      Set<String> gcNames = new HashSet<>();
       long gcTime = 0;
       int gcCount = 0;
       for (GarbageCollectorMXBean gcBean : gcBeans) {

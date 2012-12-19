@@ -33,8 +33,8 @@ import java.util.Map;
 public abstract class FormulaType<T extends Formula> {
   public abstract Class<T> getInterfaceType();
   FormulaType(){}
-  public static FormulaType<RationalFormula> RationalType = new FormulaTypeImpl<RationalFormula>(RationalFormula.class);
-  public static FormulaType<BooleanFormula> BooleanType = new FormulaTypeImpl<BooleanFormula>(BooleanFormula.class);
+  public static FormulaType<RationalFormula> RationalType = new FormulaTypeImpl<>(RationalFormula.class);
+  public static FormulaType<BooleanFormula> BooleanType = new FormulaTypeImpl<>(BooleanFormula.class);
 
   @Override
   public abstract String toString();
@@ -60,7 +60,7 @@ public abstract class FormulaType<T extends Formula> {
     private BitvectorType(int size){
       this.size = (size);
     }
-    private static Map<Integer, FormulaType<BitvectorFormula>> table = new Hashtable<Integer, FormulaType<BitvectorFormula>>();
+    private static Map<Integer, FormulaType<BitvectorFormula>> table = new Hashtable<>();
     /**
      * Gets the Raw Bitvector-Type with the given size.
      * Never call this method directly, always call the BitvectorFormulaManager.getFormulaType(int) method.

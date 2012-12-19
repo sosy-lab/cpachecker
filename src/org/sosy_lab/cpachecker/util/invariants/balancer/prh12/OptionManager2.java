@@ -46,8 +46,8 @@ public class OptionManager2 {
   public OptionManager2(PivotRowHandler2 p, LogManager lm) {
     prh = p;
     logger = lm;
-    cols = new HashMap<Integer,UsableColumn>();
-    rows = new Vector<PivotRow2>();
+    cols = new HashMap<>();
+    rows = new Vector<>();
   }
 
   public int numRemainingRows() {
@@ -87,7 +87,7 @@ public class OptionManager2 {
    * We also remove any such rows from further consideration.
    */
   public AssumptionSet getSoleOptionRowsAssumptions() {
-    List<PivotRow2> discard = new Vector<PivotRow2>();
+    List<PivotRow2> discard = new Vector<>();
     for (PivotRow2 pr : rows) {
       boolean madeRequest = pr.makeSoleRequest();
       if (madeRequest) {
@@ -106,7 +106,7 @@ public class OptionManager2 {
    * row that did not get a height is involved in a cyclic dependency.
    */
   List<PivotRow2> getRowsLackingHeights() {
-    List<PivotRow2> r = new Vector<PivotRow2>();
+    List<PivotRow2> r = new Vector<>();
     for (PivotRow2 pr : rows) {
       int g = pr.getHeight();
       if (g < 0) {
@@ -180,7 +180,7 @@ public class OptionManager2 {
       // Determine the numbers of rows that have 1s.
       List<Integer> rowNums = prh.getRowsWith1sInCol(c);
       // Turn these into actual rows.
-      List<PivotRow2> r = new Vector<PivotRow2>(rowNums.size());
+      List<PivotRow2> r = new Vector<>(rowNums.size());
       for (PivotRow2 pr : rows) {
         Integer i = new Integer( pr.getRowNum() );
         if (rowNums.contains(i)) {
@@ -194,7 +194,7 @@ public class OptionManager2 {
 
   ColumnChoiceFrame buildChoiceFrame(List<Integer> rl, ChallengeType ct) {
     // Build list of pivot rows, based on passed row numbers.
-    List<PivotRow2> prs = new Vector<PivotRow2>(rl.size());
+    List<PivotRow2> prs = new Vector<>(rl.size());
     for (PivotRow2 pr : rows) {
       if (rl.contains(pr.getRowNum())) {
         prs.add(pr);

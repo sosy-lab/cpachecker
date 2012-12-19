@@ -53,12 +53,12 @@ public class TemplateSum extends TemplateNumericValue {
 
   public TemplateSum(FormulaType<?> type) {
     super(type);
-    terms = new Vector<TemplateTerm>();
+    terms = new Vector<>();
   }
 
   public TemplateSum(TemplateTerm T) {
     super(T.getFormulaType());
-    terms = new Vector<TemplateTerm>();
+    terms = new Vector<>();
     terms.add(T);
   }
 
@@ -69,12 +69,12 @@ public class TemplateSum extends TemplateNumericValue {
 
   public TemplateSum(FormulaType<?> type, Collection<TemplateTerm> s) {
     super(type);
-    terms = new Vector<TemplateTerm>(s);
+    terms = new Vector<>(s);
   }
 
   public TemplateSum(TemplateSum s1, TemplateSum s2) {
     super(s1.getFormulaType());
-    terms = new Vector<TemplateTerm>();
+    terms = new Vector<>();
     terms.addAll(s1.getTerms());
     terms.addAll(s2.getTerms());
   }
@@ -88,7 +88,7 @@ public class TemplateSum extends TemplateNumericValue {
    */
   public static TemplateSum freshParamLinComb(FormulaType<?> type,  Collection<TemplateTerm> c) {
     TemplateVariable param;
-    Vector<TemplateTerm> v = new Vector<TemplateTerm>(c.size());
+    Vector<TemplateTerm> v = new Vector<>(c.size());
     for (TemplateTerm t : c) {
       param = TemplateTerm.getNextFreshParameter(type);
       t = t.copy();
@@ -120,7 +120,7 @@ public class TemplateSum extends TemplateNumericValue {
   @Override
   public TemplateSum withFormulaType(FormulaType<?> pNewType) {
 
-    Vector<TemplateTerm> v = new Vector<TemplateTerm>();
+    Vector<TemplateTerm> v = new Vector<>();
     for (TemplateTerm t : terms) {
       v.add(t.copy());
     }
@@ -129,7 +129,7 @@ public class TemplateSum extends TemplateNumericValue {
   }
 
   public Polynomial makePolynomial(Map<String,Variable> paramVars) {
-    List<Term> tlist = new Vector<Term>(terms.size());
+    List<Term> tlist = new Vector<>(terms.size());
     for (TemplateTerm t : terms) {
       Term u = t.makeRationalFunctionTerm(paramVars);
       tlist.add(u);
@@ -240,7 +240,7 @@ public class TemplateSum extends TemplateNumericValue {
 
   @Override
   public Set<TemplateVariable> getAllVariables() {
-    HashSet<TemplateVariable> vars = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> vars = new HashSet<>();
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {
       T = getTerm(i);
@@ -251,7 +251,7 @@ public class TemplateSum extends TemplateNumericValue {
 
   @Override
   public Set<TemplateVariable> getAllParameters() {
-    HashSet<TemplateVariable> params = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> params = new HashSet<>();
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {
       T = getTerm(i);
@@ -261,7 +261,7 @@ public class TemplateSum extends TemplateNumericValue {
   }
 
   public Set<TemplateVariable> getTopLevelParameters() {
-    HashSet<TemplateVariable> tlp = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> tlp = new HashSet<>();
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {
       T = getTerm(i);
@@ -274,7 +274,7 @@ public class TemplateSum extends TemplateNumericValue {
 
   @Override
   public Set<TemplateUIF> getAllTopLevelUIFs() {
-    HashSet<TemplateUIF> tlu = new HashSet<TemplateUIF>();
+    HashSet<TemplateUIF> tlu = new HashSet<>();
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {
       T = getTerm(i);
@@ -287,7 +287,7 @@ public class TemplateSum extends TemplateNumericValue {
 
   @Override
   public Set<TemplateVariable> getAllPurificationVariables() {
-    Set<TemplateVariable> pvs = new HashSet<TemplateVariable>();
+    Set<TemplateVariable> pvs = new HashSet<>();
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {
       T = getTerm(i);
@@ -359,7 +359,7 @@ public class TemplateSum extends TemplateNumericValue {
   }
 
   public void dropZeroTerms() {
-    Vector<TemplateTerm> v = new Vector<TemplateTerm>();
+    Vector<TemplateTerm> v = new Vector<>();
     for (TemplateTerm t : terms) {
       if (!t.isZero()) {
         v.add(t);
@@ -384,7 +384,7 @@ public class TemplateSum extends TemplateNumericValue {
    */
   public void normalize(MonomialOrder mo) {
     sort(mo);
-    Vector<TemplateTerm> newTerms = new Vector<TemplateTerm>();
+    Vector<TemplateTerm> newTerms = new Vector<>();
     TemplateTerm T, U = null;
     TemplateNumber C;
     TemplateNumber S = new TemplateNumber(getFormulaType(), 0);
@@ -428,7 +428,7 @@ public class TemplateSum extends TemplateNumericValue {
     // sum to a new TemplateSum containing all and only those
     // terms in this TemplateSum that have that variable.
 
-    HashMap<String,TemplateSum> map = new HashMap<String, TemplateSum>();
+    HashMap<String,TemplateSum> map = new HashMap<>();
     TemplateTerm T;
     TemplateVariable V;
     String var;
@@ -460,7 +460,7 @@ public class TemplateSum extends TemplateNumericValue {
     // term has one and the same variable in it. Then the returned
     // Coeff is the total coefficient of that variable, including
     // both constants and parameters.
-    Collection<TemplateTerm> c = new Vector<TemplateTerm>();
+    Collection<TemplateTerm> c = new Vector<>();
     TemplateTerm u;
     for (TemplateTerm t : getTerms()) {
       u = t.copy();
@@ -490,7 +490,7 @@ public class TemplateSum extends TemplateNumericValue {
   public Vector<Coeff> getCoeffsWithParams(VariableWriteMode vwm,
                        VariableManager vmgr) {
     HashMap<String,TemplateSum> vmap = collectWRTVars();
-    Vector<Coeff> coeffs = new Vector<Coeff>();
+    Vector<Coeff> coeffs = new Vector<>();
     Iterator<GeneralVariable> I = vmgr.iterator();
     GeneralVariable V;
     String var;
@@ -514,7 +514,7 @@ public class TemplateSum extends TemplateNumericValue {
   }
 
   public TemplateSum getConstantPart() {
-    Vector<TemplateTerm> V = new Vector<TemplateTerm>();
+    Vector<TemplateTerm> V = new Vector<>();
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {
       T = getTerm(i);
@@ -526,7 +526,7 @@ public class TemplateSum extends TemplateNumericValue {
   }
 
   public TemplateSum getNonConstantPart() {
-    Vector<TemplateTerm> V = new Vector<TemplateTerm>();
+    Vector<TemplateTerm> V = new Vector<>();
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {
       T = getTerm(i);
@@ -592,7 +592,7 @@ public class TemplateSum extends TemplateNumericValue {
   {
     Vector<TemplateTerm> terms1 = s1.getTerms();
     Vector<TemplateTerm> terms2 = s2.getTerms();
-    Vector<TemplateTerm> terms3 = new Vector<TemplateTerm>();
+    Vector<TemplateTerm> terms3 = new Vector<>();
     TemplateTerm T1, T2, T3;
     for (int i = 0; i < terms1.size(); i++) {
       for (int j = 0; j < terms2.size(); j++) {
@@ -621,7 +621,7 @@ public class TemplateSum extends TemplateNumericValue {
     }
     // Now n is the number that we are dividing by.
     TemplateTerm q;
-    Collection<TemplateTerm> c = new Vector<TemplateTerm>(s1.getNumTerms());
+    Collection<TemplateTerm> c = new Vector<>(s1.getNumTerms());
     for (TemplateTerm term : s1.getTerms()) {
       q = term.divideBy(n);
       c.add(q);

@@ -62,7 +62,7 @@ public class TemplateTrue extends TemplateConstraint {
 
   @Override
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
-    List<TemplateFormula> atoms = new Vector<TemplateFormula>();
+    List<TemplateFormula> atoms = new Vector<>();
   	atoms.add(this);
   	return atoms;
   }

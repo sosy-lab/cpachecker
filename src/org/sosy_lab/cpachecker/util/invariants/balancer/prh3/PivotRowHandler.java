@@ -69,7 +69,7 @@ public class PivotRowHandler {
       throw new BadAssumptionsException();
     }
     // Else, initialize the stack.
-    Stack<StackFrame> stack = new Stack<StackFrame>();
+    Stack<StackFrame> stack = new Stack<>();
     logger.log(Level.ALL,"Pushing initial frame onto stack.");
     stack.push(F);
     // Enter main loop.
@@ -253,8 +253,8 @@ public class PivotRowHandler {
 
     void computeChallenges() {
       // Initialize empty lists of challenges.
-      pchal = new Vector<Integer>();
-      qchal = new Vector<Integer>();
+      pchal = new Vector<>();
+      qchal = new Vector<>();
       // Now go through the rows one by one.
       for (int r = 0; r < codes.length; r++) {
         // If r has an out edge, then it is immune.
@@ -281,9 +281,9 @@ public class PivotRowHandler {
 
     void computeNextMoves() {
       // Start with an empty stack of next moves.
-      nextmv = new Stack<Move>();
+      nextmv = new Stack<>();
       // For both P- and Q-challenges, we find moves that work by relying on an active 3.
-      List<Integer> PUQ = new Vector<Integer>(pchal);
+      List<Integer> PUQ = new Vector<>(pchal);
       PUQ.addAll(qchal);
       for (Integer r : PUQ) {
         // Consider all and only the non-augmentation columns.
@@ -401,7 +401,7 @@ public class PivotRowHandler {
 
       // active
       // Copy the old list.
-      E.active = new Vector<Integer>(this.active);
+      E.active = new Vector<>(this.active);
       // Add any new column named in the move.
       if (M.newcol != null) {
         E.active.add(M.newcol);
@@ -605,11 +605,11 @@ public class PivotRowHandler {
   }
 
   Map<Integer,List<Integer>> findFreeCols(int[][] codes) {
-    Map<Integer, List<Integer>> fc = new HashMap<Integer, List<Integer>>();
+    Map<Integer, List<Integer>> fc = new HashMap<>();
     for (int j = 0; j < augStart; j++) {
       // Is column j filled with only codes 0, 3, 30?
       // If so, note the rows in which it has 3's.
-      List<Integer> threes = new Vector<Integer>();
+      List<Integer> threes = new Vector<>();
       boolean all0330 = true;
       for (int i = 0; i < rowNum; i++) {
         int c = codes[i][j];
@@ -721,7 +721,7 @@ public class PivotRowHandler {
    * Such a row is "immune", i.e. cannot be challenged by any column.
    */
   private List<Integer> findImmuneRows(int[][] codes) {
-    List<Integer> immune = new Vector<Integer>();
+    List<Integer> immune = new Vector<>();
     for (int i = 0; i < codes.length; i++) {
       // Is row i immune?
       boolean imm = true;
@@ -742,7 +742,7 @@ public class PivotRowHandler {
   }
 
   private List<Integer> initialActivation(int[][] codes) {
-    List<Integer> active = new Vector<Integer>();
+    List<Integer> active = new Vector<>();
     // All augmentation columns are automatically active.
     for (int j = augStart; j < colNum; j++) {
       active.add(j);
@@ -765,8 +765,8 @@ public class PivotRowHandler {
     private Map<Integer, Map<Integer,Assumption>> back;
 
     DependencyGraph() {
-      forward = new HashMap<Integer, Integer>();
-      back = new HashMap<Integer, Map<Integer, Assumption>>();
+      forward = new HashMap<>();
+      back = new HashMap<>();
     }
 
     @Override
@@ -831,7 +831,7 @@ public class PivotRowHandler {
       Map<Integer, Assumption> edges;
       if (!back.containsKey(col)) {
         // If none yet, then create it.
-        edges = new HashMap<Integer, Assumption>();
+        edges = new HashMap<>();
         // And tell col to point to it.
         back.put(col,edges);
       } else {
@@ -878,7 +878,7 @@ public class PivotRowHandler {
       // If rk is among the rows that col points back to, then we are done.
       if (backedges.containsKey(k)) {
         // So we have found a path of length 2: ri --> col --> rk.
-        ri2rk = new Vector<Assumption>();
+        ri2rk = new Vector<>();
         Assumption a = backedges.get(k);
         // If there is an assumption that could break the edge col --> rk, then we add it
         // to the return value, making it a list of length 1.

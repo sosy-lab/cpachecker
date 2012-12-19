@@ -156,7 +156,7 @@ public final class CSimpleType implements CType {
 
   @Override
   public String toASTString(String pDeclarator) {
-    List<String> parts = new ArrayList<String>();
+    List<String> parts = new ArrayList<>();
 
     if (isConst()) {
       parts.add("const");

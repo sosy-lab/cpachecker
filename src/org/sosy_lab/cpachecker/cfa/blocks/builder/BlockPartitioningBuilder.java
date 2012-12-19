@@ -50,11 +50,11 @@ public class BlockPartitioningBuilder {
 
   private final ReferencedVariablesCollector referenceCollector;
 
-  private final Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<CFANode, Set<ReferencedVariable>>();
-  private final Map<CFANode, Set<CFANode>> callNodesMap = new HashMap<CFANode, Set<CFANode>>();
-  private final Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<CFANode, Set<CFANode>>();
-  private final Map<CFANode, Set<FunctionEntryNode>> innerFunctionCallsMap = new HashMap<CFANode, Set<FunctionEntryNode>>();
-  private final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<CFANode, Set<CFANode>>();
+  private final Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<>();
+  private final Map<CFANode, Set<CFANode>> callNodesMap = new HashMap<>();
+  private final Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<>();
+  private final Map<CFANode, Set<FunctionEntryNode>> innerFunctionCallsMap = new HashMap<>();
+  private final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<>();
 
   public BlockPartitioningBuilder(Set<CFANode> mainFunctionBody) {
     referenceCollector = new ReferencedVariablesCollector(mainFunctionBody);
@@ -93,7 +93,7 @@ public class BlockPartitioningBuilder {
     }
 
     //now we can create the Blocks   for the BlockPartitioning
-    Collection<Block> blocks = new ArrayList<Block>(returnNodesMap.keySet().size());
+    Collection<Block> blocks = new ArrayList<>(returnNodesMap.keySet().size());
     for (CFANode key : returnNodesMap.keySet()) {
       blocks.add(new Block(referencedVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), blockNodesMap.get(key)));
     }
@@ -126,7 +126,7 @@ public class BlockPartitioningBuilder {
   }
 
   private Set<FunctionEntryNode> collectInnerFunctionCalls(Set<CFANode> pNodes) {
-    Set<FunctionEntryNode> result = new HashSet<FunctionEntryNode>();
+    Set<FunctionEntryNode> result = new HashSet<>();
     for (CFANode node : pNodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge e = node.getLeavingEdge(i);
@@ -139,7 +139,7 @@ public class BlockPartitioningBuilder {
   }
 
   private Set<CFANode> collectCallNodes(Set<CFANode> pNodes, CFANode mainFunction) {
-    Set<CFANode> result = new HashSet<CFANode>();
+    Set<CFANode> result = new HashSet<>();
     for (CFANode node : pNodes) {
       if (node instanceof FunctionEntryNode &&
          node.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {
@@ -168,7 +168,7 @@ public class BlockPartitioningBuilder {
   }
 
   private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes, CFANode mainFunction) {
-    Set<CFANode> result = new HashSet<CFANode>();
+    Set<CFANode> result = new HashSet<>();
     for (CFANode node : pNodes) {
       if (node instanceof FunctionExitNode &&
          node.getFunctionName().equalsIgnoreCase(mainFunction.getFunctionName())) {

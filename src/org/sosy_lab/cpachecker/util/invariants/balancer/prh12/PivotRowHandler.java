@@ -68,7 +68,7 @@ public class PivotRowHandler {
                                        // the number of nonaugmentation columns
 
     // Initialize the "remaining rows" as just those that are pivot rows in the matrix.
-    remainingRows = new Vector<Integer>(m);
+    remainingRows = new Vector<>(m);
     for (int i = 0; i < m; i++) {
       if (mat.isPivotRow(i)) {
         remainingRows.add(new Integer(i));
@@ -76,7 +76,7 @@ public class PivotRowHandler {
     }
     // Make a copy, which we will NOT alter as we proceed.
     // This serves to say which rows were pivot rows when we began.
-    pivotRows = new Vector<Integer>(remainingRows);
+    pivotRows = new Vector<>(remainingRows);
 
     codes = buildCodes();
     computeUnblockedColumns();
@@ -96,8 +96,8 @@ public class PivotRowHandler {
     // Compute absolutely and conditionally unblocked columns.
     // A column is absolutely unblocked if it contains only 0's and 3's.
     // A column is conditionally unblocked if it contains only 0's, 2's, and 3's.
-    Vector<Integer> auv = new Vector<Integer>();
-    Vector<Integer> cuv = new Vector<Integer>();
+    Vector<Integer> auv = new Vector<>();
+    Vector<Integer> cuv = new Vector<>();
     for (int j = 0; j < augStart; j++) {
       boolean absolute = true;
       boolean conditional = true;
@@ -123,8 +123,8 @@ public class PivotRowHandler {
   /*
   private List<List<Integer>> computeUnblockedColumns() {
     // Compute absolutely and conditionally unblocked columns.
-    Vector<Integer> auv = new Vector<Integer>();
-    Vector<Integer> cuv = new Vector<Integer>();
+    Vector<Integer> auv = new Vector<>();
+    Vector<Integer> cuv = new Vector<>();
     for (int j = 0; j < augStart; j++) {
       boolean absolute = true;
       boolean conditional = true;
@@ -145,7 +145,7 @@ public class PivotRowHandler {
       }
     }
     // Return.
-    List<List<Integer>> u = new Vector<List<Integer>>();
+    List<List<Integer>> u = new Vector<>();
     u.add(auv);
     u.add(cuv);
     return u;
@@ -203,7 +203,7 @@ public class PivotRowHandler {
       }
       asetset = secondPassOptions;
     } else {
-      asetset = new HashSet<AssumptionSet>();
+      asetset = new HashSet<>();
       asetset.add(base);
     }
     return asetset;
@@ -281,7 +281,7 @@ public class PivotRowHandler {
 
   private AssumptionSet firstPass() throws MatrixSolvingFailedException {
     AssumptionSet aset = new AssumptionSet();
-    Vector<Integer> discard = new Vector<Integer>();
+    Vector<Integer> discard = new Vector<>();
     logger.log(Level.ALL, "Processing pivot rows:\n",remainingRows);
     for (Integer r : remainingRows) {
       if (FAar01(r)) {
@@ -323,7 +323,7 @@ public class PivotRowHandler {
   }
 
   public void firstPass(AssumptionManager amgr) throws BadAssumptionsException {
-    Vector<Integer> discard = new Vector<Integer>();
+    Vector<Integer> discard = new Vector<>();
     logger.log(Level.ALL, "Processing pivot rows:\n",remainingRows,"\nfor matrix:","\n"+mat.toString());
     for (Integer r : remainingRows) {
       if (FAar01(r) && FApr03(r)) {
@@ -395,7 +395,7 @@ public class PivotRowHandler {
 
   private Set<AssumptionSet> secondPass() {
     logger.log(Level.ALL, "Second pass: processing remaining rows:",remainingRows);
-    Set<AssumptionSet> asetset = new HashSet<AssumptionSet>();
+    Set<AssumptionSet> asetset = new HashSet<>();
     // Build option table.
     OptionTable optionTable = buildOptionTable();
     logger.log(Level.ALL,"Built option table:","\n"+optionTable.toString());

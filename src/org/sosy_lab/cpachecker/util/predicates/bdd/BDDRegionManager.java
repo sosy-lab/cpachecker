@@ -207,7 +207,7 @@ public class BDDRegionManager implements RegionManager {
   // free() must be called manually.
 
   // The reference objects will appear in this queue as soon as their target object was GCed.
-  private final ReferenceQueue<BDDRegion> referenceQueue = new ReferenceQueue<BDDRegion>();
+  private final ReferenceQueue<BDDRegion> referenceQueue = new ReferenceQueue<>();
 
   // In this map we store the info which BDD to free after a BDDRegion object was GCed.
   private final Map<PhantomReference<BDDRegion>, BDD> referenceMap = Maps.newIdentityHashMap();
@@ -237,7 +237,7 @@ public class BDDRegionManager implements RegionManager {
   private BDDRegion wrap(BDD bdd) {
     BDDRegion region = new BDDRegion(bdd);
 
-    PhantomReference<BDDRegion> ref = new PhantomReference<BDDRegion>(region, referenceQueue);
+    PhantomReference<BDDRegion> ref = new PhantomReference<>(region, referenceQueue);
     referenceMap.put(ref, bdd);
 
     return region;

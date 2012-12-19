@@ -57,7 +57,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
   final Timer computeCounterexampleTimer = new Timer();
 
   private final ABMTransferRelation transfer;
-  private final Map<ARGState, ARGState> pathStateToReachedState = new HashMap<ARGState, ARGState>();
+  private final Map<ARGState, ARGState> pathStateToReachedState = new HashMap<>();
 
   protected AbstractABMBasedRefiner(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {

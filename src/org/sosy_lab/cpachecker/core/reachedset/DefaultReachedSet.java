@@ -55,7 +55,7 @@ class DefaultReachedSet implements ReachedSet {
   private final Waitlist waitlist;
 
   DefaultReachedSet(WaitlistFactory waitlistFactory) {
-    reached = new LinkedHashMap<AbstractState, Precision>();
+    reached = new LinkedHashMap<>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     waitlist = waitlistFactory.createWaitlistInstance();
   }

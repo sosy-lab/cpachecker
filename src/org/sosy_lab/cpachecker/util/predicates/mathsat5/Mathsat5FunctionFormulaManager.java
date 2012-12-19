@@ -106,7 +106,7 @@ public class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManag
     long returnType = toMathsatType(pReturnType);
     Long decl = createFunctionImpl(pName, returnType, msatTypes);
 
-    return new Mathsat5FunctionType<T>(formulaType.getReturnType(), formulaType.getArgumentTypes(), decl);
+    return new Mathsat5FunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), decl);
   }
 
   public long createFunctionImpl(String pName, long returnType, long[] msatTypes) {

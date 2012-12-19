@@ -73,7 +73,7 @@ public final class ErrorPathShrinker {
   }
 
   /** Set<String> for storing the global variables. */
-  private static final Set<String> GLOBAL_VARS = new LinkedHashSet<String>();
+  private static final Set<String> GLOBAL_VARS = new LinkedHashSet<>();
 
   /** The function shrinkErrorPath gets an targetPath and creates a new Path,
    * with only the important edges of the Path.
@@ -93,11 +93,11 @@ public final class ErrorPathShrinker {
         targetPath.descendingIterator();
 
     // Set for storing the important variables
-    Set<String> importantVars = new LinkedHashSet<String>();
+    Set<String> importantVars = new LinkedHashSet<>();
 
     // Set for storing the global variables, that are important and used
     // during proving the edges.
-    Set<String> importantVarsForGlobalVars = new LinkedHashSet<String>();
+    Set<String> importantVarsForGlobalVars = new LinkedHashSet<>();
 
     // Path for storing changings of globalVars
     final Path globalVarsPath = new Path();
@@ -136,7 +136,7 @@ public final class ErrorPathShrinker {
         // only global vars and the 'x' from 'f(x)' can influence the Error.
 
         // put only global vars to the new Set
-        final Set<String> newImportantVars = new LinkedHashSet<String>();
+        final Set<String> newImportantVars = new LinkedHashSet<>();
         addGlobalVarsFromSetToSet(importantVars, newImportantVars);
         importantVars = newImportantVars;
 
@@ -413,7 +413,7 @@ public final class ErrorPathShrinker {
 
       // Set for storing the important variables, normally empty when leaving
       // handlePath(), because declarators are removed, except globalVars.
-      final Set<String> possibleVars = new LinkedHashSet<String>();
+      final Set<String> possibleVars = new LinkedHashSet<>();
       addGlobalVarsFromSetToSet(importantVarsForGlobalVars, possibleVars);
 
       // in the expression "return r" the value "r" is possibly important.

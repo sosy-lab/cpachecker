@@ -122,7 +122,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     if (pCfaEdge == null) {
       CFANode node = extractLocation(oldState);
-      results = new ArrayList<FunctionPointerState>(node.getNumLeavingEdges());
+      results = new ArrayList<>(node.getNumLeavingEdges());
 
       for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
         CFAEdge edge = node.getLeavingEdge(edgeIdx);
@@ -133,7 +133,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       }
 
     } else {
-      results = new ArrayList<FunctionPointerState>(1);
+      results = new ArrayList<>(1);
       getAbstractSuccessorForEdge(oldState, pPrecision, pCfaEdge, results);
 
     }

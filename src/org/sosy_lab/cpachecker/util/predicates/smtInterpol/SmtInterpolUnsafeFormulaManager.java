@@ -39,7 +39,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 public class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term> {
 
-  private Set<Term> uifs = new HashSet<Term>();
+  private Set<Term> uifs = new HashSet<>();
   private SmtInterpolEnvironment env;
   private SmtInterpolFormulaCreator creator;
 
@@ -67,7 +67,7 @@ public class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManage
 
   @Override
   public Formula encapsulateUnsafe(Term pL) {
-    return new AbstractFormula<Term>(pL);
+    return new AbstractFormula<>(pL);
   }
 
   @Override

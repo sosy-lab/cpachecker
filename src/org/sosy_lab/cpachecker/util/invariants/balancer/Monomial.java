@@ -35,10 +35,10 @@ public class Monomial {
   // Whether or to write monomials like p1(p2^3) or like p1*(p2^3):
   private final boolean writeStars = true;
 
-  private Map<Variable,Integer> vars = new HashMap<Variable,Integer>();
+  private Map<Variable,Integer> vars = new HashMap<>();
 
   public Monomial() {
-    vars = new HashMap<Variable,Integer>();
+    vars = new HashMap<>();
   }
 
   public Monomial(Map<Variable,Integer> v) {
@@ -46,12 +46,12 @@ public class Monomial {
   }
 
   public Monomial(Variable v) {
-    vars = new HashMap<Variable,Integer>();
+    vars = new HashMap<>();
     vars.put(v, new Integer(1));
   }
 
   public Monomial copy() {
-    Map<Variable,Integer> v = new HashMap<Variable,Integer>();
+    Map<Variable,Integer> v = new HashMap<>();
     for (Variable x : vars.keySet()) {
       Variable xp = new Variable(x.getName());
       Integer pow = new Integer( vars.get(x).intValue() );
@@ -100,7 +100,7 @@ public class Monomial {
   public static Monomial divide(Monomial m, Monomial n) {
     Map<Variable,Integer> a = m.vars;
     Map<Variable,Integer> b = n.vars;
-    Map<Variable,Integer> d = new HashMap<Variable,Integer>();
+    Map<Variable,Integer> d = new HashMap<>();
     // First copy a.
     for (Variable v : a.keySet()) {
       d.put(v, a.get(v));
@@ -119,7 +119,7 @@ public class Monomial {
   }
 
   public static Monomial gcd(Monomial... ma) {
-    List<Monomial> ml = new Vector<Monomial>(ma.length);
+    List<Monomial> ml = new Vector<>(ma.length);
     for (Monomial m : ma) {
       ml.add(m);
     }
@@ -148,7 +148,7 @@ public class Monomial {
     else {
       Map<Variable,Integer> a = mlist.get(0).vars;
       Map<Variable,Integer> b = mlist.get(1).vars;
-      Map<Variable,Integer> d = new HashMap<Variable,Integer>();
+      Map<Variable,Integer> d = new HashMap<>();
       for (Variable v : a.keySet()) {
         if (b.containsKey(v)) {
           Integer ea = a.get(v);
@@ -266,7 +266,7 @@ public class Monomial {
 
   public String toString(boolean sortAlpha) {
     String s = "";
-    List<Variable> varlist = new Vector<Variable>(vars.keySet());
+    List<Variable> varlist = new Vector<>(vars.keySet());
     if (sortAlpha) {
       Collections.sort(varlist);
     }

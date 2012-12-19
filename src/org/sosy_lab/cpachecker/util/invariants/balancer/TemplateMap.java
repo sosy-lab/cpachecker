@@ -42,7 +42,7 @@ public class TemplateMap {
   private HashMap<Location,Template> map;
 
   public TemplateMap() {
-    map = new HashMap<Location,Template>();
+    map = new HashMap<>();
   }
 
   public void put(Location L, Template T) {
@@ -73,7 +73,7 @@ public class TemplateMap {
   }
 
   public Set<TemplateVariable> getAllVariables() {
-    Set<TemplateVariable> vars = new HashSet<TemplateVariable>();
+    Set<TemplateVariable> vars = new HashSet<>();
     Collection<Template> range = map.values();
     for (Template t : range) {
       vars.addAll(t.getAllVariables());
@@ -108,7 +108,7 @@ public class TemplateMap {
   }
 
   public Vector<TemplateBoolean> getAllNonzeroParameterClauses() {
-    Vector<TemplateBoolean> clauses = new Vector<TemplateBoolean>();
+    Vector<TemplateBoolean> clauses = new Vector<>();
     for (Template t : map.values()) {
       clauses.add( t.getNonzeroParameterClause() );
     }
@@ -116,7 +116,7 @@ public class TemplateMap {
   }
 
   public Set<String> writeAllParameters(VariableWriteMode vwm) {
-    Set<String> params = new HashSet<String>();
+    Set<String> params = new HashSet<>();
     for (Template t : map.values()) {
       params.addAll( t.writeAllParameters(vwm) );
     }

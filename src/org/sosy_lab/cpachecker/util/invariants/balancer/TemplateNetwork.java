@@ -39,7 +39,7 @@ public class TemplateNetwork {
   private TemplateMap tmap;
 
   public TemplateNetwork(TemplateMap tmap, Transition... trans) {
-  	Vector<Transition> tvect = new Vector<Transition>();
+  	Vector<Transition> tvect = new Vector<>();
   	for (int i = 0; i < trans.length; i++) {
   		tvect.add(trans[i]);
   	}

@@ -32,12 +32,12 @@ import org.sosy_lab.cpachecker.util.invariants.Rational;
 
 public class Polynomial {
 
-  private List<Term> terms = new Vector<Term>();
+  private List<Term> terms = new Vector<>();
 
   public Polynomial() {}
 
   public Polynomial(List<Term> tlist) {
-    terms = new Vector<Term>();
+    terms = new Vector<>();
     for (Term t : tlist) {
       if (!t.isZero()) {
         terms.add(t);
@@ -46,7 +46,7 @@ public class Polynomial {
   }
 
   public Polynomial(Term t) {
-    terms = new Vector<Term>();
+    terms = new Vector<>();
     terms.add(t);
   }
 
@@ -60,12 +60,12 @@ public class Polynomial {
 
   public Polynomial(Variable v) {
     Term t = new Term(v);
-    terms = new Vector<Term>();
+    terms = new Vector<>();
     terms.add(t);
   }
 
   public Polynomial copy() {
-    List<Term> ts = new Vector<Term>(terms.size());
+    List<Term> ts = new Vector<>(terms.size());
     for (Term t : terms) {
       ts.add(t.copy());
     }
@@ -74,7 +74,7 @@ public class Polynomial {
 
   private void makeConstant(Rational r) {
     Term t = new Term(r);
-    terms = new Vector<Term>();
+    terms = new Vector<>();
     terms.add(t);
   }
 
@@ -100,7 +100,7 @@ public class Polynomial {
 
   public Map<String,Rational> getMonomToCoeffMap() {
     collect();
-    Map<String,Rational> map = new HashMap<String,Rational>();
+    Map<String,Rational> map = new HashMap<>();
     for (Term t : terms) {
       String m = t.getMonomial().toString(true);
       Rational c = t.getCoeff();
@@ -110,14 +110,14 @@ public class Polynomial {
   }
 
   public static Polynomial add(Polynomial f1, Polynomial f2) {
-    List<Term> tlist = new Vector<Term>(f1.terms);
+    List<Term> tlist = new Vector<>(f1.terms);
     tlist.addAll(f2.terms);
     tlist = collect(tlist);
     return new Polynomial(tlist);
   }
 
   public static Polynomial subtract(Polynomial f1, Polynomial f2) {
-    List<Term> tlist = new Vector<Term>(f1.terms);
+    List<Term> tlist = new Vector<>(f1.terms);
     Polynomial mf2 = Polynomial.makeNegative(f2);
     tlist.addAll(mf2.terms);
     tlist = collect(tlist);
@@ -125,7 +125,7 @@ public class Polynomial {
   }
 
   public static Polynomial multiply(Polynomial f1, Polynomial f2) {
-    List<Term> tlist = new Vector<Term>();
+    List<Term> tlist = new Vector<>();
     for (Term a : f1.terms) {
       for (Term b : f2.terms) {
         Term c = Term.multiply(a, b);
@@ -157,7 +157,7 @@ public class Polynomial {
   }
 
   public static Polynomial makeNegative(Polynomial f) {
-    List<Term> tlist = new Vector<Term>(f.terms.size());
+    List<Term> tlist = new Vector<>(f.terms.size());
     for (Term t : f.terms) {
       Term u = Term.makeNegative(t);
       tlist.add(u);
@@ -223,7 +223,7 @@ public class Polynomial {
   public static List<Term> collect(List<Term> tlist) {
     // Make a map from monomial strings, written alphabetically,
     // to a Term whose coeff is the cumulative coefficient for that monomial.
-    Map<String,Term> gatheredTerms = new HashMap<String,Term>();
+    Map<String,Term> gatheredTerms = new HashMap<>();
     boolean sortAlpha = true;
     for (Term t : tlist) {
       String monom = t.getMonomial().toString(sortAlpha);
@@ -247,7 +247,7 @@ public class Polynomial {
       }
     }
     // Now create a list of terms based on the map and return it.
-    List<Term> collected = new Vector<Term>(gatheredTerms.values());
+    List<Term> collected = new Vector<>(gatheredTerms.values());
     return collected;
   }
 
@@ -328,7 +328,7 @@ public class Polynomial {
 
   public List<Monomial> getMonomials() {
     collect();
-    List<Monomial> mlist = new Vector<Monomial>();
+    List<Monomial> mlist = new Vector<>();
     for (Term t : terms) {
       //if (!t.isConstant()) {
       //  mlist.add(t.getMonomial());
@@ -402,7 +402,7 @@ public class Polynomial {
     // Get the coefficients.
     List<Rational> coeffs = getCoeffs();
     // Get their denominators.
-    List<Integer> denoms = new Vector<Integer>(coeffs.size());
+    List<Integer> denoms = new Vector<>(coeffs.size());
     for (Rational r : coeffs) {
       denoms.add(r.getDenominator());
     }
@@ -469,7 +469,7 @@ public class Polynomial {
 
   public List<Rational> getCoeffs() {
     collect();
-    List<Rational> coeffs = new Vector<Rational>(terms.size());
+    List<Rational> coeffs = new Vector<>(terms.size());
     for (Term t : terms) {
       coeffs.add(t.getCoeff());
     }
@@ -482,7 +482,7 @@ public class Polynomial {
    */
   public Integer getIntegerContent() {
     collect();
-    List<Integer> coeffs = new Vector<Integer>(terms.size());
+    List<Integer> coeffs = new Vector<>(terms.size());
     // Build the list of integer coefficients, or quit immediately if one of the
     // coeffs is not integral.
     // Discard 0's.
@@ -502,7 +502,7 @@ public class Polynomial {
       return new Integer(1);
     }
     // Replace each coeff by its absolute value.
-    List<Integer> absCoeffs = new Vector<Integer>(coeffs.size());
+    List<Integer> absCoeffs = new Vector<>(coeffs.size());
     int n;
     for (Integer nI : coeffs) {
       n = nI.intValue();
@@ -522,7 +522,7 @@ public class Polynomial {
    */
   public boolean factorOut(Monomial m) {
     boolean success = true;
-    List<Term> results = new Vector<Term>(terms.size());
+    List<Term> results = new Vector<>(terms.size());
     for (Term t : terms) {
       if (m.divides(t)) {
         Term u = Term.divide(t,m);
@@ -563,7 +563,7 @@ public class Polynomial {
   }
 
   public static Integer gcd(Integer... ma) {
-    List<Integer> ml = new Vector<Integer>(ma.length);
+    List<Integer> ml = new Vector<>(ma.length);
     for (Integer m : ma) {
       ml.add(m);
     }
@@ -619,7 +619,7 @@ public class Polynomial {
     collect();
     // Now get a copy of the first linear term, and copies of all other terms.
     Term lin = null;
-    List<Term> others = new Vector<Term>(terms.size() - 1);
+    List<Term> others = new Vector<>(terms.size() - 1);
     for (Term t : terms) {
       if (lin == null && t.isLinear()) {
         lin = t.copy();

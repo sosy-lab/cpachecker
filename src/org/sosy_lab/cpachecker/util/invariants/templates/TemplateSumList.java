@@ -161,7 +161,7 @@ public class TemplateSumList extends TemplateFormulaList {
 // Other cascade methods
 
   public Set<TemplateVariable> getAllVariables() {
-    HashSet<TemplateVariable> vars = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> vars = new HashSet<>();
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
         vars.addAll(sums[i].getAllVariables());
@@ -171,7 +171,7 @@ public class TemplateSumList extends TemplateFormulaList {
   }
 
   public Set<TemplateVariable> getAllParameters() {
-    HashSet<TemplateVariable> params = new HashSet<TemplateVariable>();
+    HashSet<TemplateVariable> params = new HashSet<>();
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
         params.addAll(sums[i].getAllParameters());
@@ -212,7 +212,7 @@ public class TemplateSumList extends TemplateFormulaList {
   	for (int i = 0; i < sums.length; i++) {
   		lf[i] = ( sums[i].translate(fmgr) );
   	}
-  	return new AbstractFormulaList<Formula>(lf);
+  	return new AbstractFormulaList<>(lf);
   }
 
 //------------------------------------------------------------------
@@ -223,7 +223,7 @@ public class TemplateSumList extends TemplateFormulaList {
   }
 
   public Iterator<TemplateSum> iterator() {
-    Vector<TemplateSum> V = new Vector<TemplateSum>();
+    Vector<TemplateSum> V = new Vector<>();
     for (int i = 0; i < sums.length; i++) {
       V.add(sums[i]);
     }

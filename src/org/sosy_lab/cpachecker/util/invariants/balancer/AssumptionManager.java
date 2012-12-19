@@ -85,7 +85,7 @@ public class AssumptionManager {
   }
 
   private List<Matrix> allCurrentMatrices() {
-    List<Matrix> ml = new Vector<Matrix>(currentMatrixQueue.size()+1);
+    List<Matrix> ml = new Vector<>(currentMatrixQueue.size()+1);
     if (currentMatrix != null) {
       ml.add(currentMatrix);
     }
@@ -150,7 +150,7 @@ public class AssumptionManager {
     } else {
       // There is a frame to backtrack to. So we set our data to be what was preserved in the frame.
       currentAssumptionSet = f.getAssumptionSet();
-      currentMatrixQueue = new ArrayDeque<Matrix>(f.getMatrices());
+      currentMatrixQueue = new ArrayDeque<>(f.getMatrices());
       currentMatrix = null;
       logger.log(Level.ALL, "Restoring assumption set to:\n",currentAssumptionSet);
       logger.log(Level.ALL, "Restoring matrix queue to:\n",currentMatrixQueue);
@@ -174,7 +174,7 @@ public class AssumptionManager {
    * Make the currentMatrixQueue into a deque containing a COPY of each matrix in the passed collection.
    */
   public void makeMatrixQueueCopy(Collection<Matrix> c) {
-    currentMatrixQueue = new ArrayDeque<Matrix>();
+    currentMatrixQueue = new ArrayDeque<>();
     for (Matrix m : c) {
       currentMatrixQueue.add(m.copy());
     }
@@ -202,7 +202,7 @@ public class AssumptionManager {
     List<Matrix> ml = allCurrentMatrices();
 
     // Compute substitutions based on the assumptions.
-    List<Substitution> subs = new Vector<Substitution>();
+    List<Substitution> subs = new Vector<>();
     for (Assumption a : aset) {
       // We can only use assumptions of type ZERO.
       if (a.getAssumptionType() != AssumptionType.ZERO) {
@@ -225,7 +225,7 @@ public class AssumptionManager {
     // as possible.)
     for (Matrix m : ml) {
       // First make a fresh copy of the substitutions.
-      List<Substitution> ss = new Vector<Substitution>(subs.size());
+      List<Substitution> ss = new Vector<>(subs.size());
       for (Substitution s : subs) {
         ss.add(s.copy());
       }

@@ -23,7 +23,7 @@ public class GraphUtil {
    * @return The path of edges that traverses these nodes.
    */
   public static Vector<CFAEdge> makeEdgePath(Vector<CFANode> nodes) {
-    Vector<CFAEdge> edges = new Vector<CFAEdge>();
+    Vector<CFAEdge> edges = new Vector<>();
     int len = nodes.size();
     CFANode N, M;
     CFAEdge E;
@@ -51,7 +51,7 @@ public class GraphUtil {
    * case, the list might form a loop, or it might not.
    */
   public static Vector<CFAEdge> makeEdgeLoop(List<CFANode> nodes, LogManager logger) {
-    Vector<CFAEdge> edges = new Vector<CFAEdge>();
+    Vector<CFAEdge> edges = new Vector<>();
 
     writeAllSuccessors(nodes, logger);
 
@@ -106,7 +106,7 @@ public class GraphUtil {
     for (CFANode n : nodes) {
       logger.log(Level.ALL, "Successors of ",n);
       int e = n.getNumLeavingEdges();
-      List<CFANode> list = new Vector<CFANode>(e);
+      List<CFANode> list = new Vector<>(e);
       for (int i = 0; i < e; i++) {
         CFAEdge edge = n.getLeavingEdge(i);
         CFANode s = edge.getSuccessor();
@@ -126,7 +126,7 @@ public class GraphUtil {
   /**
   @Deprecated
   public static Vector<CFAEdge> makeEdgeLoopSimple(Vector<CFANode> nodes) {
-    Vector<CFAEdge> edges = new Vector<CFAEdge>();
+    Vector<CFAEdge> edges = new Vector<>();
     int len = nodes.size();
     CFANode N, M;
     CFAEdge E;
@@ -156,16 +156,16 @@ public class GraphUtil {
    *         otherwise empty.
    */
   public static Vector<CFANode> dfs(CFANode start, CFANode target, boolean reverse, boolean interprocedural) {
-    Vector<CFANode> path = new Vector<CFANode>();
-    Set<CFANode> seen = new HashSet<CFANode>();
-    HashMap<CFANode,CFANode> links = new HashMap<CFANode,CFANode>();
-    Deque<CFANode> toProcess = new ArrayDeque<CFANode>();
+    Vector<CFANode> path = new Vector<>();
+    Set<CFANode> seen = new HashSet<>();
+    HashMap<CFANode,CFANode> links = new HashMap<>();
+    Deque<CFANode> toProcess = new ArrayDeque<>();
     toProcess.push(start);
     CFANode n;
     while (!toProcess.isEmpty()) {
       n = toProcess.pop();
       if (n == target) {
-        Vector<CFANode> back = new Vector<CFANode>();
+        Vector<CFANode> back = new Vector<>();
         back.add(n);
         while (n != start && links.containsKey(n)) {
           n = links.get(n);

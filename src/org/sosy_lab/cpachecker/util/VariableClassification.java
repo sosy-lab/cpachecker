@@ -145,9 +145,9 @@ public class VariableClassification {
       intEqualVars = LinkedHashMultimap.create();
       intAddVars = LinkedHashMultimap.create();
 
-      booleanPartitions = new HashSet<Partition>();
-      intEqualPartitions = new HashSet<Partition>();
-      intAddPartitions = new HashSet<Partition>();
+      booleanPartitions = new HashSet<>();
+      intEqualPartitions = new HashSet<>();
+      intAddPartitions = new HashSet<>();
 
       // fill maps
       collectVars();
@@ -667,7 +667,7 @@ public class VariableClassification {
       CExpressionVisitor<Multimap<String, String>, RuntimeException> {
 
     private CFANode predecessor;
-    private Set<BigInteger> values = new TreeSet<BigInteger>();
+    private Set<BigInteger> values = new TreeSet<>();
 
     public DependencyCollectingVisitor(CFANode pre) {
       this.predecessor = pre;

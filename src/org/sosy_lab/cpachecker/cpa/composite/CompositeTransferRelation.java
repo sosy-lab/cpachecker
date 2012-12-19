@@ -83,7 +83,7 @@ public class CompositeTransferRelation implements TransferRelation{
         throw new CPATransferException("Analysis without LocationCPA is not supported, please add one to the configuration");
       }
 
-      results = new ArrayList<CompositeState>(node.getNumLeavingEdges());
+      results = new ArrayList<>(node.getNumLeavingEdges());
 
       for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
         CFAEdge edge = node.getLeavingEdge(edgeIdx);
@@ -91,7 +91,7 @@ public class CompositeTransferRelation implements TransferRelation{
       }
 
     } else {
-      results = new ArrayList<CompositeState>(1);
+      results = new ArrayList<>(1);
       getAbstractSuccessorForEdge(compositeState, compositePrecision, cfaEdge, results);
 
     }
@@ -107,7 +107,7 @@ public class CompositeTransferRelation implements TransferRelation{
     // first, call all the post operators
     int resultCount = 1;
     List<AbstractState> componentElements = compositeState.getWrappedStates();
-    List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<Collection<? extends AbstractState>>(size);
+    List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<>(size);
 
     for (int i = 0; i < size; i++) {
       TransferRelation lCurrentTransfer = transferRelations.get(i);
@@ -132,7 +132,7 @@ public class CompositeTransferRelation implements TransferRelation{
     // second, call strengthen for each result of the cartesian product
     for (List<AbstractState> lReachedState : allResultingElements) {
 
-      List<Collection<? extends AbstractState>> lStrengthenResults = new ArrayList<Collection<? extends AbstractState>>(size);
+      List<Collection<? extends AbstractState>> lStrengthenResults = new ArrayList<>(size);
 
       resultCount = 1;
 
@@ -192,7 +192,7 @@ public class CompositeTransferRelation implements TransferRelation{
       break;
 
     case 1:
-      List<AbstractState> resultingElements = new ArrayList<AbstractState>(allComponentsSuccessors.size());
+      List<AbstractState> resultingElements = new ArrayList<>(allComponentsSuccessors.size());
       for (Collection<? extends AbstractState> componentSuccessors : allComponentsSuccessors) {
         resultingElements.add(Iterables.getOnlyElement(componentSuccessors));
       }
@@ -202,7 +202,7 @@ public class CompositeTransferRelation implements TransferRelation{
     default:
       // create cartesian product of all componentSuccessors and store the result in allResultingElements
       List<AbstractState> initialPrefix = Collections.emptyList();
-      allResultingElements = new ArrayList<List<AbstractState>>(resultCount);
+      allResultingElements = new ArrayList<>(resultCount);
       createCartesianProduct0(allComponentsSuccessors, initialPrefix, allResultingElements);
     }
 
@@ -221,7 +221,7 @@ public class CompositeTransferRelation implements TransferRelation{
       Collection<? extends AbstractState> myComponentsSuccessors = allComponentsSuccessors.get(depth);
 
       for (AbstractState currentComponent : myComponentsSuccessors) {
-        List<AbstractState> newPrefix = new ArrayList<AbstractState>(prefix);
+        List<AbstractState> newPrefix = new ArrayList<>(prefix);
         newPrefix.add(currentComponent);
 
         createCartesianProduct0(allComponentsSuccessors, newPrefix, allResultingElements);
@@ -245,7 +245,7 @@ public class CompositeTransferRelation implements TransferRelation{
     int resultCount = 1;
     boolean result = true;
     for (int i = 0; i < size; ++i) {
-      Set<AbstractState> componentSuccessors = new HashSet<AbstractState>();
+      Set<AbstractState> componentSuccessors = new HashSet<>();
       for (AbstractState successor : pSuccessors) {
         CompositeState compositeSuccessor = (CompositeState)successor;
         if (compositeSuccessor.getNumberOfStates() != size) {

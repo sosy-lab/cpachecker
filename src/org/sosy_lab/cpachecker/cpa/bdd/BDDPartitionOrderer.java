@@ -143,7 +143,7 @@ public class BDDPartitionOrderer {
    * The leaving edges of the splitpoint are cllected, too. */
   private class CFAUntilSplitCollector implements CFAVisitor {
 
-    private Set<CFAEdge> edges = new LinkedHashSet<CFAEdge>();
+    private Set<CFAEdge> edges = new LinkedHashSet<>();
 
     public Set<CFAEdge> getEdges() {
       return edges;
@@ -175,7 +175,7 @@ public class BDDPartitionOrderer {
    * For each assumption only the true-edge is collected. */
   private class CFAAssumptionCollector extends DefaultCFAVisitor {
 
-    private Collection<CAssumeEdge> assumptions = new ArrayList<CAssumeEdge>();
+    private Collection<CAssumeEdge> assumptions = new ArrayList<>();
 
     public Collection<CAssumeEdge> getAssumptions() {
       return assumptions;

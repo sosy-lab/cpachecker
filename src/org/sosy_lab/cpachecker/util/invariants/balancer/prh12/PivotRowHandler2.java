@@ -74,7 +74,7 @@ public class PivotRowHandler2 {
                                        // the number of nonaugmentation columns
 
     // Initialize the "remaining rows" as just those that are pivot rows in the matrix.
-    remainingRows = new Vector<Integer>(m);
+    remainingRows = new Vector<>(m);
     for (int i = 0; i < m; i++) {
       if (mat.isPivotRow(i)) {
         remainingRows.add(new Integer(i));
@@ -82,10 +82,10 @@ public class PivotRowHandler2 {
     }
     // Make a copy, which we will NOT alter as we proceed.
     // This serves to say which rows were pivot rows when we began.
-    pivotRows = new Vector<Integer>(remainingRows);
+    pivotRows = new Vector<>(remainingRows);
 
     // Initialize the "available cols" as all the non augmentation columns.
-    availableCols = new Vector<Integer>(augStart);
+    availableCols = new Vector<>(augStart);
     for (int j = 0; j < augStart; j++) {
       availableCols.add(new Integer(j));
     }
@@ -143,7 +143,7 @@ public class PivotRowHandler2 {
   private void computeUnblockedColumns() {
     // Compute absolutely unblocked columns.
     // A column is absolutely unblocked if all its codes are 0, 3, and 30.
-    Vector<Integer> auv = new Vector<Integer>();
+    Vector<Integer> auv = new Vector<>();
     for (int j = 0; j < augStart; j++) {
       boolean absolute = true;
       for (int i = 0; i < m; i++) {
@@ -175,8 +175,8 @@ public class PivotRowHandler2 {
   // First pass
 
   public void firstPass() throws BadAssumptionsException {
-    Vector<Integer> rowDiscard = new Vector<Integer>();
-    Vector<Integer> colDiscard = new Vector<Integer>();
+    Vector<Integer> rowDiscard = new Vector<>();
+    Vector<Integer> colDiscard = new Vector<>();
     logger.log(Level.ALL, "Processing pivot rows:\n",remainingRows,"\nfor matrix:","\n"+mat.toString());
     for (Integer r : remainingRows) {
       if (FAar0110(r) && FApr0330(r)) {
@@ -238,7 +238,7 @@ public class PivotRowHandler2 {
       // ...and determine which ones are challenged by their augmentation columns.
       // (while the rest are only potentially challenged, by a potentially positive
       //  post pivot entry).
-      augChallengedRows = new Vector<Integer>();
+      augChallengedRows = new Vector<>();
       for (Integer i : remainingRows) {
         if (!FAar0110(i)) {
           augChallengedRows.add(i);
@@ -246,7 +246,7 @@ public class PivotRowHandler2 {
       }
     } else {
       // else, just set augChallenged rows to be empty.
-      augChallengedRows = new Vector<Integer>();
+      augChallengedRows = new Vector<>();
     }
   }
 
@@ -329,7 +329,7 @@ public class PivotRowHandler2 {
    * Return the set of postpivot columns that have code 1 in row r.
    */
   Set<Integer> prposcols(Integer r) {
-    Set<Integer> pc = new HashSet<Integer>();
+    Set<Integer> pc = new HashSet<>();
     boolean postpivot = false;
     for (int j = 0; j < augStart; j++) {
       int c = codes[r][j];
@@ -394,7 +394,7 @@ public class PivotRowHandler2 {
 
     // Start a column choice stack.
     ColumnChoiceFrame ccf0 = opman.buildChoiceFrame(augChallengedRows, ChallengeType.AUGCOLUMN);
-    Stack<ColumnChoiceFrame> cstack = new Stack<ColumnChoiceFrame>();
+    Stack<ColumnChoiceFrame> cstack = new Stack<>();
     cstack.push(ccf0);
 
     // Now ask the stack for assumption sets, until one works or we run out.
@@ -500,7 +500,7 @@ public class PivotRowHandler2 {
    * Return the list of all rows that have a 1 in the column named.
    */
   public List<Integer> getRowsWith1sInCol(int col) {
-    List<Integer> ones = new Vector<Integer>();
+    List<Integer> ones = new Vector<>();
     for (int i = 0; i < m; i++) {
       if (codes[i][col] == 1) {
         ones.add(i);

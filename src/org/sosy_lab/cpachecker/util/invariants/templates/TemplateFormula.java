@@ -112,7 +112,7 @@ public class TemplateFormula implements Formula, Template {
 
   // FIXME: Should use TemplateVariable objects instead. See comments on next method.
   public Set<TemplateVariable> getAllVariables() {
-    return new HashSet<TemplateVariable>();
+    return new HashSet<>();
   }
 
 //  /**
@@ -127,7 +127,7 @@ public class TemplateFormula implements Formula, Template {
 //   */
 //  final public Set<TemplateVariable> getAllVariables() {
 //    Iterator<String> I = getAllVariables(VariableWriteMode.PLAIN).iterator();
-//    Set<TemplateVariable> V = new HashSet<TemplateVariable>();
+//    Set<TemplateVariable> V = new HashSet<>();
 //    String S;
 //    TemplateVariable T;
 //    while (I.hasNext()) {
@@ -140,7 +140,7 @@ public class TemplateFormula implements Formula, Template {
 
   public Set<TemplateVariable> getTopLevelLHSParameters() {
     List<TemplateConstraint> cons = getConstraints();
-    Set<TemplateVariable> params = new HashSet<TemplateVariable>();
+    Set<TemplateVariable> params = new HashSet<>();
     for (TemplateConstraint c : cons) {
       params.addAll( c.getTopLevelLHSParameters() );
     }
@@ -149,7 +149,7 @@ public class TemplateFormula implements Formula, Template {
 
   public Set<TemplateUIF> getAllTopLevelUIFs() {
     List<TemplateConstraint> cons = getConstraints();
-    Set<TemplateUIF> uifs = new HashSet<TemplateUIF>();
+    Set<TemplateUIF> uifs = new HashSet<>();
     for (TemplateConstraint c : cons) {
       uifs.addAll( c.getAllTopLevelUIFs() );
     }
@@ -158,7 +158,7 @@ public class TemplateFormula implements Formula, Template {
 
   public Set<TemplateTerm> getTopLevelTerms() {
     List<TemplateConstraint> cons = getConstraints();
-    Set<TemplateTerm> terms = new HashSet<TemplateTerm>();
+    Set<TemplateTerm> terms = new HashSet<>();
     for (TemplateConstraint c : cons) {
       terms.addAll( c.getTopLevelTerms() );
     }
@@ -167,7 +167,7 @@ public class TemplateFormula implements Formula, Template {
 
   public Set<TemplateVariable> getAllPurificationVariables() {
     List<TemplateConstraint> cons = getConstraints();
-    Set<TemplateVariable> pvs = new HashSet<TemplateVariable>();
+    Set<TemplateVariable> pvs = new HashSet<>();
     for (TemplateConstraint c : cons) {
       pvs.addAll( c.getAllPurificationVariables() );
     }
@@ -175,11 +175,11 @@ public class TemplateFormula implements Formula, Template {
   }
 
   public Set<TemplateVariable> getAllParameters() {
-    return new HashSet<TemplateVariable>();
+    return new HashSet<>();
   }
 
   final public Set<String> getAllParameters(VariableWriteMode vwm) {
-    HashSet<String> S = new HashSet<String>();
+    HashSet<String> S = new HashSet<>();
     Set<TemplateVariable> V = getAllParameters();
     for (TemplateVariable T : V) {
       S.add(T.toString(vwm));
@@ -194,7 +194,7 @@ public class TemplateFormula implements Formula, Template {
    * of the TemplateVariable class, i.e. precisely its S and I fields.
    */
   public HashMap<String,Integer> getMaxIndices() {
-    HashMap<String,Integer> map = new HashMap<String,Integer>();
+    HashMap<String,Integer> map = new HashMap<>();
     map = getMaxIndices(map);
     return map;
   }

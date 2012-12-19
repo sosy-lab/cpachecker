@@ -65,8 +65,8 @@ public class ARGUtils {
    */
   public static Set<ARGState> getAllStatesOnPathsTo(ARGState pLastElement) {
 
-    Set<ARGState> result = new HashSet<ARGState>();
-    Deque<ARGState> waitList = new ArrayDeque<ARGState>();
+    Set<ARGState> result = new HashSet<>();
+    Deque<ARGState> waitList = new ArrayDeque<>();
 
     result.add(pLastElement);
     waitList.add(pLastElement);
@@ -92,7 +92,7 @@ public class ARGUtils {
    */
   public static Path getOnePathTo(ARGState pLastElement) {
     Path path = new Path();
-    Set<ARGState> seenElements = new HashSet<ARGState>();
+    Set<ARGState> seenElements = new HashSet<>();
 
     // each element of the path consists of the abstract state and the outgoing
     // edge to its successor
@@ -136,7 +136,7 @@ public class ARGUtils {
    * edges which enter the subtree.
    */
   public static Set<ARGState> getCoveredBy(Set<ARGState> elements) {
-    Set<ARGState> result = new HashSet<ARGState>();
+    Set<ARGState> result = new HashSet<>();
     for (ARGState element : elements) {
       result.addAll(element.getCoveredByThis());
     }
@@ -177,9 +177,9 @@ public class ARGUtils {
   public static String convertARTToDot(final ARGState rootState,
       final Set<ARGState> displayedElements,
       final Set<Pair<ARGState, ARGState>> highlightedEdges) {
-    Deque<ARGState> worklist = new LinkedList<ARGState>();
-    Set<Integer> nodesList = new HashSet<Integer>();
-    Set<ARGState> processed = new HashSet<ARGState>();
+    Deque<ARGState> worklist = new LinkedList<>();
+    Set<Integer> nodesList = new HashSet<>();
+    Set<ARGState> processed = new HashSet<>();
     StringBuilder sb = new StringBuilder();
     StringBuilder edges = new StringBuilder();
 

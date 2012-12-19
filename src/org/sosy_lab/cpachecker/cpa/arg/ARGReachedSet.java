@@ -130,7 +130,7 @@ public class ARGReachedSet {
     Set<ARGState> toUnreach = e.getSubgraph();
 
     // collect all elements covered by the subtree
-    List<ARGState> newToUnreach = new ArrayList<ARGState>();
+    List<ARGState> newToUnreach = new ArrayList<>();
 
     for (ARGState ae : toUnreach) {
       newToUnreach.addAll(ae.getCoveredByThis());
@@ -155,7 +155,7 @@ public class ARGReachedSet {
    * @return the elements to re-add to the waitlist
    */
   private static Set<ARGState> removeSet(Set<ARGState> elements) {
-    Set<ARGState> toWaitlist = new LinkedHashSet<ARGState>();
+    Set<ARGState> toWaitlist = new LinkedHashSet<>();
     for (ARGState ae : elements) {
 
       for (ARGState parent : ae.getParents()) {

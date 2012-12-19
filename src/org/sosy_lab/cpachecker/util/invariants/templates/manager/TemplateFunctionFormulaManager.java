@@ -78,7 +78,7 @@ public class TemplateFunctionFormulaManager implements FunctionFormulaManager {
   @Override
   public <T extends Formula> FunctionFormulaType<T> createFunction(String pName, FormulaType<T> pReturnType,
       List<FormulaType<? extends Formula>> pArgs) {
-    return new TemplateFunctionFormulaTypeImpl<T>(pName, pReturnType, pArgs);
+    return new TemplateFunctionFormulaTypeImpl<>(pName, pReturnType, pArgs);
   }
 
   @SuppressWarnings("unchecked")

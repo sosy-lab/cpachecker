@@ -78,7 +78,7 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
   }
 
   private SortedSet<CFANode> getNodeSet() {
-    SortedSet<CFANode> nodes = new TreeSet<CFANode>();
+    SortedSet<CFANode> nodes = new TreeSet<>();
     for (Pair<ARGState, CFAEdge> pair : cePath) {
       ARGState ae = pair.getFirst();
       CFANode n = AbstractStates.extractLocation(ae);
@@ -93,7 +93,7 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
    */
   private TemplateNetwork buildNetworkWithoutTemplates() {
     // Construct the Vector of transitions.
-    Vector<Transition> trans = new Vector<Transition>();
+    Vector<Transition> trans = new Vector<>();
 
     // We use an empty template map for now.
     TemplateMap tmap = new TemplateMap();

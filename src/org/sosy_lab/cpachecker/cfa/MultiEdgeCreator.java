@@ -60,8 +60,8 @@ class MultiEdgeCreator extends DefaultCFAVisitor {
   public TraversalProcess visitNode(final CFANode pNode) {
 
     if (nodeQualifiesAsStartNode(pNode)) {
-      List<CFAEdge> edges = new ArrayList<CFAEdge>();
-      Set<CFANode> nodes = new HashSet<CFANode>();
+      List<CFAEdge> edges = new ArrayList<>();
+      Set<CFANode> nodes = new HashSet<>();
 
       CFANode node = pNode;
       do {

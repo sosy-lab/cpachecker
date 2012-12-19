@@ -39,8 +39,8 @@ public class AugmentationColumn extends UsableColumn {
   final int height = Integer.MIN_VALUE;
 
   public AugmentationColumn() {
-    asets = new HashMap<Integer,AssumptionSet>();
-    requests = new HashSet<Integer>();
+    asets = new HashMap<>();
+    requests = new HashSet<>();
   }
 
   @Override
@@ -55,7 +55,7 @@ public class AugmentationColumn extends UsableColumn {
 
   @Override
   public void clearRequests() {
-    requests = new HashSet<Integer>();
+    requests = new HashSet<>();
   }
 
   public void addSet(Integer r, AssumptionSet a) {

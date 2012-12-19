@@ -58,7 +58,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   private void initLoopMap() {
-    loopHeaderToLoopBody = new HashMap<CFANode, Set<CFANode>>();
+    loopHeaderToLoopBody = new HashMap<>();
     if (cfa.getLoopStructure().isPresent()) {
       for (String functionName : cfa.getLoopStructure().get().keySet()) {
         for (Loop loop : cfa.getLoopStructure().get().get(functionName)) {
@@ -106,7 +106,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
       return TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
     }
     if (pNode.isLoopStart()) {
-      Set<CFANode> loopBody = new HashSet<CFANode>();
+      Set<CFANode> loopBody = new HashSet<>();
       if (loopHeaderToLoopBody == null) {
         initLoopMap();
       }
@@ -132,7 +132,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
   }
 
   private void insertLoopReturnStates(Set<CFANode> pLoopBody) {
-    List<CFANode> addNodes = new ArrayList<CFANode>();
+    List<CFANode> addNodes = new ArrayList<>();
     for (CFANode node : pLoopBody) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge edge = node.getLeavingEdge(i);

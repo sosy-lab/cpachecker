@@ -61,7 +61,7 @@ public class IRFormulaMatriciser extends FormulaMatriciser {
     List<RationalFunction> rfs;
     Coeff rhs;
     InfixReln reln;
-    List<IRMatrix> cols = new Vector<IRMatrix>();
+    List<IRMatrix> cols = new Vector<>();
 
     // Prepend a "true" column, if requested.
     if (prependTrue) {

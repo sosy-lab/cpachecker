@@ -262,7 +262,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
           stats.mergeTimer.start();
 
-          List<AbstractState> toRemove = new ArrayList<AbstractState>();
+          List<AbstractState> toRemove = new ArrayList<>();
           List<Pair<AbstractState, Precision>> toAdd =
               new ArrayList<Pair<AbstractState, Precision>>();
 

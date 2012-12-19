@@ -63,8 +63,8 @@ class Scope {
 
   // symbolic tables for Fields
   private final Map<String , LinkedList<JFieldDeclaration>>
-    typeFieldDeclarations = new HashMap<String, LinkedList<JFieldDeclaration>>();
-  private final Map<String, JFieldDeclaration> fieldDeclarations = new HashMap<String, JFieldDeclaration>();
+    typeFieldDeclarations = new HashMap<>();
+  private final Map<String, JFieldDeclaration> fieldDeclarations = new HashMap<>();
 
 
   // symbolic table for  Variables and other Declarations
@@ -73,7 +73,7 @@ class Scope {
 
 
   // Stores all found methods and constructors
-  private final Map<String, JMethodDeclaration> methods = new HashMap<String, JMethodDeclaration>();
+  private final Map<String, JMethodDeclaration> methods = new HashMap<>();
 
   // Stores current class and method
   private String currentMethodName = null;
@@ -84,8 +84,8 @@ class Scope {
   private final String rootPathofProgram;
 
   //Track and deliver Classes that need to be parsed
-  private final Queue<String> classesToBeParsed = new ConcurrentLinkedQueue<String>();
-  private final Set<String> registeredClasses = new HashSet<String>();
+  private final Queue<String> classesToBeParsed = new ConcurrentLinkedQueue<>();
+  private final Set<String> registeredClasses = new HashSet<>();
 
   // Track depth of current Class
   private  int depth = 0;
@@ -385,7 +385,7 @@ class Scope {
 
   public void registerClass(ITypeBinding classBinding){
     String topClassName = classBinding.getQualifiedName();
-    Queue<JClassOrInterfaceType> toBeAdded = new LinkedList<JClassOrInterfaceType>();
+    Queue<JClassOrInterfaceType> toBeAdded = new LinkedList<>();
 
     if(!registeredClasses.contains(classBinding.getQualifiedName())){
       registeredClasses.add(topClassName);
@@ -446,7 +446,7 @@ class Scope {
   }
 
   public Map<String, JFieldDeclaration> getStaticFieldDeclarations() {
-    Map<String, JFieldDeclaration> result = new HashMap<String,JFieldDeclaration>();
+    Map<String, JFieldDeclaration> result = new HashMap<>();
 
     for( JFieldDeclaration declaration : fieldDeclarations.values()) {
       if(declaration.isStatic()) {
@@ -459,7 +459,7 @@ class Scope {
 
 
   public Map<String, JFieldDeclaration> getNonStaticFieldDeclarationOfClass(String className) {
-    Map<String, JFieldDeclaration> result = new HashMap<String,JFieldDeclaration>();
+    Map<String, JFieldDeclaration> result = new HashMap<>();
 
 
 

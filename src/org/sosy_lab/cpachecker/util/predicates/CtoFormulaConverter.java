@@ -222,9 +222,9 @@ public class CtoFormulaConverter {
   @Option(description = "Handle implicit and explicit casts.")
   private boolean ignoreCasts = true;
 
-  private final Set<String> printedWarnings = new HashSet<String>();
+  private final Set<String> printedWarnings = new HashSet<>();
 
-  private final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<String, BitvectorFormula>();
+  private final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
 
   private final MachineModel machineModel;
@@ -1716,7 +1716,7 @@ public class CtoFormulaConverter {
     }
 
     private FormulaList makeList(Formula... terms) {
-      return new AbstractFormulaList<Formula>(terms);
+      return new AbstractFormulaList<>(terms);
     }
 
     @Override
@@ -1911,7 +1911,7 @@ public class CtoFormulaConverter {
               public CType apply(CParameterDeclaration pInput) {
                 return pInput.getType();
               }}).toImmutableList();
-        List<Formula> args = new ArrayList<Formula>(pexps.size());
+        List<Formula> args = new ArrayList<>(pexps.size());
         Iterator<CType> it1 = paramTypes.iterator();
         Iterator<CExpression> it2 = pexps.iterator();
         boolean isPrintf = fexp.getDeclaration().getName().toLowerCase().contains("printf");
@@ -2414,7 +2414,7 @@ public class CtoFormulaConverter {
       String ufname =
         (fexp.isPointerDereference() ? "->{" : ".{") +
         tpname + "," + field + "}";
-      FormulaList args = new AbstractFormulaList<Formula>(term);
+      FormulaList args = new AbstractFormulaList<>(term);
 
 
       FormulaType<Formula> formulaType = getFormulaTypeFromCType(fexp.getExpressionType());
@@ -2433,7 +2433,7 @@ public class CtoFormulaConverter {
       Formula sterm = buildTerm(subexp, edge, function, ssa, constraints);
 
       String ufname = OP_ARRAY_SUBSCRIPT;
-      FormulaList args = new AbstractFormulaList<Formula>(aterm, sterm);
+      FormulaList args = new AbstractFormulaList<>(aterm, sterm);
       FormulaType<Formula> formulaType = getFormulaTypeFromCType(aexp.getExpressionType());
       int idx = makeLvalIndex(Variable.create(ufname,formulaType), args, ssa);
 

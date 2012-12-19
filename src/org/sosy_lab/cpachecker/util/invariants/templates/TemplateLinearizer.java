@@ -121,7 +121,7 @@ public class TemplateLinearizer {
     List<RationalFunction> rfs;
     Coeff rhs;
     InfixReln reln;
-    List<IRMatrix> cols = new Vector<IRMatrix>();
+    List<IRMatrix> cols = new Vector<>();
     for (int i = 0; i < constraints.size(); i++) {
       cons = constraints.get(i);
       coeffs = cons.getNormalFormCoeffs(vmgr, VariableWriteMode.REDLOG);
@@ -174,7 +174,7 @@ public class TemplateLinearizer {
     List<RationalFunction> rfs;
     Coeff rhs;
     InfixReln reln;
-    List<Matrix> cols = new Vector<Matrix>();
+    List<Matrix> cols = new Vector<>();
     for (int i = 0; i < constraints.size(); i++) {
 
       cons = constraints.get(i);
@@ -204,7 +204,7 @@ public class TemplateLinearizer {
   }
 
   private static List<RationalFunction> makeRationalFunctions(List<Coeff> clist, Map<String,Variable> paramVars) {
-    List<RationalFunction> rfs = new Vector<RationalFunction>(clist.size());
+    List<RationalFunction> rfs = new Vector<>(clist.size());
     for (Coeff c : clist) {
       rfs.add( c.makeRationalFunction(paramVars) );
     }
@@ -262,7 +262,7 @@ public class TemplateLinearizer {
    * @return The list of all passed coefficients negated
    */
   private static List<Coeff> negative(List<Coeff> P) {
-    Vector<Coeff> N = new Vector<Coeff>();
+    Vector<Coeff> N = new Vector<>();
     Coeff C;
     for (int i = 0; i < P.size(); i++) {
       C = P.get(i);

@@ -41,8 +41,8 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
   private final boolean isStrictFp;
 
   private  JClassType superClass;
-  private final  Set<JClassType> directSubClasses = new HashSet<JClassType>();
-  private final  Set<JInterfaceType> implementedInterfaces = new HashSet<JInterfaceType>();
+  private final  Set<JClassType> directSubClasses = new HashSet<>();
+  private final  Set<JInterfaceType> implementedInterfaces = new HashSet<>();
 
 
   public JClassType(String fullyQualifiedName  ,final VisibilityModifier pVisibility, final boolean pIsFinal,
@@ -111,7 +111,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
 
   public List<JClassType> getAllSuperClasses(){
 
-     List<JClassType> result = new ArrayList<JClassType>();
+     List<JClassType> result = new ArrayList<>();
 
      result.add(superClass);
 
@@ -138,7 +138,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
 
     List<JClassType> superClasses = getAllSuperClasses();
 
-    List<JInterfaceType> result = new LinkedList<JInterfaceType>();
+    List<JInterfaceType> result = new LinkedList<>();
 
     for(JClassType superClass : superClasses){
       result.addAll(superClass.getAllSuperInterfacesOfImplementedInterfacsOfClass());
@@ -150,8 +150,8 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
 
   private List<JInterfaceType> getAllSuperInterfacesOfImplementedInterfacsOfClass() {
 
-     List<JInterfaceType> result = new ArrayList<JInterfaceType>();
-     Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<Set<JInterfaceType>>();
+     List<JInterfaceType> result = new ArrayList<>();
+     Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<>();
 
      for( JInterfaceType implementedInterface : this.getImplementedInterfaces()) {
 
@@ -184,7 +184,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
 
   public List<JClassOrInterfaceType> getAllSuperTypesOfClass() {
 
-    List<JClassOrInterfaceType> result = new LinkedList<JClassOrInterfaceType>();
+    List<JClassOrInterfaceType> result = new LinkedList<>();
     result.addAll(getAllSuperClasses());
     result.addAll(getAllImplementedInterfaces());
     return result;
@@ -193,8 +193,8 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
   public List<JClassType> getAllSubTypesOfClass(){
 
 
-     List<JClassType> result = new LinkedList<JClassType>();
-     Queue<Set<JClassType>> toBeAdded = new LinkedList<Set<JClassType>>();
+     List<JClassType> result = new LinkedList<>();
+     Queue<Set<JClassType>> toBeAdded = new LinkedList<>();
 
 
      for( JClassType subClass : this.getDirectSubClasses()) {

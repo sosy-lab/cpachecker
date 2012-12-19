@@ -202,7 +202,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       path = path.subList(1, path.size()); // skip root element, it has no formula
 
       // build list of formulas for edges
-      List<BooleanFormula> pathFormulas = new ArrayList<BooleanFormula>(path.size());
+      List<BooleanFormula> pathFormulas = new ArrayList<>(path.size());
       addPathFormulasToList(path, pathFormulas);
 
       CounterexampleTraceInfo<BooleanFormula> cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARGState>emptySet());
@@ -216,7 +216,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       path = path.subList(0, path.size()-1); // skip last element, itp is always false there
       assert cex.getInterpolants().size() ==  path.size();
 
-      List<Vertex> changedElements = new ArrayList<Vertex>();
+      List<Vertex> changedElements = new ArrayList<>();
 
       for (Pair<BooleanFormula, Vertex> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
         BooleanFormula itp = interpolationPoint.getFirst();
@@ -295,10 +295,10 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
    * @throws InterruptedException
    */
   private boolean forceCover(Vertex v, Vertex w, Precision prec) throws CPAException, InterruptedException {
-    List<Vertex> path = new ArrayList<Vertex>();
+    List<Vertex> path = new ArrayList<>();
     Vertex x = v;
     {
-      Set<Vertex> parentsOfW = new HashSet<Vertex>(getPathFromRootTo(w));
+      Set<Vertex> parentsOfW = new HashSet<>(getPathFromRootTo(w));
 
       while (!parentsOfW.contains(x)) {
         path.add(x);
@@ -312,7 +312,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     // x is common ancestor
     // path is ]x; v] (path from x to v, excluding x, including v)
 
-    List<BooleanFormula> formulas = new ArrayList<BooleanFormula>(path.size()+2);
+    List<BooleanFormula> formulas = new ArrayList<>(path.size()+2);
     {
       PathFormula pf = pfmgr.makeEmptyPathFormula();
       formulas.add(fmgr.instantiate(x.getStateFormula(), SSAMap.emptySSAMap().withDefault(1)));
@@ -344,7 +344,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     assert interpolants.size() == formulas.size() - 1;
     assert interpolants.size() ==  path.size();
 
-    List<Vertex> changedElements = new ArrayList<Vertex>();
+    List<Vertex> changedElements = new ArrayList<>();
 
     for (Pair<BooleanFormula, Vertex> interpolationPoint : Pair.zipList(interpolants, path)) {
       BooleanFormula itp = interpolationPoint.getFirst();
@@ -487,7 +487,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private List<Vertex> getPathFromRootTo(Vertex v) {
-    List<Vertex> path = new ArrayList<Vertex>();
+    List<Vertex> path = new ArrayList<>();
 
     Vertex w = v;
     while (w.hasParent()) {

@@ -126,7 +126,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private List<AbstractState> getStatesWithAssumptions(ReachedSet reached) {
 
-    List<AbstractState> retList = new ArrayList<AbstractState>();
+    List<AbstractState> retList = new ArrayList<>();
 
     for (AbstractState state : reached) {
 

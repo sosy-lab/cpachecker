@@ -95,7 +95,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   /**
    * the maximal number of assignments for each variables over all elements seen to far
    */
-  private Map<String, Integer> maxNumberOfAssignmentsPerIdentifier = new HashMap<String, Integer>();
+  private Map<String, Integer> maxNumberOfAssignmentsPerIdentifier = new HashMap<>();
 
   /**
    * a reference to the logger
@@ -323,7 +323,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     /**
      * the mapping from variable name to the number of assignments to this variable
      */
-    private HashMap<String, Integer> mapping = new HashMap<String, Integer>();
+    private HashMap<String, Integer> mapping = new HashMap<>();
 
     /**
      * default constructor for creating the initial element
@@ -336,7 +336,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      * @param original the original element to be copied
      */
     private AllAssignmentsInPathConditionState(AllAssignmentsInPathConditionState original) {
-      mapping = new HashMap<String, Integer>(original.mapping);
+      mapping = new HashMap<>(original.mapping);
       maximum = original.maximum;
     }
 
@@ -449,7 +449,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
     @Override
     public Map<String, Integer> getAssignmentCounts() {
-      Map<String, Integer> map = new HashMap<String, Integer>();
+      Map<String, Integer> map = new HashMap<>();
 
       for (String variableName : mapping.keys()) {
         map.put(variableName, getAssignmentCount(variableName));

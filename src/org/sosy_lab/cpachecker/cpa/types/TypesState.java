@@ -39,16 +39,16 @@ public class TypesState implements AbstractState {
   private final Map<String, FunctionType> functions;
 
   public TypesState() {
-    this.variables = new HashMap<String, Type>();
-    this.typedefs  = new HashMap<String, Type>();
-    this.functions = new HashMap<String, FunctionType>();
+    this.variables = new HashMap<>();
+    this.typedefs  = new HashMap<>();
+    this.functions = new HashMap<>();
   }
 
   public TypesState(Map<String, Type> variables, Map<String, Type> typedefs,
                       Map<String, FunctionType> functions) {
-    this.variables = new HashMap<String, Type>(variables);
-    this.typedefs  = new HashMap<String, Type>(typedefs);
-    this.functions = new HashMap<String, FunctionType>(functions);
+    this.variables = new HashMap<>(variables);
+    this.typedefs  = new HashMap<>(typedefs);
+    this.functions = new HashMap<>(functions);
   }
 
   public Map<String, Type> getTypedefs() {

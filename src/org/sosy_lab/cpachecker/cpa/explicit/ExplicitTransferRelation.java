@@ -142,9 +142,9 @@ public class ExplicitTransferRelation implements TransferRelation
       + "when the true-branch is handled.")
   private boolean initAssumptionVars = false;
 
-  private final Set<String> globalVariables = new HashSet<String>();
+  private final Set<String> globalVariables = new HashSet<>();
 
-  private final Set<String> javaNonStaticVariables = new HashSet<String>();
+  private final Set<String> javaNonStaticVariables = new HashSet<>();
 
   private String missingInformationLeftVariable = null;
   private String missingInformationLeftPointer  = null;
@@ -1543,7 +1543,7 @@ public class ExplicitTransferRelation implements TransferRelation
       } else if ((((AssumeEdge) cfaEdge).getTruthAssumption() && value == 1L) || (!((AssumeEdge) cfaEdge).getTruthAssumption() && value == 0L)) {
         return Collections.singleton(newElement);
       } else {
-        return new HashSet<AbstractState>();
+        return new HashSet<>();
       }
     } else if(missingInformationRightJExpression != null) {
 

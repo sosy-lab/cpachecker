@@ -50,7 +50,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   private final WaitlistFactory wrappedWaitlist;
 
   // invariant: all entries in this map are non-empty
-  private final NavigableMap<K, Waitlist> waitlist = new TreeMap<K, Waitlist>();
+  private final NavigableMap<K, Waitlist> waitlist = new TreeMap<>();
 
   private int size = 0;
 

@@ -53,7 +53,7 @@ public class WeispfenningBalancer extends AbstractBalancer {
     paramVars = makeParamVars();
 
     // Build all the matrices
-    List<Matrix> mats = new Vector<Matrix>();
+    List<Matrix> mats = new Vector<>();
     for (Transition t : tnet.getTransitions()) {
       mats.addAll( getMatricesForTransition(t) );
     }
@@ -162,7 +162,7 @@ public class WeispfenningBalancer extends AbstractBalancer {
   }
 
   private void buildWeispfenningSystems() {
-    wsystems = new Vector<WeispfenningSystem>();
+    wsystems = new Vector<>();
     for (Matrix a : matrices) {
       int m = a.getRowNum();
       int n = a.getColNum();

@@ -93,7 +93,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
    */
   private static final String RETURN_VARIABLE_BASE_NAME = "___cpa_temp_result_var_";
 
-  private final Set<String> globalVars = new HashSet<String>();
+  private final Set<String> globalVars = new HashSet<>();
 
   @Option(description="at most that many intervals will be tracked per variable")
   private int threshold = 0;
@@ -531,7 +531,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
       {
         IntervalAnalysisState newElement = null;
 
-        Collection<IntervalAnalysisState> successors = new LinkedList<IntervalAnalysisState>();
+        Collection<IntervalAnalysisState> successors = new LinkedList<>();
 
         Interval result = null;
 

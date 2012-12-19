@@ -38,7 +38,7 @@ public abstract class FormulaMatriciser {
   public abstract MatrixI buildMatrix(TemplateFormula t, VariableManager vmgr, Map<String,Variable> paramVars, boolean prependTrue);
 
   protected static List<RationalFunction> makeRationalFunctions(List<Coeff> clist, Map<String,Variable> paramVars) {
-    List<RationalFunction> rfs = new Vector<RationalFunction>(clist.size());
+    List<RationalFunction> rfs = new Vector<>(clist.size());
     for (Coeff c : clist) {
       rfs.add( c.makeRationalFunction(paramVars) );
     }
@@ -50,7 +50,7 @@ public abstract class FormulaMatriciser {
    * @return The list of all passed coefficients negated
    */
   protected static List<Coeff> negative(List<Coeff> P) {
-    Vector<Coeff> N = new Vector<Coeff>();
+    Vector<Coeff> N = new Vector<>();
     Coeff C;
     for (int i = 0; i < P.size(); i++) {
       C = P.get(i);

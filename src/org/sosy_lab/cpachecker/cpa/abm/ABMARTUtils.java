@@ -60,8 +60,8 @@ class ABMARTUtils {
 
     ARGState firstElement = (ARGState)reachedSet.getFirstState();
 
-    Deque<ARGState> worklist = new LinkedList<ARGState>();
-    Set<ARGState> processed = new HashSet<ARGState>();
+    Deque<ARGState> worklist = new LinkedList<>();
+    Set<ARGState> processed = new HashSet<>();
 
     worklist.add(firstElement);
 
@@ -109,9 +109,9 @@ class ABMARTUtils {
   }
 
   public static ARGState copyARG(ARGState pRoot) {
-    HashMap<ARGState, ARGState> stateToCopyElem = new HashMap<ARGState, ARGState>();
-    HashSet<ARGState> visited = new HashSet<ARGState>();
-    Stack<ARGState> toVisit = new Stack<ARGState>();
+    HashMap<ARGState, ARGState> stateToCopyElem = new HashMap<>();
+    HashSet<ARGState> visited = new HashSet<>();
+    Stack<ARGState> toVisit = new Stack<>();
     ARGState current, copyState, copyStateInner;
 
     visited.add(pRoot);
