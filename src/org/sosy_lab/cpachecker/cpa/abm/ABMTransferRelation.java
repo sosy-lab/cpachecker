@@ -128,10 +128,9 @@ public class ABMTransferRelation implements TransferRelation {
 
     private final Map<AbstractStateHash, ReachedSet> preciseReachedCache = new HashMap<>();
     private final Map<AbstractStateHash, ReachedSet> unpreciseReachedCache =
-        new HashMap<AbstractStateHash, ReachedSet>();
+        new HashMap<>();
 
-    private final Map<AbstractStateHash, Collection<AbstractState>> returnCache =
-        new HashMap<AbstractStateHash, Collection<AbstractState>>();
+    private final Map<AbstractStateHash, Collection<AbstractState>> returnCache = new HashMap<>();
     private final Map<AbstractStateHash, ARGState> blockARGCache = new HashMap<>();
 
     private ARGState lastAnalyzedBlock = null;
@@ -698,8 +697,7 @@ public class ABMTransferRelation implements TransferRelation {
   private void ensureExactCacheHitsOnPath(ARGReachedSet mainReachedSet, Path pPath, ARGState pElement,
       Precision newPrecision, Map<ARGState, ARGState> pPathElementToReachedState,
       Set<Pair<ARGState, ARGState>> neededRemoveCachedSubtreeCalls) {
-    Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet =
-        new HashMap<ARGState, UnmodifiableReachedSet>();
+    Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet = new HashMap<>();
     Pair<Set<ARGState>, Set<ARGState>> pair =
         getCallAndReturnNodes(pPath, pathElementToOuterReachedSet, mainReachedSet.asReachedSet(),
             pPathElementToReachedState);
@@ -1113,7 +1111,7 @@ public class ABMTransferRelation implements TransferRelation {
           if (!result.getFirst()) { return false; }
           endOfBlock = result.getSecond();
           if (correctARGsForBlocks == null) {
-            correctARGsForBlocks = new HashMap<Pair<ARGState, Block>, Collection<ARGState>>();
+            correctARGsForBlocks = new HashMap<>();
           }
           correctARGsForBlocks.put(key, result.getSecond());
         }

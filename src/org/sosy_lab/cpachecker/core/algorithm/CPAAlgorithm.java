@@ -263,8 +263,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           stats.mergeTimer.start();
 
           List<AbstractState> toRemove = new ArrayList<>();
-          List<Pair<AbstractState, Precision>> toAdd =
-              new ArrayList<Pair<AbstractState, Precision>>();
+          List<Pair<AbstractState, Precision>> toAdd = new ArrayList<>();
 
           logger.log(Level.FINER, "Considering", reached.size(),
               "states from reached set for merge");

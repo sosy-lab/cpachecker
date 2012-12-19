@@ -104,8 +104,7 @@ public class SmtInterpolEnvironment {
 
   /** The stack contains a List of Declarations for each levels on the assertion-stack.
    * It is used to declare functions again, if stacklevels are popped. */
-  private List<Collection<Triple<String, Sort[], Sort>>> stack =
-      new ArrayList<Collection<Triple<String, Sort[], Sort>>>();
+  private List<Collection<Triple<String, Sort[], Sort>>> stack = new ArrayList<>();
 
   /** This Collection is the toplevel of the stack. */
   private Collection<Triple<String, Sort[], Sort>> currentDeclarations;

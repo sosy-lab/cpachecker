@@ -135,8 +135,7 @@ public class PointerState implements AbstractQueryableState, Memory,
 
     for (Entry<PointerTarget, Set<PointerLocation>> target : reverseRelation
         .entrySet()) {
-      this.reverseRelation.put(target.getKey(), new HashSet<PointerLocation>(
-          target.getValue()));
+      this.reverseRelation.put(target.getKey(), new HashSet<>(target.getValue()));
     }
 
     for (Set<PointerLocation> aliasSet : aliases.values()) {

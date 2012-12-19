@@ -184,7 +184,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
         logger.log(Level.ALL, "Invariants:\n", tnet.dumpTemplates());
 
         // Build a CounterexampleTraceInfo object.
-        ceti = new CounterexampleTraceInfo<Collection<AbstractionPredicate>>();
+        ceti = new CounterexampleTraceInfo<>();
         // Add the predicates for each of the computed invariants.
         addPredicates(ceti, tnet, pPath);
         // Break out of the while loop on invariant template choices.

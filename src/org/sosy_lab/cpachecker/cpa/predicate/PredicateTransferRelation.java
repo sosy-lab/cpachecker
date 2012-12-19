@@ -87,8 +87,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
   private final BlockOperator blk;
 
-  private final Map<PredicateAbstractState, PathFormula> computedPathFormulae =
-      new HashMap<PredicateAbstractState, PathFormula>();
+  private final Map<PredicateAbstractState, PathFormula> computedPathFormulae = new HashMap<>();
 
   private final BooleanFormulaManagerView bfmgr;
 

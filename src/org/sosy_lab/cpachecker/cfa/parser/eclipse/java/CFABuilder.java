@@ -108,8 +108,7 @@ class CFABuilder extends ASTVisitor {
     Map<String, JFieldDeclaration> staticFieldDeclarations
                                   = scope.getStaticFieldDeclarations();
 
-    List<Pair<IADeclaration, String>> result =
-        new ArrayList<Pair<IADeclaration, String>> (staticFieldDeclarations.size());
+    List<Pair<IADeclaration, String>> result = new ArrayList<> (staticFieldDeclarations.size());
 
     for (String declName : staticFieldDeclarations.keySet()) {
       IADeclaration declaration = staticFieldDeclarations.get(declName);

@@ -187,7 +187,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
   @Override
   public ExplicitState clone() {
-    return new ExplicitState(new HashMap<String, Long>(constantsMap) );
+    return new ExplicitState(new HashMap<>(constantsMap) );
   }
 
   @Override

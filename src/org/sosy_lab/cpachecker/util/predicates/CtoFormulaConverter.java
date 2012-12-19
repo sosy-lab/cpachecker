@@ -579,12 +579,12 @@ public class CtoFormulaConverter {
     return ret;
   }
 
-  Map<CType, Map<CType, FunctionFormulaType<Formula>>> castMap = new Hashtable<CType, Map<CType,FunctionFormulaType<Formula>>>();
+  Map<CType, Map<CType, FunctionFormulaType<Formula>>> castMap = new Hashtable<>();
 
   private FunctionFormulaType<Formula> getCastFunc(CType fromType, CType toType){
     Map<CType, FunctionFormulaType<Formula>> toTable;
     if (!castMap.containsKey(fromType)){
-      toTable = new Hashtable<CType, FunctionFormulaType<Formula>>();
+      toTable = new Hashtable<>();
       castMap.put(fromType, toTable);
     }else{
       toTable = castMap.get(fromType);

@@ -323,7 +323,7 @@ public final class InterpolationManager {
           verifyInterpolants(interpolants, f, pItpProver);
         }
 
-        info = new CounterexampleTraceInfo<BooleanFormula>();
+        info = new CounterexampleTraceInfo<>();
 
         int i = 1;
         for (BooleanFormula itp : interpolants) {

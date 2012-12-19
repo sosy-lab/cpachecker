@@ -291,7 +291,7 @@ public class RTTState implements AbstractState {
       Stack<String> newClassObjectStack = new Stack<>();
       newClassObjectStack.addAll(classObjectStack);
       //TODO Investigate if this works
-    return new RTTState(new HashMap<String, String>(constantsMap), new HashMap<String, String>(identificationMap), new HashMap<>(classTypeMap), new String(classObjectScope), newClassObjectStack);
+    return new RTTState(new HashMap<>(constantsMap), new HashMap<>(identificationMap), new HashMap<>(classTypeMap), new String(classObjectScope), newClassObjectStack);
   }
 
   @Override

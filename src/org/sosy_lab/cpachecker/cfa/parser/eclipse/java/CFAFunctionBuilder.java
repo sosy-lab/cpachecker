@@ -130,14 +130,12 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final Deque<CFANode> elseStack      = new ArrayDeque<>();
 
   // Data structure for handling switch-statements
-  private final Deque<JExpression> switchExprStack =
-    new ArrayDeque<JExpression>();
+  private final Deque<JExpression> switchExprStack = new ArrayDeque<>();
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
 
   // Data structures for label , continue , break
-  private final Map<String, CLabelNode> labelMap
-                                          = new HashMap<>();
-  private final Map<String, List<Pair<CFANode,ContinueStatement>>> registeredContinues = new HashMap<String, List<Pair<CFANode,ContinueStatement>>>();
+  private final Map<String, CLabelNode> labelMap = new HashMap<>();
+  private final Map<String, List<Pair<CFANode,ContinueStatement>>> registeredContinues = new HashMap<>();
 
   // Data structures for handling method declarations
   private JMethodEntryNode cfa = null;

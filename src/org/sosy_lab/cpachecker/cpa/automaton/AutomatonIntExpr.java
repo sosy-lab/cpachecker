@@ -43,7 +43,7 @@ interface AutomatonIntExpr extends AutomatonExpression {
    */
   static class Constant implements AutomatonIntExpr {
     private final ResultValue<Integer> constantResult;
-    public Constant(int pI) {this.constantResult = new ResultValue<Integer>(Integer.valueOf(pI)); }
+    public Constant(int pI) {this.constantResult = new ResultValue<>(Integer.valueOf(pI)); }
     public Constant(String pI) {this(Integer.parseInt(pI)); }
     public int getIntValue() {
       return constantResult.getValue().intValue();

@@ -42,7 +42,7 @@ public class FunctionFormulaTypeImpl<T extends Formula> extends FunctionFormulaT
   public FunctionFormulaTypeImpl(FormulaType<T> returnType, List<FormulaType<?>> argumentTypes){
     this.returnType = returnType;
     this.argumentTypes =
-        Collections.unmodifiableList(new LinkedList<FormulaType<?>>(argumentTypes));
+        Collections.unmodifiableList(new LinkedList<>(argumentTypes));
   }
 
   @Override

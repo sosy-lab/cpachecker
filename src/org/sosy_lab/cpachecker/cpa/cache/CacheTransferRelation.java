@@ -50,7 +50,7 @@ public class CacheTransferRelation implements TransferRelation {
   public CacheTransferRelation(TransferRelation pCachedTransferRelation) {
     mCachedTransferRelation = pCachedTransferRelation;
     //mSuccessorsCache = new HashMap<CFAEdge, Map<AbstractState, Map<Precision, Collection<? extends AbstractState>>>>();
-    mSuccessorsCache = new HashMap<Precision, Map<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>>>();
+    mSuccessorsCache = new HashMap<>();
 
     //mHitEdges = new HashSet<>();
   }
@@ -101,7 +101,7 @@ public class CacheTransferRelation implements TransferRelation {
     Map<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>> lLevel1Cache = mSuccessorsCache.get(pPrecision);
 
     if (lLevel1Cache == null) {
-      lLevel1Cache = new HashMap<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>>();
+      lLevel1Cache = new HashMap<>();
       mSuccessorsCache.put(pPrecision, lLevel1Cache);
     }
 

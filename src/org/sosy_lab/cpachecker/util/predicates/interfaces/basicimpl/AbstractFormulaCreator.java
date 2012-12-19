@@ -81,11 +81,11 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
   public <T extends Formula> T encapsulate(Class<T> pClazz, TFormulaInfo pTerm) {
     AbstractFormula<TFormulaInfo> f;
     if (pClazz == BitvectorFormula.class){
-      f = new BitvectorFormulaImpl<TFormulaInfo>(pTerm);
+      f = new BitvectorFormulaImpl<>(pTerm);
     }else if (pClazz == RationalFormula.class){
-      f = new RationalFormulaImpl<TFormulaInfo>(pTerm);
+      f = new RationalFormulaImpl<>(pTerm);
     }else if (pClazz == BooleanFormula.class){
-      f = new BooleanFormulaImpl<TFormulaInfo>(pTerm);
+      f = new BooleanFormulaImpl<>(pTerm);
     }else {
       throw new IllegalArgumentException("invalid interface type");
     }

@@ -140,8 +140,7 @@ public final class ErrorPathShrinker {
         addGlobalVarsFromSetToSet(importantVars, newImportantVars);
         importantVars = newImportantVars;
 
-        final Set<String> newImportantVarsForGlobalVars =
-            new LinkedHashSet<String>();
+        final Set<String> newImportantVarsForGlobalVars = new LinkedHashSet<>();
         addGlobalVarsFromSetToSet(importantVarsForGlobalVars,
             newImportantVarsForGlobalVars);
         importantVarsForGlobalVars = newImportantVarsForGlobalVars;
@@ -433,8 +432,7 @@ public final class ErrorPathShrinker {
       // Set for storing the global variables, that are possibly important
       // in the function. copy all global variables in another Set,
       // they could be assigned in the function.
-      final Set<String> possibleImportantVarsForGlobalVars =
-          new LinkedHashSet<String>();
+      final Set<String> possibleImportantVarsForGlobalVars = new LinkedHashSet<>();
 
       // only global variables can be used inside AND outside of a function
       addGlobalVarsFromSetToSet(importantVarsForGlobalVars,

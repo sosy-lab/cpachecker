@@ -64,7 +64,7 @@ public class RedlogInterface {
     String wrapper_path = "src/org/sosy_lab/cpachecker/util/invariants/redlog/rlwrapper.py";
     try {
       ProcessExecutor<RuntimeException> redlog =
-        new ProcessExecutor<RuntimeException>(logger,RuntimeException.class,wrapper_path);
+        new ProcessExecutor<>(logger,RuntimeException.class,wrapper_path);
       redlog.println(phi);
       redlog.sendEOF();
       redlog.join();

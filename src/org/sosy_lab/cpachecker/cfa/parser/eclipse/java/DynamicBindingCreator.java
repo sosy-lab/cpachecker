@@ -76,14 +76,14 @@ public class DynamicBindingCreator {
   // tracks all methods as FunctionEntryNodes and declared Class that override
   // the former method.
   //  (methodName: <packagename>_<ClassName>_<MethodName>[_<TypeOfParameter>])
-  private final Map<String , List<Pair<FunctionEntryNode, JClassOrInterfaceType>>> subMethodsOfMethod = new HashMap<String, List<Pair<FunctionEntryNode, JClassOrInterfaceType>>>();
+  private final Map<String , List<Pair<FunctionEntryNode, JClassOrInterfaceType>>> subMethodsOfMethod = new HashMap<>();
 
   // Data structure for handling dynamic Bindings.
   // For every instance method, with the fully Qualified Name as key of Map,
   // tracks all found possible Bindings which are to replace it. If the runTimeType is JClassOrInterface Typ,
   // the method called is Function Entry Node.
   //  (methodName: <packagename>_<ClassName>_<MethodName>[_<TypeOfParameter>])
-  private final Map<String , List<Pair<FunctionEntryNode, JClassOrInterfaceType>>> methodTypeBindingsOfMethod = new HashMap<String, List<Pair<FunctionEntryNode, JClassOrInterfaceType>>>();
+  private final Map<String , List<Pair<FunctionEntryNode, JClassOrInterfaceType>>> methodTypeBindingsOfMethod = new HashMap<>();
 
 
   public DynamicBindingCreator(CFABuilder builder) {
@@ -129,15 +129,15 @@ public class DynamicBindingCreator {
   private void completeMethodBindings() {
 
     for( String key :  subMethodsOfMethod.keySet()) {
-      methodTypeBindingsOfMethod.put(key, new LinkedList<Pair<FunctionEntryNode,JClassOrInterfaceType>>(subMethodsOfMethod.get(key)));
+      methodTypeBindingsOfMethod.put(key, new LinkedList<>(subMethodsOfMethod.get(key)));
     }
 
 
 
 
-    Map<String , List<Pair<FunctionEntryNode, JClassOrInterfaceType>>> workMap = new HashMap<String, List<Pair<FunctionEntryNode, JClassOrInterfaceType>>>();
+    Map<String , List<Pair<FunctionEntryNode, JClassOrInterfaceType>>> workMap = new HashMap<>();
     for( String key :  subMethodsOfMethod.keySet()) {
-      workMap.put(key, new LinkedList<Pair<FunctionEntryNode,JClassOrInterfaceType>>(subMethodsOfMethod.get(key)));
+      workMap.put(key, new LinkedList<>(subMethodsOfMethod.get(key)));
     }
 
 

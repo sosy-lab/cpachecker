@@ -69,8 +69,8 @@ public class CFACheck {
 
     if (nodes != null) {
       if (!visitedNodes.equals(nodes)) {
-        assert false : "\nNodes in CFA but not reachable through traversal: " + Iterables.transform(Sets.difference(new HashSet<CFANode>(nodes), visitedNodes), DEBUG_FORMAT)
-                     + "\nNodes reached that are not in CFA: " + Iterables.transform(Sets.difference(visitedNodes, new HashSet<CFANode>(nodes)), DEBUG_FORMAT);
+        assert false : "\nNodes in CFA but not reachable through traversal: " + Iterables.transform(Sets.difference(new HashSet<>(nodes), visitedNodes), DEBUG_FORMAT)
+                     + "\nNodes reached that are not in CFA: " + Iterables.transform(Sets.difference(visitedNodes, new HashSet<>(nodes)), DEBUG_FORMAT);
       }
     }
     return true;

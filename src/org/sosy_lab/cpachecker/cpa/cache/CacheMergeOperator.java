@@ -38,7 +38,7 @@ public class CacheMergeOperator implements MergeOperator {
 
   public CacheMergeOperator(MergeOperator pCachedMergeOperator) {
     mCachedMergeOperator = pCachedMergeOperator;
-    mCache = new HashMap<Precision, Map<AbstractState, Map<AbstractState, AbstractState>>>();
+    mCache = new HashMap<>();
   }
 
   @Override

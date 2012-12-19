@@ -102,7 +102,7 @@ public class ExplicitInterpolator {
       String currentVariable,
       Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
     try {
-      ExplicitState successor     = new ExplicitState(new HashMap<String, Long>(inputInterpolant));
+      ExplicitState successor     = new ExplicitState(new HashMap<>(inputInterpolant));
       ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
 
       Long currentVariableValue       = null;

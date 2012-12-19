@@ -83,8 +83,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     return functionManager.isUninterpretedFunctionCall(funcDecl, pBits);
   }
 
-  private Map<Integer[], FunctionFormulaType<BitvectorFormula>> extractMethods =
-      new Hashtable<Integer[], FunctionFormulaType<BitvectorFormula>>();
+  private Map<Integer[], FunctionFormulaType<BitvectorFormula>> extractMethods = new Hashtable<>();
   @SuppressWarnings("unchecked")
   private FunctionFormulaType<BitvectorFormula> getExtractDecl (int pMsb, int pLsb){
     Integer[] hasKey = new Integer[]{pMsb, pLsb};

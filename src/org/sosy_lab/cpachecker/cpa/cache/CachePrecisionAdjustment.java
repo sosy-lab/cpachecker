@@ -46,7 +46,7 @@ public class CachePrecisionAdjustment implements PrecisionAdjustment {
   public CachePrecisionAdjustment(PrecisionAdjustment pCachedPrecisionAdjustment) {
     mCachedPrecisionAdjustment = pCachedPrecisionAdjustment;
     //mCache = new HashMap<AbstractState, Map<Precision, Triple<AbstractState, Precision, Action>>>();
-    mCache = new HashMap<Precision, Map<AbstractState, Triple<AbstractState, Precision, Action>>>();
+    mCache = new HashMap<>();
   }
 
   @Override

@@ -103,11 +103,11 @@ public class ReplacingFormulaManager implements FormulaManager {
   public <T1 extends Formula, T2 extends Formula> T1 simpleWrap(Class<T1> clazz, T2 toWrap){
     Formula f;
     if (clazz == BitvectorFormula.class){
-      f = new WrappingBitvectorFormula<T2>(toWrap);
+      f = new WrappingBitvectorFormula<>(toWrap);
     }else if (clazz == RationalFormula.class){
-      f = new WrappingRationalFormula<T2>(toWrap);
+      f = new WrappingRationalFormula<>(toWrap);
     }else if (clazz == BooleanFormula.class){
-      f = new WrappingBooleanFormula<T2>(toWrap);
+      f = new WrappingBooleanFormula<>(toWrap);
     }else {
       throw new IllegalArgumentException("cant wrap this type");
     }

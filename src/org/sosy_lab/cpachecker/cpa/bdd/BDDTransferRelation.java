@@ -123,8 +123,7 @@ public class BDDTransferRelation implements TransferRelation {
   private boolean compressIntEqual = true;
 
   private final VariableClassification varClass;
-  private final Map<Multimap<String, String>, String> varsToTmpVar =
-      new HashMap<Multimap<String, String>, String>();
+  private final Map<Multimap<String, String>, String> varsToTmpVar = new HashMap<>();
 
   /** This map is used for scoping vars. It contains all used vars of a function. */
   private final Multimap<String, Region> functionToVars = LinkedHashMultimap.create();

@@ -124,7 +124,7 @@ public class PredicateAbstractionManager {
     solver = pSolver;
 
     if (useCache) {
-      abstractionCache = new HashMap<Pair<BooleanFormula, Collection<AbstractionPredicate>>, AbstractionFormula>();
+      abstractionCache = new HashMap<>();
     } else {
       abstractionCache = null;
     }
