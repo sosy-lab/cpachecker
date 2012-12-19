@@ -102,6 +102,49 @@ public final class CSimpleType implements CType {
   }
 
   @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + (isComplex ? 1231 : 1237);
+    result = prime * result + (isImaginary ? 1231 : 1237);
+    result = prime * result + (isLong ? 1231 : 1237);
+    result = prime * result + (isLongLong ? 1231 : 1237);
+    result = prime * result + (isShort ? 1231 : 1237);
+    result = prime * result + (isSigned ? 1231 : 1237);
+    result = prime * result + (isUnsigned ? 1231 : 1237);
+    result = prime * result + ((type == null) ? 0 : type.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (!super.equals(obj))
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    CSimpleType other = (CSimpleType) obj;
+    if (isComplex != other.isComplex)
+      return false;
+    if (isImaginary != other.isImaginary)
+      return false;
+    if (isLong != other.isLong)
+      return false;
+    if (isLongLong != other.isLongLong)
+      return false;
+    if (isShort != other.isShort)
+      return false;
+    if (isSigned != other.isSigned)
+      return false;
+    if (isUnsigned != other.isUnsigned)
+      return false;
+    if (type != other.type)
+      return false;
+    return true;
+  }
+
+  @Override
   public String toASTString(String pDeclarator) {
     List<String> parts = new ArrayList<String>();
 

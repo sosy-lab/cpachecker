@@ -25,6 +25,34 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 public final class CElaboratedType implements CType {
 
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((kind == null) ? 0 : kind.hashCode());
+    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (!super.equals(obj))
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    CElaboratedType other = (CElaboratedType) obj;
+    if (kind != other.kind)
+      return false;
+    if (name == null) {
+      if (other.name != null)
+        return false;
+    } else if (!name.equals(other.name))
+      return false;
+    return true;
+  }
+
   private final ElaboratedType kind;
   private final String   name;
   private boolean   isConst;

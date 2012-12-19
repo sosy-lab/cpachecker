@@ -31,4 +31,10 @@ public interface CType extends Type {
 
   public boolean isVolatile();
 
+  @Override
+  public int hashCode();
+
+  @Override
+  public boolean equals(Object obj);
+
 }

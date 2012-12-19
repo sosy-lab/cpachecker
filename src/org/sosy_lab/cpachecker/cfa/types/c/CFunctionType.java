@@ -40,6 +40,45 @@ public class CFunctionType extends AFunctionType implements CType {
   private boolean   isConst;
   private boolean   isVolatile;
 
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    result = prime * result + ((parameters == null) ? 0 : parameters.hashCode());
+    result = prime * result + ((returnType == null) ? 0 : returnType.hashCode());
+    result = prime * result + (takesVarArgs ? 1231 : 1237);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (!super.equals(obj))
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    CFunctionType other = (CFunctionType) obj;
+    if (name == null) {
+      if (other.name != null)
+        return false;
+    } else if (!name.equals(other.name))
+      return false;
+    if (parameters == null) {
+      if (other.parameters != null)
+        return false;
+    } else if (!parameters.equals(other.parameters))
+      return false;
+    if (returnType == null) {
+      if (other.returnType != null)
+        return false;
+    } else if (!returnType.equals(other.returnType))
+      return false;
+    if (takesVarArgs != other.takesVarArgs)
+      return false;
+    return true;
+  }
 
   public CFunctionType(
       boolean pConst,
