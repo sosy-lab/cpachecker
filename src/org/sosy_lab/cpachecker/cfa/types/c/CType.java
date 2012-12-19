@@ -22,7 +22,6 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
-
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public interface CType extends Type {

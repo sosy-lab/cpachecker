@@ -109,5 +109,4 @@ public final class CPointerType implements CType {
         + (isVolatile() ? "volatile " : "")
         + decl;
   }
-
 }

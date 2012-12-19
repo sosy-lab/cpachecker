@@ -59,7 +59,8 @@ public enum MachineModel {
 
       // other
       1, // void
-      1  // bool
+      1, // bool
+      4  // pointer
       ),
 
   /**
@@ -77,7 +78,8 @@ public enum MachineModel {
 
       // other
       1, // void
-      1  // bool
+      1, // bool
+      8  // pointer
       );
 
   // numeric types
@@ -92,13 +94,14 @@ public enum MachineModel {
   // other
   private final int     sizeofVoid;
   private final int     sizeofBool;
+  private final int     sizeofPtr;
 
   // according to ANSI C, sizeof(char) is always 1
   private final int mSizeofChar = 1;
 
   private MachineModel(int pSizeofShort, int pSizeofInt, int pSizeofLongInt,
       int pSizeofLongLongInt, int pSizeofFloat, int pSizeofDouble,
-      int pSizeofLongDouble, int pSizeofVoid, int pSizeofBool) {
+      int pSizeofLongDouble, int pSizeofVoid, int pSizeofBool, int pSizeOfPtr) {
     sizeofShort = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
@@ -108,6 +111,7 @@ public enum MachineModel {
     sizeofLongDouble = pSizeofLongDouble;
     sizeofVoid = pSizeofVoid;
     sizeofBool = pSizeofBool;
+    sizeofPtr = pSizeOfPtr;
   }
 
   public int getSizeofShort() {
@@ -150,6 +154,10 @@ public enum MachineModel {
     return mSizeofChar;
   }
 
+  public int getSizeofPtr() {
+    return sizeofPtr;
+  }
+
   public int getSizeof(CSimpleType type) {
     switch (type.getType()) {
     case VOID:        return getSizeofVoid();
@@ -189,6 +197,7 @@ public enum MachineModel {
       @Override
       public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
         int size = 0;
+        // TODO: Take possible padding into account
         for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
           size += getSizeof(decl.getType());
         }
@@ -209,7 +218,7 @@ public enum MachineModel {
       @Override
       public Integer visit(CFunctionPointerType pFunctionPointerType) throws IllegalArgumentException {
         // TODO: This has to be checked
-        return getSizeofInt();
+        return getSizeofPtr();
       }
 
       @Override
@@ -221,7 +230,7 @@ public enum MachineModel {
       @Override
       public Integer visit(CPointerType pPointerType) throws IllegalArgumentException {
         // TODO: This has to be checked (Example: Char*)
-        return getSizeofInt();
+        return getSizeofPtr();
       }
 
       @Override
