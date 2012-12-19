@@ -27,11 +27,20 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 public class SMGObject {
   final private int size_in_bytes;
   final private String label;
+  final private boolean nullObject;
 
   public SMGObject(int pSize_in_bytes, String pLabel) {
     super();
     size_in_bytes = pSize_in_bytes;
     label = pLabel;
+    nullObject = false;
+  }
+
+  public SMGObject(){
+    super();
+    size_in_bytes = 0;
+    label = "NULL";
+    nullObject = true;
   }
 
   public String getLabel() {
@@ -45,5 +54,9 @@ public class SMGObject {
   @Override
   public String toString() {
     return label + "(" + size_in_bytes + "b)";
+  }
+
+  public boolean notNull() {
+    return !nullObject;
   }
 }

@@ -128,7 +128,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     Integer value = new Integer(4); //TODO: Implement a real value creation from the expression
 
-    newState.insertNewValue(value);
+    newState.addValue(value);
     SMGEdgeHasValue newEdge = new SMGEdgeHasValue(pType, 0, assigned, value);
     newState.insertNewHasValueEdge(newEdge);
 

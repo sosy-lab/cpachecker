@@ -31,8 +31,6 @@ public class SMGState implements AbstractState {
 
   public SMGState(){
     heap = new CLangSMG();
-    heap.createInitialFrame();
-    heap.createNullObjects();
   }
 
   public SMGState(SMGState originalState){
@@ -48,7 +46,7 @@ public class SMGState implements AbstractState {
     return heap.toString();
   }
 
-  public void insertNewValue(Integer pValue) {
+  public void addValue(Integer pValue) {
     heap.addValue(pValue);
   }
 
@@ -58,5 +56,8 @@ public class SMGState implements AbstractState {
 
   public void insertNewHasValueEdge(SMGEdgeHasValue pNewEdge) {
     heap.addHasValueEdge(pNewEdge);
+
+  public void addStackFrame(CFunctionDeclaration pFunctionDefinition) {
+    heap.addStackFrame(pFunctionDefinition);
   }
 }

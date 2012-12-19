@@ -31,18 +31,23 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 
 public class CLangSMG extends SMG {
-  private Stack<HashMap<String, SMGObject>> stack_objects;
-  private HashSet<SMGObject> heap_objects;
-  private HashMap<String, SMGObject> global_objects;
+  final Stack<CLangStackFrame> stack_objects = new Stack<CLangStackFrame>();
+  final HashSet<SMGObject> heap_objects = new HashSet<SMGObject>();
+  final HashMap<String, SMGObject> global_objects = new HashMap<String, SMGObject>();
 
   private SMGObject nullObject;
   private Integer nullAddress;
 
   public CLangSMG() {
     super();
-    stack_objects = new Stack<HashMap<String, SMGObject>>();
-    heap_objects = new HashSet<SMGObject>();
-    global_objects = new HashMap<String, SMGObject>();
+
+    nullObject = new SMGObject();
+    nullAddress = new Integer(0);
+    SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
+
+    addHeapObject(nullObject);
+    addValue(nullAddress);
+    addPointsToEdge(nullPointer);
   }
 
   public CLangSMG(CLangSMG pHeap) {
@@ -50,31 +55,13 @@ public class CLangSMG extends SMG {
     nullAddress = pHeap.nullAddress;
     nullObject = pHeap.nullObject;
 
-    stack_objects = new Stack<HashMap<String, SMGObject>>();
-    heap_objects = new HashSet<SMGObject>();
-    global_objects = new HashMap<String, SMGObject>();
-
-    for (HashMap<String, SMGObject> stack_item : pHeap.stack_objects){
-      HashMap<String, SMGObject> si = new HashMap<String, SMGObject>();
-      si.putAll(stack_item);
-      stack_objects.push(si);
+    for (CLangStackFrame stack_frame : pHeap.stack_objects){
+      CLangStackFrame new_frame = new CLangStackFrame(stack_frame);
+      stack_objects.push(new_frame);
     }
+
     heap_objects.addAll(pHeap.heap_objects);
     global_objects.putAll(pHeap.global_objects);
-  }
-
-  public void createInitialFrame(){
-    stack_objects.add(new HashMap<String, SMGObject>());
-  }
-
-  public void createNullObjects(){
-    nullObject = new SMGObject(0, "NULL");
-    nullAddress = new Integer(0);
-    SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
-
-    addHeapObject(nullObject);
-    addValue(nullAddress);
-    addPointsToEdge(nullPointer);
   }
 
   public void addHeapObject(SMGObject pObject) {
@@ -84,7 +71,7 @@ public class CLangSMG extends SMG {
 
   public void addStackObject(SMGObject pObj) {
     super.addObject(pObj);
-    stack_objects.peek().put(pObj.getLabel(), pObj);
+    stack_objects.peek().addStackVariable(pObj.getLabel(), pObj);
   }
 
   @Override
@@ -95,8 +82,8 @@ public class CLangSMG extends SMG {
 
   public SMGObject getObjectForVariable(CIdExpression pVariableName) {
     // Look in the local state
-    if (stack_objects.peek().containsKey(pVariableName.getName())){
-      return stack_objects.peek().get(pVariableName.getName());
+    if (stack_objects.peek().containsVariable(pVariableName.getName())){
+      return stack_objects.peek().getVariable(pVariableName.getName());
     }
     if (global_objects.containsKey(pVariableName.getName())){
       return global_objects.get(pVariableName.getName());
@@ -106,5 +93,49 @@ public class CLangSMG extends SMG {
 
   public void addHasValueEdge(SMGEdgeHasValue pNewEdge) {
     hv_edges.add(pNewEdge);
+
+  public void addStackFrame(CFunctionDeclaration pFunctionDeclaration) {
+    CLangStackFrame newFrame = new CLangStackFrame(pFunctionDeclaration);
+    stack_objects.push(newFrame);
+  }
+}
+
+final class CLangStackFrame{
+  private final CFunctionDeclaration stackFunction;
+  final HashMap <String, SMGObject> stack_variables = new HashMap<String, SMGObject>();
+
+  public CLangStackFrame(CFunctionDeclaration pFunctionDeclaration){
+    stackFunction = pFunctionDeclaration;
+  }
+
+  public SMGObject getVariable(String pName) {
+    return stack_variables.get(pName);
+  }
+
+  public boolean containsVariable(String pName) {
+    return stack_variables.containsKey(pName);
+  }
+
+  public void addStackVariable(String pLabel, SMGObject pObj) {
+    stack_variables.put(pLabel, pObj);
+  }
+
+  public CLangStackFrame(CLangStackFrame origFrame){
+    stackFunction = origFrame.stackFunction;
+    stack_variables.putAll(origFrame.stack_variables);
+  }
+
+  public String getFunctionSignature() {
+    return stackFunction.toASTString();
+  }
+
+  public HashMap<String, SMGObject> getVariables() {
+    HashMap<String, SMGObject> variableMap = new HashMap<String, SMGObject>();
+    variableMap.putAll(stack_variables);
+    return variableMap;
+  }
+
+  public String getFunctionName() {
+    return stackFunction.getName();
   }
 }

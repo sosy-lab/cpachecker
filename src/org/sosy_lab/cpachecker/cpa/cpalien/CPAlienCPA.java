@@ -103,6 +103,8 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
   @Override
   public AbstractState getInitialState(CFANode pNode) {
     SMGState initState = new SMGState();
+    CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
+    initState.addStackFrame(functionNode.getFunctionDefinition());
     return initState;
   }
 
