@@ -82,6 +82,18 @@ public final class CPointerType implements CType {
   }
 
   @Override
+  public String toString() {
+    String decl;
+
+    decl = "(" + type.toString() + ")*";
+
+
+    return (isConst() ? "const " : "")
+        + (isVolatile() ? "volatile " : "")
+        + decl;
+  }
+
+  @Override
   public String toASTString(String pDeclarator) {
     // ugly hack but it works:
     // We need to insert the "*" between the type and the name (e.g. "int *var").

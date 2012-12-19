@@ -127,6 +127,11 @@ public class CFunctionType extends AFunctionType implements CType {
   }
 
   @Override
+  public String toString() {
+    return getName();
+  }
+
+  @Override
   public String toASTString(String pDeclarator) {
     StringBuilder lASTString = new StringBuilder();
 

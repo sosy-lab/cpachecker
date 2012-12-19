@@ -104,4 +104,11 @@ public class CArrayType extends AArrayType implements CType {
   public boolean isVolatile() {
     return isVolatile;
   }
+
+  @Override
+  public String toString() {
+    return (isConst() ? "const " : "")
+        + (isVolatile() ? "volatile " : "")
+        + "("+ getType().toString() + (")[" + (length != null ? length.toASTString() : "") + "]");
+  }
 }

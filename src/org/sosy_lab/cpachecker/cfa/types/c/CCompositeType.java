@@ -106,6 +106,12 @@ public final class CCompositeType implements CType {
   public static final int k_struct = 1;
   public static final int k_union  = 2;
 
+
+  @Override
+  public String toString() {
+    return getName();
+  }
+
   @Override
   public String toASTString(String pDeclarator) {
     StringBuilder lASTString = new StringBuilder();

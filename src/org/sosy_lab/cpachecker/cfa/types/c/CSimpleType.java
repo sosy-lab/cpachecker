@@ -150,6 +150,11 @@ public final class CSimpleType implements CType {
   }
 
   @Override
+  public String toString() {
+    return toASTString("");
+  }
+
+  @Override
   public String toASTString(String pDeclarator) {
     List<String> parts = new ArrayList<String>();
 

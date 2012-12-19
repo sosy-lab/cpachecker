@@ -125,6 +125,11 @@ public class CFunctionPointerType implements CType {
   }
 
   @Override
+  public String toString() {
+    return this.getName();
+  }
+
+  @Override
   public String toASTString(String pDeclarator) {
     StringBuilder lASTString = new StringBuilder();
 

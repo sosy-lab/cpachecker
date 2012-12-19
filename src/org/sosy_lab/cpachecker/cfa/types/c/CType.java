@@ -30,6 +30,9 @@ public interface CType extends Type {
 
   public boolean isConst();
 
+  @Override
+  public abstract String toString();
+
   public boolean isVolatile();
 
   @Override

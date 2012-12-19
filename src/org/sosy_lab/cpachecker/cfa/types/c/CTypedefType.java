@@ -89,6 +89,11 @@ public final class CTypedefType implements CType {
   }
 
   @Override
+  public String toString() {
+    return toASTString("");
+  }
+
+  @Override
   public String toASTString(String pDeclarator) {
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")

@@ -127,6 +127,11 @@ public final class CEnumType implements CType {
     return lASTString.toString();
   }
 
+  @Override
+  public String toString() {
+    return this.toASTString("");
+  }
+
   public static final class CEnumerator extends ASimpleDeclarations implements CSimpleDeclaration {
 
     private static final CType INT_TYPE = new CSimpleType(true, false, CBasicType.INT, false, false, true, false, false, false, false);

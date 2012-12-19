@@ -97,6 +97,10 @@ public final class CElaboratedType implements CType {
 
     return lASTString.toString();
   }
+  @Override
+  public String toString() {
+    return this.toASTString("");
+  }
 
   public static enum ElaboratedType {
     ENUM,
