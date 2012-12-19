@@ -54,7 +54,10 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
 
         long cfg = msat_create_config();
         msat_set_option_checked(cfg, "interpolation", "true");
-        msat_set_option_checked( cfg, "model_generation", "true");
+        msat_set_option_checked(cfg, "model_generation", "true");
+        msat_set_option_checked(cfg, "theory.bv.eager", "false");
+        msat_set_option_checked(cfg, "theory.eq_propagation", "false");
+
         interpolEnv = mgr.createEnvironment(cfg, useSharedEnv, false);
     }
 
