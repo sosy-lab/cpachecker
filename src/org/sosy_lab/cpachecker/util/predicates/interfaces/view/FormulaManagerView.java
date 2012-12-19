@@ -121,7 +121,7 @@ public class FormulaManagerView implements FormulaManager {
   private boolean useBitwiseAxioms = false;
 
   @Option(description="replace the Bitvector with the Rational- and FunctionTheory")
-  private boolean replaceBitvectorWithRationalAndFunctionTheory = false;
+  private boolean replaceBitvectorWithRationalAndFunctionTheory = true;
 
   private LogManager logger;
 

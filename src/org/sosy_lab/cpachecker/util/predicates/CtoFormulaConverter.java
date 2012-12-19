@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -117,6 +118,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -218,7 +220,7 @@ public class CtoFormulaConverter {
       );
 
   @Option(description = "Handle implicit and explicit casts.")
-  private boolean ignoreCasts = false;
+  private boolean ignoreCasts = true;
 
   private final Set<String> printedWarnings = new HashSet<String>();
 
@@ -493,6 +495,7 @@ public class CtoFormulaConverter {
    */
   private <T extends Formula> BooleanFormula makeAssignment(Variable<T> var,
           CType left, CType right, Formula rightHandSide, SSAMapBuilder ssa) {
+    assert var.getType() == getFormulaTypeFromCType(left);
     Formula rhs = makeCast(right, left, rightHandSide);
     T lhs = makeFreshVariable(var, ssa);
 
@@ -1062,13 +1065,13 @@ public class CtoFormulaConverter {
             .getType()
             .getReturnType();
       BooleanFormula assignments = makeAssignment(
-          Variable.create(retVarName, getFormulaTypeFromCType(expressionType)),
+          Variable.create(retVarName, getFormulaTypeFromCType(returnType)),
           returnType, expressionType,
           retval, ssa);
 
       if (handlePointerAliasing) {
         // if the value to be returned may be a pointer, act accordingly
-        BooleanFormula rightAssignment = buildDirectSecondLevelAssignment(expressionType,
+        BooleanFormula rightAssignment = buildDirectSecondLevelAssignment(returnType,
             retVarName, rightExp, function, constraints, ssa);
         assignments = bfmgr.and(assignments, rightAssignment);
       }
@@ -1901,11 +1904,36 @@ public class CtoFormulaConverter {
 
       } else {
         func += "{" + pexps.size() + "}"; // add #arguments to function name to cope with varargs functions
-
+        List<CType> paramTypes =
+          from (fexp.getDeclaration().getType().getParameters())
+            .transform(new Function<CParameterDeclaration, CType>() {
+              @Override
+              public CType apply(CParameterDeclaration pInput) {
+                return pInput.getType();
+              }}).toImmutableList();
         List<Formula> args = new ArrayList<Formula>(pexps.size());
-        for (CExpression pexp : pexps) {
-          args.add(pexp.accept(this));
+        Iterator<CType> it1 = paramTypes.iterator();
+        Iterator<CExpression> it2 = pexps.iterator();
+        boolean isPrintf = fexp.getDeclaration().getName().toLowerCase().contains("printf");
+        while (it2.hasNext()) {
+          CType paramType;
+            if (it1.hasNext()) {
+              paramType = it1.next();
+            } else {
+              if (isPrintf) {
+                paramType = new CSimpleType(
+                    false, false, CBasicType.INT, false, false,
+                    false, false, false, false, false);
+              } else {
+                throw new IllegalArgumentException("To the function " + fexp.getDeclaration().toASTString() + " were given more Arguments than it has in its declaration!");
+              }
+            }
+
+           CExpression pexp = it2.next();
+           Formula arg = pexp.accept(this);
+           args.add(makeCast(pexp.getExpressionType(), paramType, arg));
         }
+        assert !it1.hasNext() && !it2.hasNext();
 
         return ffmgr.createFuncAndCall(func, t, args);
       }
@@ -2424,31 +2452,27 @@ public class CtoFormulaConverter {
       return e.getOperand().accept(this);
     }
 
-    private Formula getPointerFormula(CExpression pExp) {
-      CExpression exp = removeCast(pExp);
-
-      if (exp instanceof CIdExpression) {
-        // *a = ...
-        // *((int*) a) = ...
-        CIdExpression ptrId = (CIdExpression) exp;
-        Variable<Formula> ptrVarName = makePointerVariableName(ptrId, function, ssa);
-        makeFreshIndex(ptrVarName, ssa);
-        return makePointerVariable(ptrId, function, ssa);
-
-      } else {
-        // apparently valid cil output:
-        // *(&s.f) = ...
-        // *(s->f) = ...
-        // *(a+b) = ...
-
-        return makeUIF(exp);
-      }
-    }
-
     @Override
     public Formula visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
       if (pE.getOperator() == UnaryOperator.STAR) {
-        return getPointerFormula(pE.getOperand());
+        CExpression exp = removeCast(pE.getOperand());
+
+        if (exp instanceof CIdExpression) {
+          // *a = ...
+          // *((int*) a) = ...
+          CIdExpression ptrId = (CIdExpression) exp;
+          Variable<Formula> ptrVarName = makePointerVariableName(ptrId, function, ssa);
+          makeFreshIndex(ptrVarName, ssa);
+          return makePointerVariable(ptrId, function, ssa);
+
+        } else {
+          // apparently valid cil output:
+          // *(&s.f) = ...
+          // *(s->f) = ...
+          // *(a+b) = ...
+
+          return makeUIF(pE);
+        }
       } else {
         return super.visit(pE);
       }
