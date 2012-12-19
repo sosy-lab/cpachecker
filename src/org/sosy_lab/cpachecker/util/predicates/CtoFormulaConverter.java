@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -97,21 +98,47 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.math.IntMath;
 
 /**
  * Class containing all the code that converts C code into a formula.
  */
 @Options(prefix="cpa.predicate")
 public class CtoFormulaConverter {
+
+  static class Variable<T extends Formula> {
+    String name;
+    FormulaType<T> type;
+    public Variable(String name, FormulaType<T> type){
+      this.name = name;
+      this.type = type;
+    }
+    public Variable<T> withName(String newName) {
+      return create(newName, type);
+    }
+    public Variable<T> withType(FormulaType<T> newType) {
+      return create(name, newType);
+    }
+    public static <T extends Formula> Variable<T> create(String name, FormulaType<T> type){
+      return new Variable<T>(name, type);
+    }
+  }
 
   @Option(description="add special information to formulas about non-deterministic functions")
   protected boolean useNondetFlags = false;
@@ -202,26 +229,34 @@ public class CtoFormulaConverter {
 
   private final Set<String> printedWarnings = new HashSet<String>();
 
-  private final Map<String, Formula> stringLitToFormula = new HashMap<String, Formula>();
+  private final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<String, BitvectorFormula>();
   private int nextStringLitIndex = 0;
 
   private final MachineModel machineModel;
 
-  protected final ExtendedFormulaManager fmgr;
+  protected final FormulaManagerView fmgr;
+  protected final  BooleanFormulaManagerView bfmgr;
+  protected final  RationalFormulaManagerView nfmgr;
+  protected final  BitvectorFormulaManagerView efmgr;
+  protected final  FunctionFormulaManagerView ffmgr;
   protected final LogManager logger;
 
   private static final int                 VARIABLE_UNSET          = -1;
   private static final int                 VARIABLE_UNINITIALIZED  = 2;
 
-  public CtoFormulaConverter(Configuration config, ExtendedFormulaManager fmgr,
+  public CtoFormulaConverter(Configuration config, FormulaManagerView fmgr,
       MachineModel pMachineModel, LogManager logger)
           throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
 
     this.fmgr = fmgr;
     this.machineModel = pMachineModel;
-    this.logger = logger;
 
+    this.bfmgr = fmgr.getBooleanFormulaManager();
+    this.nfmgr = fmgr.getRationalFormulaManager();
+    this.efmgr = fmgr.getBitvectorFormulaManager();
+    this.ffmgr = fmgr.getFunctionFormulaManager();
+    this.logger = logger;
     nondetFunctionsPattern = Pattern.compile(nondetFunctionsRegexp);
   }
 
@@ -264,20 +299,38 @@ public class CtoFormulaConverter {
       logger.log(level, msg);
     }
   }
-
   /** Looks up the variable name in the current namespace. */
-  private static String scopedIfNecessary(CIdExpression var, String function) {
+  private <T extends Formula> Variable<T> scopedIfNecessary(CIdExpression var, String function) {
     CSimpleDeclaration decl = var.getDeclaration();
     boolean isGlobal = false;
     if (decl instanceof CDeclaration) {
       isGlobal = ((CDeclaration)decl).isGlobal();
     }
-
+    String name;
     if (isGlobal) {
-      return var.getName();
+      name = var.getName();
     } else {
-      return scoped(var.getName(), function);
+      name = scoped(var.getName(), function);
     }
+
+    FormulaType<T> t = getFormulaTypeFromCType(var.getExpressionType());
+    return new Variable<T>(name, t);
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T extends Formula> FormulaType<T> getFormulaTypeFromCType(CType type) {
+    int size = machineModel.getSizeof(type);
+    FormulaType<T> t = (FormulaType<T>) FormulaType.BitvectorType.getBitvectorType(size);
+    return t;
+  }
+
+  @SuppressWarnings("unused")
+  private boolean isSignedType(CType pType) {
+    if (pType instanceof CSimpleType){
+      return !((CSimpleType)pType).isUnsigned();
+    }
+    // Default behaviour, structs for example
+    return false;
   }
 
   /** prefixes function to variable name
@@ -367,15 +420,18 @@ public class CtoFormulaConverter {
    * Create a formula for a given variable, which is assumed to be constant.
    * This method does not handle scoping!
    */
-  private Formula makeConstant(String var, SSAMapBuilder ssa) {
+  private <T extends Formula> T makeConstant(Variable<T> var, SSAMapBuilder ssa) {
     // TODO better use variables without index (this piece of code prevents
     // SSAMapBuilder from checking for strict monotony)
-    int idx = ssa.getIndex(var);
+    String varName = var.name;
+    int idx = ssa.getIndex(varName);
     assert idx <= 1 : var + " is assumed to be constant there was an assignment to it";
     if (idx != 1) {
-      ssa.setIndex(var, 1); // set index so that predicates will be instantiated correctly
+      ssa.setIndex(varName, 1); // set index so that predicates will be instantiated correctly
     }
-    return fmgr.makeVariable(var, 1);
+
+    return fmgr.makeVariable(var.type, varName, 1);
+    //return fmgr.makeVariable(var, 1);
   }
 
   /**
@@ -384,9 +440,10 @@ public class CtoFormulaConverter {
    *
    * This method does not update the index of the variable.
    */
-  private Formula makeVariable(String varName, SSAMapBuilder ssa) {
+  private <T extends Formula> T makeVariable(Variable<T> var, SSAMapBuilder ssa) {
+    String varName = var.name;
     int idx = getIndex(varName, ssa);
-    return fmgr.makeVariable(varName, idx);
+    return fmgr.makeVariable(var.type, varName, idx);
   }
 
   /**
@@ -394,15 +451,19 @@ public class CtoFormulaConverter {
    * side of an assignment.
    * This method does not handle scoping and the NON_DET_VARIABLE!
    */
-  private Formula makeFreshVariable(String varName, SSAMapBuilder ssa) {
+  private  <T extends Formula> T makeFreshVariable(Variable<T> var, SSAMapBuilder ssa) {
+    String varName = var.name;
+
     int idx = makeFreshIndex(varName, ssa);
-    return fmgr.makeVariable(varName, idx);
+    return fmgr.makeVariable(var.type, varName, idx);
   }
 
   /** Returns the pointer variable belonging to a given IdExpression */
-  private Formula makePointerVariable(CIdExpression expr, String function,
+  private <T extends Formula> T makePointerVariable(CIdExpression expr, String function,
       SSAMapBuilder ssa) {
-    String ptrVarName = makePointerVariableName(expr, function, ssa);
+    Variable<T> ptrVarName = makePointerVariableName(expr, function, ssa);
+//    Variable<BitpreciseFormula> t =
+//          new Variable<BitpreciseFormula>(ptrVarName, getFormulaTypeFromCType(expr.getExpressionType()));
     return makeVariable(ptrVarName, ssa);
   }
 
@@ -422,11 +483,11 @@ public class CtoFormulaConverter {
   }
 
   /** Returns the pointer variable name corresponding to a given IdExpression */
-  private String makePointerVariableName(CIdExpression expr,
+  private <T extends Formula> Variable<T> makePointerVariableName(CIdExpression expr,
       String function, SSAMapBuilder ssa) {
 
-    String scopedId = scopedIfNecessary(expr, function);
-    return makePointerMask(scopedId, ssa);
+    Variable<T> scopedId = scopedIfNecessary(expr, function);
+    return new Variable<T>(makePointerMask(scopedId.name, ssa), scopedId.type);
   }
 
   /**Returns the concatenation of MEMORY_ADDRESS_VARIABLE_PREFIX and varName */
@@ -442,11 +503,16 @@ public class CtoFormulaConverter {
    * @param ssa
    * @return the new Formula (lhs = rhs)
    */
-  private Formula makeAssignment(String varName,
-          Formula rightHandSide, SSAMapBuilder ssa) {
+  private <T extends Formula> BooleanFormula makeAssignment(Variable<T> var,
+          T rightHandSide, SSAMapBuilder ssa) {
 
-    Formula lhs = makeFreshVariable(varName, ssa);
-    return fmgr.makeAssignment(lhs, rightHandSide);
+    T lhs = makeFreshVariable(var, ssa);
+
+    return fmgr.assignment(lhs, rightHandSide);
+  }
+
+  protected FormulaType<BitvectorFormula> getNondetType() {
+    return FormulaType.BitvectorType.getBitvectorType(machineModel.getSizeofInt());
   }
 
 //  @Override
@@ -467,7 +533,7 @@ public class CtoFormulaConverter {
     SSAMapBuilder ssa = oldFormula.getSsa().builder();
     Constraints constraints = new Constraints();
 
-    Formula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints);
+    BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints);
 
     if (useNondetFlags) {
       int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
@@ -479,8 +545,9 @@ public class CtoFormulaConverter {
         }
 
         for (int lIndex = lFlagIndex + 1; lIndex <= lNondetIndex; lIndex++) {
-          Formula lAssignment = fmgr.makeAssignment(fmgr.makeVariable(NONDET_FLAG_VARIABLE, lIndex), fmgr.makeNumber(1));
-          edgeFormula = fmgr.makeAnd(edgeFormula, lAssignment);
+          BitvectorFormula nondetVar = efmgr.makeVariable(getNondetType(), NONDET_FLAG_VARIABLE, lIndex);
+          BooleanFormula lAssignment = fmgr.assignment(nondetVar, efmgr.makeBitvector(getNondetType(), 1));
+          edgeFormula = bfmgr.and(edgeFormula, lAssignment);
         }
 
         // update ssa index of nondet flag
@@ -488,16 +555,16 @@ public class CtoFormulaConverter {
       }
     }
 
-    edgeFormula = fmgr.makeAnd(edgeFormula, constraints.get());
+    edgeFormula = bfmgr.and(edgeFormula, constraints.get());
 
     SSAMap newSsa = ssa.build();
-    if (edgeFormula.isTrue() && (newSsa == oldFormula.getSsa())) {
+    if (bfmgr.isTrue(edgeFormula) && (newSsa == oldFormula.getSsa())) {
       // formula is just "true" and SSAMap is identical
       // i.e. no writes to SSAMap, no branching and length should stay the same
       return oldFormula;
     }
 
-    Formula newFormula = fmgr.makeAnd(oldFormula.getFormula(), edgeFormula);
+    BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
     return new PathFormula(newFormula, newSsa, newLength);
   }
@@ -512,7 +579,7 @@ public class CtoFormulaConverter {
    * @return the formula for the edge
    * @throws CPATransferException
    */
-  private Formula createFormulaForEdge(CFAEdge edge, String function, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+  private BooleanFormula createFormulaForEdge(CFAEdge edge, String function, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       CStatementEdge statementEdge = (CStatementEdge) edge;
@@ -541,7 +608,7 @@ public class CtoFormulaConverter {
 
     case BlankEdge: {
       assert false : "Handled above";
-      return fmgr.makeTrue();
+      return bfmgr.makeBoolean(true);
     }
 
     case FunctionCallEdge: {
@@ -555,14 +622,14 @@ public class CtoFormulaConverter {
     }
 
     case MultiEdge: {
-      Formula multiEdgeFormula = fmgr.makeTrue();
+      BooleanFormula multiEdgeFormula = bfmgr.makeBoolean(true);
 
       // unroll the MultiEdge
       for (CFAEdge singleEdge : (MultiEdge)edge) {
         if (singleEdge instanceof BlankEdge) {
           continue;
         }
-        multiEdgeFormula = fmgr.makeAnd(multiEdgeFormula, createFormulaForEdge(singleEdge, function, ssa, constraints));
+        multiEdgeFormula = bfmgr.and(multiEdgeFormula, createFormulaForEdge(singleEdge, function, ssa, constraints));
       }
 
       return multiEdgeFormula;
@@ -573,14 +640,14 @@ public class CtoFormulaConverter {
     }
   }
 
-  private Formula makeDeclaration(
+  private BooleanFormula makeDeclaration(
       CDeclarationEdge edge, String function, SSAMapBuilder ssa,
       Constraints constraints) throws CPATransferException {
 
     if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
       // struct prototype, function declaration, typedef etc.
       logDebug("Ignoring declaration", edge);
-      return fmgr.makeTrue();
+      return bfmgr.makeBoolean(true);
     }
 
     CVariableDeclaration decl = (CVariableDeclaration)edge.getDeclaration();
@@ -592,7 +659,8 @@ public class CtoFormulaConverter {
     } else {
       varName = scoped(varNameWithoutFunction, function);
     }
-
+    FormulaType<Formula> t= getFormulaTypeFromCType(decl.getType());
+    Variable<Formula> var = new Variable<Formula>(varName, t);
     // TODO get the type of the variable, and act accordingly
 
     // if the var is unsigned, add the constraint that it should
@@ -632,19 +700,19 @@ public class CtoFormulaConverter {
     }
 
     if (init == null) {
-      return fmgr.makeTrue();
+      return bfmgr.makeBoolean(true);
     }
 
     // initializer value present
 
     Formula minit = buildTerm(init, edge, function, ssa, constraints);
-    Formula assignments = makeAssignment(varName, minit, ssa);
+    BooleanFormula assignments = makeAssignment(var, minit, ssa);
 
     if (handlePointerAliasing) {
       // we need to add the pointer alias
-      Formula pAssign = buildDirectSecondLevelAssignment(decl.getType(), varName,
+      BooleanFormula pAssign = buildDirectSecondLevelAssignment(decl.getType(), varName,
           removeCast(init), function, constraints, ssa);
-      assignments = fmgr.makeAnd(pAssign, assignments);
+      assignments = bfmgr.and(pAssign, assignments);
 
       // no need to add pointer updates:
       // the left hand variable cannot yet be aliased
@@ -654,31 +722,32 @@ public class CtoFormulaConverter {
     return assignments;
   }
 
-  private Formula makeExitFunction(CFunctionSummaryEdge ce, String function,
+  private BooleanFormula makeExitFunction(CFunctionSummaryEdge ce, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
     CFunctionCall retExp = ce.getExpression();
     if (retExp instanceof CFunctionCallStatement) {
       // this should be a void return, just do nothing...
-      return fmgr.makeTrue();
+      return bfmgr.makeBoolean(true);
 
     } else if (retExp instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
 
       String retVarName = scoped(VAR_RETURN_NAME, function);
-      Formula retVar = makeVariable(retVarName, ssa);
+      Variable<Formula> var = new Variable<Formula>(retVarName, getFormulaTypeFromCType(exp.getLeftHandSide().getExpressionType()));
+      Formula retVar = makeVariable(var, ssa);
       CExpression e = exp.getLeftHandSide();
 
       function = ce.getSuccessor().getFunctionName();
       Formula outvarFormula = buildLvalueTerm(e, ce, function, ssa, constraints);
-      Formula assignments = fmgr.makeAssignment(outvarFormula, retVar);
+      BooleanFormula assignments = fmgr.assignment(outvarFormula, retVar);
 
       if (handlePointerAliasing) {
         CExpression left = removeCast(e);
         if (left instanceof CIdExpression) {
-          Formula ptrAssignment = buildDirectReturnSecondLevelAssignment(
+          BooleanFormula ptrAssignment = buildDirectReturnSecondLevelAssignment(
               (CIdExpression) left, retVarName, function, ssa);
-          assignments = fmgr.makeAnd(assignments, ptrAssignment);
+          assignments = bfmgr.and(assignments, ptrAssignment);
         }
       }
 
@@ -688,7 +757,7 @@ public class CtoFormulaConverter {
     }
   }
 
-  private Formula makeFunctionCall(CFunctionCallEdge edge,
+  private BooleanFormula makeFunctionCall(CFunctionCallEdge edge,
       String callerFunction, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
     List<CExpression> actualParams = edge.getArguments();
@@ -717,7 +786,7 @@ public class CtoFormulaConverter {
     }
 
     int i = 0;
-    Formula result = fmgr.makeTrue();
+    BooleanFormula result = bfmgr.makeBoolean(true);
     for (CParameterDeclaration formalParam : formalParams) {
       // get formal parameter name
       String formalParamName = formalParam.getName();
@@ -732,19 +801,21 @@ public class CtoFormulaConverter {
       // get value of actual parameter
       Formula actualParam = buildTerm(actualParams.get(i++), edge, callerFunction, ssa, constraints);
 
-      Formula eq = makeAssignment(scoped(formalParamName, calledFunction), actualParam, ssa);
+      String varName = scoped(formalParamName, calledFunction);
 
-      result = fmgr.makeAnd(result, eq);
+      BooleanFormula eq = makeAssignment(new Variable<Formula>(varName, getFormulaTypeFromCType(formalParam.getType())), actualParam, ssa);
+
+      result = bfmgr.and(result, eq);
     }
 
     return result;
   }
 
-  private Formula makeReturn(CExpression rightExp, CReturnStatementEdge edge, String function,
+  private BooleanFormula makeReturn(CExpression rightExp, CReturnStatementEdge edge, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
     if (rightExp == null) {
       // this is a return from a void function, do nothing
-      return fmgr.makeTrue();
+      return bfmgr.makeBoolean(true);
     } else {
 
       // we have to save the information about the return value,
@@ -753,20 +824,22 @@ public class CtoFormulaConverter {
       // that will hold the return value
       Formula retval = buildTerm(rightExp, edge, function, ssa, constraints);
       String retVarName = scoped(VAR_RETURN_NAME, function);
-      Formula assignments = makeAssignment(retVarName, retval, ssa);
+
+      CType expressionType = rightExp.getExpressionType();
+      BooleanFormula assignments = makeAssignment(new Variable<Formula>(retVarName, getFormulaTypeFromCType(expressionType)), retval, ssa);
 
       if (handlePointerAliasing) {
         // if the value to be returned may be a pointer, act accordingly
-        Formula rightAssignment = buildDirectSecondLevelAssignment(null,
+        BooleanFormula rightAssignment = buildDirectSecondLevelAssignment(expressionType,
             retVarName, rightExp, function, constraints, ssa);
-        assignments = fmgr.makeAnd(assignments, rightAssignment);
+        assignments = bfmgr.and(assignments, rightAssignment);
       }
 
       return assignments;
     }
   }
 
-  private Formula makeAssume(CAssumeEdge assume, String function,
+  private BooleanFormula makeAssume(CAssumeEdge assume, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
     return makePredicate(assume.getExpression(), assume.getTruthAssumption(),
@@ -775,7 +848,9 @@ public class CtoFormulaConverter {
 
   private Formula buildTerm(CExpression exp, CFAEdge edge, String function,
       SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
-    return toNumericFormula(exp.accept(getCExpressionVisitor(edge, function, ssa, constraints)));
+    //FormulaType<BitvectorFormula> t = getFormulaTypeFromCType(exp.getExpressionType());
+    //return bfmgr.toBitpreciseFormula(t, exp.accept(getCExpressionVisitor(edge, function, ssa, constraints)));
+    return exp.accept(getCExpressionVisitor(edge, function, ssa, constraints));
   }
 
   private Formula buildLvalueTerm(CExpression exp, CFAEdge edge, String function,
@@ -783,7 +858,7 @@ public class CtoFormulaConverter {
     return exp.accept(getLvalueVisitor(edge, function, ssa, constraints));
   }
 
-  private Formula buildDirectReturnSecondLevelAssignment(CIdExpression leftId,
+  private BooleanFormula buildDirectReturnSecondLevelAssignment(CIdExpression leftId,
       String retVarName, String function, SSAMapBuilder ssa) {
 
     // include aliases if the left or right side may be a pointer a pointer
@@ -791,23 +866,25 @@ public class CtoFormulaConverter {
         || maybePointer((CType) null, retVarName, ssa)) {
       // we assume that either the left or the right hand side is a pointer
       // so we add the equality: *l = *r
-      Formula lPtrVar = makePointerVariable(leftId, function, ssa);
+      BitvectorFormula lPtrVar = makePointerVariable(leftId, function, ssa);
       String retPtrVarName = makePointerMask(retVarName, ssa);
-      Formula retPtrVar = makeVariable(retPtrVarName, ssa);
-      return fmgr.makeAssignment(lPtrVar, retPtrVar);
+
+      Formula retPtrVar = makeVariable(new Variable<Formula>(retPtrVarName, getFormulaTypeFromCType(leftId.getExpressionType())), ssa);
+      return fmgr.assignment(lPtrVar, retPtrVar);
 
     } else {
       // we can assume, that no pointers are affected in this assignment
-      return fmgr.makeTrue();
+      return bfmgr.makeBoolean(true);
     }
   }
 
-  private Formula buildDirectSecondLevelAssignment(CType lType,
+  private BooleanFormula buildDirectSecondLevelAssignment(CType lType,
       String lVarName, CRightHandSide pRight, String function,
       Constraints constraints, SSAMapBuilder ssa) {
 
     CRightHandSide right = removeCast(pRight);
-    Formula lVar = makeVariable(lVarName, ssa);
+    FormulaType<BitvectorFormula> lFormulaType = getFormulaTypeFromCType(lType);
+    BitvectorFormula lVar = makeVariable(new Variable<BitvectorFormula>(lVarName,lFormulaType), ssa);
 
     if (isVariable(right)) {
       // C statement like: s1 = s2;
@@ -818,13 +895,13 @@ public class CtoFormulaConverter {
         // we assume that either the left or the right hand side is a pointer
         // so we add the equality: *l = *r
         String lPVarName = makePointerMask(lVarName, ssa);
-        Formula lPtrVar = makeVariable(lPVarName, ssa);
-        Formula rPtrVar = makePointerVariable(rIdExp, function, ssa);
-        return fmgr.makeAssignment(lPtrVar, rPtrVar);
+        BitvectorFormula lPtrVar = makeVariable(new Variable<BitvectorFormula>(lPVarName,lFormulaType), ssa);
+        BitvectorFormula rPtrVar = makePointerVariable(rIdExp, function, ssa);
+        return fmgr.assignment(lPtrVar, rPtrVar);
 
       } else {
         // we can assume, that no pointers are affected in this assignment
-        return fmgr.makeTrue();
+        return bfmgr.makeBoolean(true);
       }
 
     } else if (isPointerDereferencing(right)) {
@@ -833,17 +910,17 @@ public class CtoFormulaConverter {
       String lPtrVarName = makePointerMask(lVarName, ssa);
       makeFreshIndex(lPtrVarName, ssa);
       removeOldPointerVariablesFromSsaMap(lPtrVarName, ssa);
-      Formula lPtrVar = makeVariable(lPtrVarName, ssa);
+      BitvectorFormula lPtrVar = makeVariable(new Variable<BitvectorFormula>(lPtrVarName,lFormulaType), ssa);
 
       CExpression rExpr = removeCast(((CUnaryExpression) right).getOperand());
       if (!(rExpr instanceof CIdExpression)) {
         // these are statements like s1 = *(s2.f)
         // TODO check whether doing nothing is correct
-        return fmgr.makeTrue();
+        return bfmgr.makeBoolean(true);
       }
 
       CIdExpression rIdExpr = (CIdExpression)rExpr;
-      Formula rPtrVar = makePointerVariable(rIdExpr, function, ssa);
+      BitvectorFormula rPtrVar = makePointerVariable(rIdExpr, function, ssa);
 
       // the dealiased address of the right hand side may be a pointer itself.
       // to ensure tracking, we need to set the left side
@@ -855,23 +932,23 @@ public class CtoFormulaConverter {
         String varName = removePointerMask(ptrVarName);
         if (!varName.equals(lVarName)) {
 
-          Formula var = makeVariable(varName, ssa);
-          Formula ptrVar = makeVariable(ptrVarName, ssa);
+          BitvectorFormula var = makeVariable(new Variable<BitvectorFormula>(varName,lFormulaType), ssa);
+          BitvectorFormula ptrVar = makeVariable(new Variable<BitvectorFormula>(ptrVarName,lFormulaType), ssa);
 
-          Formula ptr = fmgr.makeEqual(rPtrVar, var);
+          BooleanFormula ptr = efmgr.equal(rPtrVar, var);
 
-          Formula dirEq = fmgr.makeEqual(lVar, var);
-          Formula indirEq = fmgr.makeEqual(lPtrVar, ptrVar);
-          Formula consequence = fmgr.makeAnd(dirEq, indirEq);
+          BooleanFormula dirEq = efmgr.equal(lVar, var);
+          BooleanFormula indirEq = efmgr.equal(lPtrVar, ptrVar);
+          BooleanFormula consequence = bfmgr.and(dirEq, indirEq);
 
-          Formula constraint = fmgr.makeImplication(ptr, consequence);
+          BooleanFormula constraint = bfmgr.implication(ptr, consequence);
 
           constraints.addConstraint(constraint);
         }
       }
 
       // no need to add a second level assignment
-      return fmgr.makeTrue();
+      return bfmgr.makeBoolean(true);
 
     } else if (isMemoryLocation(right)) {
       // s = &x
@@ -882,19 +959,19 @@ public class CtoFormulaConverter {
         CExpression rOperand =
             removeCast(((CUnaryExpression) right).getOperand());
         if (rOperand instanceof CIdExpression) {
-          String rVarName = scopedIfNecessary((CIdExpression) rOperand, function);
-          Formula rVar = makeVariable(rVarName, ssa);
+          Variable<BitvectorFormula> rVarName = scopedIfNecessary((CIdExpression) rOperand, function);
+          BitvectorFormula rVar = makeVariable(rVarName, ssa);
 
           String lPtrVarName = makePointerMask(lVarName, ssa);
-          Formula lPtrVar = makeVariable(lPtrVarName, ssa);
+          BitvectorFormula lPtrVar = makeVariable(rVarName.withName(lPtrVarName), ssa);
 
-          return fmgr.makeAssignment(lPtrVar, rVar);
+          return fmgr.assignment(lPtrVar, rVar);
         }
       }
 
       // s = malloc()
       // has been handled already
-      return fmgr.makeTrue();
+      return bfmgr.makeBoolean(true);
 
     } else {
       // s = 1
@@ -905,25 +982,26 @@ public class CtoFormulaConverter {
       // s = a[i]
 
       // no second level assignment necessary
-      return fmgr.makeTrue();
+      return bfmgr.makeBoolean(true);
     }
   }
 
-  private Formula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
+  private BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
       String function, SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
 
-    Formula result = toBooleanFormula(exp.accept(getCExpressionVisitor(edge, function, ssa, constraints)));
+    Formula f = exp.accept(getCExpressionVisitor(edge, function, ssa, constraints));
+    BooleanFormula result = fmgr.toBooleanFormula(f);
 
     if (!isTrue) {
-      result = fmgr.makeNot(result);
+      result = bfmgr.not(result);
     }
     return result;
   }
 
-  public Formula makePredicate(CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+  public BooleanFormula makePredicate(CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     Constraints constraints = new Constraints();
-    Formula f = makePredicate(exp, true, edge, function, ssa, constraints);
-    return fmgr.makeAnd(f, constraints.get());
+    BooleanFormula f = makePredicate(exp, true, edge, function, ssa, constraints);
+    return bfmgr.and(f, constraints.get());
   }
 
   private ExpressionToFormulaVisitor getCExpressionVisitor(CFAEdge pEdge, String pFunction,
@@ -947,21 +1025,6 @@ public class CtoFormulaConverter {
     }
   }
 
-  private Formula toBooleanFormula(Formula f) {
-    // If this is not a predicate, make it a predicate by adding a "!= 0"
-    if (!fmgr.isBoolean(f)) {
-      Formula z = fmgr.makeNumber(0);
-      f = fmgr.makeNot(fmgr.makeEqual(f, z));
-    }
-    return f;
-  }
-
-  private Formula toNumericFormula(Formula f) {
-    if (fmgr.isBoolean(f)) {
-      f = fmgr.makeIfThenElse(f, fmgr.makeNumber(1), fmgr.makeNumber(0));
-    }
-    return f;
-  }
 
   private static boolean isVariable(CAstNode exp) {
     return exp instanceof CIdExpression;
@@ -1005,7 +1068,7 @@ public class CtoFormulaConverter {
     if (exp instanceof CIdExpression) {
       CIdExpression idExp = (CIdExpression) exp;
       CType type = exp.getExpressionType();
-      return maybePointer(type, scopedIfNecessary(idExp, function), ssa);
+      return maybePointer(type, scopedIfNecessary(idExp, function).name, ssa);
     }
 
     return false;
@@ -1086,13 +1149,13 @@ public class CtoFormulaConverter {
    */
   private class Constraints {
 
-    private Formula constraints = fmgr.makeTrue();
+    private BooleanFormula constraints = bfmgr.makeBoolean(true);
 
-    private void addConstraint(Formula pCo) {
-      constraints = fmgr.makeAnd(constraints, pCo);
+    private void addConstraint(BooleanFormula pCo) {
+      constraints = bfmgr.and(constraints, pCo);
     }
 
-    public Formula get() {
+    public BooleanFormula get() {
       return constraints;
     }
   }
@@ -1115,7 +1178,7 @@ public class CtoFormulaConverter {
     protected Formula visitDefault(CExpression exp)
         throws UnrecognizedCCodeException {
       warnUnsafeVar(exp);
-      return makeVariable(scoped(exprToVarName(exp), function), ssa);
+      return makeVariable(new Variable<Formula>(scoped(exprToVarName(exp), function), getFormulaTypeFromCType(exp.getExpressionType())), ssa);
     }
 
     @Override
@@ -1125,68 +1188,69 @@ public class CtoFormulaConverter {
       CExpression e2 = exp.getOperand2();
 
       // these operators expect numeric arguments
-      Formula me1 = toNumericFormula(e1.accept(this));
-      Formula me2 = toNumericFormula(e2.accept(this));
+      BitvectorFormula me1 = (BitvectorFormula)e1.accept(this);
+      BitvectorFormula me2 = (BitvectorFormula)e2.accept(this);
 
       switch (op) {
       case PLUS:
-        return fmgr.makePlus(me1, me2);
+        return efmgr.add(me1, me2);
       case MINUS:
-        return fmgr.makeMinus(me1, me2);
+        return efmgr.subtract(me1, me2);
       case MULTIPLY:
-        return fmgr.makeMultiply(me1, me2);
+        return efmgr.multiply(me1, me2);
       case DIVIDE:
-        return fmgr.makeDivide(me1, me2);
+        return efmgr.divide(me1, me2, true);
       case MODULO:
-        return fmgr.makeModulo(me1, me2);
+        return efmgr.modulo(me1, me2, true);
       case BINARY_AND:
-        return fmgr.makeBitwiseAnd(me1, me2);
+        return efmgr.and(me1, me2);
       case BINARY_OR:
-        return fmgr.makeBitwiseOr(me1, me2);
+        return efmgr.or(me1, me2);
       case BINARY_XOR:
-        return fmgr.makeBitwiseXor(me1, me2);
-
+        return efmgr.xor(me1, me2);
       case SHIFT_LEFT:
-        // SAT-solver cannot handle bitshifts,
-        // so we try to convert a bitshift into a multiplication:
-        // x << 2 is equal to x*4
-        // TODO perhaps bitshifts are possible in future
-        if (e2 instanceof CIntegerLiteralExpression) {
-          final int factor = IntMath.pow(2, ((CIntegerLiteralExpression) e2).getValue().intValue());
-          return fmgr.makeMultiply(me1, fmgr.makeNumber(factor));
-        } else {
-          return fmgr.makeShiftLeft(me1, me2);
-        }
-
+        return efmgr.shiftLeft(me1, me2);
       case SHIFT_RIGHT:
-        // SAT-solver cannot handle bitshifts,
-        // so we try to evaluate a bitshift: 4 >> 2 is equal to 1
-        // TODO perhaps bitshifts are possible in future
-        if (e1 instanceof CIntegerLiteralExpression
-            && e2 instanceof CIntegerLiteralExpression) {
-          return fmgr.makeNumber(((CIntegerLiteralExpression) e1).getValue().
-              shiftRight(((CIntegerLiteralExpression) e2).getValue().intValue()).intValue());
-        } else {
-          return fmgr.makeShiftRight(me1, me2);
-        }
+        return efmgr.shiftRight(me1, me2, true);
 
       case GREATER_THAN:
-        return fmgr.makeGt(me1, me2);
       case GREATER_EQUAL:
-        return fmgr.makeGeq(me1, me2);
       case LESS_THAN:
-        return fmgr.makeLt(me1, me2);
       case LESS_EQUAL:
-        return fmgr.makeLeq(me1, me2);
       case EQUALS:
-        return fmgr.makeEqual(me1, me2);
       case NOT_EQUALS:
-        return fmgr.makeNot(fmgr.makeEqual(me1, me2));
-
+      {
+        BooleanFormula result;
+        switch (op){
+          case GREATER_THAN:
+            result= efmgr.greaterThan(me1, me2, true);
+            break;
+          case GREATER_EQUAL:
+            result= efmgr.greaterOrEquals(me1, me2, true);
+            break;
+          case LESS_THAN:
+            result= efmgr.lessThan(me1, me2, true);
+            break;
+          case LESS_EQUAL:
+            result= efmgr.lessOrEquals(me1, me2, true);
+            break;
+          case EQUALS:
+            result= efmgr.equal(me1, me2);
+            break;
+          case NOT_EQUALS:
+            result= bfmgr.not(efmgr.equal(me1, me2));
+            break;
+          default:
+            throw new AssertionError();
+        }
+        return bfmgr.ifTrueThenOneElseZero(getFormulaTypeFromCType(e1.getExpressionType()), result);
+      }
       default:
         throw new UnrecognizedCCodeException("Unknown binary operator", edge, exp);
+
       }
     }
+
 
     @Override
     public Formula visit(CCastExpression cexp) throws UnrecognizedCCodeException {
@@ -1200,11 +1264,13 @@ public class CtoFormulaConverter {
 
       if (idExp.getDeclaration() instanceof CEnumerator) {
         CEnumerator enumerator = (CEnumerator)idExp.getDeclaration();
+        FormulaType<BitvectorFormula> t =
+            CtoFormulaConverter.this.<BitvectorFormula>getFormulaTypeFromCType(idExp.getExpressionType());
         if (enumerator.hasValue()) {
-          return fmgr.makeNumber(Long.toString(enumerator.getValue()));
+          return efmgr.makeBitvector(t, enumerator.getValue());
         } else {
           // We don't know the value here, but we know it is constant.
-          return makeConstant(enumerator.getName(), ssa);
+          return makeConstant(Variable.create(enumerator.getName(), t), ssa);
         }
       }
 
@@ -1221,7 +1287,8 @@ public class CtoFormulaConverter {
 
           // we can omit the warning (no pointers involved),
           // and we don't need to scope the variable reference
-          return makeVariable(exprToVarName(fExp), ssa);
+          FormulaType<BitvectorFormula> t = getFormulaTypeFromCType(fieldRef.getExpressionType());
+          return makeVariable(Variable.create(exprToVarName(fExp),t), ssa);
         }
       }
 
@@ -1232,17 +1299,21 @@ public class CtoFormulaConverter {
     @Override
     public Formula visit(CCharLiteralExpression cExp) throws UnrecognizedCCodeException {
       // we just take the byte value
-      return fmgr.makeNumber(cExp.getCharacter());
+      FormulaType<BitvectorFormula> t = getFormulaTypeFromCType(cExp.getExpressionType());
+      return efmgr.makeBitvector(t, cExp.getCharacter());
     }
 
     @Override
     public Formula visit(CIntegerLiteralExpression iExp) throws UnrecognizedCCodeException {
-      return fmgr.makeNumber(iExp.getValue().toString());
+      FormulaType<BitvectorFormula> t = getFormulaTypeFromCType(iExp.getExpressionType());
+      return efmgr.makeBitvector(t, iExp.getValue().longValue());
     }
 
     @Override
     public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
-      return fmgr.makeNumber(fExp.getValue().toPlainString());
+      FormulaType<BitvectorFormula> t = getFormulaTypeFromCType(fExp.getExpressionType());
+      // TODO: Check if this is actually correct
+      return efmgr.makeBitvector(t,fExp.getValue().longValue());
     }
 
     @Override
@@ -1250,12 +1321,12 @@ public class CtoFormulaConverter {
       // we create a string constant representing the given
       // string literal
       String literal = lexp.getValue();
-      Formula result = stringLitToFormula.get(literal);
+      BitvectorFormula result = stringLitToFormula.get(literal);
 
       if (result == null) {
         // generate a new string literal. We generate a new UIf
         int n = nextStringLitIndex++;
-        result = fmgr.makeString(n);
+        result =  fmgr.makeString(n);
         stringLitToFormula.put(literal, result);
       }
 
@@ -1266,24 +1337,24 @@ public class CtoFormulaConverter {
     public Formula visit(CUnaryExpression exp) throws UnrecognizedCCodeException {
       CExpression operand = exp.getOperand();
       UnaryOperator op = exp.getOperator();
-
       switch (op) {
       case PLUS:
-        return toNumericFormula(operand.accept(this));
+        return operand.accept(this);
 
       case MINUS: {
-        Formula term = toNumericFormula(operand.accept(this));
-        return fmgr.makeNegate(term);
+        BitvectorFormula formula = (BitvectorFormula)operand.accept(this);
+        return efmgr.negate(formula);
       }
 
       case TILDE: {
-        Formula term = toNumericFormula(operand.accept(this));
-        return fmgr.makeBitwiseNot(term);
+        BitvectorFormula formula = (BitvectorFormula)operand.accept(this);
+        return efmgr.not(formula);
       }
 
       case NOT: {
-        Formula term = toBooleanFormula(operand.accept(this));
-        return fmgr.makeNot(term);
+        Formula f = operand.accept(this);
+        BooleanFormula term = fmgr.toBooleanFormula(f);
+        return bfmgr.ifTrueThenOneElseZero(fmgr.getFormulaType(f), bfmgr.not(term));
       }
 
       case AMPER:
@@ -1320,7 +1391,10 @@ public class CtoFormulaConverter {
         throws UnrecognizedCCodeException {
 
       if (pCType instanceof CSimpleType) {
-        return fmgr.makeNumber(machineModel.getSizeof((CSimpleType) pCType));
+        return efmgr.makeBitvector(
+            CtoFormulaConverter.this
+              .<BitvectorFormula>getFormulaTypeFromCType(pExp.getExpressionType()),
+            machineModel.getSizeof((CSimpleType) pCType));
 
       } else {
         return visitDefault(pExp);
@@ -1334,33 +1408,40 @@ public class CtoFormulaConverter {
       super(pEdge, pFunction, pSsa, pCo);
     }
 
-    private Formula makeUIF(String name, FormulaList args, SSAMapBuilder ssa) {
-      int idx = ssa.getIndex(name, args);
+    private Formula makeUIF(Variable<Formula> var, SSAMapBuilder ssa, Formula... args) {
+      String name = var.name;
+      FormulaList l = makeList(args);
+      int idx = ssa.getIndex(name, l);
       if (idx <= 0) {
         logger.log(Level.ALL, "DEBUG_3",
-            "WARNING: Auto-instantiating lval: ", name, "(", args, ")");
+            "WARNING: Auto-instantiating lval: ", name, "(", l, ")");
         idx = 1;
-        ssa.setIndex(name, args, idx);
+        ssa.setIndex(name, l, idx);
       }
-      return fmgr.makeUIF(name, args, idx);
+      return ffmgr.createFuncAndCall(name, idx, var.type, Arrays.asList( args) );
+      //return fmgr.makeUIF(name, args, idx);
     }
 
     @Override
     public Formula visit(CArraySubscriptExpression aexp) throws UnrecognizedCCodeException {
       CExpression arrexp = aexp.getArrayExpression();
       CExpression subexp = aexp.getSubscriptExpression();
-      Formula aterm = toNumericFormula(arrexp.accept(this));
-      Formula sterm = toNumericFormula(subexp.accept(this));
+      Formula aterm = arrexp.accept(this);
+      Formula sterm = subexp.accept(this);
 
       String ufname = OP_ARRAY_SUBSCRIPT;
-      return makeUIF(ufname, fmgr.makeList(aterm, sterm), ssa);
+      return makeUIF(Variable.create(ufname,getFormulaTypeFromCType(aexp.getExpressionType())), ssa, aterm, sterm);
+    }
+
+    private FormulaList makeList(Formula... terms) {
+      return new AbstractFormulaList<Formula>(terms);
     }
 
     @Override
     public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
       String field = fexp.getFieldName();
       CExpression owner = fexp.getFieldOwner();
-      Formula term = toNumericFormula(owner.accept(this));
+      Formula term = owner.accept(this);
 
       String tpname = getTypeName(owner.getExpressionType());
       String ufname =
@@ -1368,7 +1449,7 @@ public class CtoFormulaConverter {
               + "}";
 
       // see above for the case of &x and *x
-      return makeUIF(ufname, fmgr.makeList(term), ssa);
+      return makeUIF(Variable.create(ufname, getFormulaTypeFromCType(fexp.getExpressionType())), ssa, term);
     }
 
     @Override
@@ -1383,7 +1464,7 @@ public class CtoFormulaConverter {
         } else {
           opname = OP_STAR_NAME;
         }
-        Formula term = toNumericFormula(exp.getOperand().accept(this));
+        Formula term = exp.getOperand().accept(this);
 
         // PW make SSA index of * independent from argument
         int idx = getIndex(opname, ssa);
@@ -1391,7 +1472,10 @@ public class CtoFormulaConverter {
         //    opname, term, ssa, absoluteSSAIndices);
 
         // build the  function corresponding to this operation.
-        return fmgr.makeUIF(opname, fmgr.makeList(term), idx);
+
+        return ffmgr.createFuncAndCall(
+            opname, idx, getFormulaTypeFromCType(exp.getExpressionType()), Arrays.asList( term ));
+        //return fmgr.makeUIF(opname, makeList(term), idx);
 
       default:
         return super.visit(exp);
@@ -1448,27 +1532,28 @@ public class CtoFormulaConverter {
      * @param function The scope of the variable.
      */
     private Formula makeMemoryLocationVariable(CIdExpression exp, String function) {
-      String addressVariable = makeMemoryLocationVariableName(scopedIfNecessary(exp, function));
+      Variable<BitvectorFormula> v = scopedIfNecessary(exp, function);
+      String addressVariable = makeMemoryLocationVariableName(v.name);
 
       // a variable address is always initialized, not 0 and cannot change
       if (ssa.getIndex(addressVariable) == VARIABLE_UNSET) {
         List<String> oldMemoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
-        Formula newMemoryLocation = makeConstant(addressVariable, ssa);
+        BitvectorFormula newMemoryLocation = makeConstant(v.withName(addressVariable), ssa);
 
         // a variable address that is unknown is different from all previously known addresses
         for (String memoryLocation : oldMemoryLocations) {
-          Formula oldMemoryLocation = makeConstant(memoryLocation, ssa);
-          Formula addressInequality = fmgr.makeNot(fmgr.makeEqual(newMemoryLocation, oldMemoryLocation));
+          BitvectorFormula oldMemoryLocation = makeConstant(v.withName(memoryLocation), ssa);
+          BooleanFormula addressInequality = bfmgr.not(efmgr.equal(newMemoryLocation, oldMemoryLocation));
 
           constraints.addConstraint(addressInequality);
         }
 
         // a variable address is not 0
-        Formula notZero = fmgr.makeNotEqual(newMemoryLocation, fmgr.makeNumber(0));
+        BooleanFormula notZero = efmgr.notEqual(newMemoryLocation, efmgr.makeBitvector(v.type, 0));
         constraints.addConstraint(notZero);
       }
 
-      return makeConstant(addressVariable, ssa);
+      return makeConstant(v.withName(addressVariable), ssa);
     }
   }
 
@@ -1495,20 +1580,21 @@ public class CtoFormulaConverter {
       CExpression fn = fexp.getFunctionNameExpression();
       List<CExpression> pexps = fexp.getParameterExpressions();
       String func;
+      FormulaType<BitvectorFormula> t = getFormulaTypeFromCType(fexp.getExpressionType());
       if (fn instanceof CIdExpression) {
         func = ((CIdExpression)fn).getName();
         if (func.equals(ASSUME_FUNCTION_NAME) && pexps.size() == 1) {
 
-          Formula condition = toBooleanFormula(pexps.get(0).accept(this));
+          BooleanFormula condition = fmgr.toBooleanFormula(pexps.get(0).accept(this));
           constraints.addConstraint(condition);
 
-          return makeFreshVariable(func, ssa);
+          return makeFreshVariable(Variable.create(func,t), ssa);
 
         } else if (nondetFunctions.contains(func)
             || nondetFunctionsPattern.matcher(func).matches()) {
           // function call like "random()"
           // ignore parameters and just create a fresh variable for it
-          return makeFreshVariable(func, ssa);
+          return makeFreshVariable(Variable.create(func,t), ssa);
 
         } else if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), edge, fexp);
@@ -1528,56 +1614,57 @@ public class CtoFormulaConverter {
 
       if (pexps.isEmpty()) {
         // This is a function of arity 0 and we assume its constant.
-        return makeConstant(func, ssa);
+        return makeConstant(Variable.create(func,t), ssa);
 
       } else {
         func += "{" + pexps.size() + "}"; // add #arguments to function name to cope with varargs functions
 
         List<Formula> args = new ArrayList<Formula>(pexps.size());
         for (CExpression pexp : pexps) {
-          args.add(toNumericFormula(pexp.accept(this)));
+          args.add(pexp.accept(this));
         }
 
-        return fmgr.makeUIF(func, fmgr.makeList(args));
+        return ffmgr.createFuncAndCall(func, t, args);
+
+        //return fmgr.makeUIF(func, fmgr.makeList(args));
       }
     }
   }
 
-  private class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements CStatementVisitor<Formula, UnrecognizedCCodeException> {
+  private class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements CStatementVisitor<BooleanFormula, UnrecognizedCCodeException> {
 
     public StatementToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pConstraints, CFAEdge edge) {
       super(pFunction, pSsa, pConstraints, edge);
     }
 
     @Override
-    public Formula visit(CExpressionStatement pIastExpressionStatement) {
+    public BooleanFormula visit(CExpressionStatement pIastExpressionStatement) {
       // side-effect free statement, ignore
-      return fmgr.makeTrue();
+      return bfmgr.makeBoolean(true);
     }
 
-    public Formula visit(CAssignment assignment) throws UnrecognizedCCodeException {
-      Formula rightVariable = assignment.getRightHandSide().accept(this);
-      Formula r = toNumericFormula(rightVariable);
+    public BooleanFormula visit(CAssignment assignment) throws UnrecognizedCCodeException {
+      Formula r = assignment.getRightHandSide().accept(this);
       Formula l = buildLvalueTerm(assignment.getLeftHandSide(), edge, function, ssa, constraints);
-      return fmgr.makeAssignment(l, r);
+      return fmgr.assignment(l, r);
     }
 
     @Override
-    public Formula visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws UnrecognizedCCodeException {
+    public BooleanFormula visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws UnrecognizedCCodeException {
       return visit((CAssignment)pIastExpressionAssignmentStatement);
     }
 
     @Override
-    public Formula visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws UnrecognizedCCodeException {
+    public BooleanFormula visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws UnrecognizedCCodeException {
       return visit((CAssignment)pIastFunctionCallAssignmentStatement);
     }
 
     @Override
-    public Formula visit(CFunctionCallStatement fexp) throws UnrecognizedCCodeException {
+    public BooleanFormula visit(CFunctionCallStatement fexp) throws UnrecognizedCCodeException {
       // this is an external call
       // visit expression in order to print warnings if necessary
       visit(fexp.getFunctionCallExpression());
-      return fmgr.makeTrue();
+      return bfmgr.makeBoolean(true);
     }
   }
 
@@ -1592,6 +1679,7 @@ public class CtoFormulaConverter {
     public Formula visit(CFunctionCallExpression fexp) throws UnrecognizedCCodeException {
       // handle malloc
       CExpression fn = fexp.getFunctionNameExpression();
+      FormulaType<BitvectorFormula> t = getFormulaTypeFromCType(fexp.getExpressionType());
       if (fn instanceof CIdExpression) {
         String fName = ((CIdExpression)fn).getName();
 
@@ -1601,22 +1689,22 @@ public class CtoFormulaConverter {
           List<String> memoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
 
           String mallocVarName = makeFreshMallocVariableName();
-          Formula mallocVar = makeConstant(mallocVarName, ssa);
+          BitvectorFormula mallocVar = makeConstant(Variable.create(mallocVarName, t), ssa);
 
           // we must distinguish between two cases:
           // either the result is 0 or it is different from all other memory locations
           // (m != 0) => for all memory locations n: m != n
-          Formula ineq = fmgr.makeTrue();
+          BooleanFormula ineq = bfmgr.makeBoolean(true);
           for (String ml : memoryLocations) {
-            Formula n = makeConstant(ml, ssa);
+            BitvectorFormula n = makeConstant(Variable.create(ml, t), ssa);
 
-            Formula notEqual = fmgr.makeNotEqual(n, mallocVar);
-            ineq = fmgr.makeAnd(notEqual, ineq);
+            BooleanFormula notEqual = efmgr.notEqual(n, mallocVar);
+            ineq = bfmgr.and(notEqual, ineq);
           }
 
-          Formula nullFormula = fmgr.makeNumber(0);
-          Formula notEqual = fmgr.makeNotEqual(mallocVar, nullFormula);
-          Formula implication = fmgr.makeImplication(notEqual, ineq);
+          BitvectorFormula nullFormula = efmgr.makeBitvector(t, 0);
+          BooleanFormula notEqual = efmgr.notEqual(mallocVar, nullFormula);
+          BooleanFormula implication = bfmgr.implication(notEqual, ineq);
 
           constraints.addConstraint(implication);
           return mallocVar;
@@ -1627,7 +1715,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(CAssignment assignment)
+    public BooleanFormula visit(CAssignment assignment)
         throws UnrecognizedCCodeException {
       CExpression left = removeCast(assignment.getLeftHandSide());
 
@@ -1650,7 +1738,7 @@ public class CtoFormulaConverter {
      * left hand side. Instead it changes the value stored in the memory location
      * aliased on the left hand side.
      */
-    private Formula handleIndirectAssignment(CAssignment pAssignment)
+    private BooleanFormula handleIndirectAssignment(CAssignment pAssignment)
         throws UnrecognizedCCodeException {
       CExpression lExp = removeCast(pAssignment.getLeftHandSide());
       assert (lExp instanceof CUnaryExpression);
@@ -1672,10 +1760,11 @@ public class CtoFormulaConverter {
 
       CRightHandSide r = pAssignment.getRightHandSide();
 
-      String lVarName = scopedIfNecessary((CIdExpression) lOperand, function);
+      Variable<Formula> lVarName = scopedIfNecessary((CIdExpression) lOperand, function);
       Formula lVar = makeVariable(lVarName, ssa);
 
-      String rVarName = null;
+      //TODO: check this
+      Variable<Formula> rVarName = new Variable<Formula>(null, getFormulaTypeFromCType(pAssignment.getRightHandSide().getExpressionType()));
       Formula rPtrVar = null;
       if (r instanceof CIdExpression) {
         rVarName = scopedIfNecessary((CIdExpression) r, function);
@@ -1683,9 +1772,9 @@ public class CtoFormulaConverter {
       }
 
       Formula rightVariable = pAssignment.getRightHandSide().accept(this);
-      rightVariable = toNumericFormula(rightVariable);
+
       Formula lPtrVar = buildLvalueTerm(pAssignment.getLeftHandSide(), edge, function, ssa, constraints);
-      Formula assignments = fmgr.makeAssignment(lPtrVar, rightVariable);
+      BooleanFormula assignments = fmgr.assignment(lPtrVar, rightVariable);
 
       updateAllPointers(lVarName, lVar, rVarName, rightVariable);
 
@@ -1695,7 +1784,8 @@ public class CtoFormulaConverter {
       return assignments;
     }
 
-    private void updateAllMemoryLocations(String lVarName, Formula rPtrVar, Formula rVar, boolean deepUpdate) {
+    private void updateAllMemoryLocations(
+        Variable<Formula> lVarName, Formula rPtrVar, Formula rVar, boolean deepUpdate) {
 
       Formula lVar = makeVariable(lVarName, ssa);
 
@@ -1708,35 +1798,35 @@ public class CtoFormulaConverter {
         for (String memAddress : memAddresses) {
           String varName = getVariableNameFromMemoryAddress(memAddress);
 
-          if (!varName.equals(lVarName)) {
+          if (!varName.equals(lVarName.name)) {
             // we assume that cases like the following are illegal and do not occur
             // (gcc 4.6 gives an error):
             // p = &p;
             // *p = &a;
 
-            Formula memAddressVar = makeVariable(memAddress, ssa);
+            Formula memAddressVar = makeVariable(lVarName.withName(memAddress), ssa);
 
-            Formula oldVar = makeVariable(varName, ssa);
+            Formula oldVar = makeVariable(lVarName.withName(varName), ssa);
             String oldPtrVarName = makePointerMask(varName, ssa);
-            Formula oldPtrVar = makeVariable(oldPtrVarName, ssa);
+            Formula oldPtrVar = makeVariable(lVarName.withName(oldPtrVarName), ssa);
 
             makeFreshIndex(varName, ssa);
 
-            Formula newVar = makeVariable(varName, ssa);
+            Formula newVar = makeVariable(lVarName.withName(varName), ssa);
             String newPtrVarName = makePointerMask(varName, ssa);
-            Formula newPtrVar = makeVariable(varName, ssa);
+            Formula newPtrVar = makeVariable(lVarName.withName(varName), ssa);
             removeOldPointerVariablesFromSsaMap(newPtrVarName, ssa);
 
-            Formula varEquality = fmgr.makeAssignment(newVar, rVar);
-            Formula ptrVarEquality = fmgr.makeAssignment(newPtrVar, rPtrVar);
-            Formula varUpdate = fmgr.makeAssignment(newVar, oldVar);
-            Formula ptrVarUpdate = fmgr.makeAssignment(newPtrVar, oldPtrVar);
+            BooleanFormula varEquality = fmgr.assignment(newVar, rVar);
+            BooleanFormula ptrVarEquality = fmgr.assignment(newPtrVar, rPtrVar);
+            BooleanFormula varUpdate = fmgr.assignment(newVar, oldVar);
+            BooleanFormula ptrVarUpdate = fmgr.assignment(newPtrVar, oldPtrVar);
 
-            Formula condition = fmgr.makeEqual(lVar, memAddressVar);
-            Formula equality = fmgr.makeAnd(varEquality, ptrVarEquality);
-            Formula update = fmgr.makeAnd(varUpdate, ptrVarUpdate);
+            BooleanFormula condition = fmgr.makeEqual(lVar, memAddressVar);
+            BooleanFormula equality = bfmgr.and(varEquality, ptrVarEquality);
+            BooleanFormula update = bfmgr.and(varUpdate, ptrVarUpdate);
 
-            Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, update);
+            BooleanFormula variableUpdate = bfmgr.ifThenElse(condition, equality, update);
             constraints.addConstraint(variableUpdate);
           }
         }
@@ -1747,23 +1837,23 @@ public class CtoFormulaConverter {
         for (String memAddress : memAddresses) {
           String varName = getVariableNameFromMemoryAddress(memAddress);
 
-          if (!varName.equals(lVarName)) {
+          if (!varName.equals(lVarName.name)) {
 
-            Formula oldVar = makeVariable(varName, ssa);
+            Formula oldVar = makeVariable(lVarName.withName(varName), ssa);
 
             makeFreshIndex(varName, ssa);
 
-            Formula newVar = makeVariable(varName, ssa);
+            Formula newVar = makeVariable(lVarName.withName(varName), ssa);
             String newPtrVarName = makePointerMask(varName, ssa);
             removeOldPointerVariablesFromSsaMap(newPtrVarName, ssa);
 
-            Formula memAddressVar = makeVariable(memAddress, ssa);
+            Formula memAddressVar = makeVariable(lVarName.withName(memAddress), ssa);
 
-            Formula condition = fmgr.makeEqual(lVar, memAddressVar);
-            Formula equality = fmgr.makeAssignment(newVar, rVar);
-            Formula update = fmgr.makeAssignment(newVar, oldVar);
+            BooleanFormula condition = fmgr.makeEqual(lVar, memAddressVar);
+            BooleanFormula equality = fmgr.assignment(newVar, rVar);
+            BooleanFormula update = fmgr.assignment(newVar, oldVar);
 
-            Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, update);
+            BooleanFormula variableUpdate = bfmgr.ifThenElse(condition, equality, update);
             constraints.addConstraint(variableUpdate);
           }
         }
@@ -1773,8 +1863,8 @@ public class CtoFormulaConverter {
     /**
      * Call this method if you need to update all pointers
      */
-    private void updateAllPointers(String leftVarName, Formula leftVar,
-        String rightVarName, Formula rightVariable) {
+    private void updateAllPointers(Variable<Formula> leftVarName, Formula leftVar,
+        Variable<Formula> rightVarName, Formula rightVariable) {
 
       // update all pointer variables (they might have a new value)
       // every variable aliased to the left hand side,
@@ -1783,25 +1873,25 @@ public class CtoFormulaConverter {
       List<String> ptrVarNames = getAllPointerVariablesFromSsaMap(ssa);
       for (String ptrVarName : ptrVarNames) {
         String varName = removePointerMask(ptrVarName);
-        if (!varName.equals(leftVarName) && !varName.equals(rightVarName)) {
-          Formula var = makeVariable(varName, ssa);
+        if (!varName.equals(leftVarName.name) && !varName.equals(rightVarName.name)) {
+          Formula var = makeVariable(leftVarName.withName(varName), ssa);
 
-          Formula oldPtrVar = makeVariable(ptrVarName, ssa);
+          Formula oldPtrVar = makeVariable(leftVarName.withName(ptrVarName), ssa);
           makeFreshIndex(ptrVarName, ssa);
-          Formula newPtrVar = makeVariable(ptrVarName, ssa);
+          Formula newPtrVar = makeVariable(leftVarName.withName(ptrVarName), ssa);
 
-          Formula condition = fmgr.makeEqual(var, leftVar);
-          Formula equality = fmgr.makeAssignment(newPtrVar, rightVariable);
-          Formula indexUpdate = fmgr.makeAssignment(newPtrVar, oldPtrVar);
+          BooleanFormula condition = fmgr.makeEqual(var, leftVar);
+          BooleanFormula equality = fmgr.assignment(newPtrVar, rightVariable);
+          BooleanFormula indexUpdate = fmgr.assignment(newPtrVar, oldPtrVar);
 
-          Formula variableUpdate = fmgr.makeIfThenElse(condition, equality, indexUpdate);
+          BooleanFormula variableUpdate = bfmgr.ifThenElse(condition, equality, indexUpdate);
           constraints.addConstraint(variableUpdate);
         }
       }
     }
 
     /** A direct assignment changes the value of the variable on the left side. */
-    private Formula handleDirectAssignment(CAssignment assignment)
+    private BooleanFormula handleDirectAssignment(CAssignment assignment)
         throws UnrecognizedCCodeException {
       CExpression lExpr = removeCast(assignment.getLeftHandSide());
       assert(lExpr instanceof CIdExpression);
@@ -1809,26 +1899,25 @@ public class CtoFormulaConverter {
       CIdExpression left = (CIdExpression) lExpr;
       CRightHandSide right = removeCast(assignment.getRightHandSide());
 
-      String leftVarName = scopedIfNecessary(left, function);
+      Variable<Formula> leftVarName = scopedIfNecessary(left, function);
 
       // assignment (first level) -- uses superclass
-      Formula ri = assignment.getRightHandSide().accept(this);
-      Formula rightVariable = toNumericFormula(ri);
+      Formula rightVariable = assignment.getRightHandSide().accept(this);
       Formula leftVariable = buildLvalueTerm(assignment.getLeftHandSide(), edge, function, ssa, constraints);
-      Formula firstLevelFormula = fmgr.makeAssignment(leftVariable, rightVariable);
+      BooleanFormula firstLevelFormula = fmgr.assignment(leftVariable, rightVariable);
 
       // assignment (second level)
-      String lVarName = scopedIfNecessary(left, function);
-      Formula secondLevelFormula = buildDirectSecondLevelAssignment(
-          left.getExpressionType(), lVarName,
+      Variable<BitvectorFormula> lVarName = scopedIfNecessary(left, function);
+      BooleanFormula secondLevelFormula = buildDirectSecondLevelAssignment(
+          left.getExpressionType(), lVarName.name,
           right, function, constraints, ssa);
 
-      Formula assignmentFormula = fmgr.makeAnd(firstLevelFormula, secondLevelFormula);
+      BooleanFormula assignmentFormula = bfmgr.and(firstLevelFormula, secondLevelFormula);
 
       // updates
-      if (isKnownMemoryLocation(leftVarName)) {
-        String leftMemLocationName = makeMemoryLocationVariableName(leftVarName);
-        Formula leftMemLocation = makeConstant(leftMemLocationName, ssa);
+      if (isKnownMemoryLocation(leftVarName.name)) {
+        String leftMemLocationName = makeMemoryLocationVariableName(leftVarName.name);
+        Formula leftMemLocation = makeConstant(leftVarName.withName(leftMemLocationName), ssa);
 
         // update all pointers:
         // if a pointer is aliased to the assigned variable,
@@ -1839,16 +1928,16 @@ public class CtoFormulaConverter {
         for (String ptrVarName : ptrVarNames) {
           String varName = removePointerMask(ptrVarName);
           if (!varName.equals(leftVarName)) {
-            Formula var = makeVariable(varName, ssa);
-            Formula oldPtrVar = makeVariable(ptrVarName, ssa);
+            Formula var = makeVariable(leftVarName.withName(varName), ssa);
+            Formula oldPtrVar = makeVariable(leftVarName.withName(ptrVarName), ssa);
             makeFreshIndex(ptrVarName, ssa);
-            Formula newPtrVar = makeVariable(ptrVarName, ssa);
+            Formula newPtrVar = makeVariable(leftVarName.withName(ptrVarName), ssa);
 
-            Formula condition = fmgr.makeEqual(var, leftMemLocation);
-            Formula equivalence = fmgr.makeAssignment(newPtrVar, newLeftVar);
-            Formula update = fmgr.makeAssignment(newPtrVar, oldPtrVar);
+            BooleanFormula condition = fmgr.makeEqual(var, leftMemLocation);
+            BooleanFormula equivalence = fmgr.assignment(newPtrVar, newLeftVar);
+            BooleanFormula update = fmgr.assignment(newPtrVar, oldPtrVar);
 
-            Formula constraint = fmgr.makeIfThenElse(condition, equivalence, update);
+            BooleanFormula constraint = bfmgr.ifThenElse(condition, equivalence, update);
             constraints.addConstraint(constraint);
           }
         }
@@ -1901,13 +1990,13 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    protected Formula visitDefault(CExpression exp) throws UnrecognizedCCodeException {
+    protected BitvectorFormula visitDefault(CExpression exp) throws UnrecognizedCCodeException {
       throw new UnrecognizedCCodeException("Unknown lvalue", edge, exp);
     }
 
     @Override
     public Formula visit(CIdExpression idExp) {
-      String var = scopedIfNecessary(idExp, function);
+      Variable<BitvectorFormula> var = scopedIfNecessary(idExp, function);
       return makeFreshVariable(var, ssa);
     }
 
@@ -1916,7 +2005,8 @@ public class CtoFormulaConverter {
       logDebug("Assigning to ", exp);
 
       String var = scoped(exprToVarName(exp), function);
-      return makeFreshVariable(var, ssa);
+      Variable<Formula> v = new Variable<Formula>(var, getFormulaTypeFromCType(exp.getExpressionType()));
+      return makeFreshVariable(v, ssa);
     }
 
     @Override
@@ -1935,7 +2025,9 @@ public class CtoFormulaConverter {
 
           // we don't need to scope the variable reference
           String var = exprToVarName(fExp);
-          return makeFreshVariable(var, ssa);
+
+          Variable<Formula> v = new Variable<Formula>(var, getFormulaTypeFromCType(decl.getType()));
+          return makeFreshVariable(v, ssa);
         }
       }
 
@@ -1960,12 +2052,17 @@ public class CtoFormulaConverter {
       UnaryOperator op = uExp.getOperator();
       CExpression operand = uExp.getOperand();
       String opname;
+      CType opType = operand.getExpressionType();
+      CType result;
       switch (op) {
       case AMPER:
         opname = OP_ADDRESSOF_NAME;
+        result = new CPointerType(false, false, opType);
         break;
       case STAR:
         opname = OP_STAR_NAME;
+        CPointerType opTypeP = (CPointerType)opType;
+        result = opTypeP.getType();
         break;
       default:
         throw new UnrecognizedCCodeException("Invalid unary operator for lvalue", edge, uExp);
@@ -1982,7 +2079,8 @@ public class CtoFormulaConverter {
       // *x = 1       |     <ptr_*>::2(x) = 1
       // ...
       // &(*x) = 2    |     <ptr_&>::2(<ptr_*>::1(x)) = 2
-      return fmgr.makeUIF(opname, fmgr.makeList(term), idx);
+      return ffmgr.createFuncAndCall(opname, idx, getFormulaTypeFromCType(result), Arrays.asList( term ));
+      //return fmgr.makeUIF(opname, fmgr.makeList(term), idx);
     }
 
     @Override
@@ -1995,11 +2093,13 @@ public class CtoFormulaConverter {
       String ufname =
         (fexp.isPointerDereference() ? "->{" : ".{") +
         tpname + "," + field + "}";
-      FormulaList args = fmgr.makeList(term);
+      FormulaList args = new AbstractFormulaList<Formula>(term);
       int idx = makeLvalIndex(ufname, args, ssa);
 
       // see above for the case of &x and *x
-      return fmgr.makeUIF(ufname, args, idx);
+      return ffmgr.createFuncAndCall(
+          ufname, idx, getFormulaTypeFromCType(fexp.getExpressionType()), Arrays.asList( term ));
+      //return fmgr.makeUIF(ufname, args, idx);
     }
 
     @Override
@@ -2010,10 +2110,12 @@ public class CtoFormulaConverter {
       Formula sterm = buildTerm(subexp, edge, function, ssa, constraints);
 
       String ufname = OP_ARRAY_SUBSCRIPT;
-      FormulaList args = fmgr.makeList(aterm, sterm);
+      FormulaList args = new AbstractFormulaList<Formula>(aterm, sterm);
       int idx = makeLvalIndex(ufname, args, ssa);
 
-      return fmgr.makeUIF(ufname, args, idx);
+      return ffmgr.createFuncAndCall(
+          ufname, idx, getFormulaTypeFromCType(aexp.getExpressionType()), Arrays.asList( aterm, sterm ));
+      //return fmgr.makeUIF(ufname, args, idx);
 
     }
   }
@@ -2035,8 +2137,8 @@ public class CtoFormulaConverter {
         // *a = ...
         // *((int*) a) = ...
         CIdExpression ptrId = (CIdExpression) exp;
-        String ptrVarName = makePointerVariableName(ptrId, function, ssa);
-        makeFreshIndex(ptrVarName, ssa);
+        Variable<BitvectorFormula> ptrVarName = makePointerVariableName(ptrId, function, ssa);
+        makeFreshIndex(ptrVarName.name, ssa);
         return makePointerVariable(ptrId, function, ssa);
 
       } else {

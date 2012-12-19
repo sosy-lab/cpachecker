@@ -36,9 +36,9 @@ import org.sosy_lab.cpachecker.util.predicates.Model;
 public interface InterpolatingTheoremProver<T> {
     public void init();
     public void reset();
-    public T addFormula(Formula f);
+    public T addFormula(BooleanFormula f);
     public void popFormula();
     public boolean isUnsat() throws InterruptedException;
-    public Formula getInterpolant(List<T> formulasOfA);
+    public BooleanFormula getInterpolant(List<T> formulasOfA);
     public Model getModel() throws SolverException;
 }

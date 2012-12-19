@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 
 import com.google.common.base.Preconditions;
 
@@ -36,36 +37,51 @@ public class AssumptionStorageState implements AbstractState {
 
   // this formula provides the assumption generated from other sources than heuristics,
   // e.g. assumptions for arithmetic overflow
-  private final Formula assumption;
+  private final BooleanFormula assumption;
 
   // if a heuristic told us to stop the analysis, this formula provides the reason
   // if it is TRUE, there is no reason -> don't stop
-  private final Formula stopFormula;
+  private final BooleanFormula stopFormula;
+
+  private BooleanFormulaManager bfmgr;
 
   // the assumption represented by this class is always the conjunction of "assumption" and "stopFormula"
 
-  public AssumptionStorageState(Formula pAssumption, Formula pStopFormula) {
+  public AssumptionStorageState(BooleanFormulaManager bfmgr, BooleanFormula pAssumption, BooleanFormula pStopFormula) {
     assumption = Preconditions.checkNotNull(pAssumption);
     stopFormula = Preconditions.checkNotNull(pStopFormula);
+    this.bfmgr = bfmgr;
 
-    assert !assumption.isFalse(); // FALSE would mean "stop the analysis", but this should be signaled by stopFormula
+    assert !bfmgr.isFalse(assumption); // FALSE would mean "stop the analysis", but this should be signaled by stopFormula
   }
 
-  public Formula getAssumption() {
+  public BooleanFormula getAssumption() {
     return assumption;
   }
 
-  public Formula getStopFormula() {
+  public boolean isAssumptionTrue(){
+    return bfmgr.isTrue(assumption);
+  }
+
+  public BooleanFormula getStopFormula() {
     return stopFormula;
+  }
+
+  public boolean isStopFormulaTrue(){
+    return bfmgr.isTrue(stopFormula);
+  }
+
+  public BooleanFormulaManager getManager(){
+    return bfmgr;
   }
 
   @Override
   public String toString() {
-    return (stopFormula.isTrue() ? "" : "<STOP> ") + "assume: (" + assumption + " & " + stopFormula + ")";
+    return (bfmgr.isTrue(stopFormula) ? "" : "<STOP> ") + "assume: (" + assumption + " & " + stopFormula + ")";
   }
 
   public boolean isStop() {
-    return !stopFormula.isTrue();
+    return !bfmgr.isTrue(stopFormula);
   }
 
   @Override

@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Charsets;
@@ -217,9 +217,9 @@ public class PredicateMapParser {
       } else {
         // we expect a predicate
         if (currentLine.startsWith("(assert ") && currentLine.endsWith(")")) {
-          Formula f;
+          BooleanFormula f;
           try {
-            f = fmgr.parse(functionDefinitions + currentLine);
+            f = fmgr.parse(BooleanFormula.class, functionDefinitions + currentLine);
           } catch (IllegalArgumentException e) {
             throw new PredicateMapParsingFailedException(e, source, lineNo);
           }

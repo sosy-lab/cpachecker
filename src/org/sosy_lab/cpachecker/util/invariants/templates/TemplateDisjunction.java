@@ -33,8 +33,9 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.cpachecker.util.invariants.Rational;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class TemplateDisjunction extends TemplateBoolean {
 
@@ -354,12 +355,12 @@ public class TemplateDisjunction extends TemplateBoolean {
   }
 
   @Override
-  public Set<String> getAllVariables(VariableWriteMode vwm) {
-    HashSet<String> vars = new HashSet<String>();
+  public Set<TemplateVariable> getAllVariables() {
+    HashSet<TemplateVariable> vars = new HashSet<TemplateVariable>();
     TemplateBoolean tc;
     for (int i = 0; i < getNumDisjuncts(); i++) {
       tc = getDisjunct(i);
-      vars.addAll(tc.getAllVariables(vwm));
+      vars.addAll(tc.getAllVariables());
     }
     return vars;
   }
@@ -397,18 +398,19 @@ public class TemplateDisjunction extends TemplateBoolean {
   }
 
   @Override
-  public Formula translate(FormulaManager fmgr) {
-    Formula form = null;
+  public BooleanFormula translate(FormulaManagerView fmgr) {
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    BooleanFormula form = null;
     int N = getNumDisjuncts();
     if (N == 0) {
-      form = fmgr.makeFalse();
+      form = bfmgr.makeBoolean(false);
     } else {
       assert N >= 1;
       form = getDisjunct(0).translate(fmgr);
-      Formula augend;
+      BooleanFormula augend;
       for (int i = 1; i < N; i++) {
         augend = getDisjunct(i).translate(fmgr);
-        form = fmgr.makeOr(form, augend);
+        form = bfmgr.or(form, augend);
       }
     }
     return form;

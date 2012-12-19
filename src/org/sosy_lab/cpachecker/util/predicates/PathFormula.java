@@ -25,22 +25,22 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import java.io.Serializable;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 public class PathFormula implements Serializable {
 
   private static final long serialVersionUID = -7716850731790578619L;
-  private final transient Formula formula;
+  private final transient BooleanFormula formula;
   private final SSAMap ssa;
   private final int length;
 
-  protected PathFormula(Formula pf, SSAMap ssa, int pLength) {
+  protected PathFormula(BooleanFormula pf, SSAMap ssa, int pLength) {
     this.formula = pf;
     this.ssa = ssa;
     this.length = pLength;
   }
 
-  public Formula getFormula() {
+  public BooleanFormula getFormula() {
     return formula;
   }
 

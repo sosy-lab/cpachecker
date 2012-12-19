@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.RationalFunction;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Variable;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.Constraint;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 public class TemplateLinearizer {
 
@@ -64,11 +65,11 @@ public class TemplateLinearizer {
   public static LinearInequality linearize(TemplateFormula t, VariableManager vmgr) {
 
   	if (t.isTrue()) {
-  		return booleanLineq(vmgr, true);
+  		return booleanLineq(t.getFormulaType(), vmgr, true);
   	}
 
   	if (t.isFalse()) {
-  		return booleanLineq(vmgr, false);
+  		return booleanLineq(t.getFormulaType(), vmgr, false);
   	}
 
     LinearInequality lineq = new LinearInequality(vmgr);
@@ -216,11 +217,11 @@ public class TemplateLinearizer {
    * @param trueStatement a boolean which says if we want a true or a false statement
    * @return
    */
-  private static LinearInequality booleanLineq(VariableManager vmgr, boolean trueStatement) {
+  private static LinearInequality booleanLineq(FormulaType<?> type, VariableManager vmgr, boolean trueStatement) {
   	LinearInequality lineq = new LinearInequality(vmgr);
   	int n = vmgr.getNumVars();
-  	List<Coeff> coeffs = Collections.nCopies(n, new Coeff("0"));
-  	Coeff rhs = new Coeff("0");
+  	List<Coeff> coeffs = Collections.nCopies(n, new Coeff(type, "0"));
+  	Coeff rhs = new Coeff(type, "0");
   	InfixReln reln;
   	if (trueStatement) {
   		reln = InfixReln.LEQ;

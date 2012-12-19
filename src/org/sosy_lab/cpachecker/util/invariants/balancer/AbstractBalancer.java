@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateDisjunction;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateVariableManager;
 import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 
 public abstract class AbstractBalancer implements Balancer {
@@ -227,7 +228,8 @@ public abstract class AbstractBalancer implements Balancer {
     // Build variable manager.
     int n = amap.size();
     int m = pur.size();
-    TemplateVariableManager vmgr = new TemplateVariableManager(n,m);
+    //TODO review FormulaType.NumericType
+    TemplateVariableManager vmgr = new TemplateVariableManager(FormulaType.RationalType, n,m);
     logger.log(Level.ALL, "Variable manager:\n", vmgr);
 
     List<Matrix> matrices = consec(antD,t2,vmgr);

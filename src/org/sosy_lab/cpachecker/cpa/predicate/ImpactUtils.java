@@ -34,8 +34,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
  * Class with some helper methods for doing Impact-like refinements.
@@ -134,7 +135,7 @@ class ImpactUtils {
   /**
    * Extract the (uninstantiated) state formula from an ARG state.
    */
-  static Formula getStateFormula(ARGState pARGState) {
+  static BooleanFormula getStateFormula(ARGState pARGState) {
     return AbstractStates.extractStateByType(pARGState, PredicateAbstractState.class).getAbstractionFormula().asFormula();
   }
 
@@ -144,13 +145,13 @@ class ImpactUtils {
    * @param argState The state where to add the formula.
    * @param fmgr The formula manager.
    */
-  static void addFormulaToState(Formula f, ARGState argState, FormulaManager fmgr) {
+  static void addFormulaToState(BooleanFormula f, ARGState argState, FormulaManagerView fmgr) {
     PredicateAbstractState predState = AbstractStates.extractStateByType(argState, PredicateAbstractState.class);
     AbstractionFormula af = predState.getAbstractionFormula();
-
-    Formula newFormula = fmgr.makeAnd(f, af.asFormula());
-    Formula instantiatedNewFormula = fmgr.instantiate(newFormula, predState.getPathFormula().getSsa());
-    AbstractionFormula newAF = new AbstractionFormula(new SymbolicRegionManager.SymbolicRegion(newFormula), newFormula, instantiatedNewFormula, af.getBlockFormula());
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    BooleanFormula newFormula = bfmgr.and(f, af.asFormula());
+    BooleanFormula instantiatedNewFormula = fmgr.instantiate(newFormula, predState.getPathFormula().getSsa());
+    AbstractionFormula newAF = new AbstractionFormula(fmgr, new SymbolicRegionManager.SymbolicRegion(bfmgr, newFormula), newFormula, instantiatedNewFormula, af.getBlockFormula());
     predState.setAbstraction(newAF);
   }
 

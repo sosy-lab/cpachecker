@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 /**
@@ -36,6 +36,6 @@ public interface FormulaReportingState extends AbstractState {
   /**
    * Returns a formula over-approximating the state.
    */
-  public Formula getFormulaApproximation(FormulaManager manager);
+  public BooleanFormula getFormulaApproximation(FormulaManager manager);
 
 }

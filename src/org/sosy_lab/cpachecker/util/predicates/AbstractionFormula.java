@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.util.predicates;
 import java.io.Serializable;
 
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegion;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 /**
@@ -47,20 +49,24 @@ public class AbstractionFormula implements Serializable {
 
   private static final long serialVersionUID = -7756517128231447936L;
   private transient final Region region;
-  private final Formula formula;
-  private final Formula instantiatedFormula;
+  private final BooleanFormula formula;
+  private final BooleanFormula instantiatedFormula;
 
   /**
    * The formula of the block directly before this abstraction.
    * (This formula was used to create this abstraction).
    */
-  private final Formula blockFormula;
+  private final BooleanFormula blockFormula;
 
   private static int nextId = 0;
   private final int id = nextId++;
+  private BooleanFormulaManager mgr;
 
-  public AbstractionFormula(Region pRegion, Formula pFormula,
-      Formula pInstantiatedFormula, Formula pBlockFormula) {
+  public AbstractionFormula(
+      FormulaManager mgr,
+      Region pRegion, BooleanFormula pFormula,
+      BooleanFormula pInstantiatedFormula, BooleanFormula pBlockFormula) {
+    this.mgr = mgr.getBooleanFormulaManager();
     this.region = pRegion;
     this.formula = pFormula;
     this.instantiatedFormula = pInstantiatedFormula;
@@ -68,11 +74,11 @@ public class AbstractionFormula implements Serializable {
   }
 
   public boolean isTrue() {
-    return formula.isTrue();
+    return mgr.isTrue(formula);
   }
 
   public boolean isFalse() {
-    return formula.isFalse();
+    return mgr.isFalse(formula);
   }
 
   public Region asRegion() {
@@ -82,18 +88,18 @@ public class AbstractionFormula implements Serializable {
   /**
    * Returns the formula representation where all variables do not have SSA indices.
    */
-  public Formula asFormula() {
+  public BooleanFormula asFormula() {
     return formula;
   }
 
   /**
    * Returns the formula representation where all variables DO have SSA indices.
    */
-  public Formula asInstantiatedFormula() {
+  public BooleanFormula asInstantiatedFormula() {
     return instantiatedFormula;
   }
 
-  public Formula getBlockFormula() {
+  public BooleanFormula getBlockFormula() {
     return blockFormula;
   }
 

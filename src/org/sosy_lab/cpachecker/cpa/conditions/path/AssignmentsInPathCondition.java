@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingStat
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.collect.HashMultimap;
@@ -275,7 +275,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     @Override
-    public Formula getReasonFormula(FormulaManager formulaManager) {
+    public BooleanFormula getReasonFormula(FormulaManager formulaManager) {
       return PreventingHeuristic.ASSIGNMENTSINPATH.getFormula(formulaManager, maximum);
     }
 

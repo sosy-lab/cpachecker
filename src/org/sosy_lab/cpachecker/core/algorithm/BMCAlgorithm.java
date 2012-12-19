@@ -83,10 +83,11 @@ import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -174,13 +175,15 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private final ConfigurableProgramAnalysis cpa;
   private final InvariantGenerator invariantGenerator;
 
-  private final FormulaManager fmgr;
+  private final FormulaManagerView fmgr;
   private final PathFormulaManager pmgr;
   private final TheoremProver prover;
 
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
   private final CFA cfa;
+
+  private BooleanFormulaManager bfmgr;
 
   public BMCAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa,
                       Configuration config, LogManager logger,
@@ -200,6 +203,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       throw new InvalidConfigurationException("PredicateCPA needed for BMCAlgorithm");
     }
     fmgr = predCpa.getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
     prover = predCpa.getSolver().getTheoremProver();
   }
@@ -282,9 +286,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // get the branchingFormula
       // this formula contains predicates for all branches we took
       // this way we can figure out which branches make a feasible path
-      Formula branchingFormula = pmgr.buildBranchingFormula(arg);
+      BooleanFormula branchingFormula = pmgr.buildBranchingFormula(arg);
 
-      if (branchingFormula.isTrue()) {
+      if (bfmgr.isTrue(branchingFormula)) {
         logger.log(Level.WARNING, "Could not create error path because of missing branching informating");
         return;
       }
@@ -331,7 +335,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
 
       // replay error path for a more precise satisfying assignment
-      Formula pathFormula = pmgr.makeFormulaForPath(targetPath.asEdgesList()).getFormula();
+      BooleanFormula pathFormula = pmgr.makeFormulaForPath(targetPath.asEdgesList()).getFormula();
       prover.pop(); // remove program formula
 
       prover.push(pathFormula);
@@ -370,7 +374,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.FINER, "Found", targetStates.size(), "potential target states");
 
       // create formula
-      Formula program = createFormulaFor(targetStates);
+      BooleanFormula program = createFormulaFor(targetStates);
 
       logger.log(Level.INFO, "Starting satisfiability check...");
       stats.satCheck.start();
@@ -396,7 +400,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     if (boundingAssertions) {
       // create formula for unwinding assertions
-      Formula assertions = createFormulaFor(stopStates);
+      BooleanFormula assertions = createFormulaFor(stopStates);
 
       logger.log(Level.INFO, "Starting assertions check...");
 
@@ -418,11 +422,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   /**
    * Create a disjunctive formula of all the path formulas in the supplied iterable.
    */
-  private Formula createFormulaFor(Iterable<AbstractState> states) {
-    Formula f = fmgr.makeFalse();
+  private BooleanFormula createFormulaFor(Iterable<AbstractState> states) {
+    BooleanFormula f = bfmgr.makeBoolean(false);
 
     for (PredicateAbstractState e : AbstractStates.projectToType(states, PredicateAbstractState.class)) {
-      f = fmgr.makeOr(f, e.getPathFormula().getFormula());
+      f = bfmgr.or(f, e.getPathFormula().getFormula());
     }
 
     return f;
@@ -536,11 +540,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     // get global invariants
-    Formula invariants = extractInvariantsAt(loopHead, invariantGenerator.get());
+    BooleanFormula invariants = extractInvariantsAt(loopHead, invariantGenerator.get());
     invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
 
     // Create formulas
-    Formula inductions = fmgr.makeTrue();
+    BooleanFormula inductions = bfmgr.makeBoolean(true);
 
     for (CFAEdge outgoingEdge : outgoingEdges) {
       // filter out exit edges that do not lead to a target state, we don't care about them
@@ -565,23 +569,23 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       // Create (A & B)
       PathFormula pathFormulaAB = extractStateByType(lastcutPointState, PredicateAbstractState.class).getPathFormula();
-      Formula formulaAB = fmgr.makeAnd(invariants, pathFormulaAB.getFormula());
+      BooleanFormula formulaAB = bfmgr.and(invariants, pathFormulaAB.getFormula());
 
       // Create C
       PathFormula empty = pmgr.makeEmptyPathFormula(pathFormulaAB); // empty has correct SSAMap
       PathFormula pathFormulaC = pmgr.makeAnd(empty, outgoingEdge);
       // we need to negate it, because we used the outgoing edge, not the continuation edge
-      Formula formulaC = fmgr.makeNot(pathFormulaC.getFormula());
+      BooleanFormula formulaC = bfmgr.not(pathFormulaC.getFormula());
 
       // Crate (A & B) => C
-      Formula f = fmgr.makeOr(fmgr.makeNot(formulaAB), formulaC);
+      BooleanFormula f = bfmgr.or(bfmgr.not(formulaAB), formulaC);
 
-      inductions = fmgr.makeAnd(inductions, f);
+      inductions = bfmgr.and(inductions, f);
     }
 
     // now prove that (A & B) => C is a tautology by checking if the negation is unsatisfiable
 
-    inductions = fmgr.makeNot(inductions);
+    inductions = bfmgr.not(inductions);
 
     stats.inductionPreparation.stop();
 
@@ -601,18 +605,18 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return sound;
   }
 
-  private Formula extractInvariantsAt(CFANode loc, ReachedSet reached) {
+  private BooleanFormula extractInvariantsAt(CFANode loc, ReachedSet reached) {
     if (reached.isEmpty()) {
-      return fmgr.makeTrue(); // invariant generation was disabled
+      return bfmgr.makeBoolean(true); // invariant generation was disabled
     }
 
-    Formula invariant = fmgr.makeFalse();
+    BooleanFormula invariant =bfmgr.makeBoolean(false);
 
     for (AbstractState locState : AbstractStates.filterLocation(reached, loc)) {
-      Formula f = AbstractStates.extractReportedFormulas(fmgr, locState);
+      BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);
       logger.log(Level.ALL, "Invariant:", f);
 
-      invariant = fmgr.makeOr(invariant, f);
+      invariant = bfmgr.or(invariant, f);
     }
     return invariant;
   }

@@ -31,8 +31,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import com.google.common.base.Preconditions;
 
@@ -51,7 +52,8 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     private String prefix = "term_"; // for termnames
     static int counter = 0; // for different termnames // TODO static?
 
-    public SmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr) {
+    public SmtInterpolInterpolatingProver(
+        SmtInterpolFormulaManager pMgr) {
       mgr = pMgr;
       env = null;
     }
@@ -64,9 +66,11 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     }
 
     @Override
-    public Term addFormula(Formula f) {
+    public Term addFormula(BooleanFormula f) {
       Preconditions.checkNotNull(env);
-      Term t = ((SmtInterpolFormula)f).getTerm();
+
+      Term t = AbstractFormulaManager.getTerm(f);
+      //Term t = ((SmtInterpolFormula)f).getTerm();
 
       String termName = prefix + counter++;
       Term annotatedTerm = env.annotate(t, new Annotation(":named", termName));
@@ -90,7 +94,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     }
 
     @Override
-    public Formula getInterpolant(List<Term> formulasOfA) {
+    public BooleanFormula getInterpolant(List<Term> formulasOfA) {
         Preconditions.checkNotNull(env);
 
         // wrap terms into annotated term, collect their names as "termNamesOfA"
@@ -142,7 +146,9 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
         Term[] itp = env.getInterpolants(new Term[] {termA, termB});
         assert itp.length == 1; // 2 groups -> 1 interpolant
 
-        return new SmtInterpolFormula(itp[0]);
+        BooleanFormula f = mgr.encapsulate(BooleanFormula.class, itp[0]);
+
+        return f;
     }
 
     @Override
@@ -163,6 +169,6 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
       for (String termname : assertedFormulas) {
         terms.add(annotatedTerms.get(termname));
       }
-      return SmtInterpolModel.createSmtInterpolModel(env, terms);
+      return SmtInterpolModel.createSmtInterpolModel(mgr, terms);
     }
 }

@@ -29,6 +29,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+
 public class Purification {
 
   private final String prefix;
@@ -114,7 +116,7 @@ public class Purification {
    */
   public void purify(TemplateUIF F) {
     String signature = F.toString(VariableWriteMode.PLAIN);
-    TemplateTerm A = getPurename(signature);
+    TemplateTerm A = getPurename(F.getFormulaType(), signature);
     F.setPurifiedName(A);
     Integer I = A.getVariableIndex();
     UIFByIndex.put(I, F);
@@ -143,12 +145,12 @@ public class Purification {
    * Checks whether signature is already present, and if so returns the fresh
    * variable it has been assigned; if not, assigns one and returns that.
    */
-  private TemplateTerm getPurename(String signature) {
+  private TemplateTerm getPurename(FormulaType<?> type, String signature) {
     TemplateTerm T = null;
     if (defs.containsKey(signature)) {
       T = defs.get(signature);
     } else {
-      T = nextAlias();
+      T = nextAlias(type);
       defs.put(signature, T);
     }
     return T;
@@ -157,10 +159,10 @@ public class Purification {
   /**
    * Creates the next fresh variable (in the form of a TemplateTerm).
    */
-  private TemplateTerm nextAlias() {
+  private TemplateTerm nextAlias(FormulaType<?> type) {
     int n = nextUsableIndex.incrementAndGet();
-    TemplateVariable V = new TemplateVariable(prefix, n);
-    TemplateTerm T = new TemplateTerm();
+    TemplateVariable V = new TemplateVariable(type, prefix, n);
+    TemplateTerm T = new TemplateTerm(type);
     T.setVariable(V);
     return T;
   }

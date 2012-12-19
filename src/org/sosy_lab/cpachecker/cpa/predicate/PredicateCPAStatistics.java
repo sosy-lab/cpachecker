@@ -56,10 +56,10 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
@@ -276,14 +276,14 @@ class PredicateCPAStatistics implements Statistics {
       }
 
       AbstractionManager absmgr = cpa.getAbstractionManager();
-      FormulaManager fmgr = cpa.getFormulaManager();
+      FormulaManagerView fmgr = cpa.getFormulaManager();
       StringBuffer invariants = new StringBuffer();
 
       for (CFANode loc : from(cfa.getAllNodes())
                            .filter(CFAUtils.IS_LOOP_NODE)
                            .toImmutableSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
         Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
-        Formula formula = absmgr.toConcrete(region);
+        BooleanFormula formula = absmgr.toConcrete(region);
         invariants.append("loop__");
         invariants.append(loc.getFunctionName());
         invariants.append("__");

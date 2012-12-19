@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.Model;
 public interface TheoremProver {
 
   void init();
-  void push(Formula f);
+  void push(BooleanFormula f);
   void pop();
   boolean isUnsat();
   Model getModel() throws SolverException;
@@ -51,7 +51,7 @@ public interface TheoremProver {
    * @param regionTime A NestedTimer to use for timing model enumeration (outer: solver; inner: region creation).
    * @return A region representing all satisfying models of the formula.
    */
-  AllSatResult allSat(Formula f, Collection<Formula> important,
+  AllSatResult allSat(BooleanFormula f, Collection<BooleanFormula> important,
                       RegionCreator mgr, Timer solveTime, NestedTimer enumTime);
 
   interface AllSatResult {

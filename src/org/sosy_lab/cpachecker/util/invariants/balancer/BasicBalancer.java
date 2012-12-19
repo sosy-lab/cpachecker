@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateLinearizer;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateVariableManager;
 import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 public class BasicBalancer implements Balancer {
 
@@ -293,7 +294,9 @@ public class BasicBalancer implements Balancer {
     // Build variable manager.
     int n = amap.size();
     int m = pur.size();
-    TemplateVariableManager vmgr = new TemplateVariableManager(n,m);
+
+    // TODO: Review FormulaType.NumericType
+    TemplateVariableManager vmgr = new TemplateVariableManager(FormulaType.RationalType, n,m);
     logger.log(Level.ALL, "Variable manager:\n", vmgr);
 
     // Find a formula, using the desired strategy.

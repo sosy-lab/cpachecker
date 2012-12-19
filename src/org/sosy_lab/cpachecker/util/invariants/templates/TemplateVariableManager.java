@@ -30,6 +30,7 @@ import java.util.Vector;
 
 import org.sosy_lab.cpachecker.util.invariants.interfaces.GeneralVariable;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 public class TemplateVariableManager implements VariableManager {
 
@@ -43,14 +44,14 @@ public class TemplateVariableManager implements VariableManager {
     this.vars = new Vector<TemplateVariable>(vars);
   }
 
-  public TemplateVariableManager(int n, int m) {
+  public TemplateVariableManager(FormulaType<?> type,  int n, int m) {
     // Create vars v1, v2, ..., vn, u1, u2, ..., um
     vars = new Vector<TemplateVariable>();
     for (int i = 1; i <= n; i++) {
-      vars.add(new TemplateVariable("v", i));
+      vars.add(new TemplateVariable(type, "v", i));
     }
     for (int j = 1; j <= m; j++) {
-      vars.add(new TemplateVariable("u", j));
+      vars.add(new TemplateVariable(type, "u", j));
     }
   }
 

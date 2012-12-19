@@ -60,7 +60,7 @@ import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.SMTInterpol;
  * This Wrapper allows to set a logfile for all Smt-Queries (default "smtinterpol.smt2").
  */
 @Options(prefix="cpa.predicate.smtinterpol")
-class SmtInterpolEnvironment {
+public class SmtInterpolEnvironment {
 
   /**
    * Enum listing possible types for SmtInterpol.
@@ -110,6 +110,10 @@ class SmtInterpolEnvironment {
   /** This Collection is the toplevel of the stack. */
   private Collection<Triple<String, Sort[], Sort>> currentDeclarations;
 
+  private Term trueTerm;
+
+  private Term falseTerm;
+
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
   public SmtInterpolEnvironment(Configuration config) throws InvalidConfigurationException {
@@ -143,6 +147,9 @@ class SmtInterpolEnvironment {
     }
   }
 
+  public Term getTrueTerm() { return trueTerm; }
+  public Term getFalseTerm() { return falseTerm; }
+
   /**  This function creates a filename with following scheme:
        first filename is unchanged, then a number is appended */
   private String getFilename(final String oldFilename) {
@@ -167,6 +174,9 @@ class SmtInterpolEnvironment {
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }
+
+    trueTerm = term("true");
+    falseTerm = term("false");
   }
 
   public boolean isLogicSet() {

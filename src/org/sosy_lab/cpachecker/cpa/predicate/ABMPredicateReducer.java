@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
@@ -61,10 +62,12 @@ public class ABMPredicateReducer implements Reducer {
   private final PredicateAbstractionManager pamgr;
   private final RelevantPredicatesComputer relevantComputer;
   private final LogManager logger;
+  private final BooleanFormulaManager bfmgr;
 
-  public ABMPredicateReducer(ABMPredicateCPA cpa, RelevantPredicatesComputer pRelevantPredicatesComputer) {
+  public ABMPredicateReducer(BooleanFormulaManager bfmgr, ABMPredicateCPA cpa, RelevantPredicatesComputer pRelevantPredicatesComputer) {
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
+    this.bfmgr = bfmgr;
     this.logger = cpa.getLogger();
     this.relevantComputer = pRelevantPredicatesComputer;
   }
@@ -89,11 +92,12 @@ public class ABMPredicateReducer implements Reducer {
           relevantComputer.getIrrelevantPredicates(pContext, predicates);
 
       PathFormula pathFormula = predicateElement.getPathFormula();
-      assert pathFormula.getFormula().isTrue();
+
+      assert bfmgr.isTrue(pathFormula.getFormula());
 
       AbstractionFormula newAbstraction = pamgr.reduce(oldAbstraction, removePredicates, pathFormula.getSsa());
 
-      return PredicateAbstractState.mkAbstractionState(pathFormula, newAbstraction);
+      return PredicateAbstractState.mkAbstractionState(bfmgr, pathFormula, newAbstraction);
     } finally {
       reduceTimer.stop();
     }
@@ -121,7 +125,7 @@ public class ABMPredicateReducer implements Reducer {
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
       PathFormula oldPathFormula = reducedState.getPathFormula();
-      assert oldPathFormula.getFormula().isTrue();
+      assert bfmgr.isTrue(oldPathFormula.getFormula());
       SSAMap oldSSA = oldPathFormula.getSsa();
 
       //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
@@ -141,7 +145,7 @@ public class ABMPredicateReducer implements Reducer {
       AbstractionFormula newAbstractionFormula =
           pamgr.expand(reducedAbstraction, rootAbstraction, relevantRootPredicates, newSSA);
 
-      return PredicateAbstractState.mkAbstractionState(newPathFormula,
+      return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
           newAbstractionFormula);
     } finally {
       expandTimer.stop();
@@ -404,7 +408,7 @@ public class ABMPredicateReducer implements Reducer {
         pamgr.expand(reducedRegion, rootRegion, relevantRootPredicates, newSSA,
             reducedAbstraction.getBlockFormula());
 
-    return PredicateAbstractState.mkAbstractionState(newPathFormula,
+    return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
         newAbstractionFormula);
   }
 }

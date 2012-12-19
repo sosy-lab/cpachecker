@@ -57,15 +57,16 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
@@ -83,7 +84,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
   private final ConfigurableProgramAnalysis cpa;
 
-  private final ExtendedFormulaManager fmgr;
+  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
   private final PathFormulaManager pfmgr;
   private final TheoremProver prover;
   private final Solver solver;
@@ -136,7 +138,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     cpa = pCpa;
 
     FormulaManagerFactory factory = new FormulaManagerFactory(config, pLogger);
-    fmgr = new ExtendedFormulaManager(factory.getFormulaManager(), config, logger);
+    fmgr = new FormulaManagerView(factory.getFormulaManager(), config, logger);
+    bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, cfa.getMachineModel()));
     prover = factory.createTheoremProver();
     solver = new Solver(fmgr, prover);
@@ -144,7 +147,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   public AbstractState getInitialState(CFANode location) {
-    return new Vertex(fmgr.makeTrue(), cpa.getInitialState(location));
+    return new Vertex(bfmgr, bfmgr.makeBoolean(true), cpa.getInitialState(location));
   }
 
   public Precision getInitialPrecision(CFANode location) {
@@ -173,12 +176,12 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         if (successors.isEmpty()) {
           // edge not feasible
           // create fake vertex
-          new Vertex(v, fmgr.makeFalse(), null);
+          new Vertex(bfmgr, v, bfmgr.makeBoolean(false), null);
           continue;
         }
         assert successors.size() == 1;
 
-        Vertex w = new Vertex(v, fmgr.makeTrue(), Iterables.getOnlyElement(successors));
+        Vertex w = new Vertex(bfmgr, v, bfmgr.makeBoolean(true), Iterables.getOnlyElement(successors));
         reached.add(w, precision);
         reached.popFromWaitlist(); // we don't use the waitlist
       }
@@ -190,7 +193,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   private List<Vertex> refine(final Vertex v) throws CPAException, InterruptedException {
     refinementTime.start();
     try {
-      assert (v.isTarget() && !v.getStateFormula().isFalse());
+      assert (v.isTarget() && ! bfmgr.isFalse(v.getStateFormula()));
 
       logger.log(Level.FINER, "Refinement on " + v);
 
@@ -199,10 +202,10 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       path = path.subList(1, path.size()); // skip root element, it has no formula
 
       // build list of formulas for edges
-      List<Formula> pathFormulas = new ArrayList<Formula>(path.size());
+      List<BooleanFormula> pathFormulas = new ArrayList<BooleanFormula>(path.size());
       addPathFormulasToList(path, pathFormulas);
 
-      CounterexampleTraceInfo<Formula> cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARGState>emptySet());
+      CounterexampleTraceInfo<BooleanFormula> cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARGState>emptySet());
 
       if (!cex.isSpurious()) {
         return Collections.emptyList(); // real counterexample
@@ -215,27 +218,27 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
       List<Vertex> changedElements = new ArrayList<Vertex>();
 
-      for (Pair<Formula, Vertex> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
-        Formula itp = interpolationPoint.getFirst();
+      for (Pair<BooleanFormula, Vertex> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
+        BooleanFormula itp = interpolationPoint.getFirst();
         Vertex w = interpolationPoint.getSecond();
 
-        if (itp.isTrue()) {
+        if (bfmgr.isTrue(itp)) {
           continue;
         }
 
         itp = fmgr.uninstantiate(itp);
 
-        Formula stateFormula = w.getStateFormula();
+        BooleanFormula stateFormula = w.getStateFormula();
         if (!solver.implies(stateFormula, itp)) {
-          w.setStateFormula(fmgr.makeAnd(stateFormula, itp));
+          w.setStateFormula(bfmgr.and(stateFormula, itp));
           w.cleanCoverage();
           changedElements.add(w);
         }
       }
 
       // itp of last element is always false, set it
-      if (!v.getStateFormula().isFalse()) {
-        v.setStateFormula(fmgr.makeFalse());
+      if (! bfmgr.isFalse(v.getStateFormula())) {
+        v.setStateFormula(bfmgr.makeBoolean(false));
         v.cleanCoverage();
         changedElements.add(v);
       }
@@ -309,7 +312,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     // x is common ancestor
     // path is ]x; v] (path from x to v, excluding x, including v)
 
-    List<Formula> formulas = new ArrayList<Formula>(path.size()+2);
+    List<BooleanFormula> formulas = new ArrayList<BooleanFormula>(path.size()+2);
     {
       PathFormula pf = pfmgr.makeEmptyPathFormula();
       formulas.add(fmgr.instantiate(x.getStateFormula(), SSAMap.emptySSAMap().withDefault(1)));
@@ -320,13 +323,13 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         pf = pfmgr.makeEmptyPathFormula(pf); // reset formula, keep SSAMap
       }
 
-      formulas.add(fmgr.makeNot(fmgr.instantiate(w.getStateFormula(), pf.getSsa().withDefault(1))));
+      formulas.add(bfmgr.not(fmgr.instantiate(w.getStateFormula(), pf.getSsa().withDefault(1))));
     }
 
     path.add(0, x); // now path is [x; v] (including x and v)
     assert formulas.size() == path.size() + 1;
 
-    CounterexampleTraceInfo<Formula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet());
+    CounterexampleTraceInfo<BooleanFormula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet());
 
     if (!interpolantInfo.isSpurious()) {
       logger.log(Level.FINER, "Forced covering unsuccessful.");
@@ -337,25 +340,25 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     logger.log(Level.FINER, "Forced covering successful.");
 
 
-    List<Formula> interpolants = interpolantInfo.getInterpolants();
+    List<BooleanFormula> interpolants = interpolantInfo.getInterpolants();
     assert interpolants.size() == formulas.size() - 1;
     assert interpolants.size() ==  path.size();
 
     List<Vertex> changedElements = new ArrayList<Vertex>();
 
-    for (Pair<Formula, Vertex> interpolationPoint : Pair.zipList(interpolants, path)) {
-      Formula itp = interpolationPoint.getFirst();
+    for (Pair<BooleanFormula, Vertex> interpolationPoint : Pair.zipList(interpolants, path)) {
+      BooleanFormula itp = interpolationPoint.getFirst();
       Vertex p = interpolationPoint.getSecond();
 
-      if (itp.isTrue()) {
+      if (bfmgr.isTrue(itp)) {
         continue;
       }
 
       itp = fmgr.uninstantiate(itp);
 
-      Formula stateFormula = p.getStateFormula();
+      BooleanFormula stateFormula = p.getStateFormula();
       if (!solver.implies(stateFormula, itp)) {
-        p.setStateFormula(fmgr.makeAnd(stateFormula, itp));
+        p.setStateFormula(bfmgr.and(stateFormula, itp));
         p.cleanCoverage();
         changedElements.add(p);
       }
@@ -409,7 +412,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         }
       }
 
-      assert v.getStateFormula().isFalse();
+      assert bfmgr.isFalse(v.getStateFormula());
       return true; // no need to expand further
     }
 
@@ -437,7 +440,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
     expand(v, reached);
     for (Vertex w : v.getChildren()) {
-      if (!w.getStateFormula().isFalse()) {
+      if (!bfmgr.isFalse(w.getStateFormula())) {
         dfs(w, reached);
       }
     }
@@ -474,7 +477,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private void addPathFormulasToList(List<Vertex> path, List<Formula> pathFormulas) throws CPATransferException {
+  private void addPathFormulasToList(List<Vertex> path, List<BooleanFormula> pathFormulas) throws CPATransferException {
     PathFormula pf = pfmgr.makeEmptyPathFormula();
     for (Vertex w : path) {
       pf = pfmgr.makeAnd(pf, w.getIncomingEdge());

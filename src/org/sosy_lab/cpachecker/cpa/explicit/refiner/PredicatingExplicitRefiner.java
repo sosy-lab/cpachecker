@@ -47,8 +47,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
@@ -64,7 +64,7 @@ public class PredicatingExplicitRefiner extends PredicateRefiner {
   protected PredicatingExplicitRefiner(Configuration pConfig,
       LogManager pLogger, ConfigurableProgramAnalysis pCpa,
       InterpolationManager pInterpolationManager,
-      final FormulaManager pFormulaManager,
+      final FormulaManagerView pFormulaManager,
       final AbstractionManager pAbstractionManager)
           throws CPAException, InvalidConfigurationException {
     super(pConfig, pLogger, pCpa, pInterpolationManager, pFormulaManager, pAbstractionManager);
@@ -82,7 +82,7 @@ public class PredicatingExplicitRefiner extends PredicateRefiner {
   protected void performRefinement(
       ARGReachedSet pReached,
       List<ARGState> errorPath,
-      CounterexampleTraceInfo<Formula> counterexampleTraceInfo,
+      CounterexampleTraceInfo<BooleanFormula> counterexampleTraceInfo,
       boolean pRepeatedCounterexample)
       throws CPAException {
 
@@ -101,11 +101,11 @@ public class PredicatingExplicitRefiner extends PredicateRefiner {
       UnmodifiableReachedSet reachedSet,
       Precision oldPrecision,
       List<ARGState> errorPath,
-      CounterexampleTraceInfo<Formula> pInfo) throws CPAException {
+      CounterexampleTraceInfo<BooleanFormula> pInfo) throws CPAException {
 
     // extract predicates from interpolants
     List<Collection<AbstractionPredicate>> newPreds = Lists.newArrayList();
-    for (Formula interpolant : pInfo.getInterpolants()) {
+    for (BooleanFormula interpolant : pInfo.getInterpolants()) {
       newPreds.add(convertInterpolant(interpolant));
     }
 

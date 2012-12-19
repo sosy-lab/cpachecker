@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -45,7 +45,7 @@ public class CounterexampleTraceInfo<I> {
     private final boolean spurious;
     private final List<I> interpolants;
     private final Model mCounterexampleModel;
-    private final List<Formula> mCounterexampleFormula;
+    private final List<BooleanFormula> mCounterexampleFormula;
     private final Map<Integer, Boolean> branchingPreds;
 
     public CounterexampleTraceInfo() {
@@ -56,7 +56,7 @@ public class CounterexampleTraceInfo<I> {
       branchingPreds = ImmutableMap.of();
     }
 
-    public CounterexampleTraceInfo(List<Formula> pCounterexampleFormula, Model pModel, Map<Integer, Boolean> preds) {
+    public CounterexampleTraceInfo(List<BooleanFormula> pCounterexampleFormula, Model pModel, Map<Integer, Boolean> preds) {
       mCounterexampleFormula = checkNotNull(pCounterexampleFormula);
       mCounterexampleModel = checkNotNull(pModel);
       spurious = false;
@@ -95,7 +95,7 @@ public class CounterexampleTraceInfo<I> {
         (isSpurious() ? ", interpolants: " + interpolants : "");
     }
 
-    public List<Formula> getCounterExampleFormulas() {
+    public List<BooleanFormula> getCounterExampleFormulas() {
       checkState(!spurious);
       return mCounterexampleFormula;
     }

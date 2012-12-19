@@ -23,269 +23,66 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.util.predicates.FormulaOperator;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-
 
 /**
- * A FormulaManager is an object that can create/manipulate
- * Formulas
+ * Represents a Solver.
  */
 public interface FormulaManager {
 
-  // ----------------- Boolean formulas -----------------
-
-  public boolean isBoolean(Formula pF);
+  /**
+   * Returns the Rational-Theory.
+   */
+  RationalFormulaManager getRationalFormulaManager();
 
   /**
-   * Returns true if there are only conjunctions and negation of atoms
-   * in the formula, i.e. the formula is of the form
-   * p1 & !p2 & p3 & ...
-   * where p1,p2,p3 do not contain any boolean operators.
+   * Returns the Boolean-Theory.
    */
-  public boolean isPurelyConjunctive(Formula f);
+  BooleanFormulaManager getBooleanFormulaManager();
 
   /**
-   * @return a Formula representing logical truth
+   * Returns the Bitvector-Theory.
    */
-  public Formula makeTrue();
+  BitvectorFormulaManager getBitvectorFormulaManager();
 
   /**
-   * @return a Formula representing logical falsity
+   * Returns the Function-Theory.
    */
-  public Formula makeFalse();
+  FunctionFormulaManager getFunctionFormulaManager();
 
   /**
-   * Creates a formula representing a negation of the argument.
-   * @param f a Formula
-   * @return (!f1)
+   * Returns some unsafe traverse methods.
    */
-  public Formula makeNot(Formula f);
+  UnsafeFormulaManager getUnsafeFormulaManager();
 
   /**
-   * Creates a formula representing an AND of the two arguments.
-   * @param f1 a Formula
-   * @param f2 a Formula
-   * @return (f1 & f2)
+   * Returns the type of the given Formula.
+   * Undefined behavior when an untyped Formula from UnsafeFormulaManager is given.
    */
-  public Formula makeAnd(Formula f1, Formula f2);
-
-  /**
-   * Creates a formula representing an OR of the two arguments.
-   * @param f1 a Formula
-   * @param f2 a Formula
-   * @return (f1 | f2)
-   */
-  public Formula makeOr(Formula f1, Formula f2);
-
-  /**
-   * Creates a formula representing an equivalence of the two arguments.
-   * @param f1 a Formula
-   * @param f2 a Formula
-   * @return (f1 <-> f2)
-   */
-  public Formula makeEquivalence(Formula f1, Formula f2);
-
-  /**
-   * Creates a formula representing "IF cond THEN f1 ELSE f2"
-   * @param cond a Formula
-   * @param f1 a Formula
-   * @param f2 a Formula
-   * @return (IF atom THEN f1 ELSE f2)
-   */
-  public Formula makeIfThenElse(Formula cond,
-      Formula f1, Formula f2);
-
-  /**
-   * Creates an uninterpreted predicate (i.e., a UIF with boolean arguments and return type).
-   */
-  Formula makeUIP(String pName, FormulaList pArgs);
-
-  /**
-   * Declares an uninterpreted predicate (i.e., a UIF with boolean arguments and return type).
-   */
-  void declareUIP(String pName, int pArgCount);
-
-
-  // ----------------- Numeric formulas -----------------
-
-  public Formula makeNumber(int pI);
-
-  public Formula makeNumber(String pI);
-
-  public Formula makeNegate(Formula pF);
-
-  public Formula makePlus(Formula pF1, Formula pF2);
-
-  public Formula makeMinus(Formula pF1, Formula pF2);
-
-  public Formula makeDivide(Formula pF1, Formula pF2);
-
-  public Formula makeModulo(Formula pF1, Formula pF2);
-
-  public Formula makeMultiply(Formula pF1, Formula pF2);
-
-  // ----------------- Numeric relations -----------------
-
-  public Formula makeEqual(Formula pF1, Formula pF2);
-
-  public Formula makeGt(Formula pF1, Formula pF2);
-
-  public Formula makeGeq(Formula pF1, Formula pF2);
-
-  public Formula makeLt(Formula pF1, Formula pF2);
-
-  public Formula makeLeq(Formula pF1, Formula pF2);
-
-  // ----------------- Bit-manipulation functions -----------------
-
-  public Formula makeBitwiseNot(Formula pF);
-
-  public Formula makeBitwiseAnd(Formula pF1, Formula pF2);
-
-  public Formula makeBitwiseOr(Formula pF1, Formula pF2);
-
-  public Formula makeBitwiseXor(Formula pF1, Formula pF2);
-
-  public Formula makeShiftLeft(Formula pF1, Formula pF2);
-
-  public Formula makeShiftRight(Formula pF1, Formula pF2);
-
-  // ----------------- Uninterpreted functions -----------------
-
-  public Formula makeUIF(String pName, FormulaList pArgs);
-
-  public Formula makeUIF(String pName, FormulaList pArgs, int pIdx);
-
-  // ----------------- Other formulas -----------------
-
-  public Formula makeString(int pI);
-
-  public Formula makeVariable(String pVar, int pIdx);
-
-  public Formula makeVariable(String pVar);
-
-  public Formula makePredicateVariable(String pVar, int pIdx);
-
-  public Formula makeAssignment(Formula pF1, Formula pF2);
-
-  // ----------------- Convert to list -----------------
-
-  public FormulaList makeList(Formula pF);
-
-  public FormulaList makeList(Formula pF1, Formula pF2);
-
-  public FormulaList makeList(List<Formula> pFs);
-
-  // ----------------- Complex formula manipulation -----------------
+  public <T extends Formula> FormulaType<T> getFormulaType(T formula);
 
   /**
    * Parse a formula given as a String in a solver-specific file format.
    * @return The same formula in the internal representation.
    * @throws IllegalArgumentException If the string cannot be parsed.
    */
-  public Formula parse(String s) throws IllegalArgumentException;
+  // TODO: Implement solver independent file format and remove this method from the solver interface
+  // Instead implement the format in the View
+  public <T extends Formula> T parse(Class<T> clazz, String s) throws IllegalArgumentException;
 
   /**
-   * Parse a formula list given as a String in a solver-specific file format.
-   * @return The list of formulas contained in the string, keyed by their name.
-   * @throws IllegalArgumentException If the string cannot be parsed.
+   * Returns the Interface-Class of the given Formula. For example BitvectorFormula.class.
    */
-  public Map<String, Formula> parseFormulas(String s) throws IllegalArgumentException;
-
-  /**
-   * Given a formula that uses "generic" variables, returns the corresponding
-   * one that "instantiates" such variables according to the given SSA map.
-   *
-   * @param f the generic Formula to instantiate
-   * @param ssa the SSAMap to use
-   * @return a copy of f in which every "generic" variable is replaced by the
-   * corresponding "SSA instance"
-   */
-  public Formula instantiate(Formula f, SSAMap ssa);
-
-  /**
-   * Given an "instantiated" formula, returns the corresponding formula in
-   * which all the variables are "generic" ones. This is the inverse of the
-   * instantiate() method above
-   */
-  public Formula uninstantiate(Formula pF);
-
-  /**
-   * Extracts the atoms from the given formula. Any SSA indices are removed
-   * from the symbols in the atoms.
-   * @param f the formula to operate on
-   * @param splitArithEqualities if true, return (x <= y) and (y <= x)
-   *                             instead of (x = y)
-   * @param conjunctionsOnly if true, don't extract atoms, but only top-level
-   *                         conjuncts. For example, if called on:
-   *                         a & (b | c), the result will be [a, (b | c)]
-   *                         instead of [a, b, c]
-   * @return a collection of (atomic) formulas
-   */
-  public Collection<Formula> extractAtoms(Formula f,
-      boolean splitArithEqualities, boolean conjunctionsOnly);
-
-
-  /**
-   * Extracts the atoms from the given formula, does not remove SSA indices and does not split equalities,
-   * meaning does not return (x <= y) and (y <= x) instead of (x = y)
-   * @param f the formula to operate on
-   * @return a collection of (atomic) formulas
-   */
-  public Collection<Formula> extractAtoms(Formula f);
-
-  /**
-   * Extract all variables referenced in a formula.
-   * @param f the formula to analyze
-   * @return a set of variables
-   */
-  public Set<String> extractVariables(Formula f);
-
+  public <T extends Formula> Class<T> getInterface(T pInstance);
   /**
    * Create string representation of a formula in a format which may be dumped
    * to a file.
    */
+  // TODO: Implement solver independent file format and remove this method from the solver interface
+  // Instead implement the format in the View
   public String dumpFormula(Formula pT);
 
   /**
-   * Create string representation of some formulas as a string.
-   * @param pFormulas list of formulae
-   * @return String that describes pFormulas
+   * Get some version information of the solver.
    */
-  public String dumpFormulas(Map<String, Formula> pFormulas);
-
-  /**
-   * Looks for uninterpreted functions in the formula and adds bitwise
-   * axioms for them.
-   */
-  public Formula getBitwiseAxioms(Formula f);
-
-  /**
-   * Create a boolean variable with a given name.
-   */
-  public Formula createPredicateVariable(String name);
-
-  /**
-   * Splits a formula into into arguments of the top level operator, e.g.,
-   * "f1 or f2" gets split to "f1", "f2".
-   */
-  public Formula[] getArguments(Formula f);
-
-  /**
-   * Returns top level operator, null if it is an atom
-   */
-  public FormulaOperator getOperator(Formula f);
-
-  /**
-   * Checks whether leftFormula occurs in rightFormula.
-   */
-  public boolean checkSyntacticEntails(Formula leftFormula, Formula rightFormula);
-
   public String getVersion();
 }

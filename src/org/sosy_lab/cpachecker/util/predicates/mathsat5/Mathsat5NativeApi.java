@@ -122,7 +122,7 @@ class Mathsat5NativeApi {
   @CheckReturnValue
   private static native int msat_set_option(long cfg, String option, String value);
   public static void msat_set_option_checked(long cfg, String option, String value)
-                                                 throws IllegalArgumentException {
+                                                throws IllegalArgumentException {
     int retval = msat_set_option(cfg, option, value);
     if (retval != 0) {
       throw new IllegalArgumentException("Could not set Mathsat option \""+option+"="+value+"\", error code " + retval);

@@ -33,8 +33,11 @@ import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
 
 import com.google.common.base.Joiner;
 
@@ -83,22 +86,24 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   @Override
-  public Formula getFormulaApproximation(FormulaManager pManager) {
-    Formula result = pManager.makeTrue();
+  public BooleanFormula getFormulaApproximation(FormulaManager pManager) {
+    BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
+    RationalFormulaManager nfmgr = pManager.getRationalFormulaManager();
+    BooleanFormula result = bfmgr.makeBoolean(true);
 
     for (Entry<String, SimpleInterval> entry : vars.entrySet()) {
-      Formula var = pManager.makeVariable(entry.getKey());
+      RationalFormula var = nfmgr.makeVariable(entry.getKey());
       SimpleInterval value = entry.getValue();
 
       if (value.hasLowerBound()) {
-        Formula bound = pManager.makeNumber(value.getLowerBound().toString());
-        Formula f = pManager.makeGeq(var, bound);
-        result = pManager.makeAnd(result, f);
+        RationalFormula bound = nfmgr.makeNumber(value.getLowerBound().longValue());
+        BooleanFormula f = nfmgr.greaterOrEquals(var, bound);
+        result = bfmgr.and(result, f);
       }
       if (value.hasUpperBound()) {
-        Formula bound = pManager.makeNumber(value.getUpperBound().toString());
-        Formula f = pManager.makeLeq(var, bound);
-        result = pManager.makeAnd(result, f);
+        RationalFormula bound = nfmgr.makeNumber(value.getUpperBound().longValue());
+        BooleanFormula f = nfmgr.lessOrEquals(var, bound);
+        result = bfmgr.and(result, f);
       }
     }
     return result;

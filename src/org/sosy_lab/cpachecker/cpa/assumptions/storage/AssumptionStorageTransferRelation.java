@@ -38,8 +38,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Preconditions;
 
@@ -49,12 +50,12 @@ import com.google.common.base.Preconditions;
 public class AssumptionStorageTransferRelation implements TransferRelation {
 
   private final CtoFormulaConverter converter;
-  private final FormulaManager formulaManager;
+  private final FormulaManagerView formulaManager;
 
   private final Collection<AbstractState> topStateSet;
 
   public AssumptionStorageTransferRelation(CtoFormulaConverter pConverter,
-      FormulaManager pFormulaManager, AbstractState pTopState) {
+      FormulaManagerView pFormulaManager, AbstractState pTopState) {
     converter = pConverter;
     formulaManager = pFormulaManager;
     topStateSet = Collections.singleton(pTopState);
@@ -76,12 +77,13 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState el, List<AbstractState> others, CFAEdge edge, Precision p) throws UnrecognizedCCodeException {
     AssumptionStorageState asmptStorageElem = (AssumptionStorageState)el;
-    assert asmptStorageElem.getAssumption().isTrue();
-    assert asmptStorageElem.getStopFormula().isTrue();
+    BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
+    assert bfmgr.isTrue(asmptStorageElem.getAssumption());
+    assert bfmgr.isTrue(asmptStorageElem.getStopFormula());
     String function = (edge.getSuccessor() != null) ? edge.getSuccessor().getFunctionName() : null;
 
-    Formula assumption = formulaManager.makeTrue();
-    Formula stopFormula = formulaManager.makeFalse(); // initialize with false because we create a disjunction
+    BooleanFormula assumption =  bfmgr.makeBoolean(true);
+    BooleanFormula stopFormula = bfmgr.makeBoolean(false); // initialize with false because we create a disjunction
 
     // process stop flag
     boolean stop = false;
@@ -90,8 +92,8 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
       if (element instanceof AssumptionReportingState) {
         List<CExpression> assumptions = ((AssumptionReportingState)element).getAssumptions();
         for (CExpression inv : assumptions) {
-          Formula invFormula = converter.makePredicate(inv, edge, function, SSAMap.emptySSAMap().builder());
-          assumption = formulaManager.makeAnd(assumption, formulaManager.uninstantiate(invFormula));
+          BooleanFormula invFormula = converter.makePredicate(inv, edge, function, SSAMap.emptySSAMap().builder());
+          assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
         }
       }
 
@@ -99,22 +101,22 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
         AvoidanceReportingState e = (AvoidanceReportingState)element;
 
         if (e.mustDumpAssumptionForAvoidance()) {
-          stopFormula = formulaManager.makeOr(stopFormula, e.getReasonFormula(formulaManager));
+          stopFormula = bfmgr.or(stopFormula, e.getReasonFormula(formulaManager));
           stop = true;
         }
       }
     }
-    Preconditions.checkState(!stopFormula.isTrue());
+    Preconditions.checkState(!bfmgr.isTrue(stopFormula));
 
     if (!stop) {
-      stopFormula = formulaManager.makeTrue();
+      stopFormula = bfmgr.makeBoolean(true);
     }
 
-    if (assumption.isTrue() && stopFormula.isTrue()) {
+    if (bfmgr.isTrue(assumption) && bfmgr.isTrue(stopFormula)) {
       return null; // nothing has changed
 
     } else {
-      return Collections.singleton(new AssumptionStorageState(assumption, stopFormula));
+      return Collections.singleton(new AssumptionStorageState(bfmgr, assumption, stopFormula));
     }
   }
 }

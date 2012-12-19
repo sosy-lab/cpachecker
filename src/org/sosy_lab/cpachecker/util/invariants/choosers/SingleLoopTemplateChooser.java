@@ -23,6 +23,8 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateUIF;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateVariable;
 import org.sosy_lab.cpachecker.util.invariants.templates.TermForm;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 
 
 public class SingleLoopTemplateChooser implements TemplateChooser {
@@ -36,6 +38,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
   private final TemplateFormula exitFormulaHead;
   private final TemplateFormula exitFormulaTail;
   private final TemplateChooserStrategy strategy;
+  private FormulaType<RationalFormula> type;
 
 
   public SingleLoopTemplateChooser(LogManager logger,
@@ -51,6 +54,9 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     this.exitFormulaHead = exitFormulaHead;
     this.exitFormulaTail = exitFormulaTail;
     this.strategy = new TemplateChooserStrategy();
+
+    // TODO: review this change
+    type = FormulaType.RationalType;
   }
 
   private enum TemplateChooserMethod {
@@ -159,15 +165,15 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     tailTerms.addAll(tailVars);
 
     // Create a fresh parameter linear combination of the terms for each conjunct.
-    TemplateSum headLHS = TemplateSum.freshParamLinComb(headTerms);
-    TemplateSum tailLHS = TemplateSum.freshParamLinComb(tailTerms);
+    TemplateSum headLHS = TemplateSum.freshParamLinComb(type, headTerms);
+    TemplateSum tailLHS = TemplateSum.freshParamLinComb(type, tailTerms);
 
     // Make RHS parameters.
-    TemplateVariable param = TemplateTerm.getNextFreshParameter();
-    TemplateTerm headRHS = new TemplateTerm();
+    TemplateVariable param = TemplateTerm.getNextFreshParameter(type);
+    TemplateTerm headRHS = new TemplateTerm(type);
     headRHS.setParameter(param);
-    param = TemplateTerm.getNextFreshParameter();
-    TemplateTerm tailRHS = new TemplateTerm();
+    param = TemplateTerm.getNextFreshParameter(type);
+    TemplateTerm tailRHS = new TemplateTerm(type);
     tailRHS.setParameter(param);
 
     // Build the conjuncts as constraints.
@@ -208,10 +214,10 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
       TemplateSum[] args = new TemplateSum[arity];
       // each arg is a fresh parameter linear combination over loopVars
       for (int i = 0; i < arity; i++) {
-        args[i] = TemplateSum.freshParamLinComb(loopVars);
+        args[i] = TemplateSum.freshParamLinComb(type, loopVars);
       }
       // create the uif
-      uif = new TemplateUIF(name, new TemplateSumList(args));
+      uif = new TemplateUIF(name, type, new TemplateSumList(args));
       // put it in a term
       templateTerms.add( new TemplateTerm(uif) );
     }
@@ -220,11 +226,11 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     templateTerms.addAll(loopVars);
 
     // Finally create a fresh parameter linear combination of all the terms.
-    TemplateSum LHS = TemplateSum.freshParamLinComb(templateTerms);
+    TemplateSum LHS = TemplateSum.freshParamLinComb(type, templateTerms);
 
     // Make RHS parameter.
-    TemplateVariable param = TemplateTerm.getNextFreshParameter();
-    TemplateTerm RHS = new TemplateTerm();
+    TemplateVariable param = TemplateTerm.getNextFreshParameter(type);
+    TemplateTerm RHS = new TemplateTerm(type);
     RHS.setParameter(param);
 
     // Build template formula as constraint.
@@ -249,8 +255,8 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     Set<TemplateTerm> terms = new HashSet<TemplateTerm>();
     TemplateTerm t;
     for (String name : varNames) {
-      t = new TemplateTerm();
-      t.setVariable( new TemplateVariable(name) );
+      t = new TemplateTerm(type);
+      t.setVariable( new TemplateVariable(type, name) );
       terms.add(t);
     }
     return terms;
@@ -282,7 +288,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     for (TermForm f : forms) {
       terms.add( f.getTemplate() );
     }
-    TemplateSum LHS = new TemplateSum(terms);
+    TemplateSum LHS = new TemplateSum(FormulaType.RationalType, terms);
 
     // Make RHS parameter.
     TemplateTerm RHS = makeRHSParameter();
@@ -301,8 +307,8 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
   }
 
   private TemplateTerm makeRHSParameter() {
-    TemplateVariable param = TemplateTerm.getNextFreshParameter();
-    TemplateTerm RHS = new TemplateTerm();
+    TemplateVariable param = TemplateTerm.getNextFreshParameter(type);
+    TemplateTerm RHS = new TemplateTerm(type);
     RHS.setParameter(param);
     return RHS;
   }
@@ -365,7 +371,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     }
 
     // Combine these for LHS.
-    TemplateSum LHS = TemplateSum.freshParamLinComb(indexone);
+    TemplateSum LHS = TemplateSum.freshParamLinComb(type, indexone);
 
     // Make RHS parameter.
     TemplateTerm RHS = makeRHSParameter();

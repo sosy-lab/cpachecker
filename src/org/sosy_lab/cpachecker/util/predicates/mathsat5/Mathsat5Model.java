@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.Model.Function;
 import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.ModelIterator;
 
 import com.google.common.collect.ImmutableMap;
@@ -63,7 +65,7 @@ public class Mathsat5Model {
     String lName = msat_decl_get_name(lDeclarationId);
     TermType lType = toMathsatType(env, msat_decl_get_return_type(lDeclarationId));
 
-    Pair<String, Integer> lSplitName = ArithmeticMathsat5FormulaManager.parseName(lName);
+    Pair<String, Integer> lSplitName = FormulaManagerView.parseName(lName);
     return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
   }
 
@@ -122,8 +124,8 @@ public class Mathsat5Model {
   }
 
   static Model createMathsatModel(final long sourceEnvironment,
-      final Mathsat5FormulaManager fmgr, final boolean sharedEnvironment) throws SolverException {
-    final long targetEnvironment = fmgr.msatEnv;
+       final Mathsat5FormulaManager fmgr, final boolean sharedEnvironment) throws SolverException {
+    final long targetEnvironment = fmgr.getMsatEnv();
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
     long modelFormula = msat_make_true(targetEnvironment);
 
@@ -216,7 +218,7 @@ public class Mathsat5Model {
     }
 
     lModelIterator.free();
-    return new Model(model.build(), fmgr.encapsulate(modelFormula));
+    return new Model(model.build(), fmgr.encapsulateTerm(BooleanFormula.class, modelFormula));
   }
 
 }

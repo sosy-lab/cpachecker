@@ -48,11 +48,12 @@ import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -60,7 +61,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 
-public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> implements StatisticsProvider {
+public class ImpactRefiner extends AbstractInterpolationBasedRefiner<BooleanFormula> implements StatisticsProvider {
 
   private class Stats implements Statistics {
 
@@ -82,7 +83,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
     }
   }
 
-  protected final ExtendedFormulaManager fmgr;
+  protected final FormulaManagerView fmgr;
   protected final Solver solver;
 
   private final Stats stats = new Stats();
@@ -100,7 +101,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
 
     Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
-    ExtendedFormulaManager fmgr = predicateCpa.getFormulaManager();
+    FormulaManagerView fmgr = predicateCpa.getFormulaManager();
     Solver solver = predicateCpa.getSolver();
 
     InterpolationManager manager = new InterpolationManager(
@@ -117,7 +118,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
   protected ImpactRefiner(final Configuration config, final LogManager logger,
       final ConfigurableProgramAnalysis pCpa,
       final InterpolationManager pInterpolationManager,
-      final ExtendedFormulaManager pFmgr, final Solver pSolver) throws InvalidConfigurationException, CPAException {
+      final FormulaManagerView pFmgr, final Solver pSolver) throws InvalidConfigurationException, CPAException {
 
     super(config, logger, pCpa, pInterpolationManager);
 
@@ -142,12 +143,12 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
   }
 
   @Override
-  protected List<Formula> getFormulasForPath(List<ARGState> pPath, ARGState pInitialState) {
+  protected List<BooleanFormula> getFormulasForPath(List<ARGState> pPath, ARGState pInitialState) {
     return from(pPath)
             .transform(toState(PredicateAbstractState.class))
-            .transform(new Function<PredicateAbstractState, Formula>() {
+            .transform(new Function<PredicateAbstractState, BooleanFormula>() {
                 @Override
-                public Formula apply(PredicateAbstractState s) {
+                public BooleanFormula apply(PredicateAbstractState s) {
                   return s.getAbstractionFormula().getBlockFormula();
                 }
               })
@@ -156,7 +157,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
 
   @Override
   protected void performRefinement(ARGReachedSet pReached, List<ARGState> path,
-      CounterexampleTraceInfo<Formula> cex, boolean pRepeatedCounterexample) throws CPAException {
+      CounterexampleTraceInfo<BooleanFormula> cex, boolean pRepeatedCounterexample) throws CPAException {
 
     ReachedSet reached = pReached.asReachedSet();
     ARGState lastElement = path.get(path.size()-1);
@@ -167,18 +168,18 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
 
     List<ARGState> changedElements = new ArrayList<ARGState>();
     ARGState infeasiblePartOfART = lastElement;
-
-    for (Pair<Formula, ARGState> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
-      Formula itp = interpolationPoint.getFirst();
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
+      BooleanFormula itp = interpolationPoint.getFirst();
       ARGState w = interpolationPoint.getSecond();
 
-      if (itp.isTrue()) {
+      if (bfmgr.isTrue(itp)) {
         // do nothing
         totalUnchangedPrefixLength++;
         continue;
       }
 
-      if (itp.isFalse()) {
+      if (bfmgr.isTrue(itp)) {
         // we have reached the part of the path that is infeasible
         infeasiblePartOfART = w;
         break;
@@ -186,7 +187,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
       totalNumberOfStatesWithNonTrivialInterpolant++;
 
       itp = fmgr.uninstantiate(itp);
-      Formula stateFormula = getStateFormula(w);
+      BooleanFormula stateFormula = getStateFormula(w);
 
       stats.itpCheck.start();
       boolean isNewItp = !solver.implies(stateFormula, itp);

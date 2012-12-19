@@ -49,8 +49,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
@@ -89,12 +90,15 @@ public class PredicateTransferRelation implements TransferRelation {
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulae =
       new HashMap<PredicateAbstractState, PathFormula>();
 
+  private final BooleanFormulaManagerView bfmgr;
+
   public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk) throws InvalidConfigurationException {
     pCpa.getConfiguration().inject(this, PredicateTransferRelation.class);
 
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
+    bfmgr = pCpa.getFormulaManager().getBooleanFormulaManager();
     blk = pBlk;
   }
 
@@ -242,9 +246,9 @@ public class PredicateTransferRelation implements TransferRelation {
   private PredicateAbstractState strengthen(PredicateAbstractState pElement,
       AssumptionStorageState pElement2) {
 
-    Formula asmpt = pElement2.getAssumption();
+    BooleanFormula asmpt = pElement2.getAssumption();
 
-    if (asmpt.isTrue() || asmpt.isFalse()) {
+    if (bfmgr.isTrue(asmpt) || bfmgr.isFalse(asmpt)) {
       // we don't add the assumption false in order to not forget the content of the path formula
       // (we need it for post-processing)
       return pElement;
@@ -290,7 +294,7 @@ public class PredicateTransferRelation implements TransferRelation {
 
       PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-      return PredicateAbstractState.mkAbstractionState(newPathFormula, abs);
+      return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula, abs);
     }
   }
 

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.interfaces.conditions;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 /**
@@ -47,6 +47,6 @@ public interface AvoidanceReportingState extends AbstractState {
    * If {@link #mustDumpAssumptionForAvoidance()} returned false, this method
    * SHOULD return TRUE.
    */
-  public Formula getReasonFormula(FormulaManager mgr);
+  public BooleanFormula getReasonFormula(FormulaManager mgr);
 
 }

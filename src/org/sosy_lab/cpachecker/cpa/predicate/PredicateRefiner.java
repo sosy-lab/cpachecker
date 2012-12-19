@@ -63,8 +63,9 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -85,7 +86,7 @@ import com.google.common.collect.Sets;
  * and removing the relevant parts of the ARG).
  */
 @Options(prefix="cpa.predicate.refinement")
-public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula> implements StatisticsProvider {
+public class PredicateRefiner extends AbstractInterpolationBasedRefiner<BooleanFormula> implements StatisticsProvider {
 
   @Option(description="use only the atoms from the interpolants as predicates, "
     + "and not the whole interpolant")
@@ -115,7 +116,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
   private final AbstractionManager amgr;
-  private final FormulaManager fmgr;
+  private final FormulaManagerView fmgr;
 
   private class Stats implements Statistics {
     @Override
@@ -167,7 +168,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
   protected PredicateRefiner(final Configuration config, final LogManager logger,
       final ConfigurableProgramAnalysis pCpa,
       final InterpolationManager pInterpolationManager,
-      final FormulaManager pFormulaManager,
+      final FormulaManagerView pFormulaManager,
       final AbstractionManager pAbstractionManager) throws CPAException, InvalidConfigurationException {
 
     super(config, logger, pCpa, pInterpolationManager);
@@ -200,17 +201,17 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
     return result;
   }
 
-  private static final Function<PredicateAbstractState, Formula> GET_BLOCK_FORMULA
-                = new Function<PredicateAbstractState, Formula>() {
+  private static final Function<PredicateAbstractState, BooleanFormula> GET_BLOCK_FORMULA
+                = new Function<PredicateAbstractState, BooleanFormula>() {
                     @Override
-                    public Formula apply(PredicateAbstractState e) {
+                    public BooleanFormula apply(PredicateAbstractState e) {
                       assert e.isAbstractionState();
                       return e.getAbstractionFormula().getBlockFormula();
                     }
                   };
 
   @Override
-  protected List<Formula> getFormulasForPath(List<ARGState> path, ARGState initialState) throws CPATransferException {
+  protected List<BooleanFormula> getFormulasForPath(List<ARGState> path, ARGState initialState) throws CPATransferException {
     return from(path)
         .transform(toState(PredicateAbstractState.class))
         .transform(GET_BLOCK_FORMULA)
@@ -220,13 +221,13 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
   @Override
   protected void performRefinement(ARGReachedSet pReached,
       List<ARGState> pPath,
-      CounterexampleTraceInfo<Formula> pCounterexample,
+      CounterexampleTraceInfo<BooleanFormula> pCounterexample,
       boolean pRepeatedCounterexample) throws CPAException {
 
     // extract predicates from interpolants
     predicateCreation.start();
     List<Collection<AbstractionPredicate>> newPreds = Lists.newArrayList();
-    for (Formula interpolant : pCounterexample.getInterpolants()) {
+    for (BooleanFormula interpolant : pCounterexample.getInterpolants()) {
       newPreds.add(convertInterpolant(interpolant));
     }
     predicateCreation.stop();
@@ -239,14 +240,15 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
    * @param interpolant The interpolant formula.
    * @return A set of predicates.
    */
-  protected Collection<AbstractionPredicate> convertInterpolant(Formula interpolant) {
-    if (interpolant.isTrue()) {
+  protected Collection<AbstractionPredicate> convertInterpolant(BooleanFormula interpolant) {
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    if (bfmgr.isTrue(interpolant)) {
       return Collections.<AbstractionPredicate>emptySet();
     }
 
     Collection<AbstractionPredicate> preds;
 
-    if (interpolant.isFalse()) {
+    if (bfmgr.isFalse(interpolant)) {
       preds = ImmutableSet.of(amgr.makeFalsePredicate());
     } else {
       totalNumberOfStatesWithNonTrivialInterpolant++;
@@ -262,8 +264,8 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
   /**
    * Create predicates for all atoms in a formula.
    */
-  private List<AbstractionPredicate> getAtomsAsPredicates(Formula f) {
-    Collection<Formula> atoms;
+  private List<AbstractionPredicate> getAtomsAsPredicates(BooleanFormula f) {
+    Collection<BooleanFormula> atoms;
     if (atomicPredicates) {
       atoms = fmgr.extractAtoms(f, splitItpAtoms, false);
     } else {
@@ -272,7 +274,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Formula>
 
     List<AbstractionPredicate> preds = new ArrayList<AbstractionPredicate>(atoms.size());
 
-    for (Formula atom : atoms) {
+    for (BooleanFormula atom : atoms) {
       preds.add(amgr.makePredicate(atom));
     }
     return preds;

@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateNumber;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateSum;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
 import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
 public class Coeff {
 
@@ -59,9 +60,9 @@ public class Coeff {
   /*
    * For this constructor, the string must represent an integer.
    */
-  public Coeff(String s) {
-    TemplateNumber n = new TemplateNumber(s);
-    TemplateTerm t = new TemplateTerm();
+  public Coeff(FormulaType<?> type, String s) {
+    TemplateNumber n = new TemplateNumber(type, s);
+    TemplateTerm t = new TemplateTerm(type);
     t.setCoefficient(n);
     value = t;
   }

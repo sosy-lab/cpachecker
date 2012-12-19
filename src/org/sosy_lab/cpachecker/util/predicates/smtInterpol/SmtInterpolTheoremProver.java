@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager.*;
 import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.*;
 
 import java.util.ArrayDeque;
@@ -36,9 +35,10 @@ import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import com.google.common.base.Preconditions;
 
@@ -52,8 +52,9 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   private SmtInterpolEnvironment env;
   private List<Term> assertedTerms;
 
-  public SmtInterpolTheoremProver(SmtInterpolFormulaManager pMgr) {
-    mgr = pMgr;
+  public SmtInterpolTheoremProver(
+      SmtInterpolFormulaManager pMgr) {
+    this.mgr = pMgr;
     env = null;
   }
 
@@ -65,7 +66,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   @Override
   public Model getModel() {
     Preconditions.checkNotNull(env);
-    return SmtInterpolModel.createSmtInterpolModel(env, assertedTerms);
+    return SmtInterpolModel.createSmtInterpolModel(mgr, assertedTerms);
   }
 
   @Override
@@ -76,9 +77,9 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   }
 
   @Override
-  public void push(Formula f) {
+  public void push(BooleanFormula f) {
     Preconditions.checkNotNull(env);
-    final Term t = getTerm(f);
+    final Term t = AbstractFormulaManager.<Term>getTerm(f);
     assertedTerms.add(t);
     env.push(1);
     env.assertTerm(t);
@@ -102,7 +103,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   }
 
   @Override
-  public AllSatResult allSat(Formula f, Collection<Formula> formulas,
+  public AllSatResult allSat(BooleanFormula f, Collection<BooleanFormula> formulas,
                              RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) {
     checkNotNull(rmgr);
     checkNotNull(solveTime);
@@ -119,13 +120,13 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     // unpack formulas to terms
     Term[] importantTerms = new Term[formulas.size()];
     int i = 0;
-    for (Formula impF : formulas) {
-      importantTerms[i++] = getTerm(impF);
+    for (BooleanFormula impF : formulas) {
+      importantTerms[i++] = AbstractFormulaManager.<Term>getTerm(impF);
     }
 
     solveTime.start();
     int numModels = 0;
-    allsatEnv.assertTerm(getTerm(f));
+    allsatEnv.assertTerm(AbstractFormulaManager.<Term>getTerm(f));
     while (allsatEnv.checkSat() == LBool.SAT) {
       Term[] model = new Term[importantTerms.length];
 
@@ -217,7 +218,6 @@ public class SmtInterpolTheoremProver implements TheoremProver {
     }
 
     private void buildBalancedOr() {
-      enumTime.startBoth();
       cubes.add(formula);
       while (cubes.size() > 1) {
         Region b1 = cubes.remove();
@@ -226,7 +226,6 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       }
       assert(cubes.size() == 1);
       formula = cubes.remove();
-      enumTime.stopBoth();
     }
 
     public void callback(Term[] model) { // TODO function needed for smtInterpol???
@@ -247,7 +246,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
         Region region;
         if (isNot(t)) {
           t = getArg(t, 0);
-          region = rmgr.getPredicate(encapsulate(t));
+          region = rmgr.getPredicate( encapsulate(t));
           region = rmgr.makeNot(region);
         } else {
           region = rmgr.getPredicate(encapsulate(t));
@@ -268,6 +267,10 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       count++;
 
       regionTime.stop();
+    }
+
+    private BooleanFormula encapsulate(Term pT) {
+      return mgr.encapsulate(BooleanFormula.class, pT);
     }
   }
 }

@@ -21,25 +21,25 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.mathsat5;
+package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
-import java.io.IOException;
-import java.io.Serializable;
 import java.util.Arrays;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
-public class Mathsat5FormulaList implements FormulaList, Serializable {
-
-  private static final long serialVersionUID = -6546625578464890862L;
-  private transient long[] terms;
+/**
+ * A generic FormulaList implementation used to minimize the code changes for legacy code.
+ * @param <TFormulaInfo> the solver specific type.
+ */
+public class AbstractFormulaList<TFormulaInfo> implements FormulaList {
+  private transient TFormulaInfo[] terms;
 
   /**
    * Do not modify the terms array afterwards, for performance reasons it's not copied!
    */
-  Mathsat5FormulaList(long... terms) {
-    for (long t : terms) {
-      assert t != 0;
+  public AbstractFormulaList(TFormulaInfo... terms) {
+    for (TFormulaInfo t : terms) {
+      assert t != null;
     }
     this.terms = terms;
   }
@@ -47,7 +47,7 @@ public class Mathsat5FormulaList implements FormulaList, Serializable {
   /**
    * Do not modify the returned array, for performance reasons it's not copied!
    */
-  long[] getTerms() {
+  public TFormulaInfo[] getTerms() {
     return terms;
   }
 
@@ -56,34 +56,17 @@ public class Mathsat5FormulaList implements FormulaList, Serializable {
     return Arrays.toString(terms);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public boolean equals(Object pObj) {
-    if (!(pObj instanceof Mathsat5FormulaList)) {
+    if (!(pObj instanceof AbstractFormulaList)) {
       return false;
     }
-    return Arrays.equals(terms, ((Mathsat5FormulaList)pObj).terms);
+    return Arrays.equals(terms, ((AbstractFormulaList<TFormulaInfo>)pObj).terms);
   }
 
   @Override
   public int hashCode() {
     return Arrays.hashCode(terms);
-  }
-
-
-  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-    out.defaultWriteObject();
-    out.writeInt(terms.length);
-    for (int i = 0; i < terms.length; ++i) {
-      out.writeObject(new Mathsat5Formula(terms[i]));
-    }
-  }
-
-  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-    in.defaultReadObject();
-    int termCount = in.readInt();
-    terms = new long[termCount];
-    for (int i = 0; i < terms.length; ++i) {
-      terms[i] = ((Mathsat5Formula)in.readObject()).getTerm();
-    }
   }
 }

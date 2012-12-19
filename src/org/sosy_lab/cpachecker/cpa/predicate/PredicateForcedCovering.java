@@ -57,8 +57,9 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager.SymbolicRegion;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
@@ -105,7 +106,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
 
   private final ForcedCoveringStopOperator stop;
 
-  private final FormulaManager fmgr;
+  private final FormulaManagerView fmgr;
   private final InterpolationManager imgr;
   private final Solver solver;
 
@@ -153,6 +154,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
       return false;
     }
 
+    BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
     logger.log(Level.FINER, "Starting interpolation-based forced covering.");
     logger.log(Level.ALL, "Attempting to force-cover", argElement);
 
@@ -160,7 +162,6 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
 
     List<ARGState> parentList = ImmutableList.copyOf(getParentAbstractionStates(argElement)).reverse();
     Set<ARGState> parentSet = ImmutableSet.copyOf(parentList);
-
     for (AbstractState reachedState : pReached.getReached(pElement)) {
       if (pElement == reachedState) {
         continue;
@@ -203,7 +204,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         // 1) state formula of commonParent instantiated with indices of commonParent
         // 2) block formulas from commonParent to argElement
         // 3) negated state formula of reachedState instantiated with indices of argElement
-        List<Formula> formulas = new ArrayList<Formula>(path.size()+2);
+        List<BooleanFormula> formulas = new ArrayList<BooleanFormula>(path.size()+2);
         {
           formulas.add(getPredicateState(commonParent).getAbstractionFormula().asInstantiatedFormula());
 
@@ -212,15 +213,15 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
           }
 
           SSAMap ssaMap = getPredicateState(argElement).getPathFormula().getSsa().withDefault(1);
-          Formula stateFormula = getPredicateState(reachedState).getAbstractionFormula().asFormula();
-          assert !stateFormula.isTrue() : "Existing element with state true would cover anyway, no forced covering needed";
-          formulas.add(fmgr.makeNot(fmgr.instantiate(stateFormula, ssaMap)));
+          BooleanFormula stateFormula = getPredicateState(reachedState).getAbstractionFormula().asFormula();
+          assert !bfmgr.isTrue(stateFormula) : "Existing element with state true would cover anyway, no forced covering needed";
+          formulas.add(bfmgr.not(fmgr.instantiate(stateFormula, ssaMap)));
         }
 
         path.add(0, commonParent); // now path is [commonParent; argElement] (including x and v)
         assert formulas.size() == path.size() + 1;
 
-        CounterexampleTraceInfo<Formula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet());
+        CounterexampleTraceInfo<BooleanFormula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet());
 
         if (!interpolantInfo.isSpurious()) {
           logger.log(Level.FINER, "Forced covering unsuccessful.");
@@ -231,15 +232,15 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         stats.successfulForcedCoverings++;
         logger.log(Level.FINER, "Forced covering successful.");
 
-        List<Formula> interpolants = interpolantInfo.getInterpolants();
+        List<BooleanFormula> interpolants = interpolantInfo.getInterpolants();
         assert interpolants.size() == formulas.size() - 1 : "Number of interpolants is wrong";
         assert interpolants.size() == path.size();
 
-        for (Pair<Formula, ARGState> interpolationPoint : Pair.zipList(interpolants, path)) {
-          Formula itp = interpolationPoint.getFirst();
+        for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(interpolants, path)) {
+          BooleanFormula itp = interpolationPoint.getFirst();
           ARGState element = interpolationPoint.getSecond();
 
-          if (itp.isTrue()) {
+          if (bfmgr.isTrue(itp)) {
             continue;
           }
 
@@ -249,9 +250,9 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
           AbstractionFormula af = predElement.getAbstractionFormula();
           if (!solver.implies(af.asFormula(), itp)) {
 
-            Formula newFormula = fmgr.makeAnd(itp, af.asFormula());
-            Formula instantiatedNewFormula = fmgr.instantiate(newFormula, predElement.getPathFormula().getSsa());
-            AbstractionFormula newAF = new AbstractionFormula(new SymbolicRegion(newFormula), newFormula, instantiatedNewFormula, af.getBlockFormula());
+            BooleanFormula newFormula = bfmgr.and(itp, af.asFormula());
+            BooleanFormula instantiatedNewFormula = fmgr.instantiate(newFormula, predElement.getPathFormula().getSsa());
+            AbstractionFormula newAF = new AbstractionFormula(fmgr, new SymbolicRegion(bfmgr, newFormula), newFormula, instantiatedNewFormula, af.getBlockFormula());
             predElement.setAbstraction(newAF);
 
             arg.removeCoverageOf(element);

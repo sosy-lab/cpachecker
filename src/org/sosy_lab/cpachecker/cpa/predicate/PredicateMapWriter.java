@@ -38,7 +38,7 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -57,7 +57,7 @@ class PredicateMapWriter {
 
   private static final Joiner LINE_JOINER = Joiner.on('\n');
 
-  private final FormulaManager fmgr;
+  private final FormulaManagerView fmgr;
   private final LogManager logger;
 
   public PredicateMapWriter(PredicateCPA pCpa) {

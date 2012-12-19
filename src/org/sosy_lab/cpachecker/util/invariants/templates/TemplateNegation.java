@@ -30,8 +30,9 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.cpachecker.util.invariants.Rational;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class TemplateNegation extends TemplateBoolean {
 
@@ -171,8 +172,8 @@ public class TemplateNegation extends TemplateBoolean {
   }
 
   @Override
-  public Set<String> getAllVariables(VariableWriteMode vwm) {
-    return arg.getAllVariables(vwm);
+  public Set<TemplateVariable> getAllVariables() {
+    return arg.getAllVariables();
   }
 
   @Override
@@ -194,9 +195,10 @@ public class TemplateNegation extends TemplateBoolean {
   }
 
   @Override
-  public Formula translate(FormulaManager fmgr) {
-    Formula form = arg.translate(fmgr);
-    form = fmgr.makeNot(form);
+  public BooleanFormula translate(FormulaManagerView fmgr) {
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    BooleanFormula form = arg.translate(fmgr);
+    form = bfmgr.not(form);
     return form;
   }
 

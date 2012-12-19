@@ -140,8 +140,8 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
         // check if stored assumption is not "true"
         AssumptionStorageState s = AbstractStates.extractStateByType(state, AssumptionStorageState.class);
 
-        if (!s.getAssumption().isTrue()
-            || !s.getStopFormula().isTrue()) {
+        if (!s.isAssumptionTrue()
+            || !s.isStopFormulaTrue()) {
 
           retList.add(state);
         }

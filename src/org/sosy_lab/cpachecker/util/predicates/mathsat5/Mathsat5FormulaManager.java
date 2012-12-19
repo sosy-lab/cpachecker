@@ -23,111 +23,61 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
-import java.io.File;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.predicates.FormulaOperator;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.NamedTermsWrapper;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRationalFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 
-import com.google.common.base.Splitter;
-import com.google.common.base.Splitter.MapSplitter;
-import com.google.common.collect.ImmutableMap;
 
-@Options(prefix = "cpa.predicate.mathsat")
-public abstract class Mathsat5FormulaManager implements FormulaManager {
 
-  protected static interface MsatType {
+public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
 
-    long getVariableType(long msatEnv);
+  private Mathsat5FormulaCreator formulaCreator;
+  private long mathsatEnv;
+  private Mathsat5Settings settings;
+
+  protected Mathsat5FormulaManager(
+      AbstractUnsafeFormulaManager<Long> unsafeManager,
+      AbstractFunctionFormulaManager<Long> pFunctionManager,
+      AbstractBooleanFormulaManager<Long> pBooleanManager,
+      AbstractRationalFormulaManager<Long> pNumericManager,
+      AbstractBitvectorFormulaManager<Long> pBitpreciseManager, Mathsat5Settings pSettings) {
+    super(unsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);
+    FormulaCreator<Long> creator = getFormulaCreator();
+    if (!(creator instanceof Mathsat5FormulaCreator)) {
+      throw new IllegalArgumentException("the formel-creator has to be a Mathsat5FormulaCreator instance!");
+    }
+    formulaCreator = (Mathsat5FormulaCreator) getFormulaCreator();
+    mathsatEnv = formulaCreator.getEnv();
+    settings = pSettings;
   }
 
-  @Option(description = "Use UIFs (recommended because its more precise)")
-  private boolean useUIFs = true;
 
-  @Option(description = "List of further options which will be passed to Mathsat. "
-      + "Format is 'key1=value1,key2=value2'")
-  private String furtherOptions = "";
-  private ImmutableMap<String, String> furtherOptionsMap;
+  @SuppressWarnings("unchecked")
+  public static Long getTerm(Formula pT) {
+    return ((Mathsat5Formula)pT).getTerm();
+  }
 
-  @Option(description = "Export solver queries in Smtlib format into a file (for Mathsat5).")
-  private boolean logAllQueries = false;
-  @Option(description = "Export solver queries in Smtlib format into a file (for Mathsat5).")
-  @FileOption(Type.OUTPUT_FILE)
-  private File logfile = new File("mathsat5.%d.smt2");
-
-  private int logfileCounter = 0;
-
-  // the MathSAT environment in which all terms are created
-  // default visibility because its heavily used in sub-classes
-  final long msatEnv;
-
-  // UF encoding of some unsupported operations
-  private final long stringLitUfDecl;
-
-  // datatype to use for variables, when converting them to mathsat vars
-  // can be either MSAT_REAL or MSAT_INT
-  final long msatVarType;
-
-  // the character for separating name and index of a value
-  private static final String INDEX_SEPARATOR = "@";
-
-  // variable name and index that is used for replacing UIFs when they are disabled
-  private static final String UIF_VARIABLE = "__uif__";
-  private int uifVariableCounter = 0;
-
-  // various caches for speeding up expensive tasks
-  //
-  // cache for splitting arithmetic equalities in extractAtoms
-  private final Map<Formula, Boolean> arithCache = new HashMap<Formula, Boolean>();
-
-  // cache for uninstantiating terms (see uninstantiate() below)
-  private final Map<Formula, Formula> uninstantiateCache = new HashMap<Formula, Formula>();
-
-  private final Formula trueFormula;
-  private final Formula falseFormula;
-
-  Mathsat5FormulaManager(Configuration config, LogManager logger, MsatType pVarType)
-      throws InvalidConfigurationException {
-    config.inject(this, Mathsat5FormulaManager.class);
-
-    MapSplitter optionSplitter = Splitter.on(',').trimResults().omitEmptyStrings()
-        .withKeyValueSeparator(Splitter.on('=').limit(2).trimResults());
-
-    try {
-      furtherOptionsMap = ImmutableMap.copyOf(optionSplitter.split(furtherOptions));
-    } catch (IllegalArgumentException e) {
-      throw new InvalidConfigurationException(
-          "Invalid Mathsat option in \"" + furtherOptions + "\": " + e.getMessage(), e);
-    }
+  public static Mathsat5FormulaManager create(LogManager logger, Mathsat5Settings settings) throws InvalidConfigurationException{
+    // Init Msat
 
     long msatConf = msat_create_config();
     msat_set_option_checked(msatConf, "theory.la.split_rat_eq", "false");
 
-    for (Map.Entry<String, String> option : furtherOptionsMap.entrySet()) {
+    for (Map.Entry<String, String> option : settings.furtherOptionsMap.entrySet()) {
       try {
         msat_set_option_checked(msatConf, option.getKey(), option.getValue());
       } catch (IllegalArgumentException e) {
@@ -135,44 +85,78 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
       }
     }
 
-    msatEnv = msat_create_env(msatConf);
+    final long msatEnv = msat_create_env(msatConf);
 
-    msatVarType = pVarType.getVariableType(msatEnv);
+    // Create Mathsat5FormulaCreator
+    AbstractFormulaCreator.CreateBitType<Long> bitTypeCreator =
+        new AbstractFormulaCreator.CreateBitType<Long>() {
+          @Override
+          public Long fromSize(int pSize) {
+            return msat_get_bv_type(msatEnv, pSize);
+          }
+        };
 
-    trueFormula = new Mathsat5Formula.TrueFormula(msat_make_true(msatEnv));
-    falseFormula = new Mathsat5Formula.FalseFormula(msat_make_false(msatEnv));
+    Mathsat5FormulaCreator creator =
+        new Mathsat5FormulaCreator(msatEnv, msat_get_bool_type(msatEnv), msat_get_rational_type(msatEnv), bitTypeCreator);
 
-    long integer_type = msat_get_integer_type(msatEnv);
 
-    long stringLitUfDeclType = msat_get_function_type(msatEnv, new long[] { integer_type }, 1, msatVarType);
-    stringLitUfDecl = msat_declare_function(msatEnv, "__string__", stringLitUfDeclType);
+    // Create managers
+    Mathsat5UnsafeFormulaManager unsafeManager = new Mathsat5UnsafeFormulaManager(creator);
+    Mathsat5FunctionFormulaManager functionTheory = new Mathsat5FunctionFormulaManager(creator, unsafeManager);
+    Mathsat5BooleanFormulaManager booleanTheory = Mathsat5BooleanFormulaManager.create(creator);
+    Mathsat5RationalFormulaManager rationalTheory = Mathsat5RationalFormulaManager.create(creator, functionTheory);
+    Mathsat5BitvectorFormulaManager bitvectorTheory  = Mathsat5BitvectorFormulaManager.create(creator);
+
+    return new Mathsat5FormulaManager(
+        unsafeManager, functionTheory, booleanTheory,
+        rationalTheory, bitvectorTheory, settings);
   }
 
-  long getMsatEnv() {
-    return msatEnv;
+  @SuppressWarnings("unchecked")
+  public <T extends Formula> T encapsulateTerm(Class<T> pClazz, long t) {
+    return formulaCreator.encapsulate(pClazz, t);
   }
 
+  @Override
+  public <T extends Formula> T parse(Class<T> pClazz, String pS) throws IllegalArgumentException {
+    long f = msat_from_smtlib2(mathsatEnv, pS);
+    return encapsulateTerm(pClazz, f);
+  }
+
+  @Override
+  public String dumpFormula(Long f) {
+    return msat_to_smtlib2(mathsatEnv, f);
+  }
+
+
+  @Override
+  public String getVersion() {
+    return msat_get_version();
+  }
+
+  int logfileCounter = 0;
   long createEnvironment(long cfg, boolean shared, boolean ghostFilter) {
     long env;
 
     if (ghostFilter) {
       msat_set_option_checked(cfg, "dpll.ghost_filtering", "true");
     }
+
     msat_set_option_checked(cfg, "theory.la.split_rat_eq", "false");
 
-    for (Map.Entry<String, String> option : furtherOptionsMap.entrySet()) {
+    for (Map.Entry<String, String> option : settings.furtherOptionsMap.entrySet()) {
       msat_set_option_checked(cfg, option.getKey(), option.getValue());
     }
 
-    if (logAllQueries && logfile != null) {
-      String filename = String.format(logfile.getAbsolutePath(), logfileCounter++);
+    if (settings.logAllQueries && settings.logfile != null) {
+      String filename = String.format(settings.logfile.getAbsolutePath(), logfileCounter++);
 
       msat_set_option_checked(cfg, "debug.api_call_trace", "1");
       msat_set_option_checked(cfg, "debug.api_call_trace_filename", filename);
     }
 
     if (shared) {
-      env = msat_create_shared_env(cfg, msatEnv);
+      env = msat_create_shared_env(cfg, this.mathsatEnv);
     } else {
       env = msat_create_env(cfg);
     }
@@ -180,725 +164,32 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
     return env;
   }
 
-  static long getTerm(Formula f) {
-    return ((Mathsat5Formula) f).getTerm();
+  long getMsatEnv(){
+    return mathsatEnv;
   }
 
-  static long[] getTerm(FormulaList f) {
-    return ((Mathsat5FormulaList) f).getTerms();
-  }
+  private static Pattern BITVECTOR_PATTERN = Pattern.compile("^0d\\d+_(\\d+)$");
 
-  protected Formula encapsulate(long t) {
-    if (msat_term_is_true(msatEnv, t)) {
-      assert t == getTerm(trueFormula);
-      return trueFormula;
-    } else if (msat_term_is_false(msatEnv, t)) {
-      assert t == getTerm(falseFormula);
-      return falseFormula;
-    } else {
-      return new Mathsat5Formula(t);
-    }
-  }
+  //TODO: change this to the latest version (if possible try to use a BitvectorFormula instance here)
+  public Object interpreteBitvector(long pBv) {
 
-  private static FormulaList encapsulate(long[] t) {
-    return new Mathsat5FormulaList(t);
-  }
-
-  private static String makeName(String name, int idx) {
-    return name + INDEX_SEPARATOR + idx;
-  }
-
-  static Pair<String, Integer> parseName(String var) {
-    String[] s = var.split(INDEX_SEPARATOR);
-    if (s.length != 2) { throw new IllegalArgumentException("Not an instantiated variable: " + var); }
-
-    return Pair.of(s[0], Integer.parseInt(s[1]));
-  }
-
-  abstract long interpreteBitvector(long bv);
-
-  // ----------------- Boolean formulas -----------------
-
-  @Override
-  public boolean isBoolean(Formula f) {
-    long a = msat_term_get_type(getTerm(f));
-    return msat_is_bool_type(msatEnv, a);
-  }
-
-  @Override
-  public Formula makeTrue() {
-    return trueFormula;
-  }
-
-  @Override
-  public Formula makeFalse() {
-    return falseFormula;
-  }
-
-  @Override
-  public Formula makeNot(Formula f) {
-    return encapsulate(msat_make_not(msatEnv, getTerm(f)));
-  }
-
-  @Override
-  public Formula makeAnd(Formula f1, Formula f2) {
-    return encapsulate(msat_make_and(msatEnv, getTerm(f1), getTerm(f2)));
-  }
-
-  @Override
-  public Formula makeOr(Formula f1, Formula f2) {
-    return encapsulate(msat_make_or(msatEnv, getTerm(f1), getTerm(f2)));
-  }
-
-  @Override
-  public Formula makeEquivalence(Formula f1, Formula f2) {
-
-    long f1Type = msat_term_get_type(getTerm(f1));
-    long f2Type = msat_term_get_type(getTerm(f2));
-
-    // there currently exists a bug in the msat-api, where make_equal with 2 bool-types results in error-term
-    if (msat_is_bool_type(msatEnv, f1Type) && msat_is_bool_type(msatEnv, f2Type)) {
-      return encapsulate(msat_make_iff(msatEnv, getTerm(f1), getTerm(f2)));
-    } else {
-      return encapsulate(msat_make_equal(msatEnv, getTerm(f1), getTerm(f2)));
+    String lTermRepresentation = msat_term_repr(pBv);
+    // the term is of the format "0d<WIDTH>_<VALUE>"
+    Matcher matcher =  BITVECTOR_PATTERN.matcher(lTermRepresentation);
+    if (!matcher.matches()) {
+      throw new NumberFormatException("Unknown bitvector format: " + lTermRepresentation);
     }
 
-
-
-  }
-
-  @Override
-  public Formula makeIfThenElse(Formula condition, Formula f1, Formula f2) {
-    long t;
-    long f1Type = msat_term_get_type(getTerm(f1));
-    long f2Type = msat_term_get_type(getTerm(f2));
-
-    // ite currently doesnt work with bool-types as branch arguments
-    if (!msat_is_bool_type(msatEnv, f1Type) || !msat_is_bool_type(msatEnv, f2Type)) {
-      t = msat_make_term_ite(msatEnv, getTerm(condition), getTerm(f1), getTerm(f2));
-    } else {
-      t =
-          msat_make_and(msatEnv, msat_make_or(msatEnv, msat_make_not(msatEnv, getTerm(condition)), getTerm(f1)),
-              msat_make_or(msatEnv, getTerm(condition), getTerm(f2)));
-    }
-    return encapsulate(t);
-  }
-
-
-  // ----------------- Uninterpreted functions -----------------
-
-  /**
-   * Declare an UF with a number of arguments.
-   * All arguments and the return value of the UF have the same given type.
-   * @return a declaration
-   */
-  private long declareUF(String name, long types, int argCount) {
-    long[] tp = new long[argCount];
-    Arrays.fill(tp, types);
-
-    long funcType = msat_get_function_type(msatEnv, tp, tp.length, types);
-
-    return msat_declare_function(msatEnv, name, funcType);
-  }
-
-  private long buildMsatUF(String name, long[] args, boolean predicate) {
-    checkArgument(args.length > 0);
-    long type = predicate ? msat_get_bool_type(msatEnv) : msatVarType;
-
-    if (!useUIFs) { return buildMsatUfReplacement(type); }
-
-    // only build a function when there actually are arguments
-    if (args.length > 0) {
-      long decl = declareUF(name, type, args.length);
-
-      return buildMsatUF(decl, args);
-    } else {
-      long decl;
-      type = msat_get_simple_type(msatEnv, name);
-      decl = msat_declare_function(msatEnv, name, type);
-
-      return msat_make_constant(msatEnv, decl);
-    }
-
-  }
-
-  /**
-   * Replacement for msat_make_uif, never call that method directly!
-   */
-  protected long buildMsatUF(long func, long[] args) {
-    if (useUIFs) {
-      return msat_make_uf(msatEnv, func, args);
-
-    } else {
-      return buildMsatUfReplacement(msatVarType);
-    }
-  }
-
-  private long buildMsatUfReplacement(long type) {
-    // just create a fresh variable
-    String var = makeName(UIF_VARIABLE, ++uifVariableCounter);
-    long decl = msat_declare_function(msatEnv, var, msatVarType);
-
-    long t = msat_make_constant(msatEnv, decl);
-    return t;
-  }
-
-  @Override
-  public Formula makeUIP(String name, FormulaList args) {
-    return encapsulate(buildMsatUF(name, getTerm(args), true));
-  }
-
-  @Override
-  public Formula makeUIF(String name, FormulaList args) {
-    return encapsulate(buildMsatUF(name, getTerm(args), false));
-  }
-
-  @Override
-  public Formula makeUIF(String name, FormulaList args, int idx) {
-    return encapsulate(buildMsatUF(makeName(name, idx), getTerm(args), false));
-  }
-
-  // ----------------- Other formulas -----------------
-
-  @Override
-  public Formula makeString(int i) {
-    long n = msat_make_number(msatEnv, Integer.toString(i));
-    return encapsulate(buildMsatUF(stringLitUfDecl, new long[] { n }));
-  }
-
-  private long buildMsatVariable(String var, long type) {
-    long decl = msat_declare_function(msatEnv, var, type);
-
-    long t = msat_make_constant(msatEnv, decl);
-    return t;
-  }
-
-  @Override
-  public Formula makeVariable(String var, int idx) {
-    return makeVariable(makeName(var, idx));
-  }
-
-  @Override
-  public Formula makeVariable(String var) {
-    return encapsulate(buildMsatVariable(var, msatVarType));
-  }
-
-  @Override
-  public Formula makePredicateVariable(String var, int idx) {
-    String name = makeName("PRED" + var, idx);
-
-    long bool_type = msat_get_bool_type(msatEnv);
-
-    long decl = msat_declare_function(msatEnv, name, bool_type);
-    long t = msat_make_constant(msatEnv, decl);
-    return encapsulate(t);
-  }
-
-  @Override
-  public Formula makeAssignment(Formula f1, Formula f2) {
-    return makeEqual(f1, f2);
-  }
-
-
-  // ----------------- Convert to list -----------------
-
-  @Override
-  public FormulaList makeList(Formula pF) {
-    return new Mathsat5FormulaList(getTerm(pF));
-  }
-
-  @Override
-  public FormulaList makeList(Formula pF1, Formula pF2) {
-    return new Mathsat5FormulaList(getTerm(pF1), getTerm(pF2));
-  }
-
-  @Override
-  public FormulaList makeList(List<Formula> pFs) {
-    long[] t = new long[pFs.size()];
-    for (int i = 0; i < t.length; i++) {
-      t[i] = getTerm(pFs.get(i));
-    }
-    return encapsulate(t);
-  }
-
-  // ----------------- Complex formula manipulation -----------------
-
-  @Override
-  public Formula createPredicateVariable(String pName) {
-    long bool_type = msat_get_bool_type(msatEnv);
-    long d = msat_declare_function(msatEnv, pName, bool_type);
-    long var = msat_make_constant(msatEnv, d);
-    return encapsulate(var);
-  }
-
-  @Override
-  public String dumpFormula(Formula f) {
-    return msat_to_smtlib2(msatEnv, getTerm(f));
-  }
-
-  /* Method for converting MSAT format to NUSMV format.
-    public String printNusmvFormat(Formula f, Set<Formula> preds) {
-
-      StringBuilder out = new StringBuilder();
-      out.append("MODULE main\n");
-      String repr = dumpFormula(f);
-      for (String line : repr.split("\n")) {
-        if (line.startsWith("VAR")) {
-          out.append(line + ";\n");
-        } else if (line.startsWith("DEFINE")) {
-          String[] bits = line.split(" +", 5);
-          out.append("DEFINE " + bits[1] + " " + bits[4] + ";\n");
-        } else if (line.startsWith("FORMULA")) {
-          out.append("INIT" + line.substring(7) + "\n");
-        } else {
-          out.append(line);
-          out.append('\n');
-        }
-      }
-      out.append("\nTRANS FALSE\n");
-      out.append("INVARSPEC (0 = 0)\n");
-      for (Formula p : preds) {
-        repr = p.toString();
-        repr = repr.replaceAll("([a-zA-Z:_0-9]+@[0-9]+)", "\"$1\"");
-        out.append("PRED " + repr + "\n");
-      }
-      return out.toString();
-    }
-  */
-
-  @Override
-  public String dumpFormulas(Map<String, Formula> pFormulas) {
-    String[] names = new String[pFormulas.size()];
-    long[] terms = new long[pFormulas.size()];
-
-    int i = 0;
-    for (Map.Entry<String, Formula> entry : pFormulas.entrySet()) {
-      names[i] = entry.getKey();
-      terms[i] = getTerm(entry.getValue());
-      i++;
-    }
-
-    NamedTermsWrapper ntw = new NamedTermsWrapper(terms, names);
-    return msat_named_list_to_smtlib2(msatEnv, ntw);
-  }
-
-  @Override
-  public Formula parse(String s) {
-    long f = msat_from_smtlib2(msatEnv, s);
-    return encapsulate(f);
-  }
-
-  @Override
-  public Map<String, Formula> parseFormulas(String pS) throws IllegalArgumentException {
-    NamedTermsWrapper ntw = msat_named_list_from_smtlib2(msatEnv, pS);
-
-    Map<String, Formula> result = new HashMap<String, Formula>(ntw.terms.length);
-    for (int i = 0; i < ntw.terms.length; i++) {
-      String name = ntw.names[i];
-      long term = ntw.terms[i];
-      assert !result.containsKey(name);
-      result.put(name, encapsulate(term));
-    }
-
-    return result;
-  }
-
-  @Override
-  public boolean isPurelyConjunctive(Formula f) {
-    long t = getTerm(f);
-
-    if (msat_term_is_atom(msatEnv, t)
-        || msat_term_is_uf(msatEnv, t)) {
-      // term is atom
-      return true;
-
-    } else if (msat_term_is_not(msatEnv, t)) {
-      t = msat_term_get_arg(t, 0);
-      return (msat_term_is_uf(msatEnv, t)
-      || msat_term_is_atom(msatEnv, t));
-
-    } else if (msat_term_is_and(msatEnv, t)) {
-      int arity = msat_term_arity(t);
-      for (int i = 0; i < arity; ++i) {
-        if (!isPurelyConjunctive(encapsulate(msat_term_get_arg(t, i)))) { return false; }
-      }
-      return true;
-
-    } else {
-      return false;
-    }
-  }
-
-  @Override
-  public Formula instantiate(Formula f, SSAMap ssa) {
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
-    Map<Formula, Formula> cache = new HashMap<Formula, Formula>();
-
-    toProcess.push(f);
-    while (!toProcess.isEmpty()) {
-      final Formula tt = toProcess.peek();
-      if (cache.containsKey(tt)) {
-        toProcess.pop();
-        continue;
-      }
-      final long t = getTerm(tt);
-
-      if (msat_term_is_constant(msatEnv, t)) {
-        toProcess.pop();
-        String name = msat_term_repr(t);
-        int idx = ssa.getIndex(name);
-        if (idx > 0) {
-          // ok, the variable has an instance in the SSA, replace it
-          long newt = buildMsatVariable(makeName(name, idx), msat_term_get_type(t));
-          cache.put(tt, encapsulate(newt));
-        } else {
-          // the variable is not used in the SSA, keep it as is
-          cache.put(tt, tt);
-        }
-
-      } else {
-        boolean childrenDone = true;
-        long[] newargs = new long[msat_term_arity(t)];
-        for (int i = 0; i < newargs.length; ++i) {
-          Formula c = encapsulate(msat_term_get_arg(t, i));
-          Formula newC = cache.get(c);
-          if (newC != null) {
-            newargs[i] = getTerm(newC);
-          } else {
-            toProcess.push(c);
-            childrenDone = false;
-          }
-        }
-
-        if (childrenDone) {
-          toProcess.pop();
-          long newt;
-
-          if (msat_term_is_uf(msatEnv, t)) {
-            String name = msat_decl_get_name(msat_term_get_decl(t));
-            assert name != null;
-
-            if (ufCanBeLvalue(name)) {
-              int idx = ssa.getIndex(name, encapsulate(newargs));
-              if (idx > 0) {
-                // ok, the variable has an instance in the SSA, replace it
-                newt = buildMsatUF(makeName(name, idx), newargs, false);
-              } else {
-                long tDecl = msat_term_get_decl(t);
-                newt = msat_make_term(msatEnv, tDecl, newargs);
-              }
-            } else {
-              long tDecl = msat_term_get_decl(t);
-              newt = msat_make_term(msatEnv, tDecl, newargs);
-
-            }
-          } else {
-
-            long tDecl = msat_term_get_decl(t);
-            if (newargs.length > 0) {
-              newt = msat_make_term(msatEnv, tDecl, newargs);
-            } else {
-              newt = msat_make_constant(msatEnv, tDecl);
-            }
-          }
-
-          cache.put(tt, encapsulate(newt));
-        }
-      }
-    }
-
-    Formula result = cache.get(f);
-    assert result != null;
-    return result;
-  }
-
-  private boolean ufCanBeLvalue(String name) {
-    return name.startsWith(".{") || name.startsWith("->{");
-  }
-
-  @Override
-  public Formula uninstantiate(Formula f) {
-    Map<Formula, Formula> cache = uninstantiateCache;
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
-
-    toProcess.push(f);
-    while (!toProcess.isEmpty()) {
-      final Formula tt = toProcess.peek();
-      if (cache.containsKey(tt)) {
-        toProcess.pop();
-        continue;
-      }
-      final long t = getTerm(tt);
-
-      if (msat_term_is_constant(msatEnv, t)) {
-        String name = parseName(msat_term_repr(t)).getFirst();
-
-        long newt = buildMsatVariable(name, msat_term_get_type(t));
-        cache.put(tt, encapsulate(newt));
-
-      } else {
-        boolean childrenDone = true;
-        long[] newargs = new long[msat_term_arity(t)];
-        for (int i = 0; i < newargs.length; ++i) {
-          Formula c = encapsulate(msat_term_get_arg(t, i));
-          Formula newC = cache.get(c);
-          if (newC != null) {
-            newargs[i] = getTerm(newC);
-          } else {
-            toProcess.push(c);
-            childrenDone = false;
-          }
-        }
-
-        if (childrenDone) {
-          toProcess.pop();
-          long newt;
-          if (msat_term_is_uf(msatEnv, t)) {
-            String name = msat_decl_get_name(msat_term_get_decl(t));
-            assert name != null;
-
-            if (ufCanBeLvalue(name)) {
-              name = parseName(name).getFirst();
-
-              newt = buildMsatUF(name, newargs, false);
-            } else {
-              long tDecl = msat_term_get_decl(t);
-              newt = msat_make_term(msatEnv, tDecl, newargs);
-            }
-          } else {
-            long tDecl = msat_term_get_decl(t);
-            newt = msat_make_term(msatEnv, tDecl, newargs);
-          }
-
-          cache.put(tt, encapsulate(newt));
-        }
-      }
-    }
-
-    Formula result = cache.get(f);
-    assert result != null;
-    return result;
-  }
-
-  @Override
-  public Collection<Formula> extractAtoms(Formula f,
-      boolean splitArithEqualities, boolean conjunctionsOnly) {
-    Set<Formula> handled = new HashSet<Formula>();
-    List<Formula> atoms = new ArrayList<Formula>();
-
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
-    toProcess.push(f);
-    handled.add(f);
-
-    while (!toProcess.isEmpty()) {
-      Formula tt = toProcess.pop();
-      long t = getTerm(tt);
-      assert handled.contains(tt);
-
-      if (msat_term_is_true(msatEnv, t) || msat_term_is_false(msatEnv, t)) {
-        continue;
-      }
-
-      if (msat_term_is_atom(msatEnv, t)) {
-        tt = uninstantiate(tt);
-        t = getTerm(tt);
-
-        if (splitArithEqualities
-            && msat_term_is_equal(msatEnv, t)
-            && isPurelyArithmetic(tt)) {
-          long a1 = msat_term_get_arg(t, 0);
-          long a2 = msat_term_get_arg(t, 1);
-          long t1 = msat_make_leq(msatEnv, a1, a2);
-          //long t2 = msat_make_leq(msatEnv, a2, a1);
-          Formula tt1 = encapsulate(t1);
-          //SymbolicFormula tt2 = encapsulate(t2);
-          handled.add(tt1);
-          //cache.add(tt2);
-          atoms.add(tt1);
-          //atoms.add(tt2);
-          atoms.add(tt);
-        } else {
-          atoms.add(tt);
-        }
-
-      } else if (conjunctionsOnly
-          && !(msat_term_is_not(msatEnv, t) || msat_term_is_and(msatEnv, t))) {
-        // conjunctions only, but formula is neither "not" nor "and"
-        // treat this as atomic
-        atoms.add(uninstantiate(tt));
-
-      } else {
-        // ok, go into this formula
-        for (int i = 0; i < msat_term_arity(t); ++i) {
-          long newt = msat_term_get_arg(t, i);
-          Formula c = encapsulate(newt);
-          if (handled.add(c)) {
-            toProcess.push(c);
-          }
-        }
-      }
-    }
-
-    return atoms;
-  }
-
-  /**
-   * Extracts the atoms from the given formula, does not remove SSA indices and does not split equalities,
-   * meaning does not return (x <= y) and (y <= x) instead of (x = y)
-   * @param f the formula to operate on
-   * @return a collection of (atomic) formulas
-   */
-  @Override
-  public Collection<Formula> extractAtoms(Formula f) {
-    Set<Formula> handled = new HashSet<Formula>();
-    List<Formula> atoms = new ArrayList<Formula>();
-
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
-    toProcess.push(f);
-    handled.add(f);
-
-    while (!toProcess.isEmpty()) {
-      Formula tt = toProcess.pop();
-      long t = getTerm(tt);
-      assert handled.contains(tt);
-
-      if (msat_term_is_true(msatEnv, t) || msat_term_is_false(msatEnv, t)) {
-        continue;
-      }
-
-      if (msat_term_is_atom(msatEnv, t)) {
-        atoms.add(tt);
-      } else {
-        // go into this formula
-        for (int i = 0; i < msat_term_arity(t); ++i) {
-          long newt = msat_term_get_arg(t, i);
-          Formula c = encapsulate(newt);
-          if (handled.add(c)) {
-            toProcess.push(c);
-          }
-        }
-      }
-    }
-
-    return atoms;
-  }
-
-  @Override
-  public Set<String> extractVariables(Formula f) {
-    Set<Formula> seen = new HashSet<Formula>();
-    Set<String> vars = new HashSet<String>();
-
-    Deque<Formula> toProcess = new ArrayDeque<Formula>();
-    toProcess.push(f);
-
-    while (!toProcess.isEmpty()) {
-      long t = getTerm(toProcess.pop());
-
-      if (msat_term_is_true(msatEnv, t) || msat_term_is_false(msatEnv, t)) {
-        continue;
-      }
-
-      if (msat_term_is_constant(msatEnv, t)) {
-        vars.add(msat_term_repr(t));
-
-      } else {
-        // ok, go into this formula
-        for (int i = 0; i < msat_term_arity(t); ++i) {
-          long newt = msat_term_get_arg(t, i);
-          Formula c = encapsulate(newt);
-
-          if (seen.add(c)) {
-            toProcess.push(c);
-          }
-        }
-      }
-    }
-
-    return vars;
-  }
-
-  // returns true if the given term is a pure arithmetic term
-  private boolean isPurelyArithmetic(Formula f) {
-    Boolean result = arithCache.get(f);
-    if (result != null) { return result; }
-
-    long t = getTerm(f);
-
-    boolean res = true;
-    if (msat_term_is_uf(msatEnv, t)) {
-      res = false;
-
-    } else {
-      int arity = msat_term_arity(t);
-      for (int i = 0; i < arity; ++i) {
-        res |= isPurelyArithmetic(encapsulate(msat_term_get_arg(t, i)));
-        if (!res) {
-          break;
-        }
-      }
-    }
-    arithCache.put(f, res);
-    return res;
-  }
-
-  @Override
-  public boolean checkSyntacticEntails(Formula leftFormula, Formula rightFormula) {
-    final long leftTerm = getTerm(leftFormula);
-
-    Deque<Long> toProcess = new ArrayDeque<Long>();
-    Set<Long> seen = new HashSet<Long>();
-
-    toProcess.push(getTerm(rightFormula));
-    while (!toProcess.isEmpty()) {
-      final long rightSubTerm = toProcess.pop();
-
-      if (rightSubTerm == leftTerm) { return true; }
-
-      if (!msat_term_is_constant(msatEnv, rightSubTerm)) {
-        int args = msat_term_arity(rightSubTerm);
-        for (int i = 0; i < args; ++i) {
-          long arg = msat_term_get_arg(rightSubTerm, i);
-          if (!seen.contains(arg)) {
-            toProcess.add(arg);
-            seen.add(arg);
-          }
-        }
-      }
-    }
-
-    return false;
-  }
-
-  @Override
-  public Formula[] getArguments(Formula f) {
-    final long t = getTerm(f);
-    int arity = msat_term_arity(t);
-    Formula[] result = new Formula[arity];
-    for (int i = 0; i < arity; ++i) {
-      result[i] = encapsulate(msat_term_get_arg(t, i));
-    }
-    return result;
-  }
-
-  @Override
-  public FormulaOperator getOperator(Formula f) {
-    final long t = getTerm(f);
-    if (msat_term_is_atom(msatEnv, t)) { return FormulaOperator.ATOM; }
-    if (msat_term_is_not(msatEnv, t)) { return FormulaOperator.NOT; }
-    if (msat_term_is_and(msatEnv, t)) { return FormulaOperator.AND; }
-    if (msat_term_is_or(msatEnv, t)) { return FormulaOperator.OR; }
-    if (msat_term_is_iff(msatEnv, t)) { return FormulaOperator.EQUIV; }
-    if (msat_term_is_term_ite(msatEnv, t)) { return FormulaOperator.ITE; }
-    return null;
-  }
-
-  @Override
-  public void declareUIP(String name, int argCount) {
-    declareUF(name, msat_get_bool_type(msatEnv), argCount);
-  }
-
-  @Override
-  public String getVersion() {
-    return msat_get_version();
+    String term = matcher.group(1);
+    long value = Long.valueOf(term);
+
+//    if (signed && (bitWidth <= 63)) {
+//      if (value >= (1L << (bitWidth-1))) {
+//        // positive number that should be interpreted as negative
+//        value = value - (1L << bitWidth);
+//      }
+//    }
+
+    return value;
   }
 }

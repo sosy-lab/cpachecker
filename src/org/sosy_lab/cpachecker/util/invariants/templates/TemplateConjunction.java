@@ -36,8 +36,9 @@ import java.util.Vector;
 import org.sosy_lab.cpachecker.util.invariants.InfixReln;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.Template;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class TemplateConjunction extends TemplateBoolean implements Template {
 
@@ -374,12 +375,12 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
   }
 
   @Override
-  public Set<String> getAllVariables(VariableWriteMode vwm) {
-    HashSet<String> vars = new HashSet<String>();
+  public Set<TemplateVariable> getAllVariables() {
+    HashSet<TemplateVariable> vars = new HashSet<TemplateVariable>();
     TemplateBoolean tc;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tc = getConjunct(i);
-      vars.addAll(tc.getAllVariables(vwm));
+      vars.addAll(tc.getAllVariables());
     }
     return vars;
   }
@@ -417,18 +418,19 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
   }
 
   @Override
-  public Formula translate(FormulaManager fmgr) {
-  	Formula form = null;
+  public BooleanFormula translate(FormulaManagerView fmgr) {
+  	BooleanFormula form = null;
+  	BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
   	int N = getNumConjuncts();
   	if (N == 0) {
-  		form = fmgr.makeTrue();
+  		form = bfmgr.makeBoolean(true);
   	} else {
   		assert N >= 1;
       form = getConjunct(0).translate(fmgr);
-      Formula augend;
+      BooleanFormula augend;
       for (int i = 1; i < N; i++) {
       	augend = getConjunct(i).translate(fmgr);
-      	form = fmgr.makeAnd(form, augend);
+      	form = bfmgr.and(form, augend);
       }
   	}
   	return form;

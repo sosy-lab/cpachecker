@@ -64,10 +64,10 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
@@ -160,7 +160,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         final ConfigurableProgramAnalysis pCpa,
         final ABMPredicateCPA predicateCpa,
         final InterpolationManager pInterpolationManager,
-        final FormulaManager pFormulaManager,
+        final FormulaManagerView pFormulaManager,
         final AbstractionManager pAbstractionManager) throws CPAException, InvalidConfigurationException {
 
       super(config, logger, pCpa, pInterpolationManager, pFormulaManager, pAbstractionManager);
@@ -207,7 +207,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     protected void performRefinement(
         ARGReachedSet pReached,
         List<ARGState> pPath,
-        CounterexampleTraceInfo<Formula> pCounterexample,
+        CounterexampleTraceInfo<BooleanFormula> pCounterexample,
         boolean pRepeatedCounterexample) throws CPAException {
 
       // overriding this method is needed, as, in principle, it is possible to get two successive spurious counterexamples
@@ -262,7 +262,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     }
 
     @Override
-    protected final List<Formula> getFormulasForPath(List<ARGState> pPath, ARGState initialState) throws CPATransferException {
+    protected final List<BooleanFormula> getFormulasForPath(List<ARGState> pPath, ARGState initialState) throws CPATransferException {
       // the elements in the path are not expanded, so they contain the path formulas
       // with the wrong indices
       // we need to re-create all path formulas in the flattened ARG
@@ -276,10 +276,10 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       }
     }
 
-    private List<Formula> computeBlockFormulas(ARGState pRoot) throws CPATransferException {
+    private List<BooleanFormula> computeBlockFormulas(ARGState pRoot) throws CPATransferException {
 
       Map<ARGState, PathFormula> formulas = new HashMap<ARGState, PathFormula>();
-      List<Formula> abstractionFormulas = Lists.newArrayList();
+      List<BooleanFormula> abstractionFormulas = Lists.newArrayList();
       Deque<ARGState> todo = new ArrayDeque<ARGState>();
 
       // initialize

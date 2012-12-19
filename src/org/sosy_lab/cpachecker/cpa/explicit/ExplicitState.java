@@ -37,8 +37,11 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
 
 import com.google.common.base.Preconditions;
 
@@ -353,13 +356,15 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   }
 
   @Override
-  public Formula getFormulaApproximation(FormulaManager manager) {
-    Formula formula = manager.makeTrue();
+  public BooleanFormula getFormulaApproximation(FormulaManager manager) {
+    BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
+    RationalFormulaManager nfmgr = manager.getRationalFormulaManager();
+    BooleanFormula formula = bfmgr.makeBoolean(true);
 
     for (Map.Entry<String, Long> entry : constantsMap.entrySet()) {
-      Formula var = manager.makeVariable(entry.getKey());
-      Formula val = manager.makeNumber(entry.getValue().toString());
-      formula = manager.makeAnd(formula, manager.makeEqual(var, val));
+      RationalFormula var = nfmgr.makeVariable(entry.getKey());
+      RationalFormula val = nfmgr.makeNumber(entry.getValue());
+      formula = bfmgr.and(formula, nfmgr.equal(var, val));
     }
 
     return formula;

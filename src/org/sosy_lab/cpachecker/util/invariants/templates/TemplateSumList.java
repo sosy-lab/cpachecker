@@ -29,7 +29,6 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -37,7 +36,8 @@ import java.util.Vector;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class TemplateSumList extends TemplateFormulaList {
 
@@ -160,11 +160,11 @@ public class TemplateSumList extends TemplateFormulaList {
 //------------------------------------------------------------------
 // Other cascade methods
 
-  public Set<String> getAllVariables(VariableWriteMode vwm) {
-    HashSet<String> vars = new HashSet<String>();
+  public Set<TemplateVariable> getAllVariables() {
+    HashSet<TemplateVariable> vars = new HashSet<TemplateVariable>();
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
-        vars.addAll(sums[i].getAllVariables(vwm));
+        vars.addAll(sums[i].getAllVariables());
       }
     }
     return vars;
@@ -207,12 +207,12 @@ public class TemplateSumList extends TemplateFormulaList {
     }
   }
 
-  public FormulaList translate(FormulaManager fmgr) {
-  	List<Formula> lf = new Vector<Formula>(sums.length);
+  public FormulaList translate(FormulaManagerView fmgr) {
+  	Formula[] lf = new Formula[sums.length];
   	for (int i = 0; i < sums.length; i++) {
-  		lf.add( sums[i].translate(fmgr) );
+  		lf[i] = ( sums[i].translate(fmgr) );
   	}
-  	return fmgr.makeList(lf);
+  	return new AbstractFormulaList<Formula>(lf);
   }
 
 //------------------------------------------------------------------

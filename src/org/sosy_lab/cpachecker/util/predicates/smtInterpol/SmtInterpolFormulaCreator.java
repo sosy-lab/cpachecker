@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2011  Dirk Beyer
+ *  Copyright (C) 2007-2012  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,47 +23,26 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
 
+import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-/** A Formula represented as a term. */
-public class SmtInterpolFormula implements Formula {
 
-  private final Term term;
+public class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtInterpolEnvironment> {
 
-  public SmtInterpolFormula(Term term) {
-    this.term = term;
+  public SmtInterpolFormulaCreator(
+      SmtInterpolEnvironment pMathsatEnv,
+      Sort pBoolType,
+      Sort pNumberType,
+      AbstractFormulaCreator.CreateBitType<Sort> pBittype) {
+    super(pMathsatEnv, pBoolType, pNumberType, pBittype);
   }
 
   @Override
-  public boolean isFalse() {
-    return SmtInterpolUtil.isFalse(term);
-  }
-
-  @Override
-  public boolean isTrue() {
-    return SmtInterpolUtil.isTrue(term);
-
-  }
-
-  @Override
-  public String toString() {
-    return term.toString();
-  }
-
-  public Term getTerm() {
-    return term;
-  }
-
-  @Override
-  public int hashCode() {
-    return term.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    return (other instanceof SmtInterpolFormula) &&
-        this.term.equals(((SmtInterpolFormula)other).term);
+  public Term makeVariable(Sort type, String varName) {
+    SmtInterpolEnvironment env = getEnv();
+    env.declareFun(varName, new Sort[]{}, type);
+    return env.term(varName);
   }
 }

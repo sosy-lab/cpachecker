@@ -62,7 +62,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.collect.Iterables;
@@ -141,6 +142,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   // store only the ids, not the states in order to prevent memory leaks
   private final Set<Integer> exceptionStates = new HashSet<Integer>();
 
+
+  private final BooleanFormulaManager bfmgr;
+
   public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     config.inject(this);
@@ -152,6 +156,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for AssumptionCollectionAlgorithm");
     }
     formulaManager = cpa.getFormulaManager();
+    bfmgr = formulaManager.getBooleanFormulaManager();
     exceptionAssumptions = new AssumptionWithLocation(formulaManager);
   }
 
@@ -232,9 +237,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         AssumptionStorageState e = AbstractStates.extractStateByType(state, AssumptionStorageState.class);
 
-        Formula assumption = formulaManager.makeAnd(e.getAssumption(), e.getStopFormula());
+        BooleanFormula assumption = bfmgr.and(e.getAssumption(), e.getStopFormula());
 
-        if (!assumption.isTrue()) {
+        if (!bfmgr.isTrue(assumption)) {
           addAssumption(result, assumption, state);
         }
       }
@@ -252,19 +257,19 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   /**
    * Add a given assumption for the location and state of a state.
    */
-  private void addAssumption(AssumptionWithLocation invariant, Formula assumption, AbstractState state) {
-    Formula dataRegion = AbstractStates.extractReportedFormulas(formulaManager, state);
+  private void addAssumption(AssumptionWithLocation invariant, BooleanFormula assumption, AbstractState state) {
+    BooleanFormula dataRegion = AbstractStates.extractReportedFormulas(formulaManager, state);
 
     CFANode loc = extractLocation(state);
     assert loc != null;
-    invariant.add(loc, formulaManager.makeOr(assumption, formulaManager.makeNot(dataRegion)));
+    invariant.add(loc, bfmgr.or(assumption, bfmgr.not(dataRegion)));
   }
 
   /**
    * Create an assumption that is sufficient to exclude an abstract state
    */
   private void addAvoidingAssumptions(AssumptionWithLocation invariant, AbstractState state) {
-    addAssumption(invariant, formulaManager.makeFalse(), state);
+    addAssumption(invariant, bfmgr.makeBoolean(false), state);
   }
 
   private String produceAssumptionAutomaton(ReachedSet reached) {
@@ -288,7 +293,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           || asmptState.isStop()
           || exceptionStates.contains(e.getStateId());
 
-      boolean isRelevant = !asmptState.getAssumption().isTrue();
+      boolean isRelevant = !asmptState.isAssumptionTrue();
 
       if (e.isCovered()) {
         e = e.getCoveringState(); // replace with covering state
@@ -305,7 +310,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
 
       if (isRelevant || falseAssumptionStates.contains(e)) {
-
         // now add e and all its transitive parents to the relevantStates set
         findAllParents(e, relevantStates);
       }
@@ -370,7 +374,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         sb.append("\" -> ");
 
         AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
-        Formula assumption = formulaManager.makeAnd(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
+        BooleanFormula assumption = bfmgr.and(assumptionChild.getAssumption(), assumptionChild.getStopFormula());
         sb.append("ASSUME \"");
         escape(assumption.toString(), sb);
         sb.append("\" ");

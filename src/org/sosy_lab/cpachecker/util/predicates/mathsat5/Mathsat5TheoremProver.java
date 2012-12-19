@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager.getTerm;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import java.util.ArrayDeque;
@@ -36,7 +35,7 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
@@ -49,7 +48,8 @@ public class Mathsat5TheoremProver implements TheoremProver {
   private final Mathsat5FormulaManager mgr;
   private long curEnv;
 
-  public Mathsat5TheoremProver(Mathsat5FormulaManager pMgr) {
+  public Mathsat5TheoremProver(
+      Mathsat5FormulaManager pMgr) {
     mgr = pMgr;
     curEnv = 0;
   }
@@ -75,10 +75,14 @@ public class Mathsat5TheoremProver implements TheoremProver {
   }
 
   @Override
-  public void push(Formula f) {
+  public void push(BooleanFormula f) {
     Preconditions.checkState(curEnv != 0);
     msat_push_backtrack_point(curEnv);
     msat_assert_formula(curEnv, getTerm(f));
+  }
+
+  private Long getTerm(BooleanFormula pF) {
+    return Mathsat5FormulaManager.getTerm(pF);
   }
 
   @Override
@@ -98,7 +102,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
   }
 
   @Override
-  public AllSatResult allSat(Formula f, Collection<Formula> important,
+  public AllSatResult allSat(BooleanFormula f, Collection<BooleanFormula> important,
       RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) {
     checkNotNull(rmgr);
     checkNotNull(solveTime);
@@ -113,13 +117,13 @@ public class Mathsat5TheoremProver implements TheoremProver {
 
     long[] imp = new long[important.size()];
     int i = 0;
-    for (Formula impF : important) {
+    for (BooleanFormula impF : important) {
 
       imp[i++] = getTerm(impF);
 
     }
 
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(rmgr, solveTime, enumTime, allsatEnv);
+    MathsatAllSatCallback callback = new MathsatAllSatCallback(this, rmgr, solveTime, enumTime, allsatEnv);
     solveTime.start();
     msat_assert_formula(allsatEnv, formula);
 
@@ -162,8 +166,11 @@ public class Mathsat5TheoremProver implements TheoremProver {
     private final Deque<Region> cubes = new ArrayDeque<Region>();
     private long env;
 
-    public MathsatAllSatCallback(RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime, long env) {
+    private Mathsat5TheoremProver prover;
+
+    public MathsatAllSatCallback(Mathsat5TheoremProver prover, RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime, long env) {
       this.rmgr = rmgr;
+      this.prover = prover;
       this.formula = rmgr.makeFalse();
       this.solveTime = pSolveTime;
       this.enumTime = pEnumTime;
@@ -222,10 +229,11 @@ public class Mathsat5TheoremProver implements TheoremProver {
         Region v;
         if (msat_term_is_not(env, t)) {
           t = msat_term_get_arg(t, 0);
-          v = rmgr.getPredicate(new Mathsat5Formula(t));
+
+          v = rmgr.getPredicate(prover.mgr.encapsulateTerm(BooleanFormula.class, t));
           v = rmgr.makeNot(v);
         } else {
-          v = rmgr.getPredicate(new Mathsat5Formula(t));
+          v = rmgr.getPredicate(prover.mgr.encapsulateTerm(BooleanFormula.class, t));
         }
         curCube.add(v);
       }

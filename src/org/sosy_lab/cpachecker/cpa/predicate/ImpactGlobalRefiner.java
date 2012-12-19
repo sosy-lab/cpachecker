@@ -57,10 +57,12 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
@@ -80,7 +82,7 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
 
   private final LogManager logger;
 
-  private FormulaManager fmgr;
+  private FormulaManagerView fmgr;
   private Solver solver;
   private InterpolatingTheoremProver<T> itpProver;
   private ARGCPA argCpa;
@@ -143,7 +145,7 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
   }
 
   private ImpactGlobalRefiner(Configuration config, LogManager pLogger,
-      ARGCPA pArgCpa, FormulaManager pFmgr, Solver pSolver,
+      ARGCPA pArgCpa, FormulaManagerView pFmgr, Solver pSolver,
       InterpolatingTheoremProver<T> pItpProver) {
 
     logger = pLogger;
@@ -274,7 +276,7 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
       assert succ.getChildren().isEmpty() == targets.contains(succ);
       assert succ.mayCover();
 
-      Formula blockFormula = extractStateByType(succ, PredicateAbstractState.class).getAbstractionFormula().getBlockFormula();
+      BooleanFormula blockFormula = extractStateByType(succ, PredicateAbstractState.class).getAbstractionFormula().getBlockFormula();
       itpStack.add(itpProver.addFormula(blockFormula));
       try {
         satCheckTime.start();
@@ -332,7 +334,8 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
   private void performRefinementOnPath(List<T> itpStack, final ARGState unreachableState,
       Map<ARGState, ARGState> predecessors, ReachedSet reached) throws CPAException {
     assert !itpStack.isEmpty();
-    assert itpProver.getInterpolant(itpStack).isFalse(); // last interpolant is False
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    assert bfmgr.isFalse( itpProver.getInterpolant(itpStack) ); // last interpolant is False
 
     pathsRefined++;
     totalPathLengthToInfeasibility += itpStack.size();
@@ -347,15 +350,16 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
       currentState = predecessors.get(currentState);
       if (itpStack.isEmpty()) {
         assert currentState.getParents().isEmpty(); // we should have reached the ARG root
-        assert itpProver.getInterpolant(itpStack).isTrue();
+        assert bfmgr.isTrue(itpProver.getInterpolant(itpStack));
         break;
       }
 
+
       getInterpolantTime.start();
-      Formula currentItp = itpProver.getInterpolant(itpStack);
+      BooleanFormula currentItp = itpProver.getInterpolant(itpStack);
       getInterpolantTime.stop();
 
-      if (currentItp.isTrue()) {
+      if (bfmgr.isTrue(currentItp)) {
         // from here to the ARG root, all interpolants will be True
         break;
       }
@@ -387,12 +391,12 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
    * @return True if no refinement was necessary (this implies that refinement
    *          on all of the state's parents is also not necessary)
    */
-  private boolean performRefinementForState(Formula interpolant,
+  private boolean performRefinementForState(BooleanFormula interpolant,
       ARGState state) {
 
     interpolant = fmgr.uninstantiate(interpolant);
 
-    Formula stateFormula = getStateFormula(state);
+    BooleanFormula stateFormula = getStateFormula(state);
 
     interpolantCheckTime.start();
     boolean isNewItp = !solver.implies(stateFormula, interpolant);

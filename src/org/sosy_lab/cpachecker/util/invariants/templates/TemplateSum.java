@@ -41,33 +41,39 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.Variable;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.GeneralVariable;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-public class TemplateSum extends TemplateFormula {
+public class TemplateSum extends TemplateNumericValue {
 
   private Vector<TemplateTerm> terms;
 
 //------------------------------------------------------------------
 // Constructors
 
-  public TemplateSum() {
+  public TemplateSum(FormulaType<?> type) {
+    super(type);
     terms = new Vector<TemplateTerm>();
   }
 
   public TemplateSum(TemplateTerm T) {
+    super(T.getFormulaType());
     terms = new Vector<TemplateTerm>();
     terms.add(T);
   }
 
-  public TemplateSum(Vector<TemplateTerm> t) {
+  public TemplateSum(FormulaType<?> type, Vector<TemplateTerm> t) {
+    super(type);
     terms = t;
   }
 
-  public TemplateSum(Collection<TemplateTerm> s) {
+  public TemplateSum(FormulaType<?> type, Collection<TemplateTerm> s) {
+    super(type);
     terms = new Vector<TemplateTerm>(s);
   }
 
   public TemplateSum(TemplateSum s1, TemplateSum s2) {
+    super(s1.getFormulaType());
     terms = new Vector<TemplateTerm>();
     terms.addAll(s1.getTerms());
     terms.addAll(s2.getTerms());
@@ -80,27 +86,27 @@ public class TemplateSum extends TemplateFormula {
    * Create a linear combination over the passed terms, with
    * fresh parameters as coefficients.
    */
-  public static TemplateSum freshParamLinComb(Collection<TemplateTerm> c) {
+  public static TemplateSum freshParamLinComb(FormulaType<?> type,  Collection<TemplateTerm> c) {
     TemplateVariable param;
     Vector<TemplateTerm> v = new Vector<TemplateTerm>(c.size());
     for (TemplateTerm t : c) {
-      param = TemplateTerm.getNextFreshParameter();
+      param = TemplateTerm.getNextFreshParameter(type);
       t = t.copy();
       t.setParameter(param);
       v.add(t);
     }
-    return new TemplateSum(v);
+    return new TemplateSum(type, v);
   }
 
   /*
    * Return this sum minus one.
    */
   public TemplateSum minusOne() {
-    return TemplateSum.subtract(this, TemplateSum.makeUnity());
+    return TemplateSum.subtract(this, TemplateSum.makeUnity(getFormulaType()));
   }
 
-  public static TemplateSum makeUnity() {
-    return new TemplateSum( TemplateTerm.makeUnity() );
+  public static TemplateSum makeUnity(FormulaType<?> type) {
+    return new TemplateSum(TemplateTerm.makeUnity(type) );
   }
 
 //------------------------------------------------------------------
@@ -108,11 +114,17 @@ public class TemplateSum extends TemplateFormula {
 
   @Override
   public TemplateSum copy() {
+    return withFormulaType(getFormulaType());
+  }
+
+  @Override
+  public TemplateSum withFormulaType(FormulaType<?> pNewType) {
+
     Vector<TemplateTerm> v = new Vector<TemplateTerm>();
     for (TemplateTerm t : terms) {
       v.add(t.copy());
     }
-    TemplateSum s = new TemplateSum(v);
+    TemplateSum s = new TemplateSum(pNewType, v);
     return s;
   }
 
@@ -227,12 +239,12 @@ public class TemplateSum extends TemplateFormula {
 // Other cascade methods
 
   @Override
-  public Set<String> getAllVariables(VariableWriteMode vwm) {
-    HashSet<String> vars = new HashSet<String>();
+  public Set<TemplateVariable> getAllVariables() {
+    HashSet<TemplateVariable> vars = new HashSet<TemplateVariable>();
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {
       T = getTerm(i);
-      vars.addAll( T.getAllVariables(vwm) );
+      vars.addAll( T.getAllVariables() );
     }
     return vars;
   }
@@ -316,12 +328,12 @@ public class TemplateSum extends TemplateFormula {
   }
 
   @Override
-  public Formula translate(FormulaManager fmgr) {
+  public Formula translate(FormulaManagerView fmgr) {
   	Formula form = null;
   	int N = getNumTerms();
   	if (N == 0) {
   		// Really, this case should not occur.
-  		TemplateTerm Z = TemplateTerm.makeZero();
+  		TemplateTerm Z = TemplateTerm.makeZero(getFormulaType());
   		form = Z.translate(fmgr);
   	} else {
   		assert N >= 1;
@@ -354,7 +366,7 @@ public class TemplateSum extends TemplateFormula {
       }
     }
     if (v.size() == 0) {
-      v.add(TemplateTerm.makeZero());
+      v.add(TemplateTerm.makeZero(getFormulaType()));
     }
     terms = v;
   }
@@ -375,7 +387,7 @@ public class TemplateSum extends TemplateFormula {
     Vector<TemplateTerm> newTerms = new Vector<TemplateTerm>();
     TemplateTerm T, U = null;
     TemplateNumber C;
-    TemplateNumber S = new TemplateNumber(0);
+    TemplateNumber S = new TemplateNumber(getFormulaType(), 0);
     String lastMonomial = "";
     String monomial;
     for (int i = 0; i < getNumTerms(); i++) {
@@ -455,11 +467,11 @@ public class TemplateSum extends TemplateFormula {
       u.setVariable(null);
       u.setUIF(null);
       if (!u.hasCoefficient()) {
-        u.setCoefficient( TemplateNumber.makeUnity() );
+        u.setCoefficient( TemplateNumber.makeUnity(getFormulaType()) );
       }
       c.add(u);
     }
-    TemplateSum s = new TemplateSum(c);
+    TemplateSum s = new TemplateSum(getFormulaType(),c);
     Coeff co = new Coeff(s,vwm);
     return co;
   }
@@ -490,7 +502,7 @@ public class TemplateSum extends TemplateFormula {
       if (!vmap.containsKey(var)) {
         // This sum does not have the variable, so put a zero
         // into the return vector.
-        coeffs.add( new Coeff("0") );
+        coeffs.add( new Coeff(getFormulaType(), "0") );
       } else {
         // This sum does have the variable.
         S = vmap.get(var);
@@ -510,7 +522,7 @@ public class TemplateSum extends TemplateFormula {
         V.add(T);
       }
     }
-    return new TemplateSum(V);
+    return new TemplateSum(getFormulaType(),V);
   }
 
   public TemplateSum getNonConstantPart() {
@@ -522,7 +534,7 @@ public class TemplateSum extends TemplateFormula {
         V.add(T);
       }
     }
-    return new TemplateSum(V);
+    return new TemplateSum(getFormulaType(),V);
   }
 
   public Vector<TemplateTerm> getTerms() {
@@ -590,10 +602,10 @@ public class TemplateSum extends TemplateFormula {
         terms3.add(T3);
       }
     }
-    return new TemplateSum(terms3);
+    return new TemplateSum(s1.getFormulaType(),terms3);
   }
 
-  public static TemplateFormula divide(TemplateSum s1, TemplateSum s2) {
+  public static TemplateSum divide(TemplateSum s1, TemplateSum s2) {
     // First make sure that s2 is actually just a single number, quitting if it is not.
     TemplateNumber n = null;
     int t = s2.getNumTerms();
@@ -614,7 +626,7 @@ public class TemplateSum extends TemplateFormula {
       q = term.divideBy(n);
       c.add(q);
     }
-    return new TemplateSum(c);
+    return new TemplateSum(s1.getFormulaType(),c);
   }
 
   void writeAsForm(boolean b) {

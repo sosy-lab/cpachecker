@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
@@ -54,11 +55,13 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
+  private final BooleanFormulaManagerView bfmgr;
 
   public PredicatePrecisionAdjustment(PredicateCPA pCpa) {
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
+    bfmgr = pCpa.getFormulaManager().getBooleanFormulaManager();
   }
 
   @Override
@@ -115,7 +118,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // create new empty path formula
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-    return PredicateAbstractState.mkAbstractionState(newPathFormula, newAbstractionFormula);
+    return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula, newAbstractionFormula);
   }
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {

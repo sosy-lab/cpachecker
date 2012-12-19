@@ -56,14 +56,16 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.NetworkBuilder;
 import org.sosy_lab.cpachecker.util.invariants.balancer.SingleLoopNetworkBuilder;
 import org.sosy_lab.cpachecker.util.invariants.balancer.TemplateNetwork;
 import org.sosy_lab.cpachecker.util.invariants.balancer.WeispfenningBalancer;
+import org.sosy_lab.cpachecker.util.invariants.templates.TemplateBoolean;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateConstraint;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
-import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaManager;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
+import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.collect.Lists;
@@ -79,7 +81,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
   private final Configuration config;
   private final LogManager logger;
   private final AbstractionManager amgr;
-  private final ExtendedFormulaManager emgr;
+  private final FormulaManagerView emgr;
   private final TemplateFormulaManager tmgr;
   //private final TemplatePathFormulaBuilder tpfb;
   //private final TheoremProver prover;
@@ -210,11 +212,13 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     // the loop head location, and so that the predicates after that location are all 'false'.
     // For symmetry, we add 'true' predicates before the loop head location.
 
+    BooleanFormulaManagerView bfmgr = emgr.getBooleanFormulaManager();
+
     // Make true and false formulas.
     Collection<AbstractionPredicate> trueFormula = new Vector<AbstractionPredicate>();
-    trueFormula.add(amgr.makePredicate(emgr.makeTrue()));
+    trueFormula.add(amgr.makePredicate(bfmgr.makeBoolean(true)));
     Collection<AbstractionPredicate> falseFormula = new Vector<AbstractionPredicate>();
-    falseFormula.add(amgr.makePredicate(emgr.makeFalse()));
+    falseFormula.add(amgr.makePredicate(bfmgr.makeBoolean(false)));
 
     // Get the list of abstraction elements.
     List<CFANode> path = transformPath(pPath);
@@ -254,14 +258,17 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
 
     // Here we use the same booleans (splitItpAtoms, false) that are used in the call to
     // extractAtoms in PredicateRefinementManager.getAtomsAsPredicates:
-    Collection<Formula> atoms = tmgr.extractAtoms(invariant, splitItpAtoms, false);
+    FormulaManagerView templateView = new FormulaManagerView(tmgr);
+    Collection<BooleanFormula> atoms =
+        templateView.extractAtoms(
+            templateView.wrapInView((TemplateBoolean)invariant), splitItpAtoms, false);
 
     Collection<AbstractionPredicate> preds = new Vector<AbstractionPredicate>();
 
-    for (Formula atom : atoms) {
+    for (BooleanFormula atom : atoms) {
       try {
         TemplateConstraint tc = (TemplateConstraint)atom;
-        Formula formula = tc.translate(emgr.getDelegate());
+        BooleanFormula formula = tc.translate(emgr);
         preds.add( amgr.makePredicate(formula) );
       } catch (ClassCastException e) {
         // This should not happen! If it does, then tmgr.extractAtoms did something wrong.
@@ -276,7 +283,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     // Like makeAbstractionPredicates, only does /not/ split the passed
     // invariant into atoms, but keeps it whole.
     Collection<AbstractionPredicate> preds = new Vector<AbstractionPredicate>();
-    Formula formula = invariant.translate(emgr.getDelegate());
+    BooleanFormula formula = ((TemplateBoolean)invariant).translate(emgr);
     preds.add( amgr.makePredicate(formula) );
     return preds;
   }

@@ -27,10 +27,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.invariants.interfaces.GeneralVariable;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-public class TemplateVariable extends TemplateFormula implements GeneralVariable {
+public class TemplateVariable extends TemplateNumericValue implements BooleanFormula, GeneralVariable {
 
   private String name = null;
   private Integer index = null;
@@ -39,16 +41,19 @@ public class TemplateVariable extends TemplateFormula implements GeneralVariable
 
   private boolean writingAsForm = false;
 
-  public TemplateVariable(String name, int i) {
+  public TemplateVariable(FormulaType<?> type, String name, int i) {
+    super(type);
     index = new Integer(i);
     build(name, index);
   }
 
-  public TemplateVariable(String name) {
+  public TemplateVariable(FormulaType<?> type,String name) {
+    super(type);
     build(name, null);
   }
 
-  public TemplateVariable(String name, Integer index) {
+  public TemplateVariable(FormulaType<?> type,String name, Integer index) {
+    super(type);
     build(name, index);
   }
 
@@ -63,17 +68,17 @@ public class TemplateVariable extends TemplateFormula implements GeneralVariable
    * @param vn
    * @return
    */
-  public static TemplateVariable parse(String vn) {
+  public static TemplateVariable parse(FormulaType<?> type,String vn) {
     TemplateVariable V;
     int i = vn.lastIndexOf("@");
     if (i < 0) {
-      V = new TemplateVariable(vn);
+      V = new TemplateVariable(type, vn);
     } else {
       String s = vn.substring(0,i);
       String ind = vn.substring(i+1);
       Integer I = new Integer(ind);
       int j = I.intValue();
-      V = new TemplateVariable(s,j);
+      V = new TemplateVariable(type, s,j);
     }
     return V;
   }
@@ -157,23 +162,29 @@ public class TemplateVariable extends TemplateFormula implements GeneralVariable
   }
 
   @Override
-  public Formula translate(FormulaManager fmgr) {
+  public Formula translate(FormulaManagerView fmgr) {
   	Formula form = null;
   	if (hasIndex()) {
-  		form = fmgr.makeVariable(name, index);
+  		form = fmgr.makeVariable(getFormulaType(), name, index);
   	} else {
-  		form = fmgr.makeVariable(name);
+  		form = fmgr.makeVariable(getFormulaType(), name);
   	}
   	return form;
   }
 
   @Override
   public TemplateVariable copy() {
+    return withFormulaType(getFormulaType());
+  }
+
+  @Override
+  public TemplateVariable withFormulaType(FormulaType<?> pNewType) {
+
     TemplateVariable v = null;
     if (index == null) {
-      v = new TemplateVariable(new String(name));
+      v = new TemplateVariable(pNewType, new String(name));
     } else {
-      v = new TemplateVariable(new String(name), new Integer(index));
+      v = new TemplateVariable(pNewType,new String(name), new Integer(index));
     }
     return v;
   }
@@ -219,5 +230,6 @@ public class TemplateVariable extends TemplateFormula implements GeneralVariable
     }
     return s;
   }
+
 
 }

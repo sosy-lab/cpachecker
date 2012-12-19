@@ -34,7 +34,8 @@ import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Preconditions;
@@ -62,11 +63,11 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
     private static final long serialVersionUID = 8341054099315063986L;
 
-    private AbstractionState(PathFormula pf, AbstractionFormula pA) {
+    private AbstractionState(BooleanFormulaManager bfmgr, PathFormula pf, AbstractionFormula pA) {
       super(pf, pA);
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
-      Preconditions.checkArgument(pf.getFormula().isTrue());
+      Preconditions.checkArgument(bfmgr.isTrue(pf.getFormula()));
     }
 
     @Override
@@ -160,8 +161,8 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  static PredicateAbstractState mkAbstractionState(PathFormula pF, AbstractionFormula pA) {
-    return new AbstractionState(pF, pA);
+  static PredicateAbstractState mkAbstractionState(BooleanFormulaManager bfmgr, PathFormula pF, AbstractionFormula pA) {
+    return new AbstractionState(bfmgr, pF, pA);
   }
 
   static PredicateAbstractState mkNonAbstractionState(PathFormula pF, AbstractionFormula pA) {
@@ -215,7 +216,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
   }
 
   @Override
-  public Formula getFormulaApproximation(FormulaManager manager) {
+  public BooleanFormula getFormulaApproximation(FormulaManager manager) {
     return getAbstractionFormula().asFormula();
   }
 }

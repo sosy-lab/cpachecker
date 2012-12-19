@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,7 +33,8 @@ import java.util.Vector;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.Template;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class TemplateFormula implements Formula, Template {
 
@@ -111,32 +111,32 @@ public class TemplateFormula implements Formula, Template {
   public Set<TermForm> getTopLevelTermForms() { return null; }
 
   // FIXME: Should use TemplateVariable objects instead. See comments on next method.
-  public Set<String> getAllVariables(VariableWriteMode vwm) {
-    return new HashSet<String>();
+  public Set<TemplateVariable> getAllVariables() {
+    return new HashSet<TemplateVariable>();
   }
 
-  /**
-   * This method probably shouldn't exist. It's here to return a set of
-   * variables, instead of a mere set of Strings. Probably we should either
-   * redo the getAllVariables method to return a Set of TemplateVariables,
-   * or else we should do this properly, providing a cascade of getAllVariables
-   * methods that take no arguments, and which simply return the Set of
-   * TemplateVariables in the natural way. Here, we use the existing method,
-   * and parse the returned Strings, to create new TemplateVariables.
-   * @return
-   */
-  final public Set<TemplateVariable> getAllVariables() {
-    Iterator<String> I = getAllVariables(VariableWriteMode.PLAIN).iterator();
-    Set<TemplateVariable> V = new HashSet<TemplateVariable>();
-    String S;
-    TemplateVariable T;
-    while (I.hasNext()) {
-      S = I.next();
-      T = TemplateVariable.parse(S);
-      V.add(T);
-    }
-    return V;
-  }
+//  /**
+//   * This method probably shouldn't exist. It's here to return a set of
+//   * variables, instead of a mere set of Strings. Probably we should either
+//   * redo the getAllVariables method to return a Set of TemplateVariables,
+//   * or else we should do this properly, providing a cascade of getAllVariables
+//   * methods that take no arguments, and which simply return the Set of
+//   * TemplateVariables in the natural way. Here, we use the existing method,
+//   * and parse the returned Strings, to create new TemplateVariables.
+//   * @return
+//   */
+//  final public Set<TemplateVariable> getAllVariables() {
+//    Iterator<String> I = getAllVariables(VariableWriteMode.PLAIN).iterator();
+//    Set<TemplateVariable> V = new HashSet<TemplateVariable>();
+//    String S;
+//    TemplateVariable T;
+//    while (I.hasNext()) {
+//      S = I.next();
+//      T = TemplateVariable.parse(S);
+//      V.add(T);
+//    }
+//    return V;
+//  }
 
   public Set<TemplateVariable> getTopLevelLHSParameters() {
     List<TemplateConstraint> cons = getConstraints();
@@ -224,8 +224,12 @@ public class TemplateFormula implements Formula, Template {
    * "language", you just call this method, passing a FormulaManager for the language
    * that you want.
    */
-  public Formula translate(FormulaManager fmgr) {
+  public Formula translate(FormulaManagerView fmgr) {
   	return null;
+  }
+
+  public FormulaType<?> getFormulaType(){
+    return null;
   }
 
   public TemplateFormula copy() {
@@ -249,10 +253,8 @@ public class TemplateFormula implements Formula, Template {
 
   public void negate() {}
 
-  @Override
   public boolean isTrue() { return false; }
 
-  @Override
   public boolean isFalse() { return false; }
 
   @Override

@@ -35,8 +35,10 @@ import org.sosy_lab.cpachecker.util.invariants.InfixReln;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.Constraint;
 import org.sosy_lab.cpachecker.util.invariants.interfaces.VariableManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class TemplateConstraint extends TemplateBoolean implements Constraint {
 
@@ -44,12 +46,19 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   private InfixReln reln = null;
   private TemplateSum RHS = null;
 
+  public TemplateSum getLeft(){
+    return LHS;
+  }
+  public TemplateSum getRight(){
+    return RHS;
+  }
+
 // ------------------------------------------------------------------
 // Constructors
 
   public TemplateConstraint() {
-    LHS = new TemplateSum();
-    RHS = new TemplateSum();
+    LHS = new TemplateSum(FormulaType.RationalType);
+    RHS = new TemplateSum(FormulaType.RationalType);
   }
 
   public TemplateConstraint(TemplateSum s1, InfixReln R, TemplateSum s2) {
@@ -60,9 +69,9 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
    * Special constructor for comparing a variable to 0.
    */
   public TemplateConstraint(TemplateVariable v, InfixReln R) {
-    TemplateTerm t = new TemplateTerm();
+    TemplateTerm t = new TemplateTerm(v.getFormulaType());
     t.setParameter(v);
-    TemplateTerm z = TemplateTerm.makeZero();
+    TemplateTerm z = TemplateTerm.makeZero(v.getFormulaType());
     LHS = t;
     reln = R;
     RHS = z;
@@ -200,10 +209,10 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
 // Other cascade methods
 
   @Override
-  public Set<String> getAllVariables(VariableWriteMode vwm) {
-    HashSet<String> vars = new HashSet<String>();
-    vars.addAll(LHS.getAllVariables(vwm));
-    vars.addAll(RHS.getAllVariables(vwm));
+  public Set<TemplateVariable> getAllVariables() {
+    HashSet<TemplateVariable> vars = new HashSet<TemplateVariable>();
+    vars.addAll(LHS.getAllVariables());
+    vars.addAll(RHS.getAllVariables());
     return vars;
   }
 
@@ -245,14 +254,14 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   }
 
   @Override
-  public Formula translate(FormulaManager fmgr) {
-  	Formula form = null;
+  public BooleanFormula translate(FormulaManagerView fmgr) {
+  	BooleanFormula form = null;
   	Formula lhs = LHS.translate(fmgr);
   	Formula rhs = RHS.translate(fmgr);
   	switch (reln) {
   	case EQUAL: form = fmgr.makeEqual(lhs, rhs); break;
-  	case LEQ:   form = fmgr.makeLeq(lhs, rhs);   break;
-  	case LT:    form = fmgr.makeLt(lhs, rhs); break;
+  	case LEQ:   form = fmgr.makeLessOrEqual(lhs, rhs, true);   break;
+  	case LT:    form = fmgr.makeLessThan(lhs, rhs, true); break;
   	}
   	return form;
   }

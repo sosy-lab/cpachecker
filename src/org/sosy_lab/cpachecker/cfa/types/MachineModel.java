@@ -23,7 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cfa.types;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * This enum stores the sizes for all the basic types that exist.
@@ -161,5 +170,53 @@ public enum MachineModel {
     default:
       throw new AssertionError("Unrecognized CBasicType " + type.getType());
     }
+  }
+
+  public int getSizeof(CType type){
+    if (type instanceof CSimpleType){
+      return getSizeof((CSimpleType)type);
+    }
+
+    if (type instanceof CCompositeType)
+    {
+      CCompositeType cType = (CCompositeType)type;
+      int size = 0;
+      for (CCompositeTypeMemberDeclaration decl : cType.getMembers()) {
+        size += getSizeof(decl.getType());
+      }
+      return size;
+    }
+
+    if (type instanceof CEnumType){
+      return getSizeofInt();
+    }
+
+    // TODO: This has to be checked
+    if (type instanceof CFunctionPointerType){
+      return getSizeofInt();
+    }
+
+    if (type instanceof CFunctionType){
+      CFunctionType funcType = (CFunctionType)type;
+      return getSizeof(funcType.getReturnType());
+    }
+
+    // TODO: This has to be checked
+    if (type instanceof CPointerType){
+      return getSizeofInt();
+    }
+
+    // TODO: This has to be checked
+    if (type instanceof CElaboratedType){
+      CElaboratedType eType = (CElaboratedType)type;
+      return getSizeofInt();
+    }
+
+    // TODO: This has to be checked
+    if (type instanceof CArrayType){
+      return getSizeofInt();
+    }
+
+    throw new IllegalArgumentException("Unknwon CType!");
   }
 }

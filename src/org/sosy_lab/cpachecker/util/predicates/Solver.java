@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.util.predicates;
 import java.util.Map;
 
 import org.sosy_lab.common.Timer;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.Maps;
 
@@ -42,10 +44,11 @@ import com.google.common.collect.Maps;
  */
 public class Solver {
 
-  private final ExtendedFormulaManager fmgr;
+  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
   private final TheoremProver prover;
 
-  private final Map<Formula, Boolean> implicationCache = Maps.newHashMap();
+  private final Map<BooleanFormula, Boolean> implicationCache = Maps.newHashMap();
 
   // stats
   public final Timer solverTime = new Timer();
@@ -53,8 +56,9 @@ public class Solver {
   public int trivialImplicationChecks = 0;
   public int cachedImplicationChecks = 0;
 
-  public Solver(ExtendedFormulaManager pFmgr, TheoremProver pProver) {
+  public Solver(FormulaManagerView pFmgr, TheoremProver pProver) {
     fmgr = pFmgr;
+    bfmgr = fmgr.getBooleanFormulaManager();
     prover = pProver;
   }
 
@@ -68,7 +72,7 @@ public class Solver {
   /**
    * Checks whether a formula is unsat.
    */
-  public boolean isUnsat(Formula f) {
+  public boolean isUnsat(BooleanFormula f) {
     solverTime.start();
     prover.init();
     try {
@@ -85,10 +89,10 @@ public class Solver {
    * Checks whether a => b.
    * The result is cached.
    */
-  public boolean implies(Formula a, Formula b) {
+  public boolean implies(BooleanFormula a, BooleanFormula b) {
     implicationChecks++;
 
-    if (a.isFalse() || b.isTrue()) {
+    if (bfmgr.isFalse(a) || bfmgr.isTrue(b)) {
       trivialImplicationChecks++;
       return true;
     }
@@ -97,7 +101,7 @@ public class Solver {
       return true;
     }
 
-    Formula f = fmgr.makeNot(fmgr.makeImplication(a, b));
+    BooleanFormula f = bfmgr.not(bfmgr.implication(a, b));
 
     Boolean result = implicationCache.get(f);
     if (result != null) {

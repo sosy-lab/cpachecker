@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -89,7 +89,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
   private final InterpolationManager formulaManager;
 
   // the previously analyzed counterexample to detect repeated counterexamples
-  private List<Formula> lastErrorPath = null;
+  private List<BooleanFormula> lastErrorPath = null;
 
   protected AbstractInterpolationBasedRefiner(final Configuration config, LogManager pLogger, final ConfigurableProgramAnalysis pCpa, InterpolationManager pInterpolationManager) throws CPAException, InvalidConfigurationException {
     super(pCpa);
@@ -123,11 +123,11 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
     logger.log(Level.ALL, "Abstraction trace is", path);
 
     // create list of formulas on path
-    final List<Formula> formulas = getFormulasForPath(path, pPath.getFirst().getFirst());
+    final List<BooleanFormula> formulas = getFormulasForPath(path, pPath.getFirst().getFirst());
     assert path.size() == formulas.size();
 
     // build the counterexample
-    final CounterexampleTraceInfo<Formula> counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
+    final CounterexampleTraceInfo<BooleanFormula> counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -145,10 +145,10 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
       final Path targetPath;
-      final CounterexampleTraceInfo<Formula> preciseCounterexample;
+      final CounterexampleTraceInfo<BooleanFormula> preciseCounterexample;
 
       if (branchingOccurred) {
-        Pair<Path, CounterexampleTraceInfo<Formula>> preciseInfo = findPreciseErrorPath(pPath, counterexample);
+        Pair<Path, CounterexampleTraceInfo<BooleanFormula>> preciseInfo = findPreciseErrorPath(pPath, counterexample);
 
         if (preciseInfo != null) {
           targetPath = preciseInfo.getFirst();
@@ -187,12 +187,12 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
    * @return A list of block formulas for this path.
    * @throws CPATransferException
    */
-  protected abstract List<Formula> getFormulasForPath(List<ARGState> path, ARGState initialState) throws CPATransferException;
+  protected abstract List<BooleanFormula> getFormulasForPath(List<ARGState> path, ARGState initialState) throws CPATransferException;
 
   protected abstract void performRefinement(ARGReachedSet pReached, List<ARGState> path,
-      CounterexampleTraceInfo<Formula> counterexample, boolean pRepeatedCounterexample) throws CPAException;
+      CounterexampleTraceInfo<BooleanFormula> counterexample, boolean pRepeatedCounterexample) throws CPAException;
 
-  private Pair<Path, CounterexampleTraceInfo<Formula>> findPreciseErrorPath(Path pPath, CounterexampleTraceInfo<Formula> counterexample) {
+  private Pair<Path, CounterexampleTraceInfo<BooleanFormula>> findPreciseErrorPath(Path pPath, CounterexampleTraceInfo<BooleanFormula> counterexample) {
     errorPathProcessing.start();
     try {
 
@@ -218,7 +218,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
       }
 
       // try to create a better satisfying assignment by replaying this single path
-      CounterexampleTraceInfo<Formula> info2;
+      CounterexampleTraceInfo<BooleanFormula> info2;
       try {
         info2 = formulaManager.checkPath(targetPath.asEdgesList());
 

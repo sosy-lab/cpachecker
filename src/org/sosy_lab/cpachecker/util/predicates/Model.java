@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Joiner;
@@ -182,7 +182,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> {
   }
 
   private final Map<AssignableTerm, Object> mModel;
-  private final Formula formulaRepresentation;
+  private final BooleanFormula formulaRepresentation;
 
   @Override
   protected Map<AssignableTerm, Object> delegate() {
@@ -191,15 +191,15 @@ public class Model extends ForwardingMap<AssignableTerm, Object> {
 
   public Model(FormulaManager fmgr) {
     mModel = ImmutableMap.of();
-    formulaRepresentation = fmgr.makeTrue();
+    formulaRepresentation = fmgr.getBooleanFormulaManager().makeBoolean(true);
   }
 
-  public Model(Map<AssignableTerm, Object> content, Formula f) {
+  public Model(Map<AssignableTerm, Object> content, BooleanFormula f) {
     mModel = ImmutableMap.copyOf(content);
     formulaRepresentation = f;
   }
 
-  public Formula getFormulaRepresentation() {
+  public BooleanFormula getFormulaRepresentation() {
     return formulaRepresentation;
   }
 

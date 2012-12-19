@@ -29,7 +29,7 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 
 import com.google.common.base.Preconditions;
@@ -41,7 +41,8 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
 
     private final boolean useSharedEnv;
 
-    public Mathsat5InterpolatingProver(Mathsat5FormulaManager pMgr, boolean shared) {
+    public Mathsat5InterpolatingProver(
+        Mathsat5FormulaManager pMgr, boolean shared) {
         mgr = pMgr;
         interpolEnv = 0;
         useSharedEnv = shared;
@@ -58,10 +59,10 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
     }
 
     @Override
-    public Integer addFormula(Formula f) {
+    public Integer addFormula(BooleanFormula f) {
         Preconditions.checkState(interpolEnv != 0);
-
-        long t = ((Mathsat5Formula)f).getTerm();
+        long t = Mathsat5FormulaManager.getTerm( f );
+        //long t = ((Mathsat5Formula)f).getTerm();
         if (!useSharedEnv) {
             t = msat_make_copy_from(interpolEnv, t, mgr.getMsatEnv());
         }
@@ -88,7 +89,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
     }
 
     @Override
-    public Formula getInterpolant(List<Integer> formulasOfA) {
+    public BooleanFormula getInterpolant(List<Integer> formulasOfA) {
         Preconditions.checkState(interpolEnv != 0);
 
         int[] groupsOfA = new int[formulasOfA.size()];
@@ -101,7 +102,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
         if (!useSharedEnv) {
             itp = msat_make_copy_from(mgr.getMsatEnv(), itp, interpolEnv);
         }
-        return mgr.encapsulate(itp);
+        return mgr.encapsulateTerm(BooleanFormula.class, itp);
     }
 
     @Override

@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
@@ -100,7 +100,7 @@ public class PredicateMap {
    *
    * @return a mapping from program locations to variables referenced in predicates at that program location
    */
-  public Multimap<CFANode, String> determinePrecisionIncrement(FormulaManager fmgr) {
+  public Multimap<CFANode, String> determinePrecisionIncrement(FormulaManagerView fmgr) {
     Multimap<CFANode, String> increment = HashMultimap.create();
 
     // for each program location in the mapping ...

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.invariants.balancer;
 import java.util.List;
 import java.util.Vector;
 
-
 public class MatrixList {
 
   private final List<Matrix> matrices;

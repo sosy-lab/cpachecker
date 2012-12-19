@@ -48,11 +48,11 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 import com.google.common.collect.Multimap;
@@ -102,7 +102,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner {
     if(predicateCpa != null) {
 
       FormulaManagerFactory factory               = predicateCpa.getFormulaManagerFactory();
-      ExtendedFormulaManager formulaManager       = predicateCpa.getFormulaManager();
+      FormulaManagerView formulaManager           = predicateCpa.getFormulaManager();
       Solver solver                               = predicateCpa.getSolver();
       AbstractionManager absManager               = predicateCpa.getAbstractionManager();
       pathFormulaManager                          = predicateCpa.getPathFormulaManager();
@@ -125,7 +125,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner {
 
     } else {
       FormulaManagerFactory factory         = new FormulaManagerFactory(config, logger);
-      ExtendedFormulaManager formulaManager = new ExtendedFormulaManager(factory.getFormulaManager(), config, logger);
+      FormulaManagerView formulaManager     = new FormulaManagerView(factory.getFormulaManager(), config, logger);
       pathFormulaManager                    = new PathFormulaManagerImpl(formulaManager, config, logger, explicitCpa.getMachineModel());
     }
 

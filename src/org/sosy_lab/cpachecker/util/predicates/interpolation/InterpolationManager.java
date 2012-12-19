@@ -59,14 +59,15 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -101,7 +102,8 @@ public final class InterpolationManager {
   final Stats stats = new Stats();
 
   protected final LogManager logger;
-  protected final ExtendedFormulaManager fmgr;
+  protected final FormulaManagerView fmgr;
+  protected final BooleanFormulaManagerView bfmgr;
   protected final PathFormulaManager pmgr;
   private final Solver solver;
 
@@ -152,8 +154,9 @@ public final class InterpolationManager {
 
   private final ExecutorService executor;
 
+
   public InterpolationManager(
-      ExtendedFormulaManager pFmgr,
+      FormulaManagerView pFmgr,
       PathFormulaManager pPmgr,
       Solver pSolver,
       FormulaManagerFactory pFmgrFactory,
@@ -163,6 +166,7 @@ public final class InterpolationManager {
 
     logger = pLogger;
     fmgr = pFmgr;
+    bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = pPmgr;
     solver = pSolver;
 
@@ -184,8 +188,8 @@ public final class InterpolationManager {
 //    }
   }
 
-  public String dumpCounterexample(CounterexampleTraceInfo<Formula> cex) {
-    return fmgr.dumpFormula(fmgr.makeConjunction(cex.getCounterExampleFormulas()));
+  public String dumpCounterexample(CounterexampleTraceInfo<BooleanFormula> cex) {
+    return fmgr.dumpFormula(bfmgr.conjunction(cex.getCounterExampleFormulas()));
   }
 
   /**
@@ -198,8 +202,8 @@ public final class InterpolationManager {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public CounterexampleTraceInfo<Formula> buildCounterexampleTrace(
-      final List<Formula> pFormulas,
+  public CounterexampleTraceInfo<BooleanFormula> buildCounterexampleTrace(
+      final List<BooleanFormula> pFormulas,
       final Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
 
     // if we don't want to limit the time given to the solver
@@ -209,14 +213,14 @@ public final class InterpolationManager {
 
     assert executor != null;
 
-    Callable<CounterexampleTraceInfo<Formula>> tc = new Callable<CounterexampleTraceInfo<Formula>>() {
+    Callable<CounterexampleTraceInfo<BooleanFormula>> tc = new Callable<CounterexampleTraceInfo<BooleanFormula>>() {
       @Override
-      public CounterexampleTraceInfo<Formula> call() throws CPAException, InterruptedException {
+      public CounterexampleTraceInfo<BooleanFormula> call() throws CPAException, InterruptedException {
         return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
       }
     };
 
-    Future<CounterexampleTraceInfo<Formula>> future = executor.submit(tc);
+    Future<CounterexampleTraceInfo<BooleanFormula>> future = executor.submit(tc);
 
     try {
       // here we get the result of the post computation but there is a time limit
@@ -243,8 +247,8 @@ public final class InterpolationManager {
    * @return counterexample info with predicated information
    * @throws CPAException
    */
-  private <T> CounterexampleTraceInfo<Formula> buildCounterexampleTraceWithSpecifiedItp(
-      List<Formula> pFormulas, Set<ARGState> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
+  private <T> CounterexampleTraceInfo<BooleanFormula> buildCounterexampleTraceWithSpecifiedItp(
+      List<BooleanFormula> pFormulas, Set<ARGState> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
 
     logger.log(Level.FINEST, "Building counterexample trace");
     stats.cexAnalysisTimer.start();
@@ -252,9 +256,9 @@ public final class InterpolationManager {
     try {
 
       // Final adjustments to the list of formulas
-      List<Formula> f = new ArrayList<Formula>(pFormulas); // copy because we will change the list
+      List<BooleanFormula> f = new ArrayList<BooleanFormula>(pFormulas); // copy because we will change the list
 
-      if (fmgr.useBitwiseAxioms()) {
+      if (bfmgr.useBitwiseAxioms()) {
         addBitwiseAxioms(f);
       }
 
@@ -267,7 +271,7 @@ public final class InterpolationManager {
 
       // Check if refinement problem is not too big
       if (maxRefinementSize > 0) {
-        int size = fmgr.dumpFormula(fmgr.makeConjunction(f)).length();
+        int size = fmgr.dumpFormula(bfmgr.conjunction(f)).length();
         if (size > maxRefinementSize) {
           logger.log(Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
           throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
@@ -311,18 +315,18 @@ public final class InterpolationManager {
 
 
       // Get either interpolants or error path information
-      CounterexampleTraceInfo<Formula> info;
+      CounterexampleTraceInfo<BooleanFormula> info;
       if (spurious) {
 
-        List<Formula> interpolants = getInterpolants(pItpProver, itpGroupsIds);
+        List<BooleanFormula> interpolants = getInterpolants(pItpProver, itpGroupsIds);
         if (verifyInterpolants) {
           verifyInterpolants(interpolants, f, pItpProver);
         }
 
-        info = new CounterexampleTraceInfo<Formula>();
+        info = new CounterexampleTraceInfo<BooleanFormula>();
 
         int i = 1;
-        for (Formula itp : interpolants) {
+        for (BooleanFormula itp : interpolants) {
           logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
           info.addInterpolant(itp);
         }
@@ -351,21 +355,21 @@ public final class InterpolationManager {
    *
    * @param f The list of formulas to scan for bitwise operations.
    */
-  private void addBitwiseAxioms(List<Formula> f) {
-    Formula bitwiseAxioms = fmgr.makeTrue();
+  private void addBitwiseAxioms(List<BooleanFormula> f) {
+    BooleanFormula bitwiseAxioms = bfmgr.makeBoolean(true);
 
-    for (Formula fm : f) {
-      Formula a = fmgr.getBitwiseAxioms(fm);
-      if (!a.isTrue()) {
-        bitwiseAxioms = fmgr.makeAnd(bitwiseAxioms, a);
+    for (BooleanFormula fm : f) {
+      BooleanFormula a = fmgr.getBitwiseAxioms(fm);
+      if (!bfmgr.isTrue(a)) {
+        bitwiseAxioms =  fmgr.getBooleanFormulaManager().and(bitwiseAxioms, a);
       }
     }
 
-    if (!bitwiseAxioms.isTrue()) {
+    if (!bfmgr.isTrue(bitwiseAxioms)) {
       logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
           "LAST GROUP: ", bitwiseAxioms);
       int lastIndex = f.size()-1;
-      f.set(lastIndex, fmgr.makeAnd(f.get(lastIndex), bitwiseAxioms));
+      f.set(lastIndex, bfmgr.and(f.get(lastIndex), bitwiseAxioms));
     }
   }
 
@@ -378,7 +382,7 @@ public final class InterpolationManager {
    * @param zigZag Whether to use a zig-zag way, using formulas from the beginning and the end.
    * @return A sublist of f that contains the useful formulas.
    */
-  private List<Formula> getUsefulBlocks(List<Formula> f, boolean suffixTrace, boolean zigZag) {
+  private List<BooleanFormula> getUsefulBlocks(List<BooleanFormula> f, boolean suffixTrace, boolean zigZag) {
 
     stats.cexAnalysisGetUsefulBlocksTimer.start();
 
@@ -390,9 +394,9 @@ public final class InterpolationManager {
     logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
         "of length:", f.size());
 
-    Formula[] needed = new Formula[f.size()];
+    BooleanFormula[] needed = new BooleanFormula[f.size()];
     for (int i = 0; i < needed.length; ++i) {
-      needed[i] = fmgr.makeTrue();
+      needed[i] =  bfmgr.makeBoolean(true);
     }
     int pos = suffixTrace ? f.size()-1 : 0;
     int incr = suffixTrace ? -1 : 1;
@@ -402,7 +406,7 @@ public final class InterpolationManager {
       boolean consistent = true;
       // 1. assert all the needed constraints
       for (int i = 0; i < needed.length; ++i) {
-        if (!needed[i].isTrue()) {
+        if (!bfmgr.isTrue(needed[i])) {
           thmProver.push(needed[i]);
           ++toPop;
         }
@@ -427,7 +431,7 @@ public final class InterpolationManager {
           }
           fromStart = !fromStart;
 
-          Formula t = f.get(i);
+          BooleanFormula t = f.get(i);
           thmProver.push(t);
           ++toPop;
           if (thmProver.isUnsat()) {
@@ -452,7 +456,7 @@ public final class InterpolationManager {
       } else {
         for (int i = pos; suffixTrace ? i >= 0 : i < f.size();
         i += incr) {
-          Formula t = f.get(i);
+          BooleanFormula t = f.get(i);
           thmProver.push(t);
           ++toPop;
           if (thmProver.isUnsat()) {
@@ -502,7 +506,7 @@ public final class InterpolationManager {
    * @return True if the formulas are unsatisfiable.
    * @throws InterruptedException
    */
-  private <T> boolean checkInfeasibilityOfFullTrace(List<Formula> f,
+  private <T> boolean checkInfeasibilityOfFullTrace(List<BooleanFormula> f,
       List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver)
       throws InterruptedException {
     // check all formulas in f at once
@@ -526,7 +530,7 @@ public final class InterpolationManager {
    * @return True if the formulas are unsatisfiable.
    * @throws InterruptedException
    */
-  private <T> boolean checkInfeasabilityOfShortestTrace(List<Formula> traceFormulas,
+  private <T> boolean checkInfeasabilityOfShortestTrace(List<BooleanFormula> traceFormulas,
       List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) throws InterruptedException {
     Boolean tmpSpurious = null;
 
@@ -544,9 +548,9 @@ public final class InterpolationManager {
         fromStart = !fromStart;
 
         tmpSpurious = null;
-        Formula fm = traceFormulas.get(i);
+        BooleanFormula fm = traceFormulas.get(i);
         itpGroupsIds.set(i, pItpProver.addFormula(fm));
-        if (!fm.isTrue()) {
+        if (!bfmgr.isTrue(fm)) {
           if (pItpProver.isUnsat()) {
             tmpSpurious = Boolean.TRUE;
             for (int j = s; j <= e; ++j) {
@@ -564,9 +568,9 @@ public final class InterpolationManager {
       useSuffix ? i >= 0 : i < traceFormulas.size(); i += useSuffix ? -1 : 1) {
 
         tmpSpurious = null;
-        Formula fm = traceFormulas.get(i);
+        BooleanFormula fm = traceFormulas.get(i);
         itpGroupsIds.set(i, pItpProver.addFormula(fm));
-        if (!fm.isTrue()) {
+        if (!bfmgr.isTrue(fm)) {
           if (pItpProver.isUnsat()) {
             tmpSpurious = Boolean.TRUE;
             // we need to add the other formulas to the itpProver
@@ -595,10 +599,10 @@ public final class InterpolationManager {
    * @param itpGroupsIds The references to the interpolation groups
    * @return A list of all the interpolants.
    */
-  private <T> List<Formula> getInterpolants(
+  private <T> List<BooleanFormula> getInterpolants(
       InterpolatingTheoremProver<T> pItpProver, List<T> itpGroupsIds) {
 
-    List<Formula> interpolants = Lists.newArrayListWithExpectedSize(itpGroupsIds.size()-1);
+    List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(itpGroupsIds.size()-1);
 
     // The counterexample is spurious. Get the interpolants.
 
@@ -622,7 +626,7 @@ public final class InterpolationManager {
           start_of_a, "to", i);
 
       stats.getInterpolantTime.start();
-      Formula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
+      BooleanFormula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
       stats.getInterpolantTime.stop();
 
       if (dumpInterpolationProblems) {
@@ -650,7 +654,7 @@ public final class InterpolationManager {
     return interpolants;
   }
 
-  private <T> void verifyInterpolants(List<Formula> interpolants, List<Formula> formulas, InterpolatingTheoremProver<T> prover) throws SolverException, InterruptedException {
+  private <T> void verifyInterpolants(List<BooleanFormula> interpolants, List<BooleanFormula> formulas, InterpolatingTheoremProver<T> prover) throws SolverException, InterruptedException {
     stats.interpolantVerificationTimer.start();
     try {
 
@@ -669,7 +673,7 @@ public final class InterpolationManager {
 
       // Check (B).
       for (int i = 1; i <= (n-1); i++) {
-        Formula conjunct = fmgr.makeAnd(interpolants.get(i-1), formulas.get(i));
+        BooleanFormula conjunct = bfmgr.and(interpolants.get(i-1), formulas.get(i));
 
         if (!checkImplication(conjunct, interpolants.get(i), prover)) {
           throw new SolverException("Interpolant " + interpolants.get(i) + " is not implied by previous part of the path");
@@ -677,15 +681,15 @@ public final class InterpolationManager {
       }
 
       // Check (C).
-      Formula conjunct = fmgr.makeAnd(interpolants.get(n-1), formulas.get(n));
-      if (!checkImplication(conjunct, fmgr.makeFalse(), prover)) {
+      BooleanFormula conjunct = bfmgr.and(interpolants.get(n-1), formulas.get(n));
+      if (!checkImplication(conjunct, bfmgr.makeBoolean(false), prover)) {
         throw new SolverException("Last interpolant fails to prove infeasibility of the path");
       }
 
 
       // Furthermore, check if the interpolants contains only the allowed variables
       List<Set<String>> variablesInFormulas = Lists.newArrayListWithExpectedSize(formulas.size());
-      for (Formula f : formulas) {
+      for (BooleanFormula f : formulas) {
         variablesInFormulas.add(fmgr.extractVariables(f));
       }
 
@@ -718,10 +722,10 @@ public final class InterpolationManager {
     }
   }
 
-  private <T> boolean checkImplication(Formula a, Formula b, InterpolatingTheoremProver<T> prover) throws InterruptedException {
+  private <T> boolean checkImplication(BooleanFormula a, BooleanFormula b, InterpolatingTheoremProver<T> prover) throws InterruptedException {
     // check unsatisfiability of negation of (a => b),
     // i.e., check unsatisfiability of (a & !b)
-    Formula f = fmgr.makeAnd(a, fmgr.makeNot(b));
+    BooleanFormula f = bfmgr.and(a, bfmgr.not(b));
     prover.reset();
     prover.init();
 
@@ -741,17 +745,17 @@ public final class InterpolationManager {
    * @throws CPATransferException
    * @throws InterruptedException
    */
-  private <T> CounterexampleTraceInfo<Formula> getErrorPath(List<Formula> f,
+  private <T> CounterexampleTraceInfo<BooleanFormula> getErrorPath(List<BooleanFormula> f,
       InterpolatingTheoremProver<T> pItpProver, Set<ARGState> elementsOnPath)
       throws CPATransferException, InterruptedException {
 
     // get the branchingFormula
     // this formula contains predicates for all branches we took
     // this way we can figure out which branches make a feasible path
-    Formula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
+    BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
-    if (branchingFormula.isTrue()) {
-      return new CounterexampleTraceInfo<Formula>(f, getModel(pItpProver), Collections.<Integer, Boolean>emptyMap());
+    if (bfmgr.isTrue(branchingFormula)) {
+      return new CounterexampleTraceInfo<BooleanFormula>(f, getModel(pItpProver), Collections.<Integer, Boolean>emptyMap());
     }
 
     // add formula to solver environment
@@ -763,7 +767,7 @@ public final class InterpolationManager {
 
     if (stillSatisfiable) {
       Model model = getModel(pItpProver);
-      return new CounterexampleTraceInfo<Formula>(f, model, pmgr.getBranchingPredicateValuesFromModel(model));
+      return new CounterexampleTraceInfo<BooleanFormula>(f, model, pmgr.getBranchingPredicateValuesFromModel(model));
 
     } else {
       // this should not happen
@@ -772,7 +776,7 @@ public final class InterpolationManager {
       dumpInterpolationProblem(f);
       dumpFormulaToFile("formula", branchingFormula, f.size());
 
-      return new CounterexampleTraceInfo<Formula>(f, new Model(fmgr), Collections.<Integer, Boolean>emptyMap());
+      return new CounterexampleTraceInfo<BooleanFormula>(f, new Model(fmgr), Collections.<Integer, Boolean>emptyMap());
     }
   }
 
@@ -786,17 +790,17 @@ public final class InterpolationManager {
     }
   }
 
-  public CounterexampleTraceInfo<Formula> checkPath(List<CFAEdge> pPath) throws CPATransferException {
-    Formula f = pmgr.makeFormulaForPath(pPath).getFormula();
+  public CounterexampleTraceInfo<BooleanFormula> checkPath(List<CFAEdge> pPath) throws CPATransferException {
+    BooleanFormula f = pmgr.makeFormulaForPath(pPath).getFormula();
 
     TheoremProver thmProver = solver.getTheoremProver();
     thmProver.init();
     try {
       thmProver.push(f);
       if (thmProver.isUnsat()) {
-        return new CounterexampleTraceInfo<Formula>();
+        return new CounterexampleTraceInfo<BooleanFormula>();
       } else {
-        return new CounterexampleTraceInfo<Formula>(Collections.singletonList(f), getModel(thmProver), ImmutableMap.<Integer, Boolean>of());
+        return new CounterexampleTraceInfo<BooleanFormula>(Collections.singletonList(f), getModel(thmProver), ImmutableMap.<Integer, Boolean>of());
       }
     } finally {
       thmProver.reset();
@@ -817,15 +821,15 @@ public final class InterpolationManager {
   /**
    * Helper method to dump a list of formulas to files.
    */
-  private void dumpInterpolationProblem(List<Formula> f) {
+  private void dumpInterpolationProblem(List<BooleanFormula> f) {
     int k = 0;
-    for (Formula formula : f) {
+    for (BooleanFormula formula : f) {
       File dumpFile = formatFormulaOutputFile("formula", k++);
       fmgr.dumpFormulaToFile(formula, dumpFile);
     }
   }
 
-  private void dumpFormulaToFile(String name, Formula f, int i) {
+  private void dumpFormulaToFile(String name, BooleanFormula f, int i) {
     File dumpFile = formatFormulaOutputFile(name, i);
     fmgr.dumpFormulaToFile(f, dumpFile);
   }

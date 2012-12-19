@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -68,6 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.ImmutableSetMultimap;
 
@@ -112,7 +112,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecisionAdjustment prec;
   private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
-  private final ExtendedFormulaManager formulaManager;
+  private final FormulaManagerView formulaManager;
   private final FormulaManagerFactory formulaManagerFactory;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
@@ -134,7 +134,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     formulaManagerFactory = new FormulaManagerFactory(config, logger);
 
-    formulaManager = new ExtendedFormulaManager(formulaManagerFactory.getFormulaManager(), config, logger);
+    formulaManager = new FormulaManagerView(formulaManagerFactory.getFormulaManager(), config, logger);
     String libraries = formulaManager.getVersion();
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, cfa.getMachineModel());
@@ -161,7 +161,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);
 
-    topState = PredicateAbstractState.mkAbstractionState(pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
+    topState = PredicateAbstractState.mkAbstractionState(formulaManager.getBooleanFormulaManager(), pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
     domain = new PredicateAbstractDomain(this);
 
     if (mergeType.equals("SEP")) {
@@ -237,7 +237,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return predicateManager;
   }
 
-  public ExtendedFormulaManager getFormulaManager() {
+  public FormulaManagerView getFormulaManager() {
     return formulaManager;
   }
 

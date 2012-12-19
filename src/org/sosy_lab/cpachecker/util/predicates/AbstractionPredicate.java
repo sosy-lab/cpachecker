@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.base.Preconditions;
@@ -34,11 +34,11 @@ import com.google.common.base.Preconditions;
 public class AbstractionPredicate {
 
   private final Region abstractVariable;
-  private final Formula symbolicVariable;
-  private final Formula symbolicAtom;
+  private final BooleanFormula symbolicVariable;
+  private final BooleanFormula symbolicAtom;
 
   AbstractionPredicate(Region pAbstractVariable,
-      Formula pSymbolicVariable, Formula pSymbolicAtom) {
+      BooleanFormula pSymbolicVariable, BooleanFormula pSymbolicAtom) {
     abstractVariable = Preconditions.checkNotNull(pAbstractVariable);
     symbolicVariable = Preconditions.checkNotNull(pSymbolicVariable);
     symbolicAtom = Preconditions.checkNotNull(pSymbolicAtom);
@@ -52,11 +52,11 @@ public class AbstractionPredicate {
     return abstractVariable;
   }
 
-  public Formula getSymbolicVariable() {
+  public BooleanFormula getSymbolicVariable() {
     return symbolicVariable;
   }
 
-  public Formula getSymbolicAtom() {
+  public BooleanFormula getSymbolicAtom() {
     return symbolicAtom;
   }
 

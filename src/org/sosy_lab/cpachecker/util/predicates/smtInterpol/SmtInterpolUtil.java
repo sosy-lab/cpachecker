@@ -187,10 +187,15 @@ public class SmtInterpolUtil {
 
   /** t1 = t2 */
   public static boolean isEqual(Term t) {
+    String name = "=";
+    return isFunction(t, name);
+  }
+
+  public static boolean isFunction(Term t, String name) {
     boolean is = (t instanceof ApplicationTerm)
-        && "=".equals(((ApplicationTerm) t).getFunction().getName());
+        && name.equals(((ApplicationTerm) t).getFunction().getName());
     if (log) {
-      System.out.println("   isEqual (" + t +"): " + is);
+      System.out.println("   isFunction "+name+" (" + t +"): " + is);
     }
     return is;
   }
@@ -422,4 +427,5 @@ public class SmtInterpolUtil {
       str.append(t.toStringDirect()).append("\n");
     }
   }
+
 }

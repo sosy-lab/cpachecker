@@ -32,7 +32,7 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 /**
@@ -120,7 +120,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeAnd(PathFormula pPathFormula, Formula pOtherFormula) {
+  public PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula) {
     return delegate.makeAnd(pPathFormula, pOtherFormula);
   }
 
@@ -135,7 +135,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public Formula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
+  public BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
       throws CPATransferException {
     return delegate.buildBranchingFormula(pElementsOnPath);
   }

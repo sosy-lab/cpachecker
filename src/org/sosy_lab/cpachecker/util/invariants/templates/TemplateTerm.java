@@ -36,7 +36,8 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.Monomial;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Term;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class TemplateTerm extends TemplateSum {
 
@@ -57,21 +58,24 @@ public class TemplateTerm extends TemplateSum {
   private TemplateVariable oldParam = null;
   private TemplateNumber oldCoeff = null;
 
-  public TemplateTerm() {}
+  public TemplateTerm(FormulaType<?> type) {
+    super(type);
+  }
 
   public TemplateTerm(TemplateUIF uif) {
+    super(uif.getFormulaType());
     this.uif = uif;
   }
 
-  public static TemplateTerm makeZero() {
-  	TemplateTerm T = new TemplateTerm();
-  	T.setCoefficient(new TemplateNumber(0));
+  public static TemplateTerm makeZero(FormulaType<?> type) {
+  	TemplateTerm T = new TemplateTerm(type);
+  	T.setCoefficient(new TemplateNumber(type, 0));
   	return T;
   }
 
-  public static TemplateTerm makeUnity() {
-  	TemplateTerm T = new TemplateTerm();
-  	T.setCoefficient(new TemplateNumber(1));
+  public static TemplateTerm makeUnity(FormulaType<?> type) {
+  	TemplateTerm T = new TemplateTerm(type);
+  	T.setCoefficient(new TemplateNumber(type, 1));
   	return T;
   }
 
@@ -113,7 +117,7 @@ public class TemplateTerm extends TemplateSum {
         param = null;
         // Update coefficient.
         oldCoeff = coeff;
-        TemplateNumber P = new TemplateNumber(R);
+        TemplateNumber P = new TemplateNumber(getFormulaType(), R);
         if (!hasCoefficient()) {
           setCoefficient(P);
         } else {
@@ -192,7 +196,7 @@ public class TemplateTerm extends TemplateSum {
   @Override
   public void generalize() {
     coeff = null;
-    param = getNextFreshParameter();
+    param = getNextFreshParameter(getFormulaType());
     if (hasVariable()) {
       var.generalize();
     }
@@ -201,8 +205,8 @@ public class TemplateTerm extends TemplateSum {
     }
   }
 
-  public static TemplateVariable getNextFreshParameter() {
-    return new TemplateVariable(paramHead, nextParamIndex.incrementAndGet());
+  public static TemplateVariable getNextFreshParameter(FormulaType<?> type) {
+    return new TemplateVariable(type, paramHead, nextParamIndex.incrementAndGet());
   }
 
   public static void resetParameterIndices() {
@@ -213,12 +217,12 @@ public class TemplateTerm extends TemplateSum {
 // Other cascade methods
 
   @Override
-  public Set<String> getAllVariables(VariableWriteMode vwm) {
-    HashSet<String> vars = new HashSet<String>();
+  public Set<TemplateVariable> getAllVariables() {
+    HashSet<TemplateVariable> vars = new HashSet<TemplateVariable>();
     if (hasVariable()) {
-      vars.add(var.toString(vwm));
+      vars.add(var);
     } else if (hasUIF()) {
-      vars.addAll(uif.getAllVariables(vwm));
+      vars.addAll(uif.getAllVariables());
     }
     return vars;
   }
@@ -312,7 +316,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   @Override
-  public Formula translate(FormulaManager fmgr) {
+  public Formula translate(FormulaManagerView fmgr) {
   	Formula form = null;
   	Vector<Formula> factors = new Vector<Formula>(4);
 
@@ -329,7 +333,7 @@ public class TemplateTerm extends TemplateSum {
 
   	if (factors.size() == 0) {
   		// This case probably should not occur.
-  		form = makeUnity().translate(fmgr);
+  		form = makeUnity(getFormulaType()).translate(fmgr);
   	} else {
   		form = factors.get(0);
   		Formula f;
@@ -343,7 +347,7 @@ public class TemplateTerm extends TemplateSum {
 
   @Override
   public TemplateTerm copy() {
-    TemplateTerm t = new TemplateTerm();
+    TemplateTerm t = new TemplateTerm(getFormulaType());
     if (hasCoefficient()) {
       t.coeff = coeff.copy();
     }
@@ -504,7 +508,7 @@ public class TemplateTerm extends TemplateSum {
       // In this case the coefficient is 1.
 	    s = "1";
     }
-    return new Coeff(s);
+    return new Coeff(getFormulaType(), s);
   }
 
   @Override
@@ -553,7 +557,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   public static TemplateTerm multiply(TemplateTerm t1, TemplateTerm t2) {
-    TemplateTerm T = new TemplateTerm();
+    TemplateTerm T = new TemplateTerm(t1.getFormulaType());
 
     boolean hv1 = t1.hasVariable();
     boolean hu1 = t1.hasUIF();
@@ -640,7 +644,7 @@ public class TemplateTerm extends TemplateSum {
     if (coeff!=null) {
       coeff.negate();
     } else {
-      coeff = new TemplateNumber(-1);
+      coeff = new TemplateNumber(getFormulaType(), -1);
     }
   }
 

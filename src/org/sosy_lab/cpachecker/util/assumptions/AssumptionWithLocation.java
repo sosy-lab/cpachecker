@@ -30,7 +30,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Function;
@@ -45,7 +46,7 @@ public class AssumptionWithLocation {
   private final FormulaManager manager;
 
   // map from location to (conjunctive) list of invariants
-  private final Map<CFANode, Formula> map = new HashMap<CFANode, Formula>();
+  private final Map<CFANode, BooleanFormula> map = new HashMap<CFANode, BooleanFormula>();
 
   public AssumptionWithLocation(FormulaManager pManager) {
     manager = pManager;
@@ -69,27 +70,27 @@ public class AssumptionWithLocation {
     return Joiner.on('\n').join(Collections2.transform(map.entrySet(), assumptionFormatter));
   }
 
-  private static final Function<Entry<CFANode, Formula>, String> assumptionFormatter
-      = new Function<Entry<CFANode, Formula>, String>() {
+  private static final Function<Entry<CFANode, BooleanFormula>, String> assumptionFormatter
+      = new Function<Entry<CFANode, BooleanFormula>, String>() {
 
     @Override
-    public String apply(Map.Entry<CFANode, Formula> entry) {
+    public String apply(Map.Entry<CFANode, BooleanFormula> entry) {
       int nodeId = entry.getKey().getNodeNumber();
-      Formula assumption = entry.getValue();
+      BooleanFormula assumption = entry.getValue();
       return "pc = " + nodeId + "\t =====>  " + assumption.toString();
     }
   };
 
-  public void add(CFANode node, Formula assumption) {
+  public void add(CFANode node, BooleanFormula assumption) {
     checkNotNull(node);
     checkNotNull(assumption);
-
-    if (!assumption.isTrue()) {
-      Formula oldInvariant = map.get(node);
+    BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
+    if (!bfmgr.isTrue(assumption)) {
+      BooleanFormula oldInvariant = map.get(node);
       if (oldInvariant == null) {
         map.put(node, assumption);
       } else {
-        map.put(node, manager.makeAnd(oldInvariant, assumption));
+        map.put(node, bfmgr.and(oldInvariant, assumption));
       }
     }
   }

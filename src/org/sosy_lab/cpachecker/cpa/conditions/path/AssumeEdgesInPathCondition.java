@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 /**
@@ -132,7 +132,7 @@ public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
     }
 
     @Override
-    public Formula getReasonFormula(FormulaManager pMgr) {
+    public BooleanFormula getReasonFormula(FormulaManager pMgr) {
       return PreventingHeuristic.ASSUMEEDGESINPATH.getFormula(pMgr, assumeEdgesInPath);
     }
 
