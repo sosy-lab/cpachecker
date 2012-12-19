@@ -66,9 +66,12 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
 
   private final MachineModel machineModel;
 
-  private CPAlienCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
+  private final LogManager logger;
+
+  private CPAlienCPA(Configuration config, LogManager pLogger, CFA cfa) throws InvalidConfigurationException {
     config.inject(this);
     machineModel = cfa.getMachineModel();
+    logger = pLogger;
 
     SMGDomain domain = new SMGDomain(); //TODO: Need to actually implement SMGDomain
 
@@ -109,7 +112,7 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    SMGState initState = new SMGState();
+    SMGState initState = new SMGState(logger);
     CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
     initState.addStackFrame(functionNode.getFunctionDefinition());
     return initState;

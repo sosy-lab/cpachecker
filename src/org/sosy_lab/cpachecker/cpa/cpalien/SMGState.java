@@ -30,14 +30,20 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class SMGState implements AbstractState {
   private final CLangSMG heap;
+  private final LogManager logger;
 
-  public SMGState(){
+  public SMGState(LogManager pLogger){
     heap = new CLangSMG();
+
+    logger = pLogger;
+
     performConsistencyCheck();
   }
 
   public SMGState(SMGState originalState){
     heap = new CLangSMG(originalState.heap);
+    logger = originalState.logger;
+
     performConsistencyCheck();
   }
 
