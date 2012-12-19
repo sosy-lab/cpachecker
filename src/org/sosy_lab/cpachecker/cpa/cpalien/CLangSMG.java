@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 
 public class CLangSMG extends SMG {
-  final Stack<CLangStackFrame> stack_objects = new Stack<CLangStackFrame>();
-  final HashSet<SMGObject> heap_objects = new HashSet<SMGObject>();
-  final HashMap<String, SMGObject> global_objects = new HashMap<String, SMGObject>();
+  final Stack<CLangStackFrame> stack_objects = new Stack<>();
+  final HashSet<SMGObject> heap_objects = new HashSet<>();
+  final HashMap<String, SMGObject> global_objects = new HashMap<>();
 
   private SMGObject nullObject;
   private Integer nullAddress;
@@ -95,7 +95,7 @@ public class CLangSMG extends SMG {
   }
 
   public boolean isObjectConsistent(){
-    HashSet<SMGObject> objectUnion = new HashSet<SMGObject>();
+    HashSet<SMGObject> objectUnion = new HashSet<>();
     objectUnion.addAll(heap_objects);
     objectUnion.addAll(global_objects.values());
     for (CLangStackFrame stack_frame : stack_objects){
@@ -113,7 +113,7 @@ public class CLangSMG extends SMG {
 
 final class CLangStackFrame{
   private final CFunctionDeclaration stackFunction;
-  final HashMap <String, SMGObject> stack_variables = new HashMap<String, SMGObject>();
+  final HashMap <String, SMGObject> stack_variables = new HashMap<>();
 
   public CLangStackFrame(CFunctionDeclaration pFunctionDeclaration){
     stackFunction = pFunctionDeclaration;
@@ -141,7 +141,7 @@ final class CLangStackFrame{
   }
 
   public HashMap<String, SMGObject> getVariables() {
-    HashMap<String, SMGObject> variableMap = new HashMap<String, SMGObject>();
+    HashMap<String, SMGObject> variableMap = new HashMap<>();
     variableMap.putAll(stack_variables);
     return variableMap;
   }

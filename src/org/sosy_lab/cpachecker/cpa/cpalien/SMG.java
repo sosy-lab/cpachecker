@@ -34,17 +34,17 @@ public class SMG {
   protected Set<SMGEdgePointsTo> pt_edges;
 
   public SMG(){
-    objects = new HashSet<SMGObject>();
-    values = new HashSet<Integer>();
-    hv_edges = new HashSet<SMGEdgeHasValue>();
-    pt_edges = new HashSet<SMGEdgePointsTo>();
+    objects = new HashSet<>();
+    values = new HashSet<>();
+    hv_edges = new HashSet<>();
+    pt_edges = new HashSet<>();
   }
 
   public SMG(SMG pHeap) {
-    objects = new HashSet<SMGObject>();
-    values = new HashSet<Integer>();
-    hv_edges = new HashSet<SMGEdgeHasValue>();
-    pt_edges = new HashSet<SMGEdgePointsTo>();
+    objects = new HashSet<>();
+    values = new HashSet<>();
+    hv_edges = new HashSet<>();
+    pt_edges = new HashSet<>();
 
     objects.addAll(pHeap.objects);
     values.addAll(pHeap.values);
