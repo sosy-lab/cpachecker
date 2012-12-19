@@ -33,23 +33,22 @@ public class SMGState implements AbstractState {
 
   public SMGState(){
     heap = new CLangSMG();
+    performConsistencyCheck();
   }
 
   public SMGState(SMGState originalState){
     heap = new CLangSMG(originalState.heap);
+    performConsistencyCheck();
   }
 
   void addStackObject(SMGObject obj){
     heap.addStackObject(obj);
-  }
-
-  @Override
-  public String toString(){
-    return heap.toString();
+    performConsistencyCheck();
   }
 
   public void addValue(Integer pValue) {
     heap.addValue(pValue);
+    performConsistencyCheck();
   }
 
   public SMGObject getObjectForVariable(CIdExpression pVariableName) {
@@ -58,6 +57,13 @@ public class SMGState implements AbstractState {
 
   public void insertNewHasValueEdge(SMGEdgeHasValue pNewEdge) {
     heap.addHasValueEdge(pNewEdge);
+    performConsistencyCheck();
+  }
+
+  public void performConsistencyCheck(){
+    CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap);
+  }
+
 
   public void addStackFrame(CFunctionDeclaration pFunctionDefinition) {
     heap.addStackFrame(pFunctionDefinition);
