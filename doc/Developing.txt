@@ -6,7 +6,9 @@ More details (style guide etc.) can be found in the other files in this director
 Develop CPAchecker from within Eclipse
 --------------------------------------
 
-1. Install Eclipse at least version 3.5, with JDT.
+0. Install a Java 7 compatible JDK (c.f. INSTALL.txt).
+
+1. Install Eclipse with at least version 3.7, with JDT.
    http://www.eclipse.org/
 
 2. Install an SVN plugin for Eclipse, e.g. SubClipse (http://subclipse.tigris.org,
@@ -15,25 +17,33 @@ Develop CPAchecker from within Eclipse
    URL: https://svn.sosy-lab.org/software/cpachecker/trunk
    URL (read-only mirror): http://cpachecker.googlecode.com/svn/trunk
 
-3. Ignore warnings "Unsatisfied version constraint: 'org.eclipse.cdt.core ...'"
+3. If Eclipse complains about a missing JDK
+   ("Unbound classpath container: 'JRE System Library [JavaSE-1.7]'"),
+   go to Window -> Preferences -> Java -> Installed JREs,
+   click the "Search" button and select the path where your Java 7 installation
+   can be found (on Ubuntu "/usr/lib/jvm" will do).
+
+4. Ignore warnings "Unsatisfied version constraint: 'org.eclipse.cdt.core ...'"
    and "Bundle 'org.eclipse.cdt.core' cannot be resolved'".
 
-4. In order to run CPAchecker, use one of the supplied launch configurations
+5. In order to run CPAchecker, use one of the supplied launch configurations
    or create your own.
    To select the configuration, specification, and program files use the
    text box "program arguments" in the launch configuration editor.
    Step 8 of the section "Running CPAchecker" above describes what can be entered here.
    The text box "VM arguments" needs to contain "-Djava.library.path=lib/native/<ENVIRONMENT>",
    where <ENVIRONMENT> is replaced with one of the following depending on your system:
-   		x86_64-linux, x86-linux, x86_64-macosx, x86-macosx,  x86-win32
+     x86_64-linux, x86-linux, x86_64-macosx, x86-macosx,  x86-win32
 
-5. Optional:
+6. Optional:
    If you want the sources of the libraries (like Guava or CDT),
    run "ant install-contrib" once in the CPAchecker directory.
 
 
 Develop CPAchecker as Eclipse Plugin for C projects
 ---------------------------------------------------
+This is currently broken as the plugin needs to be updated
+to work with a Java 7 compatible Eclipse version.
 
 1. Requires Eclipse 3.5 with CDT 6 or Eclipse 3.6 with CDT 7
    and the Eclipse Plugin Development Environment.
@@ -55,21 +65,12 @@ Develop CPAchecker as Eclipse Plugin for C projects
 Examples of Working Installations
 ---------------------------------
 
-2011-07-15 dbeyer
-0. x64 Linux
-1. OpenJDK 1.6.0_22
+2012-12-18 pwendler
+0. Ubuntu 12.04 64bit
+1. OpenJDK 1.7.0_09
 2. Eclipse 3.7 (Indigo)
-4. CDT 8.0
 
-2011-05-12 pwendler
-0. x64 Linux
-1. OpenJDK 1.6.0_20
-2. Eclipse 3.5 (Galileo)
-4. CDT 6.0
-
-2011-05-12 pwendler
-0. x64 Linux
-1. OpenJDK 1.6.0_20
-2. Eclipse 3.6 (Helios)
-4. CDT 7.0
-
+2012-12-19 pwendler
+0. Ubuntu 12.04 64bit
+1. OpenJDK 1.7.0_09
+2. Eclipse 4.2 (Juno)

@@ -1,6 +1,8 @@
 Changes since CPAchecker 1.2
 ----------------------------
 
+* r7043: CPAchecker now requires Java 7.
+  C.f. INSTALL.txt, README.txt and doc/Developing.txt for more information.
 * r7005: MathSAT4 is no longer available as SMT solver.
 
 
