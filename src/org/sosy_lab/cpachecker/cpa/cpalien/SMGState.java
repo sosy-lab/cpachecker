@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 

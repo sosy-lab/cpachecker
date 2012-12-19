@@ -26,7 +26,10 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Stack;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 
