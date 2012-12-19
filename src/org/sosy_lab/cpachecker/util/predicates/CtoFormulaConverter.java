@@ -1677,7 +1677,7 @@ public class CtoFormulaConverter {
         return fmgr.makeNumber(
             CtoFormulaConverter.this
               .getFormulaTypeFromCType(pExp.getExpressionType()),
-            machineModel.getSizeof((CSimpleType) pCType));
+            machineModel.getSizeof(pCType));
 
       } else {
         return visitDefault(pExp);
