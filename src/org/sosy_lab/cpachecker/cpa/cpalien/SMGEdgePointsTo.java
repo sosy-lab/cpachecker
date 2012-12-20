@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
 
-public class SMGEdgePointsTo implements Cloneable {
+public class SMGEdgePointsTo {
   final private int value;
   final private SMGObject object;
   final private int offset;
