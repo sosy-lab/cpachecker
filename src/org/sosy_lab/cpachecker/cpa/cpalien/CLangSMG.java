@@ -155,7 +155,7 @@ class CLangSMGConsistencyVerifier{
   private CLangSMGConsistencyVerifier() {} /* utility class */
 
   static private boolean verifyCLangSMGProperty(boolean result, LogManager pLogger, String message){
-    pLogger.log(Level.FINEST, message + ":" + result);
+    pLogger.log(Level.FINEST, message, ":", result);
     return result;
   }
 

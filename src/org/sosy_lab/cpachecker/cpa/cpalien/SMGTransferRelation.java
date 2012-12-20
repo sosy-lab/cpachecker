@@ -63,8 +63,8 @@ public class SMGTransferRelation implements TransferRelation {
       CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
     // TODO Auto-generated method stub
     logger.log(Level.FINEST, "SMG GetSuccessor >>");
-    logger.log(Level.FINEST, "Edge:" + pCfaEdge.getEdgeType());
-    logger.log(Level.FINEST, "Code:" + pCfaEdge.getCode());
+    logger.log(Level.FINEST, "Edge:", pCfaEdge.getEdgeType());
+    logger.log(Level.FINEST, "Code:", pCfaEdge.getCode());
 
     AbstractState successor;
 
@@ -107,7 +107,7 @@ public class SMGTransferRelation implements TransferRelation {
   private SMGState handleAssignment(SMGState pState, CStatementEdge pCfaEdge, CExpression pLValue,
       CRightHandSide pRValue) {
     SMGState newState;
-    logger.log(Level.FINEST, "Handling assignment: " + pLValue.toASTString() + " = " + pRValue.toASTString());
+    logger.log(Level.FINEST, "Handling assignment:", pLValue.toASTString(), "=", pRValue.toASTString());
 
     if (pLValue instanceof CIdExpression){
       CIdExpression variableName = (CIdExpression)pLValue;
@@ -146,14 +146,14 @@ public class SMGTransferRelation implements TransferRelation {
 
     if (cDecl instanceof CVariableDeclaration){
       CVariableDeclaration cVarDecl = (CVariableDeclaration)cDecl;
-      logger.log(Level.FINEST, "Handling variable declaration: " + cVarDecl.toASTString());
+      logger.log(Level.FINEST, "Handling variable declaration:", cVarDecl.toASTString());
       String varName = cVarDecl.getName();
       CType cType = cVarDecl.getType();
 
       SMGObject newObject = new SMGObject(machineModel.getSizeof(cType) , varName);
       CInitializer newInitializer = cVarDecl.getInitializer();
 
-      logger.log(Level.FINEST, "Handling variable declaration: adding '" + newObject + "' to current stack");
+      logger.log(Level.FINEST, "Handling variable declaration: adding '", newObject, "' to current stack");
       newState.addStackObject( newObject );
 
       if (newInitializer != null){
