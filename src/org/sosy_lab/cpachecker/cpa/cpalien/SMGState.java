@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.io.IOException;
+import java.util.logging.Level;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -71,7 +74,11 @@ public class SMGState implements AbstractState {
   }
 
   public void visualize(String name){
-    SMGPlotter.produceAsDotFile(heap, name, logger);
+    try {
+      SMGPlotter.produceAsDotFile(heap, name);
+    } catch (IOException e){
+      logger.log(Level.WARNING, "Visualization of SMG", name, "failed");
+    }
   }
 
   @Override

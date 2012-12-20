@@ -29,9 +29,6 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.HashMap;
-import java.util.logging.Level;
-
-import org.sosy_lab.common.LogManager;
 
 import com.google.common.base.Joiner;
 
@@ -39,14 +36,13 @@ import com.google.common.base.Joiner;
 public final class SMGPlotter {
   private SMGPlotter() {} /* utility class */
 
-  public static void produceAsDotFile(CLangSMG smg, String name, LogManager pLogger){
+  public static void produceAsDotFile(CLangSMG smg, String name) throws IOException{
+    File graphvizSMG = new File("smg-" + name + ".dot");
+    Writer out = new OutputStreamWriter(new FileOutputStream(graphvizSMG), "UTF-8");
     try {
-      Writer out = new OutputStreamWriter(new FileOutputStream(new File("smg-" + name + ".dot")), "UTF-8");
       out.write(smgAsDot(smg, name));
+    } finally {
       out.close();
-    } catch (IOException e) {
-      pLogger.logUserException(Level.WARNING, e,
-        "Could not write SMG visualization to 'smg-" + name + ".dot' file");
     }
   }
 
