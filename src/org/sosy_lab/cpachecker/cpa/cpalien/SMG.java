@@ -24,13 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.util.HashSet;
+import java.util.Set;
 
 
 public class SMG {
-  final protected HashSet<SMGObject> objects = new HashSet<>();
-  final protected HashSet<Integer> values = new HashSet<>();
-  final protected HashSet<SMGEdgeHasValue> hv_edges = new HashSet<>();
-  final protected HashSet<SMGEdgePointsTo> pt_edges = new HashSet<>();
+  final private HashSet<SMGObject> objects = new HashSet<>();
+  final private HashSet<Integer> values = new HashSet<>();
+  final private HashSet<SMGEdgeHasValue> hv_edges = new HashSet<>();
+  final private HashSet<SMGEdgePointsTo> pt_edges = new HashSet<>();
 
   public SMG(){}
 
@@ -41,16 +42,32 @@ public class SMG {
     pt_edges.addAll(pHeap.pt_edges);
   }
 
-  public void addObject(SMGObject pObj) {
+  final public void addObject(SMGObject pObj) {
     this.objects.add(pObj);
   }
-  public void addValue(int pValue) {
+  final public void addValue(int pValue) {
     this.values.add(Integer.valueOf(pValue));
   }
-  public void addPointsToEdge(SMGEdgePointsTo pEdge){
+  final public void addPointsToEdge(SMGEdgePointsTo pEdge){
     this.pt_edges.add(pEdge);
   }
-  public void addHasValueEdge(SMGEdgeHasValue pNewEdge) {
+  final public void addHasValueEdge(SMGEdgeHasValue pNewEdge) {
     this.hv_edges.add(pNewEdge);
+  }
+
+  final public String valuesToString(){
+    return "values=" + values.toString();
+  }
+
+  final public String hvToString(){
+    return "hasValue=" + hv_edges.toString();
+  }
+
+  final public String ptToString(){
+    return "pointsTo=" + pt_edges.toString();
+  }
+
+  final public boolean objectEquals(Set<SMGObject> objSet){
+    return objects.equals(objSet);
   }
 }

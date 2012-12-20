@@ -76,7 +76,7 @@ public class CLangSMG extends SMG {
   @Override
   public String toString() {
     return "CLangSMG [\n stack_objects=" + stack_objects + "\n heap_objects=" + heap_objects + "\n global_objects="
-        + global_objects + "\n values=" + values + "\n pointsTo=" + pt_edges + "\n hasValue=" + hv_edges + "\n]";
+        + global_objects + "\n " + this.valuesToString() + "\n " + this.ptToString() + "\n " + this.hvToString() + "\n]";
   }
 
   public SMGObject getObjectForVariable(CIdExpression pVariableName) {
@@ -98,7 +98,7 @@ public class CLangSMG extends SMG {
       objectUnion.addAll(stack_frame.stack_variables.values() );
     }
 
-    return objectUnion.equals(objects);
+    return this.objectEquals(objectUnion);
   }
 
   public void addStackFrame(CFunctionDeclaration pFunctionDeclaration) {
