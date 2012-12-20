@@ -4,29 +4,24 @@
   <option name="-noout"/>
   <option name="-heap">1200M</option>
 
+  <sourcefiles name="ControlFlowInteger-MemPrecise">
+    <includesfile>../programs/benchmarks/ControlFlowInteger-MemPrecise.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ControlFlowInteger-MemSimple">
+    <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="SystemC">
+    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Nested">
+    <includesfile>nested.set</includesfile>
+  </sourcefiles>
+
   <test name="without-cbmc">
-    <sourcefiles>
-      <includesfile>locks.set</includesfile>
-      <includesfile>ntdrivers-simplified.set</includesfile>
-      <includesfile>ntdrivers.set</includesfile>
-      <includesfile>ssh-simplified.set</includesfile>
-      <includesfile>ssh.set</includesfile>
-      <includesfile>systemc.set</includesfile>
-      <includesfile>nested.set</includesfile>
-    </sourcefiles>
     <option name="-explicitAnalysis-no-cbmc"/>
   </test>
 
   <test name="with-cbmc">
-    <sourcefiles>
-      <includesfile>locks.set</includesfile>
-      <includesfile>ntdrivers-simplified.set</includesfile>
-      <includesfile>ntdrivers.set</includesfile>
-      <includesfile>ssh-simplified.set</includesfile>
-      <includesfile>ssh.set</includesfile>
-      <includesfile>systemc.set</includesfile>
-      <includesfile>nested.set</includesfile>
-    </sourcefiles>
     <option name="-explicitAnalysis"/>
   </test>
 

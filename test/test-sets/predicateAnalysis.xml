@@ -1,24 +1,47 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="1800" memlimit="2000">
-  <test>
-    <sourcefiles>
-      <includesfile>VeriSec.set</includesfile>
-      <include>../programs/linux-kernel/*.cil.c</include>
-      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
-      <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
-      <includesfile>../programs/benchmarks/SystemC.set</includesfile>
-      <includesfile>../programs/benchmarks/DeviceDrivers.set</includesfile>
-    </sourcefiles>
-    <sourcefiles>
-      <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
-      <option name="-setprop">analysis.machineModel=Linux64</option>
-    </sourcefiles>
-    <option name="-noout"/>
-    <option name="-predicateAnalysis"/>
-    <option name="-heap">1200M</option>
+
+  <sourcefiles name="BitVectors">
+    <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ControlFlowInteger-MemPrecise">
+    <includesfile>../programs/benchmarks/ControlFlowInteger-MemPrecise.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ControlFlowInteger-MemSimple">
+    <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="DeviceDrivers64">
+    <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
+    <option name="-setprop">analysis.machineModel=Linux64</option>
+  </sourcefiles>
+  <sourcefiles name="FeatureChecks">
+    <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="HeapManipulation">
+    <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="Loops">
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="ProductLines">
+    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+  </sourcefiles>
+  <sourcefiles name="SystemC">
+    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
+  </sourcefiles>
+
+  <option name="-noout"/>
+  <option name="-heap">1200M</option>
+
+  <test name="ABEl">
+    <option name="-predicateAnalysis-PredAbsRefiner-ABEl"/>
   </test>
+
+  <test name="ABElf">
+    <option name="-predicateAnalysis-PredAbsRefiner-ABElf"/>
+  </test>
+
   <columns>
     <column title="total">time for CPAchecker</column>
     <column title="reached">reached set</column>
