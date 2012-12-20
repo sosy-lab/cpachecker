@@ -40,14 +40,10 @@ public class CLangSMG extends SMG {
   final private HashSet<SMGObject> heap_objects = new HashSet<>();
   final private HashMap<String, SMGObject> global_objects = new HashMap<>();
 
-  final private SMGObject nullObject;
-  final private int nullAddress;
+  final private SMGObject nullObject = new SMGObject();
+  final private int nullAddress = 0;
 
   public CLangSMG() {
-    super();
-
-    nullObject = new SMGObject();
-    nullAddress = 0;
     SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
 
     addHeapObject(nullObject);
@@ -57,8 +53,6 @@ public class CLangSMG extends SMG {
 
   public CLangSMG(CLangSMG pHeap) {
     super(pHeap);
-    nullAddress = pHeap.nullAddress;
-    nullObject = pHeap.nullObject;
 
     for (CLangStackFrame stack_frame : pHeap.stack_objects){
       CLangStackFrame new_frame = new CLangStackFrame(stack_frame);

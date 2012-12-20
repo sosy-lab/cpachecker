@@ -36,7 +36,6 @@ public class SMGEdgeHasValue {
   }
 
   public SMGEdgeHasValue(CType pType, int pOffset, SMGObject pObject, int pValue) {
-    super();
     type = pType;
     offset = pOffset;
     object = pObject;

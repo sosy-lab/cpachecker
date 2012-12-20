@@ -30,14 +30,12 @@ public class SMGObject {
   final private boolean nullObject;
 
   public SMGObject(int pSize_in_bytes, String pLabel) {
-    super();
     size_in_bytes = pSize_in_bytes;
     label = pLabel;
     nullObject = false;
   }
 
   public SMGObject(){
-    super();
     size_in_bytes = 0;
     label = "NULL";
     nullObject = true;

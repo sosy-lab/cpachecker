@@ -24,28 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.util.HashSet;
-import java.util.Set;
 
 
 public class SMG {
-  final protected HashSet<SMGObject> objects;
-  final protected Set<Integer> values;
-  final protected Set<SMGEdgeHasValue> hv_edges;
-  final protected Set<SMGEdgePointsTo> pt_edges;
+  final protected HashSet<SMGObject> objects = new HashSet<>();
+  final protected HashSet<Integer> values = new HashSet<>();
+  final protected HashSet<SMGEdgeHasValue> hv_edges = new HashSet<>();
+  final protected HashSet<SMGEdgePointsTo> pt_edges = new HashSet<>();
 
-  public SMG(){
-    objects = new HashSet<>();
-    values = new HashSet<>();
-    hv_edges = new HashSet<>();
-    pt_edges = new HashSet<>();
-  }
+  public SMG(){}
 
   public SMG(SMG pHeap) {
-    objects = new HashSet<>();
-    values = new HashSet<>();
-    hv_edges = new HashSet<>();
-    pt_edges = new HashSet<>();
-
     objects.addAll(pHeap.objects);
     values.addAll(pHeap.values);
     hv_edges.addAll(pHeap.hv_edges);

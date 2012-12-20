@@ -30,7 +30,6 @@ public class SMGEdgePointsTo {
   final private int offset;
 
   public SMGEdgePointsTo(int pValue, SMGObject pObject, int pOffset) {
-    super();
     value = pValue;
     object = pObject;
     offset = pOffset;
