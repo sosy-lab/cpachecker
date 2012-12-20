@@ -39,13 +39,13 @@ public class CLangSMG extends SMG {
   final HashMap<String, SMGObject> global_objects = new HashMap<>();
 
   private SMGObject nullObject;
-  private Integer nullAddress;
+  private int nullAddress;
 
   public CLangSMG() {
     super();
 
     nullObject = new SMGObject();
-    nullAddress = new Integer(0);
+    nullAddress = 0;
     SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
 
     addHeapObject(nullObject);
@@ -155,7 +155,7 @@ class CLangSMGConsistencyVerifier{
   private CLangSMGConsistencyVerifier() {} /* utility class */
 
   static private boolean verifyCLangSMGProperty(boolean result, LogManager pLogger, String message){
-    pLogger.log(Level.FINEST, message + ":" + new Boolean(result));
+    pLogger.log(Level.FINEST, message + ":" + result);
     return result;
   }
 

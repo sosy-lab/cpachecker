@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 
 
 public class SMGEdgePointsTo implements Cloneable {
-  private Integer value;
+  private int value;
   private SMGObject object;
-  private Integer offset;
+  private int offset;
 
-  public SMGEdgePointsTo(Integer pValue, SMGObject pObject, Integer pOffset) {
+  public SMGEdgePointsTo(int pValue, SMGObject pObject, int pOffset) {
     super();
     value = pValue;
     object = pObject;
@@ -40,13 +40,13 @@ public class SMGEdgePointsTo implements Cloneable {
     return value + "->" + object.getLabel() + "+" + offset + 'b';
   }
   //TODO: Implement target specifier later
-  public Integer getValue() {
+  public int getValue() {
     return value;
   }
   public SMGObject getObject() {
     return object;
   }
-  public Integer getOffset() {
+  public int getOffset() {
     return offset;
   }
 }

@@ -27,15 +27,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class SMGEdgeHasValue {
   private CType type;
-  private Integer offset;
+  private int offset;
   private SMGObject object;
-  private Integer value;
+  private int value;
 
-  public Integer getValue() {
+  public int getValue() {
     return value;
   }
 
-  public SMGEdgeHasValue(CType pType, Integer pOffset, SMGObject pObject, Integer pValue) {
+  public SMGEdgeHasValue(CType pType, int pOffset, SMGObject pObject, int pValue) {
     super();
     type = pType;
     offset = pOffset;
@@ -52,7 +52,7 @@ public class SMGEdgeHasValue {
     return object;
   }
 
-  public Integer getOffset() {
+  public int getOffset() {
     return offset;
   }
 

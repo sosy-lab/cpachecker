@@ -55,8 +55,8 @@ public class SMG {
   public void addObject(SMGObject pObj) {
     this.objects.add(pObj);
   }
-  public void addValue(Integer pValue) {
-    this.values.add(pValue);
+  public void addValue(int pValue) {
+    this.values.add(Integer.valueOf(pValue));
   }
   public void addPointsToEdge(SMGEdgePointsTo pEdge){
     this.pt_edges.add(pEdge);

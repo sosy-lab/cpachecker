@@ -52,8 +52,8 @@ public class SMGState implements AbstractState {
     performConsistencyCheck();
   }
 
-  public void addValue(Integer pValue) {
-    heap.addValue(pValue);
+  public void addValue(int pValue) {
+    heap.addValue(Integer.valueOf(pValue));
     performConsistencyCheck();
   }
 
