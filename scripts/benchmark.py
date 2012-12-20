@@ -739,12 +739,10 @@ class OutputHandler:
         self.description = header + systemInfo
 
         testname = None
-        if len(self.benchmark.tests) == 1:
-            # in case there is only a single test, we can use this name
-            testname = self.benchmark.tests[0].name
-        elif options.testRunOnly and len(options.testRunOnly) == 1:
-            # in case we run only a single test, we can use this name
-            testname = [test for test in self.benchmark.tests if test.shouldBeRun][0].name
+        runTests = [test for test in self.benchmark.tests if test.shouldBeRun()]
+        if len(runTests) == 1:
+            # in case there is only a single test to run, we can use its name
+            testname = runTests[0].name
 
         # write to file
         self.TXTContent = self.description
