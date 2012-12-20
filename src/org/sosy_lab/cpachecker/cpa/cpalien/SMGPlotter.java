@@ -57,7 +57,7 @@ public final class SMGPlotter {
     sb.append("  subgraph cluster_stack {\n");
     sb.append("    label=\"Stack\";\n");
     int i = 0;
-    for (CLangStackFrame stack_item : smg.stack_objects){
+    for (CLangStackFrame stack_item : smg.getStackObjects() ){
       sb.append("    subgraph cluster_stack_" + stack_item.getFunctionName() + "{\n");
       sb.append("      fontcolor=blue;\n");
       sb.append("      label=\"" + stack_item.getFunctionSignature() + "\";\n");
@@ -71,7 +71,7 @@ public final class SMGPlotter {
     }
     sb.append("  }\n");
 
-    for (SMGObject heapObject : smg.heap_objects){
+    for (SMGObject heapObject : smg.getHeapObjects()){
       if (heapObject.notNull()){
         sb.append("  " + heapObject.getLabel() + " [ shape=rectangle, label = \"" + heapObject.toString() + "\"];\n");
       }

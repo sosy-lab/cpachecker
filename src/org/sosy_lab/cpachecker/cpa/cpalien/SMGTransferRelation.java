@@ -50,8 +50,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class SMGTransferRelation implements TransferRelation {
 
-  private LogManager logger;
-  private MachineModel machineModel;
+  final private LogManager logger;
+  final private MachineModel machineModel;
 
   public SMGTransferRelation(LogManager pLogger, MachineModel pMachineModel) {
     logger = pLogger;

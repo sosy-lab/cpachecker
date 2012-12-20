@@ -26,10 +26,10 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class SMGEdgeHasValue {
-  private CType type;
-  private int offset;
-  private SMGObject object;
-  private int value;
+  final private CType type;
+  final private int offset;
+  final private SMGObject object;
+  final private int value;
 
   public int getValue() {
     return value;

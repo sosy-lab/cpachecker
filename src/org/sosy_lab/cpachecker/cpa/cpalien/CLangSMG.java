@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -34,12 +36,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 
 public class CLangSMG extends SMG {
-  final ArrayDeque<CLangStackFrame> stack_objects = new ArrayDeque<>();
-  final HashSet<SMGObject> heap_objects = new HashSet<>();
-  final HashMap<String, SMGObject> global_objects = new HashMap<>();
+  final private ArrayDeque<CLangStackFrame> stack_objects = new ArrayDeque<>();
+  final private HashSet<SMGObject> heap_objects = new HashSet<>();
+  final private HashMap<String, SMGObject> global_objects = new HashMap<>();
 
-  private SMGObject nullObject;
-  private int nullAddress;
+  final private SMGObject nullObject;
+  final private int nullAddress;
 
   public CLangSMG() {
     super();
@@ -108,6 +110,17 @@ public class CLangSMG extends SMG {
   public void addStackFrame(CFunctionDeclaration pFunctionDeclaration) {
     CLangStackFrame newFrame = new CLangStackFrame(pFunctionDeclaration);
     stack_objects.push(newFrame);
+  }
+
+  public ArrayDeque<CLangStackFrame> getStackObjects() {
+    //TODO: This still allows modification, as queues do not have
+    // the appropriate unmodifiable method. There is probably some good
+    // way how to provide a read-only view for iteration, but I do not know it
+    return stack_objects;
+  }
+
+  public Set<SMGObject> getHeapObjects() {
+    return Collections.unmodifiableSet(heap_objects);
   }
 }
 

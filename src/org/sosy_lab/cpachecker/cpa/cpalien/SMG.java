@@ -28,10 +28,10 @@ import java.util.Set;
 
 
 public class SMG {
-  protected HashSet<SMGObject> objects;
-  protected Set<Integer> values;
-  protected Set<SMGEdgeHasValue> hv_edges;
-  protected Set<SMGEdgePointsTo> pt_edges;
+  final protected HashSet<SMGObject> objects;
+  final protected Set<Integer> values;
+  final protected Set<SMGEdgeHasValue> hv_edges;
+  final protected Set<SMGEdgePointsTo> pt_edges;
 
   public SMG(){
     objects = new HashSet<>();
