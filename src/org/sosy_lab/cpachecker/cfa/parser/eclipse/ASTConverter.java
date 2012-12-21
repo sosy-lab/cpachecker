@@ -73,6 +73,7 @@ import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -258,12 +259,22 @@ class ASTConverter {
     } else if (e instanceof IASTConditionalExpression) {
       return convert((IASTConditionalExpression)e);
 
+    } else if (e instanceof IGNUASTCompoundStatementExpression) {
+      return convert((IGNUASTCompoundStatementExpression)e);
+
     } else {
       throw new CFAGenerationRuntimeException("Unknown expression type " + e.getClass().getSimpleName(), e);
     }
   }
 
   private CAstNode convert(IASTConditionalExpression e) {
+    CIdExpression tmp = createTemporaryVariable(e, null);
+    conditionalTemporaryVariable = tmp;
+    conditionalExpression = e;
+    return tmp;
+  }
+
+  private CAstNode convert(IGNUASTCompoundStatementExpression e) {
     CIdExpression tmp = createTemporaryVariable(e, null);
     conditionalTemporaryVariable = tmp;
     conditionalExpression = e;

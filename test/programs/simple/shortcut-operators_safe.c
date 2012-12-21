@@ -32,4 +32,10 @@ int main() {
 
 	if (!!!(t || error())) { }
 	if (!!!(f && error())) { }
+
+	return ({
+		int __t = t;
+		int __f = f;
+		(f && error()) ? 1 : (f && error());
+	} );
 }

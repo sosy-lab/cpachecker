@@ -72,6 +72,7 @@ import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
+import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -454,6 +455,11 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // Handle each kind of expression
     if (statement instanceof IASTCompoundStatement) {
+      if (statement.getPropertyInParent() == IGNUASTCompoundStatementExpression.STATEMENT) {
+        // IGNUASTCompoundStatementExpression content is already handled
+        return PROCESS_SKIP;
+      }
+
       scope.enterBlock();
       // Do nothing, just continue visiting
     } else if (statement instanceof IASTExpressionStatement) {
@@ -678,6 +684,11 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
     } else if (statement instanceof IASTCompoundStatement) {
+      if (statement.getPropertyInParent() == IGNUASTCompoundStatementExpression.STATEMENT) {
+        // IGNUASTCompoundStatementExpression content is already handled
+        return PROCESS_SKIP;
+      }
+
       scope.leaveBlock();
 
     } else if (statement instanceof IASTWhileStatement
@@ -1417,7 +1428,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       final String rawSignature, final boolean resultIsUsed) {
 
     if (astCreator.getConditionalExpression() != null) {
-      // in this case, there's a ternary operator or && or ||
+      // in this case, there's a ternary operator or && or || or { }
       IASTExpression condExp = astCreator.getConditionalExpression();
       astCreator.resetConditionalExpression();
 
@@ -1436,6 +1447,8 @@ class CFAFunctionBuilder extends ASTVisitor {
         prevNode = handleTernaryOperator((IASTConditionalExpression)condExp, prevNode, tempVar);
       } else if (condExp instanceof IASTBinaryExpression) {
         prevNode = handleShortcuttingOperators((IASTBinaryExpression)condExp, prevNode, tempVar);
+      } else if (condExp instanceof IGNUASTCompoundStatementExpression) {
+        prevNode = handleCompoundStatementExpression((IGNUASTCompoundStatementExpression)condExp, prevNode, tempVar);
       } else {
         throw new AssertionError();
       }
@@ -1445,6 +1458,51 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     return prevNode;
+  }
+
+  /**
+   * @category sideeffects
+   */
+  private CFANode handleCompoundStatementExpression(IGNUASTCompoundStatementExpression compoundExp,
+      final CFANode rootNode, final CIdExpression tempVar) {
+
+    scope.enterBlock();
+
+    IASTStatement[] statements = compoundExp.getCompoundStatement().getStatements();
+
+    int locDepth = locStack.size();
+    int conditionDepth = elseStack.size();
+    int loopDepth = loopStartStack.size();
+
+    locStack.push(rootNode);
+    for (int i = 0; i < statements.length-1; i++) {
+      IASTStatement statement = statements[i];
+      statement.accept(this);
+    }
+    CFANode middleNode = locStack.pop();
+
+    assert locDepth == locStack.size();
+    assert conditionDepth == elseStack.size();
+    assert loopDepth == loopStartStack.size();
+
+    IASTStatement lastStatement = statements[statements.length-1];
+    if (!(lastStatement instanceof IASTExpressionStatement)) {
+      throw new CFAGenerationRuntimeException("Unsupported statement type at end of compound-statement expression", lastStatement);
+    }
+    int filelocStart = compoundExp.getFileLocation().getStartingLineNumber();
+
+    CAstNode exp = astCreator.convertExpressionWithSideEffects(((IASTExpressionStatement)lastStatement).getExpression());
+
+    middleNode = handleAllSideEffects(middleNode, filelocStart, lastStatement.getRawSignature(), true);
+    CStatement stmt = createStatement(ASTConverter.convert(compoundExp.getFileLocation()),
+        tempVar, (CRightHandSide)exp);
+    CFANode lastNode = newCFANode(compoundExp.getFileLocation().getEndingLineNumber());
+    CFAEdge edge = new CStatementEdge(stmt.toASTString(), stmt, compoundExp.getFileLocation().getStartingLineNumber(), middleNode, lastNode);
+    addToCFA(edge);
+
+    scope.leaveBlock();
+
+    return lastNode;
   }
 
   /**
