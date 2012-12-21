@@ -1486,8 +1486,11 @@ class CFAFunctionBuilder extends ASTVisitor {
     assert loopDepth == loopStartStack.size();
 
     IASTStatement lastStatement = statements[statements.length-1];
+    if (lastStatement instanceof IASTProblemStatement) {
+      throw new CFAGenerationRuntimeException((IASTProblemStatement) lastStatement);
+    }
     if (!(lastStatement instanceof IASTExpressionStatement)) {
-      throw new CFAGenerationRuntimeException("Unsupported statement type at end of compound-statement expression", lastStatement);
+      throw new CFAGenerationRuntimeException("Unsupported statement type " + lastStatement.getClass().getSimpleName() + " at end of compound-statement expression", lastStatement);
     }
     int filelocStart = compoundExp.getFileLocation().getStartingLineNumber();
 
