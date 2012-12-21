@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -157,10 +159,6 @@ class ASTConverter {
     return result;
   }
 
-  public void resetConditionalExpression() {
-    conditionalExpression = null;
-  }
-
   public boolean hasConditionalExpression() {
     return conditionalExpression != null;
   }
@@ -173,6 +171,15 @@ class ASTConverter {
 
   public CIdExpression getConditionalTemporaryVariable() {
     return conditionalTemporaryVariable;
+  }
+
+  private void addConditionalExpression(IASTExpression e, CIdExpression tempVar) {
+    if (conditionalExpression != null) {
+      throw new CFAGenerationRuntimeException("Unsupported expression with multiple controlflow-involving operators", e);
+    }
+
+    conditionalExpression = checkNotNull(e);
+    conditionalTemporaryVariable = checkNotNull(tempVar);
   }
 
   public CExpression convertExpressionWithoutSideEffects(
@@ -278,22 +285,19 @@ class ASTConverter {
 
   private CAstNode convert(IASTConditionalExpression e) {
     CIdExpression tmp = createTemporaryVariable(e, null);
-    conditionalTemporaryVariable = tmp;
-    conditionalExpression = e;
+    addConditionalExpression(e, tmp);
     return tmp;
   }
 
   private CAstNode convert(IGNUASTCompoundStatementExpression e) {
     CIdExpression tmp = createTemporaryVariable(e, null);
-    conditionalTemporaryVariable = tmp;
-    conditionalExpression = e;
+    addConditionalExpression(e, tmp);
     return tmp;
   }
 
   private CAstNode convertExpressionListAsExpression(IASTExpressionList e) {
     CIdExpression tmp = createTemporaryVariable(e, null);
-    conditionalTemporaryVariable = tmp;
-    conditionalExpression = e;
+    addConditionalExpression(e, tmp);
     return tmp;
   }
 
@@ -344,8 +348,7 @@ class ASTConverter {
     case IASTBinaryExpression.op_logicalAnd:
     case IASTBinaryExpression.op_logicalOr:
       CIdExpression tmp = createTemporaryVariable(e, null);
-      conditionalTemporaryVariable = tmp;
-      conditionalExpression = e;
+      addConditionalExpression(e, tmp);
       return tmp;
     }
 
