@@ -194,5 +194,4 @@ public class SMGTransferRelation implements TransferRelation {
     // TODO Auto-generated method stub
     return null;
   }
-
 }

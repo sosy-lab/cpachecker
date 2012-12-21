@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -69,5 +70,17 @@ public class SMG {
 
   final public boolean objectEquals(Set<SMGObject> objSet){
     return objects.equals(objSet);
+  }
+
+  final public Set<Integer> getValues(){
+    return Collections.unmodifiableSet(values);
+  }
+
+  final public Set<SMGEdgeHasValue> getHVEdges(){
+    return Collections.unmodifiableSet(hv_edges);
+  }
+
+  final public Set<SMGEdgePointsTo> getPTEdges(){
+    return Collections.unmodifiableSet(pt_edges);
   }
 }

@@ -71,7 +71,8 @@ public class SMGState implements AbstractState {
   }
 
   public String toDot(String name){
-    return SMGPlotter.smgAsDot(heap, name);
+    SMGPlotter plotter = new SMGPlotter();
+    return plotter.smgAsDot(heap, name);
   }
 
   @Override
