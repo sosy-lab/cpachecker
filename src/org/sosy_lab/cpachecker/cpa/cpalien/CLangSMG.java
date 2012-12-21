@@ -69,6 +69,11 @@ public class CLangSMG extends SMG {
     super.addObject(pObject);
   }
 
+  private void addGlobalObject(SMGObject pObject) {
+    this.global_objects.put(pObject.getLabel(), pObject);
+    super.addObject(pObject);
+  }
+
   public void addStackObject(SMGObject pObj) {
     super.addObject(pObj);
     stack_objects.peek().addStackVariable(pObj.getLabel(), pObj);
