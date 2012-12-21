@@ -71,6 +71,7 @@ import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
+import org.eclipse.cdt.core.dom.ast.IASTTypeIdInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -103,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -249,6 +251,9 @@ class ASTConverter {
 
     } else if (e instanceof IASTTypeIdExpression) {
       return convert((IASTTypeIdExpression)e);
+
+    } else if (e instanceof IASTTypeIdInitializerExpression) {
+      return convert((IASTTypeIdInitializerExpression)e);
 
     } else if (e instanceof IASTConditionalExpression) {
       return convert((IASTConditionalExpression)e);
@@ -498,6 +503,11 @@ class ASTConverter {
   private CTypeIdExpression convert(IASTTypeIdExpression e) {
     return new CTypeIdExpression(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()),
         ASTOperatorConverter.convertTypeIdOperator(e), convert(e.getTypeId()));
+  }
+
+  private CTypeIdInitializerExpression convert(IASTTypeIdInitializerExpression e) {
+    return new CTypeIdInitializerExpression(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()),
+        convert(e.getInitializer()), convert(e.getTypeId()));
   }
 
   public CAstNode convert(final IASTStatement s) {

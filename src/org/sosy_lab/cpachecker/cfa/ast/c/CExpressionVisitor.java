@@ -46,6 +46,8 @@ public interface CExpressionVisitor<R, X extends Exception> {
 
   R visit(CTypeIdExpression pIastTypeIdExpression) throws X;
 
+  R visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws X;
+
   R visit(CUnaryExpression pIastUnaryExpression) throws X;
 
 }

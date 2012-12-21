@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -160,13 +161,13 @@ class AutomatonASTComparator {
   /**
    * The visitor that generates a pre-compiled ASTMatcher from a pattern AST.
    */
-  private static enum ASTMatcherGenerator implements CRightHandSideVisitor<ASTMatcher, RuntimeException>,
-                                                     CStatementVisitor<ASTMatcher, RuntimeException> {
+  private static enum ASTMatcherGenerator implements CRightHandSideVisitor<ASTMatcher, InvalidAutomatonException>,
+                                                     CStatementVisitor<ASTMatcher, InvalidAutomatonException> {
 
     INSTANCE;
 
     @Override
-    public ASTMatcher visit(CIdExpression exp) {
+    public ASTMatcher visit(CIdExpression exp) throws InvalidAutomatonException {
       String name = exp.getName();
 
       if (name.equals(JOKER_EXPR)) {
@@ -183,27 +184,27 @@ class AutomatonASTComparator {
     }
 
     @Override
-    public ASTMatcher visit(CArraySubscriptExpression exp) {
+    public ASTMatcher visit(CArraySubscriptExpression exp) throws InvalidAutomatonException {
       return new ArraySubscriptExpressionMatcher(exp, exp.getArrayExpression().accept(this), exp.getSubscriptExpression().accept(this));
     }
 
     @Override
-    public ASTMatcher visit(CBinaryExpression exp) {
+    public ASTMatcher visit(CBinaryExpression exp) throws InvalidAutomatonException {
       return new BinaryExpressionMatcher(exp, exp.getOperand1().accept(this), exp.getOperand2().accept(this));
     }
 
     @Override
-    public ASTMatcher visit(CCastExpression exp) {
+    public ASTMatcher visit(CCastExpression exp) throws InvalidAutomatonException {
       return new CastExpressionMatcher(exp, exp.getOperand().accept(this));
     }
 
     @Override
-    public ASTMatcher visit(CFieldReference exp) {
+    public ASTMatcher visit(CFieldReference exp) throws InvalidAutomatonException {
       return new FieldReferenceMatcher(exp, exp.getFieldOwner().accept(this));
     }
 
     @Override
-    public ASTMatcher visit(CCharLiteralExpression exp) {
+    public ASTMatcher visit(CCharLiteralExpression exp) throws InvalidAutomatonException {
       return new ExpressionWithFieldMatcher<CCharLiteralExpression, Character>(CCharLiteralExpression.class, exp) {
 
         @Override
@@ -214,7 +215,7 @@ class AutomatonASTComparator {
     }
 
     @Override
-    public ASTMatcher visit(CFloatLiteralExpression exp) {
+    public ASTMatcher visit(CFloatLiteralExpression exp) throws InvalidAutomatonException {
       return new ExpressionWithFieldMatcher<CFloatLiteralExpression, BigDecimal>(CFloatLiteralExpression.class, exp) {
 
         @Override
@@ -225,7 +226,7 @@ class AutomatonASTComparator {
     }
 
     @Override
-    public ASTMatcher visit(CIntegerLiteralExpression exp) {
+    public ASTMatcher visit(CIntegerLiteralExpression exp) throws InvalidAutomatonException {
       return new ExpressionWithFieldMatcher<CIntegerLiteralExpression, BigInteger>(CIntegerLiteralExpression.class, exp) {
 
         @Override
@@ -236,7 +237,7 @@ class AutomatonASTComparator {
     }
 
     @Override
-    public ASTMatcher visit(CStringLiteralExpression exp) {
+    public ASTMatcher visit(CStringLiteralExpression exp) throws InvalidAutomatonException {
       return new ExpressionWithFieldMatcher<CStringLiteralExpression, String>(CStringLiteralExpression.class, exp) {
 
         @Override
@@ -252,12 +253,17 @@ class AutomatonASTComparator {
     }
 
     @Override
-    public ASTMatcher visit(CUnaryExpression exp) {
+    public ASTMatcher visit(CTypeIdInitializerExpression exp) throws InvalidAutomatonException {
+      throw new InvalidAutomatonException("Type-id initializer expressions of the form " + exp.toASTString() + " are currently not supported in automata.");
+    }
+
+    @Override
+    public ASTMatcher visit(CUnaryExpression exp) throws InvalidAutomatonException {
       return new UnaryExpressionMatcher(exp, exp.getOperand().accept(this));
     }
 
     @Override
-    public ASTMatcher visit(CFunctionCallExpression exp) {
+    public ASTMatcher visit(CFunctionCallExpression exp) throws InvalidAutomatonException {
       List<ASTMatcher> parameterPatterns = new ArrayList<>(exp.getParameterExpressions().size());
       for (CExpression parameter : exp.getParameterExpressions()) {
         parameterPatterns.add(parameter.accept(this));
@@ -276,7 +282,7 @@ class AutomatonASTComparator {
     }
 
     @Override
-    public ASTMatcher visit(CExpressionStatement stmt) {
+    public ASTMatcher visit(CExpressionStatement stmt) throws InvalidAutomatonException {
       return new OneOperandExpressionMatcher<CExpressionStatement, Void>(
           CExpressionStatement.class, stmt, stmt.getExpression().accept(this)) {
 
@@ -287,7 +293,7 @@ class AutomatonASTComparator {
       };
     }
 
-    private ASTMatcher visit(final CAssignment stmt) {
+    private ASTMatcher visit(final CAssignment stmt) throws InvalidAutomatonException {
       final ASTMatcher leftHandSide = stmt.getLeftHandSide().accept(this);
       final ASTMatcher rightHandSide = stmt.getRightHandSide().accept(this);
 
@@ -335,17 +341,17 @@ class AutomatonASTComparator {
     }
 
     @Override
-    public ASTMatcher visit(final CExpressionAssignmentStatement stmt) {
+    public ASTMatcher visit(final CExpressionAssignmentStatement stmt) throws InvalidAutomatonException {
       return visit((CAssignment)stmt);
     }
 
     @Override
-    public ASTMatcher visit(CFunctionCallAssignmentStatement stmt) {
+    public ASTMatcher visit(CFunctionCallAssignmentStatement stmt) throws InvalidAutomatonException {
       return visit((CAssignment)stmt);
     }
 
     @Override
-    public ASTMatcher visit(CFunctionCallStatement stmt) {
+    public ASTMatcher visit(CFunctionCallStatement stmt) throws InvalidAutomatonException {
       return new OneOperandExpressionMatcher<CFunctionCallStatement, Void>(
           CFunctionCallStatement.class, stmt, stmt.getFunctionCallExpression().accept(this)) {
 

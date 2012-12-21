@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -1132,6 +1133,11 @@ public class BDDTransferRelation implements TransferRelation {
     }
 
     @Override
+    public Region visit(CTypeIdInitializerExpression exp) {
+      return null;
+    }
+
+    @Override
     public Region visit(CUnaryExpression exp) {
       Region operand = exp.getOperand().accept(this);
 
@@ -1316,6 +1322,11 @@ public class BDDTransferRelation implements TransferRelation {
     }
 
     @Override
+    public Region[] visit(CTypeIdInitializerExpression exp) {
+      return null;
+    }
+
+    @Override
     public Region[] visit(CUnaryExpression exp) {
 
       // for numeral values
@@ -1417,6 +1428,11 @@ public class BDDTransferRelation implements TransferRelation {
 
     @Override
     public Boolean visit(CTypeIdExpression exp) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CTypeIdInitializerExpression exp) {
       return false;
     }
 
