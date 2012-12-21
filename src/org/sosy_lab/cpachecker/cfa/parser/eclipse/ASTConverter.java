@@ -262,6 +262,9 @@ class ASTConverter {
     } else if (e instanceof IGNUASTCompoundStatementExpression) {
       return convert((IGNUASTCompoundStatementExpression)e);
 
+    } else if (e instanceof IASTExpressionList) {
+      return convertExpressionListAsExpression((IASTExpressionList)e);
+
     } else {
       throw new CFAGenerationRuntimeException("Unknown expression type " + e.getClass().getSimpleName(), e);
     }
@@ -275,6 +278,13 @@ class ASTConverter {
   }
 
   private CAstNode convert(IGNUASTCompoundStatementExpression e) {
+    CIdExpression tmp = createTemporaryVariable(e, null);
+    conditionalTemporaryVariable = tmp;
+    conditionalExpression = e;
+    return tmp;
+  }
+
+  private CAstNode convertExpressionListAsExpression(IASTExpressionList e) {
     CIdExpression tmp = createTemporaryVariable(e, null);
     conditionalTemporaryVariable = tmp;
     conditionalExpression = e;

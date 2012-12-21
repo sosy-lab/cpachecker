@@ -1449,6 +1449,8 @@ class CFAFunctionBuilder extends ASTVisitor {
         prevNode = handleShortcuttingOperators((IASTBinaryExpression)condExp, prevNode, tempVar);
       } else if (condExp instanceof IGNUASTCompoundStatementExpression) {
         prevNode = handleCompoundStatementExpression((IGNUASTCompoundStatementExpression)condExp, prevNode, tempVar);
+      } else if (condExp instanceof IASTExpressionList) {
+        prevNode = handleExpressionList((IASTExpressionList)condExp, prevNode, tempVar);
       } else {
         throw new AssertionError();
       }
@@ -1458,6 +1460,32 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     return prevNode;
+  }
+
+  /**
+   * @category sideeffects
+   */
+  private CFANode handleExpressionList(IASTExpressionList listExp,
+      CFANode prevNode, final CIdExpression tempVar) {
+
+    IASTExpression[] expressions = listExp.getExpressions();
+    for (int i = 0; i < expressions.length-1; i++) {
+      IASTExpression e = expressions[i];
+      prevNode = createEdgeForExpression(e, e.getFileLocation().getStartingLineNumber(), prevNode, null);
+    }
+
+    IASTExpression lastExp = expressions[expressions.length-1];
+
+    CAstNode exp = astCreator.convertExpressionWithSideEffects(lastExp);
+
+    prevNode = handleAllSideEffects(prevNode, lastExp.getFileLocation().getStartingLineNumber(), lastExp.getRawSignature(), true);
+    CStatement stmt = createStatement(ASTConverter.convert(lastExp.getFileLocation()),
+        tempVar, (CRightHandSide)exp);
+    CFANode lastNode = newCFANode(lastExp.getFileLocation().getEndingLineNumber());
+    CFAEdge edge = new CStatementEdge(stmt.toASTString(), stmt, lastExp.getFileLocation().getStartingLineNumber(), prevNode, lastNode);
+    addToCFA(edge);
+
+    return lastNode;
   }
 
   /**
