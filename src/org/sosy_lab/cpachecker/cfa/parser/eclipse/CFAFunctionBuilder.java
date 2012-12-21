@@ -536,7 +536,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     boolean resultIsUsed = true;
 
     // in this case, there's a ternary operator
-    if (astCreator.getConditionalExpression() != null) {
+    if (astCreator.hasConditionalExpression()) {
       //evaluates to true if the ternary expressions return value is not used (i. e. var==0 ? 0 : 1;)
       resultIsUsed = (!(statement instanceof CExpressionStatement)
           || ((CExpressionStatement)statement).getExpression() != astCreator.getConditionalTemporaryVariable());
@@ -1427,10 +1427,9 @@ class CFAFunctionBuilder extends ASTVisitor {
   private CFANode handleAllSideEffects(CFANode prevNode, final int filelocStart,
       final String rawSignature, final boolean resultIsUsed) {
 
-    if (astCreator.getConditionalExpression() != null) {
+    if (astCreator.hasConditionalExpression()) {
       // in this case, there's a ternary operator or && or || or { }
-      IASTExpression condExp = astCreator.getConditionalExpression();
-      astCreator.resetConditionalExpression();
+      IASTExpression condExp = astCreator.getAndResetConditionalExpression();
 
       CIdExpression tempVar;
       if (resultIsUsed) {
@@ -1613,7 +1612,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       CFANode lastNode, int filelocStart, CFANode prevNode, @Nullable CIdExpression tempVar) {
     CAstNode exp = astCreator.convertExpressionWithSideEffects(condExp);
 
-    if (astCreator.getConditionalExpression() == null) {
+    if (!astCreator.hasConditionalExpression()) {
 
       prevNode = createEdgesForSideEffects(prevNode, astCreator.getAndResetPreSideAssignments(), exp.toASTString(), filelocStart);
 

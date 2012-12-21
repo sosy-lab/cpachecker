@@ -161,8 +161,14 @@ class ASTConverter {
     conditionalExpression = null;
   }
 
-  public IASTExpression getConditionalExpression() {
-    return conditionalExpression;
+  public boolean hasConditionalExpression() {
+    return conditionalExpression != null;
+  }
+
+  public IASTExpression getAndResetConditionalExpression() {
+    IASTExpression result = conditionalExpression;
+    conditionalExpression = null;
+    return result;
   }
 
   public CIdExpression getConditionalTemporaryVariable() {
