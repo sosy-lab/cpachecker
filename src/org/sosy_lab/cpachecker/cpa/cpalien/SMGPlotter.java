@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -90,24 +91,23 @@ public final class SMGPlotter {
     pSb.append(newLineWithOffset("fontcolor=blue;"));
     pSb.append(newLineWithOffset("label=\"" + pStackFrame.getFunctionSignature() + "\";"));
 
-    pSb.append(newLineWithOffset(smgStackItemAsDot(pStackFrame, pIndex)));
+    pSb.append(newLineWithOffset(smgScopeFrameAsDot(pStackFrame.getVariables(), String.valueOf(pIndex))));
 
     offset -= 2;
     pSb.append(newLineWithOffset("}"));
 
   }
 
-  private String smgStackItemAsDot(CLangStackFrame pStackFrame, int pIndex) {
+  private String smgScopeFrameAsDot(Map<String, SMGObject> pNamespace, String pStructId) {
     StringBuilder sb = new StringBuilder();
-    sb.append("struct" + pIndex + "[shape=record,label=\" ");
-    HashMap<String, SMGObject> stack_items = pStackFrame.getVariables();
+    sb.append("struct" + pStructId + "[shape=record,label=\" ");
 
     // I sooo wish for Python list comprehension here...
     ArrayList<String> nodes = new ArrayList<>();
-    for (String key : stack_items.keySet()){
-      SMGObject obj = stack_items.get(key);
+    for (String key : pNamespace.keySet()){
+      SMGObject obj = pNamespace.get(key);
       nodes.add("<" + key + "> " + obj.toString());
-      objectIndex.put(obj, "struct" + pIndex + ":" + key);
+      objectIndex.put(obj, "struct" + pStructId + ":" + key);
      }
     sb.append(Joiner.on(" | ").join(nodes));
     sb.append("\"];\n");
@@ -118,10 +118,7 @@ public final class SMGPlotter {
     pSb.append(newLineWithOffset("subgraph cluster_global{"));
     offset += 2;
     pSb.append(newLineWithOffset("label=\"Global objects\";"));
-    // TODO: Will need to have the same anchor handling as stack items do
-    // Because its principally equal to one stack frame, perhaps it would
-    // Be good to generalize smgStackItemAsDot for any String->SMGObject mapping
-    pSb.append(newLineWithOffset("struct_global [shape=record, label=\" " + Joiner.on("|").join(pSmg.getGlobalObjects().keySet()) + "\"];"));
+    pSb.append(newLineWithOffset(smgScopeFrameAsDot(pSmg.getGlobalObjects(), "global")));
     offset -= 2;
     pSb.append(newLineWithOffset("}"));
   }
