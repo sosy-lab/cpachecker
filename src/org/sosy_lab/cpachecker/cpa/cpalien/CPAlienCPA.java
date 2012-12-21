@@ -72,7 +72,7 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
     abstractDomain = domain;
     mergeOperator = MergeSepOperator.getInstance();
     stopOperator = new StopSepOperator(domain);
-    transferRelation = new SMGTransferRelation(logger, machineModel); //TODO: Implement transfer relation
+    transferRelation = new SMGTransferRelation(config, logger, machineModel); //TODO: Implement transfer relation
   }
 
   public MachineModel getMachineModel(){

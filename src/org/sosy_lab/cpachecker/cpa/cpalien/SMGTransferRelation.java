@@ -23,12 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -48,12 +57,19 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 
+@Options(prefix="cpa.cpalien")
 public class SMGTransferRelation implements TransferRelation {
+
+  @Option(name="exportSMG.file", description="dump SMG for each edge")
+  @FileOption(Type.OUTPUT_FILE)
+  private File exportSMGFilePattern = new File("smg-%s.dot");
 
   final private LogManager logger;
   final private MachineModel machineModel;
 
-  public SMGTransferRelation(LogManager pLogger, MachineModel pMachineModel) {
+  public SMGTransferRelation(Configuration config, LogManager pLogger,
+      MachineModel pMachineModel) throws InvalidConfigurationException {
+    config.inject(this);
     logger = pLogger;
     machineModel = pMachineModel;
   }
@@ -99,7 +115,15 @@ public class SMGTransferRelation implements TransferRelation {
       newState = new SMGState(pState);
     }
 
-    newState.visualize("line-" + pCfaEdge.getLineNumber());
+    if (exportSMGFilePattern != null) {
+      String name = "line-" + pCfaEdge.getLineNumber();
+      File outputFile = new File(String.format(exportSMGFilePattern.getAbsolutePath(), name));
+      try {
+        Files.writeFile(outputFile, newState.toDot(name));
+      } catch (IOException e){
+        logger.logUserException(Level.WARNING, e, "Could not write SMG " + name + " to file");
+      }
+    }
 
     return newState;
   }

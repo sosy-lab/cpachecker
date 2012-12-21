@@ -23,11 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.util.HashMap;
 
 import com.google.common.base.Joiner;
@@ -36,17 +31,7 @@ import com.google.common.base.Joiner;
 public final class SMGPlotter {
   private SMGPlotter() {} /* utility class */
 
-  public static void produceAsDotFile(CLangSMG smg, String name) throws IOException{
-    File graphvizSMG = new File("smg-" + name + ".dot");
-    Writer out = new OutputStreamWriter(new FileOutputStream(graphvizSMG), "UTF-8");
-    try {
-      out.write(smgAsDot(smg, name));
-    } finally {
-      out.close();
-    }
-  }
-
-  private static String smgAsDot(CLangSMG smg, String name){
+  public static String smgAsDot(CLangSMG smg, String name){
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph " + name.replace('-', '_') + "{\n");
