@@ -56,13 +56,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -146,7 +146,13 @@ class ASTTypeConverter {
       return new CProblemType(t.toString() + ": " + ((IProblemType)t).getMessage());
 
     } else if (t instanceof IProblemBinding) {
-      throw new CFAGenerationRuntimeException(((IProblemBinding) t).getMessage(), ((IProblemBinding) t).getASTNode());
+      IProblemBinding problem = (IProblemBinding)t;
+      if (problem.getASTNode().getRawSignature().equals("__label__")) {
+        // This is a "local label" (a GNU C extension).
+        // C.f. http://gcc.gnu.org/onlinedocs/gcc/Local-Labels.html#Local-Labels
+        return new CProblemType(problem.getASTNode().getRawSignature());
+      }
+      throw new CFAGenerationRuntimeException(problem.getMessage(), problem.getASTNode());
 
     } else {
       throw new CFAGenerationRuntimeException("unknown type " + t.getClass().getSimpleName());
