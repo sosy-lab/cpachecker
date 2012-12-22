@@ -43,7 +43,7 @@ public final class CTypeIdExpression extends AExpression implements CExpression 
 
   @Override
   public CType getExpressionType() {
-    return type;
+    return (CType) super.getExpressionType();
   }
 
   public TypeIdOperator getOperator() {

@@ -1672,16 +1672,10 @@ public class CtoFormulaConverter {
 
     private Formula handleSizeof(CExpression pExp, CType pCType)
         throws UnrecognizedCCodeException {
-
-      if (pCType instanceof CSimpleType) {
-        return fmgr.makeNumber(
-            CtoFormulaConverter.this
-              .getFormulaTypeFromCType(pExp.getExpressionType()),
-            machineModel.getSizeof(pCType));
-
-      } else {
-        return visitDefault(pExp);
-      }
+      return fmgr.makeNumber(
+          CtoFormulaConverter.this
+            .getFormulaTypeFromCType(pExp.getExpressionType()),
+          machineModel.getSizeof(pCType));
     }
   }
 
@@ -1899,7 +1893,6 @@ public class CtoFormulaConverter {
         return makeConstant(Variable.create(func,t), ssa);
 
       } else {
-        func += "{" + pexps.size() + "}"; // add #arguments to function name to cope with varargs functions
         List<CType> paramTypes =
           from (fexp.getDeclaration().getType().getParameters())
             .transform(new Function<CParameterDeclaration, CType>() {
@@ -1907,29 +1900,28 @@ public class CtoFormulaConverter {
               public CType apply(CParameterDeclaration pInput) {
                 return pInput.getType();
               }}).toImmutableList();
+        func += "{" + paramTypes.size() + "}"; // add #arguments to function name to cope with varargs functions
+
         List<Formula> args = new ArrayList<>(pexps.size());
         Iterator<CType> it1 = paramTypes.iterator();
         Iterator<CExpression> it2 = pexps.iterator();
-        boolean isPrintf = fexp.getDeclaration().getName().toLowerCase().contains("printf");
-        while (it2.hasNext()) {
-          CType paramType;
-            if (it1.hasNext()) {
-              paramType = it1.next();
-            } else {
-              if (isPrintf) {
-                paramType = new CSimpleType(
-                    false, false, CBasicType.INT, false, false,
-                    false, false, false, false, false);
-              } else {
-                throw new IllegalArgumentException("To the function " + fexp.getDeclaration().toASTString() + " were given more Arguments than it has in its declaration!");
-              }
-            }
+        while (it1.hasNext()) {
 
-           CExpression pexp = it2.next();
+          CType paramType= it1.next();
+          CExpression pexp;
+          if (it2.hasNext()) {
+            pexp  = it2.next();
+          } else {
+            throw new IllegalArgumentException("To the function " + fexp.getDeclaration().toASTString() + " were given less Arguments than it has in its declaration!");
+          }
+
            Formula arg = pexp.accept(this);
            args.add(makeCast(pexp.getExpressionType(), paramType, arg));
         }
-        assert !it1.hasNext() && !it2.hasNext();
+
+        if (it2.hasNext()){
+          log(Level.WARNING, "Ignoring additional parameters on a call to " + fexp.getDeclaration().toASTString() + "");
+        }
 
         return ffmgr.createFuncAndCall(func, t, args);
       }
