@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.math.BigInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -210,15 +211,22 @@ public class Mathsat5Model {
       throw new NumberFormatException("Unknown bitvector format: " + lTermRepresentation);
     }
 
+    // TODO: calculate negative value?
     String term = matcher.group(1);
-    long value = Long.valueOf(term);
-
-//    if (signed && (bitWidth <= 63)) {
-//      if (value >= (1L << (bitWidth-1))) {
-//        // positive number that should be interpreted as negative
-//        value = value - (1L << bitWidth);
-//      }
-//    }
+    String lengthValue = matcher.group(2);
+    long length = Long.valueOf(lengthValue);
+    Object value;
+    if (length < 64) {
+      try {
+        value = Long.valueOf(term);
+      } catch (NumberFormatException e) {
+        System.out.println();
+        throw e;
+      }
+    } else {
+      BigInteger i = new BigInteger(term);
+      value = i;
+    }
 
     return value;
   }
