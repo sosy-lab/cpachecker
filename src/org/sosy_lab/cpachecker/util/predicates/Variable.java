@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
-public class Variable<T extends Formula> {
+public class Variable<Type> {
   private final String name;
-  private final FormulaType<T> type;
+  private final Type type;
 
-  private Variable(String pName, FormulaType<T> pType) {
+  private Variable(String pName, Type pType) {
     super();
     name = pName;
     type = pType;
@@ -40,7 +38,7 @@ public class Variable<T extends Formula> {
     return name;
   }
 
-  public FormulaType<T> getType(){
+  public Type getType(){
     assert type != null;
     return type;
   }
@@ -70,15 +68,15 @@ public class Variable<T extends Formula> {
     return true;
   }
 
-  public Variable<T> withName(String newName) {
+  public Variable<Type> withName(String newName) {
     return Variable.create(newName, type);
   }
 
-  public Variable<T> withType(FormulaType<T> pType) {
+  public Variable<Type> withType(Type pType) {
     return Variable.create(name, pType);
   }
 
-  public static <T extends Formula> Variable<T> create(String pName, FormulaType<T> pT) {
+  public static <Type> Variable<Type> create(String pName, Type pT) {
     return new Variable<>(pName, pT);
   }
 }

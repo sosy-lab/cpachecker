@@ -75,7 +75,7 @@ public class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaMan
 
 
   @Override
-  public Long makeVariableImpl(int length, String var){
+  public Long makeVariableImpl(int length, String var) {
     long bvType = creator.getBittype(length);
     return creator.makeVariable(bvType, var);
   }

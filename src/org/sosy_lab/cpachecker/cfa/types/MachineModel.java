@@ -206,8 +206,18 @@ public enum MachineModel {
 
       @Override
       public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
-        // TODO: This has to be checked
-        return getSizeofInt();
+        switch (pElaboratedType.getKind()) {
+        case ENUM:
+          return getSizeofInt();
+        case STRUCT:
+          // TODO: Get declaration and real size
+          return getSizeofInt();
+        case UNION:
+          // TODO: Get declaration and real size
+          return getSizeofInt();
+        default:
+          return getSizeofInt();
+        }
       }
 
       @Override
