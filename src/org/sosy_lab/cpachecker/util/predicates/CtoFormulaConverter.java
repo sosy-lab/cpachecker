@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -89,6 +90,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -477,7 +479,24 @@ public class CtoFormulaConverter {
       String function, SSAMapBuilder ssa) {
 
     Variable<T> scopedId = scopedIfNecessary(expr, function);
-    return scopedId.withName(makePointerMask(scopedId.getName(), ssa));
+    CType t = expr.getExpressionType();
+    t = dereferencedType(t);
+    return
+        Variable.create(
+            makePointerMask(scopedId.getName(), ssa),
+            this.<T>getFormulaTypeFromCType(t));
+        //scopedId.withName(makePointerMask(scopedId.getName(), ssa));
+  }
+
+  private CType dereferencedType(CType t) {
+    if (t instanceof CPointerType) {
+      t = ((CPointerType)t).getType();
+    } else if (t instanceof CArrayType) {
+      t = ((CArrayType)t).getType();
+    } else {
+      System.out.println("No pointer type!");
+    }
+    return t;
   }
 
   /**Returns the concatenation of MEMORY_ADDRESS_VARIABLE_PREFIX and varName */
@@ -1105,16 +1124,49 @@ public class CtoFormulaConverter {
         || maybePointer((CType) null, retVarName, ssa)) {
       // we assume that either the left or the right hand side is a pointer
       // so we add the equality: *l = *r
-      BitvectorFormula lPtrVar = makePointerVariable(leftId, function, ssa);
+      Formula lPtrVar = makePointerVariable(leftId, function, ssa);
       String retPtrVarName = makePointerMask(retVarName, ssa);
 
-      Formula retPtrVar = makeVariable(Variable.create(retPtrVarName, getFormulaTypeFromCType(leftId.getExpressionType())), ssa);
+      Formula retPtrVar = makeVariable(
+          Variable.create(retPtrVarName, getFormulaTypeFromCType(dereferencedType(leftId.getExpressionType()))), ssa);
       return fmgr.assignment(lPtrVar, retPtrVar);
 
     } else {
       // we can assume, that no pointers are affected in this assignment
       return bfmgr.makeBoolean(true);
     }
+  }
+
+  int expands = 0;
+  public BooleanFormula makeNondetAssignment(Formula left, Formula right, SSAMapBuilder ssa) {
+    BitvectorFormulaManagerView bitvectorFormulaManager = efmgr;
+    FormulaType<Formula> tl = fmgr.getFormulaType(left);
+    FormulaType<Formula> tr = fmgr.getFormulaType(right);
+    if (tl == tr){
+      return fmgr.assignment(left, right);
+    }
+
+    if ((Class<?>)tl.getInterfaceType() == BitvectorFormula.class && (Class<?>)tr.getInterfaceType() == BitvectorFormula.class){
+
+      BitvectorFormula leftBv = (BitvectorFormula) left;
+      BitvectorFormula rightBv = (BitvectorFormula) right;
+      int leftSize = bitvectorFormulaManager.getLength(leftBv);
+      int rightSize = bitvectorFormulaManager.getLength(rightBv);
+
+      // Expand the smaller one
+      int dif = Math.abs(rightSize - leftSize);
+      BitvectorFormula nonDet =
+            makeVariable(
+                Variable.create(NONDET_VARIABLE, bitvectorFormulaManager.getFormulaType(dif)), ssa);
+      if (leftSize < rightSize) {
+        leftBv = bitvectorFormulaManager.concat(nonDet,leftBv);
+      }else {
+        rightBv = bitvectorFormulaManager.concat(nonDet,rightBv);
+      }
+      return bitvectorFormulaManager.equal(leftBv, rightBv);
+    }
+
+    throw new IllegalArgumentException("Assignment between different types");
   }
 
   private BooleanFormula buildDirectSecondLevelAssignment(CType lType,
@@ -1135,10 +1187,13 @@ public class CtoFormulaConverter {
         // we assume that either the left or the right hand side is a pointer
         // so we add the equality: *l = *r
         String lPVarName = makePointerMask(lVarName, ssa);
-        Variable<Formula> pFormulaVar = formulaVar.withName(lPVarName);
+        Variable<Formula> pFormulaVar =
+            Variable.create(lPVarName, getFormulaTypeFromCType(dereferencedType(lType)));
+            //formulaVar.withName(lPVarName);
         Formula lPtrVar = makeVariable(pFormulaVar, ssa);
         Formula rPtrVar = makePointerVariable(rIdExp, function, ssa);
-        return fmgr.assignment(lPtrVar, rPtrVar);
+        return makeNondetAssignment(lPtrVar, rPtrVar, ssa);
+        //return fmgr.assignment(lPtrVar, rPtrVar);
 
       } else {
         // we can assume, that no pointers are affected in this assignment
@@ -1893,8 +1948,14 @@ public class CtoFormulaConverter {
         return makeConstant(Variable.create(func,t), ssa);
 
       } else {
+        CFunctionDeclaration declaration = fexp.getDeclaration();
+        if (declaration == null){
+          log(Level.WARNING, "Cant get declaration of function. Ignoring the call (" + fexp.toASTString() + ").");
+          return makeFreshVariable(Variable.create(func,t), ssa);
+        }
+
         List<CType> paramTypes =
-          from (fexp.getDeclaration().getType().getParameters())
+          from (declaration.getType().getParameters())
             .transform(new Function<CParameterDeclaration, CType>() {
               @Override
               public CType apply(CParameterDeclaration pInput) {
@@ -1912,7 +1973,7 @@ public class CtoFormulaConverter {
           if (it2.hasNext()) {
             pexp  = it2.next();
           } else {
-            throw new IllegalArgumentException("To the function " + fexp.getDeclaration().toASTString() + " were given less Arguments than it has in its declaration!");
+            throw new IllegalArgumentException("To the function " + declaration.toASTString() + " were given less Arguments than it has in its declaration!");
           }
 
            Formula arg = pexp.accept(this);
@@ -1920,7 +1981,8 @@ public class CtoFormulaConverter {
         }
 
         if (it2.hasNext()){
-          log(Level.WARNING, "Ignoring additional parameters on a call to " + fexp.getDeclaration().toASTString() + "");
+          log(Level.WARNING, "Ignoring call to " + declaration.toASTString() + " because of varargs");
+          return makeFreshVariable(Variable.create(func,t), ssa);
         }
 
         return ffmgr.createFuncAndCall(func, t, args);
