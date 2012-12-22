@@ -81,6 +81,23 @@ public class SSAMap implements Serializable {
       return getIndex(toVariable(name), args);
     }
 
+    public Variable<?> getVariable(String name){
+      for (Variable<?> v : allVariables()){
+        if (v.getName().equals(name)) {
+          return v;
+        }
+      }
+
+      for (Pair<Variable<?>, FormulaList> v : allFunctions()){
+        Variable<?> first = v.getFirst();
+        if (first.getName().equals(name)) {
+          return first;
+        }
+      }
+
+      throw new IllegalArgumentException("variable not found!");
+    }
+
     public void setIndex(Variable<?> var, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
 

@@ -489,12 +489,16 @@ public class CtoFormulaConverter {
   }
 
   private CType dereferencedType(CType t) {
+    t = CTypeUtils.simplifyType(t);
     if (t instanceof CPointerType) {
       t = ((CPointerType)t).getType();
     } else if (t instanceof CArrayType) {
       t = ((CArrayType)t).getType();
+    //} else if (t instanceof CFunctionPointerType) {
+    //  // Integer comparison when dereferenced
+    //  t = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
     } else {
-      System.out.println("No pointer type!");
+      System.out.println("No pointer type: " + t.getClass());
     }
     return t;
   }
@@ -1137,8 +1141,8 @@ public class CtoFormulaConverter {
     }
   }
 
-  int expands = 0;
-  public BooleanFormula makeNondetAssignment(Formula left, Formula right, SSAMapBuilder ssa) {
+  private int expands = 0;
+  private BooleanFormula makeNondetAssignment(Formula left, Formula right, SSAMapBuilder ssa) {
     BitvectorFormulaManagerView bitvectorFormulaManager = efmgr;
     FormulaType<Formula> tl = fmgr.getFormulaType(left);
     FormulaType<Formula> tr = fmgr.getFormulaType(right);
@@ -1155,12 +1159,11 @@ public class CtoFormulaConverter {
 
       // Expand the smaller one
       int dif = Math.abs(rightSize - leftSize);
-      BitvectorFormula nonDet =
-            makeVariable(
-                Variable.create(NONDET_VARIABLE, bitvectorFormulaManager.getFormulaType(dif)), ssa);
+      FormulaType<BitvectorFormula> t = bitvectorFormulaManager.getFormulaType(dif);
+      BitvectorFormula nonDet = makeFreshVariable(Variable.create("ExpandNonDet_" + expands++,t), ssa);
       if (leftSize < rightSize) {
         leftBv = bitvectorFormulaManager.concat(nonDet,leftBv);
-      }else {
+      } else {
         rightBv = bitvectorFormulaManager.concat(nonDet,rightBv);
       }
       return bitvectorFormulaManager.equal(leftBv, rightBv);
@@ -2202,20 +2205,26 @@ public class CtoFormulaConverter {
           String varName = getVariableNameFromMemoryAddress(memAddress.getName());
 
           if (!varName.equals(lVarName.getName())) {
-            Variable<Formula> lVarNameNewName = lVarName.withName(varName);
+
+            // TODO: This is the wrong type!
+            Variable<?> lVarNameNewName = memAddress.withName(varName);
+            //Variable<Formula> lVarNameNewName = (Variable<Formula>) ssa.getVariable(varName);
+
+            // TODO: lVarNameNewName has the type of varName (no pointer) which
+            // is not accessible from here
             Formula oldVar = makeVariable(lVarNameNewName, ssa);
 
             makeFreshIndex(lVarNameNewName, ssa);
 
-            Formula newVar = makeVariable(lVarName.withName(varName), ssa);
+            Formula newVar = makeVariable(lVarNameNewName, ssa);
             String newPtrVarName = makePointerMask(varName, ssa);
             removeOldPointerVariablesFromSsaMap(lVarName.withName(newPtrVarName), ssa);
 
             Formula memAddressVar = makeVariable(memAddress, ssa);
 
             BooleanFormula condition = fmgr.makeEqual(lVar, memAddressVar);
-            BooleanFormula equality = fmgr.assignment(newVar, rVar);
-            BooleanFormula update = fmgr.assignment(newVar, oldVar);
+            BooleanFormula equality = makeNondetAssignment(newVar, rVar, ssa);
+            BooleanFormula update = makeNondetAssignment(newVar, oldVar, ssa);
 
             BooleanFormula variableUpdate = bfmgr.ifThenElse(condition, equality, update);
             constraints.addConstraint(variableUpdate);
@@ -2239,6 +2248,7 @@ public class CtoFormulaConverter {
         String varName = removePointerMask(ptrVarName.getName());
 
         if (!varName.equals(leftVarName.getName()) && !varName.equals(rightVarName.getName())) {
+          // leftVarName is a pointer and we want to create a pointer (same size) so .withName is correct.
           Formula var = makeVariable(leftVarName.withName(varName), ssa);
 
           Formula oldPtrVar = makeVariable(ptrVarName, ssa);
@@ -2246,8 +2256,9 @@ public class CtoFormulaConverter {
           Formula newPtrVar = makeVariable(ptrVarName, ssa);
 
           BooleanFormula condition = fmgr.makeEqual(var, leftVar);
-          BooleanFormula equality = fmgr.assignment(newPtrVar, rightVariable);
-          BooleanFormula indexUpdate = fmgr.assignment(newPtrVar, oldPtrVar);
+          // TODO: Check if this is correct
+          BooleanFormula equality = makeNondetAssignment(newPtrVar, rightVariable, ssa);
+          BooleanFormula indexUpdate = makeNondetAssignment(newPtrVar, oldPtrVar, ssa);
 
           BooleanFormula variableUpdate = bfmgr.ifThenElse(condition, equality, indexUpdate);
           constraints.addConstraint(variableUpdate);
