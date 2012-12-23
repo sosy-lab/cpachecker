@@ -992,7 +992,19 @@ public class CtoFormulaConverter {
     } else if (retExp instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
       String retVarName = scoped(VAR_RETURN_NAME, function);
-      CType retType = exp.getRightHandSide().getDeclaration().getType().getReturnType();
+
+      CFunctionDeclaration funcDecl = exp.getRightHandSide().getDeclaration();
+      CType retType;
+      if (funcDecl == null) {
+        log(Level.WARNING, "No function declaration was given for " + exp.toASTString());
+        if (ignoreCasts) {
+          retType = exp.getRightHandSide().getExpressionType();
+        } else {
+          throw new IllegalArgumentException("Can't add cast because the function declaration is missing! (" + exp.toASTString() + ")");
+        }
+      } else {
+        retType = funcDecl.getType().getReturnType();
+      }
 
       Variable<CType> var = Variable.create(retVarName, retType);
       Formula retVar = makeVariable(var, ssa);
