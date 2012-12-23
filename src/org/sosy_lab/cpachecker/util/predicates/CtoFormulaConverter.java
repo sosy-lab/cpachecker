@@ -1267,7 +1267,7 @@ public class CtoFormulaConverter {
         if (rOperand instanceof CIdExpression) {
           Variable<CType> rVarName = scopedIfNecessary((CIdExpression) rOperand, function);
           Formula rVar = makeVariable(rVarName, ssa);
-          Formula lPtrVar = makeVariable(makePointerMaskVariable(rVarName, ssa), ssa);
+          Formula lPtrVar = makeVariable(makePointerMaskVariable(lVarName, ssa), ssa);
 
           return makeNondetAssignment(lPtrVar, rVar, ssa);
         }
