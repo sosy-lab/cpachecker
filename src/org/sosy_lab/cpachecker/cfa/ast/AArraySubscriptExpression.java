@@ -29,8 +29,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 public abstract class AArraySubscriptExpression extends AExpression {
 
 
-  protected final IAExpression arrayExpression;
-  protected final IAExpression subscriptExpression;
+  private final IAExpression arrayExpression;
+  private final IAExpression subscriptExpression;
 
   public AArraySubscriptExpression(FileLocation pFileLocation,
       Type pType,
@@ -44,7 +44,7 @@ public abstract class AArraySubscriptExpression extends AExpression {
 
   @Override
   public Type getExpressionType() {
-    return  type;
+    return  super.getExpressionType();
   }
 
   public IAExpression getArrayExpression() {

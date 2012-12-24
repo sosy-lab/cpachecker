@@ -80,7 +80,7 @@ public class CArrayType extends AArrayType implements CType {
 
   @Override
   public CType getType() {
-    return (CType) elementType;
+    return (CType) super.getType();
   }
 
   public CExpression getLength() {
@@ -91,7 +91,7 @@ public class CArrayType extends AArrayType implements CType {
   public String toASTString(String pDeclarator) {
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
-        +  elementType.toASTString(pDeclarator+ ("[" + (length != null ? length.toASTString() : "") + "]"))
+        +  getType().toASTString(pDeclarator+ ("[" + (length != null ? length.toASTString() : "") + "]"))
         ;
   }
 

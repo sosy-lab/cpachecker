@@ -37,7 +37,7 @@ public class CReturnStatement extends AReturnStatement implements CAstNode{
 
   @Override
   public CExpression getReturnValue() {
-    return (CExpression)expression;
+    return (CExpression) super.getReturnValue();
   }
 
 }

@@ -41,8 +41,6 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
 
   private final CStorageClass    cStorageClass;
 
-
-
   public CVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
       CStorageClass pCStorageClass, CType pType, String pName, String pOrigName,
       CInitializer pInitializer) {
@@ -50,14 +48,14 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), pOrigName,pInitializer);
     cStorageClass = pCStorageClass;
 
-    checkArgument(!(cStorageClass == CStorageClass.EXTERN && initializer != null), "Extern declarations cannot have an initializer");
+    checkArgument(!(cStorageClass == CStorageClass.EXTERN && getInitializer() != null), "Extern declarations cannot have an initializer");
     checkArgument(cStorageClass == CStorageClass.EXTERN || cStorageClass == CStorageClass.AUTO, "CStorageClass is " + cStorageClass);
     checkArgument(pIsGlobal || cStorageClass == CStorageClass.AUTO);
   }
 
   @Override
   public CType getType(){
-    return (CType)type;
+    return (CType)super.getType();
   }
 
   /**
@@ -69,11 +67,8 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
 
   @Override
   public CInitializer getInitializer() {
-    // TODO Auto-generated method stub
     return (CInitializer) super.getInitializer();
   }
-
-
 
   /**
    * Add an initializer.
@@ -82,8 +77,7 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
    * @param pCInitializer the new initializer
    */
   public void addInitializer(CInitializer pCInitializer) {
-    checkState(initializer == null);
-    initializer = pCInitializer;
+    super.addInitializer(pCInitializer);
   }
 
   @Override
@@ -93,9 +87,9 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     lASTString.append(cStorageClass.toASTString());
     lASTString.append(getType().toASTString(getName()));
 
-    if (initializer != null) {
+    if (getInitializer() != null) {
       lASTString.append(" = ");
-      lASTString.append(initializer.toASTString());
+      lASTString.append(getInitializer().toASTString());
     }
 
     lASTString.append(";");

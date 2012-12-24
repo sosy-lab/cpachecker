@@ -37,10 +37,10 @@ import com.google.common.collect.ImmutableList;
 
 public class AFunctionType implements IAFunctionType {
 
-  protected final Type returnType;
-  protected String name = null;
-  protected final List<? extends AParameterDeclaration> parameters;
-  protected final boolean takesVarArgs;
+  private final Type returnType;
+  private String name = null;
+  private final List<? extends AParameterDeclaration> parameters;
+  private final boolean takesVarArgs;
 
   public AFunctionType(
       Type pReturnType,
@@ -64,7 +64,7 @@ public class AFunctionType implements IAFunctionType {
 
   @Override
   public void setName(String pName) {
-    checkState(name == null);
+    checkState(getName() == null);
     name = pName;
   }
 

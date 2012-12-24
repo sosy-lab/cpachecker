@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 public abstract class AIdExpression extends AExpression {
 
   private final String name;
-  protected final IASimpleDeclaration declaration;
+  private final IASimpleDeclaration declaration;
 
 
   public AIdExpression(FileLocation pFileLocation, Type pType, final String pName,

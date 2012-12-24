@@ -24,13 +24,15 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 
+import static com.google.common.base.Preconditions.checkState;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
 public abstract class AVariableDeclaration extends ADeclaration {
 
 
-  protected IAInitializer initializer;
+  private IAInitializer initializer;
 
   public AVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName, String pOrigName, IAInitializer pInitializer) {
     super(pFileLocation, pIsGlobal, pType, pName, pOrigName );
@@ -60,6 +62,11 @@ public abstract class AVariableDeclaration extends ADeclaration {
     lASTString.append(";");
 
     return lASTString.toString();
+  }
+
+  protected void addInitializer(IAInitializer pCInitializer) {
+    checkState(getInitializer() == null);
+    initializer = pCInitializer;
   }
 
 }

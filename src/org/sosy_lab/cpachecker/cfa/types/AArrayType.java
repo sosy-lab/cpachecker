@@ -28,7 +28,7 @@ package org.sosy_lab.cpachecker.cfa.types;
 public abstract class AArrayType implements Type {
 
 
-  protected final Type elementType;
+  private final Type elementType;
 
 
   public AArrayType(Type pElementType) {

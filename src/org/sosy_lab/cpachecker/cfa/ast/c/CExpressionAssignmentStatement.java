@@ -41,12 +41,12 @@ public class CExpressionAssignmentStatement extends AExpressionAssignmentStateme
 
   @Override
   public CExpression getLeftHandSide() {
-    return (CExpression)leftHandSide;
+    return (CExpression)super.getLeftHandSide();
   }
 
   @Override
   public CExpression getRightHandSide() {
-    return (CExpression)rightHandSide;
+    return (CExpression)super.getRightHandSide();
   }
 
   @Override

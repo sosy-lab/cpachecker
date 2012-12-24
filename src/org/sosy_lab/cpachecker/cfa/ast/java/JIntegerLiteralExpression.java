@@ -45,7 +45,7 @@ public class JIntegerLiteralExpression extends AIntegerLiteralExpression impleme
 
   @Override
   public String toASTString() {
-    return value.toString();
+    return getValue().toString();
   }
 
   @Override

@@ -44,7 +44,7 @@ public class JArrayCreationExpression extends AExpression implements JExpression
 
   @Override
   public JArrayType getExpressionType() {
-    return (JArrayType) type;
+    return (JArrayType) super.getExpressionType();
   }
 
   @Override
@@ -58,7 +58,7 @@ public class JArrayCreationExpression extends AExpression implements JExpression
       return initializer.toASTString();
     } else {
 
-      StringBuilder astString = new StringBuilder("new "+ ((JArrayType)type).getElementType().toASTString(""));
+      StringBuilder astString = new StringBuilder("new "+ getExpressionType().getElementType().toASTString(""));
 
       for(JExpression exp : length){
         astString.append("[");

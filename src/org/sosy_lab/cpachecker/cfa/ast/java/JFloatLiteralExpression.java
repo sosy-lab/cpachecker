@@ -45,7 +45,7 @@ public class JFloatLiteralExpression extends AFloatLiteralExpression implements 
 
   @Override
   public String toASTString() {
-    return value.toString();
+    return getValue().toString();
   }
 
   @Override

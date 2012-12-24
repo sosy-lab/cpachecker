@@ -36,7 +36,7 @@ public class JConstructorType extends JMethodType  {
 
   @Override
   public JClassType getReturnType() {
-    return (JClassType) returnType;
+    return (JClassType) super.getReturnType();
   }
 
 }

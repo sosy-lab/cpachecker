@@ -37,7 +37,7 @@ public final class CStringLiteralExpression extends AStringLiteralExpression imp
 
   @Override
   public CType getExpressionType() {
-    return (CType) type;
+    return (CType) super.getExpressionType();
   }
 
   @Override
@@ -52,6 +52,6 @@ public final class CStringLiteralExpression extends AStringLiteralExpression imp
 
   @Override
   public String toASTString() {
-    return value;
+    return getValue();
   }
 }

@@ -48,7 +48,7 @@ public abstract class ACastExpression extends AExpression {
 
   @Override
   public String toASTString() {
-    return "(" + type.toASTString("") + ")" + operand.toParenthesizedASTString();
+    return "(" + getExpressionType().toASTString("") + ")" + operand.toParenthesizedASTString();
   }
 
   public Type getCastType() {

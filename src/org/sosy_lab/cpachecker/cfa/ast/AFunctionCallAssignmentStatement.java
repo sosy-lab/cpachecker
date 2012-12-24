@@ -29,8 +29,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 public abstract class AFunctionCallAssignmentStatement extends AStatement implements IAssignment, AFunctionCall {
 
 
-  protected final IAExpression leftHandSide;
-  protected final AFunctionCallExpression rightHandSide;
+  private final IAExpression leftHandSide;
+  private final AFunctionCallExpression rightHandSide;
 
   public AFunctionCallAssignmentStatement(FileLocation pFileLocation
                                           , IAExpression pLeftHandSide,

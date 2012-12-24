@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AStringLiteralExpression extends ALiteralExpression {
 
-  protected final String value;
+  private final String value;
 
   public AStringLiteralExpression(FileLocation pFileLocation, Type pType, String pValue) {
     super(pFileLocation, pType);

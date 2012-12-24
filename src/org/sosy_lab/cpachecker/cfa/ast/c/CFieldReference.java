@@ -46,7 +46,7 @@ public final class CFieldReference extends AExpression implements CExpression {
 
   @Override
   public CType getExpressionType() {
-    return (CType) type;
+    return (CType) super.getExpressionType();
   }
 
   public String getFieldName() {

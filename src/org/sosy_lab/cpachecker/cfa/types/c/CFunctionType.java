@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.transform;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 
@@ -49,10 +48,10 @@ public class CFunctionType extends AFunctionType implements CType {
   public int hashCode() {
     final int prime = 31;
     int result = super.hashCode();
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    result = prime * result + ((parameters == null) ? 0 : parameters.hashCode());
-    result = prime * result + ((returnType == null) ? 0 : returnType.hashCode());
-    result = prime * result + (takesVarArgs ? 1231 : 1237);
+    result = prime * result + ((getName() == null) ? 0 : getName().hashCode());
+    result = prime * result + ((getParameters() == null) ? 0 : getParameters().hashCode());
+    result = prime * result + ((getReturnType() == null) ? 0 : getReturnType().hashCode());
+    result = prime * result + (takesVarArgs() ? 1231 : 1237);
     return result;
   }
 
@@ -65,22 +64,22 @@ public class CFunctionType extends AFunctionType implements CType {
     if (getClass() != obj.getClass())
       return false;
     CFunctionType other = (CFunctionType) obj;
-    if (name == null) {
-      if (other.name != null)
+    if (getName() == null) {
+      if (other.getName() != null)
         return false;
-    } else if (!name.equals(other.name))
+    } else if (!getName().equals(other.getName()))
       return false;
-    if (parameters == null) {
-      if (other.parameters != null)
+    if (getParameters() == null) {
+      if (other.getParameters() != null)
         return false;
-    } else if (!parameters.equals(other.parameters))
+    } else if (!getParameters().equals(other.getParameters()))
       return false;
-    if (returnType == null) {
-      if (other.returnType != null)
+    if (getReturnType() == null) {
+      if (other.getReturnType() != null)
         return false;
-    } else if (!returnType.equals(other.returnType))
+    } else if (!getReturnType().equals(other.getReturnType()))
       return false;
-    if (takesVarArgs != other.takesVarArgs)
+    if (takesVarArgs() != other.takesVarArgs())
       return false;
     return true;
   }
@@ -101,29 +100,28 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public CType getReturnType() {
-    return (CType) returnType;
+    return (CType) super.getReturnType();
   }
 
   @Override
   public String getName() {
-    return name;
+    return super.getName();
   }
 
   @Override
   public void setName(String pName) {
-    checkState(name == null);
-    name = pName;
+    super.setName(pName);
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public List<CParameterDeclaration> getParameters() {
-    return (List<CParameterDeclaration>) parameters;
+    return (List<CParameterDeclaration>) super.getParameters();
   }
 
   @Override
   public boolean takesVarArgs() {
-    return takesVarArgs;
+    return super.takesVarArgs();
   }
 
   @Override
@@ -142,7 +140,7 @@ public class CFunctionType extends AFunctionType implements CType {
       lASTString.append("volatile ");
     }
 
-    lASTString.append(returnType.toASTString(""));
+    lASTString.append(getReturnType().toASTString(""));
     lASTString.append(" ");
 
     if (pDeclarator.startsWith("*")) {
@@ -155,9 +153,9 @@ public class CFunctionType extends AFunctionType implements CType {
     }
 
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, transform(parameters, TO_AST_STRING));
-    if (takesVarArgs) {
-      if (!parameters.isEmpty()) {
+    Joiner.on(", ").appendTo(lASTString, transform(getParameters(), TO_AST_STRING));
+    if (takesVarArgs()) {
+      if (!getParameters().isEmpty()) {
         lASTString.append(", ");
       }
       lASTString.append("...");

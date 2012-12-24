@@ -68,9 +68,9 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
 
     lASTString.append(getType().toASTString(getName()));
 
-    if (initializer != null) {
+    if (getInitializer() != null) {
       lASTString.append(" = ");
-      lASTString.append(initializer.toASTString());
+      lASTString.append(getInitializer().toASTString());
     }
 
     lASTString.append(";");

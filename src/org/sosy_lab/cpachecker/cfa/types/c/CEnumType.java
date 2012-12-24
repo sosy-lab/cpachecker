@@ -149,7 +149,7 @@ public final class CEnumType implements CType {
 
     @Override
     public CType getType(){
-      return (CType ) type;
+      return (CType ) super.getType();
     }
 
     public long getValue() {

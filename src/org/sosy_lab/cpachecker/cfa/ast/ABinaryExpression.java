@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 public abstract class ABinaryExpression extends AExpression {
 
 
-  protected final IAExpression operand1;
-  protected final IAExpression operand2;
-  protected final ABinaryOperator operator;
+  private final IAExpression operand1;
+  private final IAExpression operand2;
+  private final ABinaryOperator operator;
 
   public ABinaryExpression(FileLocation pFileLocation, Type pType,
       final IAExpression pOperand1,

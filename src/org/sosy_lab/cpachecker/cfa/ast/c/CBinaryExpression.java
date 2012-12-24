@@ -50,22 +50,22 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
 
   @Override
   public CType getExpressionType() {
-    return (CType) type;
+    return (CType) super.getExpressionType();
   }
 
   @Override
   public CExpression getOperand1() {
-    return (CExpression) operand1;
+    return (CExpression) super.getOperand1();
   }
 
   @Override
   public CExpression getOperand2() {
-    return (CExpression)operand2;
+    return (CExpression)super.getOperand2();
   }
 
   @Override
   public BinaryOperator getOperator() {
-    return (BinaryOperator) operator;
+    return (BinaryOperator) super.getOperator();
   }
 
   public static enum BinaryOperator implements ABinaryExpression.ABinaryOperator {

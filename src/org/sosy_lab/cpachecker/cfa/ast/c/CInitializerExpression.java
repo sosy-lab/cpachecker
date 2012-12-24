@@ -39,7 +39,7 @@ public final class CInitializerExpression extends AInitializerExpression impleme
 
   @Override
   public CExpression getExpression() {
-    return (CExpression) expression;
+    return (CExpression) super.getExpression();
   }
 
 

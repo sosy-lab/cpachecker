@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AIntegerLiteralExpression extends ALiteralExpression {
 
-  protected final BigInteger value;
+  private final BigInteger value;
 
   public AIntegerLiteralExpression(FileLocation pFileLocation, Type pType , BigInteger pValue) {
     super(pFileLocation, pType);

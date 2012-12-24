@@ -45,7 +45,7 @@ public final class CParameterDeclaration extends AParameterDeclaration implement
 
   @Override
   public CType getType(){
-    return (CType)type;
+    return (CType)super.getType();
   }
 
 }

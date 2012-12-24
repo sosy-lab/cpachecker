@@ -40,17 +40,17 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression i
 
   @Override
   public CType getExpressionType() {
-    return (CType) type;
+    return (CType) super.getExpressionType();
   }
 
   @Override
   public CExpression getArrayExpression() {
-    return (CExpression) arrayExpression;
+    return (CExpression) super.getArrayExpression();
   }
 
   @Override
   public CExpression getSubscriptExpression() {
-    return (CExpression) subscriptExpression;
+    return (CExpression) super.getSubscriptExpression();
   }
 
   @Override

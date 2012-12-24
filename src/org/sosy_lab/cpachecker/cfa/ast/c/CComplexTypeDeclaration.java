@@ -48,7 +48,7 @@ public final class CComplexTypeDeclaration extends ADeclaration implements CDecl
 
   @Override
   public CType getType(){
-    return (CType)type;
+    return (CType)super.getType();
   }
 
 }

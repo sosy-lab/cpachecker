@@ -27,7 +27,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public abstract class AFunctionCallStatement extends AStatement implements AFunctionCall {
 
-  protected final AFunctionCallExpression functionCall;
+  private final AFunctionCallExpression functionCall;
 
   public AFunctionCallStatement(FileLocation pFileLocation, AFunctionCallExpression pFunctionCall) {
     super(pFileLocation);

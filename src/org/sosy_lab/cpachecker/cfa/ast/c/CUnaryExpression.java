@@ -50,7 +50,7 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
 
   @Override
   public CType getExpressionType() {
-    return (CType) type;
+    return (CType) super.getExpressionType();
   }
 
   @Override

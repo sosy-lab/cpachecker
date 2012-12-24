@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AFloatLiteralExpression extends ALiteralExpression {
 
-  protected final BigDecimal value;
+  private final BigDecimal value;
 
   public AFloatLiteralExpression(FileLocation pFileLocation, Type pType, BigDecimal pValue) {
     super(pFileLocation, pType);

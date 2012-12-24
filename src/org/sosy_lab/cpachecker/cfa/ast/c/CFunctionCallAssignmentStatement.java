@@ -38,17 +38,17 @@ public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignm
 
   @Override
   public CExpression getLeftHandSide() {
-    return (CExpression)leftHandSide;
+    return (CExpression)super.getLeftHandSide();
   }
 
   @Override
   public CFunctionCallExpression getRightHandSide() {
-    return (CFunctionCallExpression)rightHandSide;
+    return (CFunctionCallExpression)super.getRightHandSide();
   }
 
   @Override
   public CFunctionCallExpression getFunctionCallExpression() {
-    return (CFunctionCallExpression) rightHandSide;
+    return (CFunctionCallExpression) super.getFunctionCallExpression();
   }
 
   @Override
@@ -63,7 +63,7 @@ public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignm
 
   @Override
   public String toASTString() {
-    return leftHandSide.toASTString()
-        + " = " + rightHandSide.toASTString() + ";";
+    return getLeftHandSide().toASTString()
+        + " = " + getRightHandSide().toASTString() + ";";
   }
 }

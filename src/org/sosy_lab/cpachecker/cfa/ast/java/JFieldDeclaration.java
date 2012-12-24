@@ -70,9 +70,9 @@ public class JFieldDeclaration extends JVariableDeclaration {
 
     lASTString.append(getType().toASTString(getName()));
 
-    if (initializer != null) {
+    if (getInitializer() != null) {
       lASTString.append(" = ");
-      lASTString.append(initializer.toASTString());
+      lASTString.append(getInitializer().toASTString());
     }
 
     lASTString.append(";");
@@ -95,8 +95,13 @@ public class JFieldDeclaration extends JVariableDeclaration {
     return visibility;
   }
 
-
+  /**
+   * Method for setting a initializer.
+   * DO ONLY CALL IT WHILE CREATING THE CFA.
+   *
+   * @param initializer
+   */
   public void updateInitializer(Initializer initializer) {
-    super.initializer = initializer;
+    addInitializer(initializer);
   }
 }

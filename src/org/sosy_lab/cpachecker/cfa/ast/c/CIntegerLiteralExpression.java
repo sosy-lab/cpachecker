@@ -42,7 +42,7 @@ public class CIntegerLiteralExpression extends AIntegerLiteralExpression impleme
 
   @Override
   public CType getExpressionType() {
-    return (CType) type;
+    return (CType) super.getExpressionType();
   }
 
 
@@ -73,6 +73,6 @@ public class CIntegerLiteralExpression extends AIntegerLiteralExpression impleme
       }
     }
 
-    return value.toString() + suffix;
+    return getValue().toString() + suffix;
   }
 }

@@ -51,7 +51,6 @@ public class JCastExpression extends ACastExpression implements JExpression {
 
   @Override
   public JType getCastType() {
-    // TODO Auto-generated method stub
     return (JType) super.getCastType();
   }
 

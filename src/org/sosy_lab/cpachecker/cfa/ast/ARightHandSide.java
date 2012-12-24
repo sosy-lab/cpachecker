@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public  abstract class ARightHandSide extends AstNode implements IARightHandSide{
 
-  protected final Type type;
+  private final Type type;
 
   public ARightHandSide(FileLocation pFileLocation , Type pType) {
     super(pFileLocation);
@@ -46,6 +46,5 @@ public  abstract class ARightHandSide extends AstNode implements IARightHandSide
   public Type getExpressionType() {
     return type;
   }
-
 
 }

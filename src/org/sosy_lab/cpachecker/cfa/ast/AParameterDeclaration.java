@@ -41,6 +41,4 @@ public abstract class AParameterDeclaration extends ASimpleDeclarations {
     return getType().toASTString(getName());
   }
 
-
-
 }

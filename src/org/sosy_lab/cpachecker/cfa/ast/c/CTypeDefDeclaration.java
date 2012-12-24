@@ -44,7 +44,7 @@ public final class CTypeDefDeclaration extends ADeclaration implements CDeclarat
 
   @Override
   public CType getType(){
-    return (CType)type;
+    return (CType)super.getType();
   }
 
   @Override

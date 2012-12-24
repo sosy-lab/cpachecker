@@ -40,7 +40,7 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression imple
 
   @Override
   public CType getExpressionType() {
-    return (CType) type;
+    return (CType) super.getExpressionType();
   }
 
   @Override
@@ -55,7 +55,7 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression imple
 
   @Override
   public String toASTString() {
-    return value.toString();
+    return getValue().toString();
   }
 
 }

@@ -40,7 +40,7 @@ public final class CIdExpression extends AIdExpression implements CExpression {
 
   @Override
   public CType getExpressionType(){
-    return (CType)type;
+    return (CType)super.getExpressionType();
   }
 
   /**
@@ -49,7 +49,7 @@ public final class CIdExpression extends AIdExpression implements CExpression {
    */
   @Override
   public CSimpleDeclaration getDeclaration() {
-    return  (CSimpleDeclaration) declaration;
+    return  (CSimpleDeclaration) super.getDeclaration();
   }
 
   @Override

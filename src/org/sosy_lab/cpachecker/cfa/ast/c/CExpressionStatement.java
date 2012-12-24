@@ -37,7 +37,7 @@ public class CExpressionStatement extends AExpressionStatement implements CState
 
   @Override
   public CExpression getExpression() {
-    return ((CExpression) expression);
+    return ((CExpression) super.getExpression());
   }
 
   @Override

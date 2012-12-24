@@ -39,7 +39,7 @@ public class JConstructorDeclaration extends JMethodDeclaration {
 
   @Override
   public JConstructorType getType() {
-    return (JConstructorType) type;
+    return (JConstructorType) super.getType();
   }
 
 }

@@ -37,9 +37,9 @@ import com.google.common.base.Strings;
  */
 public abstract class ASimpleDeclarations extends AstNode implements IASimpleDeclaration {
 
-  protected final Type type;
-  protected final String name;
-  protected final String origName;
+  private final Type type;
+  private final String name;
+  private final String origName;
 
   public ASimpleDeclarations(FileLocation pFileLocation, final Type pType, final String pName, final String pOrigName) {
     super(pFileLocation);

@@ -38,7 +38,7 @@ public final class CFunctionCallStatement extends AFunctionCallStatement impleme
 
   @Override
   public CFunctionCallExpression getFunctionCallExpression() {
-    return (CFunctionCallExpression) functionCall;
+    return (CFunctionCallExpression) super.getFunctionCallExpression();
   }
 
   @Override

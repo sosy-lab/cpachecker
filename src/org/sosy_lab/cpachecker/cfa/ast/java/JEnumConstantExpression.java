@@ -48,7 +48,7 @@ public class JEnumConstantExpression extends AStringLiteralExpression implements
 
   @Override
   public String toASTString() {
-    return value;
+    return getValue();
   }
 
   @Override

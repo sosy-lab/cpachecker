@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public class JParameterDeclaration extends AParameterDeclaration implements JSimpleDeclaration {
 
-  final boolean isFinal;
+  private final boolean isFinal;
 
   public JParameterDeclaration(FileLocation pFileLocation, JType pType, String pName, boolean pIsFinal) {
     super(pFileLocation, pType, pName);
@@ -43,6 +43,10 @@ public class JParameterDeclaration extends AParameterDeclaration implements JSim
   @Override
   public JType getType() {
     return (JType) super.getType();
+  }
+
+  public boolean isFinal() {
+    return isFinal;
   }
 
 }

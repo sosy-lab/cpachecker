@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 public abstract class ACharLiteralExpression extends ALiteralExpression {
 
 
-  protected final char character;
+  private final char character;
 
   public ACharLiteralExpression(FileLocation pFileLocation, Type pType , char pCharacter) {
     super(pFileLocation, pType);

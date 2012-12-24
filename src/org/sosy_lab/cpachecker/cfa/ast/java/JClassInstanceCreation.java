@@ -39,12 +39,12 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
 
   @Override
   public JConstructorDeclaration getDeclaration() {
-    return (JConstructorDeclaration) declaration;
+    return (JConstructorDeclaration) super.getDeclaration();
   }
 
   @Override
   public JConstructorType getExpressionType() {
-    return (JConstructorType) type;
+    return (JConstructorType) super.getExpressionType();
   }
 
   @Override
@@ -57,7 +57,7 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
   public String toASTString() {
 
     StringBuilder astString = new StringBuilder("new ");
-    astString.append(getExpressionType().toASTString(functionName.toASTString()));
+    astString.append(getExpressionType().toASTString(getFunctionNameExpression().toASTString()));
 
     return astString.toString();
   }

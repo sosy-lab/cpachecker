@@ -37,7 +37,7 @@ public class CCharLiteralExpression extends ACharLiteralExpression implements CL
 
   @Override
   public CType getExpressionType() {
-    return (CType) type;
+    return (CType) super.getExpressionType();
   }
 
   @Override

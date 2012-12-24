@@ -46,18 +46,18 @@ public class CFunctionCallExpression extends AFunctionCallExpression implements 
 
   @Override
   public CType getExpressionType() {
-    return (CType) type;
+    return (CType) super.getExpressionType();
   }
 
   @Override
   public CExpression getFunctionNameExpression() {
-    return (CExpression)functionName;
+    return (CExpression)super.getFunctionNameExpression();
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public List<CExpression> getParameterExpressions() {
-    return (List<CExpression>) parameters;
+    return (List<CExpression>) super.getParameterExpressions();
   }
 
   /**
@@ -73,7 +73,7 @@ public class CFunctionCallExpression extends AFunctionCallExpression implements 
   @Override
   public CFunctionDeclaration getDeclaration() {
 
-    return  (CFunctionDeclaration) declaration;
+    return  (CFunctionDeclaration) super.getDeclaration();
   }
 
   @Override

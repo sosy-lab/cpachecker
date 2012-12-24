@@ -35,10 +35,9 @@ import com.google.common.collect.ImmutableList;
 
 public abstract class AFunctionCallExpression extends ARightHandSide {
 
-
-  protected final IAExpression functionName;
-  protected final List< ? extends IAExpression> parameters;
-  protected final IASimpleDeclaration declaration;
+  private final IAExpression functionName;
+  private final List< ? extends IAExpression> parameters;
+  private final IASimpleDeclaration declaration;
 
 
   public AFunctionCallExpression(FileLocation pFileLocation, Type pType, final IAExpression pFunctionName,

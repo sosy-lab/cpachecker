@@ -48,22 +48,22 @@ public class JBinaryExpression extends ABinaryExpression implements JExpression 
 
   @Override
   public JType getExpressionType() {
-    return (JType) type;
+    return (JType) super.getExpressionType();
   }
 
   @Override
   public JExpression getOperand1() {
-    return (JExpression) operand1;
+    return (JExpression) super.getOperand1();
   }
 
   @Override
   public JExpression getOperand2() {
-    return (JExpression)operand2;
+    return (JExpression)super.getOperand2();
   }
 
   @Override
   public BinaryOperator getOperator() {
-    return (BinaryOperator) operator;
+    return (BinaryOperator) super.getOperator();
   }
 
   public static enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
