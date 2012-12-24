@@ -1377,7 +1377,7 @@ public class ExplicitTransferRelation implements TransferRelation
       String value2;
 
       if (operand1 instanceof JEnumConstantExpression) {
-        value1 = ((JEnumConstantExpression) operand1).getValue();
+        value1 = ((JEnumConstantExpression) operand1).getConstantName();
       } else if (operand1 instanceof JIdExpression) {
         String scopedVarName = handleIdExpression((JIdExpression) operand1);
 
@@ -1398,7 +1398,7 @@ public class ExplicitTransferRelation implements TransferRelation
 
 
       if (operand2 instanceof JEnumConstantExpression) {
-        value2 = ((JEnumConstantExpression) operand2).getValue();
+        value2 = ((JEnumConstantExpression) operand2).getConstantName();
       } else if (operand1 instanceof JIdExpression) {
         String scopedVarName = handleIdExpression((JIdExpression) operand2);
 

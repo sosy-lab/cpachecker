@@ -783,7 +783,7 @@ public class RTTTransferRelation implements TransferRelation {
 
     @Override
     public String visit(JEnumConstantExpression e) throws UnrecognizedCCodeException {
-      return e.getValue();
+      return e.getConstantName();
     }
 
   }

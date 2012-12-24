@@ -23,22 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
 
-public class JEnumConstantExpression extends AStringLiteralExpression implements JExpression {
+public class JEnumConstantExpression extends AExpression implements JExpression {
 
 
+  private final String constantName;
 
-  public JEnumConstantExpression(FileLocation pFileLocation, JClassType pType, String value) {
-    super(pFileLocation, pType, value);
+
+  public JEnumConstantExpression(FileLocation pFileLocation, JClassType pType, String pConstantName) {
+    super(pFileLocation, pType);
+
+    constantName = pConstantName;
   }
 
   @Override
   public JClassType getExpressionType() {
     return (JClassType) super.getExpressionType();
+  }
+
+  public String getConstantName() {
+    return constantName;
   }
 
   @Override
@@ -48,12 +56,11 @@ public class JEnumConstantExpression extends AStringLiteralExpression implements
 
   @Override
   public String toASTString() {
-    return getValue();
+    return constantName;
   }
 
   @Override
   public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
-
 }
