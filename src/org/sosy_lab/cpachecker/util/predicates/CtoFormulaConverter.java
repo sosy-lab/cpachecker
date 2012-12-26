@@ -37,6 +37,8 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
+import junit.framework.AssertionFailedError;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -664,6 +666,68 @@ public class CtoFormulaConverter {
     return res;
   }
 
+  private int getConversionRank(CSimpleType t){
+    // From https://www.securecoding.cert.org/confluence/display/seccode/INT02-C.+Understand+integer+conversion+rules
+    CBasicType type = t.getType();
+    assert type == CBasicType.INT || type == CBasicType.BOOL || type == CBasicType.CHAR;
+    // For all integer types T1, T2, and T3, if T1 has greater rank than T2 and T2 has greater rank than T3, then T1 has greater rank than T3.
+
+    // The rank of _Bool shall be less than the rank of all other standard integer types.
+    if (type == CBasicType.BOOL){
+      return 10;
+    }
+
+    // The rank of char shall equal the rank of signed char and unsigned char.
+    if (type == CBasicType.CHAR){
+      return 20;
+    }
+
+    // The rank of any unsigned integer type shall equal the rank of the corresponding signed integer type, if any.
+    // The rank of long long int shall be greater than the rank of long int, which shall be greater than the rank of int, which shall be greater than the rank of short int, which shall be greater than the rank of signed char.
+    if (type == CBasicType.INT){
+      if (t.isShort()){
+        return 30;
+      }
+
+      if (!t.isLong() && !t.isLongLong()){
+        return 40;
+      }
+
+      if (t.isLong()){
+        return 50;
+      }
+
+      if (t.isLongLong()){
+        return 60;
+      }
+    }
+
+    throw new IllegalArgumentException("Unknown type to rank: " + t.toString());
+    // Notes (TODO):
+    // The rank of any standard integer type shall be greater than the rank of any extended integer type with the same width.
+
+    // The rank of any extended signed integer type relative to another extended signed integer type with the same precision is implementation-defined, but still subject to the other rules for determining the integer conversion rank.
+
+    // The rank of a signed integer type shall be greater than the rank of any signed integer type with less precision.
+
+    // No two signed integer types shall have the same rank, even if they have the same representation.
+
+    // The rank of any enumerated type shall equal the rank of the compatible integer type.
+  }
+
+  private CType getPromotedCType(CType t) {
+    if (t instanceof CSimpleType){
+      // Integer types smaller than int are promoted when an operation is performed on them.
+      // If all values of the original type can be represented as an int, the value of the smaller type is converted to an int;
+      // otherwise, it is converted to an unsigned int.
+      CSimpleType s = (CSimpleType) t;
+      if (machineModel.getSizeof(s) < machineModel.getSizeofInt()){
+        return new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+      }
+    }
+    return t;
+  }
+
   private CSimpleType getImplicitSimpleCType(CSimpleType pT1, CSimpleType pT2) {
     // From http://msdn.microsoft.com/en-us/library/3t4w2bkb%28v=vs.80%29.aspx
     // If either operand is of type long double, the other operand is converted to type long double.
@@ -683,6 +747,7 @@ public class CtoFormulaConverter {
     if (b2.equals(CBasicType.DOUBLE)){
       return pT2;
     }
+
     // If the above two conditions are not met and either operand is of type float, the other operand is converted to type float.
     if (b1.equals(CBasicType.FLOAT)){
       return pT1;
@@ -691,78 +756,54 @@ public class CtoFormulaConverter {
       return pT2;
     }
 
-    // TODO: https://www.securecoding.cert.org/confluence/display/seccode/INT02-C.+Understand+integer+conversion+rules
+    // See https://www.securecoding.cert.org/confluence/display/seccode/INT02-C.+Understand+integer+conversion+rules
     // See also http://stackoverflow.com/questions/50605/signed-to-unsigned-conversion-in-c-is-it-always-safe
+
+    // If both operands have the same type, no further conversion is needed.
     if (CTypeUtils.equals(pT1, pT2)){
-      return pT1; // This is a quick workaround to prevent shorts to be converted to ints
-    }
-
-    // If the above three conditions are not met (none of the operands are of floating types), then integral conversions are performed on the operands as follows:
-
-    // NOTE: EXTENSION for long long (see below for long)
-    // Convert to unsinged long long if one is unsigned long long
-    if (pT1.isUnsigned() && pT1.isLongLong() && (b1.equals(CBasicType.INT) || b1.equals(CBasicType.UNSPECIFIED))){
       return pT1;
     }
-    if (pT2.isUnsigned() && pT2.isLongLong() && (b2.equals(CBasicType.INT) || b2.equals(CBasicType.UNSPECIFIED))){
+
+    int r1 = getConversionRank(pT1);
+    int r2 = getConversionRank(pT2);
+    // If both operands are of the same integer type (signed or unsigned), the operand with the type of lesser integer conversion rank is converted to the type of the operand with greater rank.
+    if (pT1.isUnsigned() == pT2.isUnsigned()) {
+      if (r1 > r2){
+        return pT1;
+      } else if (r2 > r1){
+        return pT2;
+      }
+    }
+
+    // If the operand that has unsigned integer type has rank greater than or equal to the rank of the type of the other operand, the operand with signed integer type is converted to the type of the operand with unsigned integer type.
+    if (pT1.isUnsigned() && r1 >= r2){
+      return pT1;
+    }
+
+    if (pT2.isUnsigned() && r2 >= r1){
       return pT2;
     }
 
-    // Convert to unsigned long long if one is long long and the other is unsigned int
-    if (pT1.isLongLong() && (b1.equals(CBasicType.INT) || b1.equals(CBasicType.UNSPECIFIED))
-        && pT1.isLong() && pT2.isUnsigned() && (b2.equals(CBasicType.INT) || b2.equals(CBasicType.UNSPECIFIED))){
-      return new CSimpleType(false, false, CBasicType.INT, false, false, false, true, false, false, true);
-    }
-    if (pT2.isLongLong() && (b2.equals(CBasicType.INT) || b2.equals(CBasicType.UNSPECIFIED))
-        && pT1.isLong() && pT1.isUnsigned() && (b1.equals(CBasicType.INT) || b1.equals(CBasicType.UNSPECIFIED))){
-      return new CSimpleType(false, false, CBasicType.INT, false, false, false, true, false, false, true);
-    }
+    // If the type of the operand with signed integer type can represent all of the values of the type of the operand with unsigned integer type,
+    // the operand with unsigned integer type is converted to the type of the operand with signed integer type.
+    int s1 = machineModel.getSizeof(pT1) * 8;
+    int s2 = machineModel.getSizeof(pT2) * 8;
 
-    // Convert to long long if one is long long
-    if (pT1.isLongLong() && (b1.equals(CBasicType.INT) || b1.equals(CBasicType.UNSPECIFIED))){
+    // When pT1 is signed then it can represent - 2^(s1-1) to 2^(s1-1) - 1 and pT2 can represent 0 to 2^(s2) -1
+    if (!pT1.isUnsigned() && s1 > s2) {
       return pT1;
     }
-    if (pT2.isLongLong() && (b2.equals(CBasicType.INT) || b2.equals(CBasicType.UNSPECIFIED))){
-      return pT2;
-    }
-    // NOTE: END EXTENSION
-
-    // - If either operand is of type unsigned long, the other operand is converted to type unsigned long.
-    if (pT1.isUnsigned() && pT1.isLong() && (b1.equals(CBasicType.INT) || b1.equals(CBasicType.UNSPECIFIED))){
-      return pT1;
-    }
-    if (pT2.isUnsigned() && pT2.isLong() && (b2.equals(CBasicType.INT) || b2.equals(CBasicType.UNSPECIFIED))){
+    if (!pT2.isUnsigned() && s2 > s1) {
       return pT2;
     }
 
-    // - If the above condition is not met and either operand is of type long and the other of type unsigned int, both operands are converted to type unsigned long.
-    if (pT1.isLong() && (b1.equals(CBasicType.INT) || b1.equals(CBasicType.UNSPECIFIED))
-        && pT2.isUnsigned() && (b2.equals(CBasicType.INT) || b2.equals(CBasicType.UNSPECIFIED))){
-      return new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
-    }
-    if (pT2.isLong() && (b2.equals(CBasicType.INT) || b2.equals(CBasicType.UNSPECIFIED))
-        && pT1.isUnsigned() && (b1.equals(CBasicType.INT) || b1.equals(CBasicType.UNSPECIFIED))){
-      return new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
-    }
-
-    // - If the above two conditions are not met, and either operand is of type long, the other operand is converted to type long.
-    if (pT1.isLong() && (b1.equals(CBasicType.INT) || b1.equals(CBasicType.UNSPECIFIED))){
+    // Otherwise, both operands are converted to the unsigned integer type corresponding to the type of the operand with signed integer type. Specific operations can add to or modify the semantics of the usual arithmetic operations.
+    if (pT1.isUnsigned()) {
       return pT1;
-    }
-    if (pT2.isLong() && (b2.equals(CBasicType.INT) || b2.equals(CBasicType.UNSPECIFIED))){
+    } else {
+      assert pT2.isUnsigned();
       return pT2;
     }
-
-    // - If the above three conditions are not met, and either operand is of type unsigned int, the other operand is converted to type unsigned int.
-    if (pT1.isUnsigned() && (b1.equals(CBasicType.INT) || b1.equals(CBasicType.UNSPECIFIED))){
-      return pT1;
-    }
-    if (pT2.isUnsigned() && (b2.equals(CBasicType.INT) || b2.equals(CBasicType.UNSPECIFIED))){
-      return pT2;
-    }
-
-    // - If none of the above conditions are met, both operands are converted to type int.
-    return new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
   }
 
   @SuppressWarnings("unchecked")
@@ -1543,12 +1584,18 @@ public class CtoFormulaConverter {
       CType t2 = e2.getExpressionType();
       CType returnType = exp.getExpressionType();
       FormulaType<?> returnFormulaType = getFormulaTypeFromCType(returnType);
-      CType implicitType = getImplicitCType(t1, t2);
+
       Formula f1 = e1.accept(this);
       Formula f2 = e2.accept(this);
+      CType promT1 = getPromotedCType(t1);
+      f1 = makeCast(t1, promT1, f1);
+      CType promT2 = getPromotedCType(t2);
+      f2 = makeCast(t2, promT2, f2);
+
+      CType implicitType = getImplicitCType(promT1, promT2);
       boolean signed = isSignedType(implicitType);
-      f1 = makeCast(t1, implicitType, f1);
-      f2 = makeCast(t2, implicitType, f2);
+      f1 = makeCast(promT1, implicitType, f1);
+      f2 = makeCast(promT2, implicitType, f2);
       Formula ret;
       switch (op) {
       case PLUS:
@@ -1626,6 +1673,7 @@ public class CtoFormulaConverter {
       assert returnFormulaType == fmgr.getFormulaType(ret);
       return ret;
     }
+
 
 
 
@@ -1715,16 +1763,35 @@ public class CtoFormulaConverter {
       UnaryOperator op = exp.getOperator();
       switch (op) {
       case PLUS:
-        return operand.accept(this);
-
-      case MINUS: {
-        Formula formula = operand.accept(this);
-        return fmgr.makeNegate(formula);
-      }
-
+      case MINUS:
       case TILDE: {
-        Formula formula = operand.accept(this);
-        return fmgr.makeNot(formula);
+        // Handle Integer Promotion
+        CType t = operand.getExpressionType();
+        CType promoted = getPromotedCType(t);
+        Formula operandFormula = operand.accept(this);
+        operandFormula = makeCast(t, promoted, operandFormula);
+        Formula ret;
+        switch (op) {
+        case PLUS: {
+          ret = operandFormula;
+          break;
+        }
+        case MINUS: {
+          ret = fmgr.makeNegate(operandFormula);
+          break;
+        }
+        case TILDE: {
+          ret = fmgr.makeNot(operandFormula);
+          break;
+        }
+        default:
+          throw new AssertionFailedError("Should be impossible (Unknown Operator).");
+        }
+
+        CType returnType = exp.getExpressionType();
+        FormulaType<?> returnFormulaType = getFormulaTypeFromCType(returnType);
+        assert returnFormulaType == fmgr.getFormulaType(ret);
+        return ret;
       }
 
       case NOT: {
