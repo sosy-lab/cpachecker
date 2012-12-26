@@ -591,14 +591,29 @@ public class CtoFormulaConverter {
     int sto = machineModel.getSizeof(ptoType);
 
     // Currently everything is a bitvector
-    // TODO: this is currently not always correct
-    // (for example if we expand a signed variable with negative value)
     Formula ret;
-    if (sfrom > sto){
+    if (sfrom > sto) {
       ret = fmgr.makeExtract(pFormula, sto * 8 - 1, 0);
-    }else if (sfrom < sto){
-      ret = fmgr.makeConcat(efmgr.makeBitvector((sto - sfrom) * 8, 0) , pFormula);
-    }else{
+    } else if (sfrom < sto) {
+      // Sign extend with ones when pfromType is signed and sign bit is set
+      BitvectorFormula extendBits;
+      int bitsToExtend = (sto - sfrom) * 8;
+      if (pfromType.isUnsigned()){
+        extendBits = efmgr.makeBitvector(bitsToExtend, 0);
+      } else {
+        BitvectorFormula zeroes = efmgr.makeBitvector(bitsToExtend, 0);
+        BitvectorFormula ones = efmgr.makeBitvector(bitsToExtend, -1);
+
+        // Formula if sign bit is set
+        Formula msb = fmgr.makeExtract(pFormula, sfrom * 8 - 1, sfrom * 8 - 1);
+        BooleanFormula zeroExtend = fmgr.makeEqual(msb, efmgr.makeBitvector(1, 0));
+
+
+        extendBits = bfmgr.ifThenElse(zeroExtend, zeroes, ones);
+      }
+
+      ret = fmgr.makeConcat(extendBits , pFormula);
+    } else {
       ret = pFormula;
     }
 
@@ -608,21 +623,24 @@ public class CtoFormulaConverter {
 
   Map<CType, Map<CType, FunctionFormulaType<Formula>>> castMap = new Hashtable<>();
 
-  private FunctionFormulaType<Formula> getCastFunc(CType fromType, CType toType){
+  private FunctionFormulaType<Formula> getCastFunc(CType fromType, CType toType) {
     Map<CType, FunctionFormulaType<Formula>> toTable;
-    if (!castMap.containsKey(fromType)){
+    if (!castMap.containsKey(fromType)) {
       toTable = new Hashtable<>();
       castMap.put(fromType, toTable);
-    }else{
+    } else {
       toTable = castMap.get(fromType);
     }
+
     FunctionFormulaType<Formula> func;
-    if (!toTable.containsKey(toType)){
+    if (!toTable.containsKey(toType)) {
       FormulaType<Formula> intoFormulaType = getFormulaTypeFromCType(toType);
       FormulaType<Formula> fromFormulaType = getFormulaTypeFromCType(fromType);
-      func = ffmgr.createFunction("CAST_FROM_"+fromType+"_TO_"+toType, intoFormulaType, Arrays.<FormulaType<?>>asList(fromFormulaType));
+      func = ffmgr.createFunction(
+          "CAST_FROM_"+fromType+"_TO_"+toType, intoFormulaType,
+          Arrays.<FormulaType<?>>asList(fromFormulaType));
       toTable.put(toType, func);
-    }else{
+    } else {
       func = toTable.get(toType);
     }
 
@@ -638,13 +656,13 @@ public class CtoFormulaConverter {
     pT1 = CTypeUtils.simplifyType(pT1);
     pT2 = CTypeUtils.simplifyType(pT2);
 
-    if (pT1 instanceof CSimpleType){
+    if (pT1 instanceof CSimpleType) {
       CSimpleType s1 = (CSimpleType)pT1;
-      if (pT2 instanceof CSimpleType){
+      if (pT2 instanceof CSimpleType) {
         CSimpleType s2 = (CSimpleType)pT2;
         CSimpleType resolved = getImplicitSimpleCType(s1, s2);
 
-        if (!CTypeUtils.equals(s1, s2)){
+        if (!CTypeUtils.equals(s1, s2)) {
           log(Level.INFO, "Implicit Cast: " + s1 + " and " + s2 + " to " + resolved);
         }
 
@@ -655,9 +673,9 @@ public class CtoFormulaConverter {
     int s1 = machineModel.getSizeof(pT1);
     int s2 = machineModel.getSizeof(pT2);
     CType res;
-    if (s1 > s2){
+    if (s1 > s2) {
       res = pT1;
-    } else if (s2 > s1){
+    } else if (s2 > s1) {
       res = pT2;
     } else {
       res = pT1;
@@ -666,38 +684,39 @@ public class CtoFormulaConverter {
     return res;
   }
 
-  private int getConversionRank(CSimpleType t){
+  private int getConversionRank(CSimpleType t) {
     // From https://www.securecoding.cert.org/confluence/display/seccode/INT02-C.+Understand+integer+conversion+rules
     CBasicType type = t.getType();
-    assert type == CBasicType.INT || type == CBasicType.BOOL || type == CBasicType.CHAR;
+
+    assert type == CBasicType.UNSPECIFIED || type == CBasicType.INT || type == CBasicType.BOOL || type == CBasicType.CHAR;
     // For all integer types T1, T2, and T3, if T1 has greater rank than T2 and T2 has greater rank than T3, then T1 has greater rank than T3.
 
     // The rank of _Bool shall be less than the rank of all other standard integer types.
-    if (type == CBasicType.BOOL){
+    if (type == CBasicType.BOOL) {
       return 10;
     }
 
     // The rank of char shall equal the rank of signed char and unsigned char.
-    if (type == CBasicType.CHAR){
+    if (type == CBasicType.CHAR) {
       return 20;
     }
 
     // The rank of any unsigned integer type shall equal the rank of the corresponding signed integer type, if any.
     // The rank of long long int shall be greater than the rank of long int, which shall be greater than the rank of int, which shall be greater than the rank of short int, which shall be greater than the rank of signed char.
-    if (type == CBasicType.INT){
-      if (t.isShort()){
+    if (type == CBasicType.INT || type == CBasicType.UNSPECIFIED) {
+      if (t.isShort()) {
         return 30;
       }
 
-      if (!t.isLong() && !t.isLongLong()){
+      if (!t.isLong() && !t.isLongLong()) {
         return 40;
       }
 
-      if (t.isLong()){
+      if (t.isLong()) {
         return 50;
       }
 
-      if (t.isLongLong()){
+      if (t.isLongLong()) {
         return 60;
       }
     }
@@ -716,12 +735,12 @@ public class CtoFormulaConverter {
   }
 
   private CType getPromotedCType(CType t) {
-    if (t instanceof CSimpleType){
+    if (t instanceof CSimpleType) {
       // Integer types smaller than int are promoted when an operation is performed on them.
       // If all values of the original type can be represented as an int, the value of the smaller type is converted to an int;
       // otherwise, it is converted to an unsigned int.
       CSimpleType s = (CSimpleType) t;
-      if (machineModel.getSizeof(s) < machineModel.getSizeofInt()){
+      if (machineModel.getSizeof(s) < machineModel.getSizeofInt()) {
         return new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
       }
     }
@@ -733,26 +752,29 @@ public class CtoFormulaConverter {
     // If either operand is of type long double, the other operand is converted to type long double.
     CBasicType b1 = pT1.getType();
     CBasicType b2 = pT2.getType();
-    if (pT1.isLong() && b1.equals(CBasicType.DOUBLE)){
+    if (pT1.isLong() && b1.equals(CBasicType.DOUBLE)) {
       return pT1;
     }
-    if (pT2.isLong() && b2.equals(CBasicType.DOUBLE)){
+
+    if (pT2.isLong() && b2.equals(CBasicType.DOUBLE)) {
       return pT2;
     }
 
     // If the above condition is not met and either operand is of type double, the other operand is converted to type double.
-    if (b1.equals(CBasicType.DOUBLE)){
+    if (b1.equals(CBasicType.DOUBLE)) {
       return pT1;
     }
-    if (b2.equals(CBasicType.DOUBLE)){
+
+    if (b2.equals(CBasicType.DOUBLE)) {
       return pT2;
     }
 
     // If the above two conditions are not met and either operand is of type float, the other operand is converted to type float.
-    if (b1.equals(CBasicType.FLOAT)){
+    if (b1.equals(CBasicType.FLOAT)) {
       return pT1;
     }
-    if (b2.equals(CBasicType.FLOAT)){
+
+    if (b2.equals(CBasicType.FLOAT)) {
       return pT2;
     }
 
@@ -760,7 +782,7 @@ public class CtoFormulaConverter {
     // See also http://stackoverflow.com/questions/50605/signed-to-unsigned-conversion-in-c-is-it-always-safe
 
     // If both operands have the same type, no further conversion is needed.
-    if (CTypeUtils.equals(pT1, pT2)){
+    if (CTypeUtils.equals(pT1, pT2)) {
       return pT1;
     }
 
@@ -768,19 +790,19 @@ public class CtoFormulaConverter {
     int r2 = getConversionRank(pT2);
     // If both operands are of the same integer type (signed or unsigned), the operand with the type of lesser integer conversion rank is converted to the type of the operand with greater rank.
     if (pT1.isUnsigned() == pT2.isUnsigned()) {
-      if (r1 > r2){
+      if (r1 >= r2) {
         return pT1;
-      } else if (r2 > r1){
+      } else {
         return pT2;
       }
     }
 
     // If the operand that has unsigned integer type has rank greater than or equal to the rank of the type of the other operand, the operand with signed integer type is converted to the type of the operand with unsigned integer type.
-    if (pT1.isUnsigned() && r1 >= r2){
+    if (pT1.isUnsigned() && r1 >= r2) {
       return pT1;
     }
 
-    if (pT2.isUnsigned() && r2 >= r1){
+    if (pT2.isUnsigned() && r2 >= r1) {
       return pT2;
     }
 
@@ -1592,10 +1614,23 @@ public class CtoFormulaConverter {
       CType promT2 = getPromotedCType(t2);
       f2 = makeCast(t2, promT2, f2);
 
-      CType implicitType = getImplicitCType(promT1, promT2);
+      CType implicitType;
+      // FOR SHIFTS: The type of the result is that of the promoted left operand. (6.5.7 3)
+      if (op == BinaryOperator.SHIFT_LEFT || op == BinaryOperator.SHIFT_RIGHT) {
+        implicitType = promT1;
+
+        // TODO: This is probably not correct as we only need the right formula-type but not a cast
+        f2 = makeCast(promT2, promT1, f2);
+
+        // TODO: When the right side is negative the result is not defined
+      } else {
+        implicitType = getImplicitCType(promT1, promT2);
+        f1 = makeCast(promT1, implicitType, f1);
+        f2 = makeCast(promT2, implicitType, f2);
+      }
+
       boolean signed = isSignedType(implicitType);
-      f1 = makeCast(promT1, implicitType, f1);
-      f2 = makeCast(promT2, implicitType, f2);
+
       Formula ret;
       switch (op) {
       case PLUS:
@@ -1623,9 +1658,12 @@ public class CtoFormulaConverter {
         ret =  fmgr.makeXor(f1, f2);
         break;
       case SHIFT_LEFT:
+
+        // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
         ret =  fmgr.makeShiftLeft(f1, f2);
         break;
       case SHIFT_RIGHT:
+        // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
         ret =  fmgr.makeShiftRight(f1, f2, signed);
         break;
 
