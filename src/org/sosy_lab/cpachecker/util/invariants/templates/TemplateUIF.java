@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.templates;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -225,7 +224,7 @@ public class TemplateUIF extends TemplateNumericValue {
   @Override
   public Formula translate(FormulaManagerView fmgr) {
   	Formula form = null;
-  	List<Formula> fl = Arrays.asList(((AbstractFormulaList)args.translate(fmgr)).getTerms());
+  	List<Formula> fl = ((AbstractFormulaList)args.translate(fmgr)).getTerms();
   	FunctionFormulaManagerView ffmgr = fmgr.getFunctionFormulaManager();
   	if (hasIndex()) {
   	  form = ffmgr.createFuncAndCall(name, index.intValue(), getFormulaType(), fl);

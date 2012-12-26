@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
@@ -32,28 +35,29 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
  * A generic FormulaList implementation used to minimize the code changes for legacy code.
  */
 public class AbstractFormulaList implements FormulaList {
-  private transient Formula[] terms;
+  private final List<Formula> terms;
 
-  /**
-   * Do not modify the terms array afterwards, for performance reasons it's not copied!
-   */
   public AbstractFormulaList(Formula... terms) {
+    this(Arrays.asList( terms ));
+  }
+
+  public AbstractFormulaList(List<Formula> terms) {
     for (Formula t : terms) {
       assert t != null;
     }
-    this.terms = terms;
+    this.terms = Collections.unmodifiableList(new ArrayList<>(terms));
   }
 
   /**
    * Do not modify the returned array, for performance reasons it's not copied!
    */
-  public Formula[] getTerms() {
+  public List<Formula> getTerms() {
     return terms;
   }
 
   @Override
   public String toString() {
-    return Arrays.toString(terms);
+    return Arrays.toString(terms.toArray());
   }
 
   @Override
@@ -61,11 +65,11 @@ public class AbstractFormulaList implements FormulaList {
     if (!(pObj instanceof AbstractFormulaList)) {
       return false;
     }
-    return Arrays.equals(terms, ((AbstractFormulaList)pObj).terms);
+    return terms.equals(((AbstractFormulaList)pObj).terms);
   }
 
   @Override
   public int hashCode() {
-    return Arrays.hashCode(terms);
+    return terms.hashCode();
   }
 }

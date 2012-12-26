@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
 /**
@@ -248,7 +247,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }
 
   private List<Formula> fromList(FormulaList pArgs) {
-    return ImmutableList.copyOf(((AbstractFormulaList)pArgs).getTerms());
+    return ((AbstractFormulaList)pArgs).getTerms();
   }
 
   @Override
