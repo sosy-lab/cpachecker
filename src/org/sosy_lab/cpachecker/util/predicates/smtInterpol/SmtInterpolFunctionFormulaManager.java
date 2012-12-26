@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import java.lang.reflect.Array;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
@@ -34,7 +35,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.GenericsHelper;
 
 import com.google.common.base.Function;
 
@@ -59,7 +59,7 @@ public class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaMa
   public <TFormula extends Formula> Term createUninterpretedFunctionCallImpl(FunctionFormulaType<TFormula> pFuncType,
       List<Term> pArgs) {
     SmtInterpolFunctionType<TFormula> interpolType = (SmtInterpolFunctionType<TFormula>) pFuncType;
-    Term[] args = GenericsHelper.toArray(Term.class, pArgs);
+    Term[] args = pArgs.toArray((Term[])Array.newInstance(Term.class, pArgs.size()));
     String funcDecl = interpolType.getFuncDecl();
     return
         this.<SmtInterpolUnsafeFormulaManager>getUnsafeManager().createUIFCallImpl(funcDecl, args);
@@ -100,7 +100,7 @@ public class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaMa
           return toSmtInterpolType(pArg0);
         }})
         .toImmutableList();
-    Sort[] msatTypes = GenericsHelper.toArray(Sort.class, types);
+    Sort[] msatTypes = types.toArray((Sort[])Array.newInstance(Sort.class, types.size()));
 
     Sort returnType = toSmtInterpolType(pReturnType);
     String decl = createFunctionImpl(pName, returnType, msatTypes);

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import java.lang.reflect.Array;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -30,7 +31,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.GenericsHelper;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
@@ -108,7 +108,7 @@ public class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManage
 
   @Override
   public Term replaceArgs(Term pT, List<Term> newArgs) {
-    return SmtInterpolUtil.replaceArgs(env, pT, GenericsHelper.toArray(Term.class, newArgs));
+    return SmtInterpolUtil.replaceArgs(env, pT, newArgs.toArray((Term[]) Array.newInstance(Term.class, newArgs.size())));
   }
 
   @Override

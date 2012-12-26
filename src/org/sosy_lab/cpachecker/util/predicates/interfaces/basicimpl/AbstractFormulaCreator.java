@@ -80,15 +80,16 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
   @SuppressWarnings("unchecked")
   public <T extends Formula> T encapsulate(Class<T> pClazz, TFormulaInfo pTerm) {
     AbstractFormula<TFormulaInfo> f;
-    if (pClazz == BitvectorFormula.class){
+    if (pClazz == BitvectorFormula.class) {
       f = new BitvectorFormulaImpl<>(pTerm);
-    }else if (pClazz == RationalFormula.class){
+    } else if (pClazz == RationalFormula.class) {
       f = new RationalFormulaImpl<>(pTerm);
-    }else if (pClazz == BooleanFormula.class){
+    } else if (pClazz == BooleanFormula.class) {
       f = new BooleanFormulaImpl<>(pTerm);
-    }else {
+    } else {
       throw new IllegalArgumentException("invalid interface type");
     }
+
     return (T)f;
   }
 

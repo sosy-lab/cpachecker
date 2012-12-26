@@ -76,34 +76,34 @@ public interface BitvectorFormulaManager {
   // Bitvector operations
 
   /**
-  * Creates a formula representing a negation of the argument.
-  * @param f a Formula
-  * @return (!f1)
-  */
- public BitvectorFormula not(BitvectorFormula bits);
+   * Creates a formula representing a negation of the argument.
+   * @param f a Formula
+   * @return (!f1)
+   */
+  public BitvectorFormula not(BitvectorFormula bits);
 
- /**
-  * Creates a formula representing an AND of the two arguments.
-  * @param f1 a Formula
-  * @param f2 a Formula
-  * @return (f1 & f2)
-  */
- public BitvectorFormula and(BitvectorFormula bits1, BitvectorFormula bits2);
+  /**
+   * Creates a formula representing an AND of the two arguments.
+   * @param f1 a Formula
+   * @param f2 a Formula
+   * @return (f1 & f2)
+   */
+  public BitvectorFormula and(BitvectorFormula bits1, BitvectorFormula bits2);
 
- /**
-  * Creates a formula representing an OR of the two arguments.
-  * @param f1 a Formula
-  * @param f2 a Formula
-  * @return (f1 | f2)
-  */
- public BitvectorFormula or(BitvectorFormula bits1,BitvectorFormula bits2);
+  /**
+   * Creates a formula representing an OR of the two arguments.
+   * @param f1 a Formula
+   * @param f2 a Formula
+   * @return (f1 | f2)
+   */
+  public BitvectorFormula or(BitvectorFormula bits1,BitvectorFormula bits2);
 
- public BitvectorFormula xor(BitvectorFormula bits1,BitvectorFormula bits2);
+  public BitvectorFormula xor(BitvectorFormula bits1,BitvectorFormula bits2);
 
- public boolean isNot(BitvectorFormula bits);
- public boolean isAnd(BitvectorFormula bits);
- public boolean isOr(BitvectorFormula bits);
- public boolean isXor(BitvectorFormula bits);
+  public boolean isNot(BitvectorFormula bits);
+  public boolean isAnd(BitvectorFormula bits);
+  public boolean isOr(BitvectorFormula bits);
+  public boolean isXor(BitvectorFormula bits);
 
   public BitvectorFormula shiftRight(BitvectorFormula number,BitvectorFormula toShift, boolean signed);
 

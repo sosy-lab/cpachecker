@@ -137,7 +137,7 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
   }
 
 
-  public <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond){
+  public <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
     FormulaManagerView viewManager = getViewManager();
     T one = viewManager.makeNumber(type, 1);
     T zero = viewManager.makeNumber(type, 0);
@@ -165,7 +165,7 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
   }
 
 
-  public BooleanFormula notEquivalence(BooleanFormula p, BooleanFormula q){
+  public BooleanFormula notEquivalence(BooleanFormula p, BooleanFormula q) {
     return not(equivalence(p, q));
   }
 
@@ -175,36 +175,29 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
 
   public FormulaOperator getOperator(BooleanFormula f) {
     FormulaManagerView viewManager = getViewManager();
-    if (viewManager.getUnsafeFormulaManager().isAtom(viewManager.extractFromView(f))){
+    if (viewManager.getUnsafeFormulaManager().isAtom(viewManager.extractFromView(f))) {
       return FormulaOperator.ATOM;
     }
 
-    if (isNot(f)){
+    if (isNot(f)) {
       return FormulaOperator.NOT;
     }
 
-    if (isAnd(f)){
+    if (isAnd(f)) {
       return FormulaOperator.AND;
     }
-    if (isOr(f)){
+    if (isOr(f)) {
       return FormulaOperator.OR;
     }
 
-    if (isIfThenElse(f)){
+    if (isIfThenElse(f)) {
       return FormulaOperator.ITE;
     }
 
-    if (isEquivalence(f)){
+    if (isEquivalence(f)) {
       return FormulaOperator.EQUIV;
     }
 
-//    final long t = getTerm(f);
-//    if (msat_term_is_atom(msatEnv, t)) { return FormulaOperator.ATOM; }
-//    if (msat_term_is_not(msatEnv, t)) { return FormulaOperator.NOT; }
-//    if (msat_term_is_and(msatEnv, t)) { return FormulaOperator.AND; }
-//    if (msat_term_is_or(msatEnv, t)) { return FormulaOperator.OR; }
-//    if (msat_term_is_iff(msatEnv, t)) { return FormulaOperator.EQUIV; }
-//    if (msat_term_is_term_ite(msatEnv, t)) { return FormulaOperator.ITE; }
     throw new UnsupportedOperationException();
   }
 

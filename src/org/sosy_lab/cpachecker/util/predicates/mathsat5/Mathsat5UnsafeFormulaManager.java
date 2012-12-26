@@ -29,7 +29,8 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.GenericsHelper;
+
+import com.google.common.primitives.Longs;
 
 
 public class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
@@ -87,7 +88,7 @@ public class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<L
   @Override
   public Long replaceArgs(Long t, List<Long> newArgs) {
     long tDecl = msat_term_get_decl(t);
-    return msat_make_term(msatEnv, tDecl, GenericsHelper.toPrimitiveL(newArgs));
+    return msat_make_term(msatEnv, tDecl, Longs.toArray(newArgs));
   }
 
   @Override
@@ -102,7 +103,7 @@ public class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<L
       }
       long funcType = msat_get_function_type(msatEnv, argTypes, argTypes.length, retType);
       long funcDecl = msat_declare_function(msatEnv, newName, funcType);
-      return msat_make_uf(msatEnv, funcDecl, GenericsHelper.toPrimitiveL(getArguments(t)));
+      return msat_make_uf(msatEnv, funcDecl, Longs.toArray(getArguments(t)));
     }else if (isVariable(t)){
       return creator.makeVariable(msat_term_get_type(t), newName);
     }else{

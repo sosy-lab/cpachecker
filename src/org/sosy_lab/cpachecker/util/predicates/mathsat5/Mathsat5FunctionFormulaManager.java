@@ -35,9 +35,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.GenericsHelper;
 
 import com.google.common.base.Function;
+import com.google.common.primitives.Longs;
 
 public class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long> {
 
@@ -61,7 +61,7 @@ public class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManag
       List<Long> pArgs) {
     Mathsat5FunctionType<TFormula> mathsatType = (Mathsat5FunctionType<TFormula>) pFuncType;
 
-    long[] args = GenericsHelper.toPrimitiveL(pArgs);
+    long[] args = Longs.toArray(pArgs);
     long funcDecl = mathsatType.getFuncDecl();
     return createUIFCallImpl(funcDecl, args);
   }
@@ -101,7 +101,7 @@ public class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManag
           return toMathsatType(pArg0);
         }})
         .toImmutableList();
-    long[] msatTypes = GenericsHelper.toPrimitiveL(types);
+    long[] msatTypes = Longs.toArray(types);
 
     long returnType = toMathsatType(pReturnType);
     Long decl = createFunctionImpl(pName, returnType, msatTypes);

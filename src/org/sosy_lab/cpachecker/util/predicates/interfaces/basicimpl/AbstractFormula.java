@@ -26,7 +26,10 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import java.io.Serializable;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 
 /**
  *
@@ -65,3 +68,36 @@ public class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
     return formulaInfo.hashCode();
   }
 }
+
+/**
+ * Simple BooleanFormula implementation. Just tracing the size and the sign-treatment
+ */
+@SuppressWarnings("serial")
+class BitvectorFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements BitvectorFormula {
+  public BitvectorFormulaImpl(TFormulaInfo info) {
+    super(info);
+  }
+}
+
+/**
+ * Simple BooleanFormula implementation.
+ */
+@SuppressWarnings("serial")
+class BooleanFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements BooleanFormula {
+  public BooleanFormulaImpl(TFormulaInfo pT) {
+    super(pT);
+  }
+}
+
+/**
+ * Simple NumericFormula implementation.
+ */
+@SuppressWarnings("serial")
+class RationalFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements RationalFormula {
+  public RationalFormulaImpl(TFormulaInfo pTerm) {
+    super(pTerm);
+  }
+}
+
+
+
