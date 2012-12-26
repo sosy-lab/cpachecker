@@ -171,11 +171,12 @@ public class FormulaManagerView implements FormulaManager {
       formulaDumpFilePattern = null;
     }
   }
+
   public FormulaManagerView(FormulaManager wrapped,Configuration config, LogManager pLogger) throws InvalidConfigurationException{
     this(DEFAULTMANAGERS, wrapped, config, pLogger);
   }
 
-  public FormulaManagerView(FormulaManager wrapped){
+  public FormulaManagerView(FormulaManager wrapped) {
     this(DEFAULTMANAGERS, wrapped);
   }
 
@@ -210,7 +211,7 @@ public class FormulaManagerView implements FormulaManager {
    * @return the created variable.
    */
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T makeVariable(FormulaType<T> formulaType, String name){
+  public <T extends Formula> T makeVariable(FormulaType<T> formulaType, String name) {
     Class<T> clazz = formulaType.getInterfaceType();
     Formula t;
     if (clazz==BooleanFormula.class) {
@@ -242,7 +243,6 @@ public class FormulaManagerView implements FormulaManager {
     } else if (clazz == RationalFormula.class) {
       t = rationalFormulaManager.makeNumber(value);
     } else if (clazz == BitvectorFormula.class) {
-      //FormulaType.BitpreciseType impl = (FormulaType.BitpreciseType) formulaType;
       t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
     } else {
       throw new IllegalArgumentException("Not supported interface");
@@ -503,6 +503,7 @@ public class FormulaManagerView implements FormulaManager {
 
     return t;
   }
+
   public  <T extends Formula> BooleanFormula makeLessOrEqual(T pLhs, T pRhs, boolean signed) {
     Class<T> clazz = getInterface(pLhs);
     BooleanFormula t;
@@ -639,38 +640,26 @@ public class FormulaManagerView implements FormulaManager {
     right = extractFromView(right);
     FormulaType<T> lformulaType = this.getFormulaType(left);
     FormulaType<T> rformulaType = this.getFormulaType(right);
-    if (lformulaType != rformulaType){
+    if (lformulaType != rformulaType) {
       throw new IllegalArgumentException("Can't assign different types! (" + lformulaType + " and " + rformulaType + ")");
     }
 
     return makeEqual(left, right);
-//
-//    BooleanFormula r;
-//    if (BooleanFormula.class == lformulaType){
-//      r = booleanFormulaManager.equivalence((BooleanFormula)left, (BooleanFormula)right);
-//    } else if (RationalFormula.class == lformulaType){
-//      r = rationalFormulaManager.equal((RationalFormula)left, (RationalFormula)right);
-//    }else if (BitvectorFormula.class == lformulaType){
-//      r = bitvectorFormulaManager.equal((BitvectorFormula)left, (BitvectorFormula)right);
-//    }else{
-//      throw new IllegalArgumentException("Invalid class");
-//    }
-//
-//    return wrapInView(r);
   }
 
   @SuppressWarnings("unchecked")
   public <T extends Formula> T extractFromView(T formula) {
     Class<T> formulaType = AbstractFormulaManager.getInterfaceHelper(formula);
-    if (BooleanFormula.class == formulaType){
+    if (BooleanFormula.class == formulaType) {
       return (T) booleanFormulaManager.extractFromView((BooleanFormula) formula);
     }
-    if (RationalFormula.class == (formulaType)){
+    if (RationalFormula.class == (formulaType)) {
       return (T) rationalFormulaManager.extractFromView((RationalFormula) formula);
     }
-    if (BitvectorFormula.class == (formulaType)){
+    if (BitvectorFormula.class == (formulaType)) {
       return (T) bitvectorFormulaManager.extractFromView((BitvectorFormula) formula);
     }
+
     throw new IllegalArgumentException("Invalid class");
   }
 
@@ -789,7 +778,9 @@ public class FormulaManagerView implements FormulaManager {
 
   public static Pair<String, Integer> parseName(String var) {
     String[] s = var.split(INDEX_SEPARATOR);
-    if (s.length != 2) { throw new IllegalArgumentException("Not an instantiated variable: " + var); }
+    if (s.length != 2) {
+      throw new IllegalArgumentException("Not an instantiated variable: " + var);
+    }
 
     return Pair.of(s[0], Integer.parseInt(s[1]));
   }
@@ -865,6 +856,7 @@ public class FormulaManagerView implements FormulaManager {
       BooleanFormula booleanFormula = iterator.next();
       atoms.add(wrapInView(booleanFormula));
     }
+
     return atoms;
   }
 
@@ -1070,6 +1062,7 @@ public class FormulaManagerView implements FormulaManager {
       return false;
     }
   }
+
   public static final String BitwiseAndUfName = "_&_";
   public static final String BitwiseOrUfName ="_|_";
   public static final String BitwiseXorUfName ="_^_";

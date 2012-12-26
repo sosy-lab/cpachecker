@@ -45,6 +45,7 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
   public BooleanFormula makeVariable(String pVar, int pI) {
     return makeVariable(FormulaManagerView.makeName(pVar, pI));
   }
+
   @Override
   public BooleanFormula not(BooleanFormula pBits) {
     return wrapInView(manager.not(extractFromView(pBits)));
