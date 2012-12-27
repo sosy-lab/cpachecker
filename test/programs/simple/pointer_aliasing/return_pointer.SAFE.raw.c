@@ -1,3 +1,4 @@
+#include <stdlib.h>
 
 void test(int x) {
 	if (!x) {
