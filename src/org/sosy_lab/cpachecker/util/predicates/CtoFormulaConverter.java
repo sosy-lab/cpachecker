@@ -37,8 +37,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-import junit.framework.AssertionFailedError;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -1809,21 +1807,13 @@ public class CtoFormulaConverter {
         Formula operandFormula = operand.accept(this);
         operandFormula = makeCast(t, promoted, operandFormula);
         Formula ret;
-        switch (op) {
-        case PLUS: {
+        if (op == UnaryOperator.PLUS) {
           ret = operandFormula;
-          break;
-        }
-        case MINUS: {
+        } else if (op == UnaryOperator.MINUS) {
           ret = fmgr.makeNegate(operandFormula);
-          break;
-        }
-        case TILDE: {
+        } else {
+          assert op == UnaryOperator.TILDE;
           ret = fmgr.makeNot(operandFormula);
-          break;
-        }
-        default:
-          throw new AssertionFailedError("Should be impossible (Unknown Operator).");
         }
 
         CType returnType = exp.getExpressionType();
