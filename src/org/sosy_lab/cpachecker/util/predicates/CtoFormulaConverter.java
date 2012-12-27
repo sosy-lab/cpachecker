@@ -1526,7 +1526,7 @@ public class CtoFormulaConverter {
    * @param newPVar The variable name of the new pointer variable.
    * @param ssa The SSAMapBuilder from which the variables are to be deleted
    */
-  private static void removeOldPointerVariablesFromSsaMap(Variable<?> newPVar,
+  private static void removeOldPointerVariablesFromSsaMap(Variable<CType> newPVar,
       SSAMapBuilder ssa) {
 
     String newVar = removePointerMask(newPVar.getName());
@@ -2176,14 +2176,19 @@ public class CtoFormulaConverter {
     public Formula visit(CFunctionCallExpression fexp) throws UnrecognizedCCodeException {
       // handle malloc
       CExpression fn = fexp.getFunctionNameExpression();
-      CType expType = fexp.getExpressionType();
-      FormulaType<Formula> t = getFormulaTypeFromCType(expType);
       if (fn instanceof CIdExpression) {
         String fName = ((CIdExpression)fn).getName();
 
         if (memoryAllocationFunctions.contains(fName)) {
-          // for now all parameters are ignored
 
+          CType expType = fexp.getExpressionType();
+          if (!(expType instanceof CPointerType)) {
+            log(Level.SEVERE, "Memory allocation function ("+fName+") with invalid return type (" + expType +"). Missing includes or file not preprocessed?");
+          }
+
+          FormulaType<Formula> t = getFormulaTypeFromCType(expType);
+
+          // for now all parameters are ignored
           List<Variable<CType>> memoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
 
           Variable<CType> mallocVarName = makeFreshMallocVariableName(expType);
@@ -2315,18 +2320,35 @@ public class CtoFormulaConverter {
             Formula newVar = makeVariable(varName, ssa);
             //String newPtrVarName = makePointerMask(varName, ssa);
             Variable<CType> newPtrVarName = makePointerMaskVariable(varName, ssa);
-            Formula newPtrVar = makeVariable(varName, ssa);
+            Formula newPtrVar = makeVariable(newPtrVarName, ssa);
             removeOldPointerVariablesFromSsaMap(newPtrVarName, ssa);
 
-            BooleanFormula varEquality = fmgr.assignment(newVar, rVar);
-            BooleanFormula ptrVarEquality = fmgr.assignment(newPtrVar, rPtrVar);
+            // Let right be r and left *p and m the current memory-address
+            // We create the formula of the comments above.
+
+            // *m_new = r (they don't need to have the same types so use makeNondetAssignment)
+            BooleanFormula varEquality = makeNondetAssignment(newVar, rVar, ssa);
+            // **m_new = *r
+            BooleanFormula ptrVarEquality = makeNondetAssignment(newPtrVar, rPtrVar, ssa);
+            // *m_new = *m_old
             BooleanFormula varUpdate = fmgr.assignment(newVar, oldVar);
+            // **m_new = **m_old
             BooleanFormula ptrVarUpdate = fmgr.assignment(newPtrVar, oldPtrVar);
 
+            // p = m
+            assert fmgr.getFormulaType(lVar) == fmgr.getFormulaType(memAddressVar)
+                : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
             BooleanFormula condition = fmgr.makeEqual(lVar, memAddressVar);
+
+            // **m_new = *r && *m_new = r
             BooleanFormula equality = bfmgr.and(varEquality, ptrVarEquality);
+            // *m_new = *m_old && **m_new = **m_old
             BooleanFormula update = bfmgr.and(varUpdate, ptrVarUpdate);
 
+            // if p = m then *m_new = r && **m_new = *r else *m_new = *m_old && **m_new = **m_old
+            // means when the pointer equals to our current memory address we
+            // know that this memory address contains the right side.
+            // If not we know that this memory address was unchanged (same as before).
             BooleanFormula variableUpdate = bfmgr.ifThenElse(condition, equality, update);
             constraints.addConstraint(variableUpdate);
           }
@@ -2349,6 +2371,8 @@ public class CtoFormulaConverter {
 
             Formula memAddressVar = makeVariable(memAddress, ssa);
 
+            assert fmgr.getFormulaType(lVar) == fmgr.getFormulaType(memAddressVar)
+                : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
             BooleanFormula condition = fmgr.makeEqual(lVar, memAddressVar);
             BooleanFormula equality = makeNondetAssignment(newVar, rVar, ssa);
             BooleanFormula update = makeNondetAssignment(newVar, oldVar, ssa);
@@ -2387,9 +2411,11 @@ public class CtoFormulaConverter {
           makeFreshIndex(ptrVarName, ssa);
           Formula newPtrVar = makeVariable(ptrVarName, ssa);
 
+          assert fmgr.getFormulaType(var) == fmgr.getFormulaType(leftVar)
+              : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
           BooleanFormula condition = fmgr.makeEqual(var, leftVar);
           BooleanFormula equality = makeNondetAssignment(newPtrVar, rightVariable, ssa);
-          BooleanFormula indexUpdate = makeNondetAssignment(newPtrVar, oldPtrVar, ssa);
+          BooleanFormula indexUpdate = fmgr.assignment(newPtrVar, oldPtrVar);
 
           BooleanFormula variableUpdate = bfmgr.ifThenElse(condition, equality, indexUpdate);
           constraints.addConstraint(variableUpdate);
@@ -2437,13 +2463,15 @@ public class CtoFormulaConverter {
         List<Variable<CType>> ptrVarNames = getAllPointerVariablesFromSsaMap(ssa);
         Formula newLeftVar = leftVariable;
         for (Variable<CType> ptrVarName : ptrVarNames) {
-          String varName = removePointerMask(ptrVarName.getName());
+          Variable<CType> varName = removePointerMaskVariable(ptrVarName);
           if (!varName.equals(leftVarName)) {
-            Formula var = makeVariable(leftVarName.withName(varName), ssa);
+            Formula var = makeVariable(varName, ssa);
             Formula oldPtrVar = makeVariable(ptrVarName, ssa);
             makeFreshIndex(ptrVarName, ssa);
             Formula newPtrVar = makeVariable(ptrVarName, ssa);
 
+            assert fmgr.getFormulaType(var) == fmgr.getFormulaType(leftMemLocation)
+                : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
             BooleanFormula condition = fmgr.makeEqual(var, leftMemLocation);
             BooleanFormula equivalence = fmgr.assignment(newPtrVar, newLeftVar);
             BooleanFormula update = fmgr.assignment(newPtrVar, oldPtrVar);
