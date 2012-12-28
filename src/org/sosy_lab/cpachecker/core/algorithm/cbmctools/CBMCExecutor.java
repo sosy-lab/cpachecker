@@ -80,9 +80,11 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
     if (pLine.contains("Out of memory") || pLine.equals("terminate called after throwing an instance of 'Minisat::OutOfMemoryException'")) {
       throw new CounterexampleAnalysisFailed("CBMC run out of memory.");
 
-    } else if (!pLine.startsWith("**** WARNING: no body for function ")) {
-      // ignore warning which is not interesting for us
+    } else if (pLine.startsWith("**** WARNING: no body for function ")
+             || pLine.contains("warning: #pragma once in main file")) {
+      // ignore warning that are not interesting for us
 
+    } else {
       if (errorOutputCount == MAX_CBMC_ERROR_OUTPUT_SHOWN) {
         logger.log(Level.WARNING, "Skipping further CBMC error output...");
         errorOutputCount++;
