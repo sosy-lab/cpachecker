@@ -26,22 +26,26 @@ package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 
+import com.google.common.collect.ImmutableMap;
+
 public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> {
 
   private static final int MAX_CBMC_ERROR_OUTPUT_SHOWN = 10;
+  private static final Map<String, String> CBMC_ENV_VARS = ImmutableMap.of("LANG", "C");
 
   private Boolean result = null;
   private boolean unwindingAssertionFailed = false;
   private volatile int errorOutputCount = 0;
 
   public CBMCExecutor(LogManager logger, String[] args) throws IOException {
-    super(logger, CounterexampleAnalysisFailed.class, args);
+    super(logger, CounterexampleAnalysisFailed.class, CBMC_ENV_VARS, args);
   }
 
   @Override
