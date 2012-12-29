@@ -75,7 +75,11 @@ import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.eclipse.cdt.core.dom.ast.c.ICASTArrayDesignator;
+import org.eclipse.cdt.core.dom.ast.c.ICASTDesignator;
+import org.eclipse.cdt.core.dom.ast.c.ICASTFieldDesignator;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
+import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -105,6 +109,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStructInitializerPart;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
@@ -1018,10 +1023,92 @@ class ASTConverter {
     } else if (i instanceof IASTEqualsInitializer) {
       return convert((IASTEqualsInitializer)i);
     } else if (i instanceof org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer) {
-      logger.log(Level.INFO, "Ignoring initializer part in line", i.getFileLocation().getStartingLineNumber() + ":", i.getRawSignature());
-      return null;
+      ICASTDesignator[] desInit =
+          ((org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer) i).getDesignators();
+
+      return convert(((org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer) i).getOperandInitializer(),
+                     desInit);
+
     } else {
       throw new CFAGenerationRuntimeException("unknown initializer: " + i.getClass().getSimpleName(), i);
+    }
+  }
+
+  private CInitializer convert(IASTInitializer i, ICASTDesignator[] desInit) {
+    int index = 0;
+
+    if (desInit[index] instanceof ICASTFieldDesignator) {
+      return convertFieldDes((ICASTFieldDesignator) desInit[index], desInit, i);
+
+    } else if (desInit[index] instanceof ICASTArrayDesignator) {
+      logger.log(Level.WARNING, "Ignoring initializer part ", desInit[0].getRawSignature(), " in line: ", getLocation(desInit[0]).getStartingLineNumber());
+      return null;
+      //TODO implement
+
+    } else if (desInit[0] instanceof IGCCASTArrayRangeDesignator) {
+      logger.log(Level.WARNING, "Ignoring initializer part ", desInit[0].getRawSignature(), " line: ", getLocation(desInit[0]).getStartingLineNumber());
+      return null;
+      //TODO implement
+
+    } else {
+      throw new CFAGenerationRuntimeException("Unsupported Designator", desInit[index]);
+    }
+  }
+
+  private CInitializer convertFieldDes(ICASTFieldDesignator des, ICASTDesignator[] desArr,
+                                       IASTInitializer init) {
+    String name = convert(des.getName());
+
+    CExpression exp = null;
+    for(int i = 0; i < desArr.length; i++) {
+      if(desArr[i] instanceof ICASTFieldDesignator) {
+
+      } else if (desArr[i] instanceof ICASTArrayDesignator) {
+        exp = makeArrayExpressionInInitializer(getLocation(init), (ICASTArrayDesignator)desArr[i], name, exp);
+      } else if (desArr[i] instanceof IGCCASTArrayRangeDesignator) {
+        logger.log(Level.WARNING, "Ignoring initializer part ", desArr[i].getRawSignature(), " line: ", getLocation(desArr[i]).getStartingLineNumber());
+        return null;
+        // TODO implement
+
+      } else {
+        throw new CFAGenerationRuntimeException("Unsupported Designator", desArr[i]);
+      }
+    }
+
+    CInitializerExpression cInit = (CInitializerExpression) convert(init);
+
+    if(exp == null) {
+      CVariableDeclaration dec  = new CVariableDeclaration(getLocation(init),
+          scope.isGlobalScope(),
+          CStorageClass.AUTO,
+          cInit.getExpression().getExpressionType(),
+          name,
+          name,
+          null);
+      exp = new CIdExpression(getLocation(init), cInit.getExpression().getExpressionType(), name, dec);
+    }
+
+    return new CStructInitializerPart(getLocation(init), exp, cInit.getExpression());
+  }
+
+  /**
+   * @param arrayVar if arrayVar is null a new variable is created for the
+   *                 subscript expression, otherwise the given one is used
+   */
+  private CArraySubscriptExpression makeArrayExpressionInInitializer(FileLocation fileLoc,
+                                                                           ICASTArrayDesignator des,
+                                                                           String varName,
+                                                                           CExpression arrayVar) {
+    if(arrayVar == null) {
+        return new CArraySubscriptExpression(fileLoc,
+            ASTTypeConverter.convert(des.getSubscriptExpression().getExpressionType()),
+            createTemporaryVariable(des.getSubscriptExpression(), varName),
+            convertExpressionWithoutSideEffects(des.getSubscriptExpression()));
+    } else {
+      return new CArraySubscriptExpression(fileLoc,
+          ASTTypeConverter.convert(des.getSubscriptExpression().getExpressionType()),
+          arrayVar,
+          convertExpressionWithoutSideEffects(des.getSubscriptExpression()));
     }
   }
 

@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStructInitializerPart;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -200,6 +201,13 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
   @Override
   public Void visit(CFunctionCallStatement e) {
     e.getFunctionCallExpression().accept(this);
+    return null;
+  }
+
+  @Override
+  public Void visit(CStructInitializerPart e) throws CFAGenerationRuntimeException {
+    e.getLeftHandSide().accept(this);
+    e.getRightHandSide().accept(this);
     return null;
   }
 }
