@@ -168,6 +168,9 @@ public class ASTConverter {
   private ConditionalExpression conditionalExpression = null;
   private JIdExpression conditionalTemporaryVariable = null;
 
+  // Temporary stores forLoopIterator
+  private JIdExpression enhancedForLoopIterator;
+
   /**
    * Create a new AST Converter, which can be used to convert
    * JDT AST Statements to CFA AST Statements.
@@ -377,15 +380,20 @@ public class ASTConverter {
 
 
   private JClassOrInterfaceType getDeclaringClassType(IMethodBinding mi) {
-    JType declaringClassType = convert(mi.getDeclaringClass());
+
+    JType declaringClassType = null;
+
+    if (mi != null) {
+      declaringClassType = convert(mi.getDeclaringClass());
+    }
 
     JClassOrInterfaceType declaringClass;
-    if(declaringClassType instanceof JClassOrInterfaceType) {
+    if (declaringClassType instanceof JClassOrInterfaceType) {
       declaringClass = (JClassOrInterfaceType) declaringClassType;
     } else {
-        // Create a dummy if type is Unspecified
+      // Create a dummy if type is Unspecified
       declaringClass = new JClassType("_unspecified_",
-        VisibilityModifier.NONE, false, false, false);
+          VisibilityModifier.NONE, false, false, false);
     }
     return declaringClass;
   }
@@ -1522,7 +1530,7 @@ public class ASTConverter {
       } else {
 
         declaration =
-            new JConstructorDeclaration(getFileLocation(cIC), null, name, null, false, (JClassType) getDeclaringClassType(binding));
+            new JConstructorDeclaration(getFileLocation(cIC), null, name, VisibilityModifier.NONE, false, (JClassType) getDeclaringClassType(binding));
       }
     }
 
@@ -2219,6 +2227,115 @@ public class ASTConverter {
     return result;
   }
 
+
+  public JMethodInvocationAssignmentStatement getIteratorFromIterable(Expression pExpr) {
+
+    // Get Object to be iterated
+    JExpression iterable = convertExpressionWithoutSideEffects(pExpr);
+
+    if(!(iterable instanceof JIdExpression)) {
+      throw new CFAGenerationRuntimeException(pExpr.toString() + "was not correctly proccessed." , pExpr);
+    }
+
+    FileLocation fileLoc = getFileLocation(pExpr);
+
+    //TODO correct JMethodExpression when standard Library will be
+    //              supported
+
+    List<JExpression> parameters = new LinkedList<>();
+
+    JInterfaceType iteratorTyp = new JInterfaceType("java_util_Iterator", VisibilityModifier.PUBLIC);
+
+    JIdExpression name = new JIdExpression(fileLoc, iteratorTyp, "iterator", null);
+
+    JReferencedMethodInvocationExpression mi =
+        new JReferencedMethodInvocationExpression(fileLoc, iteratorTyp, name, parameters, null, (JIdExpression) iterable);
+
+
+    // create Iterator Declaration
+    String varName = "it_";
+    int i = 0;
+    while (scope.variableNameInUse(varName + i, varName + i)) {
+      i++;
+    }
+    varName += i;
+
+    JVariableDeclaration decl = new JVariableDeclaration(fileLoc,
+        iteratorTyp,
+        varName,
+        varName,
+        null, NOT_FINAL);
+
+    scope.registerDeclarationOfThisClass(decl);
+
+    // Add Declaration before Assignment
+    preSideAssignments.add(decl);
+
+
+    enhancedForLoopIterator = new JIdExpression(decl.getFileLocation(),
+        iteratorTyp,
+        varName,
+        decl);
+
+    // Create Assignment it = x.iterators();
+    return new JMethodInvocationAssignmentStatement(
+        fileLoc, enhancedForLoopIterator, mi);
+
+  }
+
+  public JExpression createIteratorCondition(Expression e) {
+
+    FileLocation fileloc = enhancedForLoopIterator.getFileLocation();
+
+    JType type = new JSimpleType(JBasicType.BOOLEAN);
+
+    JExpression name = new JIdExpression(fileloc, type, "hasNext", null);
+
+    List<JExpression> parameters = new LinkedList<>();
+
+    JReferencedMethodInvocationExpression mi =
+        new JReferencedMethodInvocationExpression(
+            fileloc, type, name, parameters , null,
+            enhancedForLoopIterator);
+
+    return addSideassignmentsForExpressionsWithoutMethodInvocationSideEffects(mi, e);
+  }
+
+  public JMethodInvocationAssignmentStatement assignParameterToNextIteratorItem(SingleVariableDeclaration formalParameter) {
+
+    FileLocation fileLoc = getFileLocation(formalParameter);
+
+    JSimpleDeclaration param =
+        scope.lookupVariable(getFullyQualifiedName(
+                              formalParameter.resolveBinding()));
+
+    if (param == null) {
+      throw new CFAGenerationRuntimeException(
+        "Formal Parameter " + formalParameter.toString()
+            + " could not be proccessed", formalParameter);
+      }
+
+    JIdExpression paramIdExpr = new JIdExpression(
+                                            fileLoc,
+                                            param.getType(),
+                                            param.getName(),
+                                            param);
+
+    //TODO correct JMethodExpression when standard Library will be
+    //              supported
+
+    List<JExpression> parameters = new LinkedList<>();
+
+    JIdExpression name = new JIdExpression(fileLoc, param.getType(), "next", null);
+
+    JReferencedMethodInvocationExpression mi =
+        new JReferencedMethodInvocationExpression(fileLoc, param.getType(), name, parameters, null, enhancedForLoopIterator);
+
+    enhancedForLoopIterator = null;
+
+    return new JMethodInvocationAssignmentStatement(
+        fileLoc, paramIdExpr, mi);
+  }
 
   JStringLiteralExpression convert(StringLiteral e) {
     FileLocation fileLoc = getFileLocation(e);

@@ -48,6 +48,7 @@ import org.eclipse.jdt.core.dom.BreakStatement;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
 import org.eclipse.jdt.core.dom.ContinueStatement;
 import org.eclipse.jdt.core.dom.DoStatement;
+import org.eclipse.jdt.core.dom.EnhancedForStatement;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.ForStatement;
@@ -1975,6 +1976,119 @@ private void handleTernaryExpression(ConditionalExpression condExp,
   }
 
 
+  @Override
+  public boolean visit(EnhancedForStatement forStatement) {
+
+    scope.enterBlock();
+
+    handleElseCondition(forStatement);
+
+    final FileLocation fileloc = astCreator.getFileLocation(forStatement);
+    final int filelocStart = fileloc.getStartingLineNumber();
+    final int fileLocEnd = fileloc.getEndingLineNumber();
+
+    // Declare Formal Parameter for Loop
+    forStatement.getParameter().accept(this);
+
+    final CFANode prevNode = locStack.pop();
+
+    // loopInit is Node before the Iterator
+    final CFANode loopInit = new CFANode(filelocStart, cfa.getFunctionName());
+    cfaNodes.add(loopInit);
+    addToCFA(new BlankEdge("", filelocStart, prevNode, loopInit, "enhanced for"));
+
+    Expression iterable = forStatement.getExpression();
+
+    // loopStartNodes is the Node before the loop itself,
+    // it is the the one after the iterator
+    final CFANode loopStart =
+        createIteratorEdgeForEnhancedForLoop(iterable, filelocStart, loopInit);
+    loopStart.setLoopStart();
+
+    // firstLoopNode is Node after "it.hasNext()"
+    final CFANode firstLoopNode =
+        new CFANode(filelocStart, cfa.getFunctionName());
+    cfaNodes.add(firstLoopNode);
+
+    // postLoopNode is Node after "!(it.hasNext())"
+    final CFANode postLoopNode =
+        new CLabelNode(fileLocEnd, cfa.getFunctionName(), "");
+    cfaNodes.add(postLoopNode);
+    loopNextStack.push(postLoopNode);
+
+    // inverse order here!
+    locStack.push(postLoopNode);
+    locStack.push(firstLoopNode);
+
+    JExpression condition = astCreator.createIteratorCondition(forStatement.getExpression());
+
+    createConditionEdgesForForLoop(condition,
+        filelocStart, loopStart, postLoopNode, firstLoopNode);
+
+    // last node in loop
+    final CFANode lastNodeInLoop =
+        new CFANode(filelocStart, cfa.getFunctionName());
+    cfaNodes.add(lastNodeInLoop);
+
+    assignFormalParameterForLoop(forStatement.getParameter(), filelocStart);
+
+    // visit only loop body, not children
+    forStatement.getBody().accept(this);
+
+    // leave loop
+    final CFANode prev = locStack.pop();
+
+    final BlankEdge blankEdge = new BlankEdge("",
+        filelocStart, prev, lastNodeInLoop, "");
+    addToCFA(blankEdge);
+
+    // create Edge to Beginning of Loop (Enhanced For lacks update )
+    final BlankEdge loopEndToStart = new BlankEdge("",
+        filelocStart, lastNodeInLoop, loopStart, "");
+    addToCFA(loopEndToStart);
+
+    assert postLoopNode == loopNextStack.pop();
+    assert postLoopNode == locStack.peek();
+
+    scope.leaveBlock();
+
+    // skip visiting children of loop, because loopbody was handled before
+    return SKIP_CHILDS;
+  }
+
+  private void assignFormalParameterForLoop(SingleVariableDeclaration parameter, int fileLocStart) {
+
+    CFANode prevNode = locStack.poll();
+
+    JStatement assignment = astCreator.assignParameterToNextIteratorItem(parameter);
+
+    CFANode nextNode = new CFANode(fileLocStart, cfa.getFunctionName());
+    cfaNodes.add(nextNode);
+
+    final JStatementEdge edge = new JStatementEdge(assignment.toASTString(),
+        assignment, fileLocStart, prevNode, nextNode);
+   addToCFA(edge);
+
+   locStack.push(nextNode);
+
+  }
+
+  private CFANode createIteratorEdgeForEnhancedForLoop(Expression expr, int filelocStart, CFANode loopInit) {
+
+    CFANode prevNode = loopInit;
+
+    JMethodInvocationAssignmentStatement assignment = astCreator.getIteratorFromIterable(expr);
+
+    prevNode = handleSideassignments(prevNode, "", filelocStart);
+
+    CFANode nextNode = new CFANode(filelocStart, cfa.getFunctionName());
+    cfaNodes.add(nextNode);
+
+    final JStatementEdge edge = new JStatementEdge("", assignment, filelocStart, prevNode, nextNode);
+    addToCFA(edge);
+
+    return nextNode;
+  }
 
   @Override
   public boolean visit(final ForStatement forStatement) {
@@ -2008,7 +2122,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         new CFANode(filelocStart, cfa.getFunctionName());
     cfaNodes.add(firstLoopNode);
 
-    // firstLoopNode is Node after "!(counter < 5)"
+    // postLoopNode is Node after "!(counter < 5)"
     final CFANode postLoopNode =
         new CLabelNode(fileLocEnd, cfa.getFunctionName(), "");
     cfaNodes.add(postLoopNode);
@@ -2061,6 +2175,22 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
   private void createConditionEdgesForForLoop(
       Expression condition, int filelocStart, CFANode loopStart,
+                    CFANode postLoopNode, CFANode firstLoopNode) {
+
+    if (condition == null) {
+      // no condition -> only a blankEdge from loopStart to firstLoopNode
+      final BlankEdge blankEdge = new BlankEdge("", filelocStart, loopStart,
+          firstLoopNode, "");
+      addToCFA(blankEdge);
+
+    } else {
+      createConditionEdges(condition, filelocStart, loopStart, firstLoopNode,
+          postLoopNode);
+    }
+  }
+
+  private void createConditionEdgesForForLoop(
+      JExpression condition, int filelocStart, CFANode loopStart,
                     CFANode postLoopNode, CFANode firstLoopNode) {
 
     if (condition == null) {
