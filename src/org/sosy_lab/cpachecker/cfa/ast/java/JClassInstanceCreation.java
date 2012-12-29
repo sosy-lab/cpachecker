@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
 
 public class JClassInstanceCreation extends JMethodInvocationExpression implements JRightHandSide {
 
-  public JClassInstanceCreation(FileLocation pFileLocation, JConstructorType pType, JExpression pFunctionName,
+  public JClassInstanceCreation(FileLocation pFileLocation, JClassType pType, JExpression pFunctionName,
       List<? extends JExpression> pParameters, JConstructorDeclaration pDeclaration) {
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
 
@@ -43,15 +43,14 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
   }
 
   @Override
-  public JConstructorType getExpressionType() {
-    return (JConstructorType) super.getExpressionType();
+  public JClassType getExpressionType() {
+    return (JClassType) super.getExpressionType();
   }
 
   @Override
   public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
   }
-
 
   @Override
   public String toASTString() {

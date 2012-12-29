@@ -79,7 +79,7 @@ class Scope {
   private String currentMethodName = null;
   private String currentClassName = null;
 
-  // fully Qualified main Class (not the ast one, but the real one with . instead of _)
+  // fully Qualified main Class (not the ast name, but the real name with . instead of _)
   private final String fullyQualifiedMainClassName;
   private final String rootPathofProgram;
 
@@ -318,7 +318,6 @@ class Scope {
      String name = decl.getName();
 
      // multiple declarations of the same variable are disallowed
-     // unless i
      if (programScopeVars.containsKey(name)) {
        throw new CFAGenerationRuntimeException("Variable " + name + " already declared", decl);
      }
@@ -326,7 +325,7 @@ class Scope {
      programScopeVars.put(name, decl);
 
      if(type instanceof JClassOrInterfaceType) {
-     registerFieldDeclarationOfClass(decl, ((JClassOrInterfaceType) type).getName());
+       registerFieldDeclarationOfClass(decl, ((JClassOrInterfaceType) type).getName());
      } else {
        registerFieldDeclarationOfUnspecifiedClass(decl);
      }
@@ -366,7 +365,6 @@ class Scope {
 
   public void registerMethodDeclaration(JMethodDeclaration declaration) {
     checkState(!isProgramScope(), "method was not declared in class");
-    checkState(isTopClassScope(), "nested methods not allowed");
 
     String name = declaration.getName();
     assert name != null;

@@ -113,7 +113,7 @@ import com.google.common.collect.ImmutableList;
  * Builder to traverse AST.
  *
  */
-class CFAFunctionBuilder extends ASTVisitor {
+class CFAMethodBuilder extends ASTVisitor {
 
   private static final boolean VISIT_CHILDS = true;
 
@@ -147,7 +147,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private final LogManager logger;
 
-  public CFAFunctionBuilder(LogManager pLogger,
+  public CFAMethodBuilder(LogManager pLogger,
                               Scope pScope, ASTConverter pAstCreator) {
     logger = pLogger;
     scope = pScope;

@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
 
 public class JSuperConstructorInvocation extends JClassInstanceCreation {
 
-  public JSuperConstructorInvocation(FileLocation pFileLocation, JConstructorType pType, JExpression pFunctionName,
+  public JSuperConstructorInvocation(FileLocation pFileLocation, JClassType pType, JExpression pFunctionName,
       List<? extends JExpression> pParameters, JConstructorDeclaration pDeclaration) {
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
 
@@ -39,7 +39,6 @@ public class JSuperConstructorInvocation extends JClassInstanceCreation {
 
   @Override
   public String toASTString() {
-    // TODO Auto-generated method stub
     return getExpressionType().toASTString("super");
   }
 

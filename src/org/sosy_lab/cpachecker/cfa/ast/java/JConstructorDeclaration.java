@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 
 
@@ -32,14 +33,13 @@ public class JConstructorDeclaration extends JMethodDeclaration {
 
 
   public JConstructorDeclaration(FileLocation pFileLocation, JConstructorType pType, String pName,
-      VisibilityModifier pVisibility, boolean pIsStrictfp) {
+      VisibilityModifier pVisibility, boolean pIsStrictfp, JClassType declaringClass) {
     super(pFileLocation, pType, pName, pVisibility, false, false, false, false, false,
-        pIsStrictfp, pType.getReturnType());
+        pIsStrictfp, declaringClass);
   }
 
   @Override
   public JConstructorType getType() {
     return (JConstructorType) super.getType();
   }
-
 }

@@ -191,7 +191,7 @@ class CFABuilder extends ASTVisitor {
         classHasConstructor.add(declaration.resolveBinding().getDeclaringClass());
       }
 
-      CFAFunctionBuilder methodBuilder = new CFAFunctionBuilder(logger,
+      CFAMethodBuilder methodBuilder = new CFAMethodBuilder(logger,
           scope, astCreator);
 
       declaration.accept(methodBuilder);
@@ -215,7 +215,7 @@ class CFABuilder extends ASTVisitor {
       if (!classHasConstructor.contains(classBinding)
           && (classBinding.getDeclaredModifiers() & Modifier.ABSTRACT) != Modifier.ABSTRACT) {
 
-        CFAFunctionBuilder methodBuilder = new CFAFunctionBuilder(logger,
+        CFAMethodBuilder methodBuilder = new CFAMethodBuilder(logger,
             scope, astCreator);
 
         methodBuilder.createDefaultConstructor(classBinding);

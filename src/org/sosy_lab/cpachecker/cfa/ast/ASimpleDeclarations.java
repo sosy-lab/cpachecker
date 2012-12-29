@@ -37,7 +37,7 @@ import com.google.common.base.Strings;
  */
 public abstract class ASimpleDeclarations extends AstNode implements IASimpleDeclaration {
 
-  private final Type type;
+  private  Type type;
   private final String name;
   private final String origName;
 
@@ -71,5 +71,9 @@ public abstract class ASimpleDeclarations extends AstNode implements IASimpleDec
   @Override
   public Type getType() {
     return type;
+  }
+
+  protected void setType(Type pType) {
+    type = pType;
   }
 }

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 
 import com.google.common.base.Strings;
@@ -74,7 +75,6 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
 
   @Override
   public JMethodType getType() {
-    // TODO Auto-generated method stub
     return (JMethodType) super.getType();
   }
 
@@ -146,4 +146,20 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
   public JClassOrInterfaceType getDeclaringClass() {
     return declaringClass;
   }
+
+  /**
+   * This method updates the declaration Type, because it
+   * can't be constructed from a Method Binding.
+   * DO NOT CALL THIS METHOD OUTSIDE OF ASTCONVERTER.
+   *
+   * @param type new method Type to be assigned to this declaration.
+   */
+  public void updateMethodType(JMethodType type) {
+
+    if(this instanceof JConstructorDeclaration) {
+      assert type instanceof JConstructorType;
+    }
+    setType(type);
+  }
+
 }

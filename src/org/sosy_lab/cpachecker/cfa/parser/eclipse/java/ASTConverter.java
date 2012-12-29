@@ -315,6 +315,14 @@ public class ASTConverter {
 
     // If declaration was already parsed, return declaration
     if (scope.isMethodRegistered(methodName)) {
+
+      JMethodDeclaration decl = scope.lookupMethod(methodName);
+
+      // Declaration was created from Binding, update Method Type.
+      if(decl.getType() == null) {
+        updateType(decl ,md);
+      }
+
       return scope.lookupMethod(methodName);
     }
 
@@ -330,24 +338,14 @@ public class ASTConverter {
 
     if (md.isConstructor()) {
 
-      JType declaringClassType =
-           convert(md.resolveBinding().getDeclaringClass());
-
-      JClassType declaringClass;
-      if(declaringClassType instanceof JClassType) {
-        declaringClass = (JClassType) declaringClassType;
-      } else {
-        // Create a dummy if type is Unspecified
-        declaringClass = new JClassType("_unspecified_",
-            VisibilityModifier.NONE, false, false, false);
-      }
-
+      // Constructors can't be declared by Interfaces
+      JClassType declaringClass = (JClassType) getDeclaringClassType(md);
 
       JConstructorType type =
           new JConstructorType(declaringClass, param, md.isVarargs());
 
       return new JConstructorDeclaration(
-          fileLoc, type, methodName, mb.getVisibility(), mb.isStrictFp);
+          fileLoc, type, methodName, mb.getVisibility(), mb.isStrictFp(), declaringClass);
 
     } else {
 
@@ -355,29 +353,62 @@ public class ASTConverter {
       boolean isAbstract = mb.isAbstract() ||
           md.resolveBinding().getDeclaringClass().isInterface();
 
-      JMethodType declSpec =
+      JMethodType methodType =
           new JMethodType(convert(md.getReturnType2()), param, md.isVarargs());
 
 
-      JType declaringClassType =
-          convert(md.resolveBinding().getDeclaringClass());
+      JClassOrInterfaceType declaringClass = getDeclaringClassType(md);
 
-     JClassOrInterfaceType declaringClass;
-     if(declaringClassType instanceof JClassOrInterfaceType) {
-       declaringClass = (JClassOrInterfaceType) declaringClassType;
-     } else {
-       // Create a dummy if type is Unspecified
-       declaringClass = new JClassType("_unspecified_",
-           VisibilityModifier.NONE, false, false, false);
-     }
 
-      return new JMethodDeclaration(fileLoc, declSpec, methodName,
+      return new JMethodDeclaration(fileLoc, methodType, methodName,
           mb.getVisibility(), mb.isFinal(),
           isAbstract, mb.isStatic(), mb.isNative(),
           mb.isSynchronized(), mb.isStrictFp(),
           declaringClass);
     }
   }
+
+
+  private JClassOrInterfaceType getDeclaringClassType(MethodDeclaration md) {
+
+    return getDeclaringClassType(md.resolveBinding());
+  }
+
+
+
+  private JClassOrInterfaceType getDeclaringClassType(IMethodBinding mi) {
+    JType declaringClassType = convert(mi.getDeclaringClass());
+
+    JClassOrInterfaceType declaringClass;
+    if(declaringClassType instanceof JClassOrInterfaceType) {
+      declaringClass = (JClassOrInterfaceType) declaringClassType;
+    } else {
+        // Create a dummy if type is Unspecified
+      declaringClass = new JClassType("_unspecified_",
+        VisibilityModifier.NONE, false, false, false);
+    }
+    return declaringClass;
+  }
+
+
+
+  private void updateType(JMethodDeclaration pDecl, MethodDeclaration md) {
+
+    @SuppressWarnings({ "cast", "unchecked" })
+    List<JParameterDeclaration> param =
+        convertParameterList((List<SingleVariableDeclaration>) md.parameters());
+
+    if (md.isConstructor()) {
+
+      JConstructorType type = new JConstructorType((JClassType) getDeclaringClassType(md), param, md.isVarargs());
+      pDecl.updateMethodType(type);
+    } else {
+
+      JMethodType type = new JMethodType(convert(md.getReturnType2()), param, md.isVarargs());
+      pDecl.updateMethodType(type);
+    }
+  }
+
 
 
   /**
@@ -1011,10 +1042,12 @@ public class ASTConverter {
    */
   public JStatement convert(final SuperConstructorInvocation sCI) {
 
-    boolean canBeResolved = sCI.resolveConstructorBinding() != null;
+    IMethodBinding binding = sCI.resolveConstructorBinding();
+
+    boolean canBeResolved = binding != null;
 
     if (canBeResolved) {
-      scope.registerClass(sCI.resolveConstructorBinding().getDeclaringClass());
+      scope.registerClass(binding.getDeclaringClass());
     }
 
     @SuppressWarnings("unchecked")
@@ -1031,35 +1064,39 @@ public class ASTConverter {
 
     String name;
 
-
-    JClassType constructorClassType;
-
     if (canBeResolved) {
-      name = getFullyQualifiedMethodName(sCI.resolveConstructorBinding());
-      constructorClassType = convertClassType(sCI.resolveConstructorBinding().getDeclaringClass());
+      name = getFullyQualifiedMethodName(binding);
     } else {
       // If binding can't be resolved, the constructor is not parsed in all cases.
       name = sCI.toString().replace('.', '_');
-      constructorClassType = new JClassType("dummy", VisibilityModifier.PUBLIC, false, false, false);
     }
 
     JConstructorDeclaration declaration = (JConstructorDeclaration) scope.lookupMethod(name);
 
     if (declaration == null) {
-      //TODO ugly, search for a way to get legitimate Declarations
-      declaration =
-          new JConstructorDeclaration(getFileLocation(sCI), new JConstructorType(constructorClassType,
-              new ArrayList<JParameterDeclaration>(), false), name, VisibilityModifier.PUBLIC, false);
 
+      if (canBeResolved) {
+
+        ModifierBean mb = ModifierBean.getModifiers(binding);
+
+        declaration =
+            new JConstructorDeclaration(getFileLocation(sCI),
+                null, name, mb.getVisibility(), mb.isStrictFp(), (JClassType) getDeclaringClassType(binding));
+
+        scope.registerMethodDeclaration(declaration);
+
+      } else {
+
+        declaration =
+            new JConstructorDeclaration(getFileLocation(sCI), null, name, null, false, (JClassType) getDeclaringClassType(binding));
+      }
     }
-
-    //TODO Investigate if type Right
 
     JExpression functionName;
 
     if (canBeResolved) {
       functionName =
-          new JIdExpression(getFileLocation(sCI), convert(sCI.resolveConstructorBinding().getReturnType()), name,
+          new JIdExpression(getFileLocation(sCI), convert(binding.getReturnType()), name,
               declaration);
     } else {
       functionName =
@@ -1078,13 +1115,8 @@ public class ASTConverter {
           new JIdExpression(idExpression.getFileLocation(), idExpression.getExpressionType(), name, declaration);
     }
 
-    JConstructorType type = null;
-
-
-    type = declaration.getType();
-
     return new JMethodInvocationStatement(getFileLocation(sCI), new JSuperConstructorInvocation(getFileLocation(sCI),
-        type, functionName, params, declaration));
+        (JClassType) getDeclaringClassType(binding), functionName, params, declaration));
   }
 
   /**
@@ -1213,20 +1245,11 @@ public class ASTConverter {
 
     if (canBeResolve && declaration == null) {
 
-      boolean returnTypeFound = e.resolveTypeBinding() != null;
-
-      JType returnType;
-
-      if (returnTypeFound) {
-        returnType = convert(e.resolveTypeBinding());
-      } else {
-        returnType = new JSimpleType(JBasicType.UNSPECIFIED);
-      }
-
       declaration =
-          new JMethodDeclaration(getFileLocation(e), new JMethodType(returnType,
-              new ArrayList<JParameterDeclaration>(), false), methodName.toASTString(), VisibilityModifier.PUBLIC,
+          new JMethodDeclaration(getFileLocation(e), null, methodName.toASTString(), VisibilityModifier.PUBLIC,
               mb.isFinal(), mb.isAbstract(), mb.isStatic(), mb.isNative(), mb.isSynchronized(), mb.isStrictFp(), declaringClassType);
+
+      scope.registerMethodDeclaration(declaration);
     }
 
       JMethodInvocationExpression miv =
@@ -1452,12 +1475,14 @@ public class ASTConverter {
 
   private JAstNode convert(ClassInstanceCreation cIC) {
 
-    boolean canBeResolved = cIC.resolveConstructorBinding() != null;
+    IMethodBinding binding = cIC.resolveConstructorBinding();
+
+    boolean canBeResolved = binding != null;
+
 
     if (canBeResolved) {
-      scope.registerClass(cIC.resolveConstructorBinding().getDeclaringClass());
+      scope.registerClass(binding.getDeclaringClass());
     }
-
 
     @SuppressWarnings("unchecked")
     List<Expression> p = cIC.arguments();
@@ -1473,29 +1498,34 @@ public class ASTConverter {
 
     String name;
 
-    JClassType constructorClassType;
-
     if (canBeResolved) {
-      name = getFullyQualifiedMethodName(cIC.resolveConstructorBinding());
-      constructorClassType = convertClassType(cIC.resolveConstructorBinding().getDeclaringClass());
+      name = getFullyQualifiedMethodName(binding);
     } else {
       // If binding can't be resolved, the constructor is not parsed in all cases.
       name = cIC.toString().replace('.', '_');
-      constructorClassType = new JClassType("dummy", VisibilityModifier.PUBLIC, false, false, false);
     }
 
     JConstructorDeclaration declaration = (JConstructorDeclaration) scope.lookupMethod(name);
 
     if (declaration == null) {
-      //TODO ugly, search for a way to get legitimate Declarations
 
-      declaration =
-          new JConstructorDeclaration(getFileLocation(cIC), new JConstructorType(constructorClassType,
-              new ArrayList<JParameterDeclaration>(), false), name, VisibilityModifier.PUBLIC, false);
+      if (canBeResolved) {
 
+        ModifierBean mb = ModifierBean.getModifiers(binding);
+
+        declaration =
+            new JConstructorDeclaration(getFileLocation(cIC),
+                null, name, mb.getVisibility(), mb.isStrictFp(), (JClassType) getDeclaringClassType(binding));
+
+        scope.registerMethodDeclaration(declaration);
+
+      } else {
+
+        declaration =
+            new JConstructorDeclaration(getFileLocation(cIC), null, name, null, false, (JClassType) getDeclaringClassType(binding));
+      }
     }
 
-    //TODO Investigate if type Right
     JExpression functionName =
         new JIdExpression(getFileLocation(cIC), convert(cIC.resolveTypeBinding()), name, declaration);
     JIdExpression idExpression = (JIdExpression) functionName;
@@ -1509,14 +1539,10 @@ public class ASTConverter {
           new JIdExpression(idExpression.getFileLocation(), idExpression.getExpressionType(), name, declaration);
     }
 
-    JConstructorType type = null;
 
-
-    type = declaration.getType();
-
-
-    //TODO getDeclaration somehow (Needs to be done after everything is parsed)
-    return new JClassInstanceCreation(getFileLocation(cIC), type, functionName, params, declaration);
+    return new JClassInstanceCreation(getFileLocation(cIC),
+        (JClassType) getDeclaringClassType(binding), functionName,
+        params, declaration);
   }
 
 
@@ -1752,20 +1778,10 @@ public class ASTConverter {
 
     if (canBeResolve && declaration == null) {
 
-      boolean returnTypeFound = mi.resolveTypeBinding() != null;
-
-      JType returnType;
-
-      if (returnTypeFound) {
-        returnType = convert(mi.resolveTypeBinding());
-      } else {
-        returnType = new JSimpleType(JBasicType.UNSPECIFIED);
-      }
-
       declaration =
-          new JMethodDeclaration(getFileLocation(mi), new JMethodType(returnType,
-              new ArrayList<JParameterDeclaration>(), false), methodName.toASTString(), VisibilityModifier.PUBLIC,
-              mb.isFinal, mb.isAbstract, mb.isStatic, mb.isNative, mb.isSynchronized, mb.isStrictFp, declaringClassType);
+          new JMethodDeclaration(getFileLocation(mi), null, methodName.toASTString(), mb.getVisibility(),
+              mb.isFinal(), mb.isAbstract(), mb.isStatic(), mb.isNative(), mb.isSynchronized(), mb.isStrictFp(), declaringClassType);
+      scope.registerMethodDeclaration(declaration);
     }
 
     if (!(referencedVariableName instanceof JIdExpression)) {
@@ -2312,9 +2328,9 @@ public class ASTConverter {
 
   public void assignRunTimeClass(JReferencedMethodInvocationExpression methodInvocation,
       JClassInstanceCreation functionCall) {
-    JConstructorType constructorType = functionCall.getExpressionType();
+    JClassType returnType = functionCall.getExpressionType();
 
-    methodInvocation.setRunTimeBinding(constructorType.getReturnType());
+    methodInvocation.setRunTimeBinding(returnType);
   }
 
   public JExpressionAssignmentStatement getBooleanAssign(JExpression pLeftHandSide, boolean booleanLiteral) {
@@ -2332,14 +2348,13 @@ public class ASTConverter {
    */
   public JMethodDeclaration createDefaultConstructor(ITypeBinding classBinding) {
 
-
     List<JParameterDeclaration> param = new LinkedList<>();
 
     // TODO File Location of Default Constructor???
     FileLocation fileLoc = new FileLocation(0, "", 0, 0, 0);
 
     JConstructorType type = new JConstructorType((JClassType) convert( classBinding), param , false);
-    return new JConstructorDeclaration(fileLoc, type , getFullyQualifiedDefaultConstructorName(classBinding) , VisibilityModifier.PUBLIC  , false);
+    return new JConstructorDeclaration(fileLoc, type , getFullyQualifiedDefaultConstructorName(classBinding) , VisibilityModifier.PUBLIC  , false, type.getReturnType());
   }
 
   private String getFullyQualifiedDefaultConstructorName(ITypeBinding classBinding) {

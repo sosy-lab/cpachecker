@@ -758,7 +758,7 @@ public class RTTTransferRelation implements TransferRelation {
 
     @Override
     public String visit(JClassInstanceCreation jClassInstanzeCreation) throws UnrecognizedCCodeException {
-      return jClassInstanzeCreation.getExpressionType().getReturnType().getName();
+      return jClassInstanzeCreation.getExpressionType().getName();
     }
 
     @Override
