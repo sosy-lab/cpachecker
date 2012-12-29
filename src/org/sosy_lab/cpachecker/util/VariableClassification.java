@@ -165,7 +165,7 @@ public class VariableClassification {
 
       if (dumpfile != null) { // option -noout
         // System.out.println(dependencies);
-        final String content = "BOOL\n" + booleanVars +
+        final String content = "Boolean\n" + booleanVars +
             "\n\nIntEqual\n\n" + intEqualVars +
             "\n\nIntAdd\n\n" + intAddVars +
             "\n\nALL\n\n" + allVars;
