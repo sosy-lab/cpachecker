@@ -25,11 +25,13 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 
 
-public interface CInitializerVisitor<R, X extends Exception> extends CExpressionVisitor<R, X> {
+public interface CDesignatorVisitor<R, X extends Exception> extends CExpressionVisitor<R, X> {
 
-  R visit(CInitializerExpression pInitializerExpression) throws X;
+  R visit(CArrayDesignator pArrayDesignator) throws X;
 
-  R visit(CInitializerList pInitializerList) throws X;
+  R visit(CArrayRangeDesignator pArrayRangeDesignator) throws X;
 
-  R visit(CDesignatedInitializer pCStructInitializerPart) throws X;
+  R visit(CFieldDesignator pFieldDesignator) throws X;
+
+  R visit(CEmptyDesignator pCEmptyDesignator) throws X;
 }

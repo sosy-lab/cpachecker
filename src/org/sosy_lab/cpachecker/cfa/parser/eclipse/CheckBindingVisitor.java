@@ -27,13 +27,19 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatorVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEmptyDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -48,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStructInitializerPart;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -61,7 +66,8 @@ import com.google.common.collect.Sets;
  */
 class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRuntimeException>,
                                        CInitializerVisitor<Void, CFAGenerationRuntimeException>,
-                                       CStatementVisitor<Void, CFAGenerationRuntimeException> {
+                                       CStatementVisitor<Void, CFAGenerationRuntimeException>,
+                                       CDesignatorVisitor<Void, CFAGenerationRuntimeException> {
 
   private final LogManager logger;
 
@@ -205,9 +211,37 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
   }
 
   @Override
-  public Void visit(CStructInitializerPart e) throws CFAGenerationRuntimeException {
+  public Void visit(CDesignatedInitializer e) throws CFAGenerationRuntimeException {
     e.getLeftHandSide().accept(this);
     e.getRightHandSide().accept(this);
+    return null;
+  }
+
+  @Override
+  public Void visit(CArrayDesignator e) throws CFAGenerationRuntimeException {
+    e.getArrayDesignator().accept(this);
+    e.getSubscriptExpression().accept(this);
+    return null;
+  }
+
+  @Override
+  public Void visit(CArrayRangeDesignator e) throws CFAGenerationRuntimeException {
+    e.getArrayDesignator().accept(this);
+    e.getFloorExpression().accept(this);
+    e.getCeilExpression().accept(this);
+    return null;
+  }
+
+  @Override
+  public Void visit(CFieldDesignator e) throws CFAGenerationRuntimeException {
+    e.getFieldOwner().accept(this);
+    return null;
+  }
+
+  @Override
+  public Void visit(CEmptyDesignator e) throws CFAGenerationRuntimeException {
+    // nothing to do here, empty designator is only the end of chained
+    // designators
     return null;
   }
 }

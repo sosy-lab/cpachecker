@@ -23,13 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
-public interface CInitializerVisitor<R, X extends Exception> extends CExpressionVisitor<R, X> {
+public abstract class CADesignator implements CIADesignator {
 
-  R visit(CInitializerExpression pInitializerExpression) throws X;
+  private FileLocation fileLoc;
 
-  R visit(CInitializerList pInitializerList) throws X;
+  public CADesignator(FileLocation pFileLoc) {
+    fileLoc = pFileLoc;
+  }
 
-  R visit(CDesignatedInitializer pCStructInitializerPart) throws X;
+  @Override
+  public FileLocation getFileLocation() {
+    return fileLoc;
+  }
+
 }

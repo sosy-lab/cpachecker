@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 
+/**
+ * Interfaces for all possible designators in a designated initializer.
+ *
+ */
+public interface CIADesignator extends IAstNode {
 
-public interface CInitializerVisitor<R, X extends Exception> extends CExpressionVisitor<R, X> {
-
-  R visit(CInitializerExpression pInitializerExpression) throws X;
-
-  R visit(CInitializerList pInitializerList) throws X;
-
-  R visit(CDesignatedInitializer pCStructInitializerPart) throws X;
+  public <R, X extends Exception> R accept(CDesignatorVisitor<R, X> pV) throws X;
 }

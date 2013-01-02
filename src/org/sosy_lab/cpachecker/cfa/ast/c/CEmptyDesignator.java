@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,13 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
-public interface CInitializerVisitor<R, X extends Exception> extends CExpressionVisitor<R, X> {
+public class CEmptyDesignator extends CADesignator{
 
-  R visit(CInitializerExpression pInitializerExpression) throws X;
+  public CEmptyDesignator(final FileLocation pFileLocation) {
+     super(pFileLocation);
+  }
 
-  R visit(CInitializerList pInitializerList) throws X;
+  @Override
+  public String toASTString() {
+    return "";
+  }
 
-  R visit(CDesignatedInitializer pCStructInitializerPart) throws X;
+  @Override
+  public String toParenthesizedASTString() {
+    return toASTString();
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CDesignatorVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
 }

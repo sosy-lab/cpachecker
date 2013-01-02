@@ -24,12 +24,37 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 
-public interface CInitializerVisitor<R, X extends Exception> extends CExpressionVisitor<R, X> {
+public class CDesignatedInitializer extends Initializer implements CInitializer {
 
-  R visit(CInitializerExpression pInitializerExpression) throws X;
 
-  R visit(CInitializerList pInitializerList) throws X;
+  private final CIADesignator left;
+  private final CExpression right;
 
-  R visit(CDesignatedInitializer pCStructInitializerPart) throws X;
+  public CDesignatedInitializer(FileLocation pFileLocation , final CIADesignator pLeft, final CExpression pRight) {
+    super(pFileLocation);
+    left = pLeft;
+    right = pRight;
+  }
+
+  @Override
+  public String toASTString() {
+      return left.toASTString() + " = " + right.toASTString();
+  }
+
+  public CIADesignator getLeftHandSide() {
+    return left;
+  }
+
+  public CExpression getRightHandSide() {
+    return right;
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CInitializerVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
+
 }
