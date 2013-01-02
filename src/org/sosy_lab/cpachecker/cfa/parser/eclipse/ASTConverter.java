@@ -109,7 +109,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStructInitializerPart;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
@@ -855,16 +854,30 @@ class ASTConverter {
 
       // Add the modifiers to the type.
       CType type = specifier;
+      //array modifiers have to be added backwards, otherwise the arraysize is wrong
+      // with multidimensional arrays
+      List<IASTArrayModifier> tmpArrMod = Lists.newArrayListWithExpectedSize(1);
       for (IASTNode modifier : modifiers) {
         if (modifier instanceof IASTArrayModifier) {
-          type = convert((IASTArrayModifier)modifier, type);
-
+          tmpArrMod.add((IASTArrayModifier) modifier);
         } else if (modifier instanceof IASTPointerOperator) {
+          //add accumulated array modifiers before adding next pointer operator
+          for(int i = tmpArrMod.size() -1; i >= 0; i--) {
+            type = convert(tmpArrMod.get(i), type);
+          }
+          // clear added modifiers
+          tmpArrMod.clear();
+
           type = ASTTypeConverter.convert((IASTPointerOperator)modifier, type);
 
         } else {
           assert false;
         }
+      }
+
+      // add last array modifiers if necessary
+      for(int i = tmpArrMod.size() -1; i >= 0; i--) {
+        type = convert(tmpArrMod.get(i), type);
       }
 
       return Triple.of(type, initializer, name);
