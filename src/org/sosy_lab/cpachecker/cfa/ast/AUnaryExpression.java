@@ -57,6 +57,38 @@ public abstract class AUnaryExpression extends AExpression {
     }
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((operand == null) ? 0 : operand.hashCode());
+    result = prime * result + ((operator == null) ? 0 : operator.hashCode());
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof AUnaryExpression)) { return false; }
+    AUnaryExpression other = (AUnaryExpression) obj;
+    if (operand == null) {
+      if (other.operand != null) { return false; }
+    } else if (!operand.equals(other.operand)) { return false; }
+    if (operator == null) {
+      if (other.operator != null) { return false; }
+    } else if (!operator.equals(other.operator)) { return false; }
+
+    return super.equals(other);
+  }
+
   public static  interface AUnaryOperator {
     /**
      * Returns the string representation of this operator (e.g. "*", "+").

@@ -53,4 +53,31 @@ public abstract class AFunctionCallStatement extends AStatement implements AFunc
   public IAStatement asStatement() {
     return this;
   }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((functionCall == null) ? 0 : functionCall.hashCode());
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof AFunctionCallStatement)) { return false; }
+    AFunctionCallStatement other = (AFunctionCallStatement) obj;
+    if (functionCall == null) {
+      if (other.functionCall != null) { return false; }
+    } else if (!functionCall.equals(other.functionCall)) { return false; }
+    return true;
+  }
+
 }

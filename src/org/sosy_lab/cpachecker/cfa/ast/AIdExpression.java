@@ -57,4 +57,37 @@ public abstract class AIdExpression extends AExpression {
   public IASimpleDeclaration getDeclaration() {
     return   declaration;
   }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((declaration == null) ? 0 : declaration.hashCode());
+    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof AIdExpression)) { return false; }
+    AIdExpression other = (AIdExpression) obj;
+    if (declaration == null) {
+      if (other.declaration != null) { return false; }
+    } else if (!declaration.equals(other.declaration)) { return false; }
+    if (name == null) {
+      if (other.name != null) { return false; }
+    } else if (!name.equals(other.name)) { return false; }
+
+    return super.equals(other);
+  }
+
 }

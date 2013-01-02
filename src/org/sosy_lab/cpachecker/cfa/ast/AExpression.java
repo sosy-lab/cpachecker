@@ -38,4 +38,13 @@ public abstract class AExpression extends ARightHandSide implements IAExpression
     super(pFileLocation, pType);
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return super.equals(obj);
+  }
 }

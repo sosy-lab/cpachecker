@@ -69,4 +69,32 @@ public abstract class AVariableDeclaration extends ADeclaration {
     initializer = pCInitializer;
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((initializer == null) ? 0 : initializer.hashCode());
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof AVariableDeclaration)) { return false; }
+    AVariableDeclaration other = (AVariableDeclaration) obj;
+    if (initializer == null) {
+      if (other.initializer != null) { return false; }
+    } else if (!initializer.equals(other.initializer)) { return false; }
+
+    return super.equals(other);
+  }
+
 }

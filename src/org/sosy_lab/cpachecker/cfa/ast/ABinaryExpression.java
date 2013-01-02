@@ -68,11 +68,48 @@ public abstract class ABinaryExpression extends AExpression {
         + operator.getOperator() + " " + operand2.toParenthesizedASTString();
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((operand1 == null) ? 0 : operand1.hashCode());
+    result = prime * result + ((operand2 == null) ? 0 : operand2.hashCode());
+    result = prime * result + ((operator == null) ? 0 : operator.hashCode());
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof ABinaryExpression)) { return false; }
+    ABinaryExpression other = (ABinaryExpression) obj;
+    if (operand1 == null) {
+      if (other.operand1 != null) { return false; }
+    } else if (!operand1.equals(other.operand1)) { return false; }
+    if (operand2 == null) {
+      if (other.operand2 != null) { return false; }
+    } else if (!operand2.equals(other.operand2)) { return false; }
+    if (operator == null) {
+      if (other.operator != null) { return false; }
+    } else if (!operator.equals(other.operator)) { return false; }
+
+    return super.equals(other);
+  }
+
   public static  interface ABinaryOperator {
     /**
      * Returns the string representation of this operator (e.g. "*", "+").
      */
     public String getOperator();
   }
-
 }

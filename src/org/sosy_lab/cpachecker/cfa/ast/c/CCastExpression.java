@@ -70,4 +70,36 @@ public final class CCastExpression extends AExpression implements CExpression {
     return "(" + type.toASTString("") + ")" + operand.toParenthesizedASTString();
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((operand == null) ? 0 : operand.hashCode());
+    result = prime * result + ((type == null) ? 0 : type.hashCode());
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof CCastExpression)) { return false; }
+    CCastExpression other = (CCastExpression) obj;
+    if (operand == null) {
+      if (other.operand != null) { return false; }
+    } else if (!operand.equals(other.operand)) { return false; }
+    if (type == null) {
+      if (other.type != null) { return false; }
+    } else if (!type.equals(other.type)) { return false; }
+
+    return true;
+  }
+
+
 }

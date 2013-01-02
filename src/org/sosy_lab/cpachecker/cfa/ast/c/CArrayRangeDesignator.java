@@ -69,4 +69,41 @@ public class CArrayRangeDesignator extends CADesignator{
   public <R, X extends Exception> R accept(CDesignatorVisitor<R, X> pV) throws X {
     return pV.visit(this);
   }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((arrayDesignator == null) ? 0 : arrayDesignator.hashCode());
+    result = prime * result + ((rangeCeiling == null) ? 0 : rangeCeiling.hashCode());
+    result = prime * result + ((rangeFloor == null) ? 0 : rangeFloor.hashCode());
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof CArrayRangeDesignator)) { return false; }
+    CArrayRangeDesignator other = (CArrayRangeDesignator) obj;
+    if (arrayDesignator == null) {
+      if (other.arrayDesignator != null) { return false; }
+    } else if (!arrayDesignator.equals(other.arrayDesignator)) { return false; }
+    if (rangeCeiling == null) {
+      if (other.rangeCeiling != null) { return false; }
+    } else if (!rangeCeiling.equals(other.rangeCeiling)) { return false; }
+    if (rangeFloor == null) {
+      if (other.rangeFloor != null) { return false; }
+    } else if (!rangeFloor.equals(other.rangeFloor)) { return false; }
+
+    return true;
+  }
+
+
 }

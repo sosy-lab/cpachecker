@@ -56,4 +56,30 @@ public abstract class ACharLiteralExpression extends ALiteralExpression {
     }
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + character;
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof ACharLiteralExpression)) { return false; }
+    ACharLiteralExpression other = (ACharLiteralExpression) obj;
+    if (character != other.character) { return false; }
+
+    return super.equals(other);
+  }
+
 }

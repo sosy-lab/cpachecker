@@ -74,5 +74,37 @@ public final class CTypeIdInitializerExpression extends AExpression implements C
     return "(" + type.toASTString("") + ")" + initializer.toParenthesizedASTString();
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((initializer == null) ? 0 : initializer.hashCode());
+    result = prime * result + ((type == null) ? 0 : type.hashCode());
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof CTypeIdInitializerExpression)) { return false; }
+    CTypeIdInitializerExpression other = (CTypeIdInitializerExpression) obj;
+    if (initializer == null) {
+      if (other.initializer != null) { return false; }
+    } else if (!initializer.equals(other.initializer)) { return false; }
+    if (type == null) {
+      if (other.type != null) { return false; }
+    } else if (!type.equals(other.type)) { return false; }
+
+    return super.equals(other);
+  }
+
 }
 

@@ -54,4 +54,30 @@ public abstract class ADeclaration extends ASimpleDeclarations implements IADecl
     return isGlobal;
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + (isGlobal ? 1231 : 1237);
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof ADeclaration)) { return false; }
+    ADeclaration other = (ADeclaration) obj;
+    if (isGlobal != other.isGlobal) { return false; }
+
+    return super.equals(other);
+  }
+
 }

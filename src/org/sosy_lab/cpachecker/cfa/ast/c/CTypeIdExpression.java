@@ -84,4 +84,34 @@ public final class CTypeIdExpression extends AExpression implements CExpression 
     return operator.getOperator() + "(" + type.toASTString("") + ")";
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((operator == null) ? 0 : operator.hashCode());
+    result = prime * result + ((type == null) ? 0 : type.hashCode());
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof CTypeIdExpression)) { return false; }
+    CTypeIdExpression other = (CTypeIdExpression) obj;
+    if (operator != other.operator) { return false; }
+    if (type == null) {
+      if (other.type != null) { return false; }
+    } else if (!type.equals(other.type)) { return false; }
+
+    return super.equals(other);
+  }
+
 }

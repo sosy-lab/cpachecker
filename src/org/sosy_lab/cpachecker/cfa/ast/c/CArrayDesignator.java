@@ -62,4 +62,37 @@ public class CArrayDesignator extends CADesignator{
   public <R, X extends Exception> R accept(CDesignatorVisitor<R, X> pV) throws X {
     return pV.visit(this);
   }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((arrayDesignator == null) ? 0 : arrayDesignator.hashCode());
+    result = prime * result + ((subscriptExpression == null) ? 0 : subscriptExpression.hashCode());
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof CArrayDesignator)) { return false; }
+    CArrayDesignator other = (CArrayDesignator) obj;
+    if (arrayDesignator == null) {
+      if (other.arrayDesignator != null) { return false; }
+    } else if (!arrayDesignator.equals(other.arrayDesignator)) { return false; }
+    if (subscriptExpression == null) {
+      if (other.subscriptExpression != null) { return false; }
+    } else if (!subscriptExpression.equals(other.subscriptExpression)) { return false; }
+
+    return true;
+  }
+
+
 }

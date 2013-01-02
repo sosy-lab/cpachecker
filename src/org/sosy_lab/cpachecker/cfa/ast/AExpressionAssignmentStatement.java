@@ -62,4 +62,34 @@ public abstract class AExpressionAssignmentStatement extends AStatement implemen
     return pV.visit(this);
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((leftHandSide == null) ? 0 : leftHandSide.hashCode());
+    result = prime * result + ((rightHandSide == null) ? 0 : rightHandSide.hashCode());
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof AExpressionAssignmentStatement)) { return false; }
+    AExpressionAssignmentStatement other = (AExpressionAssignmentStatement) obj;
+    if (leftHandSide == null) {
+      if (other.leftHandSide != null) { return false; }
+    } else if (!leftHandSide.equals(other.leftHandSide)) { return false; }
+    if (rightHandSide == null) {
+      if (other.rightHandSide != null) { return false; }
+    } else if (!rightHandSide.equals(other.rightHandSide)) { return false; }
+    return true;
+  }
+
 }

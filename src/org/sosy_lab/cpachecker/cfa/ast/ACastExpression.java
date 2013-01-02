@@ -55,4 +55,34 @@ public abstract class ACastExpression extends AExpression {
     return castType;
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((castType == null) ? 0 : castType.hashCode());
+    result = prime * result + ((operand == null) ? 0 : operand.hashCode());
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof ACastExpression)) { return false; }
+    ACastExpression other = (ACastExpression) obj;
+    if (castType == null) {
+      if (other.castType != null) { return false; }
+    } else if (!castType.equals(other.castType)) { return false; }
+    if (operand == null) {
+      if (other.operand != null) { return false; }
+    } else if (!operand.equals(other.operand)) { return false; }
+    return true;
+  }
+
 }

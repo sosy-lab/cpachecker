@@ -54,4 +54,31 @@ public abstract class AInitializerList extends Initializer {
 
     return lASTString.toString();
   }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((initializerList == null) ? 0 : initializerList.hashCode());
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof AInitializerList)) { return false; }
+    AInitializerList other = (AInitializerList) obj;
+    if (initializerList == null) {
+      if (other.initializerList != null) { return false; }
+    } else if (!initializerList.equals(other.initializerList)) { return false; }
+    return true;
+  }
+
 }

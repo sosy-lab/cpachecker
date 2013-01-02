@@ -71,4 +71,39 @@ public class CFieldDesignator extends CADesignator {
     return pV.visit(this);
   }
 
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + (isPointerDereference ? 1231 : 1237);
+    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    result = prime * result + ((owner == null) ? 0 : owner.hashCode());
+    return result;
+  }
+
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof CFieldDesignator)) { return false; }
+    CFieldDesignator other = (CFieldDesignator) obj;
+    if (isPointerDereference != other.isPointerDereference) { return false; }
+    if (name == null) {
+      if (other.name != null) { return false; }
+    } else if (!name.equals(other.name)) { return false; }
+    if (owner == null) {
+      if (other.owner != null) { return false; }
+    } else if (!owner.equals(other.owner)) { return false; }
+    return true;
+  }
+
+
 }

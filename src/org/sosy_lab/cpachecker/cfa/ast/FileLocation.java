@@ -59,4 +59,39 @@ public final class FileLocation {
   public int getStartingLineNumber() {
     return startingLine;
   }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + endineLine;
+    result = prime * result + ((fileName == null) ? 0 : fileName.hashCode());
+    result = prime * result + length;
+    result = prime * result + offset;
+    result = prime * result + startingLine;
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof FileLocation)) { return false; }
+    FileLocation other = (FileLocation) obj;
+    if (endineLine != other.endineLine) { return false; }
+    if (fileName == null) {
+      if (other.fileName != null) { return false; }
+    } else if (!fileName.equals(other.fileName)) { return false; }
+    if (length != other.length) { return false; }
+    if (offset != other.offset) { return false; }
+    if (startingLine != other.startingLine) { return false; }
+    return true;
+  }
+
 }

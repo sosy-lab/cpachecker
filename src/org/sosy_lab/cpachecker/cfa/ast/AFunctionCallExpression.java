@@ -82,4 +82,40 @@ public abstract class AFunctionCallExpression extends ARightHandSide {
     return lASTString.toString();
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((declaration == null) ? 0 : declaration.hashCode());
+    result = prime * result + ((functionName == null) ? 0 : functionName.hashCode());
+    result = prime * result + ((parameters == null) ? 0 : parameters.hashCode());
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof AFunctionCallExpression)) { return false; }
+    AFunctionCallExpression other = (AFunctionCallExpression) obj;
+    if (declaration == null) {
+      if (other.declaration != null) { return false; }
+    } else if (!declaration.equals(other.declaration)) { return false; }
+    if (functionName == null) {
+      if (other.functionName != null) { return false; }
+    } else if (!functionName.equals(other.functionName)) { return false; }
+    if (parameters == null) {
+      if (other.parameters != null) { return false; }
+    } else if (!parameters.equals(other.parameters)) { return false; }
+
+    return super.equals(other);
+  }
+
 }
