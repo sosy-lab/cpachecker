@@ -85,4 +85,35 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
   public boolean hasKnownRunTimeBinding() {
     return hasKnownRunTimeBinding;
   }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + (hasKnownRunTimeBinding ? 1231 : 1237);
+    result = prime * result + ((runTimeBinding == null) ? 0 : runTimeBinding.hashCode());
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof JMethodInvocationExpression)) { return false; }
+    JMethodInvocationExpression other = (JMethodInvocationExpression) obj;
+    if (hasKnownRunTimeBinding != other.hasKnownRunTimeBinding) { return false; }
+    if (runTimeBinding == null) {
+      if (other.runTimeBinding != null) { return false; }
+    } else if (!runTimeBinding.equals(other.runTimeBinding)) { return false; }
+
+    return super.equals(other);
+  }
+
 }

@@ -55,4 +55,13 @@ public class JIdExpression extends AIdExpression implements JExpression {
     return v.visit(this);
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return super.equals(obj);
+  }
 }

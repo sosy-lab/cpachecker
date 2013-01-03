@@ -85,4 +85,36 @@ public class JArrayCreationExpression extends AExpression implements JExpression
       return initializer;
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((initializer == null) ? 0 : initializer.hashCode());
+    result = prime * result + ((length == null) ? 0 : length.hashCode());
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof JArrayCreationExpression)) { return false; }
+    JArrayCreationExpression other = (JArrayCreationExpression) obj;
+    if (initializer == null) {
+      if (other.initializer != null) { return false; }
+    } else if (!initializer.equals(other.initializer)) { return false; }
+    if (length == null) {
+      if (other.length != null) { return false; }
+    } else if (!length.equals(other.length)) { return false; }
+
+    return super.equals(other);
+  }
+
 }

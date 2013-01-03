@@ -162,4 +162,46 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
     setType(type);
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((declaringClass == null) ? 0 : declaringClass.hashCode());
+    result = prime * result + (isAbstract ? 1231 : 1237);
+    result = prime * result + (isFinal ? 1231 : 1237);
+    result = prime * result + (isNative ? 1231 : 1237);
+    result = prime * result + (isStatic ? 1231 : 1237);
+    result = prime * result + (isStrictfp ? 1231 : 1237);
+    result = prime * result + (isSynchronized ? 1231 : 1237);
+    result = prime * result + ((visibility == null) ? 0 : visibility.hashCode());
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof JMethodDeclaration)) { return false; }
+    JMethodDeclaration other = (JMethodDeclaration) obj;
+    if (declaringClass == null) {
+      if (other.declaringClass != null) { return false; }
+    } else if (!declaringClass.equals(other.declaringClass)) { return false; }
+    if (isAbstract != other.isAbstract) { return false; }
+    if (isFinal != other.isFinal) { return false; }
+    if (isNative != other.isNative) { return false; }
+    if (isStatic != other.isStatic) { return false; }
+    if (isStrictfp != other.isStrictfp) { return false; }
+    if (isSynchronized != other.isSynchronized) { return false; }
+    if (visibility != other.visibility) { return false; }
+
+    return super.equals(other);
+  }
+
 }

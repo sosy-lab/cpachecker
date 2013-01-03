@@ -60,4 +60,32 @@ public class JFieldAccess extends JIdExpression {
       return super.toASTString();
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((qualifier == null) ? 0 : qualifier.hashCode());
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof JFieldAccess)) { return false; }
+    JFieldAccess other = (JFieldAccess) obj;
+    if (qualifier == null) {
+      if (other.qualifier != null) { return false; }
+    } else if (!qualifier.equals(other.qualifier)) { return false; }
+
+    return super.equals(other);
+  }
+
 }

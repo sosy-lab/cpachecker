@@ -39,4 +39,13 @@ public class JReturnStatement extends AReturnStatement implements JAstNode {
     return (JExpression) super.getReturnValue();
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return super.equals(obj);
+  }
 }

@@ -63,4 +63,34 @@ public class JEnumConstantExpression extends AExpression implements JExpression 
   public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((constantName == null) ? 0 : constantName.hashCode());
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof JEnumConstantExpression)) { return false; }
+    JEnumConstantExpression other = (JEnumConstantExpression) obj;
+    if (constantName == null) {
+      if (other.constantName != null) { return false; }
+    } else if (!constantName.equals(other.constantName)) { return false; }
+
+    return super.equals(other);
+  }
+
+
 }

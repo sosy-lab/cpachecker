@@ -38,4 +38,13 @@ public abstract class AFunctionDeclaration extends ADeclaration {
     return  (IAFunctionType) super.getType();
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return super.equals(obj);
+  }
 }

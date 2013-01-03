@@ -75,4 +75,32 @@ public class JArrayInitializer extends AExpression implements JAstNode , JInitia
     return v.visit(this);
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((initializerExpressions == null) ? 0 : initializerExpressions.hashCode());
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof JArrayInitializer)) { return false; }
+    JArrayInitializer other = (JArrayInitializer) obj;
+    if (initializerExpressions == null) {
+      if (other.initializerExpressions != null) { return false; }
+    } else if (!initializerExpressions.equals(other.initializerExpressions)) { return false; }
+
+    return super.equals(other);
+  }
+
 }

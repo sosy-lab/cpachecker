@@ -104,4 +104,41 @@ public class JFieldDeclaration extends JVariableDeclaration {
   public void updateInitializer(Initializer initializer) {
     addInitializer(initializer);
   }
+
+
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + (isStatic ? 1231 : 1237);
+    result = prime * result + (isTransient ? 1231 : 1237);
+    result = prime * result + (isVolatile ? 1231 : 1237);
+    result = prime * result + ((visibility == null) ? 0 : visibility.hashCode());
+    result = prime * result + super.hashCode();
+    return result;
+  }
+
+
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (!super.equals(obj)) { return false; }
+    if (!(obj instanceof JFieldDeclaration)) { return false; }
+    JFieldDeclaration other = (JFieldDeclaration) obj;
+    if (isStatic != other.isStatic) { return false; }
+    if (isTransient != other.isTransient) { return false; }
+    if (isVolatile != other.isVolatile) { return false; }
+    if (visibility != other.visibility) { return false; }
+
+    return super.equals(other);
+  }
+
 }
