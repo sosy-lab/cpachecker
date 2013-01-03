@@ -83,4 +83,17 @@ public class JUnaryExpression extends AUnaryExpression implements JExpression {
       return op;
     }
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof JUnaryExpression)) { return false; }
+    return super.equals(obj);
+  }
 }

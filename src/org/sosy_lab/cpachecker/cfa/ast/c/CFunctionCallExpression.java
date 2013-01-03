@@ -81,4 +81,16 @@ public class CFunctionCallExpression extends AFunctionCallExpression implements 
     return v.visit(this);
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof CFunctionCallExpression)) { return false; }
+    return super.equals(obj);
+  }
 }

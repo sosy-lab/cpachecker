@@ -42,4 +42,16 @@ public class JSuperConstructorInvocation extends JClassInstanceCreation {
     return getExpressionType().toASTString("super");
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof JSuperConstructorInvocation)) { return false; }
+    return super.equals(obj);
+  }
 }

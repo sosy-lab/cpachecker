@@ -64,6 +64,7 @@ public abstract class ACastExpression extends AExpression {
     int result = super.hashCode();
     result = prime * result + ((castType == null) ? 0 : castType.hashCode());
     result = prime * result + ((operand == null) ? 0 : operand.hashCode());
+    result = prime * result + super.hashCode();
     return result;
   }
 
@@ -82,7 +83,8 @@ public abstract class ACastExpression extends AExpression {
     if (operand == null) {
       if (other.operand != null) { return false; }
     } else if (!operand.equals(other.operand)) { return false; }
-    return true;
+
+    return super.equals(other);
   }
 
 }

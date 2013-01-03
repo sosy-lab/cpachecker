@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
 public class CInitializerList extends AInitializerList implements CInitializer , CAstNode {
@@ -46,4 +46,16 @@ public class CInitializerList extends AInitializerList implements CInitializer ,
     return (List<CInitializer>) super.getInitializers();
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof CInitializerList)) { return false; }
+    return super.equals(obj);
+  }
 }

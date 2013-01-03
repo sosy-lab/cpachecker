@@ -68,6 +68,9 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
 
   @Override
   public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof JClassInstanceCreation)) { return false; }
     return super.equals(obj);
   }
 }

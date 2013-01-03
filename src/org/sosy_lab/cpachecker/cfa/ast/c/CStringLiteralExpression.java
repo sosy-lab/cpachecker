@@ -54,4 +54,17 @@ public final class CStringLiteralExpression extends AStringLiteralExpression imp
   public String toASTString() {
     return getValue();
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof CStringLiteralExpression)) { return false; }
+    return super.equals(obj);
+  }
 }

@@ -79,6 +79,7 @@ public final class CCastExpression extends AExpression implements CExpression {
     int result = 1;
     result = prime * result + ((operand == null) ? 0 : operand.hashCode());
     result = prime * result + ((type == null) ? 0 : type.hashCode());
+    result = prime * result + super.hashCode();
     return result;
   }
 
@@ -98,7 +99,7 @@ public final class CCastExpression extends AExpression implements CExpression {
       if (other.type != null) { return false; }
     } else if (!type.equals(other.type)) { return false; }
 
-    return true;
+    return super.equals(other);
   }
 
 

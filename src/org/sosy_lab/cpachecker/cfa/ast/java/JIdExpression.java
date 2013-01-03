@@ -62,6 +62,9 @@ public class JIdExpression extends AIdExpression implements JExpression {
 
   @Override
   public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof JIdExpression)) { return false; }
     return super.equals(obj);
   }
 }

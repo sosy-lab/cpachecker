@@ -57,4 +57,17 @@ public class JFloatLiteralExpression extends AFloatLiteralExpression implements 
   public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof JFloatLiteralExpression)) { return false; }
+    return super.equals(obj);
+  }
 }

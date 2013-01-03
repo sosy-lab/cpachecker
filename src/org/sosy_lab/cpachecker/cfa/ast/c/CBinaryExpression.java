@@ -105,4 +105,17 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
       return op;
     }
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof CBinaryExpression)) { return false; }
+    return super.equals(obj);
+  }
 }

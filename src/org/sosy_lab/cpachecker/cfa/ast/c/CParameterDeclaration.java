@@ -48,4 +48,16 @@ public final class CParameterDeclaration extends AParameterDeclaration implement
     return (CType)super.getType();
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof CParameterDeclaration)) { return false; }
+    return super.equals(obj);
+  }
 }

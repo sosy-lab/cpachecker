@@ -48,4 +48,17 @@ public final class CInitializerExpression extends AInitializerExpression impleme
   public <R, X extends Exception> R accept(CInitializerVisitor<R, X> pV) throws X {
     return pV.visit(this);
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof CInitializerExpression)) { return false; }
+    return super.equals(obj);
+  }
 }

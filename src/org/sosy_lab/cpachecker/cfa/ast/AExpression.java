@@ -45,6 +45,9 @@ public abstract class AExpression extends ARightHandSide implements IAExpression
 
   @Override
   public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof AExpression)) { return false; }
     return super.equals(obj);
   }
 }

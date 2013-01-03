@@ -37,4 +37,17 @@ public class JInitializerExpression extends AInitializerExpression implements JI
   public JExpression getExpression() {
     return (JExpression) super.getExpression();
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof JInitializerExpression)) { return false; }
+    return super.equals(obj);
+  }
 }

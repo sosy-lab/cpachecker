@@ -47,4 +47,17 @@ public class JMethodInvocationStatement extends AFunctionCallStatement implement
   public JStatement asStatement() {
     return (JStatement) super.asStatement();
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof JMethodInvocationStatement)) { return false; }
+    return super.equals(obj);
+  }
 }

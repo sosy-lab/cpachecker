@@ -59,4 +59,16 @@ public class JCastExpression extends ACastExpression implements JExpression {
     return (JExpression) super.getOperand();
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof JCastExpression)) { return false; }
+    return super.equals(obj);
+  }
 }

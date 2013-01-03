@@ -46,6 +46,9 @@ public class JReturnStatement extends AReturnStatement implements JAstNode {
 
   @Override
   public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof JReturnStatement)) { return false; }
     return super.equals(obj);
   }
 }

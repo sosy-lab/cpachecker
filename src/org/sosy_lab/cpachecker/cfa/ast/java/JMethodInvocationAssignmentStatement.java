@@ -60,4 +60,16 @@ public class JMethodInvocationAssignmentStatement extends AFunctionCallAssignmen
     return (JStatement) super.asStatement();
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof JMethodInvocationAssignmentStatement)) { return false; }
+    return super.equals(obj);
+  }
 }

@@ -41,4 +41,17 @@ public abstract class AParameterDeclaration extends ASimpleDeclarations {
     return getType().toASTString(getName());
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof AParameterDeclaration)) { return false; }
+    return super.equals(obj);
+  }
+
 }

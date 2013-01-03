@@ -58,4 +58,17 @@ public class CExpressionAssignmentStatement extends AExpressionAssignmentStateme
   public <R, X extends Exception> R accept(CStatementVisitor<R, X> v) throws X {
     return v.visit(this);
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof CExpressionAssignmentStatement)) { return false; }
+    return super.equals(obj);
+  }
 }

@@ -44,4 +44,17 @@ public class CExpressionStatement extends AExpressionStatement implements CState
   public <R, X extends Exception> R accept(CStatementVisitor<R, X> v) throws X {
     return v.visit(this);
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof CExpressionStatement)) { return false; }
+    return super.equals(obj);
+  }
 }

@@ -45,6 +45,9 @@ public abstract class AFunctionDeclaration extends ADeclaration {
 
   @Override
   public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof AFunctionDeclaration)) { return false; }
     return super.equals(obj);
   }
 }
