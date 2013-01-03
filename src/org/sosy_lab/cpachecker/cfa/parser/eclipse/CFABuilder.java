@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -71,6 +72,9 @@ class CFABuilder extends ASTVisitor {
   private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration, String>> globalDeclarations = Lists.newArrayList();
 
   private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.IADeclaration, String>> globalDeclarations2 = Lists.newArrayList();
+
+  // Data structure for checking amount of initializations per global variable
+  private final Map<String, Boolean> globalInitializedVariables = new HashMap<>();
 
 
   private final Scope scope = new Scope();
@@ -194,6 +198,14 @@ class CFABuilder extends ASTVisitor {
         CInitializer init = ((CVariableDeclaration) newD).getInitializer();
         if (init != null) {
           init.accept(checkBinding);
+
+          // save global initialized variable in map to check duplicates
+          if(globalInitializedVariables.containsKey(newD.getName())) {
+            globalInitializedVariables.remove(newD.getName());
+            globalInitializedVariables.put(newD.getName(), true);
+          } else {
+            globalInitializedVariables.put(newD.getName(), false);
+          }
         }
 
         scope.registerDeclaration(newD);
@@ -241,6 +253,23 @@ class CFABuilder extends ASTVisitor {
 
     if (encounteredAsm) {
       logger.log(Level.WARNING, "Inline assembler ignored, analysis is probably unsound!");
+    }
+
+    // check on duplicates in initialized global variables
+    if (globalInitializedVariables.containsValue(true)) {
+      StringBuilder duplicateVars = new StringBuilder();
+      Iterator<String> it = globalInitializedVariables.keySet().iterator();
+      duplicateVars.append("[");
+      while(it.hasNext()) {
+        String key = it.next();
+        if(globalInitializedVariables.get(key)) {
+          duplicateVars.append(key + ", ");
+        }
+      }
+      duplicateVars = duplicateVars.delete(duplicateVars.length() - 2, duplicateVars.length());
+      duplicateVars.append("]");
+
+       throw new CFAGenerationRuntimeException("Duplicate variable initialization " + duplicateVars.toString());
     }
 
     return PROCESS_CONTINUE;
