@@ -10,7 +10,7 @@
 
   <sourcefiles>
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
-    <option name="-setprop">analysis.machineModel=Linux64</option>
+    <option name="-64"/>
   </sourcefiles>
 
   <option name="-heap">12500M</option>

@@ -17,7 +17,7 @@
     </sourcefiles>
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
-      <option name="-setprop">analysis.machineModel=Linux64</option>
+      <option name="-64"/>
     </sourcefiles>
   </test>
 

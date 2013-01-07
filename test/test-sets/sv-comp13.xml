@@ -18,7 +18,7 @@
   </sourcefiles>
   <sourcefiles name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
-    <option name="-setprop">analysis.machineModel=Linux64</option>
+    <option name="-64"/>
   </sourcefiles>
   <sourcefiles name="FeatureChecks">
     <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>

@@ -12,7 +12,7 @@
     </sourcefiles>-->
     <sourcefiles>
       <includesfile>../programs/simple/simple.set</includesfile>
-      <option name="-setprop">analysis.machineModel=Linux32</option>
+      <option name="-32"/>
     </sourcefiles>
     <option name="-noout"/>
     <option name="-predicateAnalysis"/>

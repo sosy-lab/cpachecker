@@ -109,7 +109,9 @@ class CmdLineArguments {
       if (   handleArgument0("-cbmc",    "analysis.useCBMC", "true",            arg, properties)
           || handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
           || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
-          || handleArgument0("-java", "language.java", "true",                  arg, properties)
+          || handleArgument0("-java",    "language.java", "true",                  arg, properties)
+          || handleArgument0("-32",      "analysis.machineModel", "Linux32",    arg, properties)
+          || handleArgument0("-64",      "analysis.machineModel", "Linux64",    arg, properties)
           || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
           || handleArgument1("-logfile",       "log.file",                arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
@@ -276,6 +278,9 @@ class CmdLineArguments {
     System.out.println(" -stats");
     System.out.println(" -nolog");
     System.out.println(" -noout");
+    System.out.println(" -java");
+    System.out.println(" -32");
+    System.out.println(" -64");
     System.out.println(" -setprop");
     System.out.println(" -printOptions [-v|-verbose]");
     System.out.println(" -printUsedOptions");
