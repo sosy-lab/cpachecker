@@ -290,7 +290,7 @@ class RunSet:
                 currentRuns.append(Run(sourcefile, fileOptions, self))
             self.runs.extend(currentRuns)
 
-            self.blocks.append(Block(sourcefileSetName, currentRuns))
+            self.blocks.append(SourcefileSet(sourcefileSetName, currentRuns))
 
 
     def getSourcefilesFromXML(self, sourcefilesTag):
@@ -384,9 +384,9 @@ class RunSet:
         return fileList
 
 
-class Block():
+class SourcefileSet():
     """
-    A Block contains a list of runs and a name.
+    A SourcefileSet contains a list of runs and a name.
     """
     def __init__(self, name, runs):
         self.name = name
@@ -398,14 +398,15 @@ class Run():
     A Run contains one sourcefile and options.
     """
 
-    def __init__(self, sourcefile, fileOptions, test):
+    def __init__(self, sourcefile, fileOptions, runSet):
         self.sourcefile = sourcefile
         self.options = fileOptions
-        self.test = test
-        self.benchmark = test.benchmark
+        self.test = runSet
+        self.benchmark = runSet.benchmark
         self.mergedOptions = []
 
-        # copy columns for having own objects in run
+        # Copy columns for having own objects in run
+        # (we need this for storing the results in them).
         self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.benchmark.columns]
 
         # dummy values, for output in case of interrupt
@@ -420,7 +421,7 @@ class Run():
     def getMergedOptions(self):
         """
         This function returns a list of Strings.
-        It contains all options for this Run (global + testwide + local) without 'None'-Values.
+        It contains all options for this Run (global + run-set wide + local) without 'None'-Values.
         """
 
         if not self.mergedOptions: # cache mergeOptions
@@ -439,9 +440,9 @@ class Run():
         return self.mergedOptions
 
 
-    def run(self, numberOfThread):
+    def execute(self, numberOfThread):
         """
-        This function runs the tool with a sourcefile with options.
+        This function executes the tool with a sourcefile with options.
         It also calls functions for output before and after the run.
         @param numberOfThread: runs are executed in different threads
         """
@@ -762,15 +763,15 @@ class OutputHandler:
 
         self.description = header + systemInfo
 
-        testname = None
-        runTests = [test for test in self.benchmark.tests if test.shouldBeExecuted()]
-        if len(runTests) == 1:
-            # in case there is only a single test to run, we can use its name
-            testname = runTests[0].name
+        runSetName = None
+        runSets = [runSet for runSet in self.benchmark.tests if runSet.shouldBeExecuted()]
+        if len(runSets) == 1:
+            # in case there is only a single run set to to execute, we can use its name
+            runSetName = runSets[0].name
 
         # write to file
         self.TXTContent = self.description
-        TXTFileName = self.getFileName(testname, "txt")
+        TXTFileName = self.getFileName(runSetName, "txt")
         self.TXTFile = FileWriter(TXTFileName, self.TXTContent)
         self.allCreatedFiles.append(TXTFileName)
 
@@ -877,125 +878,121 @@ class OutputHandler:
         return (opSystem, cpuModel, numberOfCores, maxFrequency, memTotal, name)
 
 
-    def outputBeforeTest(self, test):
+    def outputBeforeRunSet(self, runSet):
         """
-        The method outputBeforeTest() calculates the length of the
+        The method outputBeforeRunSet() calculates the length of the
         first column for the output in terminal and stores information
-        about the test in XML.
-        @param test: current test with a list of testfiles
+        about the runSet in XML.
+        @param runSet: current run set
         """
 
-        self.test = test
-        numberOfTest = self.benchmark.tests.index(self.test) + 1
+        self.test = runSet
+        numberOfRunSet = self.benchmark.tests.index(runSet) + 1
+        numberOfFiles = len(runSet.runs)
 
-        if len(self.test.runs) == 1:
-            logging.debug("test {0} consists of 1 sourcefile.".format(
-                    numberOfTest))
-        else:
-            logging.debug("test {0} consists of {1} sourcefiles.".format(
-                    numberOfTest, len(self.test.runs)))
+        logging.debug("Run set {0} consists of {1} sourcefiles.".format(
+                numberOfRunSet, numberOfFiles))
 
-        fileNames = [run.sourcefile for run in self.test.runs]
+        sourcefiles = [run.sourcefile for run in runSet.runs]
 
         # common prefix of file names
-        self.commonPrefix = os.path.commonprefix(fileNames) # maybe with parts of filename
+        self.commonPrefix = os.path.commonprefix(sourcefiles) # maybe with parts of filename
         self.commonPrefix = self.commonPrefix[: self.commonPrefix.rfind('/') + 1] # only foldername
 
         # length of the first column in terminal
-        self.maxLengthOfFileName = max([len(file) for file in fileNames])
+        self.maxLengthOfFileName = max([len(file) for file in sourcefiles])
         self.maxLengthOfFileName = max(20, self.maxLengthOfFileName - len(self.commonPrefix))
 
-        # write testname to terminal
-        numberOfFiles = len(self.test.runs)
-        Util.printOut("\nrunning test" + \
-            (" '" + test.name + "'" if test.name is not None else "") + \
+        # write run set name to terminal
+        Util.printOut("\nexecuting run set" + \
+            (" '" + runSet.name + "'" if runSet.name is not None else "") + \
             ("     (1 file)" if numberOfFiles == 1
                         else "     ({0} files)".format(numberOfFiles)))
 
-        # write information about the test into TXTFile
-        self.writeTestInfoToLog()
+        # write information about the run set into TXTFile
+        self.writeRunSetInfoToLog(runSet)
 
-        # build dummy-entries for output, later replaced by the results,
-        # the dummy-xml-elems are shared over all runs of a test,
-        # xml-structure is equal to self.runToXML(run)
+        # build dummy entries for output, later replaced by the results,
+        # the dummy XML elements are shared over all runs of a run set,
+        # XML structure is equal to self.runToXML(run)
         dummyElems = [ET.Element("column", {"title": "status", "value": ""}),
                       ET.Element("column", {"title": "cputime", "value": ""}),
                       ET.Element("column", {"title": "walltime", "value": ""})]
         for column in self.benchmark.columns:
             dummyElems.append(ET.Element("column", 
                         {"title": column.title, "value": ""}))
-            
-        for run in self.test.runs:
+
+        for run in runSet.runs:
             run.resultline = self.formatSourceFileName(run.sourcefile)
             run.xml = ET.Element("sourcefile", {"name": run.sourcefile})
             for dummyElem in dummyElems: run.xml.append(dummyElem)
 
         # write (empty) results to TXTFile and XML
-        self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
-        self.XMLTestFileName = self.getFileName(self.test.name, "xml")
+        self.TXTFile.replace(self.TXTContent + self.runSetToTXT(runSet))
+        self.XMLTestFileName = self.getFileName(runSet.name, "xml")
         self.XMLTestFile = FileWriter(self.XMLTestFileName,
-                       Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
+                       Util.XMLtoString(self.runsToXML(runSet, runSet.runs)))
         self.XMLTestFile.lastModifiedTime = time.time()
         self.allCreatedFiles.append(self.XMLTestFileName)
 
 
-    def outputForSkippingTest(self, test, reason=None):
+    def outputForSkippingTest(self, runSet, reason=None):
         '''
         This function writes a simple message to terminal and logfile,
-        when a test is skipped.
-        There is no message about skipping a test in the xml-file.
+        when a run set is skipped.
+        There is no message about skipping a run set in the xml-file.
         '''
 
         # print to terminal
-        Util.printOut("\nskipping test" +
-               (" '" + test.name + "'" if test.name else "") +
+        Util.printOut("\nskipping run set" +
+               (" '" + runSet.name + "'" if runSet.name else "") +
                (" " + reason if reason else "")
               )
 
         # write into TXTFile
-        numberOfTest = self.benchmark.tests.index(test) + 1
-        testInfo = "\n\n"
-        if test.name is not None:
-            testInfo += test.name + "\n"
-        testInfo += "test {0} of {1}: skipped {2}\n".format(
-                numberOfTest, len(self.benchmark.tests), reason or "")
-        self.TXTContent += testInfo
-        self.TXTFile.append(testInfo)
+        numberOfRunSet = self.benchmark.tests.index(runSet) + 1
+        runSetInfo = "\n\n"
+        if runSet.name is not None:
+            runSetInfo += runSet.name + "\n"
+        runSetInfo += "run set {0} of {1}: skipped {2}\n".format(
+                numberOfRunSet, len(self.benchmark.tests), reason or "")
+        self.TXTContent += runSetInfo
+        self.TXTFile.append(runSetInfo)
 
 
-    def writeTestInfoToLog(self):
+    def writeRunSetInfoToLog(self, runSet):
         """
-        This method writes the information about a test into the TXTFile.
+        This method writes the information about a run set into the TXTFile.
         """
 
-        numberOfTest = self.benchmark.tests.index(self.test) + 1
-        testOptions = mergeOptions(self.benchmark.options, self.test.options)
-        if self.test.name is None:
-            testInfo = ""
+        numberOfRunSet = self.benchmark.tests.index(runSet) + 1
+        runSetOptions = mergeOptions(self.benchmark.options, runSet.options)
+        if runSet.name is None:
+            runSetInfo = ""
         else:
-            testInfo = self.test.name + "\n"
-        testInfo += "test {0} of {1} with options: {2}\n\n".format(
-                numberOfTest, len(self.benchmark.tests),
-                " ".join(testOptions))
+            runSetInfo = runSet.name + "\n"
+        runSetInfo += "run set {0} of {1} with options: {2}\n\n".format(
+                numberOfRunSet, len(self.benchmark.tests),
+                " ".join(runSetOptions))
 
-        self.test.titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
+        runSet.titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
                             "wall time", self.benchmark.columns, True)
 
-        self.test.simpleLine = "-" * (len(self.test.titleLine))
+        runSet.simpleLine = "-" * (len(runSet.titleLine))
 
         # write into TXTFile
-        self.TXTContent += "\n\n" + testInfo
-        self.TXTFile.append("\n\n" + testInfo + self.test.titleLine + "\n" + self.test.simpleLine  + "\n")
+        self.TXTContent += "\n\n" + runSetInfo
+        self.TXTFile.append("\n\n" + runSetInfo + runSet.titleLine + "\n" + runSet.simpleLine  + "\n")
 
 
     def outputBeforeRun(self, run):
         """
         The method outputBeforeRun() prints the name of a file to terminal.
         It returns the name of the logfile.
-        @param sourcefile: the name of a sourcefile
+        @param run: a Run object
         """
 
-        logging.debug("I'm running '{0} {1} {2}'.".format(
+        logging.debug("I'm executing '{0} {1} {2}'.".format(
             self.getToolnameForPrinting(), " ".join(run.mergedOptions), run.sourcefile))
 
         # output in terminal
@@ -1022,7 +1019,7 @@ class OutputHandler:
     def outputAfterRun(self, run):
         """
         The method outputAfterRun() prints filename, result, time and status
-        of a test to terminal and stores all data in XML
+        of a run to terminal and stores all data in XML
         """
 
         # format times, type is changed from float to string!
@@ -1068,7 +1065,7 @@ class OutputHandler:
             run.xml = self.runToXML(run)
 
             # write result in TXTFile and XML
-            self.TXTFile.replace(self.TXTContent + self.testToTXT(self.test))
+            self.TXTFile.replace(self.TXTContent + self.runSetToTXT(self.test))
             self.statistics.addResult(statusRelation)
 
             # we don't want to write this file to often, it can slow down the whole script,
@@ -1082,65 +1079,65 @@ class OutputHandler:
             OutputHandler.printLock.release()
 
 
-    def outputAfterTest(self, cpuTimeTest, wallTimeTest):
+    def outputAfterRunSet(self, runSet, cpuTime, wallTime):
         """
-        The method outputAfterTest() stores the times of a test in XML.
-        @params cpuTimeTest, wallTimeTest: times of the test
+        The method outputAfterRunSet() stores the times of a run set in XML.
+        @params cpuTime, wallTime: accumulated times of the run set
         """
 
         # format time, type is changed from float to string!
-        self.test.cpuTimeStr = Util.formatNumber(cpuTimeTest, TIME_PRECISION)
-        self.test.wallTimeStr = Util.formatNumber(wallTimeTest, TIME_PRECISION)
+        runSet.cpuTimeStr = Util.formatNumber(cpuTime, TIME_PRECISION)
+        runSet.wallTimeStr = Util.formatNumber(wallTime, TIME_PRECISION)
 
         # write testresults to files
-        self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
+        self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(runSet, runSet.runs)))
 
-        if len(self.test.blocks) > 1:
-            for block in self.test.blocks:
-                FileWriter(self.getFileName(self.test.name, block.name + ".xml"),
-                    Util.XMLtoString(self.runsToXML(self.test, block.runs, block.name)))
+        if len(runSet.blocks) > 1:
+            for block in runSet.blocks:
+                FileWriter(self.getFileName(runSet.name, block.name + ".xml"),
+                    Util.XMLtoString(self.runsToXML(runSet, block.runs, block.name)))
 
-        self.TXTContent += self.testToTXT(self.test, True)
+        self.TXTContent += self.runSetToTXT(runSet, True)
         self.TXTFile.replace(self.TXTContent)
 
 
-    def testToTXT(self, test, finished=False):
-        lines = [test.titleLine, test.simpleLine]
+    def runSetToTXT(self, runSet, finished=False):
+        lines = [runSet.titleLine, runSet.simpleLine]
 
         # store values of each run
-        for run in test.runs: lines.append(run.resultline)
+        for run in runSet.runs: lines.append(run.resultline)
 
-        lines.append(test.simpleLine)
+        lines.append(runSet.simpleLine)
 
         # write endline into TXTFile
         if finished:
-            numberOfFiles = len(test.runs)
-            numberOfTest = test.benchmark.tests.index(test) + 1
+            numberOfFiles = len(runSet.runs)
+            indexOfRunSet = runSet.benchmark.tests.index(runSet) + 1
             if numberOfFiles == 1:
-                endline = ("test {0} consisted of 1 sourcefile.".format(numberOfTest))
+                endline = ("test {0} consisted of 1 sourcefile.".format(indexOfRunSet))
             else:
                 endline = ("test {0} consisted of {1} sourcefiles.".format(
-                    numberOfTest, numberOfFiles))
+                    indexOfRunSet, numberOfFiles))
 
-            lines.append(self.createOutputLine(endline, "done", test.cpuTimeStr,
-                             test.wallTimeStr, []))
+            lines.append(self.createOutputLine(endline, "done", runSet.cpuTimeStr,
+                             runSet.wallTimeStr, []))
 
         return "\n".join(lines) + "\n"
 
 
-    def runsToXML(self, test, runs, blockname=None):
+    def runsToXML(self, runSet, runs, blockname=None):
         """
-        This function dumps a list of runs of a test and their results to XML.
+        This function dumps a list of runs of a runSet and their results to XML.
         """
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
         runsElem = Util.getCopyOfXMLElem(self.XMLHeader)
-        testOptions = mergeOptions(test.benchmark.options, test.options)
-        runsElem.set("options", " ".join(testOptions))
+        runSetOptions = mergeOptions(runSet.benchmark.options, runSet.options)
+        runsElem.set("options", " ".join(runSetOptions))
         if blockname is not None:
             runsElem.set("block", blockname)
-            runsElem.set("name", ((test.name + ".") if test.name else "") + blockname)
-        elif test.name is not None:
-            runsElem.set("name", test.name)
+            runsElem.set("name", ((runSet.name + ".") if runSet.name else "") + blockname)
+        elif runSet.name is not None:
+            runsElem.set("name", runSet.name)
 
         # collect XMLelements from all runs
         for run in runs: runsElem.append(run.xml)
@@ -1234,17 +1231,17 @@ class OutputHandler:
             Util.printOut("\nScript was interrupted by user, some tests may not be done.\n")
 
 
-    def getFileName(self, testname, fileExtension):
+    def getFileName(self, runSetName, fileExtension):
         '''
-        This function returns the name of the file of a test
+        This function returns the name of the file for a run set
         with an extension ("txt", "xml").
         '''
 
         fileName = OUTPUT_PATH + self.benchmark.name + "." \
                     + self.benchmark.date + ".results."
 
-        if testname is not None:
-            fileName += testname + "."
+        if runSetName is not None:
+            fileName += runSetName + "."
 
         return fileName + fileExtension
 
@@ -1296,30 +1293,20 @@ def getOptionsFromXML(optionsTag):
                for option in optionsTag.findall("option")]
 
 
-def mergeOptions(benchmarkOptions, testOptions=[], fileOptions=[]):
+def mergeOptions(options1, options2=[], options3=[]):
     '''
     This function merges lists of optionpairs into one list.
     If a option is part of several lists,
     the option appears in the list several times.
     '''
-
-    currentOptions = []
-
-    # copy global options
-    currentOptions.extend(benchmarkOptions)
-
-    # insert testOptions
-    currentOptions.extend(testOptions)
-
-    # insert fileOptions
-    currentOptions.extend(fileOptions)
+    currentOptions = options1 + options2 + options3
 
     return Util.toSimpleList(currentOptions)
 
 
 class FileWriter:
      """
-     The class FileWrtiter is a wrapper for writing content into a file.
+     The class FileWriter is a wrapper for writing content into a file.
      """
 
      def __init__(self, filename, content):
@@ -1352,13 +1339,13 @@ class FileWriter:
          os.rename(tmpFilename, self.__filename)
 
 
-def substituteVars(oldList, test, sourcefile=None, logFolder=None):
+def substituteVars(oldList, runSet, sourcefile=None, logFolder=None):
     """
     This method replaces special substrings from a list of string 
     and return a new list.
     """
 
-    benchmark = test.benchmark
+    benchmark = runSet.benchmark
 
     # list with tuples (key, value): 'key' is replaced by 'value'
     keyValueList = [('${benchmark_name}', benchmark.name),
@@ -1367,7 +1354,7 @@ def substituteVars(oldList, test, sourcefile=None, logFolder=None):
                     ('${benchmark_path_abs}', os.path.abspath(os.path.dirname(benchmark.benchmarkFile))),
                     ('${benchmark_file}', os.path.basename(benchmark.benchmarkFile)),
                     ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmarkFile))),
-                    ('${test_name}',      test.name if test.name is not None else 'noName')]
+                    ('${test_name}',      runSet.name if runSet.name is not None else 'noName')]
 
     if sourcefile:
         keyValueList.append(('${sourcefile_name}', os.path.basename(sourcefile)))
@@ -1984,7 +1971,7 @@ class Worker(threading.Thread):
     def run(self):
         while not Worker.workingQueue.empty() and not STOPPED_BY_INTERRUPT:
             currentRun = Worker.workingQueue.get_nowait()
-            currentRun.run(self.number)
+            currentRun.execute(self.number)
             Worker.workingQueue.task_done()
 
 
@@ -2023,7 +2010,7 @@ def runBenchmark(benchmarkFile):
             ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
             wallTimeBefore = time.time()
 
-            outputHandler.outputBeforeTest(test)
+            outputHandler.outputBeforeRunSet(test)
 
             # put all runs into a queue
             for run in test.runs:
@@ -2057,7 +2044,7 @@ def runBenchmark(benchmarkFile):
             cpuTimeTest = (ruAfter.ru_utime + ruAfter.ru_stime)\
             - (ruBefore.ru_utime + ruBefore.ru_stime)
 
-            outputHandler.outputAfterTest(cpuTimeTest, wallTimeTest)
+            outputHandler.outputAfterRunSet(test, cpuTimeTest, wallTimeTest)
 
     outputHandler.outputAfterBenchmark()
     if options.commit and not STOPPED_BY_INTERRUPT and testsRun > 0:
