@@ -374,7 +374,7 @@ class RunSet:
         if not fileList and baseDir:
             # try fallback for old syntax of run definitions
             fileList = self.expandFileNamePattern(shortFileFallback, "")
-            if not fileList:
+            if fileList:
                 logging.warning("Run definition uses old-style paths. Please change the path {0} to be relative to {1}."
                             .format(repr(shortFileFallback), repr(baseDir)))
             else:
