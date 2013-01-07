@@ -195,14 +195,14 @@ class Benchmark:
         # get columns
         self.columns = self.loadColumns(rootTag.find("columns"))
 
-        # get global source files, they are tested in all tests
+        # get global source files, they are used in all run sets
         globalSourcefilesTags = rootTag.findall("sourcefiles")
 
         # get benchmarks
-        self.tests = []
+        self.runSets = []
         i = 1
-        for testTag in rootTag.findall("test"):
-            self.tests.append(RunSet(testTag, self, i, globalSourcefilesTags))
+        for rundefinitionTag in rootTag.findall("test"):
+            self.runSets.append(RunSet(rundefinitionTag, self, i, globalSourcefilesTags))
             i += 1
 
         self.outputHandler = OutputHandler(self)
@@ -243,14 +243,14 @@ class RunSet:
 
         self.benchmark = benchmark
 
-        # get name of test, name is optional, the result can be "None"
+        # get name of run set, name is optional, the result can be "None"
         self.name = rundefinitionTag.get("name")
         self.realName = self.name
 
         # index is the number of the run set
         self.index = index
 
-        # get all test-specific options from rundefinitionTag
+        # get all run-set-specific options from rundefinitionTag
         self.options = benchmark.options + getOptionsFromXML(rundefinitionTag)
 
         # get all runs, a run contains one sourcefile with options
@@ -405,7 +405,7 @@ class Run():
 
     def __init__(self, sourcefile, fileOptions, runSet):
         self.sourcefile = sourcefile
-        self.test = runSet
+        self.runSet = runSet
         self.benchmark = runSet.benchmark
         self.specificOptions = fileOptions # options that are specific for this run
         self.options = runSet.options + fileOptions # all options to be used when executing this run
@@ -748,7 +748,7 @@ class OutputHandler:
         self.description = header + systemInfo
 
         runSetName = None
-        runSets = [runSet for runSet in self.benchmark.tests if runSet.shouldBeExecuted()]
+        runSets = [runSet for runSet in self.benchmark.runSets if runSet.shouldBeExecuted()]
         if len(runSets) == 1:
             # in case there is only a single run set to to execute, we can use its name
             runSetName = runSets[0].name
@@ -870,7 +870,7 @@ class OutputHandler:
         @param runSet: current run set
         """
 
-        self.test = runSet
+        self.runSet = runSet
         numberOfFiles = len(runSet.runs)
 
         logging.debug("Run set {0} consists of {1} sourcefiles.".format(
@@ -919,7 +919,7 @@ class OutputHandler:
         self.allCreatedFiles.append(self.XMLTestFileName)
 
 
-    def outputForSkippingTest(self, runSet, reason=None):
+    def outputForSkippingRunSet(self, runSet, reason=None):
         '''
         This function writes a simple message to terminal and logfile,
         when a run set is skipped.
@@ -937,7 +937,7 @@ class OutputHandler:
         if runSet.name is not None:
             runSetInfo += runSet.name + "\n"
         runSetInfo += "Run set {0} of {1}: skipped {2}\n".format(
-                runSet.index, len(self.benchmark.tests), reason or "")
+                runSet.index, len(self.benchmark.runSets), reason or "")
         self.TXTContent += runSetInfo
         self.TXTFile.append(runSetInfo)
 
@@ -952,7 +952,7 @@ class OutputHandler:
         else:
             runSetInfo = runSet.name + "\n"
         runSetInfo += "Run set {0} of {1} with options: {2}\n\n".format(
-                runSet.index, len(self.benchmark.tests),
+                runSet.index, len(self.benchmark.runSets),
                 " ".join(runSet.options))
 
         runSet.titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
@@ -989,8 +989,8 @@ class OutputHandler:
 
         # get name of file-specific log-file
         logfileName = self.logFolder
-        if run.test.name is not None:
-            logfileName += run.test.name + "."
+        if run.runSet.name is not None:
+            logfileName += run.runSet.name + "."
         logfileName += os.path.basename(run.sourcefile) + ".log"
         self.allCreatedFiles.append(logfileName)
         return logfileName
@@ -1045,14 +1045,14 @@ class OutputHandler:
             run.xml = self.runToXML(run)
 
             # write result in TXTFile and XML
-            self.TXTFile.replace(self.TXTContent + self.runSetToTXT(self.test))
+            self.TXTFile.replace(self.TXTContent + self.runSetToTXT(run.runSet))
             self.statistics.addResult(statusRelation)
 
             # we don't want to write this file to often, it can slow down the whole script,
             # so we wait at least 10 seconds between two write-actions
             currentTime = time.time()
             if currentTime - self.XMLTestFile.lastModifiedTime > 10:
-                self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(self.test, self.test.runs)))
+                self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(run.runSet, run.runSet.runs)))
                 self.XMLTestFile.lastModifiedTime = currentTime
 
         finally:
@@ -1069,7 +1069,7 @@ class OutputHandler:
         runSet.cpuTimeStr = Util.formatNumber(cpuTime, TIME_PRECISION)
         runSet.wallTimeStr = Util.formatNumber(wallTime, TIME_PRECISION)
 
-        # write testresults to files
+        # write results to files
         self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(runSet, runSet.runs)))
 
         if len(runSet.blocks) > 1:
@@ -1206,7 +1206,7 @@ class OutputHandler:
                                   self.XMLTestFileName))
 
         if STOPPED_BY_INTERRUPT:
-            Util.printOut("\nScript was interrupted by user, some tests may not be done.\n")
+            Util.printOut("\nScript was interrupted by user, some runs may not be done.\n")
 
 
     def getFileName(self, runSetName, fileExtension):
@@ -1797,7 +1797,7 @@ def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
     @param returncode: code returned by CPAchecker
     @param returnsignal: signal, which terminated CPAchecker
     @param output: the output of CPAchecker
-    @return: status of CPAchecker after running a testfile
+    @return: status of CPAchecker after executing a run
     """
 
     def isOutOfNativeMemory(line):
@@ -1945,42 +1945,38 @@ class Worker(threading.Thread):
 def runBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
 
-    if len(benchmark.tests) == 1:
-        logging.debug("I'm benchmarking {0} consisting of 1 test.".format(repr(benchmarkFile)))
-    else:
-        logging.debug("I'm benchmarking {0} consisting of {1} tests.".format(
-                repr(benchmarkFile), len(benchmark.tests)))
+    logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
+            repr(benchmarkFile), len(benchmark.runSets)))
 
     outputHandler = benchmark.outputHandler
-    testsRun = 0
+    runSetsExecuted = 0
 
     logging.debug("I will use {0} threads.".format(benchmark.numOfThreads))
 
-    # iterate over tests and runs
-    for test in benchmark.tests:
+    # iterate over run sets
+    for runSet in benchmark.runSets:
 
         if STOPPED_BY_INTERRUPT: break
 
-        testnumber = test.index # the first test has number 1
         (mod, rest) = options.moduloAndRest
 
-        if not test.shouldBeExecuted() \
-                or (testnumber % mod != rest):
-            outputHandler.outputForSkippingTest(test)
+        if not runSet.shouldBeExecuted() \
+                or (runSet.index % mod != rest):
+            outputHandler.outputForSkippingRunSet(runSet)
 
-        elif not test.runs:
-            outputHandler.outputForSkippingTest(test, "because it has no files")
+        elif not runSet.runs:
+            outputHandler.outputForSkippingRunSet(runSet, "because it has no files")
 
         else:
-            testsRun += 1
-            # get times before test
+            runSetsExecuted += 1
+            # get times before runSet
             ruBefore = resource.getrusage(resource.RUSAGE_CHILDREN)
             wallTimeBefore = time.time()
 
-            outputHandler.outputBeforeRunSet(test)
+            outputHandler.outputBeforeRunSet(runSet)
 
             # put all runs into a queue
-            for run in test.runs:
+            for run in runSet.runs:
                 Worker.workingQueue.put(run)
     
             # create some workers
@@ -2004,17 +2000,17 @@ def runBenchmark(benchmarkFile):
                 
             assert (len(SUB_PROCESSES) == 0) or STOPPED_BY_INTERRUPT
 
-            # get times after test
+            # get times after runSet
             wallTimeAfter = time.time()
-            wallTimeTest = wallTimeAfter - wallTimeBefore
+            usedWallTime = wallTimeAfter - wallTimeBefore
             ruAfter = resource.getrusage(resource.RUSAGE_CHILDREN)
-            cpuTimeTest = (ruAfter.ru_utime + ruAfter.ru_stime)\
-            - (ruBefore.ru_utime + ruBefore.ru_stime)
+            usedCpuTime = (ruAfter.ru_utime + ruAfter.ru_stime) \
+                        - (ruBefore.ru_utime + ruBefore.ru_stime)
 
-            outputHandler.outputAfterRunSet(test, cpuTimeTest, wallTimeTest)
+            outputHandler.outputAfterRunSet(runSet, usedCpuTime, usedWallTime)
 
     outputHandler.outputAfterBenchmark()
-    if options.commit and not STOPPED_BY_INTERRUPT and testsRun > 0:
+    if options.commit and not STOPPED_BY_INTERRUPT and runSetsExecuted > 0:
         Util.addFilesToGitRepository(outputHandler.allCreatedFiles,
                                      options.commitMessage+'\n\n'+outputHandler.description)
 
@@ -2038,7 +2034,7 @@ def main(argv=None):
 
     parser.add_argument("-t", "--test", dest="selectedRunDefinitions",
                       action="append",
-                      help="Run only the specified TEST from the benchmark definition. "
+                      help="Run only the specified TEST from the benchmark definition file. "
                             + "This option can be specified several times.",
                       metavar="TEST")
 
@@ -2073,7 +2069,7 @@ def main(argv=None):
     parser.add_argument("-x", "--moduloAndRest",
                       dest="moduloAndRest", default=(1,0), nargs=2, type=int,
                       help="Run only a subset of tests for which (i %% a == b) holds" +
-                            "with i being the index of the test in the benhcmark definition file " +
+                            "with i being the index of the test in the benchmark definition file " +
                             "(starting with 1).",
                       metavar=("a","b"))
 
@@ -2157,6 +2153,6 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, signal_handler_ignore)
     try:
         sys.exit(main())
-    except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a test
+    except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a run set execution
         killScript()
-        Util.printOut("\n\nscript was interrupted by user, some tests may not be done")
+        Util.printOut("\n\nScript was interrupted by user, some runs may not be done.")
