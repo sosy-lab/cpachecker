@@ -572,7 +572,7 @@ class OutputHandler:
                       ET.Element("column", {"title": "cputime", "value": ""}),
                       ET.Element("column", {"title": "walltime", "value": ""})]
         for column in self.benchmark.columns:
-            XMLDummyElems.append(ET.Element("column",
+            self.XMLDummyElems.append(ET.Element("column",
                         {"title": column.title, "value": ""}))
 
 
