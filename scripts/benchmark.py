@@ -101,21 +101,40 @@ SUB_PROCESSES_LOCK = threading.Lock()
 STOPPED_BY_INTERRUPT = False
 
 
+"""
+Naming conventions:
+
+TOOL: a verifier program that should be executed
+EXECUTABLE: the executable file that should be called for running a TOOL
+SOURCEFILE: one file that contains code that should be verified
+RUN: one execution of a TOOL on one SOURCEFILE
+RUNSET: a set of RUNs of one TOOL with at most one RUN per SOURCEFILE
+RUNDEFINITION: a template for the creation of a RUNSET with RUNS from one or more SOURCEFILESETs
+BENCHMARK: a list of RUNDEFINITIONs and SOURCEFILESETs for one TOOL
+
+"run" always denotes a job to do and is never used as a verb.
+"execute" is only used as a verb (this is what is done with a run).
+
+Variables ending with "file" contain filenames.
+Variables ending with "tag" contain references to XML tag objects created by the XML parser.
+"""
+
+
 class Benchmark:
     """
-    The class Benchmark manages the import of files, options, columns and
+    The class Benchmark manages the import of source files, options, columns and
     the tool from a benchmarkFile.
+    This class represents the <benchmark> tag.
     """
 
     def __init__(self, benchmarkFile):
         """
-        The constructor of Benchmark reads the files, options, columns and the tool
-        from the xml-file.
+        The constructor of Benchmark reads the source files, options, columns and the tool
+        from the XML in the benchmarkFile..
         """
         logging.debug("I'm loading the benchmark {0}.".format(benchmarkFile))
 
         self.benchmarkFile = benchmarkFile
-        root = ET.ElementTree().parse(benchmarkFile)
 
         # get benchmark-name
         self.name = os.path.basename(benchmarkFile)[:-4] # remove ending ".xml"
@@ -125,23 +144,26 @@ class Benchmark:
         self.date = time.strftime("%y-%m-%d_%H%M", currentTime)
         self.dateISO = time.strftime("%y-%m-%d %H:%M", currentTime)
 
+        # parse XML
+        rootTag = ET.ElementTree().parse(benchmarkFile)
+
         # get tool
-        self.tool = root.get("tool")
+        self.tool = rootTag.get("tool")
         if self.tool not in TOOLS.keys() :
             sys.exit("tool '{0}' is not supported".format(self.tool))
-        self.exe = findExecutable(*TOOLS[self.tool])
-        self.run_func = eval("run_" + self.tool)
+        self.executable = findExecutable(*TOOLS[self.tool])
+        self.execute_func = eval("run_" + self.tool)
 
         logging.debug("The tool to be benchmarked is {0}.".format(repr(self.tool)))
 
         self.rlimits = {}
-        keys = list(root.keys())
+        keys = list(rootTag.keys())
         if MEMLIMIT in keys:
-            self.rlimits[MEMLIMIT] = int(root.get(MEMLIMIT))
+            self.rlimits[MEMLIMIT] = int(rootTag.get(MEMLIMIT))
         if TIMELIMIT in keys:
-            self.rlimits[TIMELIMIT] = int(root.get(TIMELIMIT))
+            self.rlimits[TIMELIMIT] = int(rootTag.get(TIMELIMIT))
 
-        # override limits from xml with option-given limits
+        # override limits from XML with values from command line
         if options.memorylimit != None:
             memorylimit = int(options.memorylimit)
             if memorylimit == -1: # infinity
@@ -159,7 +181,7 @@ class Benchmark:
                 self.rlimits[TIMELIMIT] = timelimit
 
         # get number of threads, default value is 1
-        self.numOfThreads = int(root.get("threads")) if ("threads" in keys) else 1
+        self.numOfThreads = int(rootTag.get("threads")) if ("threads" in keys) else 1
         if options.numOfThreads != None:
             self.numOfThreads = int(options.numOfThreads)
         if self.numOfThreads < 1:
@@ -167,38 +189,38 @@ class Benchmark:
             sys.exit()
 
         # get global options
-        self.options = getOptions(root)
+        self.options = getOptions(rootTag)
 
         # get columns
-        self.columns = self.loadColumns(root.find("columns"))
+        self.columns = self.loadColumns(rootTag.find("columns"))
 
-        # get global files, they are tested in all tests
-        globalSourcefiles = root.findall("sourcefiles")
+        # get global source files, they are tested in all tests
+        globalSourcefilesTags = rootTag.findall("sourcefiles")
 
         # get benchmarks
         self.tests = []
-        for testTag in root.findall("test"):
-            self.tests.append(Test(testTag, self, globalSourcefiles))
+        for testTag in rootTag.findall("test"):
+            self.tests.append(Test(testTag, self, globalSourcefilesTags))
 
         self.outputHandler = OutputHandler(self)
 
 
     def loadColumns(self, columnsTag):
         """
-        @param columnsTag: the columnsTag from the xml-file
+        @param columnsTag: the columnsTag from the XML file
         @return: a list of Columns()
         """
 
         logging.debug("I'm loading some columns for the outputfile.")
         columns = []
-        if columnsTag != None: # columnsTag is optional in xml-file
+        if columnsTag != None: # columnsTag is optional in XML file
             for columnTag in columnsTag.findall("column"):
-                text = columnTag.text
-                title = columnTag.get("title", text)
+                pattern = columnTag.text
+                title = columnTag.get("title", pattern)
                 numberOfDigits = columnTag.get("numberOfDigits") # digits behind comma
-                column = Column(text, title, numberOfDigits)
+                column = Column(pattern, title, numberOfDigits)
                 columns.append(column)
-                logging.debug('Column "{0}" with title "{1}" loaded from xml-file.'
+                logging.debug('Column "{0}" with title "{1}" loaded from XML file.'
                           .format(column.text, column.title))
         return columns
 
@@ -424,7 +446,7 @@ class Run():
         logfile = self.benchmark.outputHandler.outputBeforeRun(self)
 
         (self.status, self.cpuTime, self.wallTime, self.args) = \
-             self.benchmark.run_func(self.benchmark.exe,
+             self.benchmark.execute_func(self.benchmark.executable,
                                      self.getMergedOptions(),
                                      self.sourcefile, 
                                      self.columns,
@@ -773,10 +795,10 @@ class OutputHandler:
         """
 
         version = ''
-        exe = self.benchmark.exe
+        executable = self.benchmark.executable
         if (tool == "cpachecker"):
             try:
-                versionHelpStr = subprocess.Popen([exe, '-help'],
+                versionHelpStr = subprocess.Popen([executable, '-help'],
                     stdout=subprocess.PIPE).communicate()[0]
                 versionHelpStr = Util.decodeToString(versionHelpStr)
                 version = ' '.join(versionHelpStr.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
@@ -785,19 +807,19 @@ class OutputHandler:
                 sys.exit()
 
         elif (tool == "cbmc"):
-            version = subprocess.Popen([exe, '--version'],
+            version = subprocess.Popen([executable, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].strip()
 
         elif (tool == "satabs"):
-            version = subprocess.Popen([exe, '--version'],
+            version = subprocess.Popen([executable, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].strip()
 
         elif (tool == "wolverine"):
-            version = subprocess.Popen([exe, '--version'],
+            version = subprocess.Popen([executable, '--version'],
                               stdout=subprocess.PIPE).communicate()[0].split()[1].strip()
 
         elif (tool == "blast"):
-            version = subprocess.Popen([exe],
+            version = subprocess.Popen([executable],
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT).communicate()[0][6:9]
 
