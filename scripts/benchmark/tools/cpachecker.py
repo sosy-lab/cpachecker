@@ -64,7 +64,7 @@ class Tool(benchmark.tools.template.BaseTool):
             status = 'ERROR ({0})'.format(returncode)
 
         else:
-            status = None
+            status = ''
 
         for line in output.splitlines():
             if 'java.lang.OutOfMemoryError' in line:
@@ -93,14 +93,11 @@ class Tool(benchmark.tools.template.BaseTool):
                     newStatus = 'UNSAFE'
                 else:
                     newStatus = 'UNKNOWN'
-                status = newStatus if status is None else "{0} ({1})".format(status, newStatus)
-
-            elif (status is None) and line.startswith('#Test cases computed:'):
-                status = 'OK'
+                status = newStatus if not status else "{0} ({1})".format(status, newStatus)
 
         if status == 'KILLED (UNKNOWN)':
             status = 'KILLED'
-        if status is None:
+        if not status:
             status = "UNKNOWN"
         return status
 
