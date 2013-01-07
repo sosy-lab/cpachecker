@@ -969,6 +969,10 @@ def main(args=None):
     # collect data and find out rows with differences
     print ('collecting data ...')
     rows     = getRows(listOfTests, fileNames, options.correctOnly)
+    if not rows:
+        print ('Warning: No results found, no tables produced.')
+        sys.exit()
+
     rowsDiff = filterRowsWithDifferences(rows) if options.writeDiffTable else []
 
     print ('generating table ...')
