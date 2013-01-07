@@ -49,7 +49,7 @@ import subprocess
 import threading
 import xml.etree.ElementTree as ET
 
-from benchmark.filewriter import FileWriter
+import benchmark.filewriter as filewriter
 import benchmark.util as Util
 
 BUG_SUBSTRING_LIST = ['bug', 'unsafe']
@@ -680,7 +680,7 @@ class OutputHandler:
 
         # write to file
         TXTFileName = self.getFileName(runSetName, "txt")
-        self.TXTFile = FileWriter(TXTFileName, self.description)
+        self.TXTFile = filewriter.FileWriter(TXTFileName, self.description)
         self.allCreatedFiles.append(TXTFileName)
 
     def getSystemInfo(self):
@@ -783,7 +783,7 @@ class OutputHandler:
         # write (empty) results to TXTFile and XML
         self.TXTFile.append(self.runSetToTXT(runSet), False)
         self.XMLTestFileName = self.getFileName(runSet.name, "xml")
-        self.XMLTestFile = FileWriter(self.XMLTestFileName,
+        self.XMLTestFile = filewriter.FileWriter(self.XMLTestFileName,
                        Util.XMLtoString(self.runsToXML(runSet, runSet.runs)))
         self.XMLTestFile.lastModifiedTime = time.time()
         self.allCreatedFiles.append(self.XMLTestFileName)
@@ -939,7 +939,7 @@ class OutputHandler:
 
         if len(runSet.blocks) > 1:
             for block in runSet.blocks:
-                FileWriter(self.getFileName(runSet.name, block.name + ".xml"),
+                filewriter.writeFile(self.getFileName(runSet.name, block.name + ".xml"),
                     Util.XMLtoString(self.runsToXML(runSet, block.runs, block.name)))
 
         self.TXTFile.append(self.runSetToTXT(runSet, True))

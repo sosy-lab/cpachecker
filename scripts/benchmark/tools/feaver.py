@@ -1,6 +1,6 @@
 import os
 
-from benchmark.filewriter import FileWriter
+import benchmark.filewriter as filewriter
 import benchmark.util as Util
 
 class Tool:
@@ -28,7 +28,7 @@ class Tool:
         content = open(sourcefile, "r").read()
         content = content.replace("goto ERROR;", "assert(0);")
         newFilename = "tmp_benchmark_feaver.c"
-        preparedFile = FileWriter(newFilename, content)
+        filewriter.writeFile(newFilename, content)
         return newFilename
 
     @staticmethod

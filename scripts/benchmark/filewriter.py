@@ -1,5 +1,12 @@
 import os
 
+def writeFile(name, content):
+    """
+    Simply write some content to a file, overriding the file if necessary.
+    """
+    with open(name, "w") as file:
+        file.write(content)
+
 class FileWriter:
     """
     The class FileWriter is a wrapper for writing content into a file.
@@ -16,9 +23,7 @@ class FileWriter:
         self.__content = content
 
         # Open file with "w" at least once so it will be overwritten.
-        file = open(self.__filename, "w")
-        file.write(content)
-        file.close()
+        writeFile(self.__filename, content)
 
     def append(self, newContent, keep=True):
         """
@@ -37,15 +42,12 @@ class FileWriter:
             """
             tmpFilename = self.__filename + ".tmp"
 
-            file = open(tmpFilename, "w")
-            file.write(content)
-            file.close()
+            writeFile(tmpFilename, content)
 
             os.rename(tmpFilename, self.__filename)
         else:
-            file = open(self.__filename, "a")
-            file.write(newContent)
-            file.close()
+            with open(self.__filename, "a") as file:
+                file.write(newContent)
 
         self.__needsRewrite = not keep
 

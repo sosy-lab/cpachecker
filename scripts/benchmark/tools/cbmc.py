@@ -3,7 +3,6 @@ import platform
 import subprocess
 import xml.etree.ElementTree as ET
 
-from benchmark.filewriter import FileWriter
 import benchmark.util as Util
 
 class Tool:
@@ -73,7 +72,7 @@ class Tool:
 
             except Exception as e: # catch all exceptions
                 if isTimeout:
-                    # in this case an exception is expected as the XML is invaliddd
+                    # in this case an exception is expected as the XML is invalid
                     status = 'TIMEOUT'
                 elif 'Minisat::OutOfMemoryException' in output:
                     status = 'OUT OF MEMORY'
