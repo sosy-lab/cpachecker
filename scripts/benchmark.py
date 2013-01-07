@@ -50,13 +50,13 @@ import threading
 import xml.etree.ElementTree as ET
 
 import benchmark.filewriter as filewriter
+import benchmark.runexecutor as runexecutor
 import benchmark.util as Util
 
 BUG_SUBSTRING_LIST = ['bug', 'unsafe']
 
-MEMLIMIT = "memlimit"
-TIMELIMIT = "timelimit"
-BYTE_FACTOR = 1024 # byte in kilobyte
+MEMLIMIT = runexecutor.MEMLIMIT
+TIMELIMIT = runexecutor.TIMELIMIT
 
 # colors for column status in terminal
 USE_COLORS = True
@@ -79,8 +79,6 @@ TIME_PRECISION = 2
 
 # next lines are needed for stopping the script
 WORKER_THREADS = []
-SUB_PROCESSES = set()
-SUB_PROCESSES_LOCK = threading.Lock()
 STOPPED_BY_INTERRUPT = False
 
 
@@ -429,94 +427,20 @@ class Run():
         args = [os.path.expandvars(arg) for arg in args]
         args = [os.path.expanduser(arg) for arg in args]
 
-        if options.limitCores:
-            # use only one cpu for one subprocess
-            # if there are more threads than cores, some threads share the same core
-            import multiprocessing
-            args = ['taskset', '-c', str(numberOfThread % multiprocessing.cpu_count())] + args
+        cpuIndex = numberOfThread if options.limitCores else None
 
         rlimits = self.benchmark.rlimits
 
-        outputFile = open(outputFileName, 'w') # override existing file
-        outputFile.write(' '.join(args) + '\n\n\n' + '-'*80 + '\n\n\n')
-        outputFile.flush()
-
-        logging.debug("Executing {0}.".format(args))
-
-        wallTimeBefore = time.time()
-
-        try:
-            p = subprocess.Popen(args,
-                                 stdout=outputFile, stderr=outputFile,
-                                 preexec_fn=self._preSubprocess)
-
-            try:
-                SUB_PROCESSES_LOCK.acquire()
-                SUB_PROCESSES.add(p)
-            finally:
-                SUB_PROCESSES_LOCK.release()
-
-            # if rlimit does not work, a separate Timer is started to kill the subprocess,
-            # Timer has 10 seconds 'overhead'
-            if TIMELIMIT in rlimits:
-              timelimit = rlimits[TIMELIMIT]
-              timer = threading.Timer(timelimit + 10, killSubprocess, [p])
-              timer.start()
-
-            (pid, returnvalue, ru_child) = os.wait4(p.pid, 0)
-        except OSError:
-            logging.critical("I caught an OSError. Assure that the directory "
-                             + "containing the tool to be benchmarked is included "
-                             + "in the PATH environment variable or an alias is set.")
-            sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
-
-        finally:
-            try:
-                SUB_PROCESSES_LOCK.acquire()
-                assert p in SUB_PROCESSES
-                SUB_PROCESSES.remove(p)
-            finally:
-                SUB_PROCESSES_LOCK.release()
-
-            if (TIMELIMIT in rlimits) and timer.isAlive():
-                timer.cancel()
-
-            outputFile.close() # normally subprocess closes file, we do this again
-
-        wallTimeAfter = time.time()
-        self.wallTime = wallTimeAfter - wallTimeBefore
-        self.cpuTime = (ru_child.ru_utime + ru_child.ru_stime)
+        (self.wallTime, self.cpuTime, returnvalue, output) = runexecutor.executeRun(args, rlimits, outputFileName, cpuIndex, options.memdata)
 
         # calculation: returnvalue == (returncode * 256) + returnsignal
         returnsignal = returnvalue % 256
         returncode = returnvalue // 256
-        assert pid == p.pid
 
         logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
 
-        outputFile = open(outputFileName, 'r') # re-open file for reading output
-        output = ''.join(outputFile.readlines()[6:]) # first 6 lines are for logging, rest is output of subprocess
-        outputFile.close()
-        output = Util.decodeToString(output)
-
         self.status = tool.getStatus(returncode, returnsignal, output, self._isTimeout())
         tool.addColumnValues(output, self.columns)
-
-        # Segmentation faults and some memory failures reference a file with more information.
-        # We append this file to the log.
-        if self.status == 'SEGMENTATION FAULT' or self.status.startswith('ERROR') or self.status == 'OUT OF MEMORY':
-            next = False
-            for line in output.splitlines():
-                if next:
-                    try:
-                        dumpFile = line.strip(' #')
-                        Util.appendFileToFile(dumpFile, outputFileName)
-                        os.remove(dumpFile)
-                    except IOError as e:
-                        logging.warn('Could not append additional segmentation fault information (%s)' % e.strerror)
-                    break
-                if line == '# An error report file with more information is saved as:':
-                    next = True
 
         # Tools sometimes produce a result even after a timeout.
         # This should not be counted, so we overwrite the result with TIMEOUT
@@ -530,17 +454,6 @@ class Run():
                     self.status = "TIMEOUT"
 
         self.benchmark.outputHandler.outputAfterRun(self)
-
-    def _preSubprocess(self):
-        os.setpgrp() # make subprocess to group-leader
-
-        rlimits = self.benchmark.rlimits
-        if TIMELIMIT in rlimits:
-            resource.setrlimit(resource.RLIMIT_CPU, (rlimits[TIMELIMIT], rlimits[TIMELIMIT]))
-        if MEMLIMIT in rlimits:
-            memresource = resource.RLIMIT_DATA if options.memdata else resource.RLIMIT_AS
-            memlimit = rlimits[MEMLIMIT] * BYTE_FACTOR * BYTE_FACTOR # MB to Byte
-            resource.setrlimit(memresource, (memlimit, memlimit))
 
     def _isTimeout(self):
         ''' try to find out whether the tool terminated because of a timeout '''
@@ -1172,15 +1085,6 @@ def substituteVars(oldList, runSet, sourcefile=None, logFolder=None):
     return newList
 
 
-def killSubprocess(process):
-    '''
-    this function kills the process and the children in its group.
-    '''
-    try:
-        os.killpg(process.pid, signal.SIGTERM)
-    except OSError: # process itself returned and exited before killing
-        pass
-
 
 class Worker(threading.Thread):
     """
@@ -1256,8 +1160,6 @@ def runBenchmark(benchmarkFile):
                     time.sleep(0.1) # sleep some time
                 except KeyboardInterrupt:
                     killScript()
-
-            assert (len(SUB_PROCESSES) == 0) or STOPPED_BY_INTERRUPT
 
             # get times after runSet
             wallTimeAfter = time.time()
@@ -1392,12 +1294,7 @@ def killScript():
 
         # kill running jobs
         Util.printOut("killing subprocesses...")
-        try:
-            SUB_PROCESSES_LOCK.acquire()
-            for process in SUB_PROCESSES:
-                killSubprocess(process)
-        finally:
-            SUB_PROCESSES_LOCK.release()
+        runexecutor.killAllProcesses()
 
         # wait until all threads are stopped
         for worker in WORKER_THREADS:
