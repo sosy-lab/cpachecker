@@ -414,12 +414,9 @@ class Run():
         self.columns = [Column(c.text, c.title, c.numberOfDigits) for c in self.benchmark.columns]
 
         # dummy values, for output in case of interrupt
-        self.resultline = None
         self.status = ""
         self.cpuTime = 0
-        self.cpuTimeStr = ""
         self.wallTime = 0
-        self.wallTimeStr = ""
         self.args = ""
 
 
@@ -441,6 +438,16 @@ class Run():
         rlimits = self.benchmark.rlimits
 
         (self.wallTime, self.cpuTime, returnvalue, output) = runexecutor.executeRun(args, rlimits, self.logFile, cpuIndex, options.memdata)
+
+        if STOPPED_BY_INTERRUPT:
+            # If the run was interrupted, we ignore the result and cleanup.
+            self.wallTime = 0
+            self.cpuTime = 0
+            try:
+                os.remove(self.logFile)
+            except OSError:
+                pass
+            return
 
         # calculation: returnvalue == (returncode * 256) + returnsignal
         returnsignal = returnvalue % 256
@@ -496,8 +503,7 @@ class OutputHandler:
 
     def __init__(self, benchmark):
         """
-        The constructor of OutputHandler creates the folder to store logfiles
-        and collects information about the benchmark and the computer.
+        The constructor of OutputHandler collects information about the benchmark and the computer.
         """
 
         self.allCreatedFiles = []
@@ -556,6 +562,15 @@ class OutputHandler:
             columnElem = ET.Element("column", {"title": column.title})
             columntitlesElem.append(columnElem)
         self.XMLHeader.append(columntitlesElem)
+
+        # Build dummy entries for output, later replaced by the results,
+        # The dummy XML elements are shared over all runs.
+        self.XMLDummyElems = [ET.Element("column", {"title": "status", "value": ""}),
+                      ET.Element("column", {"title": "cputime", "value": ""}),
+                      ET.Element("column", {"title": "walltime", "value": ""})]
+        for column in self.benchmark.columns:
+            XMLDummyElems.append(ET.Element("column",
+                        {"title": column.title, "value": ""}))
 
 
     def writeHeaderToLog(self, version, memlimit, timelimit, opSystem,
@@ -683,26 +698,23 @@ class OutputHandler:
         # write information about the run set into TXTFile
         self.writeRunSetInfoToLog(runSet)
 
-        # build dummy entries for output, later replaced by the results,
-        # the dummy XML elements are shared over all runs of a run set,
-        # XML structure is equal to self.runToXML(run)
-        dummyElems = [ET.Element("column", {"title": "status", "value": ""}),
-                      ET.Element("column", {"title": "cputime", "value": ""}),
-                      ET.Element("column", {"title": "walltime", "value": ""})]
-        for column in self.benchmark.columns:
-            dummyElems.append(ET.Element("column",
-                        {"title": column.title, "value": ""}))
-
+        # prepare information for text output
         for run in runSet.runs:
             run.resultline = self.formatSourceFileName(run.sourcefile)
+
+        # prepare XML structure for each run and runSet
             run.xml = ET.Element("sourcefile", {"name": run.sourcefile})
-            for dummyElem in dummyElems: run.xml.append(dummyElem)
+            if run.specificOptions:
+                run.xml.set("options", " ".join(run.specificOptions))
+            run.xml.extend(self.XMLDummyElems)
+
+        runSet.xml = self.runsToXML(runSet, runSet.runs)
 
         # write (empty) results to TXTFile and XML
         self.TXTFile.append(self.runSetToTXT(runSet), False)
         XMLFileName = self.getFileName(runSet.name, "xml")
         self.XMLFile = filewriter.FileWriter(XMLFileName,
-                       Util.XMLtoString(self.runsToXML(runSet, runSet.runs)))
+                       Util.XMLtoString(runSet.xml))
         self.XMLFile.lastModifiedTime = time.time()
         self.allCreatedFiles.append(XMLFileName)
         self.XMLFileNames.append(XMLFileName)
@@ -782,8 +794,8 @@ class OutputHandler:
         """
 
         # format times, type is changed from float to string!
-        run.cpuTimeStr = Util.formatNumber(run.cpuTime, TIME_PRECISION)
-        run.wallTimeStr = Util.formatNumber(run.wallTime, TIME_PRECISION)
+        cpuTimeStr = Util.formatNumber(run.cpuTime, TIME_PRECISION)
+        wallTimeStr = Util.formatNumber(run.wallTime, TIME_PRECISION)
 
         # format numbers, numberOfDigits is optional, so it can be None
         for column in run.columns:
@@ -799,6 +811,11 @@ class OutputHandler:
                 except ValueError: # if value is no float, don't format it
                     pass
 
+        # store information in run
+        run.resultline = self.createOutputLine(run.sourcefile, run.status,
+                cpuTimeStr, wallTimeStr, run.columns)
+        self.addValuesToRunXML(run, cpuTimeStr, wallTimeStr)
+
         # output in terminal/console
         statusRelation = self.isCorrectResult(run.sourcefile, run.status)
         if USE_COLORS and sys.stdout.isatty(): # is terminal, not file
@@ -809,19 +826,12 @@ class OutputHandler:
         try:
             OutputHandler.printLock.acquire()
 
-            # if there was an interupt in run, we do not print the result
-            if not STOPPED_BY_INTERRUPT:
-                valueStr = statusStr + run.cpuTimeStr.rjust(8) + run.wallTimeStr.rjust(8)
-                if self.benchmark.numOfThreads == 1:
-                    Util.printOut(valueStr)
-                else:
-                    timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
-                    Util.printOut(timeStr + self.formatSourceFileName(run.sourcefile) + valueStr)
-
-            # store information in run
-            run.resultline = self.createOutputLine(run.sourcefile, run.status,
-                    run.cpuTimeStr, run.wallTimeStr, run.columns)
-            run.xml = self.runToXML(run)
+            valueStr = statusStr + cpuTimeStr.rjust(8) + wallTimeStr.rjust(8)
+            if self.benchmark.numOfThreads == 1:
+                Util.printOut(valueStr)
+            else:
+                timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
+                Util.printOut(timeStr + self.formatSourceFileName(run.sourcefile) + valueStr)
 
             # write result in TXTFile and XML
             self.TXTFile.append(self.runSetToTXT(run.runSet), False)
@@ -831,7 +841,7 @@ class OutputHandler:
             # so we wait at least 10 seconds between two write-actions
             currentTime = time.time()
             if currentTime - self.XMLFile.lastModifiedTime > 10:
-                self.XMLFile.replace(Util.XMLtoString(self.runsToXML(run.runSet, run.runSet.runs)))
+                self.XMLFile.replace(Util.XMLtoString(run.runSet.xml))
                 self.XMLFile.lastModifiedTime = currentTime
 
         finally:
@@ -844,22 +854,18 @@ class OutputHandler:
         @params cpuTime, wallTime: accumulated times of the run set
         """
 
-        # format time, type is changed from float to string!
-        runSet.cpuTimeStr = Util.formatNumber(cpuTime, TIME_PRECISION)
-        runSet.wallTimeStr = Util.formatNumber(wallTime, TIME_PRECISION)
-
         # write results to files
-        self.XMLFile.replace(Util.XMLtoString(self.runsToXML(runSet, runSet.runs)))
+        self.XMLFile.replace(Util.XMLtoString(runSet.xml))
 
         if len(runSet.blocks) > 1:
             for block in runSet.blocks:
                 filewriter.writeFile(self.getFileName(runSet.name, block.name + ".xml"),
                     Util.XMLtoString(self.runsToXML(runSet, block.runs, block.name)))
 
-        self.TXTFile.append(self.runSetToTXT(runSet, True))
+        self.TXTFile.append(self.runSetToTXT(runSet, True, cpuTime, wallTime))
 
 
-    def runSetToTXT(self, runSet, finished=False):
+    def runSetToTXT(self, runSet, finished=False, cpuTime=0, wallTime=0):
         lines = []
 
         # store values of each run
@@ -871,14 +877,18 @@ class OutputHandler:
         if finished:
             endline = ("Run set {0}".format(runSet.index))
 
-            lines.append(self.createOutputLine(endline, "done", runSet.cpuTimeStr,
-                             runSet.wallTimeStr, []))
+            # format time, type is changed from float to string!
+            cpuTimeStr = Util.formatNumber(cpuTime, TIME_PRECISION)
+            wallTimeStr = Util.formatNumber(wallTime, TIME_PRECISION)
+
+            lines.append(self.createOutputLine(endline, "done", cpuTimeStr,
+                             wallTimeStr, []))
 
         return "\n".join(lines) + "\n"
 
     def runsToXML(self, runSet, runs, blockname=None):
         """
-        This function dumps a list of runs of a runSet and their results to XML.
+        This function creates the XML structure for a list of runs
         """
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
         runsElem = Util.getCopyOfXMLElem(self.XMLHeader)
@@ -895,21 +905,20 @@ class OutputHandler:
         return runsElem
 
 
-    def runToXML(self, run):
+    def addValuesToRunXML(self, run, cpuTimeStr, wallTimeStr):
         """
-        This function returns a xml-representation of a run.
+        This function adds the result values to the XML representation of a run.
         """
-        runElem = ET.Element("sourcefile", {"name": run.sourcefile})
-        if run.specificOptions:
-            runElem.set("options", " ".join(run.specificOptions))
+        runElem = run.xml
+        for elem in list(runElem):
+            runElem.remove(elem)
         runElem.append(ET.Element("column", {"title": "status", "value": run.status}))
-        runElem.append(ET.Element("column", {"title": "cputime", "value": run.cpuTimeStr}))
-        runElem.append(ET.Element("column", {"title": "walltime", "value": run.wallTimeStr}))
+        runElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeStr}))
+        runElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeStr}))
 
         for column in run.columns:
             runElem.append(ET.Element("column",
                         {"title": column.title, "value": column.value}))
-        return runElem
 
 
     def isCorrectResult(self, filename, status):
