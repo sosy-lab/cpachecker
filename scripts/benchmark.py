@@ -92,10 +92,12 @@ RUN: one execution of a TOOL on one SOURCEFILE
 RUNSET: a set of RUNs of one TOOL with at most one RUN per SOURCEFILE
 RUNDEFINITION: a template for the creation of a RUNSET with RUNS from one or more SOURCEFILESETs
 BENCHMARK: a list of RUNDEFINITIONs and SOURCEFILESETs for one TOOL
+OPTION: a user-specified option to add to the command-line of the TOOL when it its run
+CONFIG: the configuration of this script consisting of the command-line arguments given by the user
 
 "run" always denotes a job to do and is never used as a verb.
 "execute" is only used as a verb (this is what is done with a run).
-A run set can also be executed, which means to execute all contained runs.
+A benchmark or a run set can also be executed, which means to execute all contained runs.
 
 Variables ending with "file" contain filenames.
 Variables ending with "tag" contain references to XML tag objects created by the XML parser.
@@ -155,16 +157,16 @@ class Benchmark:
             self.rlimits[TIMELIMIT] = int(rootTag.get(TIMELIMIT))
 
         # override limits from XML with values from command line
-        if options.memorylimit != None:
-            memorylimit = int(options.memorylimit)
+        if config.memorylimit != None:
+            memorylimit = int(config.memorylimit)
             if memorylimit == -1: # infinity
                 if MEMLIMIT in self.rlimits:
                     self.rlimits.pop(MEMLIMIT)
             else:
                 self.rlimits[MEMLIMIT] = memorylimit
 
-        if options.timelimit != None:
-            timelimit = int(options.timelimit)
+        if config.timelimit != None:
+            timelimit = int(config.timelimit)
             if timelimit == -1: # infinity
                 if TIMELIMIT in self.rlimits:
                     self.rlimits.pop(TIMELIMIT)
@@ -173,8 +175,8 @@ class Benchmark:
 
         # get number of threads, default value is 1
         self.numOfThreads = int(rootTag.get("threads")) if ("threads" in keys) else 1
-        if options.numOfThreads != None:
-            self.numOfThreads = int(options.numOfThreads)
+        if config.numOfThreads != None:
+            self.numOfThreads = int(config.numOfThreads)
         if self.numOfThreads < 1:
             logging.error("At least ONE thread must be given!")
             sys.exit()
@@ -265,8 +267,8 @@ class RunSet:
 
 
     def shouldBeExecuted(self):
-        return not options.selectedRunDefinitions \
-            or self.realName in options.selectedRunDefinitions
+        return not config.selectedRunDefinitions \
+            or self.realName in config.selectedRunDefinitions
 
 
     def extractRunsFromXML(self, sourcefilesTagList):
@@ -281,7 +283,7 @@ class RunSet:
         for index, sourcefilesTag in enumerate(sourcefilesTagList):
             sourcefileSetName = sourcefilesTag.get("name")
             matchName = sourcefileSetName or str(index)
-            if (options.selectedSourcefileSets and matchName not in options.selectedSourcefileSets):
+            if (config.selectedSourcefileSets and matchName not in config.selectedSourcefileSets):
                 continue
 
             # get list of filenames
@@ -433,11 +435,11 @@ class Run():
         args = [os.path.expandvars(arg) for arg in args]
         args = [os.path.expanduser(arg) for arg in args]
 
-        cpuIndex = numberOfThread if options.limitCores else None
+        cpuIndex = numberOfThread if config.limitCores else None
 
         rlimits = self.benchmark.rlimits
 
-        (self.wallTime, self.cpuTime, returnvalue, output) = runexecutor.executeRun(args, rlimits, self.logFile, cpuIndex, options.memdata)
+        (self.wallTime, self.cpuTime, returnvalue, output) = runexecutor.executeRun(args, rlimits, self.logFile, cpuIndex, config.memdata)
 
         if STOPPED_BY_INTERRUPT:
             # If the run was interrupted, we ignore the result and cleanup.
@@ -1112,7 +1114,7 @@ class Worker(threading.Thread):
             Worker.workingQueue.task_done()
 
 
-def runBenchmark(benchmarkFile):
+def executeBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
 
     logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
@@ -1128,7 +1130,7 @@ def runBenchmark(benchmarkFile):
 
         if STOPPED_BY_INTERRUPT: break
 
-        (mod, rest) = options.moduloAndRest
+        (mod, rest) = config.moduloAndRest
 
         if not runSet.shouldBeExecuted() \
                 or (runSet.index % mod != rest):
@@ -1178,9 +1180,9 @@ def runBenchmark(benchmarkFile):
             outputHandler.outputAfterRunSet(runSet, usedCpuTime, usedWallTime)
 
     outputHandler.outputAfterBenchmark()
-    if options.commit and not STOPPED_BY_INTERRUPT and runSetsExecuted > 0:
+    if config.commit and not STOPPED_BY_INTERRUPT and runSetsExecuted > 0:
         Util.addFilesToGitRepository(outputHandler.allCreatedFiles,
-                                     options.commitMessage+'\n\n'+outputHandler.description)
+                                     config.commitMessage+'\n\n'+outputHandler.description)
 
 
 def main(argv=None):
@@ -1259,21 +1261,21 @@ def main(argv=None):
                       default="Results for benchmark run",
                       help="Commit message if --commit is used.")
 
-    global options, OUTPUT_PATH
-    options = parser.parse_args(argv[1:])
-    if os.path.isdir(options.output_path):
-        OUTPUT_PATH = os.path.normpath(options.output_path) + os.sep
+    global config, OUTPUT_PATH
+    config = parser.parse_args(argv[1:])
+    if os.path.isdir(config.output_path):
+        OUTPUT_PATH = os.path.normpath(config.output_path) + os.sep
     else:
-        OUTPUT_PATH = options.output_path
+        OUTPUT_PATH = config.output_path
 
 
-    if (options.debug):
+    if config.debug:
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
                             level=logging.DEBUG)
     else:
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s")
 
-    for arg in options.files:
+    for arg in config.files:
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
 
@@ -1285,10 +1287,10 @@ def main(argv=None):
     except OSError:
         pass # this does not work on Windows
 
-    for arg in options.files:
+    for arg in config.files:
         if STOPPED_BY_INTERRUPT: break
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
-        runBenchmark(arg)
+        executeBenchmark(arg)
         logging.debug("Benchmark {0} is done.".format(repr(arg)))
 
     logging.debug("I think my job is done. Have a nice day!")
