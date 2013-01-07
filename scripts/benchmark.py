@@ -152,7 +152,7 @@ class Benchmark:
             memorylimit = int(options.memorylimit)
             if memorylimit == -1: # infinity
                 if MEMLIMIT in self.rlimits:
-                    self.rlimits.pop(MEMLIMIT)                
+                    self.rlimits.pop(MEMLIMIT)
             else:
                 self.rlimits[MEMLIMIT] = memorylimit
 
@@ -160,7 +160,7 @@ class Benchmark:
             timelimit = int(options.timelimit)
             if timelimit == -1: # infinity
                 if TIMELIMIT in self.rlimits:
-                    self.rlimits.pop(TIMELIMIT)                
+                    self.rlimits.pop(TIMELIMIT)
             else:
                 self.rlimits[TIMELIMIT] = timelimit
 
@@ -653,7 +653,7 @@ class Util:
         This function is needed for Python 3,
         because a subprocess can return bytes instead of a string.
         """
-        try: 
+        try:
             return toDecode.decode('utf-8')
         except AttributeError: # bytesToDecode was of type string before
             return toDecode
@@ -690,18 +690,18 @@ class Util:
     def findExecutable(program, fallback=None):
         def isExecutable(programPath):
             return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
-    
+
         dirs = os.environ['PATH'].split(os.pathsep)
         dirs.append(".")
-    
+
         for dir in dirs:
             name = os.path.join(dir, program)
             if isExecutable(name):
                 return name
-    
+
         if fallback is not None and isExecutable(fallback):
             return fallback
-    
+
         sys.exit("ERROR: Could not find '{0}' executable".format(program))
 
 
@@ -985,7 +985,7 @@ class tool_cbmc:
         elif returncode == 6:
             # parser error or something similar
             status = 'ERROR'
-        
+
         elif returnsignal == 9 or returncode == (128+9):
             if isTimeout:
                 status = 'TIMEOUT'
@@ -1010,7 +1010,7 @@ class tool_cpachecker:
     @staticmethod
     def getExecutable():
         return Util.findExecutable('cpa.sh', 'scripts/cpa.sh')
-    
+
     @staticmethod
     def getVersion(executable):
         version = ''
@@ -1042,31 +1042,31 @@ class tool_cpachecker:
         @param output: the output of CPAchecker
         @return: status of CPAchecker after executing a run
         """
-    
+
         def isOutOfNativeMemory(line):
             return ('std::bad_alloc'             in line # C++ out of memory exception (MathSAT)
                  or 'Cannot allocate memory'     in line
                  or line.startswith('out of memory')     # CuDD
                  )
-    
+
         if returnsignal == 0:
             status = None
-    
+
         elif returnsignal == 6:
             status = "ABORTED (probably by Mathsat)"
-    
+
         elif returnsignal == 9:
             if isTimeout:
                 status = 'TIMEOUT'
             else:
                 status = "KILLED BY SIGNAL 9"
-    
+
         elif returnsignal == (128+15):
             status = "KILLED"
-    
+
         else:
             status = "ERROR ({0})".format(returnsignal)
-    
+
         for line in output.splitlines():
             if 'java.lang.OutOfMemoryError' in line:
                 status = 'OUT OF JAVA MEMORY'
@@ -1085,7 +1085,7 @@ class tool_cpachecker:
                 status = 'JAVA HEAP ERROR'
             elif line.startswith('Error: '):
                 status = 'ERROR'
-            
+
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
                 if line.startswith('SAFE'):
@@ -1095,7 +1095,7 @@ class tool_cpachecker:
                 else:
                     newStatus = 'UNKNOWN'
                 status = newStatus if status is None else "{0} ({1})".format(status, newStatus)
-                
+
             elif (status is None) and line.startswith('#Test cases computed:'):
                 status = 'OK'
         if status is None:
@@ -1105,7 +1105,7 @@ class tool_cpachecker:
     @staticmethod
     def addColumnValues(output, columns):
         for column in columns:
-    
+
             # search for the text in output and get its value,
             # stop after the first line, that contains the searched text
             column.value = "-" # default value
@@ -1124,7 +1124,7 @@ class tool_evav:
     @staticmethod
     def getExecutable():
         return Util.findExecutable('ecaverifier')
-    
+
     @staticmethod
     def getVersion(executable):
         return ''
@@ -1162,7 +1162,7 @@ class tool_feaver:
     @staticmethod
     def getExecutable():
         return Util.findExecutable('feaver_cmd')
-    
+
     @staticmethod
     def getVersion(executable):
         return ''
@@ -1175,7 +1175,7 @@ class tool_feaver:
     def getCmdline(executable, options, sourcefile):
         # create tmp-files for feaver, feaver needs special error-labels
         tool_feaver.prepSourcefile = _prepareSourcefile(sourcefile)
-    
+
         return [executable] + ["--file"] + [tool_feaver.prepSourcefile] + options
 
     @staticmethod
@@ -1190,28 +1190,28 @@ class tool_feaver:
     def getStatus(returncode, returnsignal, output, isTimeout):
         if "collect2: ld returned 1 exit status" in output:
             status = "COMPILE ERROR"
-    
+
         elif "Error (parse error" in output:
             status = "PARSE ERROR"
-    
+
         elif "error: (\"model\":" in output:
             status = "MODEL ERROR"
-    
+
         elif "Error: syntax error" in output:
             status = "SYNTAX ERROR"
-    
+
         elif "error: " in output or "Error: " in output:
             status = "ERROR"
-    
+
         elif "Error Found:" in output:
             status = "UNSAFE"
-    
+
         elif "No Errors Found" in output:
             status = "SAFE"
-    
+
         else:
             status = "UNKNOWN"
-    
+
         # delete tmp-files
         for tmpfile in [tool_feaver.prepSourcefile, tool_feaver.prepSourcefile[0:-1] + "M",
                      "_modex_main.spn", "_modex_.h", "_modex_.cln", "_modex_.drv",
@@ -1232,7 +1232,7 @@ class tool_satabs:
     @staticmethod
     def getExecutable():
         return Util.findExecutable('satabs')
-    
+
     @staticmethod
     def getVersion(executable):
         return subprocess.Popen([executable, '--version'],
@@ -1268,7 +1268,7 @@ class tool_satabs:
         return status
 
     @staticmethod
-    def addColumnValues(output, columns):   
+    def addColumnValues(output, columns):
         pass
 
 
@@ -1276,7 +1276,7 @@ class tool_ufo:
     @staticmethod
     def getExecutable():
         return Util.findExecutable('ufo.sh')
-    
+
     @staticmethod
     def getVersion(executable):
         return ''
@@ -1309,7 +1309,7 @@ class tool_ufo:
         return status
 
     @staticmethod
-    def addColumnValues(output, columns):  
+    def addColumnValues(output, columns):
         pass
 
 
@@ -1317,7 +1317,7 @@ class tool_wolverine:
     @staticmethod
     def getExecutable():
         return Util.findExecutable('wolverine')
-    
+
     @staticmethod
     def getVersion(executable):
         return subprocess.Popen([executable, '--version'],
@@ -1356,14 +1356,14 @@ class tool_wolverine:
 
 # the next 3 classes are for imaginary tools, that return special results,
 # perhaps someone can use these function again someday,
-# to use them you need a normal benchmark-xml-file 
+# to use them you need a normal benchmark-xml-file
 # with the tool and sourcefiles, however options are ignored
 
 class tool_safe:
     @staticmethod
     def getExecutable():
         return '/bin/true'
-    
+
     @staticmethod
     def getVersion(executable):
         return ''
@@ -1388,7 +1388,7 @@ class tool_unsafe:
     @staticmethod
     def getExecutable():
         return '/bin/false'
-    
+
     @staticmethod
     def getVersion(executable):
         return ''
@@ -1413,7 +1413,7 @@ class tool_random:
     @staticmethod
     def getExecutable():
         return '/bin/true'
-    
+
     @staticmethod
     def getVersion(executable):
         return ''
@@ -1643,7 +1643,7 @@ class OutputHandler:
                       ET.Element("column", {"title": "cputime", "value": ""}),
                       ET.Element("column", {"title": "walltime", "value": ""})]
         for column in self.benchmark.columns:
-            dummyElems.append(ET.Element("column", 
+            dummyElems.append(ET.Element("column",
                         {"title": column.title, "value": ""}))
 
         for run in runSet.runs:
@@ -2059,7 +2059,7 @@ class FileWriter:
 
 def substituteVars(oldList, runSet, sourcefile=None, logFolder=None):
     """
-    This method replaces special substrings from a list of string 
+    This method replaces special substrings from a list of string
     and return a new list.
     """
 
@@ -2164,7 +2164,7 @@ def runBenchmark(benchmarkFile):
             # put all runs into a queue
             for run in runSet.runs:
                 Worker.workingQueue.put(run)
-    
+
             # create some workers
             for i in range(benchmark.numOfThreads):
                 WORKER_THREADS.append(Worker(i))
@@ -2183,7 +2183,7 @@ def runBenchmark(benchmarkFile):
                     time.sleep(0.1) # sleep some time
                 except KeyboardInterrupt:
                     killScript()
-                
+
             assert (len(SUB_PROCESSES) == 0) or STOPPED_BY_INTERRUPT
 
             # get times after runSet
