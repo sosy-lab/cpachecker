@@ -114,6 +114,7 @@ BENCHMARK: a list of RUNDEFINITIONs and SOURCEFILESETs for one TOOL
 
 "run" always denotes a job to do and is never used as a verb.
 "execute" is only used as a verb (this is what is done with a run).
+A run set can also be executed, which means to execute all contained runs.
 
 Variables ending with "file" contain filenames.
 Variables ending with "tag" contain references to XML tag objects created by the XML parser.
@@ -189,7 +190,7 @@ class Benchmark:
             sys.exit()
 
         # get global options
-        self.options = getOptions(rootTag)
+        self.options = getOptionsFromXML(rootTag)
 
         # get columns
         self.columns = self.loadColumns(rootTag.find("columns"))
@@ -200,7 +201,7 @@ class Benchmark:
         # get benchmarks
         self.tests = []
         for testTag in rootTag.findall("test"):
-            self.tests.append(Test(testTag, self, globalSourcefilesTags))
+            self.tests.append(RunSet(testTag, self, globalSourcefilesTags))
 
         self.outputHandler = OutputHandler(self)
 
@@ -225,89 +226,90 @@ class Benchmark:
         return columns
 
 
-class Test:
+class RunSet:
     """
-    The class Test manages the import of files and options of a test.
+    The class RunSet manages the import of files and options of a run set.
     """
 
-    def __init__(self, testTag, benchmark, globalSourcefileTags=[]):
+    def __init__(self, rundefinitionTag, benchmark, globalSourcefilesTags=[]):
         """
-        The constructor of Test reads testname and the filenames from testTag.
-        Filenames can be included or excluded, and imported from a list of
+        The constructor of RunSet reads run-set name and the source files from rundefinitionTag.
+        Source files can be included or excluded, and imported from a list of
         names in another file. Wildcards and variables are expanded.
-        @param testTag: a testTag from the xml-file
+        @param rundefinitionTag: a rundefinitionTag from the XML file
         """
 
         self.benchmark = benchmark
 
         # get name of test, name is optional, the result can be "None"
-        self.name = testTag.get("name")
+        self.name = rundefinitionTag.get("name")
         self.realName = self.name
 
-        # get all test-specific options from testTag
-        self.options = getOptions(testTag)
+        # get all test-specific options from rundefinitionTag
+        self.options = getOptionsFromXML(rundefinitionTag)
 
         # get all runs, a run contains one sourcefile with options
-        self.getRuns(globalSourcefileTags + testTag.findall("sourcefiles"))
+        self.extractRunsFromXML(globalSourcefilesTags + rundefinitionTag.findall("sourcefiles"))
 
 
-    def shouldBeRun(self):
-        return not options.testRunOnly \
-            or self.realName in options.testRunOnly
+    def shouldBeExecuted(self):
+        return not options.selectedRunDefinitions \
+            or self.realName in options.selectedRunDefinitions
 
 
-    def getRuns(self, sourcefilesTagList):
+    def extractRunsFromXML(self, sourcefilesTagList):
         '''
         This function builds a list of Runs (filename with options).
-        The files and their options are taken from the list of sourcefilesTags.
+        The files and their options are taken from the list of sourcefilesTags
+        and stored in the fields of the run set.
         '''
-        # runs are structured as blocks, one block represents one soursefile-tag
+        # runs are structured as sourcefile sets, one set represents one sourcefiles tag
         self.blocks = []
         self.runs = []
 
         for sourcefilesTag in sourcefilesTagList:
-            blockName = sourcefilesTag.get("name", str(sourcefilesTagList.index(sourcefilesTag)))
-            if (options.sourcefilesOnly and blockName not in options.sourcefilesOnly):
+            sourcefileSetName = sourcefilesTag.get("name", str(sourcefilesTagList.index(sourcefilesTag)))
+            if (options.selectedSourcefileSets and sourcefileSetName not in options.selectedSourcefileSets):
                 continue
 
-            if (options.sourcefilesOnly and len(options.sourcefilesOnly) == 1) \
+            if (options.selectedSourcefileSets and len(options.selectedSourcefileSets) == 1) \
                     or len(sourcefilesTagList) == 1:
-                # there is exactly one block to run, append block name to test name
-                givenBlockName = sourcefilesTag.get("name", None)
-                if givenBlockName:
-                    self.name = self.name + "." + givenBlockName if self.name else givenBlockName
+                # there is exactly one source-file set to run, append its name to run-set name
+                givenSourcefileSetName = sourcefilesTag.get("name", None)
+                if givenSourcefileSetName:
+                    self.name = self.name + "." + givenSourcefileSetName if self.name else givenSourcefileSetName
 
             # get list of filenames
-            sourcefiles = self.getSourcefiles(sourcefilesTag)
+            sourcefiles = self.getSourcefilesFromXML(sourcefilesTag)
 
             # get file-specific options for filenames
-            fileOptions = getOptions(sourcefilesTag)
+            fileOptions = getOptionsFromXML(sourcefilesTag)
 
-            runs = []
+            currentRuns = []
             for sourcefile in sourcefiles:
-                runs.append(Run(sourcefile, fileOptions, self))
-            self.runs.extend(runs)
+                currentRuns.append(Run(sourcefile, fileOptions, self))
+            self.runs.extend(currentRuns)
 
-            self.blocks.append(Block(blockName,runs))
+            self.blocks.append(Block(sourcefileSetName, currentRuns))
 
 
-    def getSourcefiles(self, sourcefilesTag):
+    def getSourcefilesFromXML(self, sourcefilesTag):
         sourcefiles = []
         baseDir = os.path.dirname(self.benchmark.benchmarkFile)
 
         # get included sourcefiles
         for includedFiles in sourcefilesTag.findall("include"):
-            sourcefiles += self.getFileList(includedFiles.text, baseDir)
+            sourcefiles += self.expandFileNamePattern(includedFiles.text, baseDir)
 
         # get sourcefiles from list in file
         for includesFilesFile in sourcefilesTag.findall("includesfile"):
 
-            for file in self.getFileList(includesFilesFile.text, baseDir):
+            for file in self.expandFileNamePattern(includesFilesFile.text, baseDir):
 
-                # check for code (if somebody changes 'include' and 'includesfile')
+                # check for code (if somebody confuses 'include' and 'includesfile')
                 if Util.isCode(file):
-                    logging.error("'" + file + "' is no includesfile (set-file).\n" + \
-                        "please check your benchmark-xml-file or remove bracket '{' from this file.")
+                    logging.error("'" + file + "' seems to contain code instead of a set of source file names.\n" + \
+                        "Please check your benchmark definition file or remove bracket '{' from this file.")
                     sys.exit()
 
                 # read files from list
@@ -319,65 +321,65 @@ class Test:
 
                     # ignore comments and empty lines
                     if not Util.isComment(line):
-                        sourcefiles += self.getFileList(line, os.path.dirname(file))
+                        sourcefiles += self.expandFileNamePattern(line, os.path.dirname(file))
 
                 fileWithList.close()
 
         # remove excluded sourcefiles
         for excludedFiles in sourcefilesTag.findall("exclude"):
-            excludedFilesList = self.getFileList(excludedFiles.text, baseDir)
+            excludedFilesList = self.expandFileNamePattern(excludedFiles.text, baseDir)
             for excludedFile in excludedFilesList:
                 sourcefiles = Util.removeAll(sourcefiles, excludedFile)
 
         return sourcefiles
 
 
-    def getFileList(self, shortFile, root):
+    def expandFileNamePattern(self, pattern, baseDir):
         """
-        The function getFileList expands a short filename to a sorted list
-        of filenames. The short filename can contain variables and wildcards.
-        If root is given and shortFile is not absolute, root and shortFile are joined.
+        The function expandFileNamePattern expands a filename pattern to a sorted list
+        of filenames. The pattern can contain variables and wildcards.
+        If baseDir is given and pattern is not absolute, baseDir and pattern are joined.
         """
 
-        # store shortFile for fallback
-        shortFileFallback = shortFile
+        # store pattern for fallback
+        shortFileFallback = pattern
 
         # replace vars like ${benchmark_path},
         # with converting to list and back, we can use the function 'substituteVars()'
-        shortFileList = substituteVars([shortFile], self)
-        assert len(shortFileList) == 1
-        shortFile = shortFileList[0]
+        expandedPattern = substituteVars([pattern], self)
+        assert len(expandedPattern) == 1
+        expandedPattern = expandedPattern[0]
 
-        # 'join' ignores root, if shortFile is absolute.
+        # 'join' ignores baseDir, if expandedPattern is absolute.
         # 'normpath' replaces 'A/foo/../B' with 'A/B', for pretty printing only
-        shortFile = os.path.normpath(os.path.join(root, shortFile))
+        expandedPattern = os.path.normpath(os.path.join(baseDir, expandedPattern))
 
         # expand tilde and variables
-        expandedFile = os.path.expandvars(os.path.expanduser(shortFile))
+        expandedPattern = os.path.expandvars(os.path.expanduser(expandedPattern))
 
         # expand wildcards
-        fileList = glob.glob(expandedFile)
+        fileList = glob.glob(expandedPattern)
 
         # sort alphabetical,
         # if list is emtpy, sorting returns None, so better do not sort
         if len(fileList) != 0:
             fileList.sort()
 
-        if expandedFile != shortFile:
+        if expandedPattern != pattern:
             logging.debug("Expanded tilde and/or shell variables in expression {0} to {1}."
-                .format(repr(shortFile), repr(expandedFile)))
+                .format(repr(pattern), repr(expandedPattern)))
 
-        if len(fileList) == 0 and root != "":
+        if len(fileList) == 0 and baseDir != "":
 
-            if root != "":
-                # try fallback for older test-sets
-                fileList = self.getFileList(shortFileFallback, "")
+            if baseDir != "":
+                # try fallback for old syntax of run definitions
+                fileList = self.expandFileNamePattern(shortFileFallback, "")
                 if len(fileList) != 0:
-                    logging.warning("Test definition uses old-style paths. Please change the path {0} to be relative to {1}."
-                                .format(repr(shortFileFallback), repr(root)))
+                    logging.warning("Run definition uses old-style paths. Please change the path {0} to be relative to {1}."
+                                .format(repr(shortFileFallback), repr(baseDir)))
                 else:
                     logging.warning("No files found matching {0}."
-                                .format(repr(shortFile)))
+                                .format(repr(pattern)))
 
         return fileList
 
@@ -761,7 +763,7 @@ class OutputHandler:
         self.description = header + systemInfo
 
         testname = None
-        runTests = [test for test in self.benchmark.tests if test.shouldBeRun()]
+        runTests = [test for test in self.benchmark.tests if test.shouldBeExecuted()]
         if len(runTests) == 1:
             # in case there is only a single test to run, we can use its name
             testname = runTests[0].name
@@ -1285,7 +1287,7 @@ class Statistics:
                  '']))
 
 
-def getOptions(optionsTag):
+def getOptionsFromXML(optionsTag):
     '''
     This function searches for options in a tag
     and returns a list with tuples of (name, value).
@@ -2008,7 +2010,7 @@ def runBenchmark(benchmarkFile):
         testnumber = benchmark.tests.index(test) + 1 # the first test has number 1
         (mod, rest) = options.moduloAndRest
 
-        if not test.shouldBeRun() \
+        if not test.shouldBeExecuted() \
                 or (testnumber % mod != rest):
             outputHandler.outputForSkippingTest(test)
 
@@ -2080,13 +2082,13 @@ def main(argv=None):
                       action="store_true",
                       help="Enable debug output")
 
-    parser.add_argument("-t", "--test", dest="testRunOnly",
+    parser.add_argument("-t", "--test", dest="selectedRunDefinitions",
                       action="append",
                       help="Run only the specified TEST from the benchmark definition. "
                             + "This option can be specified several times.",
                       metavar="TEST")
 
-    parser.add_argument("-s", "--sourcefiles", dest="sourcefilesOnly",
+    parser.add_argument("-s", "--sourcefiles", dest="selectedSourcefileSets",
                       action="append",
                       help="Run only the files from the sourcefiles tag with SOURCE as name. "
                             + "This option can be specified several times.",
