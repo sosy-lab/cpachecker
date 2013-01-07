@@ -70,7 +70,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -325,7 +325,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       Map<Integer, Boolean> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
       ARGState root = (ARGState)pReachedSet.getFirstState();
 
-      Path targetPath;
+      ARGPath targetPath;
       try {
         targetPath = ARGUtils.getPathFromBranchingInformation(root, pReachedSet.asCollection(), branchingInformation);
       } catch (IllegalArgumentException e) {

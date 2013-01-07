@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
@@ -280,7 +280,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   }
 
   private Iterable<ARGState> getParentAbstractionStates(ARGState argElement) {
-    Path pathToRoot = ARGUtils.getOnePathTo(argElement);
+    ARGPath pathToRoot = ARGUtils.getOnePathTo(argElement);
 
     return Iterables.filter(
             Iterables.transform(pathToRoot, Pair.<ARGState>getProjectionToFirst()),

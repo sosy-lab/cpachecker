@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -172,7 +172,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
             sound &= removeErrorState(reached, errorState);
 
           } else {
-            Path path = ARGUtils.getOnePathTo(errorState);
+            ARGPath path = ARGUtils.getOnePathTo(errorState);
             throw new RefinementFailedException(Reason.InfeasibleCounterexample, path);
           }
         }

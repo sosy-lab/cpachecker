@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -128,7 +128,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<BooleanForm
 
 
   @Override
-  protected List<ARGState> transformPath(Path pPath) {
+  protected List<ARGState> transformPath(ARGPath pPath) {
     // filter abstraction states
 
     List<ARGState> result = from(pPath)

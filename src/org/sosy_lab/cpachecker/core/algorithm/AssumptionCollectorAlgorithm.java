@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -175,7 +175,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       } catch (RefinementFailedException failedRefinement) {
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
 
-        Path path = failedRefinement.getErrorPath();
+        ARGPath path = failedRefinement.getErrorPath();
         ARGState errorState = path.getLast().getFirst();
         assert errorState == reached.getLastState();
 

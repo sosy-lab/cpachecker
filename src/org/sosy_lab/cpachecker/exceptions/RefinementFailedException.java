@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.exceptions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 
 /**
  * Exception raised when the refinement procedure fails, or was
@@ -56,17 +56,17 @@ public class RefinementFailedException extends CPAException {
   private static final long serialVersionUID = 2353178323706458175L;
 
   private final Reason reason;
-  private Path path;
+  private ARGPath path;
   private final int failurePoint;
 
-  public RefinementFailedException(Reason r, Path p, int pFailurePoint) {
+  public RefinementFailedException(Reason r, ARGPath p, int pFailurePoint) {
     super("Refinement failed: " + checkNotNull(r));
     reason = r;
     path = p;
     failurePoint = pFailurePoint;
   }
 
-  public RefinementFailedException(Reason r, Path p) {
+  public RefinementFailedException(Reason r, ARGPath p) {
     this(r, p, -1);
   }
 
@@ -76,11 +76,11 @@ public class RefinementFailedException extends CPAException {
   }
 
   /** Return the path that caused the failure */
-  public Path getErrorPath() {
+  public ARGPath getErrorPath() {
     return path;
   }
 
-  public void setErrorPath(Path pPath) {
+  public void setErrorPath(ARGPath pPath) {
     path = pPath;
   }
 

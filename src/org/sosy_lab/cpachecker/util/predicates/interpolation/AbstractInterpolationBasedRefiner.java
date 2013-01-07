@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -100,7 +100,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(final ARGReachedSet pReached, final Path pPath) throws CPAException, InterruptedException {
+  protected CounterexampleInfo performRefinement(final ARGReachedSet pReached, final ARGPath pPath) throws CPAException, InterruptedException {
     totalRefinement.start();
 
     Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(pPath.getLast().getFirst());
@@ -144,11 +144,11 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
-      final Path targetPath;
+      final ARGPath targetPath;
       final CounterexampleTraceInfo<BooleanFormula> preciseCounterexample;
 
       if (branchingOccurred) {
-        Pair<Path, CounterexampleTraceInfo<BooleanFormula>> preciseInfo = findPreciseErrorPath(pPath, counterexample);
+        Pair<ARGPath, CounterexampleTraceInfo<BooleanFormula>> preciseInfo = findPreciseErrorPath(pPath, counterexample);
 
         if (preciseInfo != null) {
           targetPath = preciseInfo.getFirst();
@@ -178,7 +178,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
     }
   }
 
-  protected abstract List<ARGState> transformPath(Path pPath);
+  protected abstract List<ARGState> transformPath(ARGPath pPath);
 
   /**
    * Get the block formulas from a path.
@@ -192,7 +192,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
   protected abstract void performRefinement(ARGReachedSet pReached, List<ARGState> path,
       CounterexampleTraceInfo<BooleanFormula> counterexample, boolean pRepeatedCounterexample) throws CPAException;
 
-  private Pair<Path, CounterexampleTraceInfo<BooleanFormula>> findPreciseErrorPath(Path pPath, CounterexampleTraceInfo<BooleanFormula> counterexample) {
+  private Pair<ARGPath, CounterexampleTraceInfo<BooleanFormula>> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo<BooleanFormula> counterexample) {
     errorPathProcessing.start();
     try {
 
@@ -203,7 +203,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
       }
 
       // find correct path
-      Path targetPath;
+      ARGPath targetPath;
       try {
         ARGState root = pPath.getFirst().getFirst();
         ARGState target = pPath.getLast().getFirst();

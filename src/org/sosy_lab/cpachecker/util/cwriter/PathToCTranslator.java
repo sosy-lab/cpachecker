@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -85,7 +85,7 @@ public class PathToCTranslator {
     return translator.generateCCode();
   }
 
-  public static String translateSinglePath(Path pPath) {
+  public static String translateSinglePath(ARGPath pPath) {
     PathToCTranslator translator = new PathToCTranslator();
 
     translator.translateSinglePath0(pPath);
@@ -148,7 +148,7 @@ public class PathToCTranslator {
     return freshFunctionName;
   }
 
-  private void translateSinglePath0(Path pPath) {
+  private void translateSinglePath0(ARGPath pPath) {
     assert pPath.size() >= 1;
     Iterator<Pair<ARGState, CFAEdge>> pathIt = pPath.iterator();
     Pair<ARGState, CFAEdge> parentPair = pathIt.next();

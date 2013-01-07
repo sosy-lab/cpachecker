@@ -40,12 +40,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 /**
- * Path contains a path through the ARG that starts at the root node.
+ * ARGPath contains a path through the ARG that starts at the root node.
  * It is implemented as a list of pairs of an ARGState and a CFAEdge,
  * where the edge of a pair is the outgoing edge of the element.
  * The first pair contains the root node of the ARG.
  */
-public class Path extends LinkedList<Pair<ARGState, CFAEdge>> {
+public class ARGPath extends LinkedList<Pair<ARGState, CFAEdge>> {
 
   private static final long serialVersionUID = -3223480082103314555L;
 

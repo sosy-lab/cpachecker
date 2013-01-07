@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
@@ -58,7 +58,7 @@ public class ExplictFeasibilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean isFeasible(Path path)
+  public boolean isFeasible(ARGPath path)
       throws CPAException, InterruptedException {
     try {
       Configuration config = Configuration.builder().build();

@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -59,7 +59,7 @@ import com.google.common.collect.Iterables;
 
 public class SingleLoopNetworkBuilder implements NetworkBuilder {
 
-  private final Path cePath;
+  private final ARGPath cePath;
   private final LogManager logger;
   private final TemplatePathFormulaBuilder tpfb;
   private final Loop loop;
@@ -75,7 +75,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
   private final PathFormula exitFormula;
   private final TemplateChooser chooser;
 
-  public SingleLoopNetworkBuilder(Path pPath, LogManager pLogger) throws RefinementFailedException {
+  public SingleLoopNetworkBuilder(ARGPath pPath, LogManager pLogger) throws RefinementFailedException {
     cePath = pPath;
     logger = pLogger;
     tpfb = new TemplatePathFormulaBuilder();
@@ -179,7 +179,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     return CFATraversal.dfs().collectNodesReachableFrom(root);
   }
 
-  private PathFormula buildEntryFormula(Path pPath, CFANode loopHead) {
+  private PathFormula buildEntryFormula(ARGPath pPath, CFANode loopHead) {
     // gather CFAEdges until hit ARGState whose location is loopHead
     Vector<CFAEdge> edges = new Vector<>();
 
@@ -221,7 +221,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     return three;
   }
 
-  private PathFormula buildExitFormula(Path pPath, CFANode loopHead) {
+  private PathFormula buildExitFormula(ARGPath pPath, CFANode loopHead) {
     // gather CFAEdges from ARGState whose location is loopHead to end of path
     Vector<CFAEdge> edges = new Vector<>();
 
@@ -247,7 +247,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     return exitFormula;
   }
 
-  private Pair<PathFormula,PathFormula> buildExitFormulaHeadAndTail(Path pPath, CFANode loopHead) {
+  private Pair<PathFormula,PathFormula> buildExitFormulaHeadAndTail(ARGPath pPath, CFANode loopHead) {
     // Like buildExitFormula method, only returns the formula for the exit path in two parts:
     // the "head", being the first edge, and the "tail", being the remainder of the path.
     CFAEdge headEdge = null;

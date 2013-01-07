@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.abm.AbstractABMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -135,7 +135,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
   }
 
   @Override
-  protected final CounterexampleInfo performRefinement0(ARGReachedSet pReached, Path pPath)
+  protected final CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath)
       throws CPAException, InterruptedException {
 
     return refiner.performRefinement(pReached, pPath);
@@ -183,7 +183,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
      * Overridden just for visibility
      */
     @Override
-    protected final CounterexampleInfo performRefinement(ARGReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+    protected final CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
       return super.performRefinement(pReached, pPath);
     }
 

@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
@@ -97,7 +97,7 @@ public class ExplicitInterpolator {
    * @throws InterruptedException
    */
   public Pair<String, Long> deriveInterpolant(
-      Path errorPath,
+      ARGPath errorPath,
       int offset,
       String currentVariable,
       Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {

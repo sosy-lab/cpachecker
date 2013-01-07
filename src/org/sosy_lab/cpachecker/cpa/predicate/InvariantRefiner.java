@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -118,7 +118,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(ARGReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+  protected CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
 
     totalRefinement.start();
 
@@ -142,7 +142,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
 
   }
 
-  private CounterexampleTraceInfo<Collection<AbstractionPredicate>> buildCounterexampleTrace(Path pPath) throws CPAException {
+  private CounterexampleTraceInfo<Collection<AbstractionPredicate>> buildCounterexampleTrace(ARGPath pPath) throws CPAException {
 
     CounterexampleTraceInfo<Collection<AbstractionPredicate>> ceti = null;
 
@@ -206,7 +206,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     return ceti;
   }
 
-  private void addPredicates(CounterexampleTraceInfo<Collection<AbstractionPredicate>> ceti, TemplateNetwork tnet, Path pPath) throws CPAException {
+  private void addPredicates(CounterexampleTraceInfo<Collection<AbstractionPredicate>> ceti, TemplateNetwork tnet, ARGPath pPath) throws CPAException {
     // Since we are going to use the methods in PredicateRefiner, we need to pad the List
     // of AbstractionPredicate Collections in ceti to make the predicates in phi correspond to
     // the loop head location, and so that the predicates after that location are all 'false'.
@@ -288,7 +288,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     return preds;
   }
 
-  private List<CFANode> transformPath(Path pPath) {
+  private List<CFANode> transformPath(ARGPath pPath) {
     // Just extracts information from pPath, putting it into
     // convenient form.
     List<CFANode> result = Lists.newArrayList();

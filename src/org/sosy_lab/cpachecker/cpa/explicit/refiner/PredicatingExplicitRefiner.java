@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.PredicateMap;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -72,7 +72,7 @@ public class PredicatingExplicitRefiner extends PredicateRefiner {
 
   // overridden just for visibility
   @Override
-  protected CounterexampleInfo performRefinement(ARGReachedSet pReached, Path pPath) throws CPAException,
+  protected CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath) throws CPAException,
       InterruptedException {
     numberOfPredicateRefinements++;
     return super.performRefinement(pReached, pPath);

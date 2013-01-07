@@ -90,8 +90,8 @@ public class ARGUtils {
    * @param pLastElement The last element in the path.
    * @return A path from root to lastElement.
    */
-  public static Path getOnePathTo(ARGState pLastElement) {
-    Path path = new Path();
+  public static ARGPath getOnePathTo(ARGState pLastElement) {
+    ARGPath path = new ARGPath();
     Set<ARGState> seenElements = new HashSet<>();
 
     // each element of the path consists of the abstract state and the outgoing
@@ -317,13 +317,13 @@ public class ARGUtils {
    * @return A path through the ARG from root to target.
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
-  public static Path getPathFromBranchingInformation(
+  public static ARGPath getPathFromBranchingInformation(
       ARGState root, Collection<? extends AbstractState> arg,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(arg.contains(root));
 
-    Path result = new Path();
+    ARGPath result = new ARGPath();
     ARGState currentElement = root;
     while (!currentElement.isTarget()) {
       Set<ARGState> children = currentElement.getChildren();
@@ -420,14 +420,14 @@ public class ARGUtils {
    * @return A path through the ARG from root to target.
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
-  public static Path getPathFromBranchingInformation(
+  public static ARGPath getPathFromBranchingInformation(
       ARGState root, ARGState target, Collection<? extends AbstractState> arg,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(arg.contains(target));
     checkArgument(target.isTarget());
 
-    Path result = getPathFromBranchingInformation(root, arg, branchingInformation);
+    ARGPath result = getPathFromBranchingInformation(root, arg, branchingInformation);
 
     if (result.getLast().getFirst() != target) {
       throw new IllegalArgumentException("ARG target path reached the wrong target state!");

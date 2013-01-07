@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -152,7 +152,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner {
   }
 
   @Override
-  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final Path errorPath)
+  protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath errorPath)
       throws CPAException, InterruptedException {
 
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();

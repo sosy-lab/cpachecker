@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 
 import com.google.common.collect.HashMultimap;
@@ -70,7 +70,7 @@ public class AssignedVariablesCollector {
 
   public AssignedVariablesCollector() {}
 
-  public Multimap<CFAEdge, String> collectVars(Path currentErrorPath) {
+  public Multimap<CFAEdge, String> collectVars(ARGPath currentErrorPath) {
     Multimap<CFAEdge, String> collectedVariables = HashMultimap.create();
 
     for (int i = 0; i < currentErrorPath.size() - 1; i++) {

@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
@@ -83,7 +83,7 @@ public class ExplicitInterpolationBasedExplicitRefiner {
   }
 
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
-      Path errorPath) throws CPAException {
+      ARGPath errorPath) throws CPAException {
     timerInterpolation.start();
 
     firstInterpolationPoint = null;
@@ -201,7 +201,7 @@ public class ExplicitInterpolationBasedExplicitRefiner {
    * @param errorPath the error path from where to determine the interpolation point
    * @return the new interpolation point
    */
-  protected ARGState determineInterpolationPoint(Path errorPath) {
+  protected ARGState determineInterpolationPoint(ARGPath errorPath) {
     // just use initial node of error path if the respective option is set
     if(useInitialNodeAsRestartingPoint) {
       return errorPath.get(1).getFirst();
@@ -219,7 +219,7 @@ public class ExplicitInterpolationBasedExplicitRefiner {
    * @param currentErrorPath the current error path to check
    * @return the mapping where to do an explicit interpolation for which variables
    */
-  private Multimap<CFAEdge, String> determineReferencedVariableMapping(Path currentErrorPath) {
+  private Multimap<CFAEdge, String> determineReferencedVariableMapping(ARGPath currentErrorPath) {
     AssignedVariablesCollector collector = new AssignedVariablesCollector();
 
     return collector.collectVars(currentErrorPath);
@@ -232,7 +232,7 @@ public class ExplicitInterpolationBasedExplicitRefiner {
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  private boolean isPathFeasable(Path path) throws CPAException {
+  private boolean isPathFeasable(ARGPath path) throws CPAException {
     try {
       // create a new ExplicitPathChecker, which does not track any of the given variables
       ExplictFeasibilityChecker checker = new ExplictFeasibilityChecker();

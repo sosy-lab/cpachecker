@@ -102,7 +102,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     assert ((ARGState)lastElement).isTarget() : "Last element in reached is not a target state before refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached);
 
-    Path path = computePath((ARGState)lastElement, reached);
+    ARGPath path = computePath((ARGState)lastElement, reached);
 
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
@@ -127,7 +127,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     assert checkART(pReached) : "ARG and reached set do not match after refinement";
 
     if (!counterexample.isSpurious()) {
-      Path targetPath = counterexample.getTargetPath();
+      ARGPath targetPath = counterexample.getTargetPath();
 
       // new targetPath must contain root and error node
       assert targetPath.getFirst().getFirst() == path.getFirst().getFirst() : "Target path from refiner does not contain root node";
@@ -149,7 +149,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    * @return Information about the counterexample.
    * @throws InterruptedException
    */
-  protected abstract CounterexampleInfo performRefinement(ARGReachedSet pReached, Path pPath)
+  protected abstract CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath)
             throws CPAException, InterruptedException;
 
   /**
@@ -164,7 +164,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    * @return
    * @throws InterruptedException
    */
-  protected Path computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPAException {
+  protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPAException {
     return ARGUtils.getOnePathTo(pLastElement);
   }
 

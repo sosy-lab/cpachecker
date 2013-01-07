@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -72,10 +72,10 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
    * When inheriting from this class, implement this method instead of
    * {@link #performRefinement(ReachedSet)}.
    */
-  protected abstract CounterexampleInfo performRefinement0(ARGReachedSet pReached, Path pPath) throws CPAException, InterruptedException;
+  protected abstract CounterexampleInfo performRefinement0(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException;
 
   @Override
-  protected final CounterexampleInfo performRefinement(ARGReachedSet pReached, Path pPath) throws CPAException, InterruptedException {
+  protected final CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
     if (pPath == null) {
       return CounterexampleInfo.spurious();
     } else {
@@ -84,7 +84,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
   }
 
   @Override
-  protected final Path computePath(ARGState pLastElement, ARGReachedSet pReachedSet) throws InterruptedException, CPATransferException {
+  protected final ARGPath computePath(ARGState pLastElement, ARGReachedSet pReachedSet) throws InterruptedException, CPATransferException {
     assert pLastElement.isTarget();
 
     pathStateToReachedState.clear();
@@ -113,8 +113,8 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
     }
   }
 
-  private Path computeCounterexample(ARGState root) {
-    Path path = new Path();
+  private ARGPath computeCounterexample(ARGState root) {
+    ARGPath path = new ARGPath();
     ARGState currentElement = root;
     while (currentElement.getChildren().size() > 0) {
       ARGState child = currentElement.getChildren().iterator().next();
@@ -131,10 +131,10 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
   private static class ABMReachedSet extends ARGReachedSet.ForwardingARTReachedSet {
 
     private final ABMTransferRelation transfer;
-    private final Path path;
+    private final ARGPath path;
     private final Map<ARGState, ARGState> pathStateToReachedState;
 
-    private ABMReachedSet(ABMTransferRelation pTransfer, ARGReachedSet pReached, Path pPath, Map<ARGState, ARGState> pPathElementToReachedState) {
+    private ABMReachedSet(ABMTransferRelation pTransfer, ARGReachedSet pReached, ARGPath pPath, Map<ARGState, ARGState> pPathElementToReachedState) {
       super(pReached);
       this.transfer = pTransfer;
       this.path = pPath;

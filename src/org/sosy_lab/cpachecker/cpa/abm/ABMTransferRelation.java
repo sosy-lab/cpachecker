@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -640,7 +640,7 @@ public class ABMTransferRelation implements TransferRelation {
     return reached;
   }
 
-  void removeSubtree(ARGReachedSet mainReachedSet, Path pPath, ARGState element, Precision newPrecision,
+  void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath, ARGState element, Precision newPrecision,
       Map<ARGState, ARGState> pPathElementToReachedState) {
     removeSubtreeTimer.start();
 
@@ -694,7 +694,7 @@ public class ABMTransferRelation implements TransferRelation {
     removeSubtreeTimer.stop();
   }
 
-  private void ensureExactCacheHitsOnPath(ARGReachedSet mainReachedSet, Path pPath, ARGState pElement,
+  private void ensureExactCacheHitsOnPath(ARGReachedSet mainReachedSet, ARGPath pPath, ARGState pElement,
       Precision newPrecision, Map<ARGState, ARGState> pPathElementToReachedState,
       Set<Pair<ARGState, ARGState>> neededRemoveCachedSubtreeCalls) {
     Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet = new HashMap<>();
@@ -861,7 +861,7 @@ public class ABMTransferRelation implements TransferRelation {
     }
   }
 
-  private List<ARGState> trimPath(Path pPath, ARGState pElement) {
+  private List<ARGState> trimPath(ARGPath pPath, ARGState pElement) {
     List<ARGState> result = new ArrayList<>();
 
     for (Pair<ARGState, CFAEdge> e : pPath) {
@@ -904,7 +904,7 @@ public class ABMTransferRelation implements TransferRelation {
     return new HashSet<>(openCallElements);
   }
 
-  private Pair<Set<ARGState>, Set<ARGState>> getCallAndReturnNodes(Path path,
+  private Pair<Set<ARGState>, Set<ARGState>> getCallAndReturnNodes(ARGPath path,
       Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet, UnmodifiableReachedSet mainReachedSet,
       Map<ARGState, ARGState> pPathElementToReachedState) {
     Set<ARGState> callNodes = new HashSet<>();

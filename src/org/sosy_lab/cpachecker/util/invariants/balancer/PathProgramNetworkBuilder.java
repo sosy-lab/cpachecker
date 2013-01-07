@@ -34,7 +34,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Path;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplatePathFormulaBuil
 
 public class PathProgramNetworkBuilder implements NetworkBuilder {
 
-  private final Path cePath;
+  private final ARGPath cePath;
   private final LogManager logger;
   private final TemplatePathFormulaBuilder tpfb;
   private final SortedSet<CFANode> nodeSet;
@@ -57,7 +57,7 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
   @SuppressWarnings("unused")
   private TemplateNetwork basicTnet;
 
-  public PathProgramNetworkBuilder(Path pPath, LogManager pLogger) throws RefinementFailedException {
+  public PathProgramNetworkBuilder(ARGPath pPath, LogManager pLogger) throws RefinementFailedException {
     cePath = pPath;
     logger = pLogger;
     tpfb = new TemplatePathFormulaBuilder();

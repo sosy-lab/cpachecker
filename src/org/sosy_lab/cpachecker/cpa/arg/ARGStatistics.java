@@ -122,7 +122,7 @@ public class ARGStatistics implements Statistics {
       return;
     }
 
-    Path targetPath = null;
+    ARGPath targetPath = null;
 
     if (pResult != Result.SAFE) {
       CounterexampleInfo counterexample = cpa.getLastCounterexample();
@@ -159,7 +159,7 @@ public class ARGStatistics implements Statistics {
           // that are important for the error, it is not a complete path,
           // only some nodes of the targetPath are part of it
           ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
-          Path shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
+          ARGPath shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
 
           ARGState rootState = targetPath.getFirst().getFirst();
           Set<ARGState> pathElements;
@@ -230,7 +230,7 @@ public class ARGStatistics implements Statistics {
     }
   }
 
-  private static Set<Pair<ARGState, ARGState>> getEdgesOfPath(Path pPath) {
+  private static Set<Pair<ARGState, ARGState>> getEdgesOfPath(ARGPath pPath) {
     if (pPath == null) {
       return Collections.emptySet();
     }
