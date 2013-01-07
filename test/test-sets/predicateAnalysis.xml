@@ -34,13 +34,13 @@
   <option name="-noout"/>
   <option name="-heap">1200M</option>
 
-  <test name="ABEl">
+  <rundefinition name="ABEl">
     <option name="-predicateAnalysis-PredAbsRefiner-ABEl"/>
-  </test>
+  </rundefinition>
 
-  <test name="ABElf">
+  <rundefinition name="ABElf">
     <option name="-predicateAnalysis-PredAbsRefiner-ABElf"/>
-  </test>
+  </rundefinition>
 
   <columns>
     <column title="total">time for CPAchecker</column>

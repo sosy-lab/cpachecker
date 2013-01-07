@@ -200,9 +200,18 @@ class Benchmark:
         # get benchmarks
         self.runSets = []
         i = 1
-        for rundefinitionTag in rootTag.findall("test"):
+        for rundefinitionTag in rootTag.findall("rundefinition"):
             self.runSets.append(RunSet(rundefinitionTag, self, i, globalSourcefilesTags))
             i += 1
+
+        if not self.runSets:
+            for rundefinitionTag in rootTag.findall("test"):
+                self.runSets.append(RunSet(rundefinitionTag, self, i, globalSourcefilesTags))
+                i += 1
+            if self.runSets:
+                logging.warning("Benchmark file {0} uses deprecated <test> tags. Please rename them to <rundefinition>.".format(benchmarkFile))
+            else:
+                logging.warning("Benchmark file {0} specifies no runs to execute (no <rundefinition> tags found).".format(benchmarkFile))
 
         self.outputHandler = OutputHandler(self)
 
@@ -1072,6 +1081,7 @@ def substituteVars(oldList, runSet, sourcefile=None):
                     ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmarkFile))),
                     ('${logfile_path}',   os.path.dirname(runSet.logFolder)),
                     ('${logfile_path_abs}', os.path.abspath(runSet.logFolder)),
+                    ('${rundefinition_name}', runSet.realName if runSet.realName else ''),
                     ('${test_name}',      runSet.realName if runSet.realName else '')]
 
     if sourcefile:
@@ -1203,10 +1213,15 @@ def main(argv=None):
                       action="store_true",
                       help="Enable debug output")
 
+    parser.add_argument("-r", "--rundefinition", dest="selectedRunDefinitions",
+                      action="append",
+                      help="Run only the specified RUN_DEFINITION from the benchmark definition file. "
+                            + "This option can be specified several times.",
+                      metavar="RUN_DEFINITION")
+
     parser.add_argument("-t", "--test", dest="selectedRunDefinitions",
                       action="append",
-                      help="Run only the specified TEST from the benchmark definition file. "
-                            + "This option can be specified several times.",
+                      help="Same as -r/--rundefinition (deprecated)",
                       metavar="TEST")
 
     parser.add_argument("-s", "--sourcefiles", dest="selectedSourcefileSets",

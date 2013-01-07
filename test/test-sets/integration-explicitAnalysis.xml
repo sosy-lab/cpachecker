@@ -7,7 +7,7 @@
   <option name="-explicitAnalysis"/>
   <option name="-setprop">cpa.conditions.global.time.wall=1min</option>
 
-  <test>
+  <rundefinition>
     <sourcefiles>
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <includesfile>integration-ControlFlowInteger.set</includesfile>
@@ -19,7 +19,7 @@
       <includesfile>integration-DeviceDrivers64.set</includesfile>
       <option name="-64"/>
     </sourcefiles>
-  </test>
+  </rundefinition>
 
   <columns>
     <column title="total">time for CPAchecker</column>

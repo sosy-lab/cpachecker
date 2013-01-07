@@ -2,7 +2,7 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="240" memlimit="5000">
 
-  <test>
+  <rundefinition>
     <sourcefiles>
       <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
       <option name="-32"/>
@@ -14,7 +14,7 @@
     <option name="-setprop">cpa.predicate.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.ignoreCasts=false</option>
     <option name="-setprop">cpa.predicate.replaceBitvectorWithRationalAndFunctionTheory=false</option>
-  </test>
+  </rundefinition>
 
   <columns>
     <column title="total">time for CPAchecker</column>

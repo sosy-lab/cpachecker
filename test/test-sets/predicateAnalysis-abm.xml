@@ -20,13 +20,13 @@
     <include>../programs/linux-kernel/*.cil.c</include>
   </sourcefiles>
 
-  <test name="abm">
+  <rundefinition name="abm">
     <option name="-predicateAnalysis-abm"/>
-  </test>
+  </rundefinition>
 
-  <test name="abm-auxiliaryPredicates">
+  <rundefinition name="abm-auxiliaryPredicates">
     <option name="-predicateAnalysis-abm-auxiliaryPredicates"/>
-  </test>
+  </rundefinition>
 
   <columns>
     <column title="total">time for CPAchecker</column>

@@ -17,13 +17,13 @@
     <includesfile>nested.set</includesfile>
   </sourcefiles>
 
-  <test name="without-cbmc">
+  <rundefinition name="without-cbmc">
     <option name="-explicitAnalysis-no-cbmc"/>
-  </test>
+  </rundefinition>
 
-  <test name="with-cbmc">
+  <rundefinition name="with-cbmc">
     <option name="-explicitAnalysis"/>
-  </test>
+  </rundefinition>
 
   <columns>
     <column title="total">time for CPAchecker</column>

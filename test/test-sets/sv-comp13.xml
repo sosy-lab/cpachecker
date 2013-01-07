@@ -39,11 +39,11 @@
     <includesfile>../programs/benchmarks/SystemC.set</includesfile>
   </sourcefiles>
 
-  <test name="combinations">
+  <rundefinition name="combinations">
     <option name="-sv-comp13--combinations"/>
-  </test>
+  </rundefinition>
 
-  <test name="explitp-pred">
+  <rundefinition name="explitp-pred">
     <option name="-sv-comp13--explitp-pred"/>
-  </test>
+  </rundefinition>
 </benchmark>

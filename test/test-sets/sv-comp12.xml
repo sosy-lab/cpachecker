@@ -2,7 +2,7 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="900" memlimit="15000">
 
-  <test name="predicateAnalysis">
+  <rundefinition name="predicateAnalysis">
     <sourcefiles>
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
@@ -16,7 +16,7 @@
     </sourcefiles>
     <option name="-sv-comp12"/>
     <option name="-heap">12500M</option>
-  </test>
+  </rundefinition>
 
   <columns>
     <column title="total">time for CPAchecker</column>

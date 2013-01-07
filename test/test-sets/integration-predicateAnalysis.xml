@@ -2,7 +2,7 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="120" memlimit="3000">
 
-  <test>
+  <rundefinition>
     <sourcefiles>
       <includesfile>integration-ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
@@ -18,7 +18,7 @@
     <option name="-predicateAnalysis"/>
     <option name="-heap">2000M</option>
     <option name="-setprop">cpa.conditions.global.time.wall=1min</option>
-  </test>
+  </rundefinition>
 
   <columns>
     <column title="total">time for CPAchecker</column>
