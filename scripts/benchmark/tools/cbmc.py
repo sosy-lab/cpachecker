@@ -1,3 +1,4 @@
+import logging
 import os
 import platform
 import subprocess
@@ -34,7 +35,7 @@ class Tool(benchmark.tools.template.BaseTool):
         output = output.replace("<>", "<emptyTag>")
         output = output.replace("</>", "</emptyTag>")
 
-        if ((returncode == 0) or (returncode == 10)):
+        if returnsignal == 0 and ((returncode == 0) or (returncode == 10)):
             try:
                 tree = ET.fromstring(output)
                 status = tree.findtext('cprover-status')
@@ -85,7 +86,7 @@ class Tool(benchmark.tools.template.BaseTool):
             # parser error or something similar
             status = 'ERROR'
 
-        elif returnsignal == 9 or returncode == (128+9):
+        elif returnsignal == 9:
             if isTimeout:
                 status = 'TIMEOUT'
             else:
@@ -93,8 +94,10 @@ class Tool(benchmark.tools.template.BaseTool):
 
         elif returnsignal == 6:
             status = "ABORTED"
-        elif returnsignal == 15 or returncode == (128+15):
+        elif returnsignal == 15 or returncode == 15:
             status = "KILLED"
+        elif returncode == 64 and 'Usage error!' in output:
+            status = 'INVALID ARGUMENTS'
         else:
             status = "ERROR ({0})".format(returncode)
 

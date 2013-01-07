@@ -452,8 +452,9 @@ class Run():
             return
 
         # calculation: returnvalue == (returncode * 256) + returnsignal
-        returnsignal = returnvalue % 256
-        returncode = returnvalue // 256
+        # highest bit of returnsignal shows only whether a core file was produced, we clear it
+        returnsignal = returnvalue & 0x7F
+        returncode = returnvalue >> 8
 
         logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
 

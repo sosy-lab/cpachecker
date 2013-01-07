@@ -46,23 +46,25 @@ class Tool(benchmark.tools.template.BaseTool):
                  or line.startswith('out of memory')     # CuDD
                  )
 
-        if returnsignal == 0:
-            status = None
+        if returnsignal == 0 and returncode > 128:
+            # shells sets return code to 128+signal when a signal is received
+            returnsignal = returncode - 128
 
-        elif returnsignal == 6:
-            status = "ABORTED (probably by Mathsat)"
-
-        elif returnsignal == 9:
-            if isTimeout:
+        if returnsignal != 0:
+            if returnsignal == 6:
+                status = 'ABORTED (probably by Mathsat)'
+            elif returnsignal == 9 and isTimeout:
                 status = 'TIMEOUT'
+            elif returnsignal == 15:
+                status = 'KILLED'
             else:
-                status = "KILLED BY SIGNAL 9"
+                status = 'KILLED BY SIGNAL '+str(returnsignal)
 
-        elif returnsignal == (128+15):
-            status = "KILLED"
+        elif returncode != 0:
+            status = 'ERROR ({0})'.format(returncode)
 
         else:
-            status = "ERROR ({0})".format(returnsignal)
+            status = None
 
         for line in output.splitlines():
             if 'java.lang.OutOfMemoryError' in line:
@@ -80,7 +82,7 @@ class Tool(benchmark.tools.template.BaseTool):
                 status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
             elif 'Could not reserve enough space for object heap' in line:
                 status = 'JAVA HEAP ERROR'
-            elif line.startswith('Error: '):
+            elif line.startswith('Error: ') and not status.startswith('ERROR'):
                 status = 'ERROR'
 
             elif line.startswith('Verification result: '):
@@ -95,6 +97,9 @@ class Tool(benchmark.tools.template.BaseTool):
 
             elif (status is None) and line.startswith('#Test cases computed:'):
                 status = 'OK'
+
+        if status == 'KILLED (UNKNOWN)':
+            status = 'KILLED'
         if status is None:
             status = "UNKNOWN"
         return status
