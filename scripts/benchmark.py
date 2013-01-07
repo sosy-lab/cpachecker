@@ -234,8 +234,7 @@ class RunSet:
         self.benchmark = benchmark
 
         # get name of run set, name is optional, the result can be "None"
-        self.name = rundefinitionTag.get("name")
-        self.realName = self.name
+        self.realName = rundefinitionTag.get("name")
 
         # index is the number of the run set
         self.index = index
@@ -244,7 +243,14 @@ class RunSet:
         self.options = benchmark.options + getOptionsFromXML(rundefinitionTag)
 
         # get all runs, a run contains one sourcefile with options
-        self.extractRunsFromXML(globalSourcefilesTags + rundefinitionTag.findall("sourcefiles"))
+        self.blocks = self.extractRunsFromXML(globalSourcefilesTags + rundefinitionTag.findall("sourcefiles"))
+        self.runs = [run for block in self.blocks for run in block.runs]
+
+        names = [self.realName]
+        if len(self.blocks) == 1:
+            # there is exactly one source-file set to run, append its name to run-set name
+            names.append(self.blocks[0].realName)
+        self.name = '.'.join(filter(None, names))
 
 
     def shouldBeExecuted(self):
@@ -254,28 +260,21 @@ class RunSet:
 
     def extractRunsFromXML(self, sourcefilesTagList):
         '''
-        This function builds a list of Runs (filename with options).
-        The files and their options are taken from the list of sourcefilesTags
-        and stored in the fields of the run set.
+        This function builds a list of SourcefileSets (containing filename with options).
+        The files and their options are taken from the list of sourcefilesTags.
         '''
         # runs are structured as sourcefile sets, one set represents one sourcefiles tag
-        self.blocks = []
-        self.runs = []
+        blocks = []
+        baseDir = os.path.dirname(self.benchmark.benchmarkFile)
 
-        for sourcefilesTag in sourcefilesTagList:
-            sourcefileSetName = sourcefilesTag.get("name", str(sourcefilesTagList.index(sourcefilesTag)))
-            if (options.selectedSourcefileSets and sourcefileSetName not in options.selectedSourcefileSets):
+        for index, sourcefilesTag in enumerate(sourcefilesTagList):
+            sourcefileSetName = sourcefilesTag.get("name")
+            matchName = sourcefileSetName or str(index)
+            if (options.selectedSourcefileSets and matchName not in options.selectedSourcefileSets):
                 continue
 
-            if (options.selectedSourcefileSets and len(options.selectedSourcefileSets) == 1) \
-                    or len(sourcefilesTagList) == 1:
-                # there is exactly one source-file set to run, append its name to run-set name
-                givenSourcefileSetName = sourcefilesTag.get("name", None)
-                if givenSourcefileSetName:
-                    self.name = self.name + "." + givenSourcefileSetName if self.name else givenSourcefileSetName
-
             # get list of filenames
-            sourcefiles = self.getSourcefilesFromXML(sourcefilesTag)
+            sourcefiles = self.getSourcefilesFromXML(sourcefilesTag, baseDir)
 
             # get file-specific options for filenames
             fileOptions = getOptionsFromXML(sourcefilesTag)
@@ -283,14 +282,13 @@ class RunSet:
             currentRuns = []
             for sourcefile in sourcefiles:
                 currentRuns.append(Run(sourcefile, fileOptions, self))
-            self.runs.extend(currentRuns)
 
-            self.blocks.append(SourcefileSet(sourcefileSetName, currentRuns))
+            blocks.append(SourcefileSet(sourcefileSetName, index, currentRuns))
+        return blocks
 
 
-    def getSourcefilesFromXML(self, sourcefilesTag):
+    def getSourcefilesFromXML(self, sourcefilesTag, baseDir):
         sourcefiles = []
-        baseDir = os.path.dirname(self.benchmark.benchmarkFile)
 
         # get included sourcefiles
         for includedFiles in sourcefilesTag.findall("include"):
@@ -356,25 +354,21 @@ class RunSet:
         fileList = glob.glob(expandedPattern)
 
         # sort alphabetical,
-        # if list is emtpy, sorting returns None, so better do not sort
-        if len(fileList) != 0:
-            fileList.sort()
+        fileList.sort()
 
         if expandedPattern != pattern:
             logging.debug("Expanded tilde and/or shell variables in expression {0} to {1}."
                 .format(repr(pattern), repr(expandedPattern)))
 
-        if len(fileList) == 0 and baseDir != "":
-
-            if baseDir != "":
-                # try fallback for old syntax of run definitions
-                fileList = self.expandFileNamePattern(shortFileFallback, "")
-                if len(fileList) != 0:
-                    logging.warning("Run definition uses old-style paths. Please change the path {0} to be relative to {1}."
-                                .format(repr(shortFileFallback), repr(baseDir)))
-                else:
-                    logging.warning("No files found matching {0}."
-                                .format(repr(pattern)))
+        if not fileList and baseDir:
+            # try fallback for old syntax of run definitions
+            fileList = self.expandFileNamePattern(shortFileFallback, "")
+            if not fileList:
+                logging.warning("Run definition uses old-style paths. Please change the path {0} to be relative to {1}."
+                            .format(repr(shortFileFallback), repr(baseDir)))
+            else:
+                logging.warning("No files found matching {0}."
+                            .format(repr(pattern)))
 
         return fileList
 
@@ -383,8 +377,9 @@ class SourcefileSet():
     """
     A SourcefileSet contains a list of runs and a name.
     """
-    def __init__(self, name, runs):
-        self.name = name
+    def __init__(self, name, index, runs):
+        self.realName = name # this name is optional
+        self.name = name or str(index) # this name is always non-empty
         self.runs = runs
 
 
@@ -719,7 +714,7 @@ class OutputHandler:
 
         # write into TXTFile
         runSetInfo = "\n\n"
-        if runSet.name is not None:
+        if runSet.name:
             runSetInfo += runSet.name + "\n"
         runSetInfo += "Run set {0} of {1}: skipped {2}\n".format(
                 runSet.index, len(self.benchmark.runSets), reason or "")
@@ -760,7 +755,7 @@ class OutputHandler:
             OutputHandler.printLock.acquire()
 
             timeStr = time.strftime("%H:%M:%S", time.localtime()) + "   "
-            if run.benchmark.numOfThreads == 1:
+            if self.benchmark.numOfThreads == 1:
                 Util.printOut(timeStr + self.formatSourceFileName(run.sourcefile), '')
             else:
                 Util.printOut(timeStr + "starting   " + self.formatSourceFileName(run.sourcefile))
@@ -769,7 +764,7 @@ class OutputHandler:
 
         # get name of file-specific log-file
         logfileName = self.logFolder
-        if run.runSet.name is not None:
+        if run.runSet.name:
             logfileName += run.runSet.name + "."
         logfileName += os.path.basename(run.sourcefile) + ".log"
         self.allCreatedFiles.append(logfileName)
@@ -813,7 +808,7 @@ class OutputHandler:
             # if there was an interupt in run, we do not print the result
             if not STOPPED_BY_INTERRUPT:
                 valueStr = statusStr + run.cpuTimeStr.rjust(8) + run.wallTimeStr.rjust(8)
-                if run.benchmark.numOfThreads == 1:
+                if self.benchmark.numOfThreads == 1:
                     Util.printOut(valueStr)
                 else:
                     timeStr = time.strftime("%H:%M:%S", time.localtime()) + " "*14
@@ -887,7 +882,7 @@ class OutputHandler:
         if blockname is not None:
             runsElem.set("block", blockname)
             runsElem.set("name", ((runSet.name + ".") if runSet.name else "") + blockname)
-        elif runSet.name is not None:
+        elif runSet.name:
             runsElem.set("name", runSet.name)
 
         # collect XMLelements from all runs
@@ -991,7 +986,7 @@ class OutputHandler:
         fileName = OUTPUT_PATH + self.benchmark.name + "." \
                     + self.benchmark.date + ".results."
 
-        if runSetName is not None:
+        if runSetName:
             fileName += runSetName + "."
 
         return fileName + fileExtension
@@ -1065,7 +1060,7 @@ def substituteVars(oldList, runSet, sourcefile=None):
                     ('${benchmark_path_abs}', os.path.abspath(os.path.dirname(benchmark.benchmarkFile))),
                     ('${benchmark_file}', os.path.basename(benchmark.benchmarkFile)),
                     ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmarkFile))),
-                    ('${test_name}',      runSet.name if runSet.name is not None else 'noName')]
+                    ('${test_name}',      runSet.realName if runSet.realName else '')]
 
     if sourcefile:
         keyValueList.append(('${sourcefile_name}', os.path.basename(sourcefile)))
