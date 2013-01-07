@@ -3,29 +3,26 @@ import subprocess
 
 import benchmark.filewriter as filewriter
 import benchmark.util as Util
+import benchmark.tools.template
 
-class Tool:
-    @staticmethod
-    def getExecutable():
+class Tool(benchmark.tools.template.BaseTool):
+
+    def getExecutable(self):
         return Util.findExecutable('acsar')
 
-    @staticmethod
-    def getVersion(executable):
-        return ''
 
-    @staticmethod
-    def getName():
+    def getName(self):
         return 'Acsar'
 
-    @staticmethod
-    def getCmdline(executable, options, sourcefile):
+
+    def getCmdline(self, executable, options, sourcefile):
         # create tmp-files for acsar, acsar needs special error-labels
-        Tool.prepSourcefile = _prepareSourcefile(sourcefile)
+        self.prepSourcefile = self._prepareSourcefile(sourcefile)
 
-        return [executable] + ["--file"] + [Tool.prepSourcefile] + options
+        return [executable] + ["--file"] + [self.prepSourcefile] + options
 
-    @staticmethod
-    def _prepareSourcefile(sourcefile):
+
+    def _prepareSourcefile(self, sourcefile):
         content = open(sourcefile, "r").read()
         content = content.replace(
             "ERROR;", "ERROR_LOCATION;").replace(
@@ -35,8 +32,8 @@ class Tool:
         filewriter.writeFile(newFilename, content)
         return newFilename
 
-    @staticmethod
-    def getStatus(returncode, returnsignal, output, isTimeout):
+
+    def getStatus(self, returncode, returnsignal, output, isTimeout):
         if "syntax error" in output:
             status = "SYNTAX ERROR"
 
@@ -71,10 +68,6 @@ class Tool:
             status = "UNKNOWN"
 
         # delete tmp-files
-        os.remove(Tool.prepSourcefile)
+        os.remove(self.prepSourcefile)
 
         return status
-
-    @staticmethod
-    def addColumnValues(output, columns):
-        pass

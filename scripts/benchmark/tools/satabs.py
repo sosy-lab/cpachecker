@@ -1,27 +1,24 @@
 import subprocess
 
 import benchmark.util as Util
+import benchmark.tools.template
 
-class Tool:
-    @staticmethod
-    def getExecutable():
+class Tool(benchmark.tools.template.BaseTool):
+
+    def getExecutable(self):
         return Util.findExecutable('satabs')
 
-    @staticmethod
-    def getVersion(executable):
+
+    def getVersion(self, executable):
         return subprocess.Popen([executable, '--version'],
                                 stdout=subprocess.PIPE).communicate()[0].strip()
 
-    @staticmethod
-    def getName():
+
+    def getName(self):
         return 'SatAbs'
 
-    @staticmethod
-    def getCmdline(executable, options, sourcefile):
-        return [executable] + options + [sourcefile]
 
-    @staticmethod
-    def getStatus(returncode, returnsignal, output, isTimeout):
+    def getStatus(self, returncode, returnsignal, output, isTimeout):
         if "VERIFICATION SUCCESSFUL" in output:
             assert returncode == 0
             status = "SAFE"
@@ -40,7 +37,3 @@ class Tool:
         else:
             status = "FAILURE"
         return status
-
-    @staticmethod
-    def addColumnValues(output, columns):
-        pass

@@ -135,7 +135,7 @@ class Benchmark:
             sys.exit('A tool needs to be specified in the benchmark definition file.')
         toolModule = "benchmark.tools." + toolName
         try:
-            self.tool = __import__(toolModule, fromlist=['Tool']).Tool
+            self.tool = __import__(toolModule, fromlist=['Tool']).Tool()
         except ImportError:
             sys.exit('Unsupported tool "{0}" specified.'.format(toolName))
         except AttributeError:

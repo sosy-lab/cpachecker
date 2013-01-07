@@ -4,31 +4,32 @@ import subprocess
 import xml.etree.ElementTree as ET
 
 import benchmark.util as Util
+import benchmark.tools.template
 
-class Tool:
-    @staticmethod
-    def getExecutable():
+class Tool(benchmark.tools.template.BaseTool):
+
+    def getExecutable(self):
         fallback = "lib/native/x86_64-linux/cbmc" if platform.machine() == "x86_64" else \
                    "lib/native/x86-linux/cbmc"    if platform.machine() == "i386" else None
         return Util.findExecutable('cbmc', fallback)
 
-    @staticmethod
-    def getVersion(executable):
+
+    def getVersion(self, executable):
         return subprocess.Popen([executable, '--version'],
                                 stdout=subprocess.PIPE).communicate()[0].strip()
 
-    @staticmethod
-    def getName():
+
+    def getName(self):
         return 'CBMC'
 
-    @staticmethod
-    def getCmdline(executable, options, sourcefile):
+
+    def getCmdline(self, executable, options, sourcefile):
         if ("--xml-ui" not in options):
             options = options + ["--xml-ui"]
         return [executable] + options + [sourcefile]
 
-    @staticmethod
-    def getStatus(returncode, returnsignal, output, isTimeout):
+
+    def getStatus(self, returncode, returnsignal, output, isTimeout):
         #an empty tag cannot be parsed into a tree
         output = output.replace("<>", "<emptyTag>")
         output = output.replace("</>", "</emptyTag>")
@@ -98,7 +99,3 @@ class Tool:
             status = "ERROR ({0})".format(returncode)
 
         return status
-
-    @staticmethod
-    def addColumnValues(output, columns):
-        pass

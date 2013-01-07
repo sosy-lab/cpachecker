@@ -2,37 +2,34 @@ import os
 
 import benchmark.filewriter as filewriter
 import benchmark.util as Util
+import benchmark.tools.template
 
-class Tool:
-    @staticmethod
-    def getExecutable():
+class Tool(benchmark.tools.template.BaseTool):
+
+    def getExecutable(self):
         return Util.findExecutable('feaver_cmd')
 
-    @staticmethod
-    def getVersion(executable):
-        return ''
 
-    @staticmethod
-    def getName():
+    def getName(self):
         return 'Feaver'
 
-    @staticmethod
-    def getCmdline(executable, options, sourcefile):
+
+    def getCmdline(self, executable, options, sourcefile):
         # create tmp-files for feaver, feaver needs special error-labels
-        Tool.prepSourcefile = _prepareSourcefile(sourcefile)
+        self.prepSourcefile = _prepareSourcefile(sourcefile)
 
-        return [executable] + ["--file"] + [Tool.prepSourcefile] + options
+        return [executable] + ["--file"] + [self.prepSourcefile] + options
 
-    @staticmethod
-    def _prepareSourcefile(sourcefile):
+
+    def _prepareSourcefile(self, sourcefile):
         content = open(sourcefile, "r").read()
         content = content.replace("goto ERROR;", "assert(0);")
         newFilename = "tmp_benchmark_feaver.c"
         filewriter.writeFile(newFilename, content)
         return newFilename
 
-    @staticmethod
-    def getStatus(returncode, returnsignal, output, isTimeout):
+
+    def getStatus(self, returncode, returnsignal, output, isTimeout):
         if "collect2: ld returned 1 exit status" in output:
             status = "COMPILE ERROR"
 
@@ -58,7 +55,7 @@ class Tool:
             status = "UNKNOWN"
 
         # delete tmp-files
-        for tmpfile in [Tool.prepSourcefile, Tool.prepSourcefile[0:-1] + "M",
+        for tmpfile in [self.prepSourcefile, self.prepSourcefile[0:-1] + "M",
                      "_modex_main.spn", "_modex_.h", "_modex_.cln", "_modex_.drv",
                      "model", "pan.b", "pan.c", "pan.h", "pan.m", "pan.t"]:
             try:
@@ -67,7 +64,3 @@ class Tool:
                 pass
 
         return status
-
-    @staticmethod
-    def addColumnValues(output, columns):
-        pass

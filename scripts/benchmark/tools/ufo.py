@@ -1,24 +1,17 @@
 import benchmark.util as Util
+import benchmark.tools.template
 
-class Tool:
-    @staticmethod
-    def getExecutable():
+class Tool(benchmark.tools.template.BaseTool):
+
+    def getExecutable(self):
         return Util.findExecutable('ufo.sh')
 
-    @staticmethod
-    def getVersion(executable):
-        return ''
 
-    @staticmethod
-    def getName():
+    def getName(self):
         return 'Ufo'
 
-    @staticmethod
-    def getCmdline(executable, options, sourcefile):
-        return [executable] + options + [sourcefile]
 
-    @staticmethod
-    def getStatus(returncode, returnsignal, output, isTimeout):
+    def getStatus(self, returncode, returnsignal, output, isTimeout):
         if returnsignal == 9 or returnsignal == (128+9):
             if isTimeout:
                 status = "TIMEOUT"
@@ -35,7 +28,3 @@ class Tool:
         else:
             status = "FAILURE"
         return status
-
-    @staticmethod
-    def addColumnValues(output, columns):
-        pass

@@ -1,28 +1,25 @@
 import subprocess
 
 import benchmark.util as Util
+import benchmark.tools.template
 
-class Tool:
-    @staticmethod
-    def getExecutable():
+class Tool(benchmark.tools.template.BaseTool):
+
+    def getExecutable(self):
         return Util.findExecutable('pblast.opt')
 
-    @staticmethod
-    def getVersion(executable):
+
+    def getVersion(self, executable):
         return subprocess.Popen([executable],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT).communicate()[0][6:9]
 
-    @staticmethod
-    def getName():
+
+    def getName(self):
         return 'BLAST'
 
-    @staticmethod
-    def getCmdline(executable, options, sourcefile):
-        return [executable] + options + [sourcefile]
 
-    @staticmethod
-    def getStatus(returncode, returnsignal, output, isTimeout):
+    def getStatus(self, returncode, returnsignal, output, isTimeout):
         status = "UNKNOWN"
         for line in output.splitlines():
             if line.startswith('Error found! The system is unsafe :-('):
@@ -36,7 +33,3 @@ class Tool:
             elif (returncode == 2) and line.startswith('Ack! The gremlins again!: Sys_error("Broken pipe")'):
                 status = 'TIMEOUT'
         return status
-
-    @staticmethod
-    def addColumnValues(output, columns):
-        pass

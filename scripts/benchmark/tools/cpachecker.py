@@ -1,14 +1,15 @@
 import subprocess
 
 import benchmark.util as Util
+import benchmark.tools.template
 
-class Tool:
-    @staticmethod
-    def getExecutable():
+class Tool(benchmark.tools.template.BaseTool):
+
+    def getExecutable(self):
         return Util.findExecutable('cpa.sh', 'scripts/cpa.sh')
 
-    @staticmethod
-    def getVersion(executable):
+
+    def getVersion(self, executable):
         version = ''
         try:
             versionHelpStr = subprocess.Popen([executable, '-help'],
@@ -20,18 +21,18 @@ class Tool:
             sys.exit()
         return Util.decodeToString(version)
 
-    @staticmethod
-    def getName():
+
+    def getName(self):
         return 'CPAchecker'
 
-    @staticmethod
-    def getCmdline(executable, options, sourcefile):
+
+    def getCmdline(self, executable, options, sourcefile):
         if ("-stats" not in options):
             options = options + ["-stats"]
         return [executable] + options + [sourcefile]
 
-    @staticmethod
-    def getStatus(returncode, returnsignal, output, isTimeout):
+
+    def getStatus(self, returncode, returnsignal, output, isTimeout):
         """
         @param returncode: code returned by CPAchecker
         @param returnsignal: signal, which terminated CPAchecker
@@ -98,8 +99,8 @@ class Tool:
             status = "UNKNOWN"
         return status
 
-    @staticmethod
-    def addColumnValues(output, columns):
+
+    def addColumnValues(self, output, columns):
         for column in columns:
 
             # search for the text in output and get its value,
