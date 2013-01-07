@@ -1,6 +1,6 @@
 import subprocess
 
-from benchmark.util import Util
+import benchmark.util as Util
 
 class Tool:
     @staticmethod

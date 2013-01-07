@@ -1,7 +1,7 @@
 import os
 
 from benchmark.filewriter import FileWriter
-from benchmark.util import Util
+import benchmark.util as Util
 
 class Tool:
     @staticmethod

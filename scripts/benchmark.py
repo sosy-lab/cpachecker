@@ -50,7 +50,7 @@ import threading
 import xml.etree.ElementTree as ET
 
 from benchmark.filewriter import FileWriter
-from benchmark.util import Util
+import benchmark.util as Util
 
 BUG_SUBSTRING_LIST = ['bug', 'unsafe']
 

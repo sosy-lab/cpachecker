@@ -4,7 +4,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 
 from benchmark.filewriter import FileWriter
-from benchmark.util import Util
+import benchmark.util as Util
 
 class Tool:
     @staticmethod
