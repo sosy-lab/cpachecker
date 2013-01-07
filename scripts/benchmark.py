@@ -179,6 +179,13 @@ class Benchmark:
             logging.error("At least ONE thread must be given!")
             sys.exit()
 
+        # create folder for file-specific log-files.
+        # existing files (with the same name) will be OVERWRITTEN!
+        self.outputBase = OUTPUT_PATH + self.name + "." + self.date
+        self.logFolder = self.outputBase + ".logfiles/"
+        if not os.path.isdir(self.logFolder):
+            os.makedirs(self.logFolder)
+
         # get global options
         self.options = getOptionsFromXML(rootTag)
 
@@ -238,6 +245,10 @@ class RunSet:
 
         # index is the number of the run set
         self.index = index
+
+        self.logFolder = benchmark.logFolder
+        if self.realName:
+            self.logFolder += self.realName + "."
 
         # get all run-set-specific options from rundefinitionTag
         self.options = benchmark.options + getOptionsFromXML(rundefinitionTag)
@@ -393,6 +404,7 @@ class Run():
         self.runSet = runSet
         self.benchmark = runSet.benchmark
         self.specificOptions = fileOptions # options that are specific for this run
+        self.logFile = runSet.logFolder + os.path.basename(sourcefile) + ".log"
         self.options = substituteVars(runSet.options + fileOptions, # all options to be used when executing this run
                                       runSet,
                                       sourcefile)
@@ -417,7 +429,7 @@ class Run():
         It also calls functions for output before and after the run.
         @param numberOfThread: runs are executed in different threads
         """
-        outputFileName = self.benchmark.outputHandler.outputBeforeRun(self)
+        self.benchmark.outputHandler.outputBeforeRun(self)
 
         tool = self.benchmark.tool
         args = tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
@@ -428,7 +440,7 @@ class Run():
 
         rlimits = self.benchmark.rlimits
 
-        (self.wallTime, self.cpuTime, returnvalue, output) = runexecutor.executeRun(args, rlimits, outputFileName, cpuIndex, options.memdata)
+        (self.wallTime, self.cpuTime, returnvalue, output) = runexecutor.executeRun(args, rlimits, self.logFile, cpuIndex, options.memdata)
 
         # calculation: returnvalue == (returncode * 256) + returnsignal
         returnsignal = returnvalue % 256
@@ -492,12 +504,6 @@ class OutputHandler:
         self.benchmark = benchmark
         self.statistics = Statistics()
 
-        # create folder for file-specific log-files.
-        # existing files (with the same name) will be OVERWRITTEN!
-        self.logFolder = OUTPUT_PATH + self.benchmark.name + "." + self.benchmark.date + ".logfiles/"
-        if not os.path.isdir(self.logFolder):
-            os.makedirs(self.logFolder)
-
         # get information about computer
         (opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname) = self.getSystemInfo()
         version = self.benchmark.toolVersion
@@ -513,6 +519,8 @@ class OutputHandler:
                               numberOfCores, maxFrequency, memory, hostname)
         self.writeHeaderToLog(version, memlimit, timelimit, opSystem, cpuModel,
                               numberOfCores, maxFrequency, memory, hostname)
+
+        self.XMLFileNames = []
 
 
     def storeHeaderInXML(self, version, memlimit, timelimit, opSystem,
@@ -668,7 +676,7 @@ class OutputHandler:
 
         # write run set name to terminal
         Util.printOut("\nexecuting run set" + \
-            (" '" + runSet.name + "'" if runSet.name is not None else "") + \
+            (" '" + runSet.name + "'" if runSet.name else "") + \
             ("     (1 file)" if numberOfFiles == 1
                         else "     ({0} files)".format(numberOfFiles)))
 
@@ -692,11 +700,12 @@ class OutputHandler:
 
         # write (empty) results to TXTFile and XML
         self.TXTFile.append(self.runSetToTXT(runSet), False)
-        self.XMLTestFileName = self.getFileName(runSet.name, "xml")
-        self.XMLTestFile = filewriter.FileWriter(self.XMLTestFileName,
+        XMLFileName = self.getFileName(runSet.name, "xml")
+        self.XMLFile = filewriter.FileWriter(XMLFileName,
                        Util.XMLtoString(self.runsToXML(runSet, runSet.runs)))
-        self.XMLTestFile.lastModifiedTime = time.time()
-        self.allCreatedFiles.append(self.XMLTestFileName)
+        self.XMLFile.lastModifiedTime = time.time()
+        self.allCreatedFiles.append(XMLFileName)
+        self.XMLFileNames.append(XMLFileName)
 
 
     def outputForSkippingRunSet(self, runSet, reason=None):
@@ -763,12 +772,7 @@ class OutputHandler:
             OutputHandler.printLock.release()
 
         # get name of file-specific log-file
-        logfileName = self.logFolder
-        if run.runSet.name:
-            logfileName += run.runSet.name + "."
-        logfileName += os.path.basename(run.sourcefile) + ".log"
-        self.allCreatedFiles.append(logfileName)
-        return logfileName
+        self.allCreatedFiles.append(run.logFile)
 
 
     def outputAfterRun(self, run):
@@ -826,9 +830,9 @@ class OutputHandler:
             # we don't want to write this file to often, it can slow down the whole script,
             # so we wait at least 10 seconds between two write-actions
             currentTime = time.time()
-            if currentTime - self.XMLTestFile.lastModifiedTime > 10:
-                self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(run.runSet, run.runSet.runs)))
-                self.XMLTestFile.lastModifiedTime = currentTime
+            if currentTime - self.XMLFile.lastModifiedTime > 10:
+                self.XMLFile.replace(Util.XMLtoString(self.runsToXML(run.runSet, run.runSet.runs)))
+                self.XMLFile.lastModifiedTime = currentTime
 
         finally:
             OutputHandler.printLock.release()
@@ -845,7 +849,7 @@ class OutputHandler:
         runSet.wallTimeStr = Util.formatNumber(wallTime, TIME_PRECISION)
 
         # write results to files
-        self.XMLTestFile.replace(Util.XMLtoString(self.runsToXML(runSet, runSet.runs)))
+        self.XMLFile.replace(Util.XMLtoString(self.runsToXML(runSet, runSet.runs)))
 
         if len(runSet.blocks) > 1:
             for block in runSet.blocks:
@@ -968,10 +972,10 @@ class OutputHandler:
     def outputAfterBenchmark(self):
         self.statistics.printToTerminal()
 
-        if hasattr(self, 'XMLTestFileName'):
+        if self.XMLFileNames:
             Util.printOut("In order to get HTML and CSV tables, run\n{0} '{1}'"
                           .format(os.path.join(os.path.dirname(__file__), 'table-generator.py'),
-                                  self.XMLTestFileName))
+                                  "' '".join(self.XMLFileNames)))
 
         if STOPPED_BY_INTERRUPT:
             Util.printOut("\nScript was interrupted by user, some runs may not be done.\n")
@@ -983,8 +987,7 @@ class OutputHandler:
         with an extension ("txt", "xml").
         '''
 
-        fileName = OUTPUT_PATH + self.benchmark.name + "." \
-                    + self.benchmark.date + ".results."
+        fileName = self.benchmark.outputBase + ".results."
 
         if runSetName:
             fileName += runSetName + "."
@@ -1047,11 +1050,6 @@ def substituteVars(oldList, runSet, sourcefile=None):
     """
 
     benchmark = runSet.benchmark
-    logFolder = None
-    try:
-        logFolder = benchmark.outputHandler.logFolder
-    except AttributeError:
-        pass
 
     # list with tuples (key, value): 'key' is replaced by 'value'
     keyValueList = [('${benchmark_name}', benchmark.name),
@@ -1060,16 +1058,14 @@ def substituteVars(oldList, runSet, sourcefile=None):
                     ('${benchmark_path_abs}', os.path.abspath(os.path.dirname(benchmark.benchmarkFile))),
                     ('${benchmark_file}', os.path.basename(benchmark.benchmarkFile)),
                     ('${benchmark_file_abs}', os.path.abspath(os.path.basename(benchmark.benchmarkFile))),
+                    ('${logfile_path}',   os.path.dirname(runSet.logFolder)),
+                    ('${logfile_path_abs}', os.path.abspath(runSet.logFolder)),
                     ('${test_name}',      runSet.realName if runSet.realName else '')]
 
     if sourcefile:
         keyValueList.append(('${sourcefile_name}', os.path.basename(sourcefile)))
         keyValueList.append(('${sourcefile_path}', os.path.dirname(sourcefile)))
         keyValueList.append(('${sourcefile_path_abs}', os.path.dirname(os.path.abspath(sourcefile))))
-
-    if logFolder:
-        keyValueList.append(('${logfile_path}', os.path.dirname(logFolder)))
-        keyValueList.append(('${logfile_path_abs}', os.path.abspath(logFolder)))
 
     # do not use keys twice
     assert len(set((key for (key, value) in keyValueList))) == len(keyValueList)
