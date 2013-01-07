@@ -398,7 +398,9 @@ class Run():
         self.runSet = runSet
         self.benchmark = runSet.benchmark
         self.specificOptions = fileOptions # options that are specific for this run
-        self.options = runSet.options + fileOptions # all options to be used when executing this run
+        self.options = substituteVars(runSet.options + fileOptions, # all options to be used when executing this run
+                                      runSet,
+                                      sourcefile)
 
         # Copy columns for having own objects in run
         # (we need this for storing the results in them).
@@ -1043,13 +1045,18 @@ def getOptionsFromXML(optionsTag):
                for option in optionsTag.findall("option")])
 
 
-def substituteVars(oldList, runSet, sourcefile=None, logFolder=None):
+def substituteVars(oldList, runSet, sourcefile=None):
     """
     This method replaces special substrings from a list of string
     and return a new list.
     """
 
     benchmark = runSet.benchmark
+    logFolder = None
+    try:
+        logFolder = benchmark.outputHandler.logFolder
+    except AttributeError:
+        pass
 
     # list with tuples (key, value): 'key' is replaced by 'value'
     keyValueList = [('${benchmark_name}', benchmark.name),
