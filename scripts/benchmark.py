@@ -71,24 +71,6 @@ COLOR_DIC = {"correctSafe": COLOR_GREEN,
              "wrongSafe": COLOR_RED}
 
 
-# dictionary for tools and their default and fallback executables
-TOOLS = {"cbmc"      : ["cbmc",
-                      "lib/native/x86_64-linux/cbmc" if platform.machine() == "x86_64" else \
-                      "lib/native/x86-linux/cbmc"    if platform.machine() == "i386" else None],
-         "satabs"    : ["satabs"],
-         "wolverine" : ["wolverine"],
-         "ufo"       : ["ufo.sh"],
-         "acsar"     : ["acsar"],
-         "feaver"    : ["feaver_cmd"],
-         "cpachecker": ["cpa.sh", "scripts/cpa.sh"],
-         "blast"     : ["pblast.opt"],
-         "ecav"      : ["ecaverifier"],
-         "safe"      : [],
-         "unsafe"    : [],
-         "random"    : [],
-        }
-
-
 # the number of digits after the decimal separator of the time column,
 # for the other columns it can be configured in the xml-file
 TIME_PRECISION = 2
@@ -149,11 +131,12 @@ class Benchmark:
         rootTag = ET.ElementTree().parse(benchmarkFile)
 
         # get tool
-        self.tool = rootTag.get("tool")
-        if self.tool not in TOOLS.keys() :
-            sys.exit("tool '{0}' is not supported".format(self.tool))
-        self.executable = findExecutable(*TOOLS[self.tool])
-        self.execute_func = eval("run_" + self.tool)
+        self.tool = eval('tool_'+rootTag.get('tool'))
+#        if self.tool not in TOOLS.keys() :
+#            sys.exit("tool '{0}' is not supported".format(self.tool))
+        self.toolName = self.tool.getName()
+        self.executable = self.tool.getExecutable()
+        self.toolVersion = self.tool.getVersion(self.executable)
 
         logging.debug("The tool to be benchmarked is {0}.".format(repr(self.tool)))
 
@@ -430,16 +413,101 @@ class Run():
         It also calls functions for output before and after the run.
         @param numberOfThread: runs are executed in different threads
         """
-        logfile = self.benchmark.outputHandler.outputBeforeRun(self)
+        outputFileName = self.benchmark.outputHandler.outputBeforeRun(self)
 
-        (self.status, self.cpuTime, self.wallTime, self.args) = \
-             self.benchmark.execute_func(self.benchmark.executable,
-                                     self.options,
-                                     self.sourcefile, 
-                                     self.columns,
-                                     self.benchmark.rlimits,
-                                     numberOfThread,
-                                     logfile)
+        tool = self.benchmark.tool
+        args = tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
+        args = [os.path.expandvars(arg) for arg in args]
+        args = [os.path.expanduser(arg) for arg in args]
+
+        if options.limitCores:
+            # use only one cpu for one subprocess
+            # if there are more threads than cores, some threads share the same core
+            import multiprocessing
+            args = ['taskset', '-c', str(numberOfThread % multiprocessing.cpu_count())] + args
+
+        rlimits = self.benchmark.rlimits
+
+        outputFile = open(outputFileName, 'w') # override existing file
+        outputFile.write(' '.join(args) + '\n\n\n' + '-'*80 + '\n\n\n')
+        outputFile.flush()
+
+        logging.debug("Executing {0}.".format(args))
+
+        wallTimeBefore = time.time()
+
+        try:
+            p = subprocess.Popen(args,
+                                 stdout=outputFile, stderr=outputFile,
+                                 preexec_fn=self._preSubprocess)
+
+            try:
+                SUB_PROCESSES_LOCK.acquire()
+                SUB_PROCESSES.add(p)
+            finally:
+                SUB_PROCESSES_LOCK.release()
+
+            # if rlimit does not work, a separate Timer is started to kill the subprocess,
+            # Timer has 10 seconds 'overhead'
+            if TIMELIMIT in rlimits:
+              timelimit = rlimits[TIMELIMIT]
+              timer = threading.Timer(timelimit + 10, killSubprocess, [p])
+              timer.start()
+
+            (pid, returnvalue, ru_child) = os.wait4(p.pid, 0)
+        except OSError:
+            logging.critical("I caught an OSError. Assure that the directory "
+                             + "containing the tool to be benchmarked is included "
+                             + "in the PATH environment variable or an alias is set.")
+            sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
+
+        finally:
+            try:
+                SUB_PROCESSES_LOCK.acquire()
+                assert p in SUB_PROCESSES
+                SUB_PROCESSES.remove(p)
+            finally:
+                SUB_PROCESSES_LOCK.release()
+
+            if (TIMELIMIT in rlimits) and timer.isAlive():
+                timer.cancel()
+
+            outputFile.close() # normally subprocess closes file, we do this again
+
+        wallTimeAfter = time.time()
+        self.wallTime = wallTimeAfter - wallTimeBefore
+        self.cpuTime = (ru_child.ru_utime + ru_child.ru_stime)
+
+        # calculation: returnvalue == (returncode * 256) + returnsignal
+        returnsignal = returnvalue % 256
+        returncode = returnvalue // 256
+        assert pid == p.pid
+
+        logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
+
+        outputFile = open(outputFileName, 'r') # re-open file for reading output
+        output = ''.join(outputFile.readlines()[6:]) # first 6 lines are for logging, rest is output of subprocess
+        outputFile.close()
+        output = Util.decodeToString(output)
+
+        self.status = tool.getStatus(returncode, returnsignal, output, self._isTimeout())
+        tool.addColumnValues(output, self.columns)
+
+        # Segmentation faults and some memory failures reference a file with more information.
+        # We append this file to the log.
+        if self.status == 'SEGMENTATION FAULT' or self.status.startswith('ERROR') or self.status == 'OUT OF MEMORY':
+            next = False
+            for line in output.splitlines():
+                if next:
+                    try:
+                        dumpFile = line.strip(' #')
+                        Util.appendFileToFile(dumpFile, outputFileName)
+                        os.remove(dumpFile)
+                    except IOError as e:
+                        logging.warn('Could not append additional segmentation fault information (%s)' % e.strerror)
+                    break
+                if line == '# An error report file with more information is saved as:':
+                    next = True
 
         # Tools sometimes produce a result even after a timeout.
         # This should not be counted, so we overwrite the result with TIMEOUT
@@ -447,12 +515,33 @@ class Run():
         # However, we don't want to forget more specific results like SEGFAULT,
         # so we do this only if the result is a "normal" one like SAFE.
         if not self.status in ['SAFE', 'UNSAFE', 'UNKNOWN']:
-            if TIMELIMIT in self.benchmark.rlimits:
-                timeLimit = self.benchmark.rlimits[TIMELIMIT] + 20
+            if TIMELIMIT in rlimits:
+                timeLimit = rlimits[TIMELIMIT] + 20
                 if self.wallTime > timeLimit or self.cpuTime > timeLimit:
                     self.status = "TIMEOUT"
 
         self.benchmark.outputHandler.outputAfterRun(self)
+
+    def _preSubprocess(self):
+        os.setpgrp() # make subprocess to group-leader
+
+        rlimits = self.benchmark.rlimits
+        if TIMELIMIT in rlimits:
+            resource.setrlimit(resource.RLIMIT_CPU, (rlimits[TIMELIMIT], rlimits[TIMELIMIT]))
+        if MEMLIMIT in rlimits:
+            memresource = resource.RLIMIT_DATA if options.memdata else resource.RLIMIT_AS
+            memlimit = rlimits[MEMLIMIT] * BYTE_FACTOR * BYTE_FACTOR # MB to Byte
+            resource.setrlimit(memresource, (memlimit, memlimit))
+
+    def _isTimeout(self):
+        ''' try to find out whether the tool terminated because of a timeout '''
+        rlimits = self.benchmark.rlimits
+        if TIMELIMIT in rlimits:
+            limit = rlimits[TIMELIMIT]
+        else:
+            limit = float('inf')
+
+        return self.cpuTime > limit*0.99
 
 
 class Column:
@@ -585,6 +674,38 @@ class Util:
 
 
     @staticmethod
+    def appendFileToFile(sourcename, targetname):
+        source = open(sourcename, 'r')
+        try:
+            target = open(targetname, 'a')
+            try:
+                target.writelines(source.readlines())
+            finally:
+                target.close()
+        finally:
+            source.close()
+
+
+    @staticmethod
+    def findExecutable(program, fallback=None):
+        def isExecutable(programPath):
+            return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
+    
+        dirs = os.environ['PATH'].split(os.pathsep)
+        dirs.append(".")
+    
+        for dir in dirs:
+            name = os.path.join(dir, program)
+            if isExecutable(name):
+                return name
+    
+        if fallback is not None and isExecutable(fallback):
+            return fallback
+    
+        sys.exit("ERROR: Could not find '{0}' executable".format(program))
+
+
+    @staticmethod
     def addFilesToGitRepository(files, description):
         """
         Add and commit all files given in a list into a git repository in the
@@ -640,6 +761,681 @@ class Util:
             return
 
 
+class tool_template:
+    @staticmethod
+    def getExecutable():
+        return findExecutable('tool')
+
+    @staticmethod
+    def getVersion(executable):
+        return ''
+
+    @staticmethod
+    def getName():
+        return 'UNKOWN'
+
+    @staticmethod
+    def getCmdline(executable, options, sourcefile):
+        return [executable] + options + [sourcefile]
+
+    @staticmethod
+    def getStatus(returncode, returnsignal, output, isTimeout):
+        return 'UNKNOWN'
+
+    @staticmethod
+    def addColumnValues(output, columns):
+        """
+        This method adds the values that the user requested to the column objects.
+        If a value is not found, it should be set to '-'.
+        """
+        pass
+
+
+class tool_acsar:
+    @staticmethod
+    def getExecutable():
+        return findExecutable('acsar')
+
+    @staticmethod
+    def getVersion(executable):
+        return ''
+
+    @staticmethod
+    def getName():
+        return 'Acsar'
+
+    @staticmethod
+    def getCmdline(executable, options, sourcefile):
+        # create tmp-files for acsar, acsar needs special error-labels
+        prepSourcefile = _prepareSourcefile(sourcefile)
+
+        return [executable] + ["--file"] + [prepSourcefile] + options
+
+    @staticmethod
+    def _prepareSourcefile(sourcefile):
+        content = open(sourcefile, "r").read()
+        content = content.replace(
+            "ERROR;", "ERROR_LOCATION;").replace(
+            "ERROR:", "ERROR_LOCATION:").replace(
+            "errorFn();", "goto ERROR_LOCATION; ERROR_LOCATION:;")
+        newFilename = sourcefile + "_acsar.c"
+        preparedFile = FileWriter(newFilename, content)
+        return newFilename
+
+    @staticmethod
+    def getStatus(returncode, returnsignal, output, isTimeout):
+        if "syntax error" in output:
+            status = "SYNTAX ERROR"
+
+        elif "runtime error" in output:
+            status = "RUNTIME ERROR"
+
+        elif "error while loading shared libraries:" in output:
+            status = "LIBRARY ERROR"
+
+        elif "can not be used as a root procedure because it is not defined" in output:
+            status = "NO MAIN"
+
+        elif "For Error Location <<ERROR_LOCATION>>: I don't Know " in output:
+            status = "TIMEOUT"
+
+        elif "received signal 6" in output:
+            status = "ABORT"
+
+        elif "received signal 11" in output:
+            status = "SEGFAULT"
+
+        elif "received signal 15" in output:
+            status = "KILLED"
+
+        elif "Error Location <<ERROR_LOCATION>> is not reachable" in output:
+            status = "SAFE"
+
+        elif "Error Location <<ERROR_LOCATION>> is reachable via the following path" in output:
+            status = "UNSAFE"
+
+        else:
+            status = "UNKNOWN"
+
+        # delete tmp-files
+        os.remove(prepSourcefile)
+
+        return status
+
+    @staticmethod
+    def addColumnValues(output, columns):
+        pass
+
+
+class tool_blast:
+    @staticmethod
+    def getExecutable():
+        return findExecutable('pblast.opt')
+
+    @staticmethod
+    def getVersion(executable):
+        return subprocess.Popen([executable],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT).communicate()[0][6:9]
+
+    @staticmethod
+    def getName():
+        return 'BLAST'
+
+    @staticmethod
+    def getCmdline(executable, options, sourcefile):
+        return [executable] + options + [sourcefile]
+
+    @staticmethod
+    def getStatus(returncode, returnsignal, output, isTimeout):
+        status = "UNKNOWN"
+        for line in output.splitlines():
+            if line.startswith('Error found! The system is unsafe :-('):
+                status = 'UNSAFE'
+            elif line.startswith('No error found.  The system is safe :-)'):
+                status = 'SAFE'
+            elif (returncode == 2) and line.startswith('Fatal error: out of memory.'):
+                status = 'OUT OF MEMORY'
+            elif (returncode == 2) and line.startswith('Fatal error: exception Sys_error("Broken pipe")'):
+                status = 'EXCEPTION'
+            elif (returncode == 2) and line.startswith('Ack! The gremlins again!: Sys_error("Broken pipe")'):
+                status = 'TIMEOUT'
+        return status
+
+    @staticmethod
+    def addColumnValues(output, columns):
+        pass
+
+
+class tool_cbmc:
+    @staticmethod
+    def getExecutable():
+        fallback = "lib/native/x86_64-linux/cbmc" if platform.machine() == "x86_64" else \
+                   "lib/native/x86-linux/cbmc"    if platform.machine() == "i386" else None
+        return findExecutable('cbmc', fallback)
+
+    @staticmethod
+    def getVersion(executable):
+        return subprocess.Popen([executable, '--version'],
+                                stdout=subprocess.PIPE).communicate()[0].strip()
+
+    @staticmethod
+    def getName():
+        return 'CBMC'
+
+    @staticmethod
+    def getCmdline(executable, options, sourcefile):
+        if ("--xml-ui" not in options):
+            options = options + ["--xml-ui"]
+        return [executable] + options + [sourcefile]
+
+    @staticmethod
+    def getStatus(returncode, returnsignal, output, isTimeout):
+        #an empty tag cannot be parsed into a tree
+        output = output.replace("<>", "<emptyTag>")
+        output = output.replace("</>", "</emptyTag>")
+
+        if ((returncode == 0) or (returncode == 10)):
+            try:
+                tree = ET.fromstring(output)
+                status = tree.findtext('cprover-status')
+
+                if status is None:
+                    def isErrorMessage(msg):
+                        return msg.get('type', None) == 'ERROR'
+
+                    messages = list(filter(isErrorMessage, tree.getiterator('message')))
+                    if messages:
+                        # for now, use only the first error message if there are several
+                        msg = messages[0].findtext('text')
+                        if msg == 'Out of memory':
+                            status = 'OUT OF MEMORY'
+                        elif msg:
+                            status = 'ERROR (%s)'.format(msg)
+                        else:
+                            status = 'ERROR'
+                    else:
+                        status = 'INVALID OUTPUT'
+
+                elif status == "FAILURE":
+                    assert returncode == 10
+                    reason = tree.find('goto_trace').find('failure').findtext('reason')
+                    if 'unwinding assertion' in reason:
+                        status = "UNKNOWN"
+                    else:
+                        status = "UNSAFE"
+
+                elif status == "SUCCESS":
+                    assert returncode == 0
+                    if "--no-unwinding-assertions" in options:
+                        status = "UNKNOWN"
+                    else:
+                        status = "SAFE"
+
+            except Exception as e: # catch all exceptions
+                if isTimeout:
+                    # in this case an exception is expected as the XML is invaliddd
+                    status = 'TIMEOUT'
+                elif 'Minisat::OutOfMemoryException' in output:
+                    status = 'OUT OF MEMORY'
+                else:
+                    status = 'INVALID OUTPUT'
+                    logging.warning("Error parsing CBMC output for returncode %d: %s" % (returncode, e))
+
+        elif returncode == 6:
+            # parser error or something similar
+            status = 'ERROR'
+        
+        elif returnsignal == 9 or returncode == (128+9):
+            if isTimeout:
+                status = 'TIMEOUT'
+            else:
+                status = "KILLED BY SIGNAL 9"
+
+        elif returnsignal == 6:
+            status = "ABORTED"
+        elif returnsignal == 15 or returncode == (128+15):
+            status = "KILLED"
+        else:
+            status = "ERROR ({0})".format(returncode)
+
+        return status
+
+    @staticmethod
+    def addColumnValues(output, columns):
+        pass
+
+
+class tool_cpachecker:
+    @staticmethod
+    def getExecutable():
+        return Util.findExecutable('cpa.sh', 'scripts/cpa.sh')
+    
+    @staticmethod
+    def getVersion(executable):
+        version = ''
+        try:
+            versionHelpStr = subprocess.Popen([executable, '-help'],
+                stdout=subprocess.PIPE).communicate()[0]
+            versionHelpStr = Util.decodeToString(versionHelpStr)
+            version = ' '.join(versionHelpStr.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
+        except IndexError:
+            logging.critical('IndexError! Have you built CPAchecker?\n') # TODO better message
+            sys.exit()
+        return Util.decodeToString(version)
+
+    @staticmethod
+    def getName():
+        return 'CPAchecker'
+
+    @staticmethod
+    def getCmdline(executable, options, sourcefile):
+        if ("-stats" not in options):
+            options = options + ["-stats"]
+        return [executable] + options + [sourcefile]
+
+    @staticmethod
+    def getStatus(returncode, returnsignal, output, isTimeout):
+        """
+        @param returncode: code returned by CPAchecker
+        @param returnsignal: signal, which terminated CPAchecker
+        @param output: the output of CPAchecker
+        @return: status of CPAchecker after executing a run
+        """
+    
+        def isOutOfNativeMemory(line):
+            return ('std::bad_alloc'             in line # C++ out of memory exception (MathSAT)
+                 or 'Cannot allocate memory'     in line
+                 or line.startswith('out of memory')     # CuDD
+                 )
+    
+        if returnsignal == 0:
+            status = None
+    
+        elif returnsignal == 6:
+            status = "ABORTED (probably by Mathsat)"
+    
+        elif returnsignal == 9:
+            if isTimeout:
+                status = 'TIMEOUT'
+            else:
+                status = "KILLED BY SIGNAL 9"
+    
+        elif returnsignal == (128+15):
+            status = "KILLED"
+    
+        else:
+            status = "ERROR ({0})".format(returnsignal)
+    
+        for line in output.splitlines():
+            if 'java.lang.OutOfMemoryError' in line:
+                status = 'OUT OF JAVA MEMORY'
+            elif isOutOfNativeMemory(line):
+                status = 'OUT OF NATIVE MEMORY'
+            elif 'There is insufficient memory for the Java Runtime Environment to continue.' in line \
+                    or 'cannot allocate memory for thread-local data: ABORT' in line:
+                status = 'OUT OF MEMORY'
+            elif 'SIGSEGV' in line:
+                status = 'SEGMENTATION FAULT'
+            elif ((returncode == 0 or returncode == 1)
+                    and ('Exception' in line or 'java.lang.AssertionError' in line)
+                    and not line.startswith('cbmc')): # ignore "cbmc error output: ... Minisat::OutOfMemoryException"
+                status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
+            elif 'Could not reserve enough space for object heap' in line:
+                status = 'JAVA HEAP ERROR'
+            elif line.startswith('Error: '):
+                status = 'ERROR'
+            
+            elif line.startswith('Verification result: '):
+                line = line[21:].strip()
+                if line.startswith('SAFE'):
+                    newStatus = 'SAFE'
+                elif line.startswith('UNSAFE'):
+                    newStatus = 'UNSAFE'
+                else:
+                    newStatus = 'UNKNOWN'
+                status = newStatus if status is None else "{0} ({1})".format(status, newStatus)
+                
+            elif (status is None) and line.startswith('#Test cases computed:'):
+                status = 'OK'
+        if status is None:
+            status = "UNKNOWN"
+        return status
+
+    @staticmethod
+    def addColumnValues(output, columns):
+        for column in columns:
+    
+            # search for the text in output and get its value,
+            # stop after the first line, that contains the searched text
+            column.value = "-" # default value
+            for line in output.splitlines():
+                if column.text in line:
+                    startPosition = line.find(':') + 1
+                    endPosition = line.find('(') # bracket maybe not found -> (-1)
+                    if (endPosition == -1):
+                        column.value = line[startPosition:].strip()
+                    else:
+                        column.value = line[startPosition: endPosition].strip()
+                    break
+
+
+class tool_evav:
+    @staticmethod
+    def getExecutable():
+        return Util.findExecutable('ecaverifier')
+    
+    @staticmethod
+    def getVersion(executable):
+        return ''
+
+    @staticmethod
+    def getName():
+        return 'EcaVerifier'
+
+    @staticmethod
+    def getCmdline(executable, options, sourcefile):
+        return [executable] + options + [sourcefile]
+
+    @staticmethod
+    def getStatus(returncode, returnsignal, output, isTimeout):
+        status = "UNKNOWN"
+        for line in output.splitlines():
+            if line.startswith('0 safe, 1 unsafe'):
+                status = 'UNSAFE'
+            elif line.startswith('1 safe, 0 unsafe'):
+                status = 'SAFE'
+            elif returnsignal == 9:
+                if isTimeout(cpuTimeDelta, rlimits):
+                    status = 'TIMEOUT'
+                else:
+                    status = "KILLED BY SIGNAL 9"
+
+        return status
+
+    @staticmethod
+    def addColumnValues(output, columns):
+        pass
+
+
+class tool_feaver:
+    @staticmethod
+    def getExecutable():
+        return Util.findExecutable('feaver_cmd')
+    
+    @staticmethod
+    def getVersion(executable):
+        return ''
+
+    @staticmethod
+    def getName():
+        return 'Feaver'
+
+    @staticmethod
+    def getCmdline(executable, options, sourcefile):
+        # create tmp-files for feaver, feaver needs special error-labels
+        tool_feaver.prepSourcefile = _prepareSourcefile(sourcefile)
+    
+        return [executable] + ["--file"] + [tool_feaver.prepSourcefile] + options
+
+    @staticmethod
+    def _prepareSourcefile(sourcefile):
+        content = open(sourcefile, "r").read()
+        content = content.replace("goto ERROR;", "assert(0);")
+        newFilename = "tmp_benchmark_feaver.c"
+        preparedFile = FileWriter(newFilename, content)
+        return newFilename
+
+    @staticmethod
+    def getStatus(returncode, returnsignal, output, isTimeout):
+        if "collect2: ld returned 1 exit status" in output:
+            status = "COMPILE ERROR"
+    
+        elif "Error (parse error" in output:
+            status = "PARSE ERROR"
+    
+        elif "error: (\"model\":" in output:
+            status = "MODEL ERROR"
+    
+        elif "Error: syntax error" in output:
+            status = "SYNTAX ERROR"
+    
+        elif "error: " in output or "Error: " in output:
+            status = "ERROR"
+    
+        elif "Error Found:" in output:
+            status = "UNSAFE"
+    
+        elif "No Errors Found" in output:
+            status = "SAFE"
+    
+        else:
+            status = "UNKNOWN"
+    
+        # delete tmp-files
+        for tmpfile in [tool_feaver.prepSourcefile, tool_feaver.prepSourcefile[0:-1] + "M",
+                     "_modex_main.spn", "_modex_.h", "_modex_.cln", "_modex_.drv",
+                     "model", "pan.b", "pan.c", "pan.h", "pan.m", "pan.t"]:
+            try:
+                os.remove(tmpfile)
+            except OSError:
+                pass
+
+        return status
+
+    @staticmethod
+    def addColumnValues(output, columns):
+        pass
+
+
+class tool_satabs:
+    @staticmethod
+    def getExecutable():
+        return Util.findExecutable('satabs')
+    
+    @staticmethod
+    def getVersion(executable):
+        return subprocess.Popen([executable, '--version'],
+                                stdout=subprocess.PIPE).communicate()[0].strip()
+
+    @staticmethod
+    def getName():
+        return 'SatAbs'
+
+    @staticmethod
+    def getCmdline(executable, options, sourcefile):
+        return [executable] + options + [sourcefile]
+
+    @staticmethod
+    def getStatus(returncode, returnsignal, output, isTimeout):
+        if "VERIFICATION SUCCESSFUL" in output:
+            assert returncode == 0
+            status = "SAFE"
+        elif "VERIFICATION FAILED" in output:
+            assert returncode == 10
+            status = "UNSAFE"
+        elif returnsignal == 9:
+            status = "TIMEOUT"
+        elif returnsignal == 6:
+            if "Assertion `!counterexample.steps.empty()' failed" in output:
+                status = 'COUNTEREXAMPLE FAILED' # TODO: other status?
+            else:
+                status = "OUT OF MEMORY"
+        elif returncode == 1 and "PARSING ERROR" in output:
+            status = "PARSING ERROR"
+        else:
+            status = "FAILURE"
+        return status
+
+    @staticmethod
+    def addColumnValues(output, columns):   
+        pass
+
+
+class tool_ufo:
+    @staticmethod
+    def getExecutable():
+        return Util.findExecutable('ufo.sh')
+    
+    @staticmethod
+    def getVersion(executable):
+        return ''
+
+    @staticmethod
+    def getName():
+        return 'Ufo'
+
+    @staticmethod
+    def getCmdline(executable, options, sourcefile):
+        return [executable] + options + [sourcefile]
+
+    @staticmethod
+    def getStatus(returncode, returnsignal, output, isTimeout):
+        if returnsignal == 9 or returnsignal == (128+9):
+            if isTimeout(cpuTimeDelta, rlimits):
+                status = "TIMEOUT"
+            else:
+                status = "KILLED BY SIGNAL 9"
+        elif returncode == 1 and "program correct: ERROR unreachable" in output:
+            status = "SAFE"
+        elif returncode != 0:
+            status = "ERROR ({0})".format(returncode)
+        elif "ERROR reachable" in output:
+            status = "UNSAFE"
+        elif "program correct: ERROR unreachable" in output:
+            status = "SAFE"
+        else:
+            status = "FAILURE"
+        return status
+
+    @staticmethod
+    def addColumnValues(output, columns):  
+        pass
+
+
+class tool_wolverine:
+    @staticmethod
+    def getExecutable():
+        return Util.findExecutable('wolverine')
+    
+    @staticmethod
+    def getVersion(executable):
+        return subprocess.Popen([executable, '--version'],
+                                stdout=subprocess.PIPE).communicate()[0].split()[1].strip()
+
+    @staticmethod
+    def getName():
+        return 'Wolverine'
+
+    @staticmethod
+    def getCmdline(executable, options, sourcefile):
+        return [executable] + options + [sourcefile]
+
+    @staticmethod
+    def getStatus(returncode, returnsignal, output, isTimeout):
+        if "VERIFICATION SUCCESSFUL" in output:
+            assert returncode == 0
+            status = "SAFE"
+        elif "VERIFICATION FAILED" in output:
+            assert returncode == 10
+            status = "UNSAFE"
+        elif returnsignal == 9:
+            status = "TIMEOUT"
+        elif returnsignal == 6 or (returncode == 6 and "Out of memory" in output):
+            status = "OUT OF MEMORY"
+        elif returncode == 6 and "PARSING ERROR" in output:
+            status = "PARSING ERROR"
+        else:
+            status = "FAILURE"
+        return status
+
+    @staticmethod
+    def addColumnValues(output, columns):
+        pass
+
+
+# the next 3 classes are for imaginary tools, that return special results,
+# perhaps someone can use these function again someday,
+# to use them you need a normal benchmark-xml-file 
+# with the tool and sourcefiles, however options are ignored
+
+class tool_safe:
+    @staticmethod
+    def getExecutable():
+        return '/bin/true'
+    
+    @staticmethod
+    def getVersion(executable):
+        return ''
+
+    @staticmethod
+    def getName():
+        return 'AlwaysSafe'
+
+    @staticmethod
+    def getCmdline(executable, options, sourcefile):
+        return [executable]
+
+    @staticmethod
+    def getStatus(returncode, returnsignal, output, isTimeout):
+        return 'SAFE'
+
+    @staticmethod
+    def addColumnValues(output, columns):
+        pass
+
+class tool_unsafe:
+    @staticmethod
+    def getExecutable():
+        return '/bin/false'
+    
+    @staticmethod
+    def getVersion(executable):
+        return ''
+
+    @staticmethod
+    def getName():
+        return 'AlwaysUnsafe'
+
+    @staticmethod
+    def getCmdline(executable, options, sourcefile):
+        return [executable]
+
+    @staticmethod
+    def getStatus(returncode, returnsignal, output, isTimeout):
+        return 'UNSAFE'
+
+    @staticmethod
+    def addColumnValues(output, columns):
+        pass
+
+class tool_random:
+    @staticmethod
+    def getExecutable():
+        return '/bin/true'
+    
+    @staticmethod
+    def getVersion(executable):
+        return ''
+
+    @staticmethod
+    def getName():
+        return 'Random'
+
+    @staticmethod
+    def getCmdline(executable, options, sourcefile):
+        return [executable]
+
+    @staticmethod
+    def getStatus(returncode, returnsignal, output, isTimeout):
+        from random import random
+        return 'SAFE' if random() < 0.5 else 'UNSAFE'
+
+    @staticmethod
+    def addColumnValues(output, columns):
+        pass
+
+
 class OutputHandler:
     """
     The class OutputHandler manages all outputs to the terminal and to files.
@@ -665,7 +1461,7 @@ class OutputHandler:
 
         # get information about computer
         (opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname) = self.getSystemInfo()
-        version = self.getVersion(self.benchmark.tool)
+        version = self.benchmark.toolVersion
 
         memlimit = None
         timelimit = None
@@ -686,7 +1482,7 @@ class OutputHandler:
         # store benchmarkInfo in XML
         self.XMLHeader = ET.Element("test",
                     {"benchmarkname": self.benchmark.name, "date": self.benchmark.dateISO,
-                     "tool": self.getToolnameForPrinting(), "version": version})
+                     "tool": self.benchmark.toolName, "version": version})
         if memlimit is not None:
             self.XMLHeader.set(MEMLIMIT, memlimit)
         if timelimit is not None:
@@ -727,7 +1523,7 @@ class OutputHandler:
         header = "   BENCHMARK INFORMATION\n"\
                 + "benchmark:".ljust(columnWidth) + self.benchmark.name + "\n"\
                 + "date:".ljust(columnWidth) + self.benchmark.dateISO + "\n"\
-                + "tool:".ljust(columnWidth) + self.getToolnameForPrinting()\
+                + "tool:".ljust(columnWidth) + self.benchmark.toolName\
                 + " " + version + "\n"
 
         if memlimit is not None:
@@ -757,60 +1553,6 @@ class OutputHandler:
         TXTFileName = self.getFileName(runSetName, "txt")
         self.TXTFile = FileWriter(TXTFileName, self.description)
         self.allCreatedFiles.append(TXTFileName)
-
-    def getToolnameForPrinting(self):
-        tool = self.benchmark.tool.lower()
-        names = {'cpachecker': 'CPAchecker',
-                 'cbmc'      : 'CBMC',
-                 'satabs'    : 'SatAbs',
-                 'blast'     : 'BLAST',
-                 'ecav'      : 'ECAverifier',
-                 'wolverine' : 'WOLVERINE',
-                 'ufo'       : 'UFO',
-                 'acsar'     : 'Acsar',
-                 'feaver'    : 'Feaver'}
-        if tool in names:
-            return names[tool]
-        else:
-            return str(self.benchmark.tool)
-
-
-    def getVersion(self, tool):
-        """
-        This function return a String representing the version of the tool.
-        """
-
-        version = ''
-        executable = self.benchmark.executable
-        if (tool == "cpachecker"):
-            try:
-                versionHelpStr = subprocess.Popen([executable, '-help'],
-                    stdout=subprocess.PIPE).communicate()[0]
-                versionHelpStr = Util.decodeToString(versionHelpStr)
-                version = ' '.join(versionHelpStr.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
-            except IndexError:
-                logging.critical('IndexError! Have you built CPAchecker?\n') # TODO better message
-                sys.exit()
-
-        elif (tool == "cbmc"):
-            version = subprocess.Popen([executable, '--version'],
-                              stdout=subprocess.PIPE).communicate()[0].strip()
-
-        elif (tool == "satabs"):
-            version = subprocess.Popen([executable, '--version'],
-                              stdout=subprocess.PIPE).communicate()[0].strip()
-
-        elif (tool == "wolverine"):
-            version = subprocess.Popen([executable, '--version'],
-                              stdout=subprocess.PIPE).communicate()[0].split()[1].strip()
-
-        elif (tool == "blast"):
-            version = subprocess.Popen([executable],
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT).communicate()[0][6:9]
-
-        return Util.decodeToString(version)
-
 
     def getSystemInfo(self):
         """
@@ -969,10 +1711,6 @@ class OutputHandler:
         It returns the name of the logfile.
         @param run: a Run object
         """
-
-        logging.debug("I'm executing '{0} {1} {2}'.".format(
-            self.getToolnameForPrinting(), " ".join(run.options), run.sourcefile))
-
         # output in terminal
         try:
             OutputHandler.printLock.acquire()
@@ -1222,6 +1960,7 @@ class OutputHandler:
         fileName = fileName.replace(self.commonPrefix, '', 1)
         return fileName.ljust(self.maxLengthOfFileName + 4)
 
+
 class Statistics:
 
     def __init__(self):
@@ -1360,28 +2099,6 @@ def substituteVars(oldList, runSet, sourcefile=None, logFolder=None):
     return newList
 
 
-def findExecutable(program=None, fallback=None):
-    def isExecutable(programPath):
-        return os.path.isfile(programPath) and os.access(programPath, os.X_OK)
-
-    if program is None:
-        return None
-
-    else:
-        dirs = os.environ['PATH'].split(os.pathsep)
-        dirs.append(".")
-
-        for dir in dirs:
-            name = os.path.join(dir, program)
-            if isExecutable(name):
-                return name
-
-        if fallback is not None and isExecutable(fallback):
-            return fallback
-
-        sys.exit("ERROR: Could not find '{0}' executable".format(program))
-
-
 def killSubprocess(process):
     '''
     this function kills the process and the children in its group.
@@ -1390,549 +2107,6 @@ def killSubprocess(process):
         os.killpg(process.pid, signal.SIGTERM)
     except OSError: # process itself returned and exited before killing
         pass
-
-
-def run(args, rlimits, numberOfThread, outputfilename):
-    args = [os.path.expandvars(arg) for arg in args]
-    args = [os.path.expanduser(arg) for arg in args]
-
-    if options.limitCores:
-        # use only one cpu for one subprocess
-        # if there are more threads than cores, some threads share the same core
-        import multiprocessing
-        args = ['taskset', '-c', str(numberOfThread % multiprocessing.cpu_count())] + args
-
-    outputfile = open(outputfilename, 'w') # override existing file
-    outputfile.write(' '.join(args) + '\n\n\n' + '-'*80 + '\n\n\n')
-    outputfile.flush()
-
-    def preSubprocess():
-        os.setpgrp() # make subprocess to group-leader
-        if TIMELIMIT in rlimits:
-            resource.setrlimit(resource.RLIMIT_CPU, (rlimits[TIMELIMIT], rlimits[TIMELIMIT]))
-        if MEMLIMIT in rlimits:
-            memresource = resource.RLIMIT_DATA if options.memdata else resource.RLIMIT_AS
-            memlimit = rlimits[MEMLIMIT] * BYTE_FACTOR * BYTE_FACTOR # MB to Byte
-            resource.setrlimit(memresource, (memlimit, memlimit))
-
-    wallTimeBefore = time.time()
-
-    try:
-        p = subprocess.Popen(args,
-                             stdout=outputfile, stderr=outputfile,
-                             preexec_fn=preSubprocess)
-
-        try:
-            SUB_PROCESSES_LOCK.acquire()
-            SUB_PROCESSES.add(p)
-        finally:
-            SUB_PROCESSES_LOCK.release()
-
-        # if rlimit does not work, a seperate Timer is started to kill the subprocess,
-        # Timer has 10 seconds 'overhead'
-        if TIMELIMIT in rlimits:
-          timelimit = rlimits[TIMELIMIT]
-          timer = threading.Timer(timelimit + 10, killSubprocess, [p])
-          timer.start()
-
-        (pid, returnvalue, ru_child) = os.wait4(p.pid, 0)
-
-        # calculation: returnvalue == (returncode * 256) + returnsignal
-        returnsignal = returnvalue % 256
-        returncode = returnvalue // 256
-        assert pid == p.pid
-
-    except OSError:
-        logging.critical("I caught an OSError. Assure that the directory "
-                         + "containing the tool to be benchmarked is included "
-                         + "in the PATH environment variable or an alias is set.")
-        sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
-
-    finally:
-        try:
-            SUB_PROCESSES_LOCK.acquire()
-            assert p in SUB_PROCESSES
-            SUB_PROCESSES.remove(p)
-        finally:
-            SUB_PROCESSES_LOCK.release()
-        
-        if (TIMELIMIT in rlimits) and timer.isAlive():
-            timer.cancel()
-
-        outputfile.close() # normally subprocess closes file, we do this again
-
-    wallTimeAfter = time.time()
-    wallTimeDelta = wallTimeAfter - wallTimeBefore
-    cpuTimeDelta = (ru_child.ru_utime + ru_child.ru_stime)
-
-    logging.debug("My subprocess returned returncode {0}.".format(returncode))
-
-    outputfile = open(outputfilename, 'r') # re-open file for reading output
-    output = ''.join(outputfile.readlines()[6:]) # first 6 lines are for logging, rest is output of subprocess
-    outputfile.close()
-    output = Util.decodeToString(output)
-
-    return (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta)
-
-
-def isTimeout(cpuTimeDelta, rlimits):
-    ''' try to find out whether the tool terminated because of a timeout '''
-    if TIMELIMIT in rlimits:
-        limit = rlimits[TIMELIMIT]
-    else:
-        limit = float('inf')
-
-    return cpuTimeDelta > limit*0.99
-
-
-def run_cbmc(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    if ("--xml-ui" not in options):
-        options = options + ["--xml-ui"]
-
-    args = [exe] + options + [sourcefile]
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-
-    #an empty tag cannot be parsed into a tree
-    output = output.replace("<>", "<emptyTag>")
-    output = output.replace("</>", "</emptyTag>")
-
-    if ((returncode == 0) or (returncode == 10)):
-        try:
-            tree = ET.fromstring(output)
-            status = tree.findtext('cprover-status')
-        
-            if status is None:
-                def isErrorMessage(msg):
-                    return msg.get('type', None) == 'ERROR'
-
-                messages = list(filter(isErrorMessage, tree.getiterator('message')))
-                if messages:
-                    # for now, use only the first error message if there are several
-                    msg = messages[0].findtext('text')
-                    if msg == 'Out of memory':
-                        status = 'OUT OF MEMORY'
-                    elif msg:
-                        status = 'ERROR (%s)'.format(msg)
-                    else:
-                        status = 'ERROR'
-                else:
-                    status = 'INVALID OUTPUT'
-                    
-            elif status == "FAILURE":
-                assert returncode == 10
-                reason = tree.find('goto_trace').find('failure').findtext('reason')
-                if 'unwinding assertion' in reason:
-                    status = "UNKNOWN"
-                else:
-                    status = "UNSAFE"
-                    
-            elif status == "SUCCESS":
-                assert returncode == 0
-                if "--no-unwinding-assertions" in options:
-                    status = "UNKNOWN"
-                else:
-                    status = "SAFE"
-                
-        except Exception as e: # catch all exceptions
-            if isTimeout(cpuTimeDelta, rlimits):
-                # in this case an exception is expected as the XML is invaliddd
-                status = 'TIMEOUT'
-            elif 'Minisat::OutOfMemoryException' in output:
-                status = 'OUT OF MEMORY'
-            else:
-                status = 'INVALID OUTPUT'
-                logging.warning("Error parsing CBMC output for returncode %d: %s" % (returncode, e))
-    
-    elif returncode == 6:
-        # parser error or something similar
-        status = 'ERROR'
-
-    elif returnsignal == 9 or returncode == (128+9):
-        if isTimeout(cpuTimeDelta, rlimits):
-            status = 'TIMEOUT'
-        else:
-            status = "KILLED BY SIGNAL 9"
-
-    elif returnsignal == 6:
-        status = "ABORTED"
-    elif returnsignal == 15 or returncode == (128+15):
-        status = "KILLED"
-    else:
-        status = "ERROR ({0})".format(returncode)
-
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def run_satabs(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = [exe] + options + [sourcefile]
-
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-
-    if "VERIFICATION SUCCESSFUL" in output:
-        assert returncode == 0
-        status = "SAFE"
-    elif "VERIFICATION FAILED" in output:
-        assert returncode == 10
-        status = "UNSAFE"
-    elif returnsignal == 9:
-        status = "TIMEOUT"
-    elif returnsignal == 6:
-        if "Assertion `!counterexample.steps.empty()' failed" in output:
-            status = 'COUNTEREXAMPLE FAILED' # TODO: other status?
-        else:
-            status = "OUT OF MEMORY"
-    elif returncode == 1 and "PARSING ERROR" in output:
-        status = "PARSING ERROR"
-    else:
-        status = "FAILURE"
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def run_wolverine(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = [exe] + options + [sourcefile]
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-    if "VERIFICATION SUCCESSFUL" in output:
-        assert returncode == 0
-        status = "SAFE"
-    elif "VERIFICATION FAILED" in output:
-        assert returncode == 10
-        status = "UNSAFE"
-    elif returnsignal == 9:
-        status = "TIMEOUT"
-    elif returnsignal == 6 or (returncode == 6 and "Out of memory" in output):
-        status = "OUT OF MEMORY"
-    elif returncode == 6 and "PARSING ERROR" in output:
-        status = "PARSING ERROR"
-    else:
-        status = "FAILURE"
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def run_ufo(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = [exe, sourcefile] + options
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-    if returnsignal == 9 or returnsignal == (128+9):
-        if isTimeout(cpuTimeDelta, rlimits):
-            status = "TIMEOUT"
-        else:
-            status = "KILLED BY SIGNAL 9"
-    elif returncode == 1 and "program correct: ERROR unreachable" in output:
-        status = "SAFE"
-    elif returncode != 0:
-        status = "ERROR ({0})".format(returncode)
-    elif "ERROR reachable" in output:
-        status = "UNSAFE"
-    elif "program correct: ERROR unreachable" in output:
-        status = "SAFE"
-    else:
-        status = "FAILURE"
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def run_acsar(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-
-    # create tmp-files for acsar, acsar needs special error-labels
-    prepSourcefile = prepareSourceFileForAcsar(sourcefile)
-
-    if ("--mainproc" not in options):
-        options = options + ["--mainproc", "main"]
-
-    args = [exe] + ["--file"] + [prepSourcefile] + options
-
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-    if "syntax error" in output:
-        status = "SYNTAX ERROR"
-
-    elif "runtime error" in output:
-        status = "RUNTIME ERROR"
-
-    elif "error while loading shared libraries:" in output:
-        status = "LIBRARY ERROR"
-
-    elif "can not be used as a root procedure because it is not defined" in output:
-        status = "NO MAIN"
-
-    elif "For Error Location <<ERROR_LOCATION>>: I don't Know " in output:
-        status = "TIMEOUT"
-
-    elif "received signal 6" in output:
-        status = "ABORT"
-
-    elif "received signal 11" in output:
-        status = "SEGFAULT"
-
-    elif "received signal 15" in output:
-        status = "KILLED"
-
-    elif "Error Location <<ERROR_LOCATION>> is not reachable" in output:
-        status = "SAFE"
-
-    elif "Error Location <<ERROR_LOCATION>> is reachable via the following path" in output:
-        status = "UNSAFE"
-
-    else:
-        status = "UNKNOWN"
-
-    # delete tmp-files
-    os.remove(prepSourcefile)
-
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def prepareSourceFileForAcsar(sourcefile):
-    content = open(sourcefile, "r").read()
-    content = content.replace(
-        "ERROR;", "ERROR_LOCATION;").replace(
-        "ERROR:", "ERROR_LOCATION:").replace(
-        "errorFn();", "goto ERROR_LOCATION; ERROR_LOCATION:;")
-    newFilename = sourcefile + "_acsar.c"
-    preparedFile = FileWriter(newFilename, content)
-    return newFilename
-
-
-def run_feaver(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-
-    # create tmp-files for acsar, acsar needs special error-labels
-    prepSourcefile = prepareSourceFileForFeaver(sourcefile)
-
-    args = [exe] + options + [prepSourcefile]
-
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-    if "collect2: ld returned 1 exit status" in output:
-        status = "COMPILE ERROR"
-
-    elif "Error (parse error" in output:
-        status = "PARSE ERROR"
-
-    elif "error: (\"model\":" in output:
-        status = "MODEL ERROR"
-
-    elif "Error: syntax error" in output:
-        status = "SYNTAX ERROR"
-
-    elif "error: " in output or "Error: " in output:
-        status = "ERROR"
-
-    elif "Error Found:" in output:
-        status = "UNSAFE"
-
-    elif "No Errors Found" in output:
-        status = "SAFE"
-
-    else:
-        status = "UNKNOWN"
-
-    # delete tmp-files
-    for tmpfile in [prepSourcefile, prepSourcefile[0:-1] + "M",
-                 "_modex_main.spn", "_modex_.h", "_modex_.cln", "_modex_.drv",
-                 "model", "pan.b", "pan.c", "pan.h", "pan.m", "pan.t"]:
-        try:
-            os.remove(tmpfile)
-        except OSError:
-            pass
-
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def prepareSourceFileForFeaver(sourcefile):
-    content = open(sourcefile, "r").read()
-    content = content.replace("goto ERROR;", "assert(0);")
-    newFilename = "tmp_benchmark_feaver.c"
-    preparedFile = FileWriter(newFilename, content)
-    return newFilename
-
-
-# the next 3 functions are for imaginary tools, that return special results,
-# perhaps someone can use these function again someday,
-# to use them you need a normal benchmark-xml-file 
-# with the tool and sourcefiles, however options are ignored
-def run_safe(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = ['safe'] + options + [sourcefile]
-    cpuTimeDelta = wallTimeDelta = 0
-    return ('safe', cpuTimeDelta, wallTimeDelta, args)
-
-def run_unsafe(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = ['unsafe'] + options + [sourcefile]
-    cpuTimeDelta = wallTimeDelta = 0
-    return ('unsafe', cpuTimeDelta, wallTimeDelta, args)
-
-def run_random(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = ['random'] + options + [sourcefile]
-    cpuTimeDelta = wallTimeDelta = 0
-    from random import random
-    status = 'safe' if random() < 0.5 else 'unsafe'
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def appendFileToFile(sourcename, targetname):
-    source = open(sourcename, 'r')
-    try:
-        target = open(targetname, 'a')
-        try:
-            target.writelines(source.readlines())
-        finally:
-            target.close()
-    finally:
-        source.close()
-
-def run_cpachecker(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    if ("-stats" not in options):
-        options = options + ["-stats"]
-
-    args = [exe] + options + [sourcefile]
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-
-    status = getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta)
-    getCPAcheckerColumns(output, columns)
-
-    # Segmentation faults and some memory failures reference a file with more information.
-    # We append this file to the log.
-    if status == 'SEGMENTATION FAULT' or status.startswith('ERROR') or status == 'OUT OF MEMORY':
-        next = False
-        for line in output.splitlines():
-            if next:
-                try:
-                    dumpFile = line.strip(' #')
-                    appendFileToFile(dumpFile, file)
-                    os.remove(dumpFile)
-                except IOError as e:
-                    logging.warn('Could not append additional segmentation fault information (%s)' % e.strerror)
-                break
-            if line == '# An error report file with more information is saved as:':
-                next = True
-
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-
-def getCPAcheckerStatus(returncode, returnsignal, output, rlimits, cpuTimeDelta):
-    """
-    @param returncode: code returned by CPAchecker
-    @param returnsignal: signal, which terminated CPAchecker
-    @param output: the output of CPAchecker
-    @return: status of CPAchecker after executing a run
-    """
-
-    def isOutOfNativeMemory(line):
-        return ('std::bad_alloc'             in line # C++ out of memory exception (MathSAT)
-             or 'Cannot allocate memory'     in line
-             or line.startswith('out of memory')     # CuDD
-             )
-
-    if returnsignal == 0:
-        status = None
-
-    elif returnsignal == 6:
-        status = "ABORTED (probably by Mathsat)"
-
-    elif returnsignal == 9:
-        if isTimeout(cpuTimeDelta, rlimits):
-            status = 'TIMEOUT'
-        else:
-            status = "KILLED BY SIGNAL 9"
-
-    elif returnsignal == (128+15):
-        status = "KILLED"
-
-    else:
-        status = "ERROR ({0})".format(returnsignal)
-
-    for line in output.splitlines():
-        if 'java.lang.OutOfMemoryError' in line:
-            status = 'OUT OF JAVA MEMORY'
-        elif isOutOfNativeMemory(line):
-            status = 'OUT OF NATIVE MEMORY'
-        elif 'There is insufficient memory for the Java Runtime Environment to continue.' in line \
-                or 'cannot allocate memory for thread-local data: ABORT' in line:
-            status = 'OUT OF MEMORY'
-        elif 'SIGSEGV' in line:
-            status = 'SEGMENTATION FAULT'
-        elif ((returncode == 0 or returncode == 1)
-                and ('Exception' in line or 'java.lang.AssertionError' in line)
-                and not line.startswith('cbmc')): # ignore "cbmc error output: ... Minisat::OutOfMemoryException"
-            status = 'ASSERTION' if 'java.lang.AssertionError' in line else 'EXCEPTION'
-        elif 'Could not reserve enough space for object heap' in line:
-            status = 'JAVA HEAP ERROR'
-        elif line.startswith('Error: '):
-            status = 'ERROR'
-        
-        elif line.startswith('Verification result: '):
-            line = line[21:].strip()
-            if line.startswith('SAFE'):
-                newStatus = 'SAFE'
-            elif line.startswith('UNSAFE'):
-                newStatus = 'UNSAFE'
-            else:
-                newStatus = 'UNKNOWN'
-            status = newStatus if status is None else "{0} ({1})".format(status, newStatus)
-            
-        elif (status is None) and line.startswith('#Test cases computed:'):
-            status = 'OK'
-    if status is None:
-        status = "UNKNOWN"
-    return status
-
-
-def getCPAcheckerColumns(output, columns):
-    """
-    The method getCPAcheckerColumns() searches the columnvalues in the output
-    and adds the values to the column-objects.
-    If a value is not found, the value is set to "-".
-    @param output: the output of CPAchecker
-    @param columns: a list with columns
-    """
-
-    for column in columns:
-
-        # search for the text in output and get its value,
-        # stop after the first line, that contains the searched text
-        column.value = "-" # default value
-        for line in output.splitlines():
-            if column.text in line:
-                startPosition = line.find(':') + 1
-                endPosition = line.find('(') # bracket maybe not found -> (-1)
-                if (endPosition == -1):
-                    column.value = line[startPosition:].strip()
-                else:
-                    column.value = line[startPosition: endPosition].strip()
-                break
-
-
-def run_blast(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = [exe] + options + [sourcefile]
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-
-    status = "UNKNOWN"
-    for line in output.splitlines():
-        if line.startswith('Error found! The system is unsafe :-('):
-            status = 'UNSAFE'
-        elif line.startswith('No error found.  The system is safe :-)'):
-            status = 'SAFE'
-        elif (returncode == 2) and line.startswith('Fatal error: out of memory.'):
-            status = 'OUT OF MEMORY'
-        elif (returncode == 2) and line.startswith('Fatal error: exception Sys_error("Broken pipe")'):
-            status = 'EXCEPTION'
-        elif (returncode == 2) and line.startswith('Ack! The gremlins again!: Sys_error("Broken pipe")'):
-            status = 'TIMEOUT'
-
-    return (status, cpuTimeDelta, wallTimeDelta, args)
-
-def run_ecav(exe, options, sourcefile, columns, rlimits, numberOfThread, file):
-    args = [exe] + options + [sourcefile]
-    (returncode, returnsignal, output, cpuTimeDelta, wallTimeDelta) = run(args, rlimits, numberOfThread, file)
-
-    status = "UNKNOWN"
-    for line in output.splitlines():
-        if line.startswith('0 safe, 1 unsafe'):
-            status = 'UNSAFE'
-        elif line.startswith('1 safe, 0 unsafe'):
-            status = 'SAFE'
-        elif returnsignal == 9:
-            if isTimeout(cpuTimeDelta, rlimits):
-                status = 'TIMEOUT'
-            else:
-                status = "KILLED BY SIGNAL 9"
-
-    return (status, cpuTimeDelta, wallTimeDelta, args)
 
 
 class Worker(threading.Thread):
