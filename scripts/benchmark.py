@@ -754,9 +754,8 @@ class OutputHandler:
             runSetName = runSets[0].name
 
         # write to file
-        self.TXTContent = self.description
         TXTFileName = self.getFileName(runSetName, "txt")
-        self.TXTFile = FileWriter(TXTFileName, self.TXTContent)
+        self.TXTFile = FileWriter(TXTFileName, self.description)
         self.allCreatedFiles.append(TXTFileName)
 
     def getToolnameForPrinting(self):
@@ -911,7 +910,7 @@ class OutputHandler:
             for dummyElem in dummyElems: run.xml.append(dummyElem)
 
         # write (empty) results to TXTFile and XML
-        self.TXTFile.replace(self.TXTContent + self.runSetToTXT(runSet))
+        self.TXTFile.append(self.runSetToTXT(runSet), False)
         self.XMLTestFileName = self.getFileName(runSet.name, "xml")
         self.XMLTestFile = FileWriter(self.XMLTestFileName,
                        Util.XMLtoString(self.runsToXML(runSet, runSet.runs)))
@@ -938,7 +937,6 @@ class OutputHandler:
             runSetInfo += runSet.name + "\n"
         runSetInfo += "Run set {0} of {1}: skipped {2}\n".format(
                 runSet.index, len(self.benchmark.runSets), reason or "")
-        self.TXTContent += runSetInfo
         self.TXTFile.append(runSetInfo)
 
 
@@ -947,22 +945,22 @@ class OutputHandler:
         This method writes the information about a run set into the TXTFile.
         """
 
-        if runSet.name is None:
-            runSetInfo = ""
-        else:
-            runSetInfo = runSet.name + "\n"
+        runSetInfo = "\n\n"
+        if runSet.name:
+            runSetInfo += runSet.name + "\n"
         runSetInfo += "Run set {0} of {1} with options: {2}\n\n".format(
                 runSet.index, len(self.benchmark.runSets),
                 " ".join(runSet.options))
 
-        runSet.titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
+        titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
                             "wall time", self.benchmark.columns, True)
 
-        runSet.simpleLine = "-" * (len(runSet.titleLine))
+        runSet.simpleLine = "-" * (len(titleLine))
+
+        runSetInfo += titleLine + "\n" + runSet.simpleLine + "\n"
 
         # write into TXTFile
-        self.TXTContent += "\n\n" + runSetInfo
-        self.TXTFile.append("\n\n" + runSetInfo + runSet.titleLine + "\n" + runSet.simpleLine  + "\n")
+        self.TXTFile.append(runSetInfo)
 
 
     def outputBeforeRun(self, run):
@@ -1045,7 +1043,7 @@ class OutputHandler:
             run.xml = self.runToXML(run)
 
             # write result in TXTFile and XML
-            self.TXTFile.replace(self.TXTContent + self.runSetToTXT(run.runSet))
+            self.TXTFile.append(self.runSetToTXT(run.runSet), False)
             self.statistics.addResult(statusRelation)
 
             # we don't want to write this file to often, it can slow down the whole script,
@@ -1077,12 +1075,11 @@ class OutputHandler:
                 FileWriter(self.getFileName(runSet.name, block.name + ".xml"),
                     Util.XMLtoString(self.runsToXML(runSet, block.runs, block.name)))
 
-        self.TXTContent += self.runSetToTXT(runSet, True)
-        self.TXTFile.replace(self.TXTContent)
+        self.TXTFile.append(self.runSetToTXT(runSet, True))
 
 
     def runSetToTXT(self, runSet, finished=False):
-        lines = [runSet.titleLine, runSet.simpleLine]
+        lines = []
 
         # store values of each run
         for run in runSet.runs: lines.append(run.resultline)
@@ -1091,18 +1088,12 @@ class OutputHandler:
 
         # write endline into TXTFile
         if finished:
-            numberOfFiles = len(runSet.runs)
-            if numberOfFiles == 1:
-                endline = ("Run set {0} consisted of 1 sourcefile.".format(indexOfRunSet))
-            else:
-                endline = ("Run set {0} consisted of {1} sourcefiles.".format(
-                    runSet.index, numberOfFiles))
+            endline = ("Run set {0}".format(runSet.index))
 
             lines.append(self.createOutputLine(endline, "done", runSet.cpuTimeStr,
                              runSet.wallTimeStr, []))
 
         return "\n".join(lines) + "\n"
-
 
     def runsToXML(self, runSet, runs, blockname=None):
         """
@@ -1272,38 +1263,59 @@ def getOptionsFromXML(optionsTag):
 
 
 class FileWriter:
-     """
-     The class FileWriter is a wrapper for writing content into a file.
-     """
+    """
+    The class FileWriter is a wrapper for writing content into a file.
+    """
 
-     def __init__(self, filename, content):
-         """
-         The constructor of FileWriter creates the file.
-         If the file exist, it will be OVERWRITTEN without a message!
-         """
+    def __init__(self, filename, content):
+        """
+        The constructor of FileWriter creates the file.
+        If the file exist, it will be OVERWRITTEN without a message!
+        """
 
-         self.__filename = filename
-         file = open(self.__filename, "w")
-         file.write(content)
-         file.close()
+        self.__filename = filename
+        self.__needsRewrite = False
+        self.__content = content
 
-     def append(self, content):
-         file = open(self.__filename, "a")
-         file.write(content)
-         file.close()
+        # Open file with "w" at least once so it will be overwritten.
+        file = open(self.__filename, "w")
+        file.write(content)
+        file.close()
 
-     def replace(self, content):
-         """
-         replaces the content of a file.
-         a tmp-file is used to avoid loss of data through an interrupt
-         """
-         tmpFilename = self.__filename + ".tmp"
-         
-         file = open(tmpFilename, "w")
-         file.write(content)
-         file.close()
-         
-         os.rename(tmpFilename, self.__filename)
+    def append(self, newContent, keep=True):
+        """
+        Add content to the represented file.
+        If keep is False, the new content will be forgotten during the next call
+        to this method.
+        """
+        content = self.__content + newContent
+        if keep:
+            self.__content = content
+
+        if self.__needsRewrite:
+            """
+            Replace the content of the file.
+            A temporary file is used to avoid loss of data through an interrupt.
+            """
+            tmpFilename = self.__filename + ".tmp"
+
+            file = open(tmpFilename, "w")
+            file.write(content)
+            file.close()
+
+            os.rename(tmpFilename, self.__filename)
+        else:
+            file = open(self.__filename, "a")
+            file.write(newContent)
+            file.close()
+
+        self.__needsRewrite = not keep
+
+    def replace(self, newContent):
+        # clear and append
+        self.__content = ''
+        self.__needsRewrite = True
+        self.append(newContent)
 
 
 def substituteVars(oldList, runSet, sourcefile=None, logFolder=None):
