@@ -62,8 +62,7 @@ public class AFunctionType implements IAFunctionType {
     return name;
   }
 
-  @Override
-  public void setName(String pName) {
+  protected void setName(String pName) {
     checkState(getName() == null);
     name = pName;
   }

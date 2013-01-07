@@ -104,11 +104,6 @@ public class CFunctionType extends AFunctionType implements CType {
   }
 
   @Override
-  public String getName() {
-    return super.getName();
-  }
-
-  @Override
   public void setName(String pName) {
     super.setName(pName);
   }
@@ -117,11 +112,6 @@ public class CFunctionType extends AFunctionType implements CType {
   @Override
   public List<CParameterDeclaration> getParameters() {
     return (List<CParameterDeclaration>) super.getParameters();
-  }
-
-  @Override
-  public boolean takesVarArgs() {
-    return super.takesVarArgs();
   }
 
   @Override

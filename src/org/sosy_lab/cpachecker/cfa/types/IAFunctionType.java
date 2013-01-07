@@ -33,8 +33,6 @@ public interface IAFunctionType extends Type{
 
   public String getName() ;
 
-  public void setName(String pName);
-
   public List<? extends AParameterDeclaration> getParameters() ;
 
   public boolean takesVarArgs() ;
