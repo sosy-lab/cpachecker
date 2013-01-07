@@ -200,8 +200,10 @@ class Benchmark:
 
         # get benchmarks
         self.tests = []
+        i = 1
         for testTag in rootTag.findall("test"):
-            self.tests.append(RunSet(testTag, self, globalSourcefilesTags))
+            self.tests.append(RunSet(testTag, self, i, globalSourcefilesTags))
+            i += 1
 
         self.outputHandler = OutputHandler(self)
 
@@ -231,7 +233,7 @@ class RunSet:
     The class RunSet manages the import of files and options of a run set.
     """
 
-    def __init__(self, rundefinitionTag, benchmark, globalSourcefilesTags=[]):
+    def __init__(self, rundefinitionTag, benchmark, index, globalSourcefilesTags=[]):
         """
         The constructor of RunSet reads run-set name and the source files from rundefinitionTag.
         Source files can be included or excluded, and imported from a list of
@@ -245,8 +247,11 @@ class RunSet:
         self.name = rundefinitionTag.get("name")
         self.realName = self.name
 
+        # index is the number of the run set
+        self.index = index
+
         # get all test-specific options from rundefinitionTag
-        self.options = getOptionsFromXML(rundefinitionTag)
+        self.options = benchmark.options + getOptionsFromXML(rundefinitionTag)
 
         # get all runs, a run contains one sourcefile with options
         self.extractRunsFromXML(globalSourcefilesTags + rundefinitionTag.findall("sourcefiles"))
@@ -400,10 +405,10 @@ class Run():
 
     def __init__(self, sourcefile, fileOptions, runSet):
         self.sourcefile = sourcefile
-        self.options = fileOptions
         self.test = runSet
         self.benchmark = runSet.benchmark
-        self.mergedOptions = []
+        self.specificOptions = fileOptions # options that are specific for this run
+        self.options = runSet.options + fileOptions # all options to be used when executing this run
 
         # Copy columns for having own objects in run
         # (we need this for storing the results in them).
@@ -418,27 +423,6 @@ class Run():
         self.wallTimeStr = ""
         self.args = ""
 
-    def getMergedOptions(self):
-        """
-        This function returns a list of Strings.
-        It contains all options for this Run (global + run-set wide + local) without 'None'-Values.
-        """
-
-        if not self.mergedOptions: # cache mergeOptions
-            # merge options to list
-            currentOptions = mergeOptions(self.benchmark.options,
-                                      self.test.options,
-                                      self.options)
-
-            # replace variables with special values
-            currentOptions = substituteVars(currentOptions,
-                                        self.test,
-                                        self.sourcefile,
-                                        self.benchmark.outputHandler.logFolder)
-            self.mergedOptions = currentOptions
-
-        return self.mergedOptions
-
 
     def execute(self, numberOfThread):
         """
@@ -450,7 +434,7 @@ class Run():
 
         (self.status, self.cpuTime, self.wallTime, self.args) = \
              self.benchmark.execute_func(self.benchmark.executable,
-                                     self.getMergedOptions(),
+                                     self.options,
                                      self.sourcefile, 
                                      self.columns,
                                      self.benchmark.rlimits,
@@ -887,11 +871,10 @@ class OutputHandler:
         """
 
         self.test = runSet
-        numberOfRunSet = self.benchmark.tests.index(runSet) + 1
         numberOfFiles = len(runSet.runs)
 
         logging.debug("Run set {0} consists of {1} sourcefiles.".format(
-                numberOfRunSet, numberOfFiles))
+                runSet.index, numberOfFiles))
 
         sourcefiles = [run.sourcefile for run in runSet.runs]
 
@@ -944,18 +927,17 @@ class OutputHandler:
         '''
 
         # print to terminal
-        Util.printOut("\nskipping run set" +
+        Util.printOut("\nSkipping run set" +
                (" '" + runSet.name + "'" if runSet.name else "") +
                (" " + reason if reason else "")
               )
 
         # write into TXTFile
-        numberOfRunSet = self.benchmark.tests.index(runSet) + 1
         runSetInfo = "\n\n"
         if runSet.name is not None:
             runSetInfo += runSet.name + "\n"
-        runSetInfo += "run set {0} of {1}: skipped {2}\n".format(
-                numberOfRunSet, len(self.benchmark.tests), reason or "")
+        runSetInfo += "Run set {0} of {1}: skipped {2}\n".format(
+                runSet.index, len(self.benchmark.tests), reason or "")
         self.TXTContent += runSetInfo
         self.TXTFile.append(runSetInfo)
 
@@ -965,15 +947,13 @@ class OutputHandler:
         This method writes the information about a run set into the TXTFile.
         """
 
-        numberOfRunSet = self.benchmark.tests.index(runSet) + 1
-        runSetOptions = mergeOptions(self.benchmark.options, runSet.options)
         if runSet.name is None:
             runSetInfo = ""
         else:
             runSetInfo = runSet.name + "\n"
-        runSetInfo += "run set {0} of {1} with options: {2}\n\n".format(
-                numberOfRunSet, len(self.benchmark.tests),
-                " ".join(runSetOptions))
+        runSetInfo += "Run set {0} of {1} with options: {2}\n\n".format(
+                runSet.index, len(self.benchmark.tests),
+                " ".join(runSet.options))
 
         runSet.titleLine = self.createOutputLine("sourcefile", "status", "cpu time",
                             "wall time", self.benchmark.columns, True)
@@ -993,7 +973,7 @@ class OutputHandler:
         """
 
         logging.debug("I'm executing '{0} {1} {2}'.".format(
-            self.getToolnameForPrinting(), " ".join(run.mergedOptions), run.sourcefile))
+            self.getToolnameForPrinting(), " ".join(run.options), run.sourcefile))
 
         # output in terminal
         try:
@@ -1112,12 +1092,11 @@ class OutputHandler:
         # write endline into TXTFile
         if finished:
             numberOfFiles = len(runSet.runs)
-            indexOfRunSet = runSet.benchmark.tests.index(runSet) + 1
             if numberOfFiles == 1:
-                endline = ("test {0} consisted of 1 sourcefile.".format(indexOfRunSet))
+                endline = ("Run set {0} consisted of 1 sourcefile.".format(indexOfRunSet))
             else:
-                endline = ("test {0} consisted of {1} sourcefiles.".format(
-                    indexOfRunSet, numberOfFiles))
+                endline = ("Run set {0} consisted of {1} sourcefiles.".format(
+                    runSet.index, numberOfFiles))
 
             lines.append(self.createOutputLine(endline, "done", runSet.cpuTimeStr,
                              runSet.wallTimeStr, []))
@@ -1131,8 +1110,7 @@ class OutputHandler:
         """
         # copy benchmarkinfo, limits, columntitles, systeminfo from XMLHeader
         runsElem = Util.getCopyOfXMLElem(self.XMLHeader)
-        runSetOptions = mergeOptions(runSet.benchmark.options, runSet.options)
-        runsElem.set("options", " ".join(runSetOptions))
+        runsElem.set("options", " ".join(runSet.options))
         if blockname is not None:
             runsElem.set("block", blockname)
             runsElem.set("name", ((runSet.name + ".") if runSet.name else "") + blockname)
@@ -1150,8 +1128,8 @@ class OutputHandler:
         This function returns a xml-representation of a run.
         """
         runElem = ET.Element("sourcefile", {"name": run.sourcefile})
-        if len(run.options) != 0:
-            runElem.set("options", " ".join(mergeOptions(run.options)))
+        if run.specificOptions:
+            runElem.set("options", " ".join(run.specificOptions))
         runElem.append(ET.Element("column", {"title": "status", "value": run.status}))
         runElem.append(ET.Element("column", {"title": "cputime", "value": run.cpuTimeStr}))
         runElem.append(ET.Element("column", {"title": "walltime", "value": run.wallTimeStr}))
@@ -1287,21 +1265,10 @@ class Statistics:
 def getOptionsFromXML(optionsTag):
     '''
     This function searches for options in a tag
-    and returns a list with tuples of (name, value).
+    and returns a list with command-line arguments.
     '''
-    return [(option.get("name"), option.text)
-               for option in optionsTag.findall("option")]
-
-
-def mergeOptions(options1, options2=[], options3=[]):
-    '''
-    This function merges lists of optionpairs into one list.
-    If a option is part of several lists,
-    the option appears in the list several times.
-    '''
-    currentOptions = options1 + options2 + options3
-
-    return Util.toSimpleList(currentOptions)
+    return Util.toSimpleList([(option.get("name"), option.text)
+               for option in optionsTag.findall("option")])
 
 
 class FileWriter:
@@ -1994,7 +1961,7 @@ def runBenchmark(benchmarkFile):
 
         if STOPPED_BY_INTERRUPT: break
 
-        testnumber = benchmark.tests.index(test) + 1 # the first test has number 1
+        testnumber = test.index # the first test has number 1
         (mod, rest) = options.moduloAndRest
 
         if not test.shouldBeExecuted() \
