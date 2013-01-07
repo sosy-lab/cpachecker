@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -80,7 +81,7 @@ public final class DOTBuilder2 {
     CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverse(entryNode, vis);
-      dotter.writeFunctionFile(entryNode.getFunctionName(), outdir);
+      dotter.writeFunctionFile(entryNode.getFunctionName(), outdir.toPath());
     }
     dotter.writeGlobalFiles(outdir);
     JSON.writeJSONString(jsoner.getJSON(), new File(outdir, "cfainfo.json"), Charset.defaultCharset());
@@ -145,10 +146,9 @@ public final class DOTBuilder2 {
       return TraversalProcess.CONTINUE;
     }
 
-    void writeFunctionFile(String funcname, File outdir) throws IOException {
+    void writeFunctionFile(String funcname, Path outdir) throws IOException {
 
-        Writer out = new OutputStreamWriter(new FileOutputStream(new File(outdir, "cfa__" + funcname + ".dot")), "UTF-8");
-        try {
+        try (Writer out = Files.newBufferedWriter(outdir.resolve("cfa__" + funcname + ".dot"), Charsets.UTF_8)) {
           out.write("digraph " + funcname + " {\n");
           StringBuilder outb = new StringBuilder();
           //write comboedges
@@ -187,9 +187,6 @@ public final class DOTBuilder2 {
           nodes.clear();
           edges.clear();
           comboedges.clear();
-
-        } finally {
-          out.close();
         }
     }
 
