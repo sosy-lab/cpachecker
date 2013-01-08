@@ -85,7 +85,9 @@ public class CBinaryExpression extends CExpression {
     BINARY_AND    ("&"),
     BINARY_XOR    ("^"),
     BINARY_OR     ("|"),
+    @Deprecated // unused, does not occur in the AST
     LOGICAL_AND   ("&&"),
+    @Deprecated // unused, does not occur in the AST
     LOGICAL_OR    ("||"),
     EQUALS        ("=="),
     NOT_EQUALS    ("!="),

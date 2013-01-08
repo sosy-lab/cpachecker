@@ -208,7 +208,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     }
 
     // check if (e \in Reached) => (e \in ARG)
-    assert arg.containsAll(pReached.getReached()) : "Element in reached set but not in ARG";
+    assert arg.containsAll(pReached.asCollection()) : "Element in reached set but not in ARG";
 
     return true;
   }

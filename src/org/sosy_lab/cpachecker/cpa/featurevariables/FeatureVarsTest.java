@@ -33,6 +33,8 @@ import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.LogManager.StringHandler;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
@@ -169,8 +171,9 @@ public class FeatureVarsTest {
     Map<String, String> prop = ImmutableMap.of(
         "specification",     "config/specification/FeatureVarsErrorLocation.spc",
         "cpa.explicit.threshold", "200",
-        "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
-        "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*"
+        "cpa.explicit.variableBlacklist", "main::__SELECTED_FEATURE_(\\w)*",
+        "cpa.featurevars.variableWhitelist", "__SELECTED_FEATURE_(\\w)*",
+        "analysis.useFeatureVarsRestriction", "true"
       );
 
       prop = new HashMap<String, String>(prop);
@@ -195,7 +198,7 @@ public class FeatureVarsTest {
       //results.getCheckerResult().printStatistics(System.out); // to get an error path
       System.out.println(results.getLog());
       //System.out.println(results.getCheckerResult().getResult());
-      Assert.assertTrue(results.logContains("Valid Product: __SELECTED_FEATURE_Verify"));
+//      Assert.assertTrue(results.logContains("Valid Product: __SELECTED_FEATURE_Verify"));
       Assert.assertTrue(results.logContains("Product violating in line 10:"));
       Assert.assertTrue(results.logContains("!__SELECTED_FEATURE_Verify"));
       Assert.assertTrue(results.logContains("!__SELECTED_FEATURE_Sign"));
@@ -216,8 +219,8 @@ public class FeatureVarsTest {
       Files.writeFile(tmpFile , "OBSERVER AUTOMATON tmpAutomaton\n" +
           "INITIAL STATE Init;\n"+
           "STATE Init :\n"+
-          "MATCH {$1} ->\n"+
-          "PRINT \"Found $1 in Line $line\" GOTO Init;\n"+
+          "MATCH {foo($1)} ->\n"+
+          "PRINT \"Found foo($1); in Line $line\" GOTO Init;\n"+
           "END AUTOMATON");
       File sourceFile = new File("test/programs/simple/tmpProgram.c");
       sourceFile.deleteOnExit();
@@ -245,8 +248,8 @@ public class FeatureVarsTest {
       Files.writeFile(tmpFile , "OBSERVER AUTOMATON tmpAutomaton\n" +
           "INITIAL STATE Init;\n"+
           "STATE Init :\n"+
-          "MATCH {$1} ->\n"+
-          "PRINT \"Found $1 in Line $line\" GOTO Init;\n"+
+          "MATCH {foo($1);} ->\n"+
+          "PRINT \"Found foo($1); in Line $line\" GOTO Init;\n"+
           "END AUTOMATON");
       File sourceFile = new File("test/programs/simple/tmpProgram.c");
       sourceFile.deleteOnExit();
@@ -274,8 +277,8 @@ public class FeatureVarsTest {
       Files.writeFile(tmpFile , "OBSERVER AUTOMATON tmpAutomaton\n" +
           "INITIAL STATE Init;\n"+
           "STATE Init :\n"+
-          "MATCH {$1} ->\n"+
-          "PRINT \"Found $1 in Line $line\" GOTO Init;\n"+
+          "MATCH {foo($1);} ->\n"+
+          "PRINT \"Found foo($1); in Line $line\" GOTO Init;\n"+
           "END AUTOMATON");
       File sourceFile = new File("test/programs/simple/tmpProgram.c");
       sourceFile.deleteOnExit();
@@ -303,8 +306,8 @@ public class FeatureVarsTest {
       Files.writeFile(tmpFile , "OBSERVER AUTOMATON tmpAutomaton\n" +
           "INITIAL STATE Init;\n"+
           "STATE Init :\n"+
-          "MATCH {$1} ->\n"+
-          "PRINT \"Found $1 in Line $line\" GOTO Init;\n"+
+          "MATCH {foo($1);} ->\n"+
+          "PRINT \"Found foo($1); in Line $line\" GOTO Init;\n"+
           "END AUTOMATON");
       File sourceFile = new File("test/programs/simple/tmpProgram.c");
       sourceFile.deleteOnExit();
@@ -334,8 +337,8 @@ public class FeatureVarsTest {
       Files.writeFile(tmpFile , "OBSERVER AUTOMATON tmpAutomaton\n" +
           "INITIAL STATE Init;\n"+
           "STATE Init :\n"+
-          "MATCH {$1} ->\n"+
-          "PRINT \"Found $1 in Line $line\" GOTO Init;\n"+
+          "MATCH {foo($1)} ->\n"+
+          "PRINT \"Found foo($1); in Line $line\" GOTO Init;\n"+
           "END AUTOMATON");
       File sourceFile = new File("test/programs/simple/tmpProgram.c");
       sourceFile.deleteOnExit();
@@ -352,19 +355,10 @@ public class FeatureVarsTest {
       Assert.assertTrue(results.isSafe());
   }
   private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
-    Configuration config = Configuration.builder().setOptions(pProperties).build();
-    StringHandler stringLogHandler = new LogManager.StringHandler();
-    LogManager logger = new LogManager(config, stringLogHandler);
-    CPAchecker cpaChecker = new CPAchecker(config, logger);
-    CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
-    return new TestResults(stringLogHandler.getLog(), results);
-  }
-  @SuppressWarnings("unused")
-  private TestResults run(File configFile, Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
     Configuration config = Configuration.builder()
-      .loadFromFile(configFile.getAbsolutePath())
-      .setOptions(pProperties).build();
-
+                                        .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
+                                        .setOptions(pProperties)
+                                        .build();
     StringHandler stringLogHandler = new LogManager.StringHandler();
     LogManager logger = new LogManager(config, stringLogHandler);
     CPAchecker cpaChecker = new CPAchecker(config, logger);

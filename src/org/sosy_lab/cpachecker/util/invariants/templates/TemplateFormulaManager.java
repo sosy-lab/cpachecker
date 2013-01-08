@@ -25,10 +25,12 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
 import org.sosy_lab.cpachecker.util.invariants.InfixReln;
+import org.sosy_lab.cpachecker.util.predicates.FormulaOperator;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
@@ -519,16 +521,6 @@ public class TemplateFormulaManager implements FormulaManager {
   // TODO: there remain many stub methods. Write them?
 
   /**
-   * Parse a formula given as a String in the common infix notation.
-   * @return The same formula in the internal representation.
-   * @throws IllegalArgumentException If the string cannot be parsed.
-   */
-  @Override
-  public Formula parseInfix(String s) throws IllegalArgumentException {
-    return null;
-  }
-
-  /**
    * Parse a formula given as a String in a solver-specific file format.
    * @return The same formula in the internal representation.
    * @throws IllegalArgumentException If the string cannot be parsed.
@@ -536,6 +528,11 @@ public class TemplateFormulaManager implements FormulaManager {
   @Override
   public Formula parse(String s) throws IllegalArgumentException {
     return null;
+  }
+
+  @Override
+  public Map<String, Formula> parseFormulas(String pS) throws IllegalArgumentException {
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -592,11 +589,38 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   /**
+   * Extracts the atoms from the given formula, does not remove SSA indices and does not split equalities,
+   * meaning does not return (x <= y) and (y <= x) instead of (x = y)
+   * @param f the formula to operate on
+   * @return a collection of (atomic) formulas
+   */
+  @Override
+  public Collection<Formula> extractAtoms(Formula pF) {
+    TemplateFormula tf = null;
+    try {
+      tf = (TemplateFormula)pF;
+    } catch (ClassCastException e) {}
+    if (tf == null) {
+      return null;
+    }
+
+    List<TemplateFormula> tfAtoms = tf.extractAtoms(false, false);
+    Collection<Formula> atoms = new Vector<Formula>(tfAtoms);
+
+    return atoms;
+  }
+
+  /**
    * Create string representation of a formula in a format which may be dumped
    * to a file.
    */
   @Override
   public String dumpFormula(Formula pT) { return null; }
+
+  @Override
+  public String dumpFormulas(Map<String, Formula> pFormulas) {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Looks for uninterpreted functions in the formula and adds bitwise
@@ -611,7 +635,7 @@ public class TemplateFormulaManager implements FormulaManager {
    * if it is not done by the caller of this method.
    */
   @Override
-  public Formula createPredicateVariable(Formula pAtom) {
+  public Formula createPredicateVariable(String pName) {
     return null;
   }
 
@@ -641,6 +665,11 @@ public class TemplateFormulaManager implements FormulaManager {
 
   @Override
   public Formula[] getArguments(Formula pF) {
+    return null;
+  }
+
+  @Override
+  public FormulaOperator getOperator(Formula pF){
     return null;
   }
 

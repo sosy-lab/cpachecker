@@ -46,15 +46,15 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -252,7 +252,7 @@ public class TypesTransferRelation implements TransferRelation {
         element.addTypedef(name, compType); // add type "struct a"
       }
 
-      for (CSimpleDeclaration subDeclaration : compositeSpecifier.getMembers()) {
+      for (CCompositeTypeMemberDeclaration subDeclaration : compositeSpecifier.getMembers()) {
 
         Type subType = getType(element, cfaEdge, subDeclaration.getType());
 
@@ -265,7 +265,7 @@ public class TypesTransferRelation implements TransferRelation {
             compType.addMember(thisSubName, subType);
           }
         } else {
-          throw new UnrecognizedCCodeException(cfaEdge, subDeclaration);
+          throw new UnrecognizedCCodeException(subDeclaration.getName(), cfaEdge);
         }
       }
 
@@ -323,9 +323,9 @@ public class TypesTransferRelation implements TransferRelation {
 
       type = enumType;
 
-    } else if (declSpecifier instanceof CNamedType) {
+    } else if (declSpecifier instanceof CTypedefType) {
       // type reference to type declared with typedef
-      CNamedType namedTypeSpecifier = (CNamedType)declSpecifier;
+      CTypedefType namedTypeSpecifier = (CTypedefType)declSpecifier;
 
       type = element.getTypedef(namedTypeSpecifier.getName());
 
@@ -374,9 +374,9 @@ public class TypesTransferRelation implements TransferRelation {
       type = getType(element, cfaEdge, pointerSpecifier.getType());
       type = new PointerType(type, pointerSpecifier.isConst());
 
-    } else if (declSpecifier instanceof CTypedef) {
-      CTypedef typedef = (CTypedef)declSpecifier;
-      return getType(element, cfaEdge, typedef.getType());
+    } else if (declSpecifier instanceof CTypedefType) {
+      CTypedefType typedef = (CTypedefType)declSpecifier;
+      return getType(element, cfaEdge, typedef.getRealType());
 
     } else {
       throw new UnrecognizedCCodeException("Unknown type class " + declSpecifier.getClass().getSimpleName(), cfaEdge);

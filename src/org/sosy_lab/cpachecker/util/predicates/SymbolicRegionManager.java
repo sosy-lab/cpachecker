@@ -131,6 +131,11 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
+  public Region makeIte(Region pF1, Region pF2, Region pF3) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public Region makeExists(Region pF1, Region... pF2) {
     throw new UnsupportedOperationException();
   }

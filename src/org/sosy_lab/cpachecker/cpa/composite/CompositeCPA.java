@@ -140,14 +140,18 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
 
       PrecisionAdjustment compositePrecisionAdjustment;
-      if (options.precAdjust.equals("IGNORANT")) {
+      if (options.precAdjust.equals("OMNISCIENT")) {
+        compositePrecisionAdjustment = new OmniscientCompositePrecisionAdjustment(
+            precisionAdjustments.build(),
+            getConfiguration());
+      }
+
+      else {
         if (simplePrec) {
           compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
         } else {
           compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build());
         }
-      } else {
-        compositePrecisionAdjustment = new OmniscientCompositePrecisionAdjustment(precisionAdjustments.build());
       }
 
       return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,

@@ -69,7 +69,7 @@
     <!-- Ask Ivy to get all the dependencies for us -->
     <target name="resolve-dependencies" depends="load-ivy, update-contrib">
         <echo message="Downloading and installing dependencies with Ivy..."/>
-        <ivy:resolve conf="build, runtime, test"/>
+        <ivy:resolve conf="build, runtime, test" log="download-only"/>
         <ivy:retrieve sync="true" overwriteMode="different" pattern="${ivy.lib.dir}/[conf]/[artifact](-[classifier]).[ext]"/>
     </target>
 
@@ -83,7 +83,7 @@
     </target>
 
     <target name="install-contrib" depends="load-ivy" description="retrieve sources and docs for external libraries">
-        <ivy:resolve conf="contrib"/>
+        <ivy:resolve conf="contrib" log="download-only"/>
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-contrib/[artifact](-[classifier]).[ext]"/>
     </target>
 
@@ -155,7 +155,7 @@
         <property name="namez" value="CPAchecker-${version}-windows"/>
         <zip destfile="${namez}.zip" whenempty="fail">
             <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
-            <zipfileset dir="." includes="lib/**" excludes="lib/build-only/** lib/native/** lib/eclipse/*.source_*" prefix="${namez}/"/>
+            <zipfileset dir="." includes="lib/*.* lib/java/runtime/*" excludes="lib/ivy*" prefix="${namez}/"/>
             <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namez}/"/>
         </zip>
     </target>
@@ -164,16 +164,13 @@
         <property name="namet" value="CPAchecker-${version}-unix"/>
         <tar destfile="${namet}.tar.bz2" compression="bzip2">
             <tarfileset dir="."
-                includes="config/** doc/** cpachecker.jar *.txt"
+                includes="config/** doc/** cpachecker.jar *.txt lib/*.* lib/java/runtime/*"
+                excludes="lib/ivy*"
                 prefix="${namet}/"/>
             <tarfileset dir="scripts"
-                includes="*.*"
+                includes="*.* tempita"
                 excludes="*.bat *.sh *.py"
                 prefix="${namet}/scripts/"/>
-            <tarfileset dir="lib"
-                includes="*.* eclipse/*"
-                excludes="eclipse/*.source_*"
-                prefix="${namet}/lib/"/>
             <tarfileset dir="." filemode="755"
                 includes="scripts/*.sh scripts/*.py lib/native/**"
                 excludes="lib/native/source/** lib/native/*win*/**"
@@ -191,12 +188,12 @@
                  classpath="${ivy.jar.dir}/ant-junit.jar"/>
     </target>
 
-    <target description="Run all JUnit tests" depends="build, load-junit" name="tests">
+    <target description="Run all JUnit tests" depends="build, load-junit" name="unit-tests">
         <property name="test.report.dir" value="output"/>
         <mkdir dir="${test.report.dir}"/>
-        <junit fork="true" printSummary="true" showOutput="false">
+        <junit fork="true" printSummary="true" showOutput="false" haltonfailure="true">
             <assertions>
-            <enable /> <!-- some assertions fail currently (March 11 2010) -->
+            <enable />
             </assertions>
             <formatter type="plain"/>
             <classpath refid="CPAchecker.classpath"/>
@@ -209,5 +206,11 @@
             </batchtest>
         </junit>
     </target>
+
+    <target description="Run CPAchecker on some simple test cases in various configurations" depends="build" name="benchmark-tests">
+        <!-- TODO run benchmark.py with some benchmark definitions and check results like in BuildBot -->
+    </target>
+
+    <target description="Run all tests" depends="unit-tests, benchmark-tests" name="tests"/>
 
 </project>

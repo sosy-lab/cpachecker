@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -49,7 +52,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -61,7 +63,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
-    private final Timer gcTimer = new Timer();
 
     private volatile int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
@@ -88,7 +89,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         out.println("Time for refinements:             " + refinementTimer);
         out.println("Average time for refinement:      " + refinementTimer.printAvgTime());
         out.println("Max time for refinement:          " + refinementTimer.printMaxTime());
-        out.println("Time for garbage collection:      " + gcTimer);
       }
     }
   }
@@ -123,9 +123,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private static final int GC_PERIOD = 100;
-  private int gcCounter = 0;
-
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
 
   @Option(required = true,
@@ -135,9 +132,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
   private Class<? extends Refiner> refiner = null;
 
-  @Option(description = "completely restart analysis on refinement "
-      + "by removing everything from the reached set")
-  private boolean restartOnRefinement = false;
+  @Option(description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
+  private boolean globalRefinement = false;
 
   @Option(description = "threshold (in ms) after which the CEGAR algorithm gives up refining (spurious) counterexamples")
   private int stopRefiningThreshold = -1; //TODO maybe use ProgressObserver instead?
@@ -228,7 +224,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
-    boolean sound = true;
+    boolean isComplete = true;
 
     stats.totalTimer.start();
     if (startTime == 0) {
@@ -241,10 +237,10 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         refinementSuccessful = false;
 
         // run algorithm
-        sound &= algorithm.run(reached);
+        isComplete &= algorithm.run(reached);
 
-        // if the last state is a target state do refinement
-        if (AbstractStates.isTargetState(reached.getLastState())) {
+        // if there is any target state do refinement
+        if (refinementNecessary(reached)) {
           if ((stopRefiningThreshold == -1 || System.currentTimeMillis() - startTime <= stopRefiningThreshold) &&
               (stopRefiningCount == -1 || stopRefiningCount > refinementCount) &&
               !(resets == 0 && noRefinementInFirstRun)) {
@@ -253,6 +249,10 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
           } else {
             stats.timedOut = true;
           }
+
+          if (refinementSuccessful) {
+            assert !from(reached).anyMatch(IS_TARGET_STATE);
+          }
         }
 
       } while (refinementSuccessful);
@@ -260,7 +260,18 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       stats.totalTimer.stop();
     }
-    return sound;
+    return isComplete;
+  }
+
+  private boolean refinementNecessary(ReachedSet reached) {
+    if (globalRefinement) {
+      // check other states
+      return from(reached).anyMatch(IS_TARGET_STATE);
+
+    } else {
+      // check only last state
+      return isTargetState(reached.getLastState());
+    }
   }
 
   private boolean refine(ReachedSet reached) throws CPAException, InterruptedException {
@@ -284,25 +295,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
     if (refinementResult) {
       stats.countSuccessfulRefinements++;
-
-      if (restartOnRefinement) {
-        // TODO
-      }
-
-      runGC();
     }
 
     return refinementResult;
-  }
-
-
-  private void runGC() {
-    if ((++gcCounter % GC_PERIOD) == 0) {
-      stats.gcTimer.start();
-      System.gc();
-      gcCounter = 0;
-      stats.gcTimer.stop();
-    }
   }
 
   @Override

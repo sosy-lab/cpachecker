@@ -220,5 +220,4 @@ public class BitwiseMathsatFormulaManager extends MathsatFormulaManager {
   public Formula getBitwiseAxioms(Formula pF) {
     return makeTrue();
   }
-
 }

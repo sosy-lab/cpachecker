@@ -27,17 +27,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Transfer relation for the generic assumption generator.
@@ -60,20 +58,9 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
   throws CPATransferException
   {
 
-    CExpression allAssumptions = null;
+    List<CExpression> allAssumptions = Lists.newArrayList();
     for (GenericAssumptionBuilder b : assumptionBuilders) {
-      CExpression assumption = b.assumptionsForEdge(edge);
-      if (assumption != null) {
-        if (allAssumptions == null) {
-          allAssumptions = assumption;
-        } else {
-          allAssumptions = new CBinaryExpression(null, null, allAssumptions, assumption, BinaryOperator.LOGICAL_AND);
-        }
-      }
-    }
-
-    if (allAssumptions == null) {
-      allAssumptions = CNumericTypes.TRUE;
+      allAssumptions.addAll(b.assumptionsForEdge(edge));
     }
 
     return Collections.singleton(new GenericAssumptionsState(allAssumptions));

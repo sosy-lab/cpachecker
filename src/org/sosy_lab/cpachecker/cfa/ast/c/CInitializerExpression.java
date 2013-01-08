@@ -41,4 +41,9 @@ public final class CInitializerExpression extends CInitializer {
   public String toASTString() {
     return expression.toASTString();
   }
+
+  @Override
+  public <R, X extends Exception> R accept(CInitializerVisitor<R, X> pV) throws X {
+    return pV.visit(this);
+  }
 }

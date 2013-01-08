@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import java.io.File;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,7 +36,13 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -68,7 +76,6 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -81,7 +88,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+@Options(prefix = "cfa.variableClassification")
 public class VariableClassification {
+
+  @Option(name = "logfile", description = "Dump variable classification to a file.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private File dumpfile = new File("VariableClassification.log");
 
   /** name for return-variables, it is used for function-returns. */
   public static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
@@ -110,12 +122,14 @@ public class VariableClassification {
 
   private CFA cfa;
 
-  public VariableClassification(CFA cfa) {
+  public VariableClassification(CFA cfa, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
     this.cfa = cfa;
   }
 
   /** This function does the whole work:
-   * creating all maps, collecting vars, solving dependencies. */
+   * creating all maps, collecting vars, solving dependencies.
+   * The function runs only once, after that it does nothing. */
   private void build() {
     if (allVars == null) {
 
@@ -148,12 +162,19 @@ public class VariableClassification {
         dependencies.addVar(var.getKey(), var.getValue());
       }
 
-      //      System.out.println(dependencies);
-      //      System.out.println("BOOL\n" + booleanVars);
-      //      System.out.println("DISCRETE\n" + discreteValueVars);
-      //      System.out.println("SIMPLECALC\n" + simpleCalcVars);
-      //      System.out.println("ALL\n" + allVars);
-      // TODO is there a need to change the Maps later? make Maps immutable?
+      if (dumpfile != null) { // option -noout
+        // System.out.println(dependencies);
+        final String content = "BOOL\n" + booleanVars +
+            "\n\nDISCRETE\n\n" + discreteValueVars +
+            "\n\nSIMPLECALC\n\n" + simpleCalcVars +
+            "\n\nALL\n\n" + allVars;
+
+        try {
+          Files.writeFile(dumpfile, content);
+        } catch (IOException e) {
+          // TODO should we do something?
+        }
+      }
     }
   }
 
@@ -174,7 +195,7 @@ public class VariableClassification {
 
   /** This function returns a collection of partitions.
    * Each partition contains only boolean vars. */
-  public Collection<Partition> getBooleanPartitions() {
+  public Set<Partition> getBooleanPartitions() {
     build();
     return booleanPartitions;
   }
@@ -191,7 +212,7 @@ public class VariableClassification {
 
   /** This function returns a collection of partitions.
    * Each partition contains only vars, that have only discrete values. */
-  public Collection<Partition> getDiscreteValuePartitions() {
+  public Set<Partition> getDiscreteValuePartitions() {
     build();
     return discreteValuePartitions;
   }
@@ -207,7 +228,7 @@ public class VariableClassification {
 
   /** This function returns a collection of partitions.
    * Each partition contains only vars, that are used in simple calculations. */
-  public Collection<Partition> getSimpleCalcPartitions() {
+  public Set<Partition> getSimpleCalcPartitions() {
     build();
     return simpleCalcPartitions;
   }
@@ -234,8 +255,9 @@ public class VariableClassification {
 
   /** This function returns a partition containing all vars,
    * that are dependent from a given CFAedge.
-   * The index is 0 for all edges, except FunctionCallEdges,
-   * where it is the position of the param. */
+   * The index is 0 for all edges, except functionCalls,
+   * where it is the position of the param.
+   * For the left-hand-side of the assignment of external functionCalls use -1. */
   public Partition getPartitionForEdge(CFAEdge edge, int index) {
     build();
     return dependencies.getPartitionForEdge(edge, index);
@@ -300,130 +322,33 @@ public class VariableClassification {
     }
 
     case DeclarationEdge: {
-      CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
-      if (!(declaration instanceof CVariableDeclaration)) { return; }
-
-      CVariableDeclaration vdecl = (CVariableDeclaration) declaration;
-      String varName = vdecl.getName();
-      String function = vdecl.isGlobal() ? null : edge.getPredecessor().getFunctionName();
-
-      allVars.put(function, varName);
-
-      // "connect" the edge with its partition
-      HashMultimap<String, String> var = HashMultimap.create(1, 1);
-      var.put(function, varName);
-      dependencies.addAll(var, new HashSet<BigInteger>(), edge, 0);
-
-      // only simple types (int, long) are allowed for booleans, ...
-      if (!(vdecl.getType() instanceof CSimpleType)) {
-        nonBooleanVars.put(function, varName);
-        nonDiscreteValueVars.put(function, varName);
-        nonSimpleCalcVars.put(function, varName);
-      }
-
-      CInitializer initializer = vdecl.getInitializer();
-      if ((initializer == null) || !(initializer instanceof CInitializerExpression)) { return; }
-
-      CExpression exp = ((CInitializerExpression) initializer).getExpression();
-      if (exp == null) { return; }
-
-      handleExpression(edge, exp, varName, function);
-
+      handleDeclarationEdge((CDeclarationEdge) edge);
       break;
     }
 
     case StatementEdge: {
-      CStatement statement = ((CStatementEdge) edge).getStatement();
+      final CStatement statement = ((CStatementEdge) edge).getStatement();
 
-      if (!(statement instanceof CAssignment)) { return; }
+      // normal assignment of variable, rightHandSide can be expression or (external) functioncall
+      if (statement instanceof CAssignment) {
+        handleAssignment(edge, (CAssignment) statement);
 
-      CAssignment assignment = (CAssignment) statement;
-      CRightHandSide rhs = assignment.getRightHandSide();
-      CExpression lhs = assignment.getLeftHandSide();
-      String varName = lhs.toASTString();
-      String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
-
-      // only simple types (int, long) are allowed for booleans, ...
-      if (!(lhs instanceof CIdExpression && lhs.getExpressionType() instanceof CSimpleType)) {
-        nonBooleanVars.put(function, varName);
-        nonDiscreteValueVars.put(function, varName);
-        nonSimpleCalcVars.put(function, varName);
+        // pure external functioncall
+      } else if (statement instanceof CFunctionCallStatement) {
+        handleExternalFunctionCall(edge, ((CFunctionCallStatement) statement).
+            getFunctionCallExpression().getParameterExpressions());
       }
 
-      allVars.put(function, varName);
-
-      if (rhs instanceof CExpression) {
-        handleExpression(edge, ((CExpression) rhs), varName, function);
-
-      } else if (rhs instanceof CFunctionCallExpression) {
-        // use FUNCTION_RETURN_VARIABLE for RIGHT SIDE
-        CFunctionCallExpression func = (CFunctionCallExpression) rhs;
-        String functionName = func.getFunctionNameExpression().toASTString(); // TODO correct?
-
-        if (cfa.getAllFunctionNames().contains(functionName)) {
-          // TODO is this case really appearing or is it always handled as "functionCallEdge"?
-          allVars.put(functionName, FUNCTION_RETURN_VARIABLE);
-          dependencies.add(functionName, FUNCTION_RETURN_VARIABLE, function, varName);
-
-        } else {
-          // external function --> we can ignore this case completely
-          // if var is used anywhere else, it should be handled.
-        }
-      }
       break;
     }
 
     case FunctionCallEdge: {
-      CFunctionCallEdge functionCall = (CFunctionCallEdge) edge;
-
-      // overtake arguments from last functioncall into function,
-      // get args from functioncall and make them equal with params from functionstart
-      List<CExpression> args = functionCall.getArguments();
-      List<CParameterDeclaration> params = functionCall.getSuccessor().getFunctionParameters();
-      String innerFunctionName = functionCall.getSuccessor().getFunctionName();
-
-      // functions can have more args than params used in the call
-      assert args.size() >= params.size();
-
-      for (int i = 0; i < params.size(); i++) {
-        CParameterDeclaration param = params.get(i);
-        String varName = param.getName();
-
-        // only simple types (int, long) are allowed for booleans, ...
-        if (!(param.getType() instanceof CSimpleType)) {
-          nonBooleanVars.put(innerFunctionName, varName);
-          nonDiscreteValueVars.put(innerFunctionName, varName);
-          nonSimpleCalcVars.put(innerFunctionName, varName);
-        }
-
-        // build name for param and evaluate it
-        // this variable is not global (->false)
-        handleExpression(edge, args.get(i), varName, innerFunctionName, i);
-      }
-
-      // create dependency for functionreturn
-      CFunctionSummaryEdge func = functionCall.getSummaryEdge();
-      CStatement statement = func.getExpression().asStatement();
-
-      // a=f();
-      if (statement instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement call = (CFunctionCallAssignmentStatement) statement;
-        CExpression lhs = call.getLeftHandSide();
-        String varName = lhs.toASTString();
-        String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
-        allVars.put(innerFunctionName, FUNCTION_RETURN_VARIABLE);
-        dependencies.add(innerFunctionName, FUNCTION_RETURN_VARIABLE, function, varName);
-
-        // f(); without assignment
-      } else if (statement instanceof CFunctionCallStatement) {
-        // next line is not necessary, but we do it for completeness, TODO correct?
-        dependencies.addVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
-      }
+      handleFunctionCallEdge((CFunctionCallEdge) edge);
       break;
     }
 
     case FunctionReturnEdge: {
-      String innerFunctionName = ((CFunctionReturnEdge) edge).getPredecessor().getFunctionName();
+      String innerFunctionName = edge.getPredecessor().getFunctionName();
       dependencies.addVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
       Partition partition = getPartitionForVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
       partition.addEdge(edge, 0);
@@ -457,6 +382,171 @@ public class VariableClassification {
 
     default:
       throw new AssertionError("Unknoewn edgeType: " + edge.getEdgeType());
+    }
+  }
+
+  /** This function handles a declaration with an optional initializer.
+   * Only simple types are handled. */
+  private void handleDeclarationEdge(final CDeclarationEdge edge) {
+    CDeclaration declaration = edge.getDeclaration();
+    if (!(declaration instanceof CVariableDeclaration)) { return; }
+
+    CVariableDeclaration vdecl = (CVariableDeclaration) declaration;
+    String varName = vdecl.getName();
+    String function = vdecl.isGlobal() ? null : edge.getPredecessor().getFunctionName();
+
+    allVars.put(function, varName);
+
+    // "connect" the edge with its partition
+    HashMultimap<String, String> var = HashMultimap.create(1, 1);
+    var.put(function, varName);
+    dependencies.addAll(var, new HashSet<BigInteger>(), edge, 0);
+
+    // only simple types (int, long) are allowed for booleans, ...
+    if (!(vdecl.getType() instanceof CSimpleType)) {
+      nonBooleanVars.put(function, varName);
+      nonDiscreteValueVars.put(function, varName);
+      nonSimpleCalcVars.put(function, varName);
+    }
+
+    CInitializer initializer = vdecl.getInitializer();
+    if ((initializer == null) || !(initializer instanceof CInitializerExpression)) { return; }
+
+    CExpression exp = ((CInitializerExpression) initializer).getExpression();
+    if (exp == null) { return; }
+
+    handleExpression(edge, exp, varName, function);
+  }
+
+  /** This function handles normal assignments of vars. */
+  private void handleAssignment(final CFAEdge edge, final CAssignment assignment) {
+    CRightHandSide rhs = assignment.getRightHandSide();
+    CExpression lhs = assignment.getLeftHandSide();
+    String varName = lhs.toASTString();
+    String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
+
+    // only simple types (int, long) are allowed for booleans, ...
+    if (!(lhs instanceof CIdExpression && lhs.getExpressionType() instanceof CSimpleType)) {
+      nonBooleanVars.put(function, varName);
+      nonDiscreteValueVars.put(function, varName);
+      nonSimpleCalcVars.put(function, varName);
+    }
+
+    allVars.put(function, varName);
+    dependencies.addVar(function, varName);
+
+    if (rhs instanceof CExpression) {
+      handleExpression(edge, ((CExpression) rhs), varName, function);
+
+    } else if (rhs instanceof CFunctionCallExpression) {
+      // use FUNCTION_RETURN_VARIABLE for RIGHT SIDE
+      CFunctionCallExpression func = (CFunctionCallExpression) rhs;
+      String functionName = func.getFunctionNameExpression().toASTString(); // TODO correct?
+
+      if (cfa.getAllFunctionNames().contains(functionName)) {
+        // TODO is this case really appearing or is it always handled as "functionCallEdge"?
+        allVars.put(functionName, FUNCTION_RETURN_VARIABLE);
+        dependencies.add(functionName, FUNCTION_RETURN_VARIABLE, function, varName);
+
+      } else {
+        // external function
+        Partition partition = getPartitionForVar(function, varName);
+        partition.addEdge(edge, -1); // negative value, because all positives are used for params
+      }
+
+      handleExternalFunctionCall(edge, func.getParameterExpressions());
+
+    } else {
+      throw new AssertionError("unhandled assignment: " + edge.getRawStatement());
+    }
+  }
+
+  /** This function handles the call of an external function
+   * without an assignment of the result.
+   * example: "printf("%d", output);" or "assert(exp);" */
+  private void handleExternalFunctionCall(final CFAEdge edge, final List<CExpression> params) {
+    for (int i = 0; i < params.size(); i++) {
+      final CExpression param = params.get(i);
+
+      /* special case: external functioncall with possible side-effect!
+       * this is the only statement, where a pointer-operation is allowed
+       * and the var can be boolean, discrete or simple calc,
+       * because we know, the variable can have a random (unknown) value after the functioncall.
+       * example: "scanf("%d", &input);" */
+      if (param instanceof CUnaryExpression &&
+          UnaryOperator.AMPER == ((CUnaryExpression) param).getOperator() &&
+          ((CUnaryExpression) param).getOperand() instanceof CIdExpression) {
+        final CIdExpression id = (CIdExpression) ((CUnaryExpression) param).getOperand();
+        final String function = isGlobal(id) ? null : edge.getPredecessor().getFunctionName();
+        final String varName = id.getName();
+
+        allVars.put(function, varName);
+        dependencies.addVar(function, varName);
+        Partition partition = getPartitionForVar(function, varName);
+        partition.addEdge(edge, i);
+
+      } else {
+        // "printf("%d", output);" or "assert(exp);"
+        // TODO do we need the edge? ignore it?
+
+        CFANode pre = edge.getPredecessor();
+        DependencyCollectingVisitor dcv = new DependencyCollectingVisitor(pre);
+        Multimap<String, String> dep = param.accept(dcv);
+        dependencies.addAll(dep, dcv.getValues(), edge, i);
+
+        param.accept(new BoolCollectingVisitor(pre));
+        param.accept(new NumberCollectingVisitor(pre, false));
+        param.accept(new SimpleCalcCollectingVisitor(pre));
+      }
+    }
+  }
+
+  /** This function puts each param in same partition than its arg.
+   * If there the functionresult is assigned, it is also handled. */
+  private void handleFunctionCallEdge(CFunctionCallEdge edge) {
+
+    // overtake arguments from last functioncall into function,
+    // get args from functioncall and make them equal with params from functionstart
+    List<CExpression> args = edge.getArguments();
+    List<CParameterDeclaration> params = edge.getSuccessor().getFunctionParameters();
+    String innerFunctionName = edge.getSuccessor().getFunctionName();
+
+    // functions can have more args than params used in the call
+    assert args.size() >= params.size();
+
+    for (int i = 0; i < params.size(); i++) {
+      CParameterDeclaration param = params.get(i);
+      String varName = param.getName();
+
+      // only simple types (int, long) are allowed for booleans, ...
+      if (!(param.getType() instanceof CSimpleType)) {
+        nonBooleanVars.put(innerFunctionName, varName);
+        nonDiscreteValueVars.put(innerFunctionName, varName);
+        nonSimpleCalcVars.put(innerFunctionName, varName);
+      }
+
+      // build name for param and evaluate it
+      // this variable is not global (->false)
+      handleExpression(edge, args.get(i), varName, innerFunctionName, i);
+    }
+
+    // create dependency for functionreturn
+    CFunctionSummaryEdge func = edge.getSummaryEdge();
+    CStatement statement = func.getExpression().asStatement();
+
+    // a=f();
+    if (statement instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement call = (CFunctionCallAssignmentStatement) statement;
+      CExpression lhs = call.getLeftHandSide();
+      String varName = lhs.toASTString();
+      String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
+      allVars.put(innerFunctionName, FUNCTION_RETURN_VARIABLE);
+      dependencies.add(innerFunctionName, FUNCTION_RETURN_VARIABLE, function, varName);
+
+      // f(); without assignment
+    } else if (statement instanceof CFunctionCallStatement) {
+      // next line is not necessary, but we do it for completeness, TODO correct?
+      dependencies.addVar(innerFunctionName, FUNCTION_RETURN_VARIABLE);
     }
   }
 
@@ -518,11 +608,13 @@ public class VariableClassification {
 
     } else if (exp instanceof CUnaryExpression) {
       CUnaryExpression unExp = (CUnaryExpression) exp;
+      BigInteger value = getNumber(unExp.getOperand());
+      if (value == null) { return null; }
       switch (unExp.getOperator()) {
       case PLUS:
-        return getNumber(unExp.getOperand());
+        return value;
       case MINUS:
-        return BigInteger.ZERO.subtract(getNumber(unExp.getOperand()));
+        return value.negate();
       default:
         return null;
       }
@@ -725,10 +817,8 @@ public class VariableClassification {
 
       switch (exp.getOperator()) {
 
-      case LOGICAL_AND:
-      case LOGICAL_OR:
       case EQUALS:
-      case NOT_EQUALS: // &&, ||, ==, != work with boolean operands
+      case NOT_EQUALS: // ==, != work with boolean operands
         operand1.putAll(operand2);
         return operand1;
 
@@ -924,8 +1014,6 @@ public class VariableClassification {
       case BINARY_AND:
       case BINARY_XOR:
       case BINARY_OR:
-      case LOGICAL_AND:
-      case LOGICAL_OR:
         // this calculations work with all numbers
         operand1.putAll(operand2);
         return operand1;

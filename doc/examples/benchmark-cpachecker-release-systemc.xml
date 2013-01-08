@@ -4,7 +4,7 @@
 <benchmark tool="cpachecker" timelimit="600" memlimit="15000">
 
   <!-- GLOBAL OPTIONS -->
-  <option name="-heap">12500m</option>
+  <option name="-heap">12500M</option>
   <option name="-predicateAnalysis"/>
   <option name="-noout"/>
 

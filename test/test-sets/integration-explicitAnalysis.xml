@@ -3,7 +3,7 @@
 <benchmark tool="cpachecker" timelimit="120" memlimit="3000">
 
   <option name="-noout"/>
-  <option name="-heap">2000m</option>
+  <option name="-heap">2000M</option>
   <option name="-explicitAnalysis"/>
   <option name="-setprop">cpa.conditions.global.time.wall=1min</option>
 
@@ -11,15 +11,15 @@
     <option name="-setprop">analysis.useRefinement=true</option>
     <option name="-setprop">cegar.refiner=cpa.explicit.refiner.DelegatingExplicitRefiner</option>
     <sourcefiles>
-      <includesfile>test/programs/benchmarks/Concurrency.set</includesfile>
-      <includesfile>test/test-sets/integration-ControlFlowInteger.set</includesfile>
-      <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
-      <includesfile>test/test-sets/integration-SystemC.set</includesfile>
-      <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
+      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+      <includesfile>integration-ControlFlowInteger.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>integration-SystemC.set</includesfile>
+      <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
     </sourcefiles>
     <sourcefiles>
-      <includesfile>test/test-sets/integration-DeviceDrivers64.set</includesfile>
-      <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
+      <includesfile>integration-DeviceDrivers64.set</includesfile>
+      <option name="-setprop">analysis.machineModel=Linux64</option>
     </sourcefiles>
   </test>
 

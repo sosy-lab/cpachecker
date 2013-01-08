@@ -46,10 +46,10 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   private final PathFormulaManager delegate;
 
-  private final Map<Pair<PathFormula, CFAEdge>, PathFormula> pathFormulaCache
+  private final Map<Pair<PathFormula, CFAEdge>, PathFormula> andFormulaCache
             = new HashMap<Pair<PathFormula, CFAEdge>, PathFormula>();
 
-  private final Map<Pair<PathFormula, PathFormula>, PathFormula> mergeCache
+  private final Map<Pair<PathFormula, PathFormula>, PathFormula> orFormulaCache
             = new HashMap<Pair<PathFormula, PathFormula>, PathFormula>();
 
   private final Map<PathFormula, PathFormula> emptyFormulaCache
@@ -66,13 +66,13 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException {
 
     final Pair<PathFormula, CFAEdge> formulaCacheKey = Pair.of(pOldFormula, pEdge);
-    PathFormula result = pathFormulaCache.get(formulaCacheKey);
+    PathFormula result = andFormulaCache.get(formulaCacheKey);
     if (result == null) {
       pathFormulaComputationTimer.start();
       // compute new pathFormula with the operation on the edge
       result = delegate.makeAnd(pOldFormula, pEdge);
       pathFormulaComputationTimer.stop();
-      pathFormulaCache.put(formulaCacheKey, result);
+      andFormulaCache.put(formulaCacheKey, result);
 
     } else {
       pathFormulaCacheHits++;
@@ -84,15 +84,15 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
     final Pair<PathFormula, PathFormula> formulaCacheKey = Pair.of(pF1, pF2);
 
-    PathFormula result = mergeCache.get(formulaCacheKey);
+    PathFormula result = orFormulaCache.get(formulaCacheKey);
     if (result == null) {
       // try again with other order
-      result = mergeCache.get(Pair.of(pF2, pF1));
+      result = orFormulaCache.get(Pair.of(pF2, pF1));
     }
 
     if (result == null) {
       result = delegate.makeOr(pF1, pF2);
-      mergeCache.put(formulaCacheKey, result);
+      orFormulaCache.put(formulaCacheKey, result);
     } else {
       pathFormulaCacheHits++;
     }

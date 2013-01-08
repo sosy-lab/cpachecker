@@ -35,33 +35,34 @@ import collections
 import os.path
 import glob
 import json
-import shutil
-import optparse
+import argparse
 import time
 import tempita
 
-from datetime import date
 from decimal import *
 
 
 NAME_START = "results" # first part of filename of table
+
+DEFAULT_OUTPUT_PATH = "test/results/"
 
 LIB_URL = "http://www.sosy-lab.org/lib"
 LIB_URL_OFFLINE = "lib/javascript"
 
 TEMPLATE_FILE_NAME = os.path.join(os.path.dirname(__file__), 'table-generator-template.{format}')
 TEMPLATE_FORMATS = ['html', 'csv']
+TEMPLATE_ENCODING = 'UTF-8'
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case!
-BUG_SUBSTRING_LIST = ['bad', 'bug', 'unsafe']
+BUG_SUBSTRING_LIST = ['_unsafe']
 
 # scoreValues taken from http://sv-comp.sosy-lab.org/
 SCORE_CORRECT_SAFE = 2
 SCORE_CORRECT_UNSAFE = 1
 SCORE_UNKNOWN = 0
-SCORE_WRONG_UNSAFE = -2
-SCORE_WRONG_SAFE = -4
+SCORE_WRONG_UNSAFE = -4
+SCORE_WRONG_SAFE = -8
 
 
 class Util:
@@ -195,6 +196,13 @@ def parseTableDefinitionFile(file):
         print ('File {0!r} does not exist.'.format(file))
         exit()
 
+    def extractColumnsFromTableDefinitionFile(xmltag):
+        """
+        Extract all columns mentioned in the test tag of a table definition file.
+        """
+        return [Column(c.get("title"), c.text, c.get("numberOfDigits"))
+                for c in xmltag.findall('column')]
+
     listOfTestFiles = []
     tableGenFile = ET.ElementTree().parse(file)
     if 'table' != tableGenFile.tag:
@@ -203,13 +211,28 @@ def parseTableDefinitionFile(file):
             + "    The rootelement of table-definition-file is not named 'table'.")
         exit()
 
-    for test in tableGenFile.findall('test'):
-        columnsToShow = test.findall('column')
-        filelist = Util.getFileList(test.get('filename')) # expand wildcards
-        listOfTestFiles += [(file, columnsToShow) for file in filelist]
+    defaultColumnsToShow = extractColumnsFromTableDefinitionFile(tableGenFile)
+
+    baseDir = os.path.dirname(file)
+
+    for testTag in tableGenFile.findall('test'):
+        columnsToShow = extractColumnsFromTableDefinitionFile(testTag) or defaultColumnsToShow
+        filelist = Util.getFileList(os.path.join(baseDir, testTag.get('filename'))) # expand wildcards
+        listOfTestFiles += [Result.createFromXML(file, parseTestFile(file), columnsToShow) for file in filelist]
+
+    for unionTag in tableGenFile.findall('union'):
+        columnsToShow = extractColumnsFromTableDefinitionFile(unionTag) or defaultColumnsToShow
+        result = Result([], {}, columnsToShow)
+
+        for testTag in unionTag.findall('test'):
+            filelist = Util.getFileList(os.path.join(baseDir, testTag.get('filename'))) # expand wildcards
+            for file in filelist:
+                result.append(file, parseTestFile(file))
+
+        if result.filelist:
+            listOfTestFiles.append(result)
 
     return listOfTestFiles
-
 
 
 class Column:
@@ -228,19 +251,70 @@ class Result():
     """
     The Class Result is a wrapper for some columns to show and a filelist.
     """
-    def __init__(self, resultXML, filename, columns):
-        self.filename = filename
-        self.filelist = resultXML.findall('sourcefile')
+    def __init__(self, filelist, attributes, columns):
+        self.filelist = filelist
+        self.attributes = attributes
         self.columns = columns
 
-        systemTag = resultXML.find('systeminfo')
+    def getSourceFileNames(self):
+        return [file.get('name') for file in self.filelist if Util.getColumnValue(file, 'status')]
+
+    def append(self, resultFile, resultElem):
+        def updateAttributes(newAttributes):
+            for key in newAttributes:
+                newValue = newAttributes[key]
+                if key in self.attributes:
+                    oldValue = self.attributes[key]
+                    if not isinstance(oldValue, str):
+                        if not newValue in oldValue:
+                            self.attributes[key] = oldValue.append(newValue)
+                    else:
+                        if (oldValue != newValue):
+                            self.attributes[key] = [oldValue, newValue]
+                else:
+                    self.attributes[key] = newAttributes[key]
+
+        self.filelist += resultElem.findall('sourcefile')
+        updateAttributes(Result._extractAttributesFromResult(resultFile, resultElem))
+
+        if not self.columns:
+            self.columns = Result._extractExistingColumnsFromResult(resultFile, resultElem)
+
+    @staticmethod
+    def createFromXML(resultFile, resultElem, columns=None):
+        '''
+        This function extracts everything necessary for creating a Result object
+        from the "test" XML tag of a benchmark result file.
+        It returns a Result object.
+        '''
+        attributes = Result._extractAttributesFromResult(resultFile, resultElem)
+
+        if not columns:
+            columns = Result._extractExistingColumnsFromResult(resultFile, resultElem)
+
+        return Result(resultElem.findall('sourcefile'),
+                attributes, columns)
+
+    @staticmethod
+    def _extractExistingColumnsFromResult(resultFile, resultElem):
+        if resultElem.find('sourcefile') is None:
+            print("Empty resultfile found: " + resultFile)
+            return []
+        else: # show all available columns
+            return [Column(c.get("title"), None, None)
+                    for c in resultElem.find('sourcefile').findall('column')]
+
+    @staticmethod
+    def _extractAttributesFromResult(resultFile, resultTag):
+        systemTag = resultTag.find('systeminfo')
         cpuTag = systemTag.find('cpu')
-        self.attributes = {
+        attributes = {
                 'timelimit': None,
                 'memlimit':  None,
                 'options':   ' ',
-                'name':      resultXML.get('name', resultXML.get('benchmarkname')),
-                'branch':    os.path.basename(filename).split('#')[0] if '#' in filename else '',
+                'benchmarkname': resultTag.get('benchmarkname'),
+                'name':      resultTag.get('name', resultTag.get('benchmarkname')),
+                'branch':    os.path.basename(resultFile).split('#')[0] if '#' in resultFile else '',
                 'os':        systemTag.find('os').get('name'),
                 'cpu':       cpuTag.get('model'),
                 'cores':     cpuTag.get('cores'),
@@ -248,16 +322,14 @@ class Result():
                 'ram':       systemTag.find('ram').get('size'),
                 'host':      systemTag.get('hostname', 'unknown')
                 }
-        self.attributes.update(resultXML.attrib)
+        attributes.update(resultTag.attrib)
+        return attributes
 
-    def getSourceFileNames(self):
-        return [file.get('name') for file in self.filelist]
 
-def parseTestFile(resultFile, columnsToShow=None):
+def parseTestFile(resultFile):
     '''
-    This function parses the resultfile to a resultElem and collects
-    all columntitles from the resultfile, that should be part of the table.
-    It returns a Result object.
+    This function parses the resultfile to a resultElem.
+    It returns the "result" XML tag
     '''
     if not os.path.isfile(resultFile):
         print ('File {0!r} is not found.'.format(resultFile))
@@ -275,36 +347,39 @@ def parseTestFile(resultFile, columnsToShow=None):
             + "you should use the option '-x' or '--xml'.").replace('\n','\n    '))
         exit()
 
-    if columnsToShow: # not None
-        columns = [Column(c.get("title"), c.text, c.get("numberOfDigits"))
-                   for c in columnsToShow]
-    else: # show all available columns
-        columns = [Column(c.get("title"), None, None)
-                   for c in resultElem.find('sourcefile').findall('column')]
-
     insertLogFileNames(resultFile, resultElem)
-    return Result(resultElem, resultFile, columns)
-
+    return resultElem
 
 def insertLogFileNames(resultFile, resultElem):
-    resultFile = os.path.basename(resultFile)
-    parts = resultFile.split("#", 1)
+    parts = os.path.basename(resultFile).split("#", 1)
 
     # get folder of logfiles
-    logFolder = '{benchmarkname}.{date}.logfiles/'.format(**resultElem.attrib)
+    date = resultElem.get('date').replace(':','').replace(' ','_') # from ISO-format to filename-format
+    logFolder = resultElem.get('benchmarkname') + '.' + date + '.logfiles/'
     if len(parts) > 1:
         logFolder = parts[0] + '#' + logFolder
+    logFolder = os.path.join(os.path.dirname(resultFile), resultElem.get('baseDir', ''), logFolder)
 
     # append begin of filename
     testname = resultElem.get('name')
     if testname is not None:
-        logFolder += testname + "."
+        blockname = resultElem.get('block')
+        if blockname is None:
+            logFolder += testname + "."
+        elif blockname == testname:
+            pass # real testname is empty
+        else:
+            assert testname.endswith("." + blockname)
+            testname = testname[:-(1 + len(blockname))] # remove last chars
+            logFolder += testname + "."
 
     # for each file: append original filename and insert logFileName into sourcefileElement
     for sourcefile in resultElem.findall('sourcefile'):
         logFileName = os.path.basename(sourcefile.get('name')) + ".log"
         sourcefile.logfile = logFolder + logFileName
 
+def getDefaultLogFolder(resultElem):
+    return logFolder
 
 
 def mergeSourceFiles(listOfTests):
@@ -322,7 +397,7 @@ def mergeSourceFiles(listOfTests):
         currentResultNameSet = set()
         for name in result.getSourceFileNames():
             if name in currentResultNameSet:
-                print ("File {0} is present twice in {1}, skipping it.".format(name, result.filename))
+                print ("File {0} is present twice, skipping it.".format(name))
             else:
                 currentResultNameSet.add(name)
                 if name not in nameSet:
@@ -349,7 +424,7 @@ def mergeFilelists(listOfTests, filenames):
             if fileResult == None:
                 fileResult = ET.Element('sourcefile') # create an empty dummy element
                 fileResult.logfile = None
-                print ('    no result for {0} in {1}'.format(filename, result.filename))
+                print ('    no result for {0}'.format(filename))
             result.filelist.append(fileResult)
 
 
@@ -369,18 +444,6 @@ def findCommonSourceFiles(listOfTests):
 
     return fileList
 
-def ensureEqualSourceFiles(listOfTests):
-    # take the files of the first test
-    fileNames = listOfTests[0].getSourceFileNames()
-    # check for equal files
-    def equalFiles(result):
-        if fileNames == result.getSourceFileNames(): return True
-        else: print ('    {0} contains different files, skipping resultfile'.format(result.filename))
-
-    listOfTests = list(filter(equalFiles, listOfTests))
-    return fileNames, listOfTests
-
-
 
 class Test:
     """
@@ -395,7 +458,7 @@ class Test:
         self.category = category
 
     @staticmethod
-    def createTestFromXML(sourcefileTag, resultFilename, listOfColumns, fileIsUnsafe, correctOnly):
+    def createTestFromXML(sourcefileTag, listOfColumns, fileIsUnsafe, correctOnly):
         '''
         This function collects the values from one tests for one file.
         Only columns, that should be part of the table, are collected.
@@ -421,8 +484,6 @@ class Test:
 
         def readLogfileLines(logfileName):
             if not logfileName: return []
-            baseDir = os.path.dirname(resultFilename)
-            logfileName = os.path.join(baseDir, logfileName)
             try:
                 with open(logfileName) as logfile:
                     return logfile.readlines()
@@ -448,10 +509,14 @@ class Test:
                         return line[startPosition: endPosition].strip()
             return None
 
-        status = Util.getColumnValue(sourcefileTag, 'status', 'unknown')
+        status = Util.getColumnValue(sourcefileTag, 'status', '')
         category = getResultCategory(status)
         score = calculateScore(category)
         logfileLines = None
+
+        if status == '':
+            values = [''] * len(listOfColumns)
+            return Test(status, category, sourcefileTag.logfile, listOfColumns, values)
 
         values = []
 
@@ -521,7 +586,7 @@ def getRows(listOfTests, fileNames, correctOnly):
     for result in listOfTests:
         # get values for each file in a test
         for fileResult, row in zip(result.filelist, rows):
-            row.addTest(Test.createTestFromXML(fileResult, result.filename, result.columns, row.fileIsUnsafe(), correctOnly))
+            row.addTest(Test.createTestFromXML(fileResult, result.columns, row.fileIsUnsafe(), correctOnly))
 
     return rows
 
@@ -573,17 +638,19 @@ def getTableHead(listOfTests, commonFileNamePrefix):
         if not any(values): return None # skip row without values completely
 
         valuesAndWidths = list(Util.collapseEqualValues(values, testWidths)) \
-                          if collapse else zip(values, testWidths)
+                          if collapse else list(zip(values, testWidths))
 
         return tempita.bunch(id=rowName.lower().split(' ')[0],
                              name=rowName,
                              content=valuesAndWidths)
 
+    benchmarkNames = [test.attributes['benchmarkname'] for test in listOfTests]
+    allBenchmarkNamesEqual = benchmarkNames.count(benchmarkNames[0]) == len(benchmarkNames)
 
     titles      = [column.title for test in listOfTests for column in test.columns]
     testWidths1 = [1]*sum(testWidths)
     titleRow    = tempita.bunch(id='columnTitles', name=commonFileNamePrefix,
-                                content=zip(titles, testWidths1))
+                                content=list(zip(titles, testWidths1)))
 
     return {'tool':    getRow('Tool', '{tool} {version}', collapse=True),
             'limit':   getRow('Limits', 'timelimit: {timelimit}, memlimit: {memlimit}', collapse=True),
@@ -591,7 +658,7 @@ def getTableHead(listOfTests, commonFileNamePrefix):
             'os':      getRow('OS', '{os}', collapse=True),
             'system':  getRow('System', 'CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}', collapse=True),
             'date':    getRow('Date of run', '{date}', collapse=True),
-            'test':    getRow('Test', '{name}'),
+            'test':    getRow('Test', '{name}' if allBenchmarkNamesEqual else '{benchmarkname}.{name}'),
             'branch':  getRow('Branch', '{branch}'),
             'options': getRow('Options', '{options}'),
             'title':   titleRow}
@@ -684,7 +751,7 @@ class StatValue:
                          min    = min(values),
                          max    = max(values),
                          avg    = sum(values) / len(values),
-                         median = sorted(values)[int(len(values)/2)],
+                         median = sorted(values)[len(values)//2],
                          )
 
 
@@ -724,7 +791,7 @@ def getCounts(rows): # for options.dumpCounts
 
     for testResults in rowsToColumns(rows):
         statusList = [test.category for test in testResults]
-        sum, correctSafe, correctUnsafe, wrongSafe, wrongUnsafe = getStatsOfStatusColumn(statusList)
+        correctSafe, correctUnsafe, wrongSafe, wrongUnsafe = getCategoryCount(statusList)
 
         correct = correctSafe + correctUnsafe
         wrong = wrongSafe + wrongUnsafe
@@ -735,7 +802,7 @@ def getCounts(rows): # for options.dumpCounts
     return countsList
 
 
-def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, libUrl):
+def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, outputFilePattern, libUrl):
     '''
     create tables and write them to files
     '''
@@ -749,39 +816,44 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, libUr
     testData = [test.attributes for test in listOfTests]
     testColumns = [[column.title for column in test.columns] for test in listOfTests]
 
-    def writeTable(outfile, name, rows):
-        outfile = os.path.join(outputPath, outfile)
+    templateNamespace={'flatten': Util.flatten,
+                       'json': Util.json,
+                       'relpath': os.path.relpath,
+                       }
 
+    def writeTable(type, title, rows):
         stats = getStats(rows)
 
         for format in TEMPLATE_FORMATS:
-            print ('writing {0} into {1}.{0} ...'.format(format, outfile))
+            outfile = os.path.join(outputPath, outputFilePattern.format(name=name, type=type, ext=format))
+            print ('writing {0} into {1} ...'.format(format.upper().ljust(4), outfile))
 
             # read template
             Template = tempita.HTMLTemplate if format == 'html' else tempita.Template
             template = Template.from_filename(TEMPLATE_FILE_NAME.format(format=format),
-                                              namespace={'flatten': Util.flatten, 'json': Util.json},
-                                              encoding='UTF-8')
+                                              namespace=templateNamespace,
+                                              encoding=TEMPLATE_ENCODING)
 
             # write file
-            with open(outfile + "." + format, 'w') as file:
+            with open(outfile, 'w') as file:
                 file.write(template.substitute(
-                        title=name,
+                        title=title,
                         head=head,
                         body=rows,
                         foot=stats,
                         tests=testData,
                         columns=testColumns,
                         lib_url=libUrl,
+                        baseDir=outputPath,
                         ))
 
 
     # write normal tables
-    writeTable(name + ".table", name, rows)
+    writeTable("table", name, rows)
 
     # write difference tables
     if rowsDiff:
-        writeTable(name + ".diff", name + " differences", rowsDiff)
+        writeTable("diff", name + " differences", rowsDiff)
 
 
 def main(args=None):
@@ -789,82 +861,97 @@ def main(args=None):
     if args is None:
         args = sys.argv
 
-    parser = optparse.OptionParser('%prog [options] sourcefile\n\n' + \
-        "INFO: documented example-files can be found in 'doc/examples'\n")
+    parser = argparse.ArgumentParser(
+        description="""Create table with the results of one or more benchmark runs.
+        Documented example files for the table definitions can be found in 'doc/examples'\n"""
+    )
 
-    parser.add_option("-x", "--xml",
+    parser.add_argument("tables",
+        metavar="TABLE",
+        type=str,
+        nargs='*',
+        help="XML file with the results from the benchmark script"
+    )
+    parser.add_argument("-x", "--xml",
         action="store",
-        type="string",
+        type=str,
         dest="xmltablefile",
-        help="use xmlfile for table. the xml-file should define resultfiles and columns."
+        help="XML file with the table definition."
     )
-    parser.add_option("-o", "--outputpath",
+    parser.add_argument("-o", "--outputpath",
         action="store",
-        type="string",
-        default="test/results",
+        type=str,
         dest="outputPath",
-        help="outputPath for table. if it does not exist, it is created."
+        help="Output path for the table."
     )
-    parser.add_option("-d", "--dump",
+    parser.add_argument("-d", "--dump",
         action="store_true", dest="dumpCounts",
-        help="Should the good, bad, unknown counts be printed?"
+        help="Print summary statistics for the good, bad, and unknown counts."
     )
-    parser.add_option("-m", "--merge",
-        action="store_true", dest="merge",
-        help="If resultfiles with distinct sourcefiles are found, " \
-            + "should the sourcefilenames be merged?"
-    )
-    parser.add_option("-c", "--common",
+    parser.add_argument("-c", "--common",
         action="store_true", dest="common",
-        help="If resultfiles with distinct sourcefiles are found, " \
-            + "use only the sourcefiles common to all resultfiles."
+        help="Put only sourcefiles into the table for which all benchmarks contain results."
     )
-    parser.add_option("--no-diff",
-        action="store_false", dest="writeDiffTable", default=True,
-        help="Do not output a table with differences between resultfiles."
+    parser.add_argument("--no-diff",
+        action="store_false", dest="writeDiffTable",
+        help="Do not output a table with result differences between benchmarks."
     )
-    parser.add_option("--correct-only",
+    parser.add_argument("--correct-only",
         action="store_true", dest="correctOnly",
-        help="Clear all results in cases where the result was not correct."
+        help="Clear all results (e.g., time) in cases where the result was not correct."
     )
-    parser.add_option("--offline",
-        action="store_true", dest="offline",
+    parser.add_argument("--offline",
+        action="store_const", dest="libUrl",
+        const=LIB_URL_OFFLINE,
+        default=LIB_URL,
         help="Don't insert links to http://www.sosy-lab.org, instead expect JS libs in libs/javascript."
     )
 
-    options, args = parser.parse_args(args)
-    args = args[1:] # skip args[0] which is the name of this script
+    options = parser.parse_args(args[1:])
 
-    if options.merge and options.common:
-        print("Invalid combination of arguments (--merge and --common)")
-        exit()
-
-    libUrl = LIB_URL_OFFLINE if options.offline else LIB_URL
-
-    if not os.path.isdir(options.outputPath): os.makedirs(options.outputPath)
+    outputPath = options.outputPath
+    outputFilePattern = "{name}.{type}.{ext}"
 
     if options.xmltablefile:
-        if args:
-            print ("Invalid additional arguments '{}'".format(" ".join(args)))
+        if options.tables:
+            print ("Invalid additional arguments '{}'".format(" ".join(options.tables)))
             exit()
-        listOfTestFiles = parseTableDefinitionFile(options.xmltablefile)
-        name = os.path.basename(options.xmltablefile)[:-4] # remove ending '.xml'
+        listOfTests = parseTableDefinitionFile(options.xmltablefile)
+        name = os.path.basename(options.xmltablefile)
+        if name.endswith(".xml"):
+            name = name[:-4]
+
+        if not outputPath:
+            outputPath = os.path.dirname(options.xmltablefile)
 
     else:
-        if args:
-            inputFiles = args
+        if options.tables:
+            inputFiles = options.tables
         else:
-            print ("searching resultfiles in '{}'...".format(options.outputPath))
-            inputFiles = [os.path.join(options.outputPath, '*.results*.xml')]
+            searchDir = outputPath or DEFAULT_OUTPUT_PATH
+            print ("searching resultfiles in '{}'...".format(searchDir))
+            inputFiles = [os.path.join(searchDir, '*.results*.xml')]
 
         inputFiles = Util.extendFileList(inputFiles) # expand wildcards
-        listOfTestFiles = [(file, None) for file in inputFiles]
+        listOfTests = [Result.createFromXML(file, parseTestFile(file)) for file in inputFiles]
 
-        name = NAME_START + "." + time.strftime("%y%m%d-%H%M", time.localtime())
+        if len(inputFiles) == 1:
+            name = os.path.basename(inputFiles[0])
+            if name.endswith(".xml"):
+                name = name[:-4]
+            outputFilePattern = "{name}.{ext}"
+        else:
+            name = NAME_START + "." + time.strftime("%y-%m-%d_%H%M", time.localtime())
 
+        if inputFiles and not outputPath:
+            dir = os.path.dirname(inputFiles[0])
+            if all(dir == os.path.dirname(file) for file in inputFiles):
+                outputPath = dir
+            else:
+                outputPath = DEFAULT_OUTPUT_PATH
 
-    # parse test files
-    listOfTests = [parseTestFile(file, columnsToShow) for file, columnsToShow in listOfTestFiles]
+    if not outputPath:
+        outputPath = '.'
 
     if not listOfTests:
         print ('\nError! No file with testresults found.')
@@ -872,21 +959,21 @@ def main(args=None):
             print ('Please check the filenames in your XML-file.')
         exit()
 
-    print ('merging files ...')
-    if options.merge:
-        # merge list of tests, so that all tests contain the same filenames
-        fileNames = mergeSourceFiles(listOfTests)
-    elif options.common:
+    print ('merging results ...')
+    if options.common:
         fileNames = findCommonSourceFiles(listOfTests)
     else:
-        fileNames, listOfTests = ensureEqualSourceFiles(listOfTests)
+        # merge list of tests, so that all tests contain the same filenames
+        fileNames = mergeSourceFiles(listOfTests)
 
     # collect data and find out rows with differences
+    print ('collecting data ...')
     rows     = getRows(listOfTests, fileNames, options.correctOnly)
     rowsDiff = filterRowsWithDifferences(rows) if options.writeDiffTable else []
 
     print ('generating table ...')
-    createTables(name, listOfTests, fileNames, rows, rowsDiff, options.outputPath, libUrl)
+    if not os.path.isdir(outputPath): os.makedirs(outputPath)
+    createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, outputFilePattern, options.libUrl)
 
     print ('done')
 

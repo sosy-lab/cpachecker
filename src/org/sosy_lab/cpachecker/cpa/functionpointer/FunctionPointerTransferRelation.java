@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -75,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -184,7 +186,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
           // now substitute the real edge with the fake edge
           cfaEdge = callEdge;
         } else {
-          throw new UnrecognizedCCodeException("function pointer points to unknown function " + functionName, pCfaEdge);
+          logger.log(Level.WARNING, "Ignoring function pointer call to external function", functionName);
+          cfaEdge = pCfaEdge;
         }
 
       } else if (target instanceof UnknownTarget) {
@@ -264,6 +267,10 @@ class FunctionPointerTransferRelation implements TransferRelation {
       }
     }
 
+    if (nameExp instanceof CCastExpression) {
+      nameExp = ((CCastExpression) nameExp).getOperand();
+    }
+
     if (nameExp instanceof CIdExpression) {
       // a = f(b) or a = (*f)(b)
       return scopedIfNecessary((CIdExpression)nameExp, currentFunction);
@@ -322,6 +329,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
       // nothing to do.
       case BlankEdge:
       case CallToReturnEdge: {
+        break;
+      }
+
+      case MultiEdge: {
+        for(CFAEdge currentEdge : ((MultiEdge)pCfaEdge).getEdges()) {
+          newState = handleEdge(newState, currentEdge);
+        }
         break;
       }
 
@@ -525,6 +539,10 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     @Override
     public FunctionPointerTarget visit(CIdExpression pE) {
+      if (pE.getExpressionType() instanceof CFunctionPointerType) {
+        return new NamedFunctionTarget(pE.getName());
+      }
+
       return state.getTarget(scopedIfNecessary(pE, function));
     }
 

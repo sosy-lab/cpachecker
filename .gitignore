@@ -1,0 +1,11 @@
+lib/java
+bin/
+output/
+
+# The following are generated files
+src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonParser.java
+src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonScanner.java
+src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonSym.java
+src/org/sosy_lab/cpachecker/util/predicates/smtInterpol/Lexer.java
+src/org/sosy_lab/cpachecker/util/predicates/smtInterpol/LexerSymbols.java
+src/org/sosy_lab/cpachecker/util/predicates/smtInterpol/Parser.java

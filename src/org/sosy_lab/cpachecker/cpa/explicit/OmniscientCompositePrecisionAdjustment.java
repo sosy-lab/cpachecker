@@ -24,12 +24,19 @@
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -51,32 +58,40 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 
+@Options(prefix="cpa.explicit.precisionAdjustment")
 public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAdjustment implements StatisticsProvider {
+  @Option(description="whether or not to only abstract variables that where updated in the foregoing post operation")
+  private boolean useDeltaPrecision = false;
+
+  // statistics
+  final Timer totalEnforceAbstraction         = new Timer();
+  final Timer totalEnforcePathThreshold       = new Timer();
+  final Timer totalEnforceReachedSetThreshold = new Timer();
+  final Timer totalComposite                  = new Timer();
+  final Timer total                           = new Timer();
+
+  private Statistics stats  = null;
+  private boolean modified = false;
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
   }
 
-  // statistics
-  final Timer totalEnforcePathThreshold       = new Timer();
-  final Timer totalEnforceReachedSetThreshold = new Timer();
-  final Timer totalComposite = new Timer();
-  final Timer total = new Timer();
-  private Statistics stats = null;
-  private boolean modified = false;
-
-  public OmniscientCompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
+  public OmniscientCompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments, Configuration config)
+      throws InvalidConfigurationException {
     super(precisionAdjustments);
 
-    stats = new Statistics() {
+    config.inject(this);
 
+    stats = new Statistics() {
       @Override
       public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-        pOut.println("total time:                 " + OmniscientCompositePrecisionAdjustment.this.total.getSumTime());
-        pOut.println("total time for composite:   " + OmniscientCompositePrecisionAdjustment.this.totalComposite.getSumTime());
-        pOut.println("total time for reached set: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceReachedSetThreshold.getSumTime());
-        pOut.println("total time for path:        " + OmniscientCompositePrecisionAdjustment.this.totalEnforcePathThreshold.getSumTime());
+        pOut.println("Total time:                 " + OmniscientCompositePrecisionAdjustment.this.total);
+        pOut.println("Total time for composite:   " + OmniscientCompositePrecisionAdjustment.this.totalComposite);
+        pOut.println("Total time for abstraction: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceAbstraction);
+        pOut.println("Total time for reached set: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceReachedSetThreshold);
+        pOut.println("Total time for path:        " + OmniscientCompositePrecisionAdjustment.this.totalEnforcePathThreshold);
       }
 
       @Override
@@ -106,30 +121,36 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
     }
 
     ImmutableList.Builder<AbstractState> outElements  = ImmutableList.builder();
-    ImmutableList.Builder<Precision> outPrecisions      = ImmutableList.builder();
+    ImmutableList.Builder<Precision> outPrecisions    = ImmutableList.builder();
 
     Action action = Action.CONTINUE;
 
     for (int i = 0, size = composite.getWrappedStates().size(); i < size; ++i) {
       UnmodifiableReachedSet slice = new UnmodifiableReachedSetView(pElements, stateProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
-      AbstractState oldElement = composite.get(i);
+      AbstractState oldState = composite.get(i);
       Precision oldPrecision = precision.get(i);
 
       // enforce thresholds for explicit element, by incorporating information from reached set and path condition element
       if (i == indexOfExplicitState) {
-        ExplicitState explicit                  = (ExplicitState)oldElement;
-        ExplicitPrecision explicitPrecision       = (ExplicitPrecision)oldPrecision;
+        ExplicitState explicitState         = (ExplicitState)oldState;
+        ExplicitPrecision explicitPrecision = (ExplicitPrecision)oldPrecision;
+        LocationState location              = AbstractStates.extractStateByType(composite, LocationState.class);
 
-        LocationState location                  = AbstractStates.extractStateByType(composite, LocationState.class);
-        AssignmentsInPathConditionState assigns = AbstractStates.extractStateByType(composite, AssignmentsInPathConditionState.class);
+        // compute the abstraction for CEGAR
+        totalEnforceAbstraction.start();
+        explicitState = enforceAbstraction(explicitState, location, explicitPrecision);
+        totalEnforceAbstraction.stop();
 
+        // compute the abstraction for reached set thresholds
         totalEnforceReachedSetThreshold.start();
-        ExplicitState newElement = enforceReachedSetThreshold(explicit, explicitPrecision, slice.getReached(location.getLocationNode()));
+        explicitState = enforceReachedSetThreshold(explicitState, explicitPrecision, slice.getReached(location.getLocationNode()));
         totalEnforceReachedSetThreshold.stop();
 
+        // compute the abstraction for assignment thresholds
         totalEnforcePathThreshold.start();
-        Pair<ExplicitState, ExplicitPrecision> result = enforcePathThreshold(newElement, explicitPrecision, assigns);
+        AssignmentsInPathConditionState assigns       = AbstractStates.extractStateByType(composite, AssignmentsInPathConditionState.class);
+        Pair<ExplicitState, ExplicitPrecision> result = enforcePathThreshold(explicitState, explicitPrecision, assigns);
         totalEnforcePathThreshold.stop();
 
         outElements.add(result.getFirst());
@@ -138,7 +159,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
       else {
         totalComposite.start();
 
-        Triple<AbstractState, Precision, Action> result = precisionAdjustment.prec(oldElement, oldPrecision, slice);
+        Triple<AbstractState, Precision, Action> result = precisionAdjustment.prec(oldState, oldPrecision, slice);
         AbstractState newElement = result.getFirst();
         Precision newPrecision = result.getSecond();
 
@@ -146,7 +167,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
           action = Action.BREAK;
         }
 
-        if ((newElement != oldElement) || (newPrecision != oldPrecision)) {
+        if ((newElement != oldState) || (newPrecision != oldPrecision)) {
           // something has changed
           modified = true;
         }
@@ -157,12 +178,57 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
       }
     }
 
-    AbstractState outElement = modified ? new CompositeState(outElements.build())     : pElement;
-    Precision outPrecision     = modified ? new CompositePrecision(outPrecisions.build()) : pPrecision;
+    AbstractState outElement = pElement;
+    Precision outPrecision   = pPrecision;
+    if(modified) {
+      outElement    = new CompositeState(outElements.build());
+      outPrecision  = new CompositePrecision(outPrecisions.build());
+    }
 
     total.stop();
 
     return Triple.of(outElement, outPrecision, action);
+  }
+
+  /**
+   * This method performs an abstraction computation on the current explicit state.
+   *
+   * @param location the current location
+   * @param explicitState the current state
+   * @param explicitPrecision the current precision
+   */
+  private ExplicitState enforceAbstraction(ExplicitState explicitState, LocationState location, ExplicitPrecision explicitPrecision) {
+    explicitPrecision.setLocation(location.getLocationNode());
+
+    for(String variableName : getVariablesToDrop(explicitState, explicitPrecision)) {
+      explicitState.forget(variableName);
+    }
+
+    explicitState.resetDelta();
+
+    return explicitState;
+  }
+
+  /**
+   * This method return the set of variables to be dropped according to the current precision.
+   *
+   * @param explicitState the current state
+   * @param explicitPrecision the current precision
+   * @return the variables to the dropped
+   */
+  private List<String> getVariablesToDrop(ExplicitState explicitState, ExplicitPrecision explicitPrecision) {
+    Set<String> candidates = useDeltaPrecision ? explicitState.getDelta() : explicitState.getTrackedVariableNames();
+
+    List<String> toDrop = new ArrayList<String>();
+    if(candidates != null) {
+      for(String variableName : candidates) {
+        if(!explicitPrecision.isTracking(variableName)) {
+          toDrop.add(variableName);
+        }
+      }
+    }
+
+    return toDrop;
   }
 
   private ExplicitState enforceReachedSetThreshold(ExplicitState element, ExplicitPrecision precision, Collection<AbstractState> reachedSetAtLocation) {
@@ -194,7 +260,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
       for (Map.Entry<String, Integer> entry : assigns.getAssignmentCounts().entrySet()) {
         if (precision.getPathThresholds().exceeds(entry.getKey(), entry.getValue())) {
           //System.out.println((assigns instanceof AllAssignmentsInPathConditionState) ? "non-" : "" +
-              //"unique path: forgetting var " + entry.getKey());
+          //    "unique path: forgetting var " + entry.getKey());
 
           // the path threshold precision is path sensitive, therefore, mutating a clone is mandatory
           if (modified == false) {
@@ -202,7 +268,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
             modified = true;
           }
 
-          precision.getReachedSetThresholds().setExceeded(entry.getKey());
+          precision.getPathThresholds().setExceeded(entry.getKey());
           element.forget(entry.getKey());
         }
       }

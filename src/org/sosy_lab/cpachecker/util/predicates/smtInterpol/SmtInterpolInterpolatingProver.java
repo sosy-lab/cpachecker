@@ -59,7 +59,6 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     @Override
     public void init() {
       env = mgr.createEnvironment();
-      env.push(1);
       assertedFormulas = new ArrayList<String>();
       annotatedTerms = new HashMap<String, Term>();
     }
@@ -71,10 +70,18 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
 
       String termName = prefix + counter++;
       Term annotatedTerm = env.annotate(t, new Annotation(":named", termName));
+      env.push(1);
       env.assertTerm(annotatedTerm);
       assertedFormulas.add(termName);
       annotatedTerms.put(termName, t);
       return annotatedTerm;
+    }
+
+    @Override
+    public void popFormula() {
+      Preconditions.checkNotNull(env);
+      assertedFormulas.remove(assertedFormulas.size()-1); // remove last term
+      env.pop(1);
     }
 
     @Override
@@ -141,7 +148,9 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     @Override
     public void reset() {
       Preconditions.checkNotNull(env);
-      env.pop(1);
+      while (assertedFormulas.size() > 0) { // cleanup stack
+        popFormula();
+      }
       assertedFormulas = null;
       annotatedTerms = null;
       env = null;

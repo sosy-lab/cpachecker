@@ -32,9 +32,16 @@
            position:fixed; top:0px; left:0px;
            background-color:green;
            opacity:0.2; display:none }
-  #contentPane { height:90%; width:90%; position:fixed; top:5%; left:5%;
-           border:solid 10px black; border-radius:15px;
-           background-color:white; opacity:1; display:none }
+  #contentPane {
+    height:90%; width:90%;
+    position:fixed;
+    top:5%; left:5%;
+    border:solid 10px black; border-radius:15px;
+    background-color:white;
+    opacity:1;
+    display:none;
+    overflow:auto;
+  }
 
 @media print {
   /* don't print tfoot on each page */
@@ -93,7 +100,6 @@ function debug(logInfo) {
 function showContentPane() {
   // add function for cleanup, first unbind any old function
   $('#contentPaneBackground').unbind().click(hideContentPane).show();
-  $('#contentPane').keydown(hideContentPane);
   $('#contentPane').show().focus();
 }
 
@@ -127,6 +133,10 @@ function getNameOfTest(column) {
        + test.name;
 }
 
+$(document).ready(function() {
+  $('body').keydown(hideContentPane);
+});
+
 </script>
 
 
@@ -137,7 +147,6 @@ function getNameOfTest(column) {
     width: 100%;
     height: 100%;
     margin: 0;
-    overflow: auto;
   }
 </style>
 
@@ -192,9 +201,14 @@ $(document).ready(function() {
 <!-- ################## Possibility to select displayed columns by clicking on left-most cell in title row ################## -->
 
 <style type="text/css">
-  #toggleButtons ul { font-family:arial, sans serif; }
-  #toggleButtons ul li { display: inline; }
-  #toggleButtons ul li:hover { background-color:yellow; }
+  #toggleTable { margin: auto; }
+  #toggleTable td { padding-bottom: 5px; padding-top: 5px; }
+  #toggleTable tr:hover { background-color: transparent; }
+  #toggleTable tbody td:first-child { font-family: arial, sans serif; }
+  #toggleTableWrapper { height: 100%; overflow: auto; width: 100%; }
+  .hiddenCell { background: red; }
+  .visibleCell { background: green; }
+  .clickableCell:hover { opacity: 0.5; cursor: pointer; }
 </style>
 
 <script type="text/javascript">
@@ -237,77 +251,134 @@ function decColspan(col) {
 
 // this function shows or hides a column and enlarges or shrinks the header-columns
 // @param index: index of a column in row "columnTitle"
-function toggleColumn (button, index) {
-  for (var i=0; i<headerArray.length; i++) {
-    var cell = headerArray[i][index];
-    button.checked ? incColspan(cell) : decColspan(cell);
-  }
-  var childIndex = index+1; // first child is number 1
-  var children = $("tbody > tr > td:nth-child(" + childIndex + "), " +
-                   "tfoot > tr > td:nth-child(" + childIndex + ")");
-  button.checked ? children.show() : children.hide();
+function toggleColumn (shouldBeVisible, index) {
+    if (headerArray == null) { createHeaderArray(); }
+    var columnTitles = $('#columnTitles > td');
+    // if column is hidden (or visible), we do not hide (or show) it again
+    if ($(columnTitles[index]).is(":visible") != shouldBeVisible) {
+        for (var i=0; i<headerArray.length; i++) {
+            var cell = headerArray[i][index];
+            shouldBeVisible ? incColspan(cell) : decColspan(cell);
+        }
+        var childIndex = index+1; // first child is number 1
+        var children = $("#dataTable > tbody > tr > td:nth-child(" + childIndex + "), " +
+                         "#dataTable > tfoot > tr > td:nth-child(" + childIndex + ")");
+        shouldBeVisible ? children.show() : children.hide();
+    }
+}
+
+// "id->cell", "id" is the columnIndex in the dataTable,
+// "cell" is the jQuery-object of the cell of the column-toggle-table
+var indexToCell = {};
+
+// this function toggles a list of cells and 
+// makes the cells equally toggled to the first cell
+function toggleCells(indices) {
+    var checked = indexToCell[indices[0]].isChecked; 
+    for (var i=0; i<indices.length; i++) {
+        var cell = indexToCell[indices[i]];
+        toggleColumn (!checked, indices[i]);
+        cell.removeClass(!checked ? 'hiddenCell' : 'visibleCell')
+            .addClass(checked ? 'hiddenCell' : 'visibleCell');
+        cell.isChecked = !checked;
+    }
 }
 
 
-// we use a cache, because it is difficult to calculate the
-// colspan of headerrows with some hidden columns
-var buttonListCache = null;
+function createColumnToggleView() {
 
-function createColumnToggleButtons() {
-  if (headerArray == null) {
-    createHeaderArray();
-  }
-  if (buttonListCache == null) { // if not cached, for details see 5 lines above
-
-    var buttonList = '';
-    var columnIndex = 1; // columns start with 1
+    // collect all columns
+    var tableColumns = [];
+    var titlesToColumns = {};
+    var columnIndex = 1; // column 1 is the first data-column
     for (var i = 0; i < tests.length; i++) {
-      var test = tests[i];
-      buttonList += '<ul onclick="toggleCompleteColumn(event, this)">' + getNameOfTest(columnIndex);
+        var test = tests[i];
+        test.indexToColumn = {} // from test-column-index to table-index
+        test.indices = [] // equal to values from test.indexToColumn
 
-      for (var j = 0; j < test.columns.length; j++, columnIndex++) {
-        var toggleFunction = 'onclick="toggleColumn(this,' + columnIndex + ')"';
-
-        var button = '<input type="checkbox" id="check' + columnIndex + '" ' + toggleFunction + ' checked>';
-        var label = '<label for="check' + columnIndex + '">' + test.columns[j] + '</label>';
-        buttonList += '<li>' + button + label + '</li>';
-      }
-      buttonList += '</ul>';
+        var cols = columns[i];
+        for (var j = 0; j < cols.length; j++, columnIndex++) {
+            var title = cols[j];
+            var index = tableColumns.indexOf(title);
+            if (title in titlesToColumns) {
+                titlesToColumns[title].push(columnIndex);
+            } else { // new title
+                // assert(index == -1);
+                titlesToColumns[title] = [columnIndex];
+                tableColumns.push(title);
+                index = tableColumns.length - 1; // index of last position
+            }
+            test.indexToColumn[index] = columnIndex;
+            test.indices.push(columnIndex);
+        }
     }
 
-    buttonListCache = $(buttonList);
-  }
-
-  $('<form id="toggleButtons" onsubmit="return false"></form>')
-    .append(buttonListCache)
-    .appendTo($("#contentPane"));
-  showContentPane();
-}
-
-// function to (un)hide a complete test run, with all of its columns at once
-function toggleCompleteColumn(event, listOfCheckboxes) {
-  if (event.originalTarget == listOfCheckboxes) {
-
-    checkboxes = ($(listOfCheckboxes).find('input'));
-    checkedState = !checkboxes[0].checked;
-
-    for (var i = 0; i < checkboxes.length; i++) {
-      if (checkboxes[i].checked != checkedState) {
-        id = checkboxes[i].id.replace("check", "");
-        // first uncheck ...
-        checkboxes[i].checked = checkedState;
-        // ... then call the toggle function (the order matters!)
-        toggleColumn(checkboxes[i], parseInt(id));
-      }
+    // create header for table
+    var list = []; for (var i=1; i<columnIndex; i++) { list.push(i); }
+    var rowHeader = $('<tr>');
+    $('<td>') // create top-left cell
+        .click( {indices: list},
+                function(event) { toggleCells(event.data.indices); } )
+        .addClass('clickable')
+        .attr('title', 'Click here to toggle all columns')
+        .appendTo(rowHeader);
+    for (var j = 0; j < tableColumns.length; j++) {
+        $('<td>').append(tableColumns[j]) // create column-title-cell
+            .click( {indices: titlesToColumns[tableColumns[j]]}, 
+                    function(event) { toggleCells(event.data.indices); } )
+            .addClass('clickable')
+            .attr('title', 'Click here to toggle all columns with this title')
+            .appendTo(rowHeader);
     }
-  }
+
+    var tableHTML = $('<table>').attr('id', 'toggleTable')
+                    .append($('<thead>').append(rowHeader));
+
+    // create body for table
+    var tableBody = $('<tbody>').appendTo(tableHTML);
+    for (var i = 0; i < tests.length; i++) {
+        rowHTML = $('<tr>').appendTo(tableBody);
+        var test = tests[i];
+        
+        // get indices of row and create rowTitle-cell
+        var rowTitle = test.tool + ' ' + (test.date ? test.date + ' ' : '') + test.name;
+        $('<td>').append(rowTitle)
+            .click( {indices: test.indices}, 
+                    function(event) { toggleCells(event.data.indices); } )
+            .addClass('clickable')
+            .attr('title', 'Click here to toggle all columns of this test')
+            .appendTo(rowHTML);
+    
+        // get cells of row
+        var cols = columns[i];
+        for (var j = 0; j < tableColumns.length; j++) {
+            var cell = $('<td>').appendTo(rowHTML);
+            var index = test.indexToColumn[j];
+            if (index) {
+                indexToCell[index] = cell;
+                var childIndex = index + 1;
+                var checked = $('#columnTitles > td:nth-child(' + childIndex + ')').is(':visible');
+                cell.isChecked = checked;
+                cell.addClass(checked ? 'visibleCell' : 'hiddenCell')
+                    .click( {index: [index]}, 
+                            function(event) { toggleCells(event.data.index); } )
+                    .addClass('clickableCell');
+                    
+            }
+        }
+    }
+    $('<div>').attr('id', 'toggleTableWrapper')
+              .append(tableHTML)
+              .appendTo($("#contentPane"));
+    showContentPane();
 }
 
 $(document).ready(function() {
   $('#columnTitles > td:first-child')
     .addClass("clickable")
+    .attr("title", "Click here to toggle visibility of columns")
     .click(function (event) {
-        return createColumnToggleButtons(); });
+        return createColumnToggleView(); });
 });
 </script>
 
@@ -429,10 +500,11 @@ $(document).ready(function() {
            border-radius:8px; border-bottom-left-radius:0px;
            background-color:white; opacity:0.8; }
   .jqplot-table-legend { text-align: left; }
+  table.jqplot-table-legend[style] { position:absolute; left:auto !important; right:0px !important; } /* overrides inner css-style */
   #chart { height:100%; width:100% }
-  #button-trend { position:absolute; bottom:30px; }
-  #button-logScale { position:absolute; bottom:0px; }
-  #button-showCorrectOnly { position:absolute; bottom:0px; right:0px; }
+  #button-quantile { position:absolute; bottom:50px; }
+  #button-logScale { position:absolute; bottom:25px; }
+  #button-showCorrectOnly { position:absolute; bottom:0px; }
 </style>
 
 <script type="text/javascript">
@@ -443,8 +515,7 @@ function getColumnIndicesForHeader(header) {
   var cells = document.getElementById('columnTitles').cells;
 
   for (i = 0; i < cells.length; i++) {
-    var currentHeader = cells[i].textContent;
-    if (currentHeader == header) {
+    if ($(cells[i]).is(":visible") && (header == cells[i].textContent)) {
       columnIndizes.push(i);
     }
   }
@@ -454,16 +525,20 @@ function getColumnIndicesForHeader(header) {
 
 // getTableData returns a list of arrays,
 // each array is of the form: [[file1, value1], [file2, value1], ...]
-function getTableData(header, sort) {
-  debug("data for: " + header);
+function getTableData() {
+  debug("data for: " + graphData.header);
   var data = [];
 
-  var indices = getColumnIndicesForHeader(header);
+  var indices = getColumnIndicesForHeader(graphData.header);
   for (j = 0; j < indices.length; j++) {
     data.push([]);
   }
 
   var tableBody = $('#dataTable > tbody')[0];
+
+  var integerOnly = true;
+  var minValue = Number.POSITIVE_INFINITY;
+  var maxValue = Number.NEGATIVE_INFINITY;
 
   for (i = 0; i < tableBody.rows.length; i++) {
     var currentRow = tableBody.rows[i];
@@ -478,13 +553,24 @@ function getTableData(header, sort) {
 
       var value;
       if (graphData.showCorrectOnly && currentCell.className.indexOf('correct') != 0) {
-        value = null;
-      } else if (header === 'status') {
+        value = Number.NaN;  // using 'null' as unknown value causes problems in the plot
+
+      } else if (graphData.header === 'status') {
         if (currentCell.className.indexOf('correct') == 0)     value = 1;
         else if (currentCell.className.indexOf('wrong') == 0)  value = -1;
         else                                                   value = 0;
+
       } else {
         value = parseFloat(currentCell.textContent);
+        valueInt = parseInt(currentCell.textContent);
+
+        // collect some information, used later for tick-formatter
+        if (!isNaN(value)) {
+            if (value != valueInt){ integerOnly = false; }
+            if (value < minValue) { minValue = value; }
+            if (value > maxValue) { maxValue = value; }
+        }
+
         if (value == 0 && graphData.isLogScale) {
           value = 0.00001; // zero is not part of log-scale
         }
@@ -493,12 +579,18 @@ function getTableData(header, sort) {
     }
   }
 
-  data = sort ? sortData(data) : data;
-  return function inner() { return data;};
+  data = graphData.isQuantile ? sortData(data) : data;
+
+  // set some information
+  data.minValue = minValue;
+  data.maxValue = maxValue;
+  data.integerOnly = integerOnly;
+
+  return data;
 };
 
 
-// this method returns sorted data for showTrend().
+// this method returns sorted data for showQuantile().
 function sortData(data) {
   var newData = [];
   for (i = 0; i < data.length; i++) {
@@ -527,32 +619,41 @@ function sortData(data) {
   return newData;
 }
 
-// if useNums: get numbers for x-direction as [[0," 0"],[1," "],...] with a number in each 5th element
-// else:       get filenames as labels for x-direction
+// Create a list which indicates at which ticks to draw grid lines
+// and which labels to put at the x-axis.
 function getXTicks(useNums) {
   var xTicks = [];
   var maxLength = 40;
   var tableBody = $('#dataTable > tbody')[0];
 
-  if (useNums) { // collect some numbers
-    var step = (tableBody.rows.length > 10) ? 5 : 1;
-    var counter = 0;
-    for (i = 0; i < tableBody.rows.length; i++) {
-      if ($(tableBody.rows[i]).is(":visible")) {
-        xTicks.push([counter, ((counter%step)?" ":" " + counter)]);
-        counter++;
-      }
-    }
-  } else { // collect names of the files
-    for (i = 0; i < tableBody.rows.length; i++) {
-      var currentRow = tableBody.rows[i];
-      if ($(currentRow).is(":visible")) {
-        var name = currentRow.cells[0].textContent;
-        if (name.length > maxLength) { name = name.substring(0, maxLength) + "..."; }
-        xTicks.push([i, name]);
-      }
+  var numRows = tableBody.rows.length;
+  var labelStep = 1;
+  var gridStep = 1;
+  if (numRows > 30) { labelStep = 5; }
+  if (numRows > 200) { labelStep = 10; gridStep = 5; }
+  if (numRows > 1000) { labelStep = 20; gridStep = 10; }
+
+  function getLabel(currentRow) {
+    if (useNums) {
+      return " " + counter;
+    } else {
+      var name = currentRow.cells[0].textContent;
+      if (name.length > maxLength) { name = name.substring(0, maxLength) + "..."; }
+      return name;
     }
   }
+
+  var counter = 0;
+  for (i = 0; i < numRows; i++) {
+    var currentRow = tableBody.rows[i];
+    if ($(currentRow).is(":visible")) {
+      if (!(counter%gridStep)) {
+        xTicks.push([counter, ((counter%labelStep)?" ":getLabel(currentRow))]);
+      }
+      counter++;
+    }
+  }
+
   return xTicks;
 }
 
@@ -622,7 +723,7 @@ function getFormatter(labels, header) {
       else if (str == 0)  str = "unknown";
       else                str = "wrong";
     }
-    if (filename.indexOf(" ") == 0) { // for showTrend(), all labels start with space.
+    if (filename.indexOf(" ") == 0) { // for showQuantile(), all labels start with space.
       filename = "";
     } else {
       filename = filename + "<br>";
@@ -631,16 +732,26 @@ function getFormatter(labels, header) {
   };
 }
 
+function getYTicksFormat(data) {
+    if (data.integerOnly) { return '%.0f'; }
+    if (graphData.isLogScale) {
+        if (data.minValue >= 1) { return '%.0f'; }
+        else if (data.minValue >= 0.1) { return '%.1f'; }
+        else { return '%.2f'; }
+    } else {
+        return (data.maxValue >= 10) ? '%.0f' : '%.2f';
+    }
+}
 
 var graphData = {
   header : null,
-  isTrend : false,
-  isLogScale : false,
-  showCorrectOnly : false,
+  isQuantile : true,
+  isLogScale : true,
+  showCorrectOnly : true,
 };
 
-function toggleTrend() {
-  graphData.isTrend = !graphData.isTrend;
+function toggleQuantile() {
+  graphData.isQuantile = !graphData.isQuantile;
   showPlot();
 }
 
@@ -659,31 +770,32 @@ function showPlot() {
 
   debug("show plot of: " + graphData.header);
   var yTicks = getYTicks(graphData.header);
-  var xTicks = getXTicks(graphData.isTrend);
+  var xTicks = getXTicks(graphData.isQuantile);
 
   $('#contentPane').append('<div id="chart"></div>',
-                 '<button id="button-trend"></button>',
+                 '<button id="button-quantile"></button>',
                  '<button id="button-logScale"></button>',
                  '<button id="button-showCorrectOnly"></button>');
 
-  var button = $('#button-trend')[0];
-  button.onclick = function() { toggleTrend(); };
-  button.textContent = graphData.isTrend ? 'Show Plot' : 'Show Trend';
+  var button = $('#button-quantile')[0];
+  button.onclick = function() { toggleQuantile(); };
+  button.textContent = graphData.isQuantile ? 'Switch to Direct Plot' : 'Switch to Quantile Plot';
 
   var button = $('#button-logScale')[0];
   button.onclick = function() { toggleLogScale(); };
-  button.textContent = graphData.isLogScale ?  'Use linear scale' : 'Use log scale';
+  button.textContent = graphData.isLogScale ?  'Switch to Linear Scale' : 'Switch to Logarithmic Scale';
 
   var button = $('#button-showCorrectOnly')[0];
   button.onclick = function() { toggleShowCorrectOnly(); };
-  button.textContent = graphData.showCorrectOnly ?  'Show all files' : 'Show correct only';
+  button.textContent = graphData.showCorrectOnly ?  'Switch to All Results' : 'Switch to Correct Results Only';
 
   showContentPane();
   $('#contentPaneBackground').click(function(event) {
     $('#chart').empty();
   });
 
-  // data array is empty, we use "columnRenderer" option to get data.
+  var data = getTableData();
+
   var plot = $.jqplot('chart',[],{
     title: graphData.header,
     legend: {
@@ -695,7 +807,7 @@ function showPlot() {
       rowSpacing: "0px",
       showSwatches: true,
     },
-    dataRenderer: getTableData(graphData.header, graphData.isTrend),
+    dataRenderer: function() { return data; }, // dataRenderer needs a function
     highlighter:{
       show: true,
       sizeAdjust: 10,
@@ -703,6 +815,8 @@ function showPlot() {
       tooltipAxes: 'y',
       tooltipLocation: 'ne',
       tooltipContentEditor: getFormatter(xTicks, graphData.header),
+      tooltipFormatString: '%s',
+      useAxesFormatters: false
     },
     seriesDefaults:{
       shadow: false,
@@ -726,7 +840,7 @@ function showPlot() {
         renderer: (graphData.isLogScale && graphData.header !== 'status') ? $.jqplot.LogAxisRenderer : $.jqplot.LinearAxisRenderer,
         pad: 1.2,
         tickOptions:{
-          formatString: (graphData.isLogScale ? '%.3f' : '%.2f')
+          formatString: getYTicksFormat(data)
         }
       }
     },
@@ -742,7 +856,9 @@ $(document).ready(function() {
   for (i = 1; i< columnTitles.length; i++) { // do not use first column (i!=0)
     var column = columnTitles[i];
     debug(column);
-    column.style.cursor = "pointer";
+    $(column)
+      .addClass("clickable")
+      .attr("title", "Click here to show a graph of this column")
     column.onclick = function (event) {
       graphData.header = event.target.textContent;
       return showPlot();
@@ -762,7 +878,7 @@ $(document).ready(function() {
 <body>
 
 <div id="contentPaneBackground"></div>
-<div id="contentPane" tabindex="0"></div>
+<div id="contentPane"></div>
 
 <table id="dataTable">
 <thead>
@@ -771,6 +887,7 @@ def formatOptions(str):
     '''Helper function for formatting the content of the options line'''
     return html(html_quote(str)
                     .replace(' -', '<br/>-')
+                    .replace('\', \'', '\',<br/>\'')
                     .replace('=', '=<wbr/>')
                )
 }}
@@ -789,11 +906,11 @@ def formatOptions(str):
 
 <tbody>
 {{for line in body}}
-<tr><td><a href="{{line.filePath|url}}">{{line.shortFileName}}</a></td>
+<tr><td title="Click here to show source code"><a href="{{line.filePath|url}}">{{line.shortFileName}}</a></td>
   {{for test in line.results}}
   {{for column, value in zip(test.columns, test.values)}}
   {{if column.title == 'status'}}
-  <td class="{{test.category}}"><a href="{{test.logFile|url}}">{{value.lower()}}</a></td>
+  <td class="{{test.category}}" title="Click here to show output of tool"><a href="{{relpath(test.logFile, baseDir)|url}}">{{value.lower()}}</a></td>
   {{else}}
   <td class="{{test.category}}Value">{{value or '-'}}</td>
   {{endif}}
