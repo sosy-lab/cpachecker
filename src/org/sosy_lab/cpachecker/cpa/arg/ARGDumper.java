@@ -46,7 +46,7 @@ public class ARGDumper implements PostProcessor {
 
   @Option(name="dumpFile", description="export final ART as .c file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File dumpFile = new File("ART.c");
+  private File dumpFile = new File("ARG.c");
 
   private final ARGCPA cpa;
 
