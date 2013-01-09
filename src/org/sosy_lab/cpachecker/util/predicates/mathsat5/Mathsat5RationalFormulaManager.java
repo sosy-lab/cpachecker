@@ -184,7 +184,9 @@ public class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManag
   @Override
   public boolean isNegate(Long pNumber) {
     boolean isMult = isMultiply(pNumber);
-    if (!isMult) return false;
+    if (!isMult) {
+      return false;
+    }
     long arg = msat_term_get_arg(pNumber, 1);
     if (msat_term_is_number(mathsatEnv, arg)){
       String n = msat_term_repr(arg);
@@ -206,7 +208,9 @@ public class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManag
   @Override
   public boolean isSubtract(Long pNumber) {
     boolean isPlus = isAdd(pNumber);
-    if (!isPlus) return false;
+    if (!isPlus) {
+      return false;
+    }
 
     long arg = msat_term_get_arg(pNumber, 1);
     return isNegate(arg);
@@ -239,7 +243,9 @@ public class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManag
   @Override
   public boolean isGreaterThan(Long pNumber) {
     boolean isNot = isBoolNot(pNumber);
-    if (!isNot) return false;
+    if (!isNot) {
+      return false;
+    }
 
     long arg = msat_term_get_arg(pNumber, 0);
     return isLessOrEquals(arg);
@@ -253,7 +259,9 @@ public class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManag
   @Override
   public boolean isLessThan(Long pNumber) {
     boolean isNot = isBoolNot(pNumber);
-    if (!isNot) return false;
+    if (!isNot) {
+      return false;
+    }
 
     long arg = msat_term_get_arg(pNumber, 0);
     return isLessOrEquals(arg);

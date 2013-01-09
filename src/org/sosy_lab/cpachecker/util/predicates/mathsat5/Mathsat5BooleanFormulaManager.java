@@ -133,7 +133,9 @@ public class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager
   @Override
   public boolean isXor(Long pBits) {
     boolean isNot = msat_term_is_not(mathsatEnv, pBits);
-    if (!isNot) return false;
+    if (!isNot) {
+      return false;
+    }
     long notArg = msat_term_get_arg(pBits, 0);
     return msat_term_is_iff(mathsatEnv, notArg);
   }

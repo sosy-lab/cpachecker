@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public interface CType extends Type {
-  public abstract <R, X extends Exception> R accept(CTypeVisitor<R, X> visitor) throws X;
 
   public boolean isConst();
 
@@ -40,4 +39,5 @@ public interface CType extends Type {
   @Override
   public boolean equals(Object obj);
 
+  public abstract <R, X extends Exception> R accept(CTypeVisitor<R, X> visitor) throws X;
 }

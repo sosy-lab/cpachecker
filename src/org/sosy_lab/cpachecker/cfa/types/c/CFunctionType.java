@@ -27,6 +27,7 @@ import static com.google.common.collect.Iterables.transform;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
@@ -38,51 +39,6 @@ public class CFunctionType extends AFunctionType implements CType {
 
   private boolean   isConst;
   private boolean   isVolatile;
-
-  @Override
-  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
-  }
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((getName() == null) ? 0 : getName().hashCode());
-    result = prime * result + ((getParameters() == null) ? 0 : getParameters().hashCode());
-    result = prime * result + ((getReturnType() == null) ? 0 : getReturnType().hashCode());
-    result = prime * result + (takesVarArgs() ? 1231 : 1237);
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (!super.equals(obj))
-      return false;
-    if (getClass() != obj.getClass())
-      return false;
-    CFunctionType other = (CFunctionType) obj;
-    if (getName() == null) {
-      if (other.getName() != null)
-        return false;
-    } else if (!getName().equals(other.getName()))
-      return false;
-    if (getParameters() == null) {
-      if (other.getParameters() != null)
-        return false;
-    } else if (!getParameters().equals(other.getParameters()))
-      return false;
-    if (getReturnType() == null) {
-      if (other.getReturnType() != null)
-        return false;
-    } else if (!getReturnType().equals(other.getReturnType()))
-      return false;
-    if (takesVarArgs() != other.takesVarArgs())
-      return false;
-    return true;
-  }
 
   public CFunctionType(
       boolean pConst,
@@ -164,4 +120,38 @@ public class CFunctionType extends AFunctionType implements CType {
   public boolean isVolatile() {
     return isVolatile;
   }
+
+  @Override
+  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((getName() == null) ? 0 : getName().hashCode());
+    result = prime * result + ((getParameters() == null) ? 0 : getParameters().hashCode());
+    result = prime * result + ((getReturnType() == null) ? 0 : getReturnType().hashCode());
+    result = prime * result + (takesVarArgs() ? 1231 : 1237);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CFunctionType other = (CFunctionType) obj;
+
+    return
+        Objects.equals(getName(), other.getName()) &&
+        Objects.equals(getParameters(), other.getParameters()) &&
+        Objects.equals(getReturnType(), other.getReturnType()) &&
+        takesVarArgs() == other.takesVarArgs();
+  }
+
 }

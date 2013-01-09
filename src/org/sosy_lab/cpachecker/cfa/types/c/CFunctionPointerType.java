@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.transform;
 
 import java.util.List;
+import java.util.Objects;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -36,52 +37,6 @@ public class CFunctionPointerType implements CType {
 
   private boolean   isConst;
   private boolean   isVolatile;
-
-  @Override
-  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
-  }
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    result = prime * result + ((parameters == null) ? 0 : parameters.hashCode());
-    result = prime * result + ((returnType == null) ? 0 : returnType.hashCode());
-    result = prime * result + (takesVarArgs ? 1231 : 1237);
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (!super.equals(obj))
-      return false;
-    if (getClass() != obj.getClass())
-      return false;
-    CFunctionPointerType other = (CFunctionPointerType) obj;
-    if (name == null) {
-      if (other.name != null)
-        return false;
-    } else if (!name.equals(other.name))
-      return false;
-    if (parameters == null) {
-      if (other.parameters != null)
-        return false;
-    } else if (!parameters.equals(other.parameters))
-      return false;
-    if (returnType == null) {
-      if (other.returnType != null)
-        return false;
-    } else if (!returnType.equals(other.returnType))
-      return false;
-    if (takesVarArgs != other.takesVarArgs)
-      return false;
-    return true;
-  }
-
   private final CType returnType;
   private String name = null;
   private final List<CType> parameters;
@@ -179,4 +134,37 @@ public class CFunctionPointerType implements CType {
   public boolean isVolatile() {
     return isVolatile;
   }
+
+  @Override
+  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    result = prime * result + ((parameters == null) ? 0 : parameters.hashCode());
+    result = prime * result + ((returnType == null) ? 0 : returnType.hashCode());
+    result = prime * result + (takesVarArgs ? 1231 : 1237);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CFunctionPointerType other = (CFunctionPointerType) obj;
+    return
+        Objects.equals(name, other.name) &&
+        Objects.equals(parameters, other.parameters) &&
+        Objects.equals(returnType, other.returnType) &&
+        takesVarArgs == other.takesVarArgs;
+  }
+
 }

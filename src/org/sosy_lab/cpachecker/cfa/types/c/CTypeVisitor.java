@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 
-
 public interface CTypeVisitor<R, X extends Exception> {
   R visit(CArrayType pArrayType) throws X;
   R visit(CCompositeType pCompositeType) throws X;

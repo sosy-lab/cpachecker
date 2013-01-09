@@ -23,48 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
 
 public class CArrayType extends AArrayType implements CType {
 
-
-  @Override
-  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
-  }
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((length == null) ? 0 : length.hashCode());
-    result = prime * result + ((getType() == null) ? 0 : getType().hashCode());
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (!super.equals(obj))
-      return false;
-    if (getClass() != obj.getClass())
-      return false;
-    CArrayType other = (CArrayType) obj;
-    if (length == null) {
-      if (other.length != null)
-        return false;
-    } else if (!length.equals(other.length))
-      return false;
-    if (getType() == null) {
-      if (other.getType() != null)
-        return false;
-    } else if (!getType().equals(other.getType()))
-      return false;
-    return true;
-  }
 
   private final CExpression    length;
   private boolean   isConst;
@@ -110,5 +76,34 @@ public class CArrayType extends AArrayType implements CType {
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
         + "("+ getType().toString() + (")[" + (length != null ? length.toASTString() : "") + "]");
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((length == null) ? 0 : length.hashCode());
+    result = prime * result + ((getType() == null) ? 0 : getType().hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CArrayType other = (CArrayType) obj;
+
+    return
+        Objects.equals(length, other.length) &&
+        Objects.equals(getType(), other.getType());
   }
 }

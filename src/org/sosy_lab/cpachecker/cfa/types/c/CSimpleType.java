@@ -31,10 +31,6 @@ import com.google.common.base.Strings;
 
 public final class CSimpleType implements CType {
 
-  @Override
-  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
-  }
 
   private final CBasicType type;
   private final boolean isLong;
@@ -123,30 +119,28 @@ public final class CSimpleType implements CType {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-//    if (!super.equals(obj))
-//      return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
     CSimpleType other = (CSimpleType) obj;
-    if (isComplex != other.isComplex)
-      return false;
-    if (isImaginary != other.isImaginary)
-      return false;
-    if (isLong != other.isLong)
-      return false;
-    if (isLongLong != other.isLongLong)
-      return false;
-    if (isShort != other.isShort)
-      return false;
-    if (isSigned != other.isSigned)
-      return false;
-    if (isUnsigned != other.isUnsigned)
-      return false;
-    if (type != other.type)
-      return false;
-    return true;
+
+    return
+        isComplex == other.isComplex &&
+        isImaginary == other.isImaginary &&
+        isLong == other.isLong &&
+        isLongLong == other.isLongLong &&
+        isShort == other.isShort &&
+        isSigned == other.isSigned &&
+        isUnsigned == other.isUnsigned &&
+        type == other.type;
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
   }
 
   @Override

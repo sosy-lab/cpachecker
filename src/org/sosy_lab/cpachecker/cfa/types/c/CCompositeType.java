@@ -26,50 +26,12 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
+import java.util.Objects;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
 public final class CCompositeType implements CType {
-
-  @Override
-  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
-  }
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + key;
-    result = prime * result + ((members == null) ? 0 : members.hashCode());
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (!super.equals(obj))
-      return false;
-    if (getClass() != obj.getClass())
-      return false;
-    CCompositeType other = (CCompositeType) obj;
-    if (key != other.key)
-      return false;
-    if (members == null) {
-      if (other.members != null)
-        return false;
-    } else if (!members.equals(other.members))
-      return false;
-    if (name == null) {
-      if (other.name != null)
-        return false;
-    } else if (!name.equals(other.name))
-      return false;
-    return true;
-  }
 
   private final int                   key;
   private List<CCompositeTypeMemberDeclaration> members;
@@ -192,5 +154,37 @@ public final class CCompositeType implements CType {
   @Override
   public boolean isVolatile() {
     return isVolatile;
+  }
+
+
+  @Override
+  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + key;
+    result = prime * result + ((members == null) ? 0 : members.hashCode());
+    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CCompositeType other = (CCompositeType) obj;
+
+    return
+        Objects.equals(name, other.name) &&
+        Objects.equals(members, other.members) &&
+        key == other.key;
   }
 }

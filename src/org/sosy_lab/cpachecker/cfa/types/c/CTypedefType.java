@@ -25,46 +25,12 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Objects;
+
 /**
  * This represents a type which was created by using typedef.
  */
 public final class CTypedefType implements CType {
-
-  @Override
-  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
-  }
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    result = prime * result + ((realType == null) ? 0 : realType.hashCode());
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (!super.equals(obj))
-      return false;
-    if (getClass() != obj.getClass())
-      return false;
-    CTypedefType other = (CTypedefType) obj;
-    if (name == null) {
-      if (other.name != null)
-        return false;
-    } else if (!name.equals(other.name))
-      return false;
-    if (realType == null) {
-      if (other.realType != null)
-        return false;
-    } else if (!realType.equals(other.realType))
-      return false;
-    return true;
-  }
 
   private final String name; // the typedef name
   private final CType realType; // the real type this typedef points to
@@ -110,4 +76,33 @@ public final class CTypedefType implements CType {
   public boolean isVolatile() {
     return isVolatile;
   }
+  @Override
+  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    result = prime * result + ((realType == null) ? 0 : realType.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CTypedefType other = (CTypedefType) obj;
+
+    return
+        Objects.equals(name, other.name) &&
+        Objects.equals(realType, other.realType);
+  }
+
 }
