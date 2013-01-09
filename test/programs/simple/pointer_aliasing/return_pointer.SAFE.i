@@ -1,7 +1,7 @@
-# 1 "return_pointer.SAFE.raw.c"
+# 1 "./return_pointer.SAFE.c"
 # 1 "<eingebaut>"
 # 1 "<Kommandozeile>"
-# 1 "return_pointer.SAFE.raw.c"
+# 1 "./return_pointer.SAFE.c"
 # 1 "/usr/include/stdlib.h" 1 3 4
 # 25 "/usr/include/stdlib.h" 3 4
 # 1 "/usr/include/features.h" 1 3 4
@@ -1143,7 +1143,7 @@ extern int getloadavg (double __loadavg[], int __nelem)
      __attribute__ ((__nothrow__ )) __attribute__ ((__nonnull__ (1)));
 # 964 "/usr/include/stdlib.h" 3 4
 
-# 2 "return_pointer.SAFE.raw.c" 2
+# 2 "./return_pointer.SAFE.c" 2
 
 void test(int x) {
  if (!x) {

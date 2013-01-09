@@ -93,6 +93,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
+import org.sosy_lab.cpachecker.cfa.types.c.CDereferenceType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
@@ -452,11 +453,29 @@ public class CtoFormulaConverter {
     return fmgr.makeVariable(this.<T>getFormulaTypeFromCType(var.getType()), var.getName(), idx);
   }
 
-  /** Returns the pointer variable belonging to a given IdExpression */
-  private <T extends Formula> T makePointerVariable(CIdExpression expr, String function,
+  /** Returns the pointer variable belonging to a given Expression (only for Id- and CastExpression */
+  private <T extends Formula> T makePointerVariable(CExpression expr, String function,
       SSAMapBuilder ssa) {
-    Variable<CType> ptrVarName = makePointerVariableName(expr, function, ssa);
-    return makeVariable(ptrVarName, ssa);
+    CExpression castRemoved = removeCast(expr);
+    assert castRemoved instanceof CIdExpression
+        : "We can only handle CIdExpressions on this point";
+
+    Variable<CType> ptrVarName = makePointerVariableName((CIdExpression) castRemoved, function, ssa);
+    T f = this.<T>makeVariable(ptrVarName, ssa);
+    if (expr instanceof CCastExpression) {
+
+      CCastExpression castExp = (CCastExpression)expr;
+      // If we have a cast to a bigger type we fill with nondet-bits
+      // on any other case we just extract
+      CType totype = castExp.getType();
+      assert totype instanceof CPointerType : "Strange cast to a non pointer type before dereferencing.";
+      totype = dereferencedType(totype);
+
+      //ptrVar is the dereferenced space.
+      return makeExtractOrConcatNondet(ptrVarName.getType(), totype, f);
+    }
+
+    return f;
   }
 
   /** Takes a (scoped) variable name and returns the pointer variable name. */
@@ -482,7 +501,11 @@ public class CtoFormulaConverter {
   private Variable<CType> removePointerMaskVariable(Variable<CType> pointerVar){
     return Variable.create(removePointerMask(pointerVar.getName()), makePointerType(pointerVar.getType()));
   }
+
   private CType makePointerType(CType pType) {
+    if (pType instanceof CDereferenceType){
+      return ((CDereferenceType) pType).getType();
+    }
     return new CPointerType(false, false, pType);
   }
 
@@ -501,8 +524,9 @@ public class CtoFormulaConverter {
     } else if (t instanceof CArrayType) {
       t = ((CArrayType)t).getType();
     } else {
-      log(Level.INFO, "No pointer type: " + t.getClass() + ", " + t.toString());
+      t = new CDereferenceType(false, false, t);
     }
+
     return t;
   }
 
@@ -584,6 +608,44 @@ public class CtoFormulaConverter {
     return ffmgr.createUninterpretedFunctionCall(func, Arrays.asList(formula));
   }
 
+
+  @SuppressWarnings("unchecked")
+  private <T extends Formula> T makeExtractOrConcatNondet(CType pFromType, CType pToType, T pFormula) {
+    assert pFormula instanceof BitvectorFormula : "Can't makeExtractOrConcatNondet for something other than Bitvectors";
+    int sfrom = machineModel.getSizeof(pFromType);
+    int sto = machineModel.getSizeof(pToType);
+    return (T) changeFormulaSize(sfrom * 8, sto * 8, (BitvectorFormula)pFormula);
+  }
+
+  /**
+   * Change the given Formulasize from the given size to the new size.
+   * if sfrom > sto an extract will be done.
+   * if sto > sfrom an concat with nondet-bits will be done.
+   * else pFormula is returned.
+   * @param sfrom
+   * @param sto
+   * @param pFormula
+   * @return
+   */
+  private BitvectorFormula changeFormulaSize(int sfrombits, int stobits, BitvectorFormula pFormula) {
+    // Currently everything is a bitvector
+    BitvectorFormula ret;
+    if (sfrombits > stobits) {
+      ret = fmgr.makeExtract(pFormula, stobits - 1, 0);
+    } else if (sfrombits < stobits) {
+      // Sign extend with ones when pfromType is signed and sign bit is set
+      int bitsToExtend = stobits - sfrombits;
+      FormulaType<BitvectorFormula> t = efmgr.getFormulaType(bitsToExtend);
+      BitvectorFormula extendBits = fmgr.makeVariable(t, CtoFormulaConverter.EXPAND_VARIABLE + expands++, 0); // for every call a new variable
+
+      ret = fmgr.makeConcat(extendBits , pFormula);
+    } else {
+      ret = pFormula;
+    }
+
+    assert fmgr.getFormulaType(ret) == efmgr.getFormulaType(stobits);
+    return ret;
+  }
   private Formula makeSimpleCast(CSimpleType pfromType, CSimpleType ptoType, Formula pFormula) {
     int sfrom = machineModel.getSizeof(pfromType);
     int sto = machineModel.getSizeof(ptoType);
@@ -1080,7 +1142,7 @@ public class CtoFormulaConverter {
         CExpression left = removeCast(e);
         if (left instanceof CIdExpression) {
           BooleanFormula ptrAssignment = buildDirectReturnSecondLevelAssignment(
-              (CIdExpression) left, var, function, ssa);
+              e, var, function, ssa);
           assignments = bfmgr.and(assignments, ptrAssignment);
         }
       }
@@ -1201,7 +1263,7 @@ public class CtoFormulaConverter {
     return exp.accept(getLvalueVisitor(edge, function, ssa, constraints));
   }
 
-  private BooleanFormula buildDirectReturnSecondLevelAssignment(CIdExpression leftId,
+  private BooleanFormula buildDirectReturnSecondLevelAssignment(CExpression leftId,
       Variable<CType> retVarName, String function, SSAMapBuilder ssa) {
 
     // include aliases if the left or right side may be a pointer a pointer
@@ -1238,15 +1300,12 @@ public class CtoFormulaConverter {
       int rightSize = bitvectorFormulaManager.getLength(rightBv);
 
       // Expand the smaller one with nondet-bits
-      int dif = Math.abs(rightSize - leftSize);
-      FormulaType<BitvectorFormula> t = bitvectorFormulaManager.getFormulaType(dif);
-      //Variable<CType> var = Variable.create(CtoFormulaConverter.NONDET_VARIABLE, null);
-      //int idx = makeFreshIndex(var, ssa);
-      BitvectorFormula nonDet = fmgr.makeVariable(t, CtoFormulaConverter.EXPAND_VARIABLE + expands++, 0); // for every call a new variable
       if (leftSize < rightSize) {
-        leftBv = bitvectorFormulaManager.concat(nonDet,leftBv);
+        leftBv =
+            changeFormulaSize(leftSize, rightSize, leftBv);
       } else {
-        rightBv = bitvectorFormulaManager.concat(nonDet,rightBv);
+        rightBv =
+            changeFormulaSize(rightSize, leftSize, rightBv);
       }
       return bitvectorFormulaManager.equal(leftBv, rightBv);
     }
@@ -1290,15 +1349,15 @@ public class CtoFormulaConverter {
       removeOldPointerVariablesFromSsaMap(lPtrVarName, ssa);
       Formula lPtrVar = makeVariable(lPtrVarName, ssa);
 
-      CExpression rExpr = removeCast(((CUnaryExpression) right).getOperand());
+      CExpression rRawExpr = ((CUnaryExpression) right).getOperand();
+      CExpression rExpr = removeCast(rRawExpr);
       if (!(rExpr instanceof CIdExpression)) {
         // these are statements like s1 = *(s2.f)
         // TODO check whether doing nothing is correct
         return bfmgr.makeBoolean(true);
       }
 
-      CIdExpression rIdExpr = (CIdExpression)rExpr;
-      Formula rPtrVar = makePointerVariable(rIdExpr, function, ssa);
+      Formula rPtrVar = makePointerVariable(rRawExpr, function, ssa);
 
       // the dealiased address of the right hand side may be a pointer itself.
       // to ensure tracking, we need to set the left side
@@ -1314,10 +1373,22 @@ public class CtoFormulaConverter {
           Formula var = makeVariable(varName, ssa);
           Formula ptrVar = makeVariable(ptrVarName, ssa);
 
-          BooleanFormula ptr = fmgr.makeEqual(rPtrVar, var);
+          BooleanFormula ptr;
+          BooleanFormula dirEq;
+          if (ptrVarName.getType() instanceof CDereferenceType){
+            // Variable from a aliasing formula, they are always to smapp, so fill up with nondet bits to make a pointer.
+            ptr = makeNondetAssignment(rPtrVar, var, ssa);
+            dirEq = makeNondetAssignment(lVar, var, ssa);
+          } else {
+            assert fmgr.getFormulaType(rPtrVar) == fmgr.getFormulaType(var)
+                : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
+            ptr = fmgr.makeEqual(rPtrVar, var);
+            dirEq = fmgr.makeEqual(lVar, var);
+          }
 
-          BooleanFormula dirEq = fmgr.makeEqual(lVar, var);
-          BooleanFormula indirEq = fmgr.makeEqual(lPtrVar, ptrVar);
+          BooleanFormula indirEq =
+              makeNondetAssignment(lPtrVar, ptrVar, ssa);
+              // fmgr.makeEqual(lPtrVar, ptrVar);
           BooleanFormula consequence = bfmgr.and(dirEq, indirEq);
 
           BooleanFormula constraint = bfmgr.implication(ptr, consequence);
@@ -1964,7 +2035,7 @@ public class CtoFormulaConverter {
 
       case STAR:
         if (opExp instanceof CIdExpression) {
-          return makePointerVariable((CIdExpression) opExp, function, ssa);
+          return makePointerVariable(exp.getOperand(), function, ssa);
         }
 
         //$FALL-THROUGH$
@@ -2255,7 +2326,8 @@ public class CtoFormulaConverter {
       CUnaryExpression l = (CUnaryExpression) lExp;
       assert (l.getOperator() == UnaryOperator.STAR);
 
-      CExpression lOperand = removeCast(l.getOperand());
+      CExpression lRawOperand = l.getOperand();
+      CExpression lOperand = removeCast(lRawOperand);
       if (!(lOperand instanceof CIdExpression)) {
         // TODO: *(a + 2) = b
         return super.visit(pAssignment);
@@ -2265,6 +2337,19 @@ public class CtoFormulaConverter {
 
       Variable<CType> lVarName = scopedIfNecessary((CIdExpression) lOperand, function);
       Formula lVar = makeVariable(lVarName, ssa);
+
+      if (lRawOperand instanceof CCastExpression) {
+
+        CCastExpression castExp = (CCastExpression)lRawOperand;
+        // If we have a cast to a bigger type we fill with nondet-bits
+        // on any other case we just extract
+        CType totype = castExp.getType();
+        assert totype instanceof CPointerType : "Strange cast to a non pointer type before dereferencing.";
+        totype = dereferencedType(totype);
+
+        // pointercast
+        lVar = makeExtractOrConcatNondet(lVarName.getType(), totype, lVar);
+      }
 
       //TODO: check this
       Variable<CType> rVarName = Variable.create(null, pAssignment.getRightHandSide().getExpressionType());
@@ -2366,6 +2451,7 @@ public class CtoFormulaConverter {
             makeFreshIndex(varName, ssa);
 
             Formula newVar = makeVariable(varName, ssa);
+
             Variable<CType> newPtrVarName = makePointerMaskVariable(varName, ssa);
             removeOldPointerVariablesFromSsaMap(newPtrVarName, ssa);
 
@@ -2410,10 +2496,16 @@ public class CtoFormulaConverter {
           Formula oldPtrVar = makeVariable(ptrVarName, ssa);
           makeFreshIndex(ptrVarName, ssa);
           Formula newPtrVar = makeVariable(ptrVarName, ssa);
-
-          assert fmgr.getFormulaType(var) == fmgr.getFormulaType(leftVar)
-              : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
-          BooleanFormula condition = fmgr.makeEqual(var, leftVar);
+          BooleanFormula condition;
+          if (ptrVarName.getType() instanceof CDereferenceType){
+            // Variable from a aliasing formula, they are always to smapp, so fill up with nondet bits to make a pointer.
+            condition = makeNondetAssignment(var, leftVar, ssa);
+          } else {
+            assert fmgr.getFormulaType(var) == fmgr.getFormulaType(leftVar)
+                : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
+            condition = fmgr.makeEqual(var, leftVar);
+          }
+          //BooleanFormula condition = fmgr.makeEqual(var, leftVar);
           BooleanFormula equality = makeNondetAssignment(newPtrVar, rightVariable, ssa);
           BooleanFormula indexUpdate = fmgr.assignment(newPtrVar, oldPtrVar);
 
@@ -2684,7 +2776,7 @@ public class CtoFormulaConverter {
           CIdExpression ptrId = (CIdExpression) exp;
           Variable<CType> ptrVarName = makePointerVariableName(ptrId, function, ssa);
           makeFreshIndex(ptrVarName, ssa);
-          return makePointerVariable(ptrId, function, ssa);
+          return makePointerVariable(pE.getOperand(), function, ssa);
 
         } else {
           // apparently valid cil output:

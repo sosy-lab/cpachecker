@@ -89,6 +89,11 @@ public class CTypeUtils {
     @Override
     public CType visit(CComplexType pCComplexType) throws Exception {
       throw new IllegalArgumentException();
+    }
+
+    @Override
+    public CType visit(CDereferenceType pCDereferenceType) {
+      return pCDereferenceType;
     }};
 
   public static CType simplifyType(CType t1) {

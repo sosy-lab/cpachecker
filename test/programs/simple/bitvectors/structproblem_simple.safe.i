@@ -1,7 +1,7 @@
-# 1 "malloc_compare.UNSAFE.c"
+# 1 "./structproblem_simple.safe.c"
 # 1 "<eingebaut>"
 # 1 "<Kommandozeile>"
-# 1 "malloc_compare.UNSAFE.c"
+# 1 "./structproblem_simple.safe.c"
 # 1 "/usr/include/stdlib.h" 1 3 4
 # 25 "/usr/include/stdlib.h" 3 4
 # 1 "/usr/include/features.h" 1 3 4
@@ -1143,23 +1143,41 @@ extern int getloadavg (double __loadavg[], int __nelem)
      __attribute__ ((__nothrow__ )) __attribute__ ((__nonnull__ (1)));
 # 964 "/usr/include/stdlib.h" 3 4
 
-# 2 "malloc_compare.UNSAFE.c" 2
+# 2 "./structproblem_simple.safe.c" 2
 
-void test(int x) {
- if (!x) {
-ERROR: goto ERROR;
- }
-}
 
-void main() {
- int* p1;
- int* p2;
- int si = sizeof(int);
 
- p1 = malloc(si);
- p2 = malloc(si);
 
- test(p1 != p2);
+struct node {
+    struct node *next;
+    int value;
+};
 
-END_PROGRAM: exit();
+struct list {
+   struct node *slist ;
+   struct list *next ;
+};
+
+
+int main() {
+  int i = 3;
+  int j = 4;
+  void* tmp = malloc(sizeof(int*) * 2);
+  int* ptrI = &i;
+  int* ptrj = &j;
+  int** tmphelper = (int**)tmp;
+  int* tmpfst = *tmphelper;
+  int* tmpsnd = *(tmphelper + 1);
+  tmpfst = ptrI;
+  tmpsnd = ptrj;
+  int** other = (int**)tmp;
+  int* snd = *(other + 1);
+  if (*tmpfst == 3 && *tmpsnd == 4) {
+    return 0;
+  }
+
+ ERROR:
+  goto ERROR;
+
+  return 1;
 }

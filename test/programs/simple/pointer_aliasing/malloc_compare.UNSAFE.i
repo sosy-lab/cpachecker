@@ -1,7 +1,7 @@
-# 1 "malloc_compare.SAFE.c"
+# 1 "./malloc_compare.UNSAFE.c"
 # 1 "<eingebaut>"
 # 1 "<Kommandozeile>"
-# 1 "malloc_compare.SAFE.c"
+# 1 "./malloc_compare.UNSAFE.c"
 # 1 "/usr/include/stdlib.h" 1 3 4
 # 25 "/usr/include/stdlib.h" 3 4
 # 1 "/usr/include/features.h" 1 3 4
@@ -1143,7 +1143,7 @@ extern int getloadavg (double __loadavg[], int __nelem)
      __attribute__ ((__nothrow__ )) __attribute__ ((__nonnull__ (1)));
 # 964 "/usr/include/stdlib.h" 3 4
 
-# 2 "malloc_compare.SAFE.c" 2
+# 2 "./malloc_compare.UNSAFE.c" 2
 
 void test(int x) {
  if (!x) {
@@ -1158,10 +1158,6 @@ void main() {
 
  p1 = malloc(si);
  p2 = malloc(si);
-
- if (p1 == 0 || p2 == 0) {
-  goto END_PROGRAM;
- }
 
  test(p1 != p2);
 
