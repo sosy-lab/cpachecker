@@ -11,20 +11,7 @@
   </test>
 
   <test filename="test/results/benchmark-cpachecker.11-??-??.????.results.xml">
-    <!-- all columns of the testfile will be part of the table,
-         if there is not default set of columns given directly inside the <table> tag -->
+    <!-- all columns of the testfile will be part of the table -->
   </test>
-
-  <union>
-    <!-- Merge the result of several runs into one column in the table. -->
-    <test filename="test/results/benchmark-cpachecker-part1.11-??-??.????.results.xml"/>
-    <test filename="test/results/benchmark-cpachecker-part2.11-??-??.????.results.xml"/>
-    <column title="status"/>
-  </union>
-
-  <!-- Default set of columns for tests which don't have any columns mentioned. -->
-  <column title="status"/>
-  <column title="cputime"/>
-  <column title="walltime"/>
 
 </table>

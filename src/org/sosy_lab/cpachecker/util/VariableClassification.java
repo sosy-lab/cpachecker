@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.io.File;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,13 +34,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -88,12 +80,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-@Options(prefix = "cfa.variableClassification")
 public class VariableClassification {
-
-  @Option(name = "logfile", description = "Dump variable classification to a file.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File dumpfile = new File("VariableClassification.log");
 
   /** name for return-variables, it is used for function-returns. */
   public static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
@@ -122,8 +109,7 @@ public class VariableClassification {
 
   private CFA cfa;
 
-  public VariableClassification(CFA cfa, Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
+  public VariableClassification(CFA cfa) {
     this.cfa = cfa;
   }
 
@@ -162,19 +148,12 @@ public class VariableClassification {
         dependencies.addVar(var.getKey(), var.getValue());
       }
 
-      if (dumpfile != null) { // option -noout
-        // System.out.println(dependencies);
-        final String content = "BOOL\n" + booleanVars +
-            "\n\nDISCRETE\n\n" + discreteValueVars +
-            "\n\nSIMPLECALC\n\n" + simpleCalcVars +
-            "\n\nALL\n\n" + allVars;
-
-        try {
-          Files.writeFile(dumpfile, content);
-        } catch (IOException e) {
-          // TODO should we do something?
-        }
-      }
+      //      System.out.println(dependencies);
+      //      System.out.println("BOOL\n" + booleanVars);
+      //      System.out.println("DISCRETE\n" + discreteValueVars);
+      //      System.out.println("SIMPLECALC\n" + simpleCalcVars);
+      //      System.out.println("ALL\n" + allVars);
+      // TODO is there a need to change the Maps later? make Maps immutable?
     }
   }
 
@@ -817,8 +796,10 @@ public class VariableClassification {
 
       switch (exp.getOperator()) {
 
+      case LOGICAL_AND:
+      case LOGICAL_OR:
       case EQUALS:
-      case NOT_EQUALS: // ==, != work with boolean operands
+      case NOT_EQUALS: // &&, ||, ==, != work with boolean operands
         operand1.putAll(operand2);
         return operand1;
 
@@ -1014,6 +995,8 @@ public class VariableClassification {
       case BINARY_AND:
       case BINARY_XOR:
       case BINARY_OR:
+      case LOGICAL_AND:
+      case LOGICAL_OR:
         // this calculations work with all numbers
         operand1.putAll(operand2);
         return operand1;

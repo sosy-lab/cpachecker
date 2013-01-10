@@ -92,15 +92,6 @@ public interface RegionManager {
   public Region makeUnequal(Region f1, Region f2);
 
   /**
-   * Creates a region representing an if then else construct of the three arguments
-   * @param f1 an AbstractFormula
-   * @param f2 an AbstractFormula
-   * @param f3 an AbstractFormula
-   * @return (if f1 then f2 else f3)
-   */
-  public Region makeIte(Region f1, Region f2, Region f3);
-
-  /**
    * Creates a region representing an existential quantification of the second
    * argument. If there are more arguments, each of them is quantified.
    * @param f1 an AbstractFormula

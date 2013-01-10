@@ -87,11 +87,11 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
     stats = new Statistics() {
       @Override
       public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-        pOut.println("Total time:                 " + OmniscientCompositePrecisionAdjustment.this.total);
-        pOut.println("Total time for composite:   " + OmniscientCompositePrecisionAdjustment.this.totalComposite);
-        pOut.println("Total time for abstraction: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceAbstraction);
-        pOut.println("Total time for reached set: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceReachedSetThreshold);
-        pOut.println("Total time for path:        " + OmniscientCompositePrecisionAdjustment.this.totalEnforcePathThreshold);
+        pOut.println("total time:                 " + OmniscientCompositePrecisionAdjustment.this.total.getSumTime());
+        pOut.println("total time for composite:   " + OmniscientCompositePrecisionAdjustment.this.totalComposite.getSumTime());
+        pOut.println("total time for abstraction: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceAbstraction.getSumTime());
+        pOut.println("total time for reached set: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceReachedSetThreshold.getSumTime());
+        pOut.println("total time for path:        " + OmniscientCompositePrecisionAdjustment.this.totalEnforcePathThreshold.getSumTime());
       }
 
       @Override
@@ -217,7 +217,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    * @return the variables to the dropped
    */
   private List<String> getVariablesToDrop(ExplicitState explicitState, ExplicitPrecision explicitPrecision) {
-    Set<String> candidates = useDeltaPrecision ? explicitState.getDelta() : explicitState.getTrackedVariableNames();
+    Set<String> candidates = useDeltaPrecision ? explicitState.getDelta() : explicitState.getConstantsMap().keySet();
 
     List<String> toDrop = new ArrayList<String>();
     if(candidates != null) {

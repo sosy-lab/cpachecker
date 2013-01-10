@@ -187,8 +187,10 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
         operator = operator == BinaryOperator.GREATER_EQUAL ? BinaryOperator.LESS_EQUAL : BinaryOperator.LESS_THAN;
         break;
       case BINARY_AND:
+      case LOGICAL_AND:
         return this.regionManager.makeAnd(assumeToRegion(left), assumeToRegion(right));
       case BINARY_OR:
+      case LOGICAL_OR:
         return this.regionManager.makeOr(assumeToRegion(left), assumeToRegion(right));
       case BINARY_XOR:
         return this.regionManager.makeXor(assumeToRegion(left), assumeToRegion(right));

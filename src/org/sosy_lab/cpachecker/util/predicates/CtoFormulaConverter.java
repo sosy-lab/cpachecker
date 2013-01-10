@@ -85,17 +85,18 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedef;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.MachineModel;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
@@ -140,6 +141,9 @@ public class CtoFormulaConverter {
     + "a non-deterministic return value (c.f. cpa.predicate.nondedFunctions)")
   private String nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-z]*";
   private final Pattern nondetFunctionsPattern;
+
+  @Option(description = "the machine model used for functions sizeof and alignof")
+  private MachineModel machineModel = MachineModel.LINUX32;
 
   @Option(description = "Handle aliasing of pointers. "
         + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
@@ -205,21 +209,16 @@ public class CtoFormulaConverter {
   private final Map<String, Formula> stringLitToFormula = new HashMap<String, Formula>();
   private int nextStringLitIndex = 0;
 
-  private final MachineModel machineModel;
-
   protected final ExtendedFormulaManager fmgr;
   protected final LogManager logger;
 
   private static final int                 VARIABLE_UNSET          = -1;
   private static final int                 VARIABLE_UNINITIALIZED  = 2;
 
-  public CtoFormulaConverter(Configuration config, ExtendedFormulaManager fmgr,
-      MachineModel pMachineModel, LogManager logger)
-          throws InvalidConfigurationException {
+  public CtoFormulaConverter(Configuration config, ExtendedFormulaManager fmgr, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
 
     this.fmgr = fmgr;
-    this.machineModel = pMachineModel;
     this.logger = logger;
 
     nondetFunctionsPattern = Pattern.compile(nondetFunctionsRegexp);
@@ -303,8 +302,11 @@ public class CtoFormulaConverter {
     if (tp instanceof CPointerType) {
       return getTypeName(((CPointerType)tp).getType());
 
-    } else if (tp instanceof CTypedefType) {
-      return getTypeName(((CTypedefType)tp).getRealType());
+    } else if (tp instanceof CTypedef) {
+      return getTypeName(((CTypedef)tp).getType());
+
+    } else if (tp instanceof CComplexType){
+      return ((CComplexType)tp).getName();
 
     } else {
       throw new AssertionError("wrong type");
@@ -1124,67 +1126,87 @@ public class CtoFormulaConverter {
       CExpression e1 = exp.getOperand1();
       CExpression e2 = exp.getOperand2();
 
-      // these operators expect numeric arguments
-      Formula me1 = toNumericFormula(e1.accept(this));
-      Formula me2 = toNumericFormula(e2.accept(this));
-
       switch (op) {
-      case PLUS:
-        return fmgr.makePlus(me1, me2);
-      case MINUS:
-        return fmgr.makeMinus(me1, me2);
-      case MULTIPLY:
-        return fmgr.makeMultiply(me1, me2);
-      case DIVIDE:
-        return fmgr.makeDivide(me1, me2);
-      case MODULO:
-        return fmgr.makeModulo(me1, me2);
-      case BINARY_AND:
-        return fmgr.makeBitwiseAnd(me1, me2);
-      case BINARY_OR:
-        return fmgr.makeBitwiseOr(me1, me2);
-      case BINARY_XOR:
-        return fmgr.makeBitwiseXor(me1, me2);
+      case LOGICAL_AND:
+      case LOGICAL_OR: {
+        // these operators expect boolean arguments
+        Formula me1 = toBooleanFormula(e1.accept(this));
+        Formula me2 = toBooleanFormula(e2.accept(this));
 
-      case SHIFT_LEFT:
-        // SAT-solver cannot handle bitshifts,
-        // so we try to convert a bitshift into a multiplication:
-        // x << 2 is equal to x*4
-        // TODO perhaps bitshifts are possible in future
-        if (e2 instanceof CIntegerLiteralExpression) {
-          final int factor = IntMath.pow(2, ((CIntegerLiteralExpression) e2).getValue().intValue());
-          return fmgr.makeMultiply(me1, fmgr.makeNumber(factor));
-        } else {
-          return fmgr.makeShiftLeft(me1, me2);
+        switch (op) {
+        case LOGICAL_AND:
+          return fmgr.makeAnd(me1, me2);
+        case LOGICAL_OR:
+          return fmgr.makeOr(me1, me2);
+        default:
+          throw new AssertionError();
         }
+      }
 
-      case SHIFT_RIGHT:
-        // SAT-solver cannot handle bitshifts,
-        // so we try to evaluate a bitshift: 4 >> 2 is equal to 1
-        // TODO perhaps bitshifts are possible in future
-        if (e1 instanceof CIntegerLiteralExpression
-            && e2 instanceof CIntegerLiteralExpression) {
-          return fmgr.makeNumber(((CIntegerLiteralExpression) e1).getValue().
-              shiftRight(((CIntegerLiteralExpression) e2).getValue().intValue()).intValue());
-        } else {
-          return fmgr.makeShiftRight(me1, me2);
+      default: {
+        // these other operators expect numeric arguments
+        Formula me1 = toNumericFormula(e1.accept(this));
+        Formula me2 = toNumericFormula(e2.accept(this));
+
+        switch (op) {
+        case PLUS:
+          return fmgr.makePlus(me1, me2);
+        case MINUS:
+          return fmgr.makeMinus(me1, me2);
+        case MULTIPLY:
+          return fmgr.makeMultiply(me1, me2);
+        case DIVIDE:
+          return fmgr.makeDivide(me1, me2);
+        case MODULO:
+          return fmgr.makeModulo(me1, me2);
+        case BINARY_AND:
+          return fmgr.makeBitwiseAnd(me1, me2);
+        case BINARY_OR:
+          return fmgr.makeBitwiseOr(me1, me2);
+        case BINARY_XOR:
+          return fmgr.makeBitwiseXor(me1, me2);
+
+        case SHIFT_LEFT:
+          // SAT-solver cannot handle bitshifts,
+          // so we try to convert a bitshift into a multiplication:
+          // x << 2 is equal to x*4
+          // TODO perhaps bitshifts are possible in future
+          if (e2 instanceof CIntegerLiteralExpression) {
+            final int factor = IntMath.pow(2, ((CIntegerLiteralExpression) e2).getValue().intValue());
+            return fmgr.makeMultiply(me1, fmgr.makeNumber(factor));
+          } else {
+            return fmgr.makeShiftLeft(me1, me2);
+          }
+
+        case SHIFT_RIGHT:
+          // SAT-solver cannot handle bitshifts,
+          // so we try to evaluate a bitshift: 4 >> 2 is equal to 1
+          // TODO perhaps bitshifts are possible in future
+          if (e1 instanceof CIntegerLiteralExpression
+              && e2 instanceof CIntegerLiteralExpression) {
+            return fmgr.makeNumber(((CIntegerLiteralExpression) e1).getValue().
+                shiftRight(((CIntegerLiteralExpression) e2).getValue().intValue()).intValue());
+          } else {
+            return fmgr.makeShiftRight(me1, me2);
+          }
+
+        case GREATER_THAN:
+          return fmgr.makeGt(me1, me2);
+        case GREATER_EQUAL:
+          return fmgr.makeGeq(me1, me2);
+        case LESS_THAN:
+          return fmgr.makeLt(me1, me2);
+        case LESS_EQUAL:
+          return fmgr.makeLeq(me1, me2);
+        case EQUALS:
+          return fmgr.makeEqual(me1, me2);
+        case NOT_EQUALS:
+          return fmgr.makeNot(fmgr.makeEqual(me1, me2));
+
+        default:
+          throw new UnrecognizedCCodeException("Unknown binary operator", edge, exp);
         }
-
-      case GREATER_THAN:
-        return fmgr.makeGt(me1, me2);
-      case GREATER_EQUAL:
-        return fmgr.makeGeq(me1, me2);
-      case LESS_THAN:
-        return fmgr.makeLt(me1, me2);
-      case LESS_EQUAL:
-        return fmgr.makeLeq(me1, me2);
-      case EQUALS:
-        return fmgr.makeEqual(me1, me2);
-      case NOT_EQUALS:
-        return fmgr.makeNot(fmgr.makeEqual(me1, me2));
-
-      default:
-        throw new UnrecognizedCCodeException("Unknown binary operator", edge, exp);
+      }
       }
     }
 
@@ -1242,7 +1264,7 @@ public class CtoFormulaConverter {
 
     @Override
     public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
-      return fmgr.makeNumber(fExp.getValue().toPlainString());
+      return fmgr.makeNumber(fExp.getValue().toString());
     }
 
     @Override

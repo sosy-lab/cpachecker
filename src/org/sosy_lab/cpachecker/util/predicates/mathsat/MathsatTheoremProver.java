@@ -179,7 +179,6 @@ public class MathsatTheoremProver implements TheoremProver {
     }
 
     private void buildBalancedOr() {
-      enumTime.startBoth();
       cubes.add(formula);
       while (cubes.size() > 1) {
         Region b1 = cubes.remove();
@@ -188,7 +187,6 @@ public class MathsatTheoremProver implements TheoremProver {
       }
       assert(cubes.size() == 1);
       formula = cubes.remove();
-      enumTime.stopBoth();
     }
 
     @Override

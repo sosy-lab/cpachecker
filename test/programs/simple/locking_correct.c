@@ -49,5 +49,5 @@ int main() {
 	return (0);
 
 ERROR:
-	goto ERROR;
+	GOTO ERROR;
 }

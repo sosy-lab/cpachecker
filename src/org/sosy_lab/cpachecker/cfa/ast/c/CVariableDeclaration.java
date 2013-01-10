@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CVariableDeclaration extends CDeclaration {
 
   private final CStorageClass    cStorageClass;
-  private CInitializer initializer;
+  private final CInitializer initializer;
 
   public CVariableDeclaration(CFileLocation pFileLocation, boolean pIsGlobal,
       CStorageClass pCStorageClass, CType pType, String pName, String pOrigName,
@@ -66,17 +66,6 @@ public final class CVariableDeclaration extends CDeclaration {
    */
   public CInitializer getInitializer() {
     return initializer;
-  }
-
-  /**
-   * Add an initializer.
-   * This is only possible if there is no initializer already.
-   * DO NOT CALL this method after CFA construction!
-   * @param pInitializer the new initializer
-   */
-  public void addInitializer(CInitializer pInitializer) {
-    checkState(initializer == null);
-    initializer = pInitializer;
   }
 
   @Override

@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -94,14 +93,9 @@ public class CPAMain {
     File cFile = null;
     ProofGenerator proofGenerator = null;
     try {
-      MainOptions options = new MainOptions();
-      cpaConfig.inject(options);
-      dumpConfiguration(options, cpaConfig, logManager);
-      cFile = getCodeFile(options);
-
       shutdownHook = new ShutdownHook(cpaConfig, logManager, outputDirectory);
       cpachecker = new CPAchecker(cpaConfig, logManager);
-
+      cFile = getCodeFile(cpaConfig);
       proofGenerator = new ProofGenerator(cpaConfig, logManager);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
@@ -131,30 +125,17 @@ public class CPAMain {
         description="C programs to analyze (currently only one file is supported)")
     @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
     private List<File> programs;
-
-    @Option(name="configuration.dumpFile",
-        description="Dump the complete configuration to a file.")
-    @FileOption(FileOption.Type.OUTPUT_FILE)
-    private File configurationOutputFile = new File("UsedConfiguration.properties");
   }
 
-  static File getCodeFile(final MainOptions options) throws InvalidConfigurationException {
+  static File getCodeFile(final Configuration cpaConfig) throws InvalidConfigurationException {
+    MainOptions options = new MainOptions();
+    cpaConfig.inject(options);
+
     if (options.programs.size() != 1) {
       throw new InvalidConfigurationException("Exactly one code file has to be given.");
     }
 
     return Iterables.getOnlyElement(options.programs);
-  }
-
-  static void dumpConfiguration(MainOptions options, Configuration config,
-      LogManager logManager) {
-    if (options.configurationOutputFile != null) {
-      try {
-        Files.writeFile(options.configurationOutputFile, config.asPropertiesString());
-      } catch (IOException e) {
-        logManager.logUserException(Level.WARNING, e, "Could not dump configuration to file");
-      }
-    }
   }
 
   static Configuration createConfiguration(String[] args)

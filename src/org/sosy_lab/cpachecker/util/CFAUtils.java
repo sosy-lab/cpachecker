@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -36,20 +35,16 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
-import com.google.common.primitives.Ints;
 
 public class CFAUtils {
 
@@ -223,27 +218,6 @@ public class CFAUtils {
   public static FluentIterable<CFANode> allSuccessorsOf(final CFANode node) {
     return allLeavingEdges(node).transform(TO_SUCCESSOR);
   }
-
-  /**
-   * A predicate delegating to {@link CFANode#isLoopStart()}.
-   */
-  public static Predicate<CFANode> IS_LOOP_NODE = new Predicate<CFANode>() {
-    @Override
-    public boolean apply(@Nullable CFANode pInput) {
-      return pInput.isLoopStart();
-    }
-  };
-
-  /**
-   * A comparator for comparing {@link CFANode}s by their line numbers.
-   */
-  public static Comparator<CFANode> LINE_NUMBER_COMPARATOR = new Comparator<CFANode>() {
-    @Override
-    public int compare(CFANode pO1, CFANode pO2) {
-      return Ints.compare(pO1.getLineNumber(), pO2.getLineNumber());
-    }
-  };
-
 
   // wrapper class for Set<CFANode> because Java arrays don't like generics
   private static class Edge {

@@ -53,10 +53,6 @@ rootDirectory = "."
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
-# restarts the analysis on (spurious or not) counterexamples until the
-# waitlist is empty
-analysis.contiuneOnCounterexample = false
-
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
 
@@ -69,19 +65,8 @@ analysis.externalCBMC = false
 # run interprocedural analysis
 analysis.interprocedural = true
 
-# the machine model, which determines the sizes of types like int
-analysis.machineModel = LINUX32
-  enum:     [LINUX32, LINUX64]
-
-# if enabled post processes (cosmetic changes) the reached set as specified
-# by the CPAs
-analysis.postProcessing = false
-
 # C programs to analyze (currently only one file is supported)
 analysis.programNames = no default value
-
-# prunes paths from ARG that were shown to be superfluous
-analysis.pruneUnrefinedARG = false
 
 # which reached set implementation to use?
 # NORMAL: just a simple set
@@ -163,12 +148,6 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 assumptions.export = true
 assumptions.file = "assumptions.txt"
 
-# Initial size of the BDD cache.
-bdd.initBddCacheSize = 1000
-
-# Initial size of the BDD node table.
-bdd.initBddNodeTableSize = 10000
-
 # Which BDD package should be used?
 # - java:  JavaBDD (default, no dependencies, many features)
 # - cudd:  CUDD (native library required, reordering not supported)
@@ -239,27 +218,14 @@ cbmc.options.unwindings = 0
 # maximum time limit for CBMC (0 is infinite)
 cbmc.timelimit = 0
 
-# Whether to do refinement immediately after finding an error state, or
-# globally after the ARG has been unrolled completely.
-cegar.globalRefinement = false
-
-# do not refine after a reset of the CEGAR algorithm
-cegar.noRefinementInFirstRun = false
-
 # Which refinement algorithm to use? (give class name, required for CEGAR) If
 # the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
 # omitted.
 cegar.refiner = no default value
 
-# maximum count of attempted refinements
-cegar.stopRefiningCount = -1
-
-# threshold (in ms) after which the CEGAR algorithm gives up refining
-# (spurious) counterexamples
-cegar.stopRefiningThreshold = -1
-
-# determine loop structure with construction CFA
-cfa.determineLoopStructure = true
+# completely restart analysis on refinement by removing everything from the
+# reached set
+cegar.restartOnRefinement = false
 
 # export CFA as .dot file
 cfa.export = true
@@ -275,12 +241,6 @@ cfa.removeIrrelevantForSpecification = false
 
 # combine sequences of simple edges into a single edge
 cfa.useMultiEdges = false
-
-# Dump variable classification to a file.
-cfa.variableClassification.logfile = "VariableClassification.log"
-
-# Dump the complete configuration to a file.
-configuration.dumpFile = "UsedConfiguration.properties"
 
 # which model checker to use for verifying counterexamples as a second check
 # Currently CBMC or CPAchecker with a different config can be used.
@@ -314,12 +274,6 @@ cpa.abm.blockHeuristic = FunctionAndLoopPartitioning.class
 # if enabled, the reached set cache is analysed for each cache miss to find
 # the cause of the miss.
 cpa.abm.gatherCacheMissStatistics = false
-
-# export final ART as C program
-cpa.arg.dumpARG = false
-
-# export final ART as .c file
-cpa.arg.dumpFile = "ART.c"
 
 # export one variable assignment for error path to file, if one is found
 cpa.arg.errorPath.assignment = "ErrorPathAssignment.txt"
@@ -511,21 +465,6 @@ cpa.featurevars.variableWhitelist = ""
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value
 
-# Enable condition-block encoding?
-cpa.fsmbdd.conditionBlocking = true
-
-# Initial size of the BDD cache.
-cpa.fsmbdd.initBddCacheSize = 2000000
-
-# Initial size of the BDD node table.
-cpa.fsmbdd.initBddNodeTableSize = 200000000
-
-# Merge only on abstraction locations.
-cpa.fsmbdd.mergeOnlyOnEqualConditions = false
-
-# Reversed condition-block encoding?
-cpa.fsmbdd.reversedConditionEncoding = true
-
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
@@ -590,8 +529,7 @@ cpa.predicate.abstraction.cartesian = false
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
 
-# get an initial map of predicates from a file (see source
-# doc/examples/predmap.txt for an example)
+# get an initial set of predicates from a file in MSAT format
 cpa.predicate.abstraction.initialPredicates = no default value
 
 # What to use for storing abstractions
@@ -604,9 +542,6 @@ cpa.predicate.blk.alwaysAfterThreshold = true
 
 # abstraction always and only on explicitly computed abstraction nodes.
 cpa.predicate.blk.alwaysAndOnlyAtExplicitNodes = false
-
-# force abstractions at end of program, regardless of threshold
-cpa.predicate.blk.alwaysAtEndOfProgram = false
 
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true
@@ -645,18 +580,16 @@ cpa.predicate.handlePointerAliasing = true
 # initialize all variables to 0 when they are declared
 cpa.predicate.initAllVars = false
 
-# exportPredmap final loop invariants
-cpa.predicate.invariants.export = true
-
-# predmapFile for exporting final loop invariants
-cpa.predicate.invariants.file = "invariants.txt"
-
 # use uninterpreted functions for *, & and array access
 cpa.predicate.lvalsAsUIFs = false
 
+# the machine model used for functions sizeof and alignof
+cpa.predicate.machineModel = LINUX32
+  enum:     [LINUX32, LINUX64]
+
 # List of further options which will be passed to Mathsat. Format is
 # 'key1=value1,key2=value2'
-cpa.predicate.mathsat.furtherOptions = ""
+cpa.predicate.mathsat.furtherOptions = ImmutableList.of()
 
 # Export solver queries in Smtlib format into a file (for Mathsat5).
 cpa.predicate.mathsat.logAllQueries = false
@@ -664,6 +597,10 @@ cpa.predicate.mathsat.logfile = "mathsat5.%d.smt2"
 
 # use a combination of theories (this is incomplete)
 cpa.predicate.mathsat.useDtc = false
+
+# Use theory of EUF in solver (recommended if UIFs are used, otherwise they
+# are useless)
+cpa.predicate.mathsat.useEUFtheory = true
 
 # Use UIFs (recommended because its more precise)
 cpa.predicate.mathsat.useUIFs = true
@@ -694,10 +631,8 @@ cpa.predicate.nondetFunctions = {
 # non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
 cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-z]*"
 
-# exportPredmap final predicate map
+# export final predicate map, if the error location is not reached
 cpa.predicate.predmap.export = true
-
-# predmapFile for exporting final predicate map
 cpa.predicate.predmap.file = "predmap.txt"
 
 # refinement will add all discovered predicates to all the locations in the
@@ -714,6 +649,9 @@ cpa.predicate.refinement.addWellScopedPredicates = false
 # interpolant
 cpa.predicate.refinement.atomicPredicates = true
 
+# try again with a second solver if refinement timed out
+cpa.predicate.refinement.changesolverontimeout = false
+
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
@@ -721,9 +659,10 @@ cpa.predicate.refinement.dumpInterpolationProblems = false
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
 
-# During refinement, keep predicates from all removed parts of the ARG.
-# Otherwise, only predicates from the error path are kept.
-cpa.predicate.refinement.keepAllPredicates = false
+# Which interpolating solver to use for interpolant generation?
+# DEFAULT means to use the solver used for everything else as well.
+cpa.predicate.refinement.interpolatingProver = "DEFAULT"
+  allowed values: [DEFAULT, CSISAT]
 
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
@@ -732,14 +671,6 @@ cpa.predicate.refinement.maxRefinementSize = 0
 # where to dump the counterexample formula in case the error location is
 # reached
 cpa.predicate.refinement.msatCexFile = "counterexample.msat"
-
-# Do a complete restart (clearing the reached set) after N refinements. 0 to
-# disable, 1 for always.
-cpa.predicate.refinement.restartAfterRefinements = 0
-
-# During refinement, add all new predicates to the precisions of all abstract
-# states in the reached set.
-cpa.predicate.refinement.sharePredicates = false
 
 # use incremental search in counterexample analysis, to find the minimal
 # infeasible prefix

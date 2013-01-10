@@ -43,8 +43,7 @@ public class ARGReducer implements Reducer {
       AbstractState pExpandedState, Block pContext,
       CFANode pLocation) {
 
-    return new ARGState(wrappedReducer.getVariableReducedState(((ARGState) pExpandedState).getWrappedState(), pContext,
-        pLocation), null);
+    return new ARGState(wrappedReducer.getVariableReducedState(((ARGState)pExpandedState).getWrappedState(), pContext, pLocation), null);
   }
 
   @Override
@@ -52,14 +51,13 @@ public class ARGReducer implements Reducer {
       AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) {
 
-    return new ARGState(wrappedReducer.getVariableExpandedState(((ARGState) pRootState).getWrappedState(),
-        pReducedContext, ((ARGState) pReducedState).getWrappedState()), null);
+    return new ARGState(wrappedReducer.getVariableExpandedState(((ARGState)pRootState).getWrappedState(), pReducedContext, ((ARGState)pReducedState).getWrappedState()), null);
   }
 
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
 
-    return wrappedReducer.getHashCodeForState(((ARGState) pElementKey).getWrappedState(), pPrecisionKey);
+    return wrappedReducer.getHashCodeForState(((ARGState)pElementKey).getWrappedState(), pPrecisionKey);
   }
 
   @Override
@@ -78,17 +76,4 @@ public class ARGReducer implements Reducer {
     return wrappedReducer.measurePrecisionDifference(pPrecision, pOtherPrecision);
   }
 
-  @Override
-  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) {
-    return new ARGState(wrappedReducer.getVariableReducedStateForProofChecking(
-        ((ARGState) pExpandedState).getWrappedState(), pContext, pCallNode), null);
-  }
-
-  @Override
-  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
-    return new ARGState(wrappedReducer.getVariableExpandedStateForProofChecking(
-        ((ARGState) pRootState).getWrappedState(), pReducedContext, ((ARGState) pReducedState).getWrappedState()), null);
-  }
 }

@@ -54,9 +54,4 @@ public class CInitializerList extends CInitializer {
 
     return lASTString.toString();
   }
-
-  @Override
-  public <R, X extends Exception> R accept(CInitializerVisitor<R, X> pV) throws X {
-    return pV.visit(this);
-  }
 }

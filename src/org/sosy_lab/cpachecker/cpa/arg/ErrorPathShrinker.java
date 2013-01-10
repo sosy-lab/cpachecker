@@ -30,20 +30,18 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -209,15 +207,13 @@ public final class ErrorPathShrinker {
    * @param exp the expression to be divided and added
    * @param importantVars all currently important variables
    * @param importantVarsForGlobalVars variables, that influence global vars */
-  private void addAllVarsInExpToSet(final CRightHandSide exp,
+  private void addAllVarsInExpToSet(final CExpression exp,
       final Set<String> importantVars,
       final Set<String> importantVarsForGlobalVars) {
 
     // exp = 8.2 or "return;" (when exp == null),
     // this does not change the Set importantVars,
-    if (exp instanceof CLiteralExpression ||
-        exp instanceof CFunctionCallExpression ||
-        exp == null) {
+    if (exp instanceof CLiteralExpression || exp == null) {
       // do nothing
     }
 
@@ -561,8 +557,8 @@ public final class ErrorPathShrinker {
           ((CStatementEdge) currentCFAEdgePair.getSecond()).getStatement();
 
       // expression is an assignment operation, e.g. a = b;
-      if (statementExp instanceof CAssignment) {
-        handleAssignment((CAssignment) statementExp);
+      if (statementExp instanceof CExpressionAssignmentStatement) {
+        handleAssignment((CExpressionAssignmentStatement) statementExp);
       }
 
       // ext();
@@ -574,10 +570,10 @@ public final class ErrorPathShrinker {
     /** This method handles assignments (?a = ??).
      *
      * @param binaryExpression the expression to prove */
-    private void handleAssignment(final CAssignment statementExp) {
+    private void handleAssignment(final CExpressionAssignmentStatement assignmentExpression) {
 
-      CExpression lParam = statementExp.getLeftHandSide();
-      CRightHandSide rightExp = statementExp.getRightHandSide();
+      CExpression lParam = assignmentExpression.getLeftHandSide();
+      CExpression rightExp = assignmentExpression.getRightHandSide();
 
       // a = ?
       if (lParam instanceof CIdExpression) {
@@ -611,7 +607,7 @@ public final class ErrorPathShrinker {
      * @param lParam the local name of the variable to assign to
      * @param rightExp the assigning expression */
     private void handleAssignmentToVariable(final String lParam,
-        final CRightHandSide rightExp) {
+        final CExpression rightExp) {
 
       // FIRST add edge to the Path, THEN remove lParam from Set
       if (importantVars.contains(lParam)

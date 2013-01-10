@@ -28,17 +28,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 
 /**
  * This class is a modifiable live view of a reached set, which shows the ARG
@@ -85,42 +82,24 @@ public class ARGReachedSet {
     Set<ARGState> toWaitlist = removeSubtree0(e);
 
     for (ARGState ae : toWaitlist) {
-      mReached.updatePrecision(ae, adaptPrecision(mReached.getPrecision(ae), p));
+      mReached.updatePrecision(ae, adaptPrecision(ae, p));
       mReached.reAddToWaitlist(ae);
     }
   }
 
   /**
-   * Set a new precision for each single state in the reached set.
-   * @param p The new precision, may be for a single CPA (c.f. {@link #adaptPrecision(ARGState, Precision)}).
-   */
-  public void updatePrecisionGlobally(Precision pNewPrecision) {
-    Map<Precision, Precision> precisionUpdateCache = Maps.newIdentityHashMap();
-
-    for (AbstractState s : mReached) {
-      Precision oldPrecision = mReached.getPrecision(s);
-
-      Precision newPrecision = precisionUpdateCache.get(oldPrecision);
-      if (newPrecision == null) {
-        newPrecision = adaptPrecision(oldPrecision, pNewPrecision);
-        precisionUpdateCache.put(oldPrecision, newPrecision);
-      }
-
-      mReached.updatePrecision(s, newPrecision);
-    }
-  }
-
-  /**
-   * Adapts a precision with a new precision.
-   * If the old precision is a wrapper precision, pNewPrecision replaces the
+   * Adapts the precision stored in the reached set for lARTElement.
+   * If the stored precision is a wrapper precision, pNewPrecision replaces the
    * component of the wrapper precision that corresponds to pNewPrecision.
-   * Otherwise, pNewPrecision is returned.
-   * @param pOldPrecision The old precision.
+   * Otherwise, pNewPrecision replaces the stored precision.
+   * @param pARGState Reached element for which the precision has to be adapted.
    * @param pNewPrecision New precision.
    * @return The adapted precision.
    */
-  private Precision adaptPrecision(Precision pOldPrecision, Precision pNewPrecision) {
-    return Precisions.replaceByType(pOldPrecision, pNewPrecision, pNewPrecision.getClass());
+  private Precision adaptPrecision(ARGState pARGState, Precision pNewPrecision) {
+    Precision lOldPrecision = mReached.getPrecision(pARGState);
+
+    return Precisions.replaceByType(lOldPrecision, pNewPrecision, pNewPrecision.getClass());
   }
 
   private Set<ARGState> removeSubtree0(ARGState e) {
@@ -198,7 +177,7 @@ public class ARGReachedSet {
     for (ARGState e : uncoveredSubTree) {
       assert !e.isCovered();
 
-      e.setHasCoveredParent(false);
+      e.setCovering();
 
       if (!e.wasExpanded()) {
         // its a leaf

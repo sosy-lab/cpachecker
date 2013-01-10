@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -76,10 +75,6 @@ public class CFACreator {
   @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
       description="entry function")
   private String mainFunctionName = "main";
-
-  @Option(name="analysis.machineModel",
-      description = "the machine model, which determines the sizes of types like int")
-  private MachineModel machineModel = MachineModel.LINUX32;
 
   @Option(name="analysis.interprocedural",
       description="run interprocedural analysis")
@@ -127,12 +122,9 @@ public class CFACreator {
   public final Timer pruningTime = new Timer();
   public final Timer exportTime = new Timer();
 
-  private Configuration config;
-
   public CFACreator(Configuration config, LogManager logger)
           throws InvalidConfigurationException {
     config.inject(this);
-    this.config = config;
 
     this.logger = logger;
 
@@ -176,7 +168,7 @@ public class CFACreator {
 
       final FunctionEntryNode mainFunction = getMainFunction(filename, c.getFunctions());
 
-      MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction);
+      MutableCFA cfa = new MutableCFA(c.getFunctions(), c.getCFANodes(), mainFunction);
 
       checkTime.start();
 
@@ -198,13 +190,13 @@ public class CFACreator {
       Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
 
       // get information about variables
-      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa, config));
+      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa));
 
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
 
-        CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa);
+        CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa.getAllFunctions());
         spbuilder.insertCallEdgesRecursively();
       }
 
@@ -226,7 +218,7 @@ public class CFACreator {
                 + ", analysis not necessary. "
                 + "If you want to run the analysis anyway, set the option cfa.removeIrrelevantForSpecification to false.");
 
-          return ImmutableCFA.empty(machineModel);
+          return ImmutableCFA.empty();
         }
       }
 

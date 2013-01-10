@@ -2,6 +2,17 @@ Libraries Used by CPAchecker
 ============================
 
 
+Source-Code Libraries
+---------------------
+
+Libraries in source code should be stored under lib/source/.
+
+- ccvisu: CCVisu
+  http://ccvisu.sosy-lab.org/
+  Open-source license: licence_lgpl.txt
+  Clustering algorithm for graphs
+
+
 Binary Libraries
 ----------------
 
@@ -20,6 +31,11 @@ call "ant report-dependencies".
   http://www.cprover.org/cbmc/
   Open-source license: license-cbmc.txt
   Bit-precise bounded model checker for C
+
+- csisat: CSIsat
+  http://www.sosy-lab.org/~dbeyer/CSIsat/
+  Apache License 2.0: ../License_Apache-2.0.txt
+  SMT solver (used for predicate analysis)
 
 - libJOct.so: Octagon Abstract Domain Library
   http://www.di.ens.fr/~mine/oct/

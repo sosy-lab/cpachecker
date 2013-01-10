@@ -23,14 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.fsmbdd;
 
-import java.util.Collection;
-
 import net.sf.javabdd.BDDFactory;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -44,8 +41,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
@@ -56,25 +51,18 @@ import org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces.DomainIntervalProvider;
  */
 
 @Options(prefix="cpa.fsmbdd")
-public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class FsmBddCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(FsmBddCPA.class);
   }
 
-  @Option(description="Initial size of the BDD node table.")
-  private int initBddNodeTableSize = 200000000;
-
-  @Option(description="Initial size of the BDD cache.")
-  private int initBddCacheSize = 2000000;
-
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
+  private FsmTransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
-  private FsmBddTransferRelation transferRelation;
-  private FsmBddPrecision precision;
-  private FsmBddStatistics stats;
+  private FsmPrecision precision;
 
   private final Configuration config;
   private final LogManager logger;
@@ -91,21 +79,20 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     //
     // Initialization of the BDD library (JavaBdd)
     //
-    this.bddFactory = BDDFactory.init("java", initBddNodeTableSize, initBddCacheSize);
+    this.bddFactory = BDDFactory.init("java", 50000000, 2000000);
     this.bddFactory.setIncreaseFactor(1);
     this.bddFactory.setMaxIncrease(200000000);
 
     //
     // Initialization of the (remaining) components of the CPA.
     //
-    this.stats = new FsmBddStatistics(bddFactory);
     this.domainIntervalProvider = new FsmSyntaxAnalizer(pCfa);
-    this.abstractDomain = new FsmBddDomain();
-    this.transferRelation = new FsmBddTransferRelation(pConfig, stats, bddFactory);
+    this.abstractDomain = new FsmDomain();
+    this.transferRelation = new FsmTransferRelation(pConfig);
     this.transferRelation.setDomainIntervalProvider(domainIntervalProvider);
     this.precision = initializePrecision(pConfig, pCfa);
     this.stopOperator = initializeStopOperator();
-    this.mergeOperator = new FsmBddMergeOperator(pConfig, stats);
+    this.mergeOperator = new FsmMergeOperator(abstractDomain);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
@@ -113,8 +100,8 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvide
     return new StopSepOperator(abstractDomain);
   }
 
-  private FsmBddPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
-    return new FsmBddPrecision();
+  private FsmPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
+    return new FsmPrecision();
   }
 
   @Override
@@ -139,7 +126,7 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvide
 
   @Override
   public AbstractState getInitialState(CFANode node) {
-    FsmBddState result = new FsmBddState(bddFactory, node);
+    FsmState result = new FsmState(bddFactory);
     return result;
   }
 
@@ -159,11 +146,6 @@ public class FsmBddCPA implements ConfigurableProgramAnalysis, StatisticsProvide
 
   public LogManager getLogger() {
     return logger;
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
   }
 
 }

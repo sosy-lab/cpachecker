@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.callstack;
 
 import java.util.Collection;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -61,29 +60,12 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    Collection<? extends AbstractState> computedSuccessors =
-        getTransferRelation().getAbstractSuccessors(pElement, null, pCfaEdge);
-    if (!(pSuccessors instanceof Set) || !(computedSuccessors instanceof Set)
-        || pSuccessors.size() != computedSuccessors.size()) { return false; }
-    boolean found;
-    for (AbstractState e1 : pSuccessors) {
-      found = false;
-      for (AbstractState e2 : computedSuccessors) {
-        if (((CallstackState) e1).sameStateInProofChecking((CallstackState) e2)) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) { return false; }
-    }
-    return true;
+  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+    return pSuccessors.equals(getTransferRelation().getAbstractSuccessors(pElement, null, pCfaEdge));
   }
 
   @Override
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException {
-    return (getAbstractDomain().isLessOrEqual(pElement, pOtherElement)) || ((CallstackState) pElement)
-        .sameStateInProofChecking((CallstackState) pOtherElement);
+    return getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
   }
 }

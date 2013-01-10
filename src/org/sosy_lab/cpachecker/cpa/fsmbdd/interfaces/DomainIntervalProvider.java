@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.fsmbdd.interfaces;
 
+import java.io.PrintStream;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -30,4 +32,5 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public interface DomainIntervalProvider {
   public int getIntervalMaximum() throws CPATransferException;
   public int mapLiteralToIndex(CExpression pLiteral) throws CPATransferException;
+  public void printLiteralIndexMap(PrintStream pOut);
 }

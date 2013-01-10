@@ -67,7 +67,7 @@ class CmdLineArguments {
 
   private CmdLineArguments() { } // prevent instantiation, this is a static helper class
 
-  private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-+]+$");
+  private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-]+$");
 
   /**
    * The directory where to look for configuration files for options like

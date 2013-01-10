@@ -15,6 +15,7 @@
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.osgi.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/junit.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/hamcrest-core.jar"/>
+	<classpathentry kind="lib" path="lib/eclipse-cdt6-parser.jar"/>
 	<classpathentry kind="lib" path="lib/edu.cmu.sei.rtss.jldd.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="output" path="bin"/>

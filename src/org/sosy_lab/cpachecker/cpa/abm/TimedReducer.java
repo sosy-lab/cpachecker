@@ -102,17 +102,4 @@ class TimedReducer implements Reducer {
     return wrappedReducer.measurePrecisionDifference(pPrecision, pOtherPrecision);
   }
 
-  @Override
-  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) {
-    return wrappedReducer.getVariableReducedStateForProofChecking(pExpandedState, pContext, pCallNode);
-
-  }
-
-  @Override
-  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
-    return wrappedReducer.getVariableExpandedStateForProofChecking(pRootState, pReducedContext, pReducedState);
-  }
-
 }
