@@ -36,6 +36,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -50,8 +52,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -77,7 +79,7 @@ public class PathToCTranslator {
 
   private PathToCTranslator() { }
 
-  public static String translatePaths(ARGState argRoot, Set<ARGState> elementsOnErrorPath) {
+  public static Appender translatePaths(ARGState argRoot, Set<ARGState> elementsOnErrorPath) {
     PathToCTranslator translator = new PathToCTranslator();
 
     translator.translatePaths0(argRoot, elementsOnErrorPath);
@@ -85,7 +87,7 @@ public class PathToCTranslator {
     return translator.generateCCode();
   }
 
-  public static String translateSinglePath(ARGPath pPath) {
+  public static Appender translateSinglePath(ARGPath pPath) {
     PathToCTranslator translator = new PathToCTranslator();
 
     translator.translateSinglePath0(pPath);
@@ -93,8 +95,9 @@ public class PathToCTranslator {
     return translator.generateCCode();
   }
 
-  private String generateCCode() {
-    return Joiner.on('\n').join(concat(mGlobalDefinitionsList,
+  private Appender generateCCode() {
+    return Appenders.forIterable(Joiner.on('\n'),
+                                concat(mGlobalDefinitionsList,
                                        mFunctionDecls,
                                        mFunctionBodies));
   }

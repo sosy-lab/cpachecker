@@ -169,7 +169,7 @@ public class ARGStatistics implements Statistics {
 
           final ARGState rootState = targetPath.getFirst().getFirst();
           final Set<ARGState> pathElements;
-          String pathProgram = null;
+          Appender pathProgram = null;
           if (counterexample != null && counterexample.getTargetPath() != null) {
             // precise error path
             pathElements = targetPath.getStateSet();

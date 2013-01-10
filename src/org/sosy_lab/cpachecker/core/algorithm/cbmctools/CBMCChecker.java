@@ -25,15 +25,18 @@ package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.Files.DeleteOnCloseFile;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -69,7 +72,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       description = "file name where to put the path program that is generated "
       + "as input for CBMC. A temporary file is used if this is unspecified.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File cbmcFile;
+  private Path cbmcFile;
 
   @Option(name="cbmc.timelimit",
       description="maximum time limit for CBMC (use milliseconds or specify a unit; 0 for infinite)")
@@ -95,22 +98,35 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
   public boolean checkCounterexample(ARGState pRootState, ARGState pErrorState,
       Set<ARGState> pErrorPathStates) throws CPAException, InterruptedException {
 
-    String mainFunctionName = extractLocation(pRootState).getFunctionName();
+    if (cbmcFile != null) {
+      return checkCounterexample(pRootState, pErrorPathStates, cbmcFile);
 
-    String pathProgram = PathToCTranslator.translatePaths(pRootState, pErrorPathStates);
+    } else {
+
+      // This temp file will be automatically deleted when the try block terminates.
+      try (DeleteOnCloseFile tempFile = Files.createTempFile("path", ".c")) {
+        return checkCounterexample(pRootState, pErrorPathStates, tempFile.toPath());
+
+      } catch (IOException e) {
+        throw new CounterexampleAnalysisFailed("Could not create temporary file " + e.getMessage(), e);
+      }
+    }
+  }
+
+  private boolean checkCounterexample(ARGState pRootState,
+      Set<ARGState> pErrorPathStates, Path cFile) throws CPAException, InterruptedException {
+    assert cFile != null;
+
+    Appender pathProgram = PathToCTranslator.translatePaths(pRootState, pErrorPathStates);
 
     // write program to disk
-    File cFile = cbmcFile;
-    try {
-      if (cFile != null) {
-        Files.writeFile(cFile, pathProgram);
-      } else {
-        cFile = Files.createTempFile("path", ".c", pathProgram);
-      }
+    try (Writer w = Files.openOutputFile(cFile)) {
+      pathProgram.appendTo(w);
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed("Could not write path program to file " + e.getMessage(), e);
     }
-    assert(cFile != null);
+
+    String mainFunctionName = extractLocation(pRootState).getFunctionName();
 
     // run CBMC
     logger.log(Level.FINE, "Starting CBMC verification.");
@@ -118,7 +134,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     CBMCExecutor cbmc;
     int exitCode;
     try {
-      String cbmcArgs[] = {"cbmc", "--function", mainFunctionName + "_0", getParamForMachineModel(), cFile.getAbsolutePath()};
+      String cbmcArgs[] = {"cbmc", "--function", mainFunctionName + "_0", getParamForMachineModel(), cFile.toAbsolutePath().toString()};
       cbmc = new CBMCExecutor(logger, cbmcArgs);
       exitCode = cbmc.join(timelimit);
 
@@ -129,11 +145,6 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       throw new CounterexampleAnalysisFailed("CBMC took too long to verify the counterexample.");
 
     } finally {
-      if (cbmcFile == null) {
-        // delete temp file so it is gone even if JVM is killed
-        cFile.delete();
-      }
-
       cbmcTime.stop();
       logger.log(Level.FINER, "CBMC finished.");
     }

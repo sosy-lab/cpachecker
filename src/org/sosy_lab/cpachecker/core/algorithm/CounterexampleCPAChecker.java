@@ -28,9 +28,12 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.file.Path;
 import java.util.Set;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.Files.DeleteOnCloseFile;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -70,27 +73,35 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     this.filename = pFilename;
   }
 
+
   @Override
   public boolean checkCounterexample(ARGState pRootState,
       ARGState pErrorState, Set<ARGState> pErrorPathStates)
       throws CPAException, InterruptedException {
 
-    String automaton =
-        produceGuidingAutomaton(pRootState, pErrorPathStates);
+    // This temp file will be automatically deleted when the try block terminates.
+    try (DeleteOnCloseFile automatonFile = Files.createTempFile("automaton", ".txt")) {
 
-    File automatonFile;
-    try {
-      automatonFile = Files.createTempFile("automaton", ".txt", automaton);
+      try (Writer w = Files.openOutputFile(automatonFile.toPath())) {
+        produceGuidingAutomaton(w, pRootState, pErrorPathStates);
+      }
+
+      return checkCounterexample(pRootState, automatonFile.toPath());
+
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed("Could not write path automaton to file " + e.getMessage(), e);
     }
+  }
+
+  private boolean checkCounterexample(ARGState pRootState, Path automatonFile)
+      throws CPAException, InterruptedException {
 
     FunctionEntryNode entryNode = (FunctionEntryNode)extractLocation(pRootState);
 
     try {
       Configuration lConfig = Configuration.builder()
               .loadFromFile(configFile)
-              .setOption("specification", automatonFile.getAbsolutePath())
+              .setOption("specification", automatonFile.toAbsolutePath().toString())
               .build();
 
       CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger);
@@ -108,15 +119,11 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(), e);
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed(e.getMessage(), e);
-    } finally {
-      // delete temp file so it is gone even if JVM is killed
-      automatonFile.delete();
     }
   }
 
-  private String produceGuidingAutomaton(ARGState pRootState,
-      Set<ARGState> pPathStates) {
-    StringBuilder sb = new StringBuilder();
+  private void produceGuidingAutomaton(Appendable sb, ARGState pRootState,
+      Set<ARGState> pPathStates) throws IOException {
     sb.append("CONTROL AUTOMATON AssumptionAutomaton\n\n");
     sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
 
@@ -149,11 +156,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       sb.append("    TRUE -> STOP;\n\n");
     }
     sb.append("END AUTOMATON\n");
-
-    return sb.toString();
   }
 
-  private static void escape(String s, StringBuilder appendTo) {
+  private static void escape(String s, Appendable appendTo) throws IOException {
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       switch (c) {
