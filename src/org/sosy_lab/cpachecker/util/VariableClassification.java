@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.Writer;
 import java.math.BigInteger;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -35,8 +37,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -94,7 +98,7 @@ public class VariableClassification {
 
   @Option(name = "logfile", description = "Dump variable classification to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File dumpfile = new File("VariableClassification.log");
+  private Path dumpfile = Paths.get("VariableClassification.log");
 
   /** name for return-variables, it is used for function-returns. */
   public static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
@@ -122,10 +126,12 @@ public class VariableClassification {
   private Set<Partition> intAddPartitions;
 
   private CFA cfa;
+  private final LogManager logger;
 
-  public VariableClassification(CFA cfa, Configuration config) throws InvalidConfigurationException {
+  public VariableClassification(CFA cfa, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
     this.cfa = cfa;
+    this.logger = pLogger;
   }
 
   /** This function does the whole work:
@@ -164,16 +170,17 @@ public class VariableClassification {
       }
 
       if (dumpfile != null) { // option -noout
-        // System.out.println(dependencies);
-        final String content = "Boolean\n" + booleanVars +
-            "\n\nIntEqual\n\n" + intEqualVars +
-            "\n\nIntAdd\n\n" + intAddVars +
-            "\n\nALL\n\n" + allVars;
-
-        try {
-          Files.writeFile(dumpfile, content);
+        try (Writer w = Files.openOutputFile(dumpfile)) {
+          w.append("Boolean\n");
+          w.append(booleanVars.toString());
+          w.append("\n\nIntEqual\n\n");
+          w.append(intEqualVars.toString());
+          w.append("\n\nIntAdd\n\n");
+          w.append(intAddVars.toString());
+          w.append("\n\nALL\n\n");
+          w.append(allVars.toString());
         } catch (IOException e) {
-          // TODO should we do something?
+          logger.logUserException(Level.WARNING, e, "Could not write variable classification to file");
         }
       }
     }

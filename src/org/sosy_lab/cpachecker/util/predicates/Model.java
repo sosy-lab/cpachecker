@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -36,7 +39,7 @@ import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-public class Model extends ForwardingMap<AssignableTerm, Object> {
+public class Model extends ForwardingMap<AssignableTerm, Object> implements Appender {
 
   public static enum TermType {
     Boolean,
@@ -206,7 +209,12 @@ public class Model extends ForwardingMap<AssignableTerm, Object> {
   private static final MapJoiner joiner = Joiner.on('\n').withKeyValueSeparator(": ");
 
   @Override
+  public void appendTo(Appendable output) throws IOException {
+    joiner.appendTo(output, mModel);
+  }
+
+  @Override
   public String toString() {
-    return joiner.join(mModel);
+    return Appenders.toString(this);
   }
 }

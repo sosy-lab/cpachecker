@@ -26,9 +26,11 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getUncoveredChildrenView;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -54,8 +56,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -100,8 +102,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         }
 
         if (assumptionAutomatonFile != null) {
-          try {
-            Files.writeFile(assumptionAutomatonFile, produceAssumptionAutomaton(pReached));
+          try (Writer w = Files.openOutputFile(assumptionAutomatonFile)) {
+            produceAssumptionAutomaton(w, pReached);
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
           }
@@ -121,12 +123,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   @Option(name="file",
       description="write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-      private File assumptionsFile = new File("assumptions.txt");
+      private Path assumptionsFile = Paths.get("assumptions.txt");
 
   @Option(name="automatonFile",
       description="write collected assumptions as automaton to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-      private File assumptionAutomatonFile = new File("AssumptionAutomaton.txt");
+      private Path assumptionAutomatonFile = Paths.get("AssumptionAutomaton.txt");
 
   @Option(description="Add a threshold to the automaton, "
       + "after so many branches on a path the automaton will be ignored (0 to disable)")
@@ -272,10 +274,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     addAssumption(invariant, bfmgr.makeBoolean(false), state);
   }
 
-  private String produceAssumptionAutomaton(ReachedSet reached) {
+  private void produceAssumptionAutomaton(Appendable output, ReachedSet reached) throws IOException {
     final AbstractState firstState = reached.getFirstState();
     if (!(firstState instanceof ARGState)) {
-      return "Cannot dump assumption as automaton if ARGCPA is not used.";
+      output.append("Cannot dump assumption as automaton if ARGCPA is not used.");
     }
 
     Set<AbstractState> falseAssumptionStates = Sets.newHashSet(reached.getWaitlist());
@@ -315,18 +317,19 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     }
 
-    return writeAutomaton((ARGState)firstState, relevantStates, falseAssumptionStates);
+    writeAutomaton(output, (ARGState)firstState, relevantStates, falseAssumptionStates);
   }
 
   /**
    * Create a String containing the assumption automaton.
+   * @param sb Where to write the String into.
    * @param initialState The initial state of the automaton.
    * @param relevantStates A set with all states with non-trivial assumptions (all others will have assumption TRUE).
    * @param falseAssumptionStates A set with all states with the assumption FALSE
+   * @throws IOException
    */
-  private String writeAutomaton(ARGState initialState,
-      Set<ARGState> relevantStates, Set<AbstractState> falseAssumptionStates) {
-    StringBuilder sb = new StringBuilder();
+  private void writeAutomaton(Appendable sb, ARGState initialState,
+      Set<ARGState> relevantStates, Set<AbstractState> falseAssumptionStates) throws IOException {
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
 
     String actionOnFinalEdges = "";
@@ -398,7 +401,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     }
     sb.append("END AUTOMATON\n");
-    return sb.toString();
   }
 
   /**
@@ -428,7 +430,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private static void escape(String s, StringBuilder appendTo) {
+  private static void escape(String s, Appendable appendTo) throws IOException {
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       switch (c) {

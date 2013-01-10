@@ -244,7 +244,7 @@ public class CFACreator {
       Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
 
       // get information about variables
-      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa, config));
+      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa, config, logger));
 
       // Insert call and return edges and build the supergraph
       if (interprocedural) {

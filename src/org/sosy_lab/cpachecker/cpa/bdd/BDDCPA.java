@@ -72,7 +72,7 @@ public class BDDCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
     precision = new BDDPrecision(config, cfa.getVarClassification());
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopSepOperator(abstractDomain);
-    transferRelation = new BDDTransferRelation(manager, config, rmgr, cfa, precision);
+    transferRelation = new BDDTransferRelation(manager, logger, config, rmgr, cfa, precision);
   }
 
   @Override

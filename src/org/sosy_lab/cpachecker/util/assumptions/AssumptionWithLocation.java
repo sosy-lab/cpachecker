@@ -25,10 +25,13 @@ package org.sosy_lab.cpachecker.util.assumptions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -41,7 +44,7 @@ import com.google.common.collect.Collections2;
 /**
  * Representation of an assumption of the form \land_i. pc = l_i ==> \phi_i
  */
-public class AssumptionWithLocation {
+public class AssumptionWithLocation implements Appender {
 
   private final FormulaManager manager;
 
@@ -66,8 +69,13 @@ public class AssumptionWithLocation {
   }
 
   @Override
+  public void appendTo(Appendable out) throws IOException {
+    Joiner.on('\n').appendTo(out, Collections2.transform(map.entrySet(), assumptionFormatter));
+  }
+
+  @Override
   public String toString() {
-    return Joiner.on('\n').join(Collections2.transform(map.entrySet(), assumptionFormatter));
+    return Appenders.toString(this);
   }
 
   private static final Function<Entry<CFANode, BooleanFormula>, String> assumptionFormatter

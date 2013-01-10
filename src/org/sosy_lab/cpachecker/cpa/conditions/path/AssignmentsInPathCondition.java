@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -80,7 +81,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   @Option(name = "extendedStatsFile",
       description = "file name where to put the extended stats file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File extendedStatsFile;
+  private Path extendedStatsFile;
 
   /**
    * the reference to the current element
@@ -211,13 +212,12 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   }
 
   private void writeLogFile() {
-    try {
-      StringBuilder builder = new StringBuilder();
+    try (Writer builder = Files.openOutputFile(extendedStatsFile)) {
 
       // log the last element found
       builder.append("total number of variable assignments of last element:");
       builder.append("\n");
-      builder.append(currentState);
+      builder.append(""+currentState);
 
       // log the max-aggregation
       builder.append("\n");
@@ -226,7 +226,6 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
       builder.append("\n");
       builder.append(assignmentsAsString(maxNumberOfAssignmentsPerIdentifier));
 
-      Files.writeFile(extendedStatsFile, builder.toString());
     } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write extended statistics to file");
     }

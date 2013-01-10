@@ -25,10 +25,12 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import static org.sosy_lab.cpachecker.util.VariableClassification.FUNCTION_RETURN_VARIABLE;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
 import java.math.BigInteger;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,10 +38,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -104,7 +108,7 @@ public class BDDTransferRelation implements TransferRelation {
 
   @Option(name = "logfile", description = "Dump tracked variables to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File dumpfile = new File("BDDCPA_tracked_variables.log");
+  private Path dumpfile = Paths.get("BDDCPA_tracked_variables.log");
 
   private static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
 
@@ -132,6 +136,8 @@ public class BDDTransferRelation implements TransferRelation {
   @Option(description = "use a smaller bitsize for all vars, that have only intEqual values")
   private boolean compressIntEqual = true;
 
+  private final LogManager logger;
+
   private final VariableClassification varClass;
   private final Map<Multimap<String, String>, String> varsToTmpVar = new HashMap<>();
 
@@ -153,11 +159,12 @@ public class BDDTransferRelation implements TransferRelation {
   /** The Constructor of BDDVectorTransferRelation sets the NamedRegionManager
    * and the BitVectorManager. Both are used to build and manipulate BDDs,
    * that represent the regions. */
-  public BDDTransferRelation(NamedRegionManager manager,
+  public BDDTransferRelation(NamedRegionManager manager, LogManager pLogger,
       Configuration config, BDDRegionManager rmgr, CFA cfa, BDDPrecision precision)
       throws InvalidConfigurationException {
     config.inject(this);
 
+    this.logger = pLogger;
     this.bvmgr = new BitvectorManager(config, rmgr);
     this.rmgr = manager;
 
@@ -1131,13 +1138,15 @@ public class BDDTransferRelation implements TransferRelation {
     }
 
     if (dumpfile != null) { // option -noout
-      try {
-        Files.writeFile(dumpfile,
-            "Boolean\n\n" + trackedBooleans +
-            "\n\nIntEqual\n\n" + trackedIntEquals +
-            "\n\nIntAdd\n\n" + trackedIntAdds);
+      try (Writer w = Files.openOutputFile(dumpfile)) {
+        w.append("Boolean\n\n");
+        w.append(trackedBooleans.toString());
+        w.append("\n\nIntEqual\n\n");
+        w.append(trackedIntEquals.toString());
+        w.append("\n\nIntAdd\n\n");
+        w.append(trackedIntAdds.toString());
       } catch (IOException e) {
-        // TODO should we do something?
+        logger.logUserException(Level.WARNING, e, "Could not write tracked variables for BDDCPA to file");
       }
     }
 

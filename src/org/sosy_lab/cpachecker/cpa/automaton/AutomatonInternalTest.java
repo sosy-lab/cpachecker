@@ -24,9 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -75,22 +76,26 @@ public class AutomatonInternalTest {
   @Test
   public void testScanner() throws InvalidConfigurationException, IOException {
     ComplexSymbolFactory sf1 = new ComplexSymbolFactory();
-    AutomatonScanner s = new AutomatonScanner(new FileInputStream(defaultSpec), defaultSpec, config, logger, sf1);
-    Symbol symb = s.next_token();
-    while (symb.sym != AutomatonSym.EOF) {
-      symb = s.next_token();
+    try (InputStream input = Files.newInputStream(defaultSpec.toPath())) {
+      AutomatonScanner s = new AutomatonScanner(input, defaultSpec, config, logger, sf1);
+      Symbol symb = s.next_token();
+      while (symb.sym != AutomatonSym.EOF) {
+        symb = s.next_token();
+      }
     }
   }
 
   @Test
   public void testParser() throws Exception {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
-    AutomatonScanner scanner = new AutomatonScanner(new java.io.FileInputStream(defaultSpec), defaultSpec, config, logger, sf);
-    Symbol symbol = new AutomatonParser(scanner, sf, logger, parser).parse();
-    @SuppressWarnings("unchecked")
-    List<Automaton> as = (List<Automaton>) symbol.value;
-    for (Automaton a : as) {
-      a.writeDotFile(new PrintStream(new NullOutputStream()));
+    try (InputStream input = Files.newInputStream(defaultSpec.toPath())) {
+      AutomatonScanner scanner = new AutomatonScanner(input, defaultSpec, config, logger, sf);
+      Symbol symbol = new AutomatonParser(scanner, sf, logger, parser).parse();
+      @SuppressWarnings("unchecked")
+      List<Automaton> as = (List<Automaton>) symbol.value;
+      for (Automaton a : as) {
+        a.writeDotFile(new PrintStream(new NullOutputStream()));
+      }
     }
   }
 
