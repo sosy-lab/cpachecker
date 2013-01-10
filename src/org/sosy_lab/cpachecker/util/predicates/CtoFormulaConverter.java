@@ -453,16 +453,16 @@ public class CtoFormulaConverter {
     return fmgr.makeVariable(this.<T>getFormulaTypeFromCType(var.getType()), var.getName(), idx);
   }
 
-  /** Returns the pointer variable belonging to a given Expression (only for Id- and CastExpression */
-  private <T extends Formula> T makePointerVariable(CExpression expr, String function,
-      SSAMapBuilder ssa) {
-    CExpression castRemoved = removeCast(expr);
-    assert castRemoved instanceof CIdExpression
-        : "We can only handle CIdExpressions on this point";
-
-    Variable<CType> ptrVarName = makePointerVariableName((CIdExpression) castRemoved, function, ssa);
-    T f = this.<T>makeVariable(ptrVarName, ssa);
-    if (expr instanceof CCastExpression) {
+  /**
+   * Adds a pointer cast to the given content variable if expr is a CCastExpression.
+   * This method is honoring ignoreCasts
+   * @param expr
+   * @param rawFormula
+   * @param ptrVarName
+   * @return
+   */
+  private <T extends Formula> T addPointerCast(CExpression expr, T rawFormula, Variable<CType> ptrVarName) {
+    if (expr instanceof CCastExpression && !ignoreCasts) {
 
       CCastExpression castExp = (CCastExpression)expr;
       // If we have a cast to a bigger type we fill with nondet-bits
@@ -472,8 +472,22 @@ public class CtoFormulaConverter {
       totype = dereferencedType(totype);
 
       //ptrVar is the dereferenced space.
-      return makeExtractOrConcatNondet(ptrVarName.getType(), totype, f);
+      return makeExtractOrConcatNondet(ptrVarName.getType(), totype, rawFormula);
     }
+
+    return rawFormula;
+  }
+
+  /** Returns the pointer variable belonging to a given Expression (only for Id- and CastExpression */
+  private <T extends Formula> T makePointerVariable(CExpression expr, String function,
+      SSAMapBuilder ssa) {
+    CExpression castRemoved = removeCast(expr);
+    assert castRemoved instanceof CIdExpression
+        : "We can only handle CIdExpressions on this point";
+
+    Variable<CType> ptrVarName = makePointerVariableName((CIdExpression) castRemoved, function, ssa);
+    T f = this.<T>makeVariable(ptrVarName, ssa);
+    f = addPointerCast(expr, f, ptrVarName);
 
     return f;
   }
@@ -2337,19 +2351,7 @@ public class CtoFormulaConverter {
 
       Variable<CType> lVarName = scopedIfNecessary((CIdExpression) lOperand, function);
       Formula lVar = makeVariable(lVarName, ssa);
-
-      if (lRawOperand instanceof CCastExpression) {
-
-        CCastExpression castExp = (CCastExpression)lRawOperand;
-        // If we have a cast to a bigger type we fill with nondet-bits
-        // on any other case we just extract
-        CType totype = castExp.getType();
-        assert totype instanceof CPointerType : "Strange cast to a non pointer type before dereferencing.";
-        totype = dereferencedType(totype);
-
-        // pointercast
-        lVar = makeExtractOrConcatNondet(lVarName.getType(), totype, lVar);
-      }
+      lVar = addPointerCast(lRawOperand, lVar, lVarName);
 
       //TODO: check this
       Variable<CType> rVarName = Variable.create(null, pAssignment.getRightHandSide().getExpressionType());
