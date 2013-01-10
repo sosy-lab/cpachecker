@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.eclipse.jdt.core.dom.ITypeBinding;
@@ -66,11 +67,9 @@ class Scope {
     typeFieldDeclarations = new HashMap<>();
   private final Map<String, JFieldDeclaration> fieldDeclarations = new HashMap<>();
 
-
   // symbolic table for  Variables and other Declarations
   private final LinkedList<Map<String, JSimpleDeclaration>> varsStack = Lists.newLinkedList();
   private final LinkedList<Map<String, JSimpleDeclaration>> varsList = Lists.newLinkedList();
-
 
   // Stores all found methods and constructors
   private final Map<String, JMethodDeclaration> methods = new HashMap<>();
@@ -78,6 +77,9 @@ class Scope {
   // Stores current class and method
   private String currentMethodName = null;
   private String currentClassName = null;
+
+  // Stores enclosing classes
+  private final Stack<String> classStack = new Stack<>();
 
   // fully Qualified main Class (not the ast name, but the real name with . instead of _)
   private final String fullyQualifiedMainClassName;
@@ -168,6 +170,10 @@ class Scope {
             "Could not find Type for Class" + enteredClassType.getName());
       }
 
+      if(depth > 0) {
+        classStack.push(currentClassName);
+      }
+
       currentClassName = enteredClassType.getName();
       assert depth >= 0;
   }
@@ -178,8 +184,18 @@ class Scope {
    */
   public void leaveClass() {
     depth--;
-    currentClassName = null;
-    assert depth <= 0;
+
+    if (depth == 0) {
+      currentClassName = null;
+    } else {
+
+      if (classStack.size() == 0) { throw new CFAGenerationRuntimeException(
+          "Could not find enclosing Class of this nested Class"); }
+
+      currentClassName = classStack.pop();
+    }
+
+    assert depth >= 0;
   }
 
   /**
@@ -286,6 +302,7 @@ class Scope {
 
 
   public void registerDeclarationOfThisClass(JSimpleDeclaration declaration) {
+
     assert declaration instanceof JVariableDeclaration
         || declaration instanceof JParameterDeclaration
         : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
@@ -352,7 +369,8 @@ class Scope {
         declaration.getName() + " already declared", declaration); }
 
     if (isProgramScope()) { throw new CFAGenerationRuntimeException("Field Declaration" +
-        "can only be declared within Classes"); }
+        "can only be declared within Classes");
+    }
 
     fieldDeclarations.put(declaration.getName(), declaration);
     typeFieldDeclarations.get(className).add(declaration);
@@ -381,34 +399,55 @@ class Scope {
     return "Functions: " + Joiner.on(' ').join(methods.keySet());
   }
 
-  public void registerClass(ITypeBinding classBinding){
-    String topClassName = classBinding.getQualifiedName();
+  public void registerClass(ITypeBinding classBinding) {
+    String className = classBinding.getQualifiedName();
+    String topClassName = getTopLevelClass(classBinding);
+
     Queue<JClassOrInterfaceType> toBeAdded = new LinkedList<>();
 
-    if(!registeredClasses.contains(classBinding.getQualifiedName())){
-      registeredClasses.add(topClassName);
-      classesToBeParsed.add(topClassName);
+    if (!registeredClasses.contains(className)) {
+
+      if (!registeredClasses.contains(topClassName)){
+        classesToBeParsed.add(topClassName);
+      }
+
+      registeredClasses.add(className);
+
     } else {
       // If top Class already added, it is unnecessary to search for subTypes
       // unless its the main Class
-      if(!fullyQualifiedMainClassName.equals(topClassName))
-      return;
+      if (!fullyQualifiedMainClassName.equals(className))
+        return;
     }
 
     //Sub Classes need to be parsed for dynamic Binding
-    JClassOrInterfaceType type = types.get(ASTConverter.getFullyQualifiedClassOrInterfaceName( classBinding));
+    JClassOrInterfaceType type = types.get(ASTConverter.getFullyQualifiedClassOrInterfaceName(classBinding));
 
     toBeAdded.addAll(type.getAllSubTypesOfType());
 
-    for(JClassOrInterfaceType subClassType : toBeAdded){
+    for (JClassOrInterfaceType subClassType : toBeAdded) {
 
       String name = ASTConverter.getFullyQualifiedBindingNameFromType(subClassType);
 
-      if(!registeredClasses.contains(name)){
+      if (!registeredClasses.contains(name)) {
         registeredClasses.add(name);
         classesToBeParsed.add(name);
       }
     }
+  }
+
+  private String getTopLevelClass(ITypeBinding classBinding) {
+
+    ITypeBinding nextClass = classBinding;
+
+    for(ITypeBinding declaringClass = nextClass.getDeclaringClass();
+        declaringClass != null; declaringClass = nextClass.getDeclaringClass()) {
+      nextClass = declaringClass;
+    }
+
+    assert nextClass.isTopLevel();
+
+    return nextClass.getQualifiedName();
   }
 
   public String getNextClassPath(){
@@ -454,12 +493,8 @@ class Scope {
     return result;
   }
 
-
-
   public Map<String, JFieldDeclaration> getNonStaticFieldDeclarationOfClass(String className) {
     Map<String, JFieldDeclaration> result = new HashMap<>();
-
-
 
     for( JFieldDeclaration declaration : typeFieldDeclarations.get(className)) {
       if(!declaration.isStatic()) {
@@ -476,5 +511,4 @@ class Scope {
       return "";
     }
   }
-
 }

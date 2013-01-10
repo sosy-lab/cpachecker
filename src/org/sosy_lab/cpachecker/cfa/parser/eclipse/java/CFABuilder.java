@@ -25,20 +25,15 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
-import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
+import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
-import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -64,18 +59,14 @@ class CFABuilder extends ASTVisitor {
   private final Map<String, MethodDeclaration> allParsedMethodDeclaration = new HashMap<>();
 
   // Data structures for handling method declarations
-  private Queue<MethodDeclaration> methodDeclarations = new LinkedList<>();
+  // private Queue<MethodDeclaration> methodDeclarations = new LinkedList<>();
   private final Map<String, FunctionEntryNode> cfas = new HashMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
-
-  // Data Structure for tracking class Declaration in this Compilation Unit
-  private final Set<ITypeBinding> classDeclaration = new HashSet<>();
 
   private final Scope scope;
   private final ASTConverter astCreator;
 
   private final LogManager logger;
-
 
   public CFABuilder(LogManager pLogger, Scope pScope) {
     logger = pLogger;
@@ -119,32 +110,28 @@ class CFABuilder extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(CompilationUnit cu) {
-
-    // To make the builder reusable, past declarations have to be cleared.
-    methodDeclarations.clear();
-    classDeclaration.clear();
-
-    return VISIT_CHILDREN;
-  }
-
-  @Override
   public boolean visit(TypeDeclaration typeDec) {
 
     ITypeBinding classBinding = typeDec.resolveBinding();
 
-    if (!classBinding.isInterface()) {
-      classDeclaration.add(classBinding);
-    }
-
     if(!typeDec.isPackageMemberTypeDeclaration()) {
       // inner classes not implemented
+
+      ASTConverter.ModifierBean mB =
+          ASTConverter.ModifierBean.getModifiers(typeDec.resolveBinding());
+
+      if(mB.isStatic() || typeDec.isInterface()) {
+
+        scope.enterClass(astCreator.convertClassOrInterfaceType(classBinding));
+
+        return VISIT_CHILDREN;
+      }
+
       return SKIP_CHILDREN;
     }
 
     // enter Top Level Class Scope
     scope.enterClass(astCreator.convertClassOrInterfaceType(classBinding));
-
 
     return VISIT_CHILDREN;
   }
@@ -153,8 +140,29 @@ class CFABuilder extends ASTVisitor {
    *
    */
   @Override
-  public boolean visit(MethodDeclaration fd) {
-    methodDeclarations.add(fd);
+  public boolean visit(MethodDeclaration md) {
+    //methodDeclarations.add(fd);
+
+    // parse Method
+    CFAMethodBuilder methodBuilder = new CFAMethodBuilder(logger,
+        scope, astCreator);
+
+    md.accept(methodBuilder);
+
+    FunctionEntryNode startNode = methodBuilder.getStartNode();
+    String methodName = startNode.getFunctionName();
+
+    if (cfas.containsKey(methodName)) {
+      throw new CFAGenerationRuntimeException("Duplicate method "
+        + methodName);
+    }
+
+
+    cfas.put(methodName, startNode);
+    cfaNodes.putAll(methodName, methodBuilder.getCfaNodes());
+    allParsedMethodDeclaration.put(methodName, md);
+
+
     return SKIP_CHILDREN;
   }
 
@@ -176,67 +184,63 @@ class CFABuilder extends ASTVisitor {
   @Override
   public void endVisit(TypeDeclaration typeDef) {
 
-    if (!typeDef.isPackageMemberTypeDeclaration()) {
-      // inner classes not implemented.
-      return;
+    if(!typeDef.isPackageMemberTypeDeclaration()) {
+      // inner classes not implemented
+      ASTConverter.ModifierBean mB =
+          ASTConverter.ModifierBean.getModifiers(typeDef.resolveBinding());
+
+      if(!(mB.isStatic() || typeDef.isInterface())) {
+        return;
+      }
     }
 
-    // track all classes that have Constructor
-    Set<ITypeBinding> classHasConstructor = new HashSet<>();
+    ITypeBinding classBinding = typeDef.resolveBinding();
 
-    // parse all found methods
-    for (MethodDeclaration declaration : methodDeclarations) {
+    boolean hasDefaultConstructor = hasDefaultConstructor(classBinding);
 
-      if (declaration.isConstructor()) {
-        classHasConstructor.add(declaration.resolveBinding().getDeclaringClass());
-      }
+    // If a class declaration has no constructor, create a standard constructor
+
+    if (hasDefaultConstructor) {
 
       CFAMethodBuilder methodBuilder = new CFAMethodBuilder(logger,
           scope, astCreator);
 
-      declaration.accept(methodBuilder);
+      methodBuilder.createDefaultConstructor(classBinding);
 
       FunctionEntryNode startNode = methodBuilder.getStartNode();
       String methodName = startNode.getFunctionName();
 
       if (cfas.containsKey(methodName)) {
-        throw new CFAGenerationRuntimeException("Duplicate method "
+        throw new CFAGenerationRuntimeException("Duplicate default Constructor "
           + methodName);
       }
 
-
       cfas.put(methodName, startNode);
       cfaNodes.putAll(methodName, methodBuilder.getCfaNodes());
-      allParsedMethodDeclaration.put(methodName, declaration);
+      allParsedMethodDeclaration.put(methodName, null);
     }
 
-    // If a class declaration has no constructor, create a standard constructor
-    for (ITypeBinding classBinding : classDeclaration) {
-      if (!classHasConstructor.contains(classBinding)
-          && (classBinding.getDeclaredModifiers() & Modifier.ABSTRACT) != Modifier.ABSTRACT) {
+    scope.leaveClass(); // leave Top Level Scope
+  }
 
-        CFAMethodBuilder methodBuilder = new CFAMethodBuilder(logger,
-            scope, astCreator);
+  private boolean hasDefaultConstructor(ITypeBinding classBinding) {
 
-        methodBuilder.createDefaultConstructor(classBinding);
+    if(classBinding.isInterface()) {
+      // Interfaces don't have Constructors
+      return false;
+    }
 
-        FunctionEntryNode startNode = methodBuilder.getStartNode();
-        String methodName = startNode.getFunctionName();
+    IMethodBinding[] declaredMethods = classBinding.getDeclaredMethods();
 
-        if (cfas.containsKey(methodName)) {
-          throw new CFAGenerationRuntimeException("Duplicate method "
-            + methodName);
-        }
-
-        cfas.put(methodName, startNode);
-        cfaNodes.putAll(methodName, methodBuilder.getCfaNodes());
-        classHasConstructor.add(classBinding);
-        allParsedMethodDeclaration.put(methodName, null);
+    for(IMethodBinding declaredMethod : declaredMethods) {
+      if(declaredMethod.isConstructor()) {
+        return false;
       }
     }
 
-
-    scope.leaveClass(); // leave Top Level Scope
+    // If Class has no Constructors,
+    // it has an implicit standard Constructor
+    return true;
   }
 
   public Scope getScope() {
@@ -250,8 +254,6 @@ class CFABuilder extends ASTVisitor {
   public ASTConverter getAstCreator() {
     return astCreator;
   }
-
-
 
   @Override
   public void preVisit(ASTNode problem) {

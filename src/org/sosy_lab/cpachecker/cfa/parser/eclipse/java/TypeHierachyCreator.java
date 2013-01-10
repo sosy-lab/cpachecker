@@ -86,13 +86,9 @@ public class TypeHierachyCreator extends ASTVisitor {
   @Override
   public boolean visit(TypeDeclaration node) {
 
-
-
     ITypeBinding typeBinding = node.resolveBinding();
 
     handleHierachy(typeBinding);
-
-
 
     return VISIT_CHILDREN;
   }
@@ -156,15 +152,11 @@ public class TypeHierachyCreator extends ASTVisitor {
           JInterfaceType nextType = next.poll().getFirst();
           List<JInterfaceType> superTypes = new LinkedList<>();
 
-
-
-
             for(ITypeBinding binding : superInterfacesBinding) {
               JInterfaceType superInterface = convertInterfaceType(binding);
               superTypes.add(superInterface);
               next.add( Pair.of(superInterface, binding.getInterfaces()));
             }
-
 
             add(nextType, superTypes);
         }
@@ -239,8 +231,6 @@ public class TypeHierachyCreator extends ASTVisitor {
   private void add(JClassType pType, JClassType pParentClass, List<JClassType> pDirectSubClasses, List<JInterfaceType> pImplementedInterfaces) {
 
       add(pType, pParentClass, pImplementedInterfaces);
-
-
 
       for(JClassType subClass : pDirectSubClasses){
 
