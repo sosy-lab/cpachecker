@@ -364,4 +364,8 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
   public String getName() {
     return "Counterexample-Check Algorithm";
   }
+
+  public boolean reset() {
+    return false;
+  }
 }

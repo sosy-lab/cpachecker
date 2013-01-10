@@ -177,7 +177,7 @@ public class ARTToCTranslator {
   private ARTToCTranslator() { }
 
   public static String translateART(ARGState artRoot, ReachedSet pReached) {
-    reached = pReached.getReached();
+    reached = pReached.asCollection();
     ARTToCTranslator translator = new ARTToCTranslator();
 
     translator.translate(artRoot);
