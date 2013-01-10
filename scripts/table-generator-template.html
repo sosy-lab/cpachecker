@@ -893,7 +893,11 @@ def formatOptions(str):
   {{for test in line.results}}
   {{for column, value in zip(test.columns, test.values)}}
   {{if column.title == 'status'}}
-  <td class="{{test.category}}" title="Click here to show output of tool"><a href="{{relpath(test.logFile, baseDir)|url}}">{{value.lower()}}</a></td>
+    {{if test.logFile}}
+    <td class="{{test.category}}" title="Click here to show output of tool"><a href="{{relpath(test.logFile, baseDir)|url}}">{{value.lower()}}</a></td>
+    {{else}}
+    <td class="{{test.category}}">{{value.lower()}}</td>
+    {{endif}}
   {{else}}
   <td class="{{test.category}}Value">{{value or '-'}}</td>
   {{endif}}
