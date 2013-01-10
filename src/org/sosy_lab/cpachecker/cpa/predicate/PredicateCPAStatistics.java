@@ -27,9 +27,11 @@ import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -77,7 +79,7 @@ class PredicateCPAStatistics implements Statistics {
     @Option(description="file for exporting final predicate map",
             name="predmap.file")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private File predmapFile = new File("predmap.txt");
+    private Path predmapFile = Paths.get("predmap.txt");
 
     @Option(description="export final loop invariants",
             name="invariants.export")
@@ -86,7 +88,7 @@ class PredicateCPAStatistics implements Statistics {
     @Option(description="file for exporting final loop invariants",
             name="invariants.file")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private File invariantsFile = new File("invariants.txt");
+    private Path invariantsFile = Paths.get("invariants.txt");
 
     private final PredicateCPA cpa;
     private final BlockOperator blk;
@@ -137,8 +139,12 @@ class PredicateCPAStatistics implements Statistics {
 
       // check if/where to dump the predicate map
       if (exportPredmap && predmapFile != null) {
-        PredicateMapWriter writer = new PredicateMapWriter(cpa);
-        writer.writePredicateMap(localPredicates, functionPredicates, globalPredicates, allPredicates, predmapFile);
+        try (Writer w = Files.openOutputFile(predmapFile)) {
+          PredicateMapWriter writer = new PredicateMapWriter(cpa);
+          writer.writePredicateMap(localPredicates, functionPredicates, globalPredicates, allPredicates, w);
+        } catch (IOException e) {
+          cpa.getLogger().logUserException(Level.WARNING, e, "Could not write predicate map to file");
+        }
       }
 
       int maxPredsPerLocation = 0;
@@ -277,23 +283,20 @@ class PredicateCPAStatistics implements Statistics {
 
       AbstractionManager absmgr = cpa.getAbstractionManager();
       FormulaManagerView fmgr = cpa.getFormulaManager();
-      StringBuffer invariants = new StringBuffer();
-
-      for (CFANode loc : from(cfa.getAllNodes())
-                           .filter(CFAUtils.IS_LOOP_NODE)
-                           .toImmutableSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
-        Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
-        BooleanFormula formula = absmgr.toConcrete(region);
-        invariants.append("loop__");
-        invariants.append(loc.getFunctionName());
-        invariants.append("__");
-        invariants.append(loc.getLineNumber());
-        invariants.append(":\n");
-        invariants.append(fmgr.dumpFormula(formula));
-        invariants.append('\n');
-      }
-      try {
-        Files.writeFile(invariantsFile, invariants);
+      try (Writer invariants = Files.openOutputFile(invariantsFile)) {
+        for (CFANode loc : from(cfa.getAllNodes())
+                             .filter(CFAUtils.IS_LOOP_NODE)
+                             .toImmutableSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
+          Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
+          BooleanFormula formula = absmgr.toConcrete(region);
+          invariants.append("loop__");
+          invariants.append(loc.getFunctionName());
+          invariants.append("__");
+          invariants.append(""+loc.getLineNumber());
+          invariants.append(":\n");
+          invariants.append(fmgr.dumpFormula(formula));
+          invariants.append('\n');
+        }
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write loop invariants to file");
       }

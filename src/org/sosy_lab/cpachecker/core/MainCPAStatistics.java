@@ -27,13 +27,15 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -215,7 +217,7 @@ class MainCPAStatistics implements Statistics {
     @Option(name="reachedSet.file",
         description="print reached set to text file")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private File outputFile = new File("reached.txt");
+    private Path outputFile = Paths.get("reached.txt");
 
     @Option(name="statistics.memory",
       description="track memory usage of JVM during runtime")
@@ -272,8 +274,8 @@ class MainCPAStatistics implements Statistics {
         }
 
         if (exportReachedSet && outputFile != null) {
-          try {
-            Files.writeFile(outputFile, Joiner.on('\n').join(reached));
+          try (Writer w = Files.openOutputFile(outputFile)) {
+            Joiner.on('\n').appendTo(w, reached);
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
           } catch (OutOfMemoryError e) {

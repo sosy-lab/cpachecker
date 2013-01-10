@@ -26,12 +26,17 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -55,7 +60,7 @@ public class ARGStatistics implements Statistics {
   @Option(name="file",
       description="export final ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File argFile = new File("ARG.dot");
+  private Path argFile = Paths.get("ARG.dot");
 
   @Option(name="errorPath.export",
       description="export error path to file, if one is found")
@@ -64,17 +69,17 @@ public class ARGStatistics implements Statistics {
   @Option(name="errorPath.file",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File errorPathFile = new File("ErrorPath.txt");
+  private Path errorPathFile = Paths.get("ErrorPath.txt");
 
   @Option(name="errorPath.core",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File errorPathCoreFile = new File("ErrorPathCore.txt");
+  private Path errorPathCoreFile = Paths.get("ErrorPathCore.txt");
 
   @Option(name="errorPath.source",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File errorPathSourceFile = new File("ErrorPath.c");
+  private Path errorPathSourceFile = Paths.get("ErrorPath.c");
 
   @Option(name="errorPath.exportAsSource",
       description="translate error path to C program")
@@ -83,17 +88,17 @@ public class ARGStatistics implements Statistics {
   @Option(name="errorPath.json",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File errorPathJson = new File("ErrorPath.json");
+  private Path errorPathJson = Paths.get("ErrorPath.json");
 
   @Option(name="errorPath.assignment",
       description="export one variable assignment for error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File errorPathAssignment = new File("ErrorPathAssignment.txt");
+  private Path errorPathAssignment = Paths.get("ErrorPathAssignment.txt");
 
   @Option(name="errorPath.graph",
       description="export error path to file, if one is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File errorPathGraphFile = new File("ErrorPath.dot");
+  private Path errorPathGraphFile = Paths.get("ErrorPath.dot");
 
   private final ARGCPA cpa;
 
@@ -151,6 +156,7 @@ public class ARGStatistics implements Statistics {
           targetPath = ARGUtils.getOnePathTo(lastElement);
         }
       }
+      final ARGPath targetPath2 = targetPath; // just for final modifier
 
       if (targetPath != null) {
 
@@ -161,8 +167,8 @@ public class ARGStatistics implements Statistics {
           ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
           ARGPath shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
 
-          ARGState rootState = targetPath.getFirst().getFirst();
-          Set<ARGState> pathElements;
+          final ARGState rootState = targetPath.getFirst().getFirst();
+          final Set<ARGState> pathElements;
           String pathProgram = null;
           if (counterexample != null && counterexample.getTargetPath() != null) {
             // precise error path
@@ -193,8 +199,18 @@ public class ARGStatistics implements Statistics {
             writeErrorPathFile(errorPathSourceFile, pathProgram);
           }
 
-          writeErrorPathFile(errorPathJson, targetPath.toJSON());
-          writeErrorPathFile(errorPathGraphFile, ARGUtils.convertARTToDot(rootState, pathElements, getEdgesOfPath(targetPath)));
+          writeErrorPathFile(errorPathJson, new Appender() {
+            @Override
+            public void appendTo(Appendable pAppendable) throws IOException {
+              targetPath2.toJSON(pAppendable);
+            }
+          });
+          writeErrorPathFile(errorPathGraphFile, new Appender() {
+            @Override
+            public void appendTo(Appendable pAppendable) throws IOException {
+              ARGUtils.convertARTToDot(pAppendable, rootState, pathElements, getEdgesOfPath(targetPath2));
+            }
+          });
 
           if (assignment != null) {
             writeErrorPathFile(errorPathAssignment, assignment);
@@ -202,7 +218,7 @@ public class ARGStatistics implements Statistics {
 
           if (counterexample != null) {
             for (Pair<Object, File> info : counterexample.getAllFurtherInformation()) {
-              writeErrorPathFile(info.getSecond(), info.getFirst());
+              writeErrorPathFile(info.getSecond().toPath(), info.getFirst());
             }
           }
         }
@@ -210,22 +226,22 @@ public class ARGStatistics implements Statistics {
     }
 
     if (exportART && argFile != null) {
-      try {
+      try (Writer w = java.nio.file.Files.newBufferedWriter(argFile, Charset.defaultCharset())) {
         ARGState rootState = (ARGState)pReached.getFirstState();
-        Files.writeFile(argFile, ARGUtils.convertARTToDot(rootState, null, getEdgesOfPath(targetPath)));
+        ARGUtils.convertARTToDot(w, rootState, null, getEdgesOfPath(targetPath));
       } catch (IOException e) {
-        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file.");
+        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
     }
   }
 
-  private void writeErrorPathFile(File file, Object content) {
+  private void writeErrorPathFile(Path file, Object content) {
     if (file != null) {
       try {
         Files.writeFile(file, content);
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e,
-            "Could not write information about the error path to file.");
+            "Could not write information about the error path to file");
       }
     }
   }

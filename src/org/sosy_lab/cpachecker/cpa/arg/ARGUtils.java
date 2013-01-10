@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
+import java.io.IOException;
 import java.util.AbstractCollection;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -169,18 +170,18 @@ public class ARGUtils {
 
   /**
    * Create String with ARG in the DOT format of Graphviz.
+   * @param sb Where to write the ARG into.
    * @param rootState the root element of the ARG
    * @param displayedElements An optional set of elements. If given, all other elements are ignored. If null, all elements are dumped.
    * @param highlightedEdges Set of edges to highlight in the graph.
-   * @return the ARG as DOT graph
+   * @throws IOException
    */
-  public static String convertARTToDot(final ARGState rootState,
+  public static void convertARTToDot(final Appendable sb, final ARGState rootState,
       final Set<ARGState> displayedElements,
-      final Set<Pair<ARGState, ARGState>> highlightedEdges) {
+      final Set<Pair<ARGState, ARGState>> highlightedEdges) throws IOException {
     Deque<ARGState> worklist = new LinkedList<>();
     Set<Integer> nodesList = new HashSet<>();
     Set<ARGState> processed = new HashSet<>();
-    StringBuilder sb = new StringBuilder();
     StringBuilder edges = new StringBuilder();
 
     sb.append("digraph ARG {\n");
@@ -204,7 +205,7 @@ public class ARGUtils {
 
         String label = determineLabel(currentElement);
 
-        sb.append(currentElement.getStateId());
+        sb.append(""+currentElement.getStateId());
         sb.append(" [");
         String color = determineColor(currentElement);
         if (color != null) {
@@ -262,7 +263,6 @@ public class ARGUtils {
     }
     sb.append(edges);
     sb.append("}\n");
-    return sb.toString();
   }
 
   private static String determineLabel(ARGState currentElement) {

@@ -30,7 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.common.Classes.UnexpectedCheckedException;
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -45,16 +45,21 @@ import com.google.common.collect.Lists;
  * where the edge of a pair is the outgoing edge of the element.
  * The first pair contains the root node of the ARG.
  */
-public class ARGPath extends LinkedList<Pair<ARGState, CFAEdge>> {
+public class ARGPath extends LinkedList<Pair<ARGState, CFAEdge>> implements Appender {
 
   private static final long serialVersionUID = -3223480082103314555L;
+
+  @Override
+  public void appendTo(Appendable appendable) throws IOException {
+    Joiner.on('\n').skipNulls().appendTo(appendable, asEdgesList());
+  }
 
   @Override
   public String toString() {
     return Joiner.on('\n').skipNulls().join(asEdgesList());
   }
 
-  public String toJSON() {
+  public void toJSON(Appendable sb) throws IOException {
     List<Map<?,?>> path = new ArrayList<>(this.size());
     for (Pair<ARGState, CFAEdge> pair : this) {
       Map<String, Object> elem = new HashMap<>();
@@ -68,13 +73,7 @@ public class ARGPath extends LinkedList<Pair<ARGState, CFAEdge>> {
       elem.put("line", edge.getLineNumber());
       path.add(elem);
     }
-    StringBuilder sb = new StringBuilder();
-    try {
-      JSON.writeJSONString(path, sb);
-    } catch (IOException e) {
-      throw new UnexpectedCheckedException("Writing to a StringBuilder cannot fail", e);
-    }
-    return sb.toString();
+    JSON.writeJSONString(path, sb);
   }
 
   public List<CFAEdge> asEdgesList() {
