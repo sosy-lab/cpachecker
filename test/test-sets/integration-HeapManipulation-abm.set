@@ -1,5 +1,5 @@
-../programs/benchmarks/heap-manipulation/bubble_sort_linux_unsafe.cil.c
-../programs/benchmarks/heap-manipulation/dll_of_dll_unsafe.cil.c
-../programs/benchmarks/heap-manipulation/merge_sort_unsafe.cil.c
-../programs/benchmarks/heap-manipulation/*_safe.cil.c
-../programs/benchmarks/list-properties/*.cil.c
+../../test/programs/benchmarks/heap-manipulation/bubble_sort_linux_BUG.cil.c
+../../test/programs/benchmarks/heap-manipulation/dll_of_dll_BUG.cil.c
+../../test/programs/benchmarks/heap-manipulation/merge_sort_BUG.cil.c
+../../test/programs/benchmarks/heap-manipulation/*[!G].cil.c
+../../test/programs/benchmarks/list-properties/*.cil.c

@@ -44,8 +44,6 @@ import com.google.common.base.Preconditions;
 
 public class Mathsat5TheoremProver implements TheoremProver {
 
-  private static final boolean USE_SHARED_ENV = true;
-
   private final Mathsat5FormulaManager mgr;
   private long curEnv;
 
@@ -65,7 +63,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
   public Model getModel() throws SolverException {
     Preconditions.checkState(curEnv != 0);
 
-    return Mathsat5Model.createMathsatModel(curEnv, mgr, USE_SHARED_ENV);
+    return Mathsat5Model.createMathsatModel(curEnv, mgr);
   }
 
   @Override
@@ -86,8 +84,8 @@ public class Mathsat5TheoremProver implements TheoremProver {
     Preconditions.checkState(curEnv == 0);
 
     long cfg = msat_create_config();
-    msat_set_option_checked(cfg, "model_generation", "true");
-    curEnv = mgr.createEnvironment(cfg, USE_SHARED_ENV, true);
+    msat_set_option(cfg, "model_generation", "true");
+    curEnv = mgr.createEnvironment(cfg, true, true);
   }
 
   @Override
@@ -108,7 +106,7 @@ public class Mathsat5TheoremProver implements TheoremProver {
       throw new RuntimeException("Error occurred during Mathsat allsat: all-sat should not be called with empty 'important'-Collection");
     }
 
-    long allsatEnv = mgr.createEnvironment(msat_create_config(), USE_SHARED_ENV, true);
+    long allsatEnv = mgr.createEnvironment(msat_create_config(), true, true);
     long formula = getTerm(f);
 
     long[] imp = new long[important.size()];
@@ -190,7 +188,6 @@ public class Mathsat5TheoremProver implements TheoremProver {
     }
 
     private void buildBalancedOr() {
-      enumTime.startBoth();
       cubes.add(formula);
       while (cubes.size() > 1) {
         Region b1 = cubes.remove();
@@ -199,7 +196,6 @@ public class Mathsat5TheoremProver implements TheoremProver {
       }
       assert (cubes.size() == 1);
       formula = cubes.remove();
-      enumTime.stopBoth();
     }
 
     @Override
@@ -222,10 +218,10 @@ public class Mathsat5TheoremProver implements TheoremProver {
         Region v;
         if (msat_term_is_not(env, t)) {
           t = msat_term_get_arg(t, 0);
-          v = rmgr.getPredicate(new Mathsat5Formula(t));
+          v = rmgr.getPredicate(new Mathsat5Formula(env, t));
           v = rmgr.makeNot(v);
         } else {
-          v = rmgr.getPredicate(new Mathsat5Formula(t));
+          v = rmgr.getPredicate(new Mathsat5Formula(env, t));
         }
         curCube.add(v);
       }

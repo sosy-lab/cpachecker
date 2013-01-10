@@ -39,10 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
  */
 public class CFACreationUtils {
 
-  // Static state is not beautiful, but here it doesn't matter.
-  // Worst thing that can happen is too many dead code warnings.
-  private static int lastDetectedDeadCode = -1;
-
   /**
    * This method adds this edge to the leaving and entering edges
    * of its predecessor and successor respectively, but it does so only
@@ -68,7 +64,8 @@ public class CFACreationUtils {
     if (isReachableNode(predecessor)) {
 
       // all checks passed, add it to the CFA
-      addEdgeUnconditionallyToCFA(edge);
+      edge.getPredecessor().addLeavingEdge(edge);
+      edge.getSuccessor().addEnteringEdge(edge);
 
     } else {
       // unreachable edge, don't add it to the CFA
@@ -79,38 +76,24 @@ public class CFACreationUtils {
         if (edge.getDescription().matches("^Goto: (switch|while)_\\d+_[a-z0-9]+$")) {
           // don't mention dead code produced by CIL on normal log levels
           level = Level.FINER;
-        } else if (edge.getPredecessor().getNodeNumber() == lastDetectedDeadCode) {
-          // don't warn on subsequent lines of dead code
-          level = Level.FINER;
         }
 
         logger.log(level, "Dead code detected at line", edge.getLineNumber() + ":", edge.getRawStatement());
       }
-
-      lastDetectedDeadCode = edge.getSuccessor().getNodeNumber();
     }
-  }
-
-  /**
-   * This method adds this edge to the leaving and entering edges
-   * of its predecessor and successor respectively.
-   * It does so without further checks, so use with care and only if really
-   * necessary.
-   */
-  public static void addEdgeUnconditionallyToCFA(CFAEdge edge) {
-    edge.getPredecessor().addLeavingEdge(edge);
-    edge.getSuccessor().addEnteringEdge(edge);
   }
 
   /**
    * Returns true if a node is reachable, that is if it contains an incoming edge.
    * Label nodes and function start nodes are always considered to be reachable.
+   * If a LabelNode has an empty labelText, it is not reachable through gotos.
    */
   public static boolean isReachableNode(CFANode node) {
     return (node.getNumEnteringEdges() > 0)
         || (node instanceof FunctionEntryNode)
         || (node.isLoopStart())
-        || (node instanceof CLabelNode);
+        || ((node instanceof CLabelNode)
+            && !((CLabelNode)node).getLabel().isEmpty());
   }
 
   /**

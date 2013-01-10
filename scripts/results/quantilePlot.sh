@@ -9,7 +9,7 @@
 # and if the program name contains BUG or unsafe, the expected result is declared to be UNSAFE.
 #
 # Output:
-# The scipt writes a Gnuplot file 'quantilePlotShow.gp', which can be turned into a PDF file 'quantilePlot.pdf' using:
+# The scipt write a Gnuplot file 'quantilePlotShow.gp', which can be turned into a PDF file 'quantilePlot.pdf' using:
 # ./quantilePlot.sh tables_per_tool_and_test && gnuplot quantilePlotShow.gp && evince quantilePlot.pdf
 #
 # Example:
@@ -21,7 +21,7 @@
 
 DIR="$1";
 
-COLORS=(green red blue black navy magenta dark-cyan brown dark-violet sea-green);
+COLORS=(black green blue red navy magenta dark-cyan brown dark-violet sea-green);
 
 echo "
 set terminal pdfcairo font \",9\" size 20cm,14cm
@@ -29,6 +29,7 @@ set bmargin 0
 set lmargin 9
 set rmargin 3
 set yrange [1:1000]
+set xrange [0:215]
 unset xlabel
 unset xtics
 set ylabel 'Time in s'
@@ -43,15 +44,10 @@ set origin 0,0.14
 
 CMD="plot ";
 k=0;
-XRANGE=0;
 for i in `ls $DIR`; do
   echo "$k: $i";
-
-  if [ -f "tmp.data" ]
-  then
-      rm tmp.data
-  fi
-
+  rm tmp.data
+  CMD="$CMD 'tab_$i.data' using 1:2 with linespoints linecolor rgb \"${COLORS[$k]}\" pointinterval -10 linewidth 3.5 title '$i',";
   for j in `ls $DIR/$i/*.csv`; do
 
     echo "  $j";
@@ -69,17 +65,9 @@ for i in `ls $DIR`; do
         done;
   done;
   sort -g tmp.data | grep -n "" | sed "s/:/\t/" > tab_$i.data;
-  NRVALUES=`cat tab_$i.data | wc -l`;
-  if [ "$NRVALUES" -ge "$XRANGE" ]; then
-    XRANGE=$NRVALUES;
-  fi
-  POINTINTERVAL=$(($XRANGE / 15));
-  CMD="$CMD 'tab_$i.data' using 1:2 with linespoints linecolor rgb \"${COLORS[$k]}\" pointinterval $POINTINTERVAL linewidth 3.5 title '$i',";
   k=$(($k + 1));
 done;
 
-echo "set xrange [0:$XRANGE]
-" >> quantilePlotShow.gp;
 echo "$CMD%" | sed "s/,%/;/" >> quantilePlotShow.gp;
 
 echo "

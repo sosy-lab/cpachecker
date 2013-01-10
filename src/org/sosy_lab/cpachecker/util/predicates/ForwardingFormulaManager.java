@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -235,6 +234,11 @@ public class ForwardingFormulaManager implements FormulaManager {
   }
 
   @Override
+  public Formula parseInfix(String pS) throws IllegalArgumentException {
+    return delegate.parseInfix(pS);
+  }
+
+  @Override
   public Formula parse(String pS) throws IllegalArgumentException {
     return delegate.parse(pS);
   }
@@ -256,11 +260,6 @@ public class ForwardingFormulaManager implements FormulaManager {
   }
 
   @Override
-  public Collection<Formula> extractAtoms(Formula pF) {
-    return delegate.extractAtoms(pF);
-  }
-
-  @Override
   public Set<String> extractVariables(Formula pF) {
     return delegate.extractVariables(pF);
   }
@@ -276,8 +275,8 @@ public class ForwardingFormulaManager implements FormulaManager {
   }
 
   @Override
-  public Formula createPredicateVariable(String pName) {
-    return delegate.createPredicateVariable(pName);
+  public Formula createPredicateVariable(Formula pAtom) {
+    return delegate.createPredicateVariable(pAtom);
   }
 
   @Override
@@ -288,11 +287,6 @@ public class ForwardingFormulaManager implements FormulaManager {
   @Override
   public Formula[] getArguments(Formula pF) {
     return delegate.getArguments(pF);
-  }
-
-  @Override
-  public FormulaOperator getOperator(Formula pF) {
-    return delegate.getOperator(pF);
   }
 
   @Override
@@ -308,15 +302,5 @@ public class ForwardingFormulaManager implements FormulaManager {
   @Override
   public String getVersion() {
     return delegate.getVersion();
-  }
-
-  @Override
-  public String dumpFormulas(Map<String, Formula> pFormulas) {
-    return delegate.dumpFormulas(pFormulas);
-  }
-
-  @Override
-  public Map<String, Formula> parseFormulas(String pS) throws IllegalArgumentException {
-    return delegate.parseFormulas(pS);
   }
 }

@@ -4,27 +4,27 @@
   
   <test name="k1">
     <sourcefiles>
-      <include>../programs/induction/*.c</include>
-      <include>../programs/benchmarks/ssh-simplified/s3_srvr*.cil.c</include>
+      <include>test/programs/induction/*.c</include>
+      <include>test/programs/benchmarks/ssh-simplified/s3_srvr*.cil.c</include>
     </sourcefiles>
     <option name="-noout"/>
     <option name="-bmc-induction"/>
     <option name="-setprop">cpa.loopstack.maxLoopIterations=1</option>
     <option name="-setprop">bmc.invariantGenerationConfigFile=config/explicitAnalysis-no-cbmc.properties</option>
-    <option name="-heap">1200M</option>
+    <option name="-heap">1200m</option>
   </test>
 
   <test name="k10">
     <sourcefiles>
-      <include>../programs/induction/*.c</include>
-      <include>../programs/benchmarks/ssh-simplified/s3_srvr*.cil.c</include>
-      <include>../programs/benchmarks/ssh/s3_srvr*.cil.c</include>
+      <include>test/programs/induction/*.c</include>
+      <include>test/programs/benchmarks/ssh-simplified/s3_srvr*.cil.c</include>
+      <include>test/programs/benchmarks/ssh/s3_srvr*.cil.c</include>
     </sourcefiles>
     <option name="-noout"/>
     <option name="-bmc-induction"/>
     <option name="-setprop">cpa.loopstack.maxLoopIterations=10</option>
     <option name="-setprop">bmc.invariantGenerationConfigFile=config/explicitAnalysis-no-cbmc.properties</option>
-    <option name="-heap">1200M</option>
+    <option name="-heap">1200m</option>
   </test>
   
   <columns>

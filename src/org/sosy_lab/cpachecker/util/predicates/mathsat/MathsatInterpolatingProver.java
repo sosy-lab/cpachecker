@@ -64,16 +64,8 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
         }
         int group = NativeApi.msat_create_itp_group(env);
         NativeApi.msat_set_itp_group(env, group);
-        NativeApi.msat_push_backtrack_point(env);
         NativeApi.msat_assert_formula(env, t);
         return group;
-    }
-
-    @Override
-    public void popFormula() {
-      Preconditions.checkState(env != 0);
-      int ok = NativeApi.msat_pop_backtrack_point(env);
-      assert(ok == 0);
     }
 
     @Override
@@ -115,7 +107,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
     public Model getModel() {
       Preconditions.checkState(env != 0);
 
-      return MathsatModel.createMathsatModel(env, mgr, useSharedEnv);
+      return MathsatModel.createMathsatModel(env, mgr);
     }
 
 }

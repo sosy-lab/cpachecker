@@ -4,19 +4,19 @@
 
   <test>
     <sourcefiles>
-      <includesfile>integration-ControlFlowInteger.set</includesfile>
-      <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
-      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
-      <includesfile>../programs/benchmarks/Loops.set</includesfile>
-      <includesfile>integration-SystemC.set</includesfile>
+      <includesfile>test/programs/benchmarks/Concurrency.set</includesfile>
+      <includesfile>test/test-sets/integration-ControlFlowInteger.set</includesfile>
+      <includesfile>test/programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>test/test-sets/integration-SystemC.set</includesfile>
+      <includesfile>test/programs/benchmarks/DeviceDrivers.set</includesfile>
     </sourcefiles>
     <sourcefiles>
-      <includesfile>integration-DeviceDrivers64.set</includesfile>
-      <option name="-setprop">analysis.machineModel=Linux64</option>
+      <includesfile>test/test-sets/integration-DeviceDrivers64.set</includesfile>
+      <option name="-setprop">cpa.predicate.machineModel=Linux64</option>
     </sourcefiles>
     <option name="-noout"/>
     <option name="-predicateAnalysis"/>
-    <option name="-heap">2000M</option>
+    <option name="-heap">2000m</option>
     <option name="-setprop">cpa.conditions.global.time.wall=1min</option>
   </test>
 

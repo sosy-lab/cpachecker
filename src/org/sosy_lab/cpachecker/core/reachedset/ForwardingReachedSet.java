@@ -54,8 +54,8 @@ public class ForwardingReachedSet implements ReachedSet {
   }
 
   @Override
-  public Collection<AbstractState> asCollection() {
-    return delegate.asCollection();
+  public Collection<AbstractState> getReached() {
+    return delegate.getReached();
   }
 
   @Override

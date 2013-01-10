@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces.conditions;
 
-import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 
@@ -36,13 +34,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 public interface AssumptionReportingState {
 
   /**
-   * Get the assumptions that the given abstract state
+   * Get the assumption that the given abstract state
    * wants to report for its containing node's location.
    *
-   * @return a (possibly empty) list of assumptions
-   *         representing the assumptions to generate
-   *         for the given state
+   * @return an assumption representing the assumptions to generate
+   *         for the given state, or the value null representing
+   *         the assumption true.
    */
-  public List<CExpression> getAssumptions();
+  public CExpression getAssumption();
 
 }

@@ -37,7 +37,6 @@ public interface InterpolatingTheoremProver<T> {
     public void init();
     public void reset();
     public T addFormula(Formula f);
-    public void popFormula();
     public boolean isUnsat() throws InterruptedException;
     public Formula getInterpolant(List<T> formulasOfA);
     public Model getModel() throws SolverException;

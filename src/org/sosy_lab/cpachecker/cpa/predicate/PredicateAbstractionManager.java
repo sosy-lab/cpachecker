@@ -53,11 +53,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
 
-@Options(prefix = "cpa.predicate")
+@Options(prefix="cpa.predicate")
 public class PredicateAbstractionManager {
 
   static class Stats {
-
     public int numCallsAbstraction = 0;
     public int numSymbolicAbstractions = 0;
     public int numSatCheckAbstractions = 0;
@@ -81,15 +80,15 @@ public class PredicateAbstractionManager {
   private final AbstractionManager amgr;
   private final Solver solver;
 
-  @Option(name = "abstraction.cartesian",
-      description = "whether to use Boolean (false) or Cartesian (true) abstraction")
+  @Option(name="abstraction.cartesian",
+      description="whether to use Boolean (false) or Cartesian (true) abstraction")
   private boolean cartesianAbstraction = false;
 
-  @Option(name = "abstraction.dumpHardQueries",
-      description = "dump the abstraction formulas if they took to long")
+  @Option(name="abstraction.dumpHardQueries",
+      description="dump the abstraction formulas if they took to long")
   private boolean dumpHardAbstractions = false;
 
-  @Option(name = "abs.useCache", description = "use caching of abstractions")
+  @Option(name="abs.useCache", description="use caching of abstractions")
   private boolean useCache = true;
 
   private boolean warnedOfCartesianAbstraction = false;
@@ -216,10 +215,7 @@ public class PredicateAbstractionManager {
       }
 
       if (!warnedOfCartesianAbstraction && !fmgr.isPurelyConjunctive(f)) {
-        logger
-            .log(
-                Level.WARNING,
-                "Using cartesian abstraction when formulas contain disjunctions may be imprecise. This might lead to failing refinements.");
+        logger.log(Level.WARNING, "Using cartesian abstraction when formulas contain disjunctions may be imprecise. This might lead to failing refinements.");
         warnedOfCartesianAbstraction = true;
       }
 
@@ -383,7 +379,7 @@ public class PredicateAbstractionManager {
     if (dumpHardAbstractions) {
       // we want to dump "hard" problems...
       long abstractionTime = stats.abstractionSolveTime.getLengthOfLastInterval()
-          + stats.abstractionEnumTime.getLengthOfLastOuterInterval();
+                            + stats.abstractionEnumTime.getLengthOfLastOuterInterval();
 
       if (abstractionTime > 10000) {
         File dumpFile;
@@ -440,7 +436,9 @@ public class PredicateAbstractionManager {
     SSAMap map1 = a1.getSsa();
     SSAMap map2 = a2.getSsa();
     for (String var : map1.allVariables()) {
-      if (map2.getIndex(var) < map1.getIndex(var)) { return false; }
+     if (map2.getIndex(var) < map1.getIndex(var)) {
+       return false;
+     }
     }
 
     //merge path formulae
@@ -456,7 +454,9 @@ public class PredicateAbstractionManager {
 
 
     //check formulae
-    if (!solver.implies(mergedPathFormulae.getFormula(), a2.getFormula())) { return false; }
+    if (!solver.implies(mergedPathFormulae.getFormula(), a2.getFormula())) {
+      return false;
+    }
     stats.numSemanticEntailedPathFormulae++;
 
     return true;
@@ -481,8 +481,7 @@ public class PredicateAbstractionManager {
     if (pPreviousBlockFormula == null) {
       pPreviousBlockFormula = fmgr.makeTrue();
     }
-    return new AbstractionFormula(amgr.getRegionCreator().makeTrue(), fmgr.makeTrue(), fmgr.makeTrue(),
-        pPreviousBlockFormula);
+    return new AbstractionFormula(amgr.getRegionCreator().makeTrue(), fmgr.makeTrue(), fmgr.makeTrue(), pPreviousBlockFormula);
   }
 
   private AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, Formula blockFormula) {
@@ -521,43 +520,17 @@ public class PredicateAbstractionManager {
    */
   public AbstractionFormula expand(AbstractionFormula reducedAbstraction, AbstractionFormula sourceAbstraction,
       Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA) {
-    return expand(reducedAbstraction.asRegion(), sourceAbstraction.asRegion(), relevantPredicates, newSSA,
-        reducedAbstraction.getBlockFormula());
-  }
-
-  /**
-   * Extend an abstraction by a set of predicates.
-   * @param reducedAbstraction The abstraction to extend.
-   * @param sourceAbstraction The abstraction where to take the predicates from.
-   * @param relevantPredicates The predicates to add.
-   * @param newSSA The SSAMap to use for instantiating the new abstraction.
-   * @param blockFormula block formula of reduced abstraction state
-   * @return A new abstraction similar to the old one with some more predicates.
-   */
-  public AbstractionFormula expand(Region reducedAbstraction, Region sourceAbstraction,
-      Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA, Formula blockFormula) {
     RegionCreator rmgr = amgr.getRegionCreator();
 
+    Region removedInformationRegion = sourceAbstraction.asRegion();
     for (AbstractionPredicate predicate : relevantPredicates) {
-      sourceAbstraction = rmgr.makeExists(sourceAbstraction,
-          predicate.getAbstractVariable());
+      removedInformationRegion = rmgr.makeExists(removedInformationRegion,
+                                                 predicate.getAbstractVariable());
     }
 
-    Region expandedRegion = rmgr.makeAnd(reducedAbstraction, sourceAbstraction);
+    Region expandedRegion = rmgr.makeAnd(reducedAbstraction.asRegion(), removedInformationRegion);
 
-    return makeAbstractionFormula(expandedRegion, newSSA, blockFormula);
-  }
-
-  public Collection<AbstractionPredicate> extractPredicates(Formula pFormula) {
-    Collection<Formula> atoms = fmgr.extractAtoms(pFormula);
-
-    List<AbstractionPredicate> preds = new ArrayList<AbstractionPredicate>(atoms.size());
-
-    for (Formula atom : atoms) {
-      preds.add(amgr.makePredicate(atom));
-    }
-
-    return preds;
+    return makeAbstractionFormula(expandedRegion, newSSA, reducedAbstraction.getBlockFormula());
   }
 
   // delegate methods
@@ -565,9 +538,4 @@ public class PredicateAbstractionManager {
   public Collection<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);
   }
-
-  public Region buildRegionFromFormula(Formula pF) {
-    return amgr.buildRegionFromFormula(pF);
-  }
-
 }

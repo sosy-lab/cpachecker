@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.io.File;
 import java.util.Map;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.LogManager.StringHandler;
 import org.sosy_lab.common.configuration.Configuration;
@@ -41,40 +43,56 @@ public class ExplicitTest {
   // Specification Tests
   @Test
   public void ignoreVariablesTest1() throws Exception {
-    // check whether a variable can be ignored (this will lead to a spurious counterexample be found)
-
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
-        "specification",     "config/specification/default.spc",
-        "cpa.explicit.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
-        "cpa.composite.precAdjust", "OMNISCIENT",
-        "log.consoleLevel", "FINER"
+        "specification",     "test/config/automata/tmpSpecification.spc",
+        "cpa.explicit.variableBlacklist", "main::__SELECTED_FEATURE_(\\w)*",
+        "cpa.explicit.threshold", "200000"
       );
 
-      TestResults results = run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
-      System.out.println(results.getLog());
-      //System.out.println(results.getCheckerResult().getResult());
-      Assert.assertTrue(results.isUnsafe());
-  }
-  @Test
-  public void ignoreVariablesTest2() throws Exception {
-    // check whether the counterexample is indeed not found if the variable is not ignored
-
-    Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
-        "specification",     "config/specification/default.spc",
-        "cpa.explicit.variableBlacklist", "somethingElse"
-      );
-
+      File tmpFile = new File("test/config/automata/tmpSpecification.spc");
+      Files.writeFile(tmpFile , "ASSERT ! CHECK(ExplicitAnalysis, \"contains(__SELECTED_FEATURE_base)\") ;");
       TestResults results = run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
       //System.out.println(results.getLog());
       //System.out.println(results.getCheckerResult().getResult());
       Assert.assertTrue(results.isSafe());
+      tmpFile.deleteOnExit();
+  }
+  @Test
+  public void ignoreVariablesTest2() throws Exception {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.explicit.ExplicitCPA",
+        "specification",     "test/config/automata/tmpSpecification.spc",
+        "cpa.explicit.variableBlacklist", "somethingElse",
+        "cpa.explicit.threshold", "200000"
+      );
+
+      File tmpFile = new File("test/config/automata/tmpSpecification.spc");
+      Files.writeFile(tmpFile , "ASSERT ! CHECK(ExplicitAnalysis, \"contains(__SELECTED_FEATURE_base)\") ;");
+      TestResults results = run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
+      //System.out.println(results.getLog());
+      //System.out.println(results.getCheckerResult().getResult());
+      Assert.assertTrue(results.isUnsafe());
+      Assert.assertTrue(results.logContains("Automaton going to ErrorState on edge \"int __SELECTED_FEATURE_base;\""));
+      tmpFile.deleteOnExit();
   }
   private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
     Configuration config = Configuration.builder()
       .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
       .setOptions(pProperties).build();
+    StringHandler stringLogHandler = new LogManager.StringHandler();
+    LogManager logger = new LogManager(config, stringLogHandler);
+    CPAchecker cpaChecker = new CPAchecker(config, logger);
+    CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
+    return new TestResults(stringLogHandler.getLog(), results);
+  }
+  @SuppressWarnings("unused")
+  private TestResults run(File configFile, Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
+    Configuration config = Configuration.builder()
+      .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
+      .loadFromFile(configFile.getAbsolutePath())
+      .setOptions(pProperties).build();
+
     StringHandler stringLogHandler = new LogManager.StringHandler();
     LogManager logger = new LogManager(config, stringLogHandler);
     CPAchecker cpaChecker = new CPAchecker(config, logger);
@@ -98,7 +116,6 @@ public class ExplicitTest {
     public CPAcheckerResult getCheckerResult() {
       return checkerResult;
     }
-    @SuppressWarnings("unused")
     boolean logContains(String pattern) {
      return log.contains(pattern);
     }

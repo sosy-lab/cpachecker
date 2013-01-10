@@ -36,13 +36,13 @@ public class CFunctionCallExpression extends CRightHandSide {
 
   private final CExpression functionName;
   private final List<CExpression> parameters;
-  private final CFunctionDeclaration declaration;
+  private final CSimpleDeclaration declaration;
 
   public CFunctionCallExpression(final CFileLocation pFileLocation,
                                     final CType pType,
                                     final CExpression pFunctionName,
                                     final List<CExpression> pParameters,
-                                    final CFunctionDeclaration pDeclaration) {
+                                    final CSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType);
     functionName = pFunctionName;
     parameters = ImmutableList.copyOf(pParameters);
@@ -66,7 +66,7 @@ public class CFunctionCallExpression extends CRightHandSide {
    * The result may be null if the function was not declared, or if a complex
    * function name expression is used (i.e., a function pointer).
    */
-  public CFunctionDeclaration getDeclaration() {
+  public CSimpleDeclaration getDeclaration() {
     return declaration;
   }
 

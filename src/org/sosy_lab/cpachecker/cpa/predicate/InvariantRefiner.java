@@ -127,7 +127,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
       // the counterexample path was spurious, and we refine
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      List<ARGState> path = predicateRefiner.transformPath(pPath);
+      List<Pair<ARGState, CFANode>> path = transformPath(pPath);
       predicateRefiner.performRefinement(pReached, path, counterexample, false);
 
       totalRefinement.stop();
@@ -217,14 +217,15 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     falseFormula.add(amgr.makePredicate(emgr.makeFalse()));
 
     // Get the list of abstraction elements.
-    List<CFANode> path = transformPath(pPath);
+    List<Pair<ARGState, CFANode>> path = transformPath(pPath);
 
     // We ignore the error location, so the iteration is over i < N,
     // where N is /one less than/ the length of the path.
     int N = path.size() - 1;
     TemplateFormula phi;
     for (int i = 0; i < N; i++) {
-      CFANode loc = path.get(i);
+      Pair<ARGState, CFANode> pair = path.get(i);
+      CFANode loc = pair.getSecond();
       phi = tnet.getTemplate(loc).getTemplateFormula();
       if (phi != null) {
         boolean atomic = true;
@@ -281,19 +282,20 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     return preds;
   }
 
-  private List<CFANode> transformPath(Path pPath) {
+  private List<Pair<ARGState, CFANode>> transformPath(Path pPath) {
     // Just extracts information from pPath, putting it into
     // convenient form.
-    List<CFANode> result = Lists.newArrayList();
+    List<Pair<ARGState, CFANode>> result = Lists.newArrayList();
 
     for (ARGState ae : skip(transform(pPath, Pair.<ARGState>getProjectionToFirst()), 1)) {
       PredicateAbstractState pe = extractStateByType(ae, PredicateAbstractState.class);
       if (pe.isAbstractionState()) {
         CFANode loc = AbstractStates.extractLocation(ae);
-        result.add(loc);
+        result.add(Pair.of(ae, loc));
       }
     }
 
+    assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
     return result;
   }
 

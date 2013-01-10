@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.CSIsatInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Model;
@@ -103,7 +104,13 @@ public abstract class InterpolationManager<I> {
   protected final PathFormulaManager pmgr;
   private final Solver solver;
 
-  private final InterpolatingTheoremProver<?> itpProver;
+  private final InterpolatingTheoremProver<?> firstItpProver;
+  private final InterpolatingTheoremProver<?> secondItpProver;
+
+  @Option(name="interpolatingProver", toUppercase=true, values={"DEFAULT", "CSISAT"},
+      description="Which interpolating solver to use for interpolant generation?\n"
+          + "DEFAULT means to use the solver used for everything else as well.")
+  private String whichItpProver = "DEFAULT";
 
   @Option(description="apply deletion-filter to the abstract counterexample, to get "
     + "a minimal set of blocks, before applying interpolation-based refinement")
@@ -144,6 +151,10 @@ public abstract class InterpolationManager<I> {
       min=0)
   private long itpTimeLimit = 0;
 
+  @Option(name="changesolverontimeout",
+      description="try again with a second solver if refinement timed out")
+  private boolean changeItpSolveOTF = false;
+
   @Option(description="skip refinement if input formula is larger than "
     + "this amount of bytes (ignored if 0)")
   private int maxRefinementSize = 0;
@@ -164,7 +175,25 @@ public abstract class InterpolationManager<I> {
     pmgr = pPmgr;
     solver = pSolver;
 
-    itpProver = pFmgrFactory.createInterpolatingTheoremProver(false);
+
+    // create solvers
+    if (whichItpProver.equals("CSISAT")) {
+      firstItpProver = new CSIsatInterpolatingProver(fmgr, logger);
+    } else {
+      assert whichItpProver.equals("DEFAULT");
+      firstItpProver = pFmgrFactory.createInterpolatingTheoremProver(false);
+    }
+
+    if (changeItpSolveOTF) {
+      if (whichItpProver.equals("CSISAT")) {
+        secondItpProver = pFmgrFactory.createInterpolatingTheoremProver(false);
+      } else {
+        assert whichItpProver.equals("DEFAULT");
+        secondItpProver = new CSIsatInterpolatingProver(fmgr, logger);
+      }
+    } else {
+      secondItpProver = null;
+    }
 
     if (itpTimeLimit == 0) {
       executor = null;
@@ -174,7 +203,7 @@ public abstract class InterpolationManager<I> {
     }
 
     if (wellScopedPredicates) {
-      throw new InvalidConfigurationException("wellScopedPredicates are currently disabled");
+      throw new InvalidConfigurationException("wellScopePredicates are currently disabled");
     }
 //    if (inlineFunctions && wellScopedPredicates) {
 //      logger.log(Level.WARNING, "Well scoped predicates not possible with function inlining, disabling them.");
@@ -202,34 +231,49 @@ public abstract class InterpolationManager<I> {
 
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
-      return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
+      return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, firstItpProver);
     }
 
     assert executor != null;
 
-    Callable<CounterexampleTraceInfo<I>> tc = new Callable<CounterexampleTraceInfo<I>>() {
-      @Override
-      public CounterexampleTraceInfo<I> call() throws CPAException, InterruptedException {
-        return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
+    // how many times is the problem tried to be solved so far?
+    int noOfTries = 0;
+
+    while (true) {
+      final InterpolatingTheoremProver<?> currentItpProver =
+        (noOfTries == 0) ? firstItpProver : secondItpProver;
+
+      Callable<CounterexampleTraceInfo<I>> tc = new Callable<CounterexampleTraceInfo<I>>() {
+        @Override
+        public CounterexampleTraceInfo<I> call() throws CPAException, InterruptedException {
+          return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, currentItpProver);
+        }
+      };
+
+      Future<CounterexampleTraceInfo<I>> future = executor.submit(tc);
+
+      try {
+        // here we get the result of the post computation but there is a time limit
+        // given to complete the task specified by timeLimit
+        return future.get(itpTimeLimit, TimeUnit.MILLISECONDS);
+
+      } catch (TimeoutException e){
+        // if first try failed and changeItpSolveOTF enabled try the alternative solver
+        if (changeItpSolveOTF && noOfTries == 0) {
+          logger.log(Level.WARNING, "SMT-solver timed out during interpolation process, trying next solver.");
+          noOfTries++;
+
+        } else {
+          logger.log(Level.SEVERE, "SMT-solver timed out during interpolation process");
+          throw new RefinementFailedException(Reason.TIMEOUT, null);
+        }
+
+      } catch (ExecutionException e) {
+        Throwable t = e.getCause();
+        Throwables.propagateIfPossible(t, CPAException.class, InterruptedException.class);
+
+        throw new UnexpectedCheckedException("interpolation", t);
       }
-    };
-
-    Future<CounterexampleTraceInfo<I>> future = executor.submit(tc);
-
-    try {
-      // here we get the result of the post computation but there is a time limit
-      // given to complete the task specified by timeLimit
-      return future.get(itpTimeLimit, TimeUnit.MILLISECONDS);
-
-    } catch (TimeoutException e){
-      logger.log(Level.SEVERE, "SMT-solver timed out during interpolation process");
-      throw new RefinementFailedException(Reason.TIMEOUT, null);
-
-    } catch (ExecutionException e) {
-      Throwable t = e.getCause();
-      Throwables.propagateIfPossible(t, CPAException.class, InterruptedException.class);
-
-      throw new UnexpectedCheckedException("interpolation", t);
     }
   }
 

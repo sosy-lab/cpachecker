@@ -295,4 +295,5 @@ public class ArithmeticMathsatFormulaManager extends MathsatFormulaManager {
     }
     return encapsulate(result);
   }
+
 }

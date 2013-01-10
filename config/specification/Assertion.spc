@@ -7,12 +7,12 @@ INITIAL STATE Init;
 STATE USEFIRST Init :
    // matches if assert_fail is called with any number of parameters
    MATCH {__assert_fail($?)}
-   -> ERROR;
 
+  -> ERROR;
 
-   MATCH {assert($?)} && !CHECK(location, "functionName==assert")
-   -> PRINT "WARNING: Function assert() without body detected. Please run the C preprocessor on this file to enable assertion checking."
-      GOTO Init;
+   MATCH {assert($?)}
+  -> PRINT "WARNING: Function assert() detected. You need to run the C preprocessor or CIL on this file if you want to check the assertions!"
+     GOTO Init;
 
 
 END AUTOMATON

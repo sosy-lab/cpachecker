@@ -1,65 +1,29 @@
-Changes from CPAchecker 1.1 to CPAchecker 1.2
----------------------------------------------
-CPAchecker now supports several new analyses:
-
-* Conditional Model Checking (CMC)
-  (c.f. "Conditional Model Checking: A Technique to Pass Information between Verifiers", FSE12)
-  To use two or more CMC-enabled configurations, use the "-cmc" command-line argument:
-  Example: -cmc explicitAnalysis-100s-generate-cmc-condition -cmc predicateAnalysis-use-cmc-condition
-
-* CEGAR for ExplicitCPA (as submitted to SV-COMP13)
-  This can be enabled with the "explicitAnalysis-ItpRefiner*" configurations
-  (explicitAnalysis-ItpRefiner-ABElf is recommended).
-
-* Sequential composition of analyses (as submitted to SV-COMP13)
-  The "-cmc" command-line argument can be used for this, too.
-  Example: -cmc explicitAnalysis-100s -cmc predicateAnalysis
-
-* Predicate-based analysis using the Impact refinement strategy
-  (c.f. "Algorithms for Software Model Checking: Predicate Abstraction vs. IMPACT", FMCAD12)
-  This can be enabled with the "predicateAnalysis-ImpactRefiner-*" configurations.
-
-* BDD-based analysis tracking a subset of variables,
-  with ExplicitCPA tracking the remaining variables.
-  This can be enabled with the "explicit-BDD-*" configurations.
-
-Other changes to CPAchecker:
-* Pre-processing the C files with CIL is no longer needed.
-* Mathsat5 can be used as SMT solver by setting
-  cpa.predicate.solver=Mathsat5
-* In configuration files, #include directives can be used
-  to include other configuration files.
-* The file format of the file with the initial set of predicates
-  (option cpa.predicate.abstraction.initialPredicates) and
-  the final set of predicates (option cpa.predicate.predmap.file) was changed.
-  It is now the same format for both files, and based on the Smtlib2 format.
-  See doc/examples/predmap.txt for an example.
-  This is not supported when Mathsat4 is used as the SMT solver
-  (use Mathsat5 instead).
-* The option cpa.predicate.machineModel was renamed to analysis.machineModel.
-* The Cudd BDD library was removed, now JavaBDD's implementation is used by default
+Changes since CPAchecker 1.1
+----------------------------
+* r6470: The Cudd BDD library was removed, now JavaBDD's implementation is used by default
   (it has similar performance, but more features).
-* The ARTCPA was renamed to ARGCPA.
+* r6165: The ARTCPA was renamed to ARGCPA.
   Replace cpa.art with cpa.arg and ARTCPA with ARGCPA in your configuration files.
-* The option analysis.traversal.useTopsort (used in most configuration files)
+* r6066: The option analysis.traversal.useTopsort (used in most configuration files)
   was renamed to analysis.traversal.useReversePostorder as this name is more precise.
-* SMTInterpol, an SMT solver written in Java, is now integrated into CPAchecker.
+* r6060: SMTInterpol, an SMT solver written in Java, is now integrated into CPAchecker.
   With this solver, predicate analysis works on all platforms.
   Some configuration options were renamed in order to not be MathSAT-specific.
-* The log level for the console can now be adjusted during runtime.
+* r5958: The log level for the console can now be adjusted during runtime.
   You need a JMX client to do that, e.g., jconsole or VisualVM.
   Connect to the CPAchecker process,
   locate the MXBean "org.sosy_lab.common:type=LogManager",
   and set the attribute.
-* The option "cpa.removeIrrelevantForErrorLocations" was renamed to
+* r5953: The option "cpa.removeIrrelevantForErrorLocations" was renamed to
   "cfa.removeIrrelevantForSpecification", as this name is more appropriate.
-* A time limit of 15 minutes is now enabled by default in most configurations.
+* r5060: A time limit of 15 minutes is now enabled by default in most configurations.
   If the analysis is not yet finished, CPAchecker will stop after this time and report UNKNOWN.
   The time limit can be controlled with the "cpa.conditions.global.time.wall" option
   and the "-timelimit" command-line argument.
   Example:
   scripts/cpa.sh -predicateAnalysis -timelimit 1min test.c
-* If the #include directive of specification automata is used with relative paths,
+* r4960: If the #include directive of specification automata is used with relative paths, 
   the base directory of the relative path is now the directory of the file which contains the #include,
   not the CPAchecker root directory.
   If #include is used with relative paths in a specification file, it most probably needs adjustment.
+

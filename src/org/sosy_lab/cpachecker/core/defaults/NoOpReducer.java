@@ -67,16 +67,4 @@ public class NoOpReducer implements Reducer {
     return 0;
   }
 
-  @Override
-  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) {
-    return pExpandedState;
-  }
-
-  @Override
-  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
-    return pReducedState;
-  }
-
 }

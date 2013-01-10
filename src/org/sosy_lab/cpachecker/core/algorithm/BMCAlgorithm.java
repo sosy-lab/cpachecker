@@ -277,7 +277,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     try {
       logger.log(Level.INFO, "Error found, creating error path");
 
-      Iterable<ARGState> arg = from(pReachedSet).filter(ARGState.class);
+      Iterable<ARGState> arg = from(pReachedSet.getReached()).filter(ARGState.class);
 
       // get the branchingFormula
       // this formula contains predicates for all branches we took
@@ -323,7 +323,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
       Path targetPath;
       try {
-        targetPath = ARGUtils.getPathFromBranchingInformation(root, pReachedSet.asCollection(), branchingInformation);
+        targetPath = ARGUtils.getPathFromBranchingInformation(root, pReachedSet.getReached(), branchingInformation);
       } catch (IllegalArgumentException e) {
         logger.logUserException(Level.WARNING, e, "Could not create error path");
         return;

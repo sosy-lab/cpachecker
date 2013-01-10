@@ -242,9 +242,4 @@ public class NamedRegionManager implements RegionManager {
     out.println("Number of named predicates:          " + (regionMap.size() - anonymousPredicateCounter));
     delegate.printStatistics(out);
   }
-
-  @Override
-  public Region makeIte(Region pF1, Region pF2, Region pF3) {
-    return delegate.makeIte(pF1, pF2, pF3);
-  }
 }

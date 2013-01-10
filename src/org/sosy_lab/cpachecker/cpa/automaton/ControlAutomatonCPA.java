@@ -101,9 +101,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final PrecisionAdjustment precisionAdjustment;
   private final Statistics stats = new AutomatonStatistics(this);
 
-  protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration config, LogManager logger)
-      throws InvalidConfigurationException {
-
+  protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, ControlAutomatonCPA.class);
 
     transferRelation = new AutomatonTransferRelation(this, logger);
@@ -120,9 +118,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       if (lst.isEmpty()) {
         throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.getAbsolutePath());
       } else if (lst.size() > 1) {
-        throw new InvalidConfigurationException("Found " + lst.size()
-            + " automata in the File " + inputFile.getAbsolutePath()
-            + " The CPA can only handle ONE Automaton!");
+        throw new InvalidConfigurationException("Found " + lst.size() + " automata in the File " + inputFile.getAbsolutePath() + " The CPA can only handle ONE Automaton!");
       }
 
       this.automaton = lst.get(0);

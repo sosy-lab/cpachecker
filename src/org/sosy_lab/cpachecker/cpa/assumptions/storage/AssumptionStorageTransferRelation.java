@@ -88,11 +88,9 @@ public class AssumptionStorageTransferRelation implements TransferRelation {
 
     for (AbstractState element : AbstractStates.asIterable(others)) {
       if (element instanceof AssumptionReportingState) {
-        List<CExpression> assumptions = ((AssumptionReportingState)element).getAssumptions();
-        for (CExpression inv : assumptions) {
-          Formula invFormula = converter.makePredicate(inv, edge, function, SSAMap.emptySSAMap().builder());
-          assumption = formulaManager.makeAnd(assumption, formulaManager.uninstantiate(invFormula));
-        }
+        CExpression inv = ((AssumptionReportingState)element).getAssumption();
+        Formula invFormula = converter.makePredicate(inv, edge, function, SSAMap.emptySSAMap().builder());
+        assumption = formulaManager.makeAnd(assumption, formulaManager.uninstantiate(invFormula));
       }
 
       if (element instanceof AvoidanceReportingState) {

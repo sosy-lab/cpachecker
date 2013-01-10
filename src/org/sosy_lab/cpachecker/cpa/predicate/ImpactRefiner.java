@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.*;
-import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -44,10 +44,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.Path;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
@@ -59,9 +62,9 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import org.sosy_lab.cpachecker.util.predicates.interpolation.UninstantiatingInterpolationManager;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicates;
+import com.google.common.base.Predicate;
 
-public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> implements StatisticsProvider {
+public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula, ARGState> implements StatisticsProvider {
 
   private class Stats implements Statistics {
 
@@ -139,8 +142,12 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
     List<ARGState> result = from(pPath)
                                .skip(1)
                                .transform(Pair.<ARGState>getProjectionToFirst())
-                               .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
-                                                          toState(PredicateAbstractState.class)))
+                               .filter(new Predicate<ARGState>() {
+                                   @Override
+                                   public boolean apply(ARGState pInput) {
+                                     return extractStateByType(pInput, PredicateAbstractState.class).isAbstractionState();
+                                   }
+                                 })
                                .toImmutableList();
 
     assert pPath.getLast().getFirst() == result.get(result.size()-1);
@@ -197,7 +204,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
 
       if (isNewItp) {
         stats.newItpWasAdded++;
-        addFormulaToState(itp, w, fmgr);
+        addFormulaToState(itp, w);
         changedElements.add(w);
       }
     }
@@ -217,7 +224,15 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
       pReached.removeCoverageOf(w);
     }
 
-    removeInfeasiblePartofARG(infeasiblePartOfART, pReached);
+    Set<ARGState> infeasibleSubtree = infeasiblePartOfART.getSubgraph();
+    assert infeasibleSubtree.contains(lastElement);
+
+    uncover(infeasibleSubtree, pReached);
+
+    for (ARGState removedNode : infeasibleSubtree) {
+      removedNode.removeFromARG();
+    }
+    reached.removeAll(infeasibleSubtree);
     stats.argUpdate.stop();
 
     // optimization: instead of closing all ancestors of v,
@@ -225,7 +240,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
     stats.coverTime.start();
     try {
       for (ARGState w : changedElements) {
-        if (cover(w, pReached, getArtCpa())) {
+        if (cover(w, pReached)) {
           break; // all further elements are covered anyway
         }
       }
@@ -235,6 +250,73 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<Formula> im
 
     assert !reached.contains(lastElement);
   }
+
+
+  private boolean cover(ARGState v, ARGReachedSet pReached) throws CPAException {
+    assert v.mayCover();
+    ReachedSet reached = pReached.asReachedSet();
+
+    getArtCpa().getStopOperator().stop(v, reached.getReached(v), reached.getPrecision(v));
+    // ignore return value of stop, because it will always be false
+
+    if (v.isCovered()) {
+      reached.removeOnlyFromWaitlist(v);
+
+      Set<ARGState> subtree = v.getSubgraph();
+
+      // first, uncover all necessary states
+
+      uncover(subtree, pReached);
+
+      // second, clean subtree of covered element
+      subtree.remove(v); // but no not clean v itself
+
+      for (ARGState childOfV : subtree) {
+        // each child of v is now not covered directly anymore
+        if (childOfV.isCovered()) {
+          childOfV.uncover();
+        }
+
+        reached.removeOnlyFromWaitlist(childOfV);
+
+        childOfV.setNotCovering();
+      }
+
+      for (ARGState childOfV : subtree) {
+        // each child of v now doesn't cover anything anymore
+        assert childOfV.getCoveredByThis().isEmpty();
+        assert !childOfV.mayCover();
+      }
+
+      assert !reached.getWaitlist().contains(v.getSubgraph());
+      return true;
+    }
+    return false;
+  }
+
+  private void uncover(Set<ARGState> subtree, ARGReachedSet reached) {
+    Set<ARGState> coveredStates = ARGUtils.getCoveredBy(subtree);
+    for (ARGState coveredState : coveredStates) {
+      // uncover each previously covered state
+      reached.uncover(coveredState);
+    }
+    assert ARGUtils.getCoveredBy(subtree).isEmpty() : "Subtree of covered node still covers other elements";
+  }
+
+  private Formula getStateFormula(ARGState pARGState) {
+    return AbstractStates.extractStateByType(pARGState, PredicateAbstractState.class).getAbstractionFormula().asFormula();
+  }
+
+  private void addFormulaToState(Formula f, ARGState e) {
+    PredicateAbstractState predElement = AbstractStates.extractStateByType(e, PredicateAbstractState.class);
+    AbstractionFormula af = predElement.getAbstractionFormula();
+
+    Formula newFormula = fmgr.makeAnd(f, af.asFormula());
+    Formula instantiatedNewFormula = fmgr.instantiate(newFormula, predElement.getPathFormula().getSsa());
+    AbstractionFormula newAF = new AbstractionFormula(new SymbolicRegionManager.SymbolicRegion(newFormula), newFormula, instantiatedNewFormula, af.getBlockFormula());
+    predElement.setAbstraction(newAF);
+  }
+
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {

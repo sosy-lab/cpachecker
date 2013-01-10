@@ -17,6 +17,15 @@ Prepare Programs for Verification by CPAchecker
    CPAchecker is able to parse and analyze a large subset of (GNU)C.
    If parsing fails for your program, please send a report to
    cpachecker-users@sosy-lab.org.
+   In this case, you can pre-process and simplify the sources with CIL
+   (http://hal.cs.berkeley.edu/cil/, mirror at http://www.cs.berkeley.edu/~necula/cil/).
+   The suggested command-line arguments for CIL are:
+   --dosimplify --printCilAsIs --save-temps --domakeCFG
+   Additionally usable argument:
+   --dosimpleMem
+   Comments:
+   --save-temps saves files to the current directory, a different directory can
+   be specified by using --save-temps=<DIRECTORY>
 
 
 Verifying a Program with CPAchecker
@@ -26,14 +35,14 @@ Verifying a Program with CPAchecker
    If you use your own program, remember to pre-process it as mentioned above.
    Example: doc/examples/example.c
    A good source for more example programs is the benchmark set of the
-   TACAS 2013 Competition on Software Verification (http://sv-comp.sosy-lab.org/),
+   TACAS 2012 Competition on Software Verification (http://sv-comp.sosy-lab.org/),
    which can be checked out from https://svn.sosy-lab.org/software/sv-benchmarks/trunk.
 
 2. If you want to enable certain analyses like predicate analysis,
    choose a configuration file. This file defines for example which CPAs are used.
    Standard configuration files can be found in the directory config/.
    Example: config/predicateAnalysis.properties
-   The configuration of CPAchecker is explained in doc/Configuration.txt.
+   The configuration options used in this file are explained in doc/Configuration.txt.
 
 3. Choose a specification file (you may not need this for some CPAs).
    The standard configuration files use config/specification/default.spc
@@ -65,7 +74,5 @@ Verifying a Program with CPAchecker
    Note that not all of these files will be available for all configurations.
    Also some of these files are only produced if an error is found (or vice-versa).
    CPAchecker will overwrite files in this directory!
-   A graphical report which can be viewed in a browser can be generated
-   from these files by running
-   scripts/report-generator.py
-   (Cf. doc/BuildReport.txt).
+   These files may be used to generate a report that can be viewed in a browser.
+   Cf. BuildReport.txt for this.

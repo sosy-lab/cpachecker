@@ -31,12 +31,12 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 class LocationCPAFactory extends AbstractCPAFactory {
 
-  private final boolean backwards;
+  private final boolean inverse;
 
   private CFA cfa;
 
-  public LocationCPAFactory(boolean pBackwards) {
-    backwards = pBackwards;
+  public LocationCPAFactory(boolean pInverse) {
+    inverse = pInverse;
   }
 
   @Override
@@ -53,8 +53,8 @@ class LocationCPAFactory extends AbstractCPAFactory {
   public ConfigurableProgramAnalysis createInstance() {
     checkNotNull(cfa, "CFA instance needed to create LocationCPA");
 
-    if (backwards) {
-      return new LocationCPABackwards(cfa);
+    if (inverse) {
+      return new InverseLocationCPA(cfa);
     } else {
       return new LocationCPA(cfa);
     }

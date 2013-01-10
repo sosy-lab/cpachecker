@@ -56,7 +56,7 @@ public class ExplicitCPAStatistics implements Statistics {
     long totalNumberOfVariables         = 0;
     long totalNumberOfGlobalVariables   = 0;
 
-    for (AbstractState currentAbstractState : reached) {
+    for (AbstractState currentAbstractState : reached.getReached()) {
       ExplicitState currentState = AbstractStates.extractStateByType(currentAbstractState, ExplicitState.class);
 
       int numberOfVariables         = currentState.getConstantsMap().size();

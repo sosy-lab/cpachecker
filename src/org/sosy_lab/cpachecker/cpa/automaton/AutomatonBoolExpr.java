@@ -108,8 +108,8 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     private final ASTMatcher patternAST;
 
-    public MatchCFAEdgeASTComparison(ASTMatcher pPatternAST) throws InvalidAutomatonException {
-      this.patternAST = pPatternAST;
+    public MatchCFAEdgeASTComparison(String pPattern) throws InvalidAutomatonException {
+      this.patternAST = AutomatonASTComparator.generatePatternAST(pPattern);
     }
 
     @Override

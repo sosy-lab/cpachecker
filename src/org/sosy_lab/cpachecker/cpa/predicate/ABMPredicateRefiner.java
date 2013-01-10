@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -59,7 +60,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableReleva
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
@@ -191,8 +191,9 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         }
       };
 
-    private List<Region> getRegionsForPath(List<ARGState> path) throws CPATransferException {
+    private List<Region> getRegionsForPath(List<Pair<ARGState, CFANode>> path) throws CPATransferException {
       return from(path)
+              .transform(Pair.<ARGState>getProjectionToFirst())
               .transform(toState(PredicateAbstractState.class))
               .transform(GET_REGION)
               .toImmutableList();
@@ -201,7 +202,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     @Override
     protected void performRefinement(
         ARGReachedSet pReached,
-        List<ARGState> pPath,
+        List<Pair<ARGState, CFANode>> pPath,
         CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample,
         boolean pRepeatedCounterexample) throws CPAException {
 
@@ -227,7 +228,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       super.performRefinement(pReached, pPath, pCounterexample, pRepeatedCounterexample);
     }
 
-    private void refineRelevantPredicatesComputer(List<ARGState> pPath, ARGReachedSet pReached) {
+    private void refineRelevantPredicatesComputer(List<Pair<ARGState, CFANode>> pPath, ARGReachedSet pReached) {
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       Precision oldPrecision = reached.getPrecision(reached.getLastState());
       PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
@@ -235,8 +236,8 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       BlockPartitioning partitioning = predicateCpa.getPartitioning();
       Deque<Block> openBlocks = new ArrayDeque<Block>();
       openBlocks.push(partitioning.getMainBlock());
-      for (ARGState pathElement : pPath) {
-        CFANode currentNode = AbstractStates.extractLocation(pathElement);
+      for (Pair<ARGState, CFANode> pathElement : pPath) {
+        CFANode currentNode = pathElement.getSecond();
         if (partitioning.isCallNode(currentNode)) {
           openBlocks.push(partitioning.getBlockForCallNode(currentNode));
         }
@@ -257,7 +258,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     }
 
     @Override
-    protected final List<Formula> getFormulasForPath(List<ARGState> pPath, ARGState initialState) throws CPATransferException {
+    protected final List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> pPath, ARGState initialState) throws CPATransferException {
       // the elements in the path are not expanded, so they contain the path formulas
       // with the wrong indices
       // we need to re-create all path formulas in the flattened ARG

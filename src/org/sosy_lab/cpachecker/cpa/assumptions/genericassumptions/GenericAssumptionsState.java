@@ -23,17 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
-import static com.google.common.collect.FluentIterable.from;
-
-import java.util.List;
-
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingState;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Preconditions;
 
 /**
  * Abstract state for the generic assumption generator CPA;
@@ -43,21 +37,24 @@ import com.google.common.collect.ImmutableList;
 public class GenericAssumptionsState implements AbstractState, AssumptionReportingState {
 
   // The inner representation is an expression.
-  private final ImmutableList<CExpression> assumptions;
+  private final CExpression assumption;
 
-  public GenericAssumptionsState(Iterable<CExpression> pAssumptions) {
-    assumptions = ImmutableList.copyOf(pAssumptions);
+  public GenericAssumptionsState(CExpression anAssumption)
+  {
+    Preconditions.checkNotNull(anAssumption);
+    assumption = anAssumption;
   }
 
   @Override
-  public List<CExpression> getAssumptions() {
-    return assumptions;
+  public CExpression getAssumption()
+  {
+    return assumption;
   }
 
   @Override
   public boolean equals(Object pObj) {
     if (pObj instanceof GenericAssumptionsState) {
-      return assumptions.equals(((GenericAssumptionsState)pObj).assumptions);
+      return assumption.equals(((GenericAssumptionsState)pObj).assumption);
     } else {
       return false;
     }
@@ -65,11 +62,11 @@ public class GenericAssumptionsState implements AbstractState, AssumptionReporti
 
   @Override
   public int hashCode() {
-    return assumptions.hashCode();
+    return assumption.hashCode();
   }
 
   @Override
   public String toString() {
-    return Joiner.on(", ").join(from(assumptions).transform(CAstNode.TO_AST_STRING));
+    return assumption.toASTString();
   }
 }

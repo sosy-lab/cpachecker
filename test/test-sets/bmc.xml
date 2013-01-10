@@ -3,28 +3,28 @@
 <benchmark tool="cpachecker" timelimit="1800" memlimit="1200">
   <option name="-noout"/>
   <option name="-bmc"/>
-  <option name="-heap">1200M</option>
+  <option name="-heap">1200m</option>
 
   <test name="k1">
     <sourcefiles>
-      <includesfile>locks.set</includesfile>
-      <includesfile>ntdrivers-simplified.set</includesfile>
-      <includesfile>ntdrivers.set</includesfile>
-      <includesfile>ssh-simplified.set</includesfile>
-      <includesfile>ssh.set</includesfile>
-      <includesfile>systemc.set</includesfile>
+      <includesfile>test/test-sets/locks.set</includesfile>
+      <includesfile>test/test-sets/ntdrivers-simplified.set</includesfile>
+      <includesfile>test/test-sets/ntdrivers.set</includesfile>
+      <includesfile>test/test-sets/ssh-simplified.set</includesfile>
+      <includesfile>test/test-sets/ssh.set</includesfile>
+      <includesfile>test/test-sets/systemc.set</includesfile>
     </sourcefiles>
     <option name="-setprop">cpa.loopstack.maxLoopIterations=1</option>
   </test>
   
   <test name="k10">
     <sourcefiles>
-      <includesfile>locks.set</includesfile>
-      <includesfile>ntdrivers-simplified.set</includesfile>
-      <includesfile>ntdrivers.set</includesfile>
-      <includesfile>ssh-simplified.set</includesfile>
-      <includesfile>ssh.set</includesfile>
-      <includesfile>systemc.set</includesfile>
+      <includesfile>test/test-sets/locks.set</includesfile>
+      <includesfile>test/test-sets/ntdrivers-simplified.set</includesfile>
+      <includesfile>test/test-sets/ntdrivers.set</includesfile>
+      <includesfile>test/test-sets/ssh-simplified.set</includesfile>
+      <includesfile>test/test-sets/ssh.set</includesfile>
+      <includesfile>test/test-sets/systemc.set</includesfile>
     </sourcefiles>
     <option name="-setprop">cpa.loopstack.maxLoopIterations=10</option>
   </test>

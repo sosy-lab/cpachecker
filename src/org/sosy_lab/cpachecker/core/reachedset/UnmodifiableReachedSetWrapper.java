@@ -42,8 +42,8 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   }
 
   @Override
-  public Collection<AbstractState> asCollection() {
-    return Collections.unmodifiableCollection(delegate.asCollection());
+  public Collection<AbstractState> getReached() {
+    return Collections.unmodifiableCollection(delegate.getReached());
   }
 
   @Override

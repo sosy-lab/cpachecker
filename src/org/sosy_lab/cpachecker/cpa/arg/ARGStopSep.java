@@ -93,11 +93,6 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       }
     }
 
-    // Never try to cover target states
-    if (argElement.isTarget()) {
-      return false;
-    }
-
     // Now do the usual coverage checks
 
     for (AbstractState reachedState : pReached) {

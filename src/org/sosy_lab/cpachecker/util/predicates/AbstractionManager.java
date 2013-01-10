@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
 
 /**
  * This class stores a mapping between abstract regions and the corresponding
@@ -52,28 +51,23 @@ import com.google.common.collect.Maps;
  * symbolic "worlds".
  * It is also responsible for the creation of {@link AbstractionPredicate}s.
  */
-@Options(prefix = "cpa.predicate")
+@Options(prefix="cpa.predicate")
 public final class AbstractionManager {
 
   public static interface AbstractionPredicatesMXBean {
-
     int getNumberOfPredicates();
-
     String getPredicates();
   }
 
   private class AbstractionPredicatesMBean extends AbstractMBean implements AbstractionPredicatesMXBean {
-
     public AbstractionPredicatesMBean() {
       super("org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates", logger);
       register();
     }
-
     @Override
     public int getNumberOfPredicates() {
       return numberOfPredicates;
     }
-
     @Override
     public String getPredicates() {
       // TODO this may run into a ConcurrentModificationException
@@ -88,13 +82,11 @@ public final class AbstractionManager {
   private final FormulaManager fmgr;
 
   // Here we keep the mapping abstract predicate variable -> predicate
-  private final Map<Region, AbstractionPredicate> absVarToPredicate = Maps.newHashMap();
+  private final Map<Region, AbstractionPredicate> absVarToPredicate;
   // and the mapping symbolic variable -> predicate
-  private final Map<Formula, AbstractionPredicate> symbVarToPredicate = Maps.newHashMap();
-  // and the mapping atom -> predicate
-  private final Map<Formula, AbstractionPredicate> atomToPredicate = Maps.newHashMap();
+  private final Map<Formula, AbstractionPredicate> symbVarToPredicate;
 
-  @Option(name = "abs.useCache", description = "use caching of region to formula conversions")
+  @Option(name="abs.useCache", description="use caching of region to formula conversions")
   private boolean useCache = true;
 
   private final Map<Region, Formula> toConcreteCache;
@@ -105,6 +97,9 @@ public final class AbstractionManager {
     logger = pLogger;
     rmgr = pRmgr;
     fmgr = pFmgr;
+
+    absVarToPredicate = new HashMap<Region, AbstractionPredicate>();
+    symbVarToPredicate = new HashMap<Formula, AbstractionPredicate>();
 
     if (useCache) {
       toConcreteCache = new HashMap<Region, Formula>();
@@ -120,18 +115,18 @@ public final class AbstractionManager {
    * the atom that defines it
    */
   public AbstractionPredicate makePredicate(Formula atom) {
-    AbstractionPredicate result = atomToPredicate.get(atom);
+    Formula var = fmgr.createPredicateVariable(atom);
+    AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
-      Formula symbVar = fmgr.createPredicateVariable("PRED"+numberOfPredicates++);
       Region absVar = rmgr.createPredicate();
 
       logger.log(Level.FINEST, "Created predicate", absVar,
-          "from variable", symbVar, "and atom", atom);
+          "from variable", var, "and atom", atom);
+      numberOfPredicates++;
 
-      result = new AbstractionPredicate(absVar, symbVar, atom);
-      symbVarToPredicate.put(symbVar, result);
+      result = new AbstractionPredicate(absVar, var, atom);
+      symbVarToPredicate.put(var, result);
       absVarToPredicate.put(absVar, result);
-      atomToPredicate.put(atom, result);
     }
     return result;
   }
@@ -150,8 +145,9 @@ public final class AbstractionManager {
    */
   private AbstractionPredicate getPredicate(Formula var) {
     AbstractionPredicate result = symbVarToPredicate.get(var);
-    if (result == null) { throw new IllegalArgumentException(var
-        + " seems not to be a formula corresponding to a single predicate variable."); }
+    if (result == null) {
+      throw new IllegalArgumentException(var + " seems not to be a formula corresponding to a single predicate variable.");
+    }
     return result;
   }
 
@@ -270,49 +266,6 @@ public final class AbstractionManager {
     return vars;
   }
 
-  public Region buildRegionFromFormula(Formula pF) {
-    // expect that pF is uninstantiated
-    if(pF.isFalse()){
-      return getRegionCreator().makeFalse();
-    }
-
-    if(pF.isTrue()){
-      return getRegionCreator().makeTrue();
-    }
-
-    FormulaOperator op = fmgr.getOperator(pF);
-
-    if (op == null) { return null; }
-    switch (op) {
-    case ATOM: {
-      return atomToPredicate.get(pF).getAbstractVariable();
-    }
-    case NOT: {
-      Formula[] arg = fmgr.getArguments(pF);
-      return getRegionCreator().makeNot(buildRegionFromFormula(arg[0]));
-    }
-    case AND: {
-      Formula[] arg = fmgr.getArguments(pF);
-      return getRegionCreator().makeAnd(buildRegionFromFormula(arg[0]), buildRegionFromFormula(arg[1]));
-    }
-    case OR: {
-      Formula[] arg = fmgr.getArguments(pF);
-      return getRegionCreator().makeOr(buildRegionFromFormula(arg[0]), buildRegionFromFormula(arg[1]));
-    }
-    case EQUIV: {
-      Formula[] arg = fmgr.getArguments(pF);
-      return getRegionCreator().makeEqual(buildRegionFromFormula(arg[0]), buildRegionFromFormula(arg[1]));
-    }
-    case ITE: {
-      Formula[] arg = fmgr.getArguments(pF);
-      return getRegionCreator().makeIte(buildRegionFromFormula(arg[0]), buildRegionFromFormula(arg[1]),
-          buildRegionFromFormula(arg[2]));
-    }
-    default:
-      return null;
-    }
-  }
-
   public RegionCreator getRegionCreator() {
     return new RegionCreator();
   }
@@ -360,27 +313,6 @@ public final class AbstractionManager {
      */
     public Region makeOr(Region f1, Region f2) {
       return rmgr.makeOr(f1, f2);
-    }
-
-    /**
-     * Creates a region representing an equality (bi-implication) of the two argument
-     * @param f1 an AbstractFormula
-     * @param f2 an AbstractFormula
-     * @return (f1 <=> f2)
-     */
-    public Region makeEqual(Region f1, Region f2) {
-      return rmgr.makeEqual(f1, f2);
-    }
-
-    /**
-     * Creates a region representing an if then else construct of the three arguments
-     * @param f1 an AbstractFormula
-     * @param f2 an AbstractFormula
-     * @param f3 an AbstractFormula
-     * @return (if f1 then f2 else f3)
-     */
-    public Region makeIte(Region f1, Region f2, Region f3) {
-      return rmgr.makeIte(f1, f2, f3);
     }
 
     /**

@@ -63,9 +63,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
  * It does, however, produce a nice error path in case of a feasible counterexample.
  *
  * @param <I> The type of the result of the interpolation query.
+ * @param <P> The type of path elements used by the sub-class.
  */
 @Options(prefix="cpa.predicate.refinement")
-public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBasedRefiner {
+public abstract class AbstractInterpolationBasedRefiner<I, P> extends AbstractARGBasedRefiner {
 
   @Option(name="msatCexFile",
       description="where to dump the counterexample formula in case the error location is reached")
@@ -79,8 +80,8 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
 
   private final InterpolationManager<I> formulaManager;
 
-  // the previously analyzed counterexample to detect repeated counterexamples
-  private List<Formula> lastErrorPath = null;
+  // TODO: this should be private
+  protected List<Formula> lastErrorPath = null;
 
   protected AbstractInterpolationBasedRefiner(final Configuration config, LogManager pLogger, final ConfigurableProgramAnalysis pCpa, InterpolationManager<I> pInterpolationManager) throws CPAException, InvalidConfigurationException {
     super(pCpa);
@@ -94,7 +95,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
   protected CounterexampleInfo performRefinement(final ARGReachedSet pReached, final Path pPath) throws CPAException, InterruptedException {
     totalRefinement.start();
 
-    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(pPath.getLast().getFirst());
+    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(pPath.getLast().getFirst()); // TODO: make this lazy?
 
     boolean branchingOccurred = true;
     if (elementsOnPath.size() == pPath.size()) {
@@ -108,7 +109,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
 
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
-    final List<ARGState> path = transformPath(pPath);
+    final List<P> path = transformPath(pPath);
 
     logger.log(Level.ALL, "Abstraction trace is", path);
 
@@ -168,7 +169,7 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
     }
   }
 
-  protected abstract List<ARGState> transformPath(Path pPath);
+  protected abstract List<P> transformPath(Path pPath);
 
   /**
    * Get the block formulas from a path.
@@ -177,9 +178,9 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
    * @return A list of block formulas for this path.
    * @throws CPATransferException
    */
-  protected abstract List<Formula> getFormulasForPath(List<ARGState> path, ARGState initialState) throws CPATransferException;
+  protected abstract List<Formula> getFormulasForPath(List<P> path, ARGState initialState) throws CPATransferException;
 
-  protected abstract void performRefinement(ARGReachedSet pReached, List<ARGState> path,
+  protected abstract void performRefinement(ARGReachedSet pReached, List<P> path,
       CounterexampleTraceInfo<I> counterexample, boolean pRepeatedCounterexample) throws CPAException;
 
   private Pair<Path, CounterexampleTraceInfo<I>> findPreciseErrorPath(Path pPath, CounterexampleTraceInfo<I> counterexample) {

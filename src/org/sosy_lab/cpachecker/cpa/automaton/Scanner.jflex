@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 @javax.annotation.Generated("JFlex")
-@SuppressWarnings(value = { "all", "unchecked", "fallthrough" })
+@SuppressWarnings(value = { "all" })
 %%
 
 %cup

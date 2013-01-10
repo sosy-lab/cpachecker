@@ -41,10 +41,12 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
+import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
@@ -54,20 +56,19 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class CounterexampleCPAChecker implements CounterexampleChecker {
 
   private final LogManager logger;
+  private final ReachedSetFactory reachedSetFactory;
   private final CFA cfa;
-  private final String filename;
 
   @Option(name="config",
       description="configuration file for counterexample checks with CPAchecker")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private File configFile = new File("config/explicitAnalysis-no-cbmc.properties");
 
-  public CounterexampleCPAChecker(Configuration config, LogManager logger,
-      CFA pCfa, String pFilename) throws InvalidConfigurationException {
+  public CounterexampleCPAChecker(Configuration config, LogManager logger, ReachedSetFactory pReachedSetFactory, CFA pCfa) throws InvalidConfigurationException {
     this.logger = logger;
     config.inject(this);
+    this.reachedSetFactory = pReachedSetFactory;
     this.cfa = pCfa;
-    this.filename = pFilename;
   }
 
   @Override
@@ -93,10 +94,10 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
               .setOption("specification", automatonFile.getAbsolutePath())
               .build();
 
-      CoreComponentsFactory factory = new CoreComponentsFactory(lConfig, logger);
-      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, null);
-      Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, null);
-      ReachedSet lReached = factory.createReachedSet();
+      CPABuilder lBuilder = new CPABuilder(lConfig, logger, reachedSetFactory);
+      ConfigurableProgramAnalysis lCpas = lBuilder.buildCPAs(cfa);
+      Algorithm lAlgorithm = new CPAAlgorithm(lCpas, logger, lConfig);
+      PartitionedReachedSet lReached = new PartitionedReachedSet(TraversalMethod.DFS);
       lReached.add(lCpas.getInitialState(entryNode), lCpas.getInitialPrecision(entryNode));
 
       lAlgorithm.run(lReached);

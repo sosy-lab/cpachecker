@@ -128,29 +128,4 @@ public class CompositeReducer implements Reducer {
 
     return sum;
   }
-
-  @Override
-  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) {
-    List<AbstractState> result = new ArrayList<AbstractState>();
-    int i = 0;
-    for (AbstractState expandedState : ((CompositeState)pExpandedState).getWrappedStates()) {
-      result.add(wrappedReducers.get(i++).getVariableReducedStateForProofChecking(expandedState, pContext, pCallNode));
-    }
-    return new CompositeState(result);
-  }
-
-  @Override
-  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
-    List<AbstractState> rootStates = ((CompositeState)pRootState).getWrappedStates();
-    List<AbstractState> reducedStates = ((CompositeState)pReducedState).getWrappedStates();
-
-    List<AbstractState> result = new ArrayList<AbstractState>();
-    int i = 0;
-    for (Pair<AbstractState, AbstractState> p : Pair.zipList(rootStates, reducedStates)) {
-      result.add(wrappedReducers.get(i++).getVariableExpandedStateForProofChecking(p.getFirst(), pReducedContext, p.getSecond()));
-    }
-    return new CompositeState(result);
-  }
 }

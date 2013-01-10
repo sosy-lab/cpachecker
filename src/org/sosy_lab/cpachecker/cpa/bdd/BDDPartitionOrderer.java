@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -41,8 +40,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -52,7 +50,7 @@ import com.google.common.collect.Sets.SetView;
 public class BDDPartitionOrderer {
 
   /** this graph contains all dependencies between partitions */
-  private Multimap<Partition, Partition> graph = LinkedHashMultimap.create();
+  private Multimap<Partition, Partition> graph = HashMultimap.create();
 
   private VariableClassification varClass;
 
@@ -83,8 +81,6 @@ public class BDDPartitionOrderer {
     Partition assPartition = varClass.getPartitionForEdge(ass1);
     assert varClass.getPartitionForEdge(ass2) == assPartition;
 
-    if (assPartition == null) { return; } // assumption is like "3==4"
-
     // left branch
     CFAUntilSplitCollector fCol1 = new CFAUntilSplitCollector();
     CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(ass1.getSuccessor(), fCol1);
@@ -95,8 +91,7 @@ public class BDDPartitionOrderer {
     CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(ass2.getSuccessor(), fCol2);
     Set<CFAEdge> reachable2 = fCol2.getEdges();
 
-    // get edges, that are either in left or in right branch.
-    // edges, that are reachable from both branches, are independent from the assumption
+    // get distinct edges, they are either in left or in right branch
     SetView<CFAEdge> distinctEdges = Sets.symmetricDifference(reachable1, reachable2);
     for (CFAEdge edge : distinctEdges) {
       Partition part = varClass.getPartitionForEdge(edge);
@@ -107,40 +102,34 @@ public class BDDPartitionOrderer {
   }
 
   /** returns a ordered list of partitions, so that the BDD stays small. */
-  public List<Partition> getOrderedPartitions() {
+  public Partition[] getOrderedPartitions() {
 
     // TODO use some "Minimum Linear Arrangement Algorithm"?
 
     Collection<Partition> partitions = Sets.newLinkedHashSet();
 
     for (Partition p : graph.keySet()) {
-      addToPartitions(p, partitions);
+      if (!partitions.contains(p)) {
+        partitions.add(p);
+      }
+      for (Partition child : graph.get(p)) {
+        if (!partitions.contains(child)) {
+          partitions.add(child);
+        }
+      }
     }
 
-    List<Partition> orderedPartitions = Lists.newLinkedList(partitions);
-
-    // add partitions, that are not dependent, in front of all other partitions
+    // add partitions, that are not dependent
     for (Partition p : varClass.getPartitions()) {
       if (!partitions.contains(p)) {
-        orderedPartitions.add(0, p);
+        partitions.add(p);
       }
     }
-    return orderedPartitions;
-  }
-
-  /** adds the father and all his children to the partitions,if not done before */
-  private void addToPartitions(Partition father, Collection<Partition> partitions) {
-    if (!partitions.contains(father)) {
-      partitions.add(father);
-      for (Partition child : graph.get(father)) {
-        addToPartitions(child, partitions);
-      }
-    }
+    return partitions.toArray(new Partition[0]);
   }
 
   /** This Visitor collects all edges reachable from the a node
-   * until a split-point (assumption) is reached.
-   * The leaving edges of the splitpoint are cllected, too. */
+   * until a split-point is reached. */
   private class CFAUntilSplitCollector implements CFAVisitor {
 
     private Set<CFAEdge> edges = new LinkedHashSet<CFAEdge>();

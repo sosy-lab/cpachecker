@@ -40,9 +40,4 @@ public interface Reducer {
   Object getHashCodeForState(AbstractState stateKey, Precision precisionKey);
 
   int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision);
-
-  AbstractState getVariableReducedStateForProofChecking(AbstractState expandedState, Block context, CFANode callNode);
-
-  AbstractState getVariableExpandedStateForProofChecking(AbstractState rootState, Block reducedContext, AbstractState reducedState);
-
 }

@@ -44,7 +44,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -62,7 +61,7 @@ import com.google.common.collect.TreeMultimap;
 class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
-  private final Queue<IASTFunctionDefinition> functionDeclarations = new LinkedList<IASTFunctionDefinition>();
+  private Queue<IASTFunctionDefinition> functionDeclarations = new LinkedList<IASTFunctionDefinition>();
   private final Map<String, FunctionEntryNode> cfas = new HashMap<String, FunctionEntryNode>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
@@ -73,14 +72,10 @@ class CFABuilder extends ASTVisitor {
   private final ASTConverter astCreator;
 
   private final LogManager logger;
-  private final CheckBindingVisitor checkBinding;
-
-  private boolean encounteredAsm = false;
 
   public CFABuilder(LogManager pLogger) {
     logger = pLogger;
     astCreator = new ASTConverter(scope, logger);
-    checkBinding = new CheckBindingVisitor(pLogger);
 
     shouldVisitDeclarations = true;
     shouldVisitEnumerators = true;
@@ -127,14 +122,12 @@ class CFABuilder extends ASTVisitor {
       functionDeclarations.add(fd);
 
       // add forward declaration to list of global declarations
-      CFunctionDeclaration functionDefinition = astCreator.convert(fd);
-      if (!astCreator.getAndResetPreSideAssignments().isEmpty()
-          || !astCreator.getAndResetPostSideAssignments().isEmpty()) {
+      CDeclaration functionDefinition = astCreator.convert(fd);
+      if (astCreator.numberOfPreSideAssignments() > 0) {
         throw new CFAGenerationRuntimeException("Function definition has side effect", fd);
       }
 
-      scope.registerFunctionDeclaration(functionDefinition);
-      globalDeclarations.add(Pair.<CDeclaration, String>of(functionDefinition, fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
+      globalDeclarations.add(Pair.of(functionDefinition, fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
 
       return PROCESS_SKIP;
 
@@ -149,8 +142,9 @@ class CFABuilder extends ASTVisitor {
 
     } else if (declaration instanceof IASTASMDeclaration) {
       // TODO Assembler code is ignored here
-      encounteredAsm = true;
-      logger.log(Level.FINER, "Ignoring inline assembler code at line", fileloc.getStartingLineNumber());
+      logger.log(Level.WARNING, "Ignoring inline assembler code at line "
+          + fileloc.getStartingLineNumber()
+          + ", analysis is probably unsound!");
       return PROCESS_SKIP;
 
     } else {
@@ -170,8 +164,7 @@ class CFABuilder extends ASTVisitor {
     final List<CDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
-    if (!astCreator.getAndResetPreSideAssignments().isEmpty()
-        || !astCreator.getAndResetPostSideAssignments().isEmpty()) {
+    if (astCreator.numberOfPreSideAssignments() > 0) {
       throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
     }
 
@@ -179,12 +172,6 @@ class CFABuilder extends ASTVisitor {
 
     for (CDeclaration newD : newDs) {
       if (newD instanceof CVariableDeclaration) {
-
-        CInitializer init = ((CVariableDeclaration) newD).getInitializer();
-        if (init != null) {
-          init.accept(checkBinding);
-        }
-
         scope.registerDeclaration(newD);
       } else if (newD instanceof CFunctionDeclaration) {
         scope.registerFunctionDeclaration((CFunctionDeclaration) newD);
@@ -221,15 +208,7 @@ class CFABuilder extends ASTVisitor {
       }
       cfas.put(functionName, startNode);
       cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
-
-      encounteredAsm |= functionBuilder.didEncounterAsm();
-      functionBuilder.finish();
     }
-
-    if (encounteredAsm) {
-      logger.log(Level.WARNING, "Inline assembler ignored, analysis is probably unsound!");
-    }
-
     return PROCESS_CONTINUE;
   }
 }

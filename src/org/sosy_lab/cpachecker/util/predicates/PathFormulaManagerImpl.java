@@ -38,7 +38,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -68,9 +67,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
 
   public PathFormulaManagerImpl(ExtendedFormulaManager pFmgr,
-      Configuration config, LogManager pLogger, MachineModel pMachineModel)
-          throws InvalidConfigurationException {
-    super(config, pFmgr, pMachineModel, pLogger);
+      Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+    super(config, pFmgr, pLogger);
   }
 
   @Override

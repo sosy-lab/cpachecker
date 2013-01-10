@@ -25,10 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.predicates.FormulaOperator;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 
 
@@ -184,108 +182,89 @@ public interface FormulaManager {
 
   // ----------------- Complex formula manipulation -----------------
 
-  /**
-   * Parse a formula given as a String in a solver-specific file format.
-   * @return The same formula in the internal representation.
-   * @throws IllegalArgumentException If the string cannot be parsed.
-   */
-  public Formula parse(String s) throws IllegalArgumentException;
+    /**
+     * Parse a formula given as a String in the common infix notation.
+     * @return The same formula in the internal representation.
+     * @throws IllegalArgumentException If the string cannot be parsed.
+     */
+    public Formula parseInfix(String s) throws IllegalArgumentException;
 
-  /**
-   * Parse a formula list given as a String in a solver-specific file format.
-   * @return The list of formulas contained in the string, keyed by their name.
-   * @throws IllegalArgumentException If the string cannot be parsed.
-   */
-  public Map<String, Formula> parseFormulas(String s) throws IllegalArgumentException;
+    /**
+     * Parse a formula given as a String in a solver-specific file format.
+     * @return The same formula in the internal representation.
+     * @throws IllegalArgumentException If the string cannot be parsed.
+     */
+    public Formula parse(String s) throws IllegalArgumentException;
 
-  /**
-   * Given a formula that uses "generic" variables, returns the corresponding
-   * one that "instantiates" such variables according to the given SSA map.
-   *
-   * @param f the generic Formula to instantiate
-   * @param ssa the SSAMap to use
-   * @return a copy of f in which every "generic" variable is replaced by the
-   * corresponding "SSA instance"
-   */
-  public Formula instantiate(Formula f, SSAMap ssa);
+    /**
+     * Given a formula that uses "generic" variables, returns the corresponding
+     * one that "instantiates" such variables according to the given SSA map.
+     *
+     * @param f the generic Formula to instantiate
+     * @param ssa the SSAMap to use
+     * @return a copy of f in which every "generic" variable is replaced by the
+     * corresponding "SSA instance"
+     */
+    public Formula instantiate(Formula f, SSAMap ssa);
 
-  /**
-   * Given an "instantiated" formula, returns the corresponding formula in
-   * which all the variables are "generic" ones. This is the inverse of the
-   * instantiate() method above
-   */
-  public Formula uninstantiate(Formula pF);
+    /**
+     * Given an "instantiated" formula, returns the corresponding formula in
+     * which all the variables are "generic" ones. This is the inverse of the
+     * instantiate() method above
+     */
+    public Formula uninstantiate(Formula pF);
 
-  /**
-   * Extracts the atoms from the given formula. Any SSA indices are removed
-   * from the symbols in the atoms.
-   * @param f the formula to operate on
-   * @param splitArithEqualities if true, return (x <= y) and (y <= x)
-   *                             instead of (x = y)
-   * @param conjunctionsOnly if true, don't extract atoms, but only top-level
-   *                         conjuncts. For example, if called on:
-   *                         a & (b | c), the result will be [a, (b | c)]
-   *                         instead of [a, b, c]
-   * @return a collection of (atomic) formulas
-   */
-  public Collection<Formula> extractAtoms(Formula f,
-      boolean splitArithEqualities, boolean conjunctionsOnly);
+    /**
+     * Extracts the atoms from the given formula. Any SSA indices are removed
+     * from the symbols in the atoms.
+     * @param f the formula to operate on
+     * @param splitArithEqualities if true, return (x <= y) and (y <= x)
+     *                             instead of (x = y)
+     * @param conjunctionsOnly if true, don't extract atoms, but only top-level
+     *                         conjuncts. For example, if called on:
+     *                         a & (b | c), the result will be [a, (b | c)]
+     *                         instead of [a, b, c]
+     * @return a collection of (atomic) formulas
+     */
+    public Collection<Formula> extractAtoms(Formula f,
+             boolean splitArithEqualities, boolean conjunctionsOnly);
 
+    /**
+     * Extract all variables referenced in a formula.
+     * @param f the formula to analyze
+     * @return a set of variables
+     */
+    public Set<String> extractVariables(Formula f);
 
-  /**
-   * Extracts the atoms from the given formula, does not remove SSA indices and does not split equalities,
-   * meaning does not return (x <= y) and (y <= x) instead of (x = y)
-   * @param f the formula to operate on
-   * @return a collection of (atomic) formulas
-   */
-  public Collection<Formula> extractAtoms(Formula f);
+    /**
+     * Create string representation of a formula in a format which may be dumped
+     * to a file.
+     */
+    public String dumpFormula(Formula pT);
 
-  /**
-   * Extract all variables referenced in a formula.
-   * @param f the formula to analyze
-   * @return a set of variables
-   */
-  public Set<String> extractVariables(Formula f);
+    /**
+     * Looks for uninterpreted functions in the formula and adds bitwise
+     * axioms for them.
+     */
+    public Formula getBitwiseAxioms(Formula f);
 
-  /**
-   * Create string representation of a formula in a format which may be dumped
-   * to a file.
-   */
-  public String dumpFormula(Formula pT);
+    /**
+     * Create the variable representing a predicate for the given atom. There won't
+     * be any tracking of the correspondence between the atom and the variable,
+     * if it is not done by the caller of this method.
+     */
+    public Formula createPredicateVariable(Formula pAtom);
 
-  /**
-   * Create string representation of some formulas as a string.
-   * @param pFormulas list of formulae
-   * @return String that describes pFormulas
-   */
-  public String dumpFormulas(Map<String, Formula> pFormulas);
+    /**
+     * Splits a formula into into arguments of the top level operator, e.g.,
+     * "f1 or f2" gets split to "f1", "f2".
+     */
+    public Formula[] getArguments(Formula f);
 
-  /**
-   * Looks for uninterpreted functions in the formula and adds bitwise
-   * axioms for them.
-   */
-  public Formula getBitwiseAxioms(Formula f);
+    /**
+     * Checks whether leftFormula occurs in rightFormula.
+     */
+    public boolean checkSyntacticEntails(Formula leftFormula, Formula rightFormula);
 
-  /**
-   * Create a boolean variable with a given name.
-   */
-  public Formula createPredicateVariable(String name);
-
-  /**
-   * Splits a formula into into arguments of the top level operator, e.g.,
-   * "f1 or f2" gets split to "f1", "f2".
-   */
-  public Formula[] getArguments(Formula f);
-
-  /**
-   * Returns top level operator, null if it is an atom
-   */
-  public FormulaOperator getOperator(Formula f);
-
-  /**
-   * Checks whether leftFormula occurs in rightFormula.
-   */
-  public boolean checkSyntacticEntails(Formula leftFormula, Formula rightFormula);
-
-  public String getVersion();
+    public String getVersion();
 }

@@ -151,7 +151,7 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
   return (jint)retval; \
 }
 
-#define PLAIN_STRING_RETURN \
+#define STRING_RETURN \
   jstring jretval = NULL; \
   if (!(*jenv)->ExceptionCheck(jenv)) { \
     jretval = (*jenv)->NewStringUTF(jenv, retval); \
@@ -160,25 +160,12 @@ void throwException(JNIEnv *env, const char *name, const char *msg) {
   return jretval; \
 }
 
-#define STRING_RETURN \
-  if (retval == NULL) { \
-    const char *msg = msat_last_error_message(m_arg1); \
-    throwException(jenv, "java/lang/IllegalArgumentException", msg); \
-    return NULL; \
-  } \
-  PLAIN_STRING_RETURN
-
 #define CONST_STRING_RETURN \
-  if (retval == NULL) { \
-    const char *msg = msat_last_error_message(m_arg1); \
-    throwException(jenv, "java/lang/IllegalArgumentException", msg); \
-    return NULL; \
-  } \
-  jstring jretval = NULL; \
-  if (!(*jenv)->ExceptionCheck(jenv)) { \
-    jretval = (*jenv)->NewStringUTF(jenv, retval); \
-  } \
-  return jretval; \
+	jstring jretval = NULL; \
+	if (!(*jenv)->ExceptionCheck(jenv)) { \
+	    jretval = (*jenv)->NewStringUTF(jenv, retval); \
+	} \
+	return jretval; \
 }
 
 #define FAILURE_CODE_RETURN \
@@ -267,8 +254,6 @@ typedef jint jjboolean;
 
 typedef jvoid jjfailureCode;
 
-typedef jobject jjnamedtermswrapper;
-
 // Abbreviations for common combinations of return and argument types
 //
 // Parameter explanation:
@@ -342,7 +327,7 @@ CONF_RETURN
 /*
  * void msat_destroy_config(msat_config cfg);
  */
-DEFINE_FUNC(void, 1destroy_1config) WITH_ONE_ARG(jconf)
+DEFINE_FUNC(void, 1destroy_config) WITH_ONE_ARG(jconf)
 CONF_ARG(1)
 VOID_CALL1(destroy_config)
 
@@ -434,24 +419,6 @@ CALL3(msat_type, get_array_type)
 TYPE_RETURN
 
 /*
- * msat_type msat_get_fp_type(msat_env env, size_t exp_with, size_t mant_with);
- */
-DEFINE_FUNC(jtype, 1get_1fp_1type) WITH_THREE_ARGS(jenv, int, int)
-ENV_ARG(1)
-SIMPLE_ARG(size_t, 2)
-SIMPLE_ARG(size_t, 3)
-CALL3(msat_type, get_fp_type)
-TYPE_RETURN
-
-/*
- * msat_type msat_get_fp_roundingmode_type(msat_env env);
- */
-DEFINE_FUNC(jtype, 1get_1fp_1roundingmode_1type) WITH_ONE_ARG(jenv)
-ENV_ARG(1)
-CALL1(msat_type, get_fp_roundingmode_type)
-TYPE_RETURN
-
-/*
  * msat_type msat_get_function_type(msat_env env, msat_type *param_types,
  *                               size_t num_params, msat_type return_type);
  */
@@ -494,22 +461,10 @@ BOOLEAN_RETURN
 DEFINE_FUNC(jboolean, 1is_1bv_1type) WITH_TWO_ARGS(jenv, jtype)
 ENV_ARG(1)
 TYPE_ARG(2)
-NULL_ARG(size_t, 3);
-CALL3(int, is_bv_type)
-BOOLEAN_RETURN
-
-DEFINE_FUNC(int, 1get_1bv_1type_1size) WITH_TWO_ARGS(jenv, jtype)
-ENV_ARG(1)
-TYPE_ARG(2)
 size_t r_arg3;
 size_t *m_arg3 = &r_arg3;
 CALL3(int, is_bv_type)
-  if (retval != 1) { \
-    throwException(jenv, "java/lang/IllegalArgumentException", "Cannot get size of non-bv term"); \
-    return -1;
-  } \
-  return (jint)r_arg3; \
-}
+BOOLEAN_RETURN
 
 
 DEFINE_FUNC(jboolean, 1is_1array_1type) WITH_TWO_ARGS(jenv, jtype)
@@ -518,20 +473,6 @@ TYPE_ARG(2)
 NULL_ARG(msat_type, 3)
 NULL_ARG(msat_type, 4)
 CALL4(int, is_array_type)
-BOOLEAN_RETURN
-
-DEFINE_FUNC(jboolean, 1is_1fp_1type) WITH_TWO_ARGS(jenv, jtype)
-ENV_ARG(1)
-TYPE_ARG(2)
-NULL_ARG(size_t, 3)
-NULL_ARG(size_t, 4)
-CALL4(int, is_fp_type)
-BOOLEAN_RETURN
-
-DEFINE_FUNC(jboolean, 1is_1fp_1roundingmode_1type) WITH_TWO_ARGS(jenv, jtype)
-ENV_ARG(1)
-TYPE_ARG(2)
-CALL2(int, is_fp_roundingmode_type)
 BOOLEAN_RETURN
 
 DEFINE_FUNC(jboolean, 1type_1equals) WITH_TWO_ARGS(jtype, jtype)
@@ -874,13 +815,13 @@ STRUCT_RETURN
 DEFINE_FUNC(string, 1decl_1get_1name) WITH_ONE_ARG(jdecl)
 DECL_ARG(1)
 CALL1(char *, decl_get_name)
-PLAIN_STRING_RETURN
+STRING_RETURN
 
 
 DEFINE_FUNC(string, 1term_1repr) WITH_ONE_ARG(jterm)
 TERM_ARG(1)
 CALL1(char *, term_repr)
-PLAIN_STRING_RETURN
+STRING_RETURN
 
 
 #define term_to_string(func, func_escaped) \
@@ -1055,168 +996,4 @@ CONST_STRING_RETURN
 
 DEFINE_FUNC(string, 1get_1version) WITHOUT_ARGS
 CALL0(char *, get_version)
-PLAIN_STRING_RETURN
-
-
-DEFINE_FUNC(object, 1named_1list_1from_1smtlib2) WITH_TWO_ARGS(jenv, string)
-    ENV_ARG(1)
-    STRING_ARG(2)
-    jobject ntw = NULL;
-    const char *ERR = NULL;
-
-    size_t n, i;
-    char **names;
-    msat_term *terms;
-
-    size_t *m_arg3 = &n;
-    char ***m_arg4 = &names;
-    msat_term **m_arg5 = &terms;
-
-    CALL5(int, named_list_from_smtlib2)
-    FREE_STRING_ARG(2)
-
-    if (retval != 0) {
-        const char *msg = msat_last_error_message(m_arg1);
-        throwException(jenv, "java/lang/IllegalArgumentException", msg);
-        return NULL;
-    }
-
-    jclass cls = (*jenv)->FindClass(jenv,
-        "org/sosy_lab/cpachecker/util/predicates/mathsat5/Mathsat5NativeApi$NamedTermsWrapper");
-    if (cls == NULL) {
-        ERR = "Could not find class NamedTermsWrapper.";
-        goto ERROR;
-    }
-
-    jmethodID mid = (*jenv)->GetMethodID(jenv, cls, "<init>", "([J[Ljava/lang/String;)V");
-    if (mid == NULL) {
-        ERR = "Could not find constructor of class NamedTermsWrapper!";
-        goto ERROR;
-    }
-
-    jobjectArray jnames = (jobjectArray)(*jenv)->NewObjectArray(jenv, n, (*jenv)->FindClass(jenv, "java/lang/String"), NULL);
-    jlongArray jterms = (jlongArray)(*jenv)->NewLongArray(jenv, n);
-    for (i = 0; i < n; i++) {
-        char* name = names[i];
-        msat_term term = terms[i];
-        jlong termlong = (jlong)((size_t)(term.repr));
-        jobject string = (*jenv)->NewStringUTF(jenv, name);
-        msat_free(name);
-        (*jenv)->SetLongArrayRegion(jenv, jterms, i, 1, &termlong);
-        (*jenv)->SetObjectArrayElement(jenv, jnames, i, string);
-    }
-
-    ntw = (*jenv)->NewObject(jenv, cls, mid, jterms, jnames);
-    if ((*jenv)->ExceptionCheck(jenv)) {
-        return NULL;
-    }
-    if (ntw == NULL) {
-        ERR = "Could not instantiate NamedTermsWrapper.";
-        goto ERROR;
-    }
-
-    return ntw;
-
-ERROR:
-    throwException(jenv, "java/lang/IllegalArgumentException", ERR);
-    return NULL;
-}
-
-DEFINE_FUNC(string, 1named_1list_1to_1smtlib2) WITH_TWO_ARGS(jenv, jnamedtermswrapper)
-    ENV_ARG(1)
-
-    const char *ERR = NULL;
-    size_t m_arg2;
-    const char **m_arg3;
-    msat_term *m_arg4;
-    jsize i = 0;
-
-    // query and get fields
-    jobject ntw = arg2;
-    jclass cls = (*jenv)->GetObjectClass(jenv, ntw);
-
-    jfieldID fid_terms = (*jenv)->GetFieldID(jenv, cls, "terms",  "[J");
-    if (fid_terms == 0) {
-        ERR = "Could not find the field 'terms'!";
-        goto ERROR;
-    }
-    jfieldID fid_names = (*jenv)->GetFieldID(jenv, cls, "names",  "[Ljava/lang/String;");
-    if (fid_names == 0) {
-        ERR = "Could not find the field 'names'!";
-        goto ERROR;
-    }
-    jlongArray terms = (jlongArray)((*jenv)->GetObjectField(jenv, ntw, fid_terms));
-    if (terms == NULL) {
-        ERR = "Could not get the field 'terms'!";
-        goto ERROR;
-    }
-
-    jobjectArray names = (jobjectArray)((*jenv)->GetObjectField(jenv, ntw, fid_names));
-    if (names == NULL) {
-        ERR = "Could not get the field 'names'!";
-        goto ERROR;
-    }
-
-    // check sizes
-    jsize n_terms = (*jenv)->GetArrayLength(jenv, terms);
-    jsize n = (*jenv)->GetArrayLength(jenv, names);
-    if (n != n_terms) {
-        ERR = "Invalid NamedTermsWrapper instance - should have same length in both arrays!";
-        goto ERROR;
-    }
-    m_arg2 = n;
-
-    // allocate target array
-    jlong *terms_inner = (*jenv)->GetLongArrayElements(jenv, terms, NULL);
-    if (terms_inner == NULL) {
-        ERR = "Failed unpacking the terms array object.";
-        goto ERROR;
-    }
-    m_arg3 = malloc(sizeof(const char*) * n);
-    if (m_arg3 == NULL) {
-        (*jenv)->ReleaseLongArrayElements(jenv, terms, terms_inner, JNI_ABORT);
-        ERR = "Not enough memory for allocation of temporary array.";
-        goto ERROR;
-    }
-
-    // extract long and string arrays into target arrays
-    for (; i < n; i++) {
-        jobject str = (*jenv)->GetObjectArrayElement(jenv, names, i);
-        if ((*jenv)->ExceptionCheck(jenv)) {
-            (*jenv)->ReleaseLongArrayElements(jenv, terms, terms_inner, JNI_ABORT);
-            for (i--; i >= 0; i--) {
-                jobject str = (*jenv)->GetObjectArrayElement(jenv, names, i);
-                (*jenv)->ReleaseStringUTFChars(jenv, str, m_arg3[i]);
-            }
-            free(m_arg3);
-            return NULL;
-        }
-        m_arg3[i] = (*jenv)->GetStringUTFChars(jenv, str, NULL);
-        if ((*jenv)->ExceptionCheck(jenv)) {
-            (*jenv)->ReleaseLongArrayElements(jenv, terms, terms_inner, JNI_ABORT);
-            for (i--; i >= 0; i--) {
-                jobject str = (*jenv)->GetObjectArrayElement(jenv, names, i);
-                (*jenv)->ReleaseStringUTFChars(jenv, str, m_arg3[i]);
-            }
-            free(m_arg3);
-            return NULL;
-        }
-    }
-
-    // perform the call and clean up
-    m_arg4 = (msat_term *) terms_inner;
-    CALL4(char *, named_list_to_smtlib2)
-    (*jenv)->ReleaseLongArrayElements(jenv, terms, terms_inner, JNI_ABORT);
-    for (; i < n; i++) {
-        jobject str = (*jenv)->GetObjectArrayElement(jenv, names, i);
-        (*jenv)->ReleaseStringUTFChars(jenv, str, m_arg3[i]);
-    }
-    free(m_arg3);
-
-    goto RETURN;
-ERROR:
-    throwException(jenv, "java/lang/IllegalArgumentException", ERR);
-    return NULL;
-RETURN:
 STRING_RETURN
-

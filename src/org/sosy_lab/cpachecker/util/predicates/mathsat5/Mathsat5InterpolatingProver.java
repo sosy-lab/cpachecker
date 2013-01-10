@@ -52,8 +52,8 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
         Preconditions.checkState(interpolEnv == 0);
 
         long cfg = msat_create_config();
-        msat_set_option_checked(cfg, "interpolation", "true");
-        msat_set_option_checked( cfg, "model_generation", "true");
+        msat_set_option(cfg, "interpolation", "true");
+        msat_set_option( cfg, "model_generation", "true");
         interpolEnv = mgr.createEnvironment(cfg, useSharedEnv, false);
     }
 
@@ -66,15 +66,9 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
             t = msat_make_copy_from(interpolEnv, t, mgr.getMsatEnv());
         }
         int group = msat_create_itp_group(interpolEnv);
-        msat_push_backtrack_point(interpolEnv);
         msat_set_itp_group(interpolEnv, group);
         msat_assert_formula(interpolEnv, t);
         return group;
-    }
-
-    @Override
-    public void popFormula() {
-        msat_pop_backtrack_point(interpolEnv);
     }
 
     @Override
@@ -101,7 +95,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
         if (!useSharedEnv) {
             itp = msat_make_copy_from(mgr.getMsatEnv(), itp, interpolEnv);
         }
-        return mgr.encapsulate(itp);
+        return new Mathsat5Formula(mgr.getMsatEnv(), itp);
     }
 
     @Override
@@ -116,7 +110,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
     public Model getModel() throws SolverException {
       Preconditions.checkState(interpolEnv != 0);
 
-      return Mathsat5Model.createMathsatModel(interpolEnv, mgr, useSharedEnv);
+      return Mathsat5Model.createMathsatModel(interpolEnv, mgr);
     }
 
 }

@@ -2,30 +2,30 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="1800" memlimit="2000">
   <option name="-noout"/>
-  <option name="-heap">1200M</option>
+  <option name="-heap">1200m</option>
 
   <test name="without-cbmc">
     <sourcefiles>
-      <includesfile>locks.set</includesfile>
-      <includesfile>ntdrivers-simplified.set</includesfile>
-      <includesfile>ntdrivers.set</includesfile>
-      <includesfile>ssh-simplified.set</includesfile>
-      <includesfile>ssh.set</includesfile>
-      <includesfile>systemc.set</includesfile>
-      <includesfile>nested.set</includesfile>
+      <includesfile>test/test-sets/locks.set</includesfile>
+      <includesfile>test/test-sets/ntdrivers-simplified.set</includesfile>
+      <includesfile>test/test-sets/ntdrivers.set</includesfile>
+      <includesfile>test/test-sets/ssh-simplified.set</includesfile>
+      <includesfile>test/test-sets/ssh.set</includesfile>
+      <includesfile>test/test-sets/systemc.set</includesfile>
+      <includesfile>test/test-sets/nested.set</includesfile>
     </sourcefiles>
     <option name="-explicitAnalysis-no-cbmc"/>
   </test>
 
   <test name="with-cbmc">
     <sourcefiles>
-      <includesfile>locks.set</includesfile>
-      <includesfile>ntdrivers-simplified.set</includesfile>
-      <includesfile>ntdrivers.set</includesfile>
-      <includesfile>ssh-simplified.set</includesfile>
-      <includesfile>ssh.set</includesfile>
-      <includesfile>systemc.set</includesfile>
-      <includesfile>nested.set</includesfile>
+      <includesfile>test/test-sets/locks.set</includesfile>
+      <includesfile>test/test-sets/ntdrivers-simplified.set</includesfile>
+      <includesfile>test/test-sets/ntdrivers.set</includesfile>
+      <includesfile>test/test-sets/ssh-simplified.set</includesfile>
+      <includesfile>test/test-sets/ssh.set</includesfile>
+      <includesfile>test/test-sets/systemc.set</includesfile>
+      <includesfile>test/test-sets/nested.set</includesfile>
     </sourcefiles>
     <option name="-explicitAnalysis"/>
   </test>
