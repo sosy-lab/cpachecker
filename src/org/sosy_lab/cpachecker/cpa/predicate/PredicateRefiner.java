@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -62,8 +62,8 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolati
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 /**
@@ -72,7 +72,7 @@ import com.google.common.collect.Multimap;
  * and removing the relevant parts of the ARG).
  */
 @Options(prefix="cpa.predicate.refinement")
-public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>, Pair<ARGState, CFANode>> implements StatisticsProvider {
+public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collection<AbstractionPredicate>> implements StatisticsProvider {
 
   @Option(description="refinement will add all discovered predicates "
           + "to all the locations in the abstract trace")
@@ -124,18 +124,15 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
   }
 
   @Override
-  protected final List<Pair<ARGState, CFANode>> transformPath(Path pPath) {
-    List<Pair<ARGState, CFANode>> result = Lists.newArrayList();
+  protected final List<ARGState> transformPath(Path pPath) {
+    List<ARGState> result = from(pPath)
+      .skip(1)
+      .transform(Pair.<ARGState>getProjectionToFirst())
+      .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
+                                 toState(PredicateAbstractState.class)))
+      .toImmutableList();
 
-    for (ARGState ae : from(pPath).skip(1).transform(Pair.<ARGState>getProjectionToFirst())) {
-      PredicateAbstractState pe = extractStateByType(ae, PredicateAbstractState.class);
-      if (pe.isAbstractionState()) {
-        CFANode loc = AbstractStates.extractLocation(ae);
-        result.add(Pair.of(ae, loc));
-      }
-    }
-
-    assert pPath.getLast().getFirst() == result.get(result.size()-1).getFirst();
+    assert pPath.getLast().getFirst() == result.get(result.size()-1);
     return result;
   }
 
@@ -149,9 +146,8 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
                   };
 
   @Override
-  protected List<Formula> getFormulasForPath(List<Pair<ARGState, CFANode>> path, ARGState initialState) throws CPATransferException {
+  protected List<Formula> getFormulasForPath(List<ARGState> path, ARGState initialState) throws CPATransferException {
     return from(path)
-        .transform(Pair.<ARGState>getProjectionToFirst())
         .transform(toState(PredicateAbstractState.class))
         .transform(GET_BLOCK_FORMULA)
         .toImmutableList();
@@ -159,7 +155,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
   @Override
   protected void performRefinement(ARGReachedSet pReached,
-      List<Pair<ARGState, CFANode>> pPath,
+      List<ARGState> pPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pCounterexample,
       boolean pRepeatedCounterexample) throws CPAException {
 
@@ -185,14 +181,14 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
   }
 
   private Pair<ARGState, PredicatePrecision> performRefinement(PredicatePrecision oldPrecision,
-      List<Pair<ARGState, CFANode>> pPath,
+      List<ARGState> pPath,
       CounterexampleTraceInfo<Collection<AbstractionPredicate>> pInfo,
       boolean pRepeatedCounterexample) throws CPAException {
 
     List<Collection<AbstractionPredicate>> newPreds = pInfo.getPredicatesForRefinement();
 
     // target state is not really an interpolation point, exclude it
-    List<Pair<ARGState, CFANode>> interpolationPoints = pPath.subList(0, pPath.size()-1);
+    List<ARGState> interpolationPoints = pPath.subList(0, pPath.size()-1);
     assert interpolationPoints.size() == newPreds.size();
 
     Multimap<CFANode, AbstractionPredicate> oldPredicateMap = oldPrecision.getPredicateMap();
@@ -200,7 +196,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
 
     boolean predicatesFound = false;
     boolean newPredicatesFound = false;
-    Pair<ARGState, CFANode> firstInterpolationPoint = null;
+    ARGState firstInterpolationPoint = null;
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
 
     pmapBuilder.putAll(oldPredicateMap);
@@ -208,13 +204,13 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     // iterate through interpolationPoints and find first point with new predicates, from there we have to cut the ARG
     // also build new precision
     int i = 0;
-    for (Pair<ARGState, CFANode> interpolationPoint : interpolationPoints) {
+    for (ARGState interpolationPoint : interpolationPoints) {
       Collection<AbstractionPredicate> localPreds = newPreds.get(i++);
 
       if (localPreds.size() > 0) {
         // found predicates
         predicatesFound = true;
-        CFANode loc = interpolationPoint.getSecond();
+        CFANode loc = AbstractStates.extractLocation(interpolationPoint);
 
         if (firstInterpolationPoint == null) {
           firstInterpolationPoint = interpolationPoint;
@@ -258,36 +254,37 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<Collecti
     // My benchmark showed, that at least for the benchmarks-lbe examples it is
     // best to use strategy one iff newPredicatesFound.
 
-    ARGState root = null;
+    ARGState refinementRoot = null;
     if (newPredicatesFound) {
-      root = firstInterpolationPoint.getFirst();
+      refinementRoot = firstInterpolationPoint;
 
       logger.log(Level.FINEST, "Found spurious counterexample,",
-          "trying strategy 1: remove everything below", root, "from ARG.");
+          "trying strategy 1: remove everything below", refinementRoot, "from ARG.");
 
     } else {
       if (pRepeatedCounterexample) {
         throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
       }
 
-      CFANode loc = firstInterpolationPoint.getSecond();
+      CFANode firstInterpolationPointLocation = AbstractStates.extractLocation(firstInterpolationPoint);
 
       logger.log(Level.FINEST, "Found spurious counterexample,",
-          "trying strategy 2: remove everything below node", loc, "from ARG.");
+          "trying strategy 2: remove everything below node", firstInterpolationPointLocation, "from ARG.");
 
-      // find first element in path with location == loc,
-      // this is not necessary equal to firstInterpolationPoint.getFirst()
-      for (Pair<ARGState, CFANode> abstractionPoint : pPath) {
-        if (abstractionPoint.getSecond().equals(loc)) {
-          root = abstractionPoint.getFirst();
+      // find first element in path with location == firstInterpolationPointLocation,
+      // this is not necessary equal to firstInterpolationPoint
+      for (ARGState abstractionPoint : pPath) {
+        CFANode loc = AbstractStates.extractLocation(abstractionPoint);
+        if (loc.equals(firstInterpolationPointLocation)) {
+          refinementRoot = abstractionPoint;
           break;
         }
       }
-      if (root == null) {
-        throw new CPAException("Inconsistent ARG, did not find element for " + loc);
+      if (refinementRoot == null) {
+        throw new CPAException("Inconsistent ARG, did not find element for " + firstInterpolationPointLocation);
       }
     }
-    return Pair.of(root, newPrecision);
+    return Pair.of(refinementRoot, newPrecision);
   }
 
   @Override

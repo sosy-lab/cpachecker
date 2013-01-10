@@ -110,6 +110,9 @@ analysis.useAdjustableConditions = false
 # use assumption collecting algorithm
 analysis.useAssumptionCollector = false
 
+# use CBMC and the BDDCPA Restriction option
+analysis.useBDDCPARestriction = false
+
 # use a BMC like algorithm that checks for satisfiability after the analysis
 # has finished, works only with PredicateCPA
 analysis.useBMC = false
@@ -129,7 +132,6 @@ analysis.useImpactAlgorithm = false
 # use a proof check algorithm to validate a previously generated proof
 analysis.useProofCheckAlgorithm = false
 
-# whether or not to use refinement or not
 # use CEGAR algorithm for lazy counter-example guided analysis
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARGCPA.
@@ -313,7 +315,11 @@ cpa.bdd.addIncreasing = false
 cpa.bdd.bitsize = 32
 
 # use a smaller bitsize for all vars, that have only discrete values
-cpa.bdd.compressDiscretes = false
+cpa.bdd.compressDiscretes = true
+
+# Pattern for variablenames that will always be tracked with BDDs.This
+# pattern should only be used for known variables, i.e. for boolean vars.
+cpa.bdd.forceTrackingPattern = ""
 
 # initialize all variables to 0 when they are declared
 cpa.bdd.initAllVars = false
@@ -434,9 +440,13 @@ cpa.explicit.precision.path.defaultThreshold = -1
 # within the reached set (-1 means infinitely)
 cpa.explicit.precision.reachedSet.defaultThreshold = -1
 
-# whether to use refinement based on Explicit-Interpolation - with this
-# option set to false, refinement will be done using SMT-based interpolation
-cpa.explicit.refiner.useExplicitInterpolation = true
+# whether or not to add newly-found variables only to the exact program
+# location or to the whole scope of the variable.
+cpa.explicit.precision.refinement.useScopedInterpolation = false
+
+# whether or not to only abstract variables that where updated in the
+# foregoing post operation
+cpa.explicit.precisionAdjustment.useDeltaPrecision = false
 
 # whether or not to always use the inital node as starting point for the next
 # re-exploration of the ARG
@@ -448,13 +458,6 @@ cpa.explicit.stop = "SEP"
 
 # blacklist regex for variables that won't be tracked by ExplicitCPA
 cpa.explicit.variableBlacklist = ""
-
-# whether or not to use assumption-closure for explicit refinement
-cpa.explict.refiner.useAssumptionClosure = true
-
-# whether or not to always use the inital node as starting point for the next
-# re-exploration of the ARG
-cpa.explict.refiner.useInitialNodeAsRestartingPoint = true
 
 # whitelist regex for variables that will be tracked by FeatureVarsCPA
 cpa.featurevars.variableWhitelist = ""
@@ -584,6 +587,10 @@ cpa.predicate.lvalsAsUIFs = false
 cpa.predicate.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
+# List of further options which will be passed to Mathsat. Format is
+# 'key1=value1,key2=value2'
+cpa.predicate.mathsat.furtherOptions = ImmutableList.of()
+
 # Export solver queries in Smtlib format into a file (for Mathsat5).
 cpa.predicate.mathsat.logAllQueries = false
 cpa.predicate.mathsat.logfile = "mathsat5.%d.smt2"
@@ -618,9 +625,11 @@ cpa.predicate.merge = "ABE"
 cpa.predicate.nondetFunctions = {
       "malloc", "__kmalloc", "kzalloc",
       "sscanf",
-      "int_nondet", "nondet_int", "random", "__VERIFIER_nondet_int", "__VERIFIER_nondet_pointer",
-      "__VERIFIER_nondet_short", "__VERIFIER_nondet_char", "__VERIFIER_nondet_float"
-      }
+      "random"}
+
+# Regexp pattern for functions that should be considered as giving a
+# non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
+cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-z]*"
 
 # export final predicate map, if the error location is not reached
 cpa.predicate.predmap.export = true

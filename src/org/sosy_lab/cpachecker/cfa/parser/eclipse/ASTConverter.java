@@ -30,6 +30,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -78,6 +79,8 @@ import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.eclipse.cdt.core.dom.ast.ICompositeType;
+import org.eclipse.cdt.core.dom.ast.IField;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -122,12 +125,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -151,6 +154,9 @@ class ASTConverter {
   private LinkedList<CAstNode> postSideAssignments = new LinkedList<CAstNode>();
   private IASTConditionalExpression conditionalExpression = null;
   private CIdExpression conditionalTemporaryVariable = null;
+
+  // list for all complextypes which are known, so that they don't have to be parsed again and again
+  private ArrayList<Pair<org.eclipse.cdt.core.dom.ast.ICompositeType, CCompositeType>> iCompTypeList = Lists.newArrayList();
 
 
   public ASTConverter(Scope pScope, LogManager pLogger) {
@@ -192,7 +198,6 @@ class ASTConverter {
   public CIdExpression getConditionalTemporaryVariable() {
     return conditionalTemporaryVariable;
   }
-
   private static final Set<BinaryOperator> BOOLEAN_BINARY_OPERATORS = ImmutableSet.of(
       BinaryOperator.EQUALS,
       BinaryOperator.NOT_EQUALS,
@@ -203,7 +208,7 @@ class ASTConverter {
       BinaryOperator.LOGICAL_AND,
       BinaryOperator.LOGICAL_OR);
 
-  private boolean isBooleanExpression(CExpression e) {
+  public static boolean isBooleanExpression(CExpression e) {
     if (e instanceof CBinaryExpression) {
       return BOOLEAN_BINARY_OPERATORS.contains(((CBinaryExpression)e).getOperator());
 
@@ -213,19 +218,6 @@ class ASTConverter {
     } else {
       return false;
     }
-  }
-
-  public CExpression convertBooleanExpression(IASTExpression e){
-
-    CExpression exp = convertExpressionWithoutSideEffects(e);
-    if (!isBooleanExpression(exp)) {
-
-      // TODO: probably the type of the zero is not always correct
-      CExpression zero = new CIntegerLiteralExpression(exp.getFileLocation(), exp.getExpressionType(), BigInteger.ZERO);
-      return new CBinaryExpression(exp.getFileLocation(), exp.getExpressionType(), exp, zero, BinaryOperator.NOT_EQUALS);
-    }
-
-    return exp;
   }
 
   public CExpression convertExpressionWithoutSideEffects(
@@ -967,15 +959,6 @@ class ASTConverter {
         throw new CFAGenerationRuntimeException("Extern declarations cannot have initializers", d);
       }
 
-      if (initializer == null && scope.isGlobalScope() && cStorageClass != CStorageClass.EXTERN) {
-        // global variables are initialized to zero by default in C
-        CExpression init = CDefaults.forType(type, fileLoc);
-        // may still be null, because we currently don't handle initializers for complex types
-        if (init != null) {
-          initializer = new CInitializerExpression(fileLoc, init);
-        }
-      }
-
       String origName = name;
 
       if (cStorageClass == CStorageClass.STATIC) {
@@ -1019,7 +1002,6 @@ class ASTConverter {
     }
     IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
 
-    CFileLocation fileLoc = convert(d.getFileLocation());
     Pair<CStorageClass, ? extends CType> specifier = convert(sd.getDeclSpecifier());
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw new CFAGenerationRuntimeException("Unsupported storage class inside composite type", d);
@@ -1030,25 +1012,25 @@ class ASTConverter {
     IASTDeclarator[] declarators = sd.getDeclarators();
     if (declarators == null || declarators.length == 0) {
       // declaration without declarator, anonymous struct field?
-      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(fileLoc, type, null);
+      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, null);
       result = Collections.singletonList(newD);
 
     } else if (declarators.length == 1) {
-      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(fileLoc, type, declarators[0]);
+      CCompositeTypeMemberDeclaration newD = createDeclarationForCompositeType(type, declarators[0]);
       result = Collections.singletonList(newD);
 
     } else {
       result = new ArrayList<CCompositeTypeMemberDeclaration>(declarators.length);
       for (IASTDeclarator c : declarators) {
 
-        result.add(createDeclarationForCompositeType(fileLoc, type, c));
+        result.add(createDeclarationForCompositeType(type, c));
       }
     }
 
     return result;
   }
 
-  private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(CFileLocation fileLoc, CType type, IASTDeclarator d) {
+  private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(CType type, IASTDeclarator d) {
     String name = null;
 
     if (d != null) {
@@ -1062,7 +1044,7 @@ class ASTConverter {
       name = declarator.getThird();
     }
 
-    return new CCompositeTypeMemberDeclaration(fileLoc, type, name);
+    return new CCompositeTypeMemberDeclaration(type, name);
   }
 
   private Triple<CType, CInitializer, String> convert(IASTDeclarator d, CType specifier) {
@@ -1172,6 +1154,16 @@ class ASTConverter {
 
     // handle return type
     returnType = convertPointerOperators(d.getPointerOperators(), returnType);
+    if (returnType instanceof CSimpleType) {
+      CSimpleType t = (CSimpleType)returnType;
+      if (t.getType() == CBasicType.UNSPECIFIED) {
+        // type of functions is implicitly int it not specified
+        returnType = new CSimpleType(t.isConst(), t.isVolatile(), CBasicType.INT,
+            t.isLong(), t.isShort(), t.isSigned(), t.isUnsigned(), t.isComplex(),
+            t.isImaginary(), t.isLongLong());
+      }
+    }
+
 
     // handle parameters
     List<CParameterDeclaration> paramsList = convert(sd.getParameters());
@@ -1522,12 +1514,57 @@ class ASTConverter {
     } else if (t instanceof org.eclipse.cdt.core.dom.ast.ITypedef) {
       return convert((org.eclipse.cdt.core.dom.ast.ITypedef)t);
 
+    } else if(t instanceof org.eclipse.cdt.core.dom.ast.ICompositeType) {
+      org.eclipse.cdt.core.dom.ast.ICompositeType ct = (org.eclipse.cdt.core.dom.ast.ICompositeType) t;
+
+      Iterator<Pair<ICompositeType, CCompositeType>> it = iCompTypeList.iterator();
+      while(it.hasNext()) {
+        Pair<org.eclipse.cdt.core.dom.ast.ICompositeType, CCompositeType> iType = it.next();
+        if(ct.isSameType(iType.getFirst())) {
+          return iType.getSecond();
+        }
+      }
+
+      // empty linkedList for the Fields of the struct, they are created afterwards
+      // with the right references in case of pointers to a struct of the same type
+      // otherwise they would not point to the correct struct
+      // TODO: volatile and const cannot be checked here until no, so both is set
+      //       to false
+      CCompositeType compType = new CCompositeType(false, false, ct.getKey(), new LinkedList<CCompositeTypeMemberDeclaration>(), ct.getName());
+      Pair<ICompositeType, CCompositeType> prototype = Pair.of(ct, compType);
+      iCompTypeList.add(prototype);
+      compType.setMembers(convert(ct.getFields()));
+
+      return compType;
+
+    } else if (t instanceof org.eclipse.cdt.core.dom.ast.IFunctionType) {
+      org.eclipse.cdt.core.dom.ast.IFunctionType ft = (org.eclipse.cdt.core.dom.ast.IFunctionType) t;
+
+      org.eclipse.cdt.core.dom.ast.IType[] parameters = ft.getParameterTypes();
+      List<CType> newParameters = Lists.newArrayListWithExpectedSize(parameters.length);
+      for (org.eclipse.cdt.core.dom.ast.IType p : parameters) {
+        newParameters.add(convert(p));
+      }
+
+      // TODO varargs
+      return new CFunctionPointerType(false, false, convert(ft.getReturnType()), newParameters, false);
+
+
     } else if (t instanceof org.eclipse.cdt.core.dom.ast.IBinding) {
       return new CComplexType(((org.eclipse.cdt.core.dom.ast.IBinding) t).getName());
 
     } else {
       return new CDummyType(t.toString());
     }
+  }
+
+  private List<CCompositeTypeMemberDeclaration> convert(IField[] pFields) {
+    List<CCompositeTypeMemberDeclaration> list = new LinkedList<CCompositeTypeMemberDeclaration>();
+
+    for(int i = 0; i < pFields.length; i++) {
+          list.add(new CCompositeTypeMemberDeclaration(convert(pFields[i].getType()), pFields[i].getName()));
+    }
+    return list;
   }
 
   private CSimpleType convert(final org.eclipse.cdt.core.dom.ast.IBasicType t) {

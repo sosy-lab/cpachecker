@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -76,6 +77,9 @@ class CoreComponentsFactory {
 
   @Option(description="use CBMC and the FeatureVars Restriction option")
   private boolean useFeatureVarsRestriction = false;
+
+  @Option(description="use CBMC and the BDDCPA Restriction option")
+  private boolean useBDDCPARestriction = false;
 
   @Option(description="use a BMC like algorithm that checks for satisfiability "
         + "after the analysis has finished, works only with PredicateCPA")
@@ -161,6 +165,10 @@ class CoreComponentsFactory {
 
       if (useFeatureVarsRestriction) {
         algorithm = new FeatureVarsRestrictionAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
+      }
+
+      if (useBDDCPARestriction) {
+        algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, cfa);
       }
 
       if (useAssumptionCollector) {

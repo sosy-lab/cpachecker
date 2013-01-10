@@ -717,4 +717,16 @@ public abstract class MathsatFormulaManager implements FormulaManager {
   public String getVersion() {
     return "MathSAT 4";
   }
+
+  @Override
+  public Map<String, Formula> parseFormulas(String pS) throws IllegalArgumentException {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public String dumpFormulas(Map<String, Formula> pFormulas) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException();
+  }
 }

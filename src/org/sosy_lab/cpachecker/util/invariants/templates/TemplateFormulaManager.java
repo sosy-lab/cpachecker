@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.invariants.templates;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -538,6 +539,11 @@ public class TemplateFormulaManager implements FormulaManager {
     return null;
   }
 
+  @Override
+  public Map<String, Formula> parseFormulas(String pS) throws IllegalArgumentException {
+    throw new UnsupportedOperationException();
+  }
+
   /**
    * Given a formula that uses "generic" variables, returns the corresponding
    * one that "instantiates" such variables according to the given SSA map.
@@ -597,6 +603,11 @@ public class TemplateFormulaManager implements FormulaManager {
    */
   @Override
   public String dumpFormula(Formula pT) { return null; }
+
+  @Override
+  public String dumpFormulas(Map<String, Formula> pFormulas) {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Looks for uninterpreted functions in the formula and adds bitwise

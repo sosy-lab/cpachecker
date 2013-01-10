@@ -43,6 +43,8 @@ import com.google.common.base.Preconditions;
 
 public class MathsatTheoremProver implements TheoremProver {
 
+  private static final boolean USE_SHARED_ENV = true;
+
   private final MathsatFormulaManager mgr;
   private long curEnv;
 
@@ -62,7 +64,7 @@ public class MathsatTheoremProver implements TheoremProver {
   public Model getModel() {
     Preconditions.checkState(curEnv != 0);
 
-    return MathsatModel.createMathsatModel(curEnv, mgr);
+    return MathsatModel.createMathsatModel(curEnv, mgr, USE_SHARED_ENV);
   }
 
   @Override
@@ -83,7 +85,7 @@ public class MathsatTheoremProver implements TheoremProver {
   public void init() {
     Preconditions.checkState(curEnv == 0);
 
-    curEnv = mgr.createEnvironment(true, true);
+    curEnv = mgr.createEnvironment(USE_SHARED_ENV, true);
   }
 
   @Override
@@ -101,7 +103,7 @@ public class MathsatTheoremProver implements TheoremProver {
     checkNotNull(enumTime);
     long formula = getTerm(f);
 
-    long allsatEnv = mgr.createEnvironment(true, true);
+    long allsatEnv = mgr.createEnvironment(USE_SHARED_ENV, true);
 
     long[] imp = new long[important.size()];
     int i = 0;

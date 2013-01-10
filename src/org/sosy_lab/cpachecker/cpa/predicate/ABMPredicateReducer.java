@@ -96,7 +96,7 @@ public class ABMPredicateReducer implements Reducer {
 
       AbstractionFormula newAbstraction = pamgr.reduce(oldAbstraction, removePredicates, pathFormula.getSsa());
 
-      return PredicateAbstractState.abstractionState(pathFormula, newAbstraction);
+      return PredicateAbstractState.mkAbstractionState(pathFormula, newAbstraction);
     } finally {
       reduceTimer.stop();
     }
@@ -144,7 +144,7 @@ public class ABMPredicateReducer implements Reducer {
       AbstractionFormula newAbstractionFormula =
           pamgr.expand(reducedAbstraction, rootAbstraction, relevantRootPredicates, newSSA);
 
-      return PredicateAbstractState.abstractionState(newPathFormula,
+      return PredicateAbstractState.mkAbstractionState(newPathFormula,
           newAbstractionFormula);
     } finally {
       expandTimer.stop();

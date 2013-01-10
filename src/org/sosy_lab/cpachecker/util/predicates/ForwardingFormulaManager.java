@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -302,5 +303,15 @@ public class ForwardingFormulaManager implements FormulaManager {
   @Override
   public String getVersion() {
     return delegate.getVersion();
+  }
+
+  @Override
+  public String dumpFormulas(Map<String, Formula> pFormulas) {
+    return delegate.dumpFormulas(pFormulas);
+  }
+
+  @Override
+  public Map<String, Formula> parseFormulas(String pS) throws IllegalArgumentException {
+    return delegate.parseFormulas(pS);
   }
 }

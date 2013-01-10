@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -105,6 +106,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.math.IntMath;
 
 /**
  * Class containing all the code that converts C code into a formula.
@@ -133,9 +135,12 @@ public class CtoFormulaConverter {
   private Set<String> nondetFunctions = ImmutableSet.of(
       "malloc", "__kmalloc", "kzalloc",
       "sscanf",
-      "int_nondet", "nondet_int", "random", "__VERIFIER_nondet_int", "__VERIFIER_nondet_pointer",
-      "__VERIFIER_nondet_short", "__VERIFIER_nondet_char", "__VERIFIER_nondet_float"
-      );
+      "random");
+
+  @Option(description="Regexp pattern for functions that should be considered as giving "
+    + "a non-deterministic return value (c.f. cpa.predicate.nondedFunctions)")
+  private String nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-z]*";
+  private final Pattern nondetFunctionsPattern;
 
   @Option(description = "the machine model used for functions sizeof and alignof")
   private MachineModel machineModel = MachineModel.LINUX32;
@@ -149,6 +154,8 @@ public class CtoFormulaConverter {
   private Set<String> memoryAllocationFunctions = ImmutableSet.of(
       "malloc", "__kmalloc", "kzalloc"
       );
+
+  private static final String ASSUME_FUNCTION_NAME = "__VERIFIER_assume";
 
   // list of functions that are pure (no side-effects)
   private static final Set<String> PURE_EXTERNAL_FUNCTIONS
@@ -213,6 +220,8 @@ public class CtoFormulaConverter {
 
     this.fmgr = fmgr;
     this.logger = logger;
+
+    nondetFunctionsPattern = Pattern.compile(nondetFunctionsRegexp);
   }
 
   private void warnUnsafeVar(CExpression exp) {
@@ -1156,10 +1165,30 @@ public class CtoFormulaConverter {
           return fmgr.makeBitwiseOr(me1, me2);
         case BINARY_XOR:
           return fmgr.makeBitwiseXor(me1, me2);
+
         case SHIFT_LEFT:
-          return fmgr.makeShiftLeft(me1, me2);
+          // SAT-solver cannot handle bitshifts,
+          // so we try to convert a bitshift into a multiplication:
+          // x << 2 is equal to x*4
+          // TODO perhaps bitshifts are possible in future
+          if (e2 instanceof CIntegerLiteralExpression) {
+            final int factor = IntMath.pow(2, ((CIntegerLiteralExpression) e2).getValue().intValue());
+            return fmgr.makeMultiply(me1, fmgr.makeNumber(factor));
+          } else {
+            return fmgr.makeShiftLeft(me1, me2);
+          }
+
         case SHIFT_RIGHT:
-          return fmgr.makeShiftRight(me1, me2);
+          // SAT-solver cannot handle bitshifts,
+          // so we try to evaluate a bitshift: 4 >> 2 is equal to 1
+          // TODO perhaps bitshifts are possible in future
+          if (e1 instanceof CIntegerLiteralExpression
+              && e2 instanceof CIntegerLiteralExpression) {
+            return fmgr.makeNumber(((CIntegerLiteralExpression) e1).getValue().
+                shiftRight(((CIntegerLiteralExpression) e2).getValue().intValue()).intValue());
+          } else {
+            return fmgr.makeShiftRight(me1, me2);
+          }
 
         case GREATER_THAN:
           return fmgr.makeGt(me1, me2);
@@ -1261,6 +1290,9 @@ public class CtoFormulaConverter {
       UnaryOperator op = exp.getOperator();
 
       switch (op) {
+      case PLUS:
+        return toNumericFormula(operand.accept(this));
+
       case MINUS: {
         Formula term = toNumericFormula(operand.accept(this));
         return fmgr.makeNegate(term);
@@ -1487,7 +1519,15 @@ public class CtoFormulaConverter {
       String func;
       if (fn instanceof CIdExpression) {
         func = ((CIdExpression)fn).getName();
-        if (nondetFunctions.contains(func)) {
+        if (func.equals(ASSUME_FUNCTION_NAME) && pexps.size() == 1) {
+
+          Formula condition = toBooleanFormula(pexps.get(0).accept(this));
+          constraints.addConstraint(condition);
+
+          return makeFreshVariable(func, ssa);
+
+        } else if (nondetFunctions.contains(func)
+            || nondetFunctionsPattern.matcher(func).matches()) {
           // function call like "random()"
           // ignore parameters and just create a fresh variable for it
           return makeFreshVariable(func, ssa);

@@ -23,15 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
-import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
+import static com.google.common.base.Preconditions.*;
+import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.msat_term_repr;
 
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
-import java.util.ArrayList;
+import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.ExtendedFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+
+import com.google.common.collect.Maps;
 
 
 /**
@@ -41,29 +45,21 @@ class Mathsat5Formula implements Formula, Serializable {
 
   private static final long serialVersionUID = 7662624283533815801L;
   private final long msatTerm;
-  private final long msatEnv;
 
-  public Mathsat5Formula(long e, long t) {
-    assert e != 0;
+  Mathsat5Formula(long t) {
     assert t != 0;
 
     msatTerm = t;
-    msatEnv = e;
-  }
-
-
-  public long getTermEnv() {
-    return msatEnv;
   }
 
   @Override
   public boolean isFalse() {
-    return msat_term_is_false(msatEnv, msatTerm);
+    return false;
   }
 
   @Override
   public boolean isTrue() {
-    return msat_term_is_true(msatEnv, msatTerm);
+    return false;
   }
 
   @Override
@@ -86,100 +82,102 @@ class Mathsat5Formula implements Formula, Serializable {
     return (int) msatTerm;
   }
 
-  private Object writeReplace() throws ObjectStreamException {
+  Object writeReplace() throws ObjectStreamException {
     return new SerialProxy(this);
+  }
+
+  static final class FalseFormula extends Mathsat5Formula {
+
+    FalseFormula(long pT) {
+      super(pT);
+    }
+
+    @Override
+    public boolean isFalse() {
+      return true;
+    }
+  }
+
+  static final class TrueFormula extends Mathsat5Formula {
+
+    TrueFormula(long pT) {
+      super(pT);
+    }
+
+    @Override
+    public boolean isTrue() {
+      return true;
+    }
   }
 
   private static class SerialProxy implements Serializable {
 
     private static final long serialVersionUID = 6889568471468710163L;
     private transient static int storageIndex = -1;
+    private transient int id = -1;
 
     public SerialProxy(Formula pFormula) {
       if (storageIndex == -1) {
         storageIndex = GlobalInfo.getInstance().addHelperStorage(new MathsatFormulaStorage());
       }
-      ((MathsatFormulaStorage) GlobalInfo.getInstance().getHelperStorage(storageIndex)).storeFormula(pFormula);
+      MathsatFormulaStorage formulaStorage = (MathsatFormulaStorage) GlobalInfo.getInstance().getHelperStorage(storageIndex);
+      id = formulaStorage.storeFormula(pFormula);
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+      checkState(storageIndex >= 0);
+      checkState(id >= 0);
       out.defaultWriteObject();
       out.writeInt(storageIndex);
+      out.writeInt(id);
     }
 
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
       in.defaultReadObject();
       storageIndex = in.readInt();
+      id = in.readInt();
+      checkState(id >= 0);
     }
 
     private Object readResolve() throws ObjectStreamException {
-      return ((MathsatFormulaStorage) GlobalInfo.getInstance().getHelperStorage(storageIndex)).restoreFormula();
+      return ((MathsatFormulaStorage) GlobalInfo.getInstance().getHelperStorage(storageIndex)).restoreFormula(id);
     }
   }
 
   private static class MathsatFormulaStorage implements Serializable {
 
     private static final long serialVersionUID = -3773448463181606622L;
-    private transient ArrayList<Formula> formulaeStorage;
+    private transient Map<String, Formula> formulaeStorage = Maps.newHashMap();
 
-    public MathsatFormulaStorage() {
-      formulaeStorage = new ArrayList<Formula>();
+    private transient int nextId = 0;
+
+    public int storeFormula(Formula f) {
+      int id = nextId++;
+      formulaeStorage.put("a" + id, f);
+      return id;
     }
 
-    public void storeFormula(Formula f) {
-      formulaeStorage.add(f);
-    }
-
-    public Formula restoreFormula() {
-      Formula result = formulaeStorage.get(0);
-      formulaeStorage.remove(0);
-
-      return result;
+    public Formula restoreFormula(int id) {
+      checkArgument(id >= 0);
+      return checkNotNull(formulaeStorage.get("a" + id));
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
       out.defaultWriteObject();
 
-      //build overall formula using a uninterpreted predicate dummy
-      //storageFormula = dummy(formula_1, formula_2, ...)
-      long[] terms = new long[formulaeStorage.size()];
-      for (int i = 0; i < formulaeStorage.size(); ++i) {
-        terms[i] = ((Mathsat5Formula) formulaeStorage.get(i)).msatTerm;
-      }
-      Formula storageFormula =
-          GlobalInfo.getInstance().getFormulaManager().makeUIP("dummy", new Mathsat5FormulaList(terms));
+      ExtendedFormulaManager fmgr = GlobalInfo.getInstance().getFormulaManager();
+      String storageFormulaRepresentation = fmgr.dumpFormulas(formulaeStorage);
 
-      String storageFormulaRepresentation = GlobalInfo.getInstance().getFormulaManager().dumpFormula(storageFormula);
-
-      //avoid quotation marks in formulae
-      storageFormulaRepresentation = storageFormulaRepresentation.replaceAll("\"", "");
-
-      //work around for MathSat bug
-      int index = storageFormulaRepresentation.indexOf("VAR dummy :");
-      String pre = storageFormulaRepresentation.substring(0, index);
-      String post = storageFormulaRepresentation.substring(storageFormulaRepresentation.indexOf("\n", index) + 1);
-      storageFormulaRepresentation = pre + post;
-
-      //write everything
-      out.writeInt(formulaeStorage.size());
       out.writeObject(storageFormulaRepresentation);
     }
 
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
       in.defaultReadObject();
 
-      //work around for MathSat bug
-      int storageSize = in.readInt();
-      GlobalInfo.getInstance().getFormulaManager().declareUIP("dummy", storageSize);
+      String data = (String) in.readObject();
 
-      Formula storageFormula = GlobalInfo.getInstance().getFormulaManager().parse((String) in.readObject());
-
-      //split storage formula
-      Formula[] formulae = GlobalInfo.getInstance().getFormulaManager().getArguments(storageFormula);
-      formulaeStorage = new ArrayList<Formula>(storageSize);
-      for (Formula f : formulae) {
-        formulaeStorage.add(f);
-      }
+      ExtendedFormulaManager fmgr = GlobalInfo.getInstance().getFormulaManager();
+      formulaeStorage = fmgr.parseFormulas(data);
     }
   }
 }

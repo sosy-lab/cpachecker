@@ -74,8 +74,8 @@ public class UnmodifiableReachedSetView
   }
 
   @Override
-  public Collection<AbstractState> getReached() {
-    return Collections2.transform(underlying.getReached(), mapStateFunction);
+  public Collection<AbstractState> asCollection() {
+    return Collections2.transform(underlying.asCollection(), mapStateFunction);
   }
 
   @Override

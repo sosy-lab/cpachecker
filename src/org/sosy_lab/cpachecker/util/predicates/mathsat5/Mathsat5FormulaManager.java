@@ -50,6 +50,12 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.NamedTermsWrapper;
+
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 @Options(prefix = "cpa.predicate.mathsat")
 public abstract class Mathsat5FormulaManager implements FormulaManager {
@@ -63,6 +69,11 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
 
   @Option(description = "Use theory of EUF in solver (recommended if UIFs are used, otherwise they are useless)")
   private boolean useEUFtheory = true;
+
+  @Option(description = "List of further options which will be passed to Mathsat. "
+      + "Format is 'key1=value1,key2=value2'")
+  private List<String> furtherOptions = ImmutableList.of();
+  private final Map<String, String> furtherOptionsMap = Maps.newHashMap();
 
   @Option(description = "Export solver queries in Smtlib format into a file (for Mathsat5).")
   private boolean logAllQueries = false;
@@ -104,14 +115,31 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   Mathsat5FormulaManager(Configuration config, LogManager logger, MsatType pVarType) throws InvalidConfigurationException {
     config.inject(this, Mathsat5FormulaManager.class);
 
+    Splitter optionSplitter = Splitter.on('=').trimResults().omitEmptyStrings().limit(2);
+    for (String option : furtherOptions) {
+      List<String> bits = Lists.newArrayList(optionSplitter.split(option));
+      if (bits.size() != 2) {
+        throw new InvalidConfigurationException("Invalid Mathsat option " + option);
+      }
+
+      furtherOptionsMap.put(bits.get(0), bits.get(1));
+    }
 
     long msatConf = msat_create_config();
 
+    for (Map.Entry<String, String> option : furtherOptionsMap.entrySet()) {
+      int retval = msat_set_option(msatConf, option.getKey(), option.getValue());
+      if (retval != 0) {
+        throw new InvalidConfigurationException("Could not set Mathsat option " + option + ", error code " + retval);
+      }
+    }
+
     msatEnv = msat_create_env(msatConf);
+
     msatVarType = pVarType.getVariableType(msatEnv);
 
-    trueFormula = encapsulate(msat_make_true(msatEnv));
-    falseFormula = encapsulate(msat_make_false(msatEnv));
+    trueFormula = new Mathsat5Formula.TrueFormula(msat_make_true(msatEnv));
+    falseFormula = new Mathsat5Formula.FalseFormula(msat_make_false(msatEnv));
 
     long integer_type = msat_get_integer_type(msatEnv);
 
@@ -132,6 +160,11 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
 
     if (!useEUFtheory) {
       msat_set_option(cfg, "theory.euf.enabled", "false");
+    }
+
+    for (Map.Entry<String, String> option : furtherOptionsMap.entrySet()) {
+      int retval = msat_set_option(cfg, option.getKey(), option.getValue());
+      assert retval == 0 : "Could not set Mathsat option " + option + " although it worked previously, error code " + retval;
     }
 
     if (logAllQueries && logfile != null) {
@@ -159,7 +192,15 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   }
 
   protected Formula encapsulate(long t) {
-    return new Mathsat5Formula(msatEnv, t);
+    if (msat_term_is_true(msatEnv, t)) {
+      assert t == getTerm(trueFormula);
+      return trueFormula;
+    } else if (msat_term_is_false(msatEnv, t)) {
+      assert t == getTerm(falseFormula);
+      return falseFormula;
+    } else {
+      return new Mathsat5Formula(t);
+    }
   }
 
   private static FormulaList encapsulate(long[] t) {
@@ -436,6 +477,22 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   */
 
   @Override
+  public String dumpFormulas(Map<String, Formula> pFormulas) {
+    String[] names = new String[pFormulas.size()];
+    long[] terms = new long[pFormulas.size()];
+
+    int i = 0;
+    for (Map.Entry<String, Formula> entry : pFormulas.entrySet()) {
+      names[i] = entry.getKey();
+      terms[i] = getTerm(entry.getValue());
+      i++;
+    }
+
+    NamedTermsWrapper ntw = new NamedTermsWrapper(terms, names);
+    return msat_named_list_to_smtlib2(msatEnv, ntw);
+  }
+
+  @Override
   public Formula parseInfix(String s) {
     long f = msat_from_string(msatEnv, s);
     return encapsulate(f);
@@ -445,6 +502,21 @@ public abstract class Mathsat5FormulaManager implements FormulaManager {
   public Formula parse(String s) {
     long f = msat_from_smtlib2(msatEnv, s);
     return encapsulate(f);
+  }
+
+  @Override
+  public Map<String, Formula> parseFormulas(String pS) throws IllegalArgumentException {
+    NamedTermsWrapper ntw = msat_named_list_from_smtlib2(msatEnv, pS);
+
+    Map<String, Formula> result = new HashMap<String, Formula>(ntw.terms.length);
+    for (int i = 0; i < ntw.terms.length; i++) {
+      String name = ntw.names[i];
+      long term = ntw.terms[i];
+      assert !result.containsKey(name);
+      result.put(name, encapsulate(term));
+    }
+
+    return result;
   }
 
   @Override

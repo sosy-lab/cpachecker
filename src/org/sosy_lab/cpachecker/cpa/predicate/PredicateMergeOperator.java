@@ -67,7 +67,7 @@ public class PredicateMergeOperator implements MergeOperator {
       // we don't merge if this is an abstraction location
       merged = elem2;
     } else {
-      // don't merge if the elements are in different blocks (they have different abstractions)
+      // don't merge if the elements are in different blocks (they have different abstraction formulas)
       if (!elem1.getAbstractionFormula().equals(elem2.getAbstractionFormula())) {
         merged = elem2;
 
@@ -81,7 +81,7 @@ public class PredicateMergeOperator implements MergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
-        merged = PredicateAbstractState.nonAbstractionState(pathFormula, elem1.getAbstractionFormula());
+        merged = PredicateAbstractState.mkNonAbstractionState(pathFormula, elem1.getAbstractionFormula());
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

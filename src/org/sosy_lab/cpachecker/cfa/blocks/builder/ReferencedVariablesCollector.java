@@ -200,6 +200,7 @@ public class ReferencedVariablesCollector {
       case AMPER:
       case STAR:
         collectVar(pE.toASTString());
+        //$FALL-THROUGH$
       default:
         pE.getOperand().accept(this);
       }

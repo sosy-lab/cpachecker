@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="300" memlimit="15000">
+  <option name="-noout"/>
+
+  <sourcefiles>
+    <include>../programs/eca/*.c</include>
+    <include>../programs/eca-simplified/*.c</include>
+  </sourcefiles>
+
+  <test name="FsmBddAnalysis">
+    <option name="-fsmBddAnalysis"/>
+    <option name="-setprop">cpa.fsmbdd.conditionBlockEncoding=false</option>
+    <option name="-setprop">specification=config/specification/default.spc</option>
+    <option name="-heap">13000M</option>
+  </test>
+  
+  <test name="FsmBdd-BlockEncoding">
+    <option name="-fsmBddAnalysis"/>
+    <option name="-setprop">cpa.fsmbdd.conditionBlockEncoding=true</option>
+    <option name="-setprop">specification=config/specification/default.spc</option>
+    <option name="-heap">10000M</option>
+  </test>
+
+  <test name="PredicateAnalysis">
+    <option name="-predicateAnalysis"/>
+    <option name="-heap">10000M</option>
+  </test>
+
+  <test name="ImpactAnalysis">
+    <option name="-predicateAnalysis-ImpactRefiner-ABEl"/>
+    <option name="-heap">10000M</option>
+  </test>
+
+  <test name="ImpactAnalysis5000">
+    <option name="-predicateAnalysis-ImpactRefiner-ABEl"/>
+    <option name="-heap">5000M</option>
+  </test>
+
+  <test name="ExplicitAnalysis">
+    <option name="-explicitAnalysis"/>
+    <option name="-heap">10000M</option>
+  </test>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+    <column title="abstractions">Number of abstractions</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="ref time">Time for refinements</column>
+    <column title="cpa time">time for CPA algorithm</column>
+  </columns>
+</benchmark>

@@ -2,33 +2,33 @@
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="1800" memlimit="2000">
   <option name="-noout"/>
-  <option name="-heap">1200m</option>
+  <option name="-heap">1200M</option>
 
   <test name="abm">
     <sourcefiles>
-      <includesfile>test/test-sets/locks.set</includesfile>
-      <includesfile>test/test-sets/ntdrivers-simplified.set</includesfile>
-      <includesfile>test/test-sets/ntdrivers.set</includesfile>
-      <includesfile>test/test-sets/ssh-simplified.set</includesfile>
-      <includesfile>test/test-sets/ssh.set</includesfile>
-      <includesfile>test/test-sets/systemc.set</includesfile>
-      <includesfile>test/test-sets/nested.set</includesfile>
-      <includesfile>test/test-sets/VeriSec.set</includesfile>
-      <include>test/programs/linux-kernel/*.cil.c</include>
+      <includesfile>locks.set</includesfile>
+      <includesfile>ntdrivers-simplified.set</includesfile>
+      <includesfile>ntdrivers.set</includesfile>
+      <includesfile>ssh-simplified.set</includesfile>
+      <includesfile>ssh.set</includesfile>
+      <includesfile>systemc.set</includesfile>
+      <includesfile>nested.set</includesfile>
+      <includesfile>VeriSec.set</includesfile>
+      <include>../programs/linux-kernel/*.cil.c</include>
     </sourcefiles>
     <option name="-predicateAnalysis-abm"/>
   </test>
   <test name="abm-auxiliaryPredicates">
     <sourcefiles>
-      <includesfile>test/test-sets/locks.set</includesfile>
-      <includesfile>test/test-sets/ntdrivers-simplified.set</includesfile>
-      <includesfile>test/test-sets/ntdrivers.set</includesfile>
-      <includesfile>test/test-sets/ssh-simplified.set</includesfile>
-      <includesfile>test/test-sets/ssh.set</includesfile>
-      <includesfile>test/test-sets/systemc.set</includesfile>
-      <includesfile>test/test-sets/nested.set</includesfile>
-      <includesfile>test/test-sets/VeriSec.set</includesfile>
-      <include>test/programs/linux-kernel/*.cil.c</include>
+      <includesfile>locks.set</includesfile>
+      <includesfile>ntdrivers-simplified.set</includesfile>
+      <includesfile>ntdrivers.set</includesfile>
+      <includesfile>ssh-simplified.set</includesfile>
+      <includesfile>ssh.set</includesfile>
+      <includesfile>systemc.set</includesfile>
+      <includesfile>nested.set</includesfile>
+      <includesfile>VeriSec.set</includesfile>
+      <include>../programs/linux-kernel/*.cil.c</include>
     </sourcefiles>
     <option name="-predicateAnalysis-abm-auxiliaryPredicates"/>
   </test>

@@ -39,6 +39,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
  */
 public class CFACreationUtils {
 
+  // Static state is not beautiful, but here it doesn't matter.
+  // Worst thing that can happen is too many dead code warnings.
+  private static int lastDetectedDeadCode = -1;
+
   /**
    * This method adds this edge to the leaving and entering edges
    * of its predecessor and successor respectively, but it does so only
@@ -76,10 +80,15 @@ public class CFACreationUtils {
         if (edge.getDescription().matches("^Goto: (switch|while)_\\d+_[a-z0-9]+$")) {
           // don't mention dead code produced by CIL on normal log levels
           level = Level.FINER;
+        } else if (edge.getPredecessor().getNodeNumber() == lastDetectedDeadCode) {
+          // don't warn on subsequent lines of dead code
+          level = Level.FINER;
         }
 
         logger.log(level, "Dead code detected at line", edge.getLineNumber() + ":", edge.getRawStatement());
       }
+
+      lastDetectedDeadCode = edge.getSuccessor().getNodeNumber();
     }
   }
 

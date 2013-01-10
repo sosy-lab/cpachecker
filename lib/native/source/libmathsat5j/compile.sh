@@ -7,6 +7,18 @@
 #   ./configure --enable-cxx --with-pic --disable-shared
 #   make
 
+# This script uses a crude hack to produce downwards-compatible binaries.
+# On systems with libc6 >= 2.14, there is a new memcpy function.
+# Binaries which link against this function do not work on older systems (e.g., Ubuntu before 12.04)
+# We force the linker to use memcpy from libc6 2.2.5 with the following trick:
+# 1) Define a wrapper function which just calls memcpy in versions.c.
+# 2) Also in versions.c, set the version of memcpy to GLIBC_2.2.5.
+# 3) Tell the linker that it should wrap all calls to memcpy with the wrapper function.
+# This will need to be extended if there appear other functions in newer a libc
+# which are also not downwards compatible.
+# Always check with ldd -v what the newest required version of libc and libstdc++ are.
+
+
 JNI_HEADERS="$(../get_jni_headers.sh)"
 
 if [ ! -f "$1/lib/libmathsat.a" ]; then
@@ -26,12 +38,16 @@ fi
 echo "Compiling the C wrapper code and creating the \"mathsat5j\" library"
 
 # This will compile the JNI wrapper part, given the JNI and the Mathsat header files
-gcc -g $JNI_HEADERS -I$MSAT_SRC_DIR -I$GMP_HEADER_DIR org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.c -fPIC -c
+gcc -g $JNI_HEADERS -I$MSAT_SRC_DIR -I$GMP_HEADER_DIR versions.c org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.c -fPIC -c
 
 # This will link together the file produced above, the Mathsat library, the GMP library and the standard libraries.
 # Everything except the standard libraries is included statically.
 # The result is a shared library.
-gcc -Wall -g -o libmathsat5j.so -shared -Wl,-soname,libmathsat5j.so -L$MSAT_LIB_DIR -L$GMP_LIB_DIR -I$GMP_HEADER_DIR org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.o -Wl,-Bstatic -lmathsat -lgmpxx -lgmp -Wl,-Bdynamic -lc -lm -lstdc++
+if [ `uname -m` = "x86_64" ]; then
+	gcc -Wall -g -o libmathsat5j.so -shared -Wl,-soname,libmathsat5j.so -L$MSAT_LIB_DIR -L$GMP_LIB_DIR -I$GMP_HEADER_DIR versions.o org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.o -Wl,-Bstatic -lmathsat -lgmpxx -lgmp -Wl,-Bdynamic -lc -lm -lstdc++ -Wl,--wrap=memcpy
+else
+	gcc -Wall -g -o libmathsat5j.so -shared -Wl,-soname,libmathsat5j.so -L$MSAT_LIB_DIR -L$GMP_LIB_DIR -I$GMP_HEADER_DIR org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.o -Wl,-Bstatic -lmathsat -lgmpxx -lgmp -Wl,-Bdynamic -lc -lm -lstdc++
+fi
 
 
 if [ $? -eq 0 ]; then
@@ -49,3 +65,5 @@ if [ ! -z "$MISSING_SYMBOLS" ]; then
 fi
 
 echo "All Done"
+echo "Please check in the following output that the library does not depend on any GLIBC version >= 2.11, otherwise it will not work on Ubuntu 10.04:"
+objdump -p libmathsat5j.so |grep -A50 "required from"

@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUti
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
@@ -292,5 +293,15 @@ public class ArithmeticSmtInterpolFormulaManager extends SmtInterpolFormulaManag
       formulas[i] = encapsulate(params[i]);
     }
     return formulas;
+  }
+
+  @Override
+  public Map<String, Formula> parseFormulas(String pS) throws IllegalArgumentException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public String dumpFormulas(Map<String, Formula> pFormulas) {
+    throw new UnsupportedOperationException();
   }
 }
