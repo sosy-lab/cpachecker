@@ -49,7 +49,7 @@ public class PredicateTranslator {
     lVariables.addAll(pPredicate.getLeftTerm().accept(lVisitor));
     lVariables.addAll(pPredicate.getRightTerm().accept(lVisitor));
 
-    StringBuffer lResult = new StringBuffer();
+    StringBuilder lResult = new StringBuilder();
 
     lResult.append("void predicate(");
 

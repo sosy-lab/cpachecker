@@ -342,7 +342,7 @@ public class NondeterministicFiniteAutomaton<T> {
 
   @Override
   public String toString() {
-    StringBuffer lBuffer = new StringBuffer();
+    StringBuilder lBuffer = new StringBuilder();
 
     lBuffer.append("Initial State: " + getInitialState().ID + "\n");
 

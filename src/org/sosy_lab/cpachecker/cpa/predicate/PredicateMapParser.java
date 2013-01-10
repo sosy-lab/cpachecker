@@ -126,7 +126,7 @@ public class PredicateMapParser {
     BufferedReader reader = new BufferedReader(new InputStreamReader(is, Charsets.US_ASCII));
 
     // first, read first section with initial set of function definitions
-    StringBuffer functionDefinitionsBuffer = new StringBuffer();
+    StringBuilder functionDefinitionsBuffer = new StringBuilder();
 
     int lineNo = 0;
     String currentLine;

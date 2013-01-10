@@ -223,7 +223,7 @@ public class PredicatePrecision implements Precision {
 
   @Override
   public String toString() {
-    StringBuffer sb = new StringBuffer();
+    StringBuilder sb = new StringBuilder();
     if (!globalPredicates.isEmpty())  {
       sb.append("global predicates: ");
       sb.append(globalPredicates);
