@@ -7,10 +7,13 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    if(len(argv) >= 4):
+    if(len(argv) >= 5):
         args = argv[1]
-        rlimits = argv[2] 
-        outputFileName = argv[3]
+        memlimit = int(argv[2])
+        timelimit = int(argv[3])
+        outputFileName = argv[4]
+
+        rlimits={"memlimit":memlimit, "timelimit":timelimit}
         print args
         print rlimits
         print outputFileName
@@ -34,6 +37,9 @@ def main(argv=None):
         fobj = open(outputFileName, "w")
         fobj.write(result)
         fobj.close()
+
+    else:
+        print "Help todo"
 
 
 if __name__ == "__main__":
