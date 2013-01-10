@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -49,11 +50,11 @@ public final class DOTBuilder {
   private static final String MAIN_GRAPH = "____Main____Diagram__";
   private static final Joiner JOINER_ON_NEWLINE = Joiner.on('\n');
 
-  public static String generateDOT(Collection<FunctionEntryNode> cfasMapList, FunctionEntryNode cfa) {
+  public static void generateDOT(Appendable sb,
+      Collection<FunctionEntryNode> cfasMapList, FunctionEntryNode cfa) throws IOException {
     DotGenerator dotGenerator = new DotGenerator();
     CFATraversal.dfs().traverseOnce(cfa, dotGenerator);
 
-    StringBuilder sb = new StringBuilder();
     sb.append("digraph " + "CFA" + " {\n");
 
     JOINER_ON_NEWLINE.appendTo(sb, dotGenerator.nodes);
@@ -73,7 +74,6 @@ public final class DOTBuilder {
 
     JOINER_ON_NEWLINE.appendTo(sb, dotGenerator.edges.get(MAIN_GRAPH));
     sb.append("}");
-    return sb.toString();
   }
 
   private static class DotGenerator implements CFATraversal.CFAVisitor {

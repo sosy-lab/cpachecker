@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -75,16 +74,16 @@ public final class DOTBuilder2 {
    * @param outdir
    * @throws IOException
    */
-  public static void writeReport(CFA cfa, File outdir) throws IOException {
+  public static void writeReport(CFA cfa, Path outdir) throws IOException {
     CFAJSONBuilder jsoner = new CFAJSONBuilder();
     DOTViewBuilder dotter = new DOTViewBuilder();
     CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverse(entryNode, vis);
-      dotter.writeFunctionFile(entryNode.getFunctionName(), outdir.toPath());
+      dotter.writeFunctionFile(entryNode.getFunctionName(), outdir);
     }
     dotter.writeGlobalFiles(outdir);
-    JSON.writeJSONString(jsoner.getJSON(), new File(outdir, "cfainfo.json"), Charset.defaultCharset());
+    JSON.writeJSONString(jsoner.getJSON(), outdir.resolve("cfainfo.json"), Charset.defaultCharset());
   }
 
   private static String getEdgeText(CFAEdge edge) {
@@ -190,9 +189,9 @@ public final class DOTBuilder2 {
         }
     }
 
-    void writeGlobalFiles(File outdir) throws IOException {
-      JSON.writeJSONString(node2combo, new File(outdir, "combinednodes.json"), Charset.defaultCharset());
-      JSON.writeJSONString(virtFuncCallEdges, new File(outdir, "fcalledges.json"), Charset.defaultCharset());
+    void writeGlobalFiles(Path outdir) throws IOException {
+      JSON.writeJSONString(node2combo, outdir.resolve("combinednodes.json"), Charset.defaultCharset());
+      JSON.writeJSONString(virtFuncCallEdges, outdir.resolve("fcalledges.json"), Charset.defaultCharset());
     }
 
     private static String nodeToDot(CFANode node) {

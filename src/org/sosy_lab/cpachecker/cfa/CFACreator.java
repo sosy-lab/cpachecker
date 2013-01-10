@@ -27,6 +27,11 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.findLoops;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -36,7 +41,6 @@ import java.util.SortedSet;
 import java.util.logging.Level;
 
 import org.eclipse.jdt.core.JavaCore;
-import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
@@ -116,7 +120,7 @@ public class CFACreator {
   @Option(name="cfa.file",
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File exportCfaFile = new File("cfa.dot");
+  private Path exportCfaFile = Paths.get("cfa.dot");
 
   @Option(name ="language.java",
       description="use Language java with " +
@@ -485,12 +489,11 @@ public class CFACreator {
 
     // write CFA to file
     if (exportCfa) {
-      try {
-        Files.writeFile(exportCfaFile,
-            DOTBuilder.generateDOT(cfa.getAllFunctionHeads(), cfa.getMainFunction()));
+      try (Writer w = Files.newBufferedWriter(exportCfaFile, Charset.defaultCharset())) {
+        DOTBuilder.generateDOT(w, cfa.getAllFunctionHeads(), cfa.getMainFunction());
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
-          "Could not write CFA to dot file.");
+          "Could not write CFA to dot file");
         // continue with analysis
       }
     }
@@ -498,11 +501,11 @@ public class CFACreator {
     // write the CFA to files (one file per function + some metainfo)
     if (exportCfaPerFunction) {
       try {
-        File outdir = exportCfaFile.getParentFile();
+        Path outdir = exportCfaFile.getParent();
         DOTBuilder2.writeReport(cfa, outdir);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
-          "Could not write CFA to dot and json file.");
+          "Could not write CFA to dot and json file");
         // continue with analysis
       }
     }
