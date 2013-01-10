@@ -25,10 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -109,21 +106,21 @@ public class PredicateMapParser {
 
     Files.checkReadableFile(file);
 
-    return parsePredicates(new FileInputStream(file), file.getName(),
-        cfa, initialGlobalPredicates, fmgr, amgr);
+    try (BufferedReader reader = java.nio.file.Files.newBufferedReader(file.toPath(), Charsets.US_ASCII)) {
+      return parsePredicates(reader, file.getName(),
+          cfa, initialGlobalPredicates, fmgr, amgr);
+    }
   }
 
   /**
    * @see #parsePredicates(File, CFA, Collection, FormulaManager, AbstractionManager, LogManager)
-   * Instead of reading from a file, this method reads from an InputStream
+   * Instead of reading from a file, this method reads from a BufferedReader
    * (available primarily for testing).
    */
-  static PredicatePrecision parsePredicates(InputStream is, String source,
+  static PredicatePrecision parsePredicates(BufferedReader reader, String source,
       CFA cfa, Collection<AbstractionPredicate> initialGlobalPredicates,
       FormulaManager fmgr, AbstractionManager amgr)
           throws IOException, PredicateMapParsingFailedException {
-
-    BufferedReader reader = new BufferedReader(new InputStreamReader(is, Charsets.US_ASCII));
 
     // first, read first section with initial set of function definitions
     StringBuilder functionDefinitionsBuffer = new StringBuilder();
