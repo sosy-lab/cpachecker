@@ -354,6 +354,9 @@ cpa.bdd.initPartitions = true
 # declare partitions ordered
 cpa.bdd.initPartitionsOrdered = true
 
+# Dump tracked variables to a file.
+cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
+
 # track boolean variables from cfa
 cpa.bdd.trackBoolean = true
 
@@ -425,6 +428,9 @@ cpa.conditions.path.length.limit = -1
 
 # maximum repetitions of any edge in a path (-1 for infinite)
 cpa.conditions.path.repetitions.limit = -1
+
+# dump SMG for each edge
+cpa.cpalien.exportSMG.file = "smg-%s.dot"
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
@@ -595,6 +601,9 @@ cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.msat"
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
 
+# Handle implicit and explicit casts.
+cpa.predicate.ignoreCasts = true
+
 # initialize all variables to 0 when they are declared
 cpa.predicate.initAllVars = false
 
@@ -609,14 +618,14 @@ cpa.predicate.lvalsAsUIFs = false
 
 # List of further options which will be passed to Mathsat. Format is
 # 'key1=value1,key2=value2'
-cpa.predicate.mathsat.furtherOptions = ""
+cpa.predicate.mathsat5.furtherOptions = ""
 
 # Export solver queries in Smtlib format into a file (for Mathsat5).
-cpa.predicate.mathsat.logAllQueries = false
-cpa.predicate.mathsat.logfile = "mathsat5.%d.smt2"
+cpa.predicate.mathsat5.logAllQueries = false
+cpa.predicate.mathsat5.logfile = "mathsat5.%d.smt2"
 
 # Use UIFs (recommended because its more precise)
-cpa.predicate.mathsat.useUIFs = true
+cpa.predicate.mathsat5.useUIFs = true
 
 # list of functions that provide new memory on the heap. This is only used,
 # when handling of pointers is enabled.
@@ -714,6 +723,9 @@ cpa.predicate.refinement.timelimit = 0
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
 
+# replace the Bitvector with the Rational- and FunctionTheory
+cpa.predicate.replaceBitvectorWithRationalAndFunctionTheory = true
+
 # maximum blocksize before a satisfiability check is done
 # (non-negative number, 0 means never, if positive should be smaller than
 # blocksize)
@@ -726,12 +738,6 @@ cpa.predicate.smtinterpol.logfile = "smtinterpol.smt2"
 # Whether to use MathSAT 5 or SmtInterpol as SMT solver
 cpa.predicate.solver = MATHSAT5
   allowed values: [MATHSAT5, SMTINTERPOL]
-
-# With of the bitvectors if useBitvectors is true.
-cpa.predicate.solver.bitWidth = 32
-
-# Whether to use signed or unsigned variables if useBitvectors is true.
-cpa.predicate.solver.signed = true
 
 # Encode program variables as bitvectors of a fixed size,instead of using
 # REALS. Not all solvers might support this.
