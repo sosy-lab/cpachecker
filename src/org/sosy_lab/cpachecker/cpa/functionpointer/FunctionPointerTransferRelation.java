@@ -159,6 +159,20 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
           CStatementEdge edge = (CStatementEdge)pCfaEdge;
           CFunctionCall functionCall = (CFunctionCall)edge.getStatement();
+
+          // check parameters
+          int numberOfFormalParameters = fDefNode.getFunctionParameters().size();
+          int numberOfActualParameters = functionCall.getFunctionCallExpression().getParameterExpressions().size();
+          boolean varargs = fDefNode.getFunctionDefinition().getType().takesVarArgs();
+          if ((numberOfActualParameters < numberOfFormalParameters)
+              || (!varargs && (numberOfActualParameters > numberOfFormalParameters))) {
+            throw new UnrecognizedCCodeException(
+                String.format("Function pointer \"%s\" points to function \"%s\" which takes %d parameter(s) but is called with %d parameter(s)",
+                              functionCallVariable, functionName, numberOfFormalParameters, numberOfActualParameters),
+                edge);
+          }
+
+
           CFANode predecessorNode = edge.getPredecessor();
           CFANode successorNode = edge.getSuccessor();
           int lineNumber = edge.getLineNumber();
