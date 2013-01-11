@@ -370,6 +370,7 @@ public class RTTTransferRelation implements TransferRelation {
   private void handleAssignmentToVariable(JIdExpression lParam, JRightHandSide exp,
       ExpressionValueVisitor visitor) throws UnrecognizedCCodeException {
 
+
     String lParamObjectScope = getObjectScope(visitor.state, visitor.functionName, lParam);
     String value = exp.accept(visitor);
 
@@ -667,6 +668,10 @@ public class RTTTransferRelation implements TransferRelation {
         value2 = state.getRunTimeClassOfUniqueObject(value2);
       }
 
+      if(value1 == null || value2 == null) {
+        return null;
+      }
+
       boolean result = value1.equals(value2);
 
       switch (operator) {
@@ -751,8 +756,11 @@ public class RTTTransferRelation implements TransferRelation {
 
       String jrunTimeType = jRunTimeTypeEqualsType.getRunTimeTypeExpression().accept(this);
 
-      return Boolean.toString(jrunTimeType != null
-          && jRunTimeTypeEqualsType.getTypeDef().getName().equals(jrunTimeType));
+      if(jrunTimeType == null) {
+        return null;
+      }
+
+      return Boolean.toString(jRunTimeTypeEqualsType.getTypeDef().getName().equals(jrunTimeType));
 
     }
 
