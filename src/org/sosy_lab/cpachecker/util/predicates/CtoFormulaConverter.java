@@ -92,16 +92,25 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CDereferenceType;
+import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -232,6 +241,8 @@ public class CtoFormulaConverter {
   private int nextStringLitIndex = 0;
 
   private final MachineModel machineModel;
+  private final RepresentabilityCTypeVisitor representabilityCTypeVisitor
+    = new RepresentabilityCTypeVisitor();
 
   protected final FormulaManagerView fmgr;
   protected final  BooleanFormulaManagerView bfmgr;
@@ -331,6 +342,19 @@ public class CtoFormulaConverter {
     }
     // Default behaviour, structs for example
     return false;
+  }
+
+  // Checks if there is some formula type to represent the C type
+  private boolean isRepresentableType(CType pType) {
+    return pType.accept(representabilityCTypeVisitor);
+  }
+
+  private boolean hasRepresentableDereference(Variable<CType> v) {
+    return isRepresentableType(dereferencedType(v.getType()));
+  }
+
+  private boolean hasRepresentableDereference(CIdExpression e) {
+    return isRepresentableType(dereferencedType(e.getExpressionType()));
   }
 
   /** prefixes function to variable name
@@ -1281,8 +1305,14 @@ public class CtoFormulaConverter {
       Variable<CType> retVarName, String function, SSAMapBuilder ssa) {
 
     // include aliases if the left or right side may be a pointer a pointer
-    if (maybePointer(leftId, function, ssa)
-        || maybePointer((CType) null, retVarName.getName(), ssa)) {
+    // We only can write *l = *r if the types after dereference have some formula
+    // type correspondence (e.g. boolean, real, bit vector etc.)
+    // Types of unknown sizes, e.g. CProblemType, can't be represented and would
+    // otherwise cause throwing exceptions
+    if ((maybePointer(leftId, function, ssa)
+        || maybePointer((CType) null, retVarName.getName(), ssa)) &&
+        hasRepresentableDereference((CIdExpression)leftId) &&
+        hasRepresentableDereference(retVarName)) {
       // we assume that either the left or the right hand side is a pointer
       // so we add the equality: *l = *r
       Formula lPtrVar = makePointerVariable(leftId, function, ssa);
@@ -1339,14 +1369,17 @@ public class CtoFormulaConverter {
       // C statement like: s1 = s2;
 
       // include aliases if the left or right side may be a pointer a pointer
+      // Assume no pointers affected if unrepresentable values are assigned
       CIdExpression rIdExp = (CIdExpression) right;
-      if (maybePointer(lVarName, ssa) || maybePointer(rIdExp, function, ssa)) {
+      if ((maybePointer(lVarName, ssa) || maybePointer(rIdExp, function, ssa)) &&
+          hasRepresentableDereference(lVarName) &&
+          hasRepresentableDereference(rIdExp)) {
         // we assume that either the left or the right hand side is a pointer
         // so we add the equality: *l = *r
         Variable<CType> lPVarName = makePointerMaskVariable(lVarName, ssa);
-        Formula lPtrVar = makeVariable(lPVarName, ssa);
-
         Variable<CType> rPtrVarName = makePointerVariableName(rIdExp, function, ssa);
+
+        Formula lPtrVar = makeVariable(lPVarName, ssa);
         Formula rPtrVar = makeVariable(rPtrVarName, ssa);
         return makeNondetAssignment(lPtrVar, rPtrVar, ssa);
 
@@ -1355,17 +1388,20 @@ public class CtoFormulaConverter {
         return bfmgr.makeBoolean(true);
       }
 
-    } else if (isPointerDereferencing(right)) {
+    } else if (isPointerDereferencing(right) &&
+               hasRepresentableDereference(lVarName)) {
       // C statement like: s1 = *s2;
 
       Variable<CType> lPtrVarName = makePointerMaskVariable(lVarName, ssa);
       makeFreshIndex(lPtrVarName, ssa);
       removeOldPointerVariablesFromSsaMap(lPtrVarName, ssa);
+
       Formula lPtrVar = makeVariable(lPtrVarName, ssa);
 
       CExpression rRawExpr = ((CUnaryExpression) right).getOperand();
       CExpression rExpr = removeCast(rRawExpr);
-      if (!(rExpr instanceof CIdExpression)) {
+      if (!(rExpr instanceof CIdExpression) ||
+          !(hasRepresentableDereference((CIdExpression)rExpr))) {
         // these are statements like s1 = *(s2.f)
         // TODO check whether doing nothing is correct
         return bfmgr.makeBoolean(true);
@@ -1422,7 +1458,8 @@ public class CtoFormulaConverter {
 
         CExpression rOperand =
             removeCast(((CUnaryExpression) right).getOperand());
-        if (rOperand instanceof CIdExpression) {
+        if (rOperand instanceof CIdExpression &&
+            hasRepresentableDereference(lVarName)) {
           Variable<CType> rVarName = scopedIfNecessary((CIdExpression) rOperand, function);
           Formula rVar = makeVariable(rVarName, ssa);
           Formula lPtrVar = makeVariable(makePointerMaskVariable(lVarName, ssa), ssa);
@@ -2356,7 +2393,7 @@ public class CtoFormulaConverter {
       //TODO: check this
       Variable<CType> rVarName = Variable.create(null, pAssignment.getRightHandSide().getExpressionType());
       Formula rPtrVar = null;
-      if (r instanceof CIdExpression) {
+      if (r instanceof CIdExpression && hasRepresentableDereference((CIdExpression)r)) {
         rVarName = scopedIfNecessary((CIdExpression) r, function);
         rPtrVar = makePointerVariable((CIdExpression) r, function, ssa);
       }
@@ -2389,7 +2426,7 @@ public class CtoFormulaConverter {
           Variable<CType> varName = getVariableFromMemoryAddress(memAddress);
           //String varName = getVariableNameFromMemoryAddress(memAddress.getName());
 
-          if (!varName.equals(lVarName)) {
+          if (!varName.equals(lVarName) && hasRepresentableDereference(varName)) {
             // we assume that cases like the following are illegal and do not occur
             // (gcc 4.6 gives an error):
             // p = &p;
@@ -2447,7 +2484,7 @@ public class CtoFormulaConverter {
         for (Variable<CType> memAddress : memAddresses) {
           Variable<CType> varName = getVariableFromMemoryAddress(memAddress);
 
-          if (!varName.equals(lVarName)) {
+          if (!varName.equals(lVarName) && hasRepresentableDereference(varName)) {
 
             Formula oldVar = makeVariable(varName, ssa);
             makeFreshIndex(varName, ssa);
@@ -2791,6 +2828,93 @@ public class CtoFormulaConverter {
       } else {
         return super.visit(pE);
       }
+    }
+  }
+
+  private class RepresentabilityCTypeVisitor implements CTypeVisitor<Boolean, RuntimeException> {
+
+    @Override
+    public Boolean visit(CArrayType pArrayType) {
+      return pArrayType.getType().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CCompositeType pCompositeType) {
+      for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
+        if (!decl.getType().accept(this)) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CElaboratedType pElaboratedType) {
+      switch (pElaboratedType.getKind()) {
+      case ENUM:
+        return true;
+      default:
+        // If the type was representable,
+        // the struct/union tag would be already resolved
+        return false;
+      }
+    }
+
+    @Override
+    public Boolean visit(CEnumType pEnumType) {
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CFunctionPointerType pFunctionPointerType) {
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CFunctionType pFunctionType) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CPointerType pPointerType) {
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CProblemType pProblemType) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CSimpleType pSimpleType) {
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CTypedefType pTypedefType) {
+      return pTypedefType.getRealType().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CNamedType pCNamedType) {
+      // If the type was representable, the name would be already resolved
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CDummyType pCDummyType) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CComplexType pCComplexType) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CDereferenceType pCDereferenceType) {
+      return pCDereferenceType.getType().accept(this);
     }
   }
 }
