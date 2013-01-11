@@ -1050,7 +1050,7 @@ class ASTConverter {
   private CInitializer convert(org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer init) {
     ICASTDesignator[] desInit = init.getDesignators();
 
-    CInitializerExpression cInit = (CInitializerExpression) convert(init.getOperandInitializer());
+    CInitializer cInit = convert(init.getOperandInitializer());
 
     FileLocation fileLoc = cInit.getFileLocation();
 
@@ -1081,7 +1081,7 @@ class ASTConverter {
       }
     }
 
-    return new CDesignatedInitializer(fileLoc, exp, cInit.getExpression());
+    return new CDesignatedInitializer(fileLoc, exp, cInit);
   }
 
   private CInitializerExpression convert(IASTInitializerExpression i) {

@@ -31,9 +31,9 @@ public class CDesignatedInitializer extends Initializer implements CInitializer 
 
 
   private final CIADesignator left;
-  private final CExpression right;
+  private final CInitializer right;
 
-  public CDesignatedInitializer(FileLocation pFileLocation , final CIADesignator pLeft, final CExpression pRight) {
+  public CDesignatedInitializer(FileLocation pFileLocation , final CIADesignator pLeft, final CInitializer pRight) {
     super(pFileLocation);
     left = pLeft;
     right = pRight;
@@ -48,7 +48,7 @@ public class CDesignatedInitializer extends Initializer implements CInitializer 
     return left;
   }
 
-  public CExpression getRightHandSide() {
+  public CInitializer getRightHandSide() {
     return right;
   }
 
