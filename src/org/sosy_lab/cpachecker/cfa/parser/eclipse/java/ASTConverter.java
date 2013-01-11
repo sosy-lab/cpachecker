@@ -1096,7 +1096,7 @@ public class ASTConverter {
       } else {
 
         declaration =
-            new JConstructorDeclaration(getFileLocation(sCI), null, name, null, false, (JClassType) getDeclaringClassType(binding));
+            new JConstructorDeclaration(getFileLocation(sCI), null, name, VisibilityModifier.NONE, false, (JClassType) getDeclaringClassType(binding));
       }
     }
 
