@@ -201,8 +201,11 @@ public class CFACreator {
       if(useJava){
         language = Language.JAVA;
 
-        EclipseJavaParser par = new EclipseJavaParser(logger, javaRootPath, encoding, version);
+        EclipseJavaParser par = new EclipseJavaParser(logger,
+            javaRootPath, encoding, version, parsingTime, conversionTime);
+
         c = par.parseFile(filename);
+
       } else{
         c = parser.parseFile(filename);
         language = Language.C;
