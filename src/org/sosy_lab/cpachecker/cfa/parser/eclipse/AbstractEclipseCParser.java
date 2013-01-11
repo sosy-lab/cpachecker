@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
+import com.google.common.collect.ImmutableMap;
+
 /**
  * Base implementation that should work with all CDT versions we support.
  *
@@ -197,12 +199,17 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
    */
   protected static class StubScannerInfo implements IScannerInfo {
 
+    private static final ImmutableMap<String, String> MACROS = ImmutableMap.of(
+        // _Static_assert(cond, msg) feature of C11
+        "_Static_assert(c, m)", ""
+        );
+
     protected final static IScannerInfo instance = new StubScannerInfo();
 
     @Override
     public Map<String, String> getDefinedSymbols() {
       // the externally defined pre-processor macros
-      return null;
+      return MACROS;
     }
 
     @Override
