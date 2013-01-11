@@ -585,6 +585,12 @@ public class RTTTransferRelation implements TransferRelation {
     // Investigate if right
     if (valueString == null) {
 
+      AssigningValueVisitor visitor =
+          new AssigningValueVisitor(element, truthAssumption, functionName);
+
+      // Try to derive Information from Assumption.
+      expression.accept(visitor);
+
       return element;
     } else if ((truthAssumption && value) || (!truthAssumption && !value)) {
       return element;
@@ -605,8 +611,59 @@ public class RTTTransferRelation implements TransferRelation {
       return thisExp.getExpressionType().getName();
     }
 
+  }
+
+
+
+  private class AssigningValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> {
+
+    final private boolean truthAssumption;
+    final private RTTState newState;
+    private final String methodName;
+
+
+    public AssigningValueVisitor(RTTState pNewState, boolean pTruthAssumption, String pMethodName) {
+      truthAssumption = pTruthAssumption;
+      newState = pNewState;
+      methodName = pMethodName;
+    }
+
+    @Override
+    public String visit(JVariableRunTimeType pE) throws UnrecognizedCCodeException {
+      return getScopedVariableName(pE.getReferencedVariable().getName(), methodName, newState.getKeywordThisUniqueObject());
+    }
+
+    @Override
+    protected String visitDefault(JExpression pE) {
+      return null;
+    }
+
+    @Override
+    public String visit(JThisExpression thisExpression) throws UnrecognizedCCodeException {
+      return RTTState.KEYWORD_THIS;
+    }
+
+    @Override
+    public String visit(JRunTimeTypeEqualsType pE) throws UnrecognizedCCodeException {
+
+      JClassOrInterfaceType assignableType = pE.getTypeDef();
+
+      String referenz  = pE.getRunTimeTypeExpression().accept(this);
+
+      if(referenz == null) {
+        return null;
+      }
+
+      if(truthAssumption == true) {
+        newState.assignAssumptionType(referenz, assignableType);
+      }
+
+      return null;
+    }
 
   }
+
+
 
   private class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException>{
 

@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 
@@ -407,4 +408,9 @@ public class RTTState implements AbstractState {
 
     return sb.toString();
   }
+
+ void assignAssumptionType(String pReferenz, JClassOrInterfaceType pAssignableType) {
+    assignNewUniqueObject(pReferenz, pAssignableType.getName());
+  }
+
 }
