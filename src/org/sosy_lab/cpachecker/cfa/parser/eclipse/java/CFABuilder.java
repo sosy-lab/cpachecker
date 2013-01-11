@@ -233,7 +233,9 @@ class CFABuilder extends ASTVisitor {
     IMethodBinding[] declaredMethods = classBinding.getDeclaredMethods();
 
     for(IMethodBinding declaredMethod : declaredMethods) {
-      if(declaredMethod.isConstructor()) {
+      if(declaredMethod.isDefaultConstructor()) {
+        return true;
+      } else if(declaredMethod.isConstructor()) {
         return false;
       }
     }
