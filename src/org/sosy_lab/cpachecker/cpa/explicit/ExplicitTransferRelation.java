@@ -95,7 +95,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -110,7 +109,6 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -470,33 +468,10 @@ public class ExplicitTransferRelation implements TransferRelation
       }
     } else {
 
-
-      if(decl instanceof JVariableDeclaration && decl.getType() instanceof JSimpleType && init == null) {
-        JBasicType simpleType = ((JSimpleType) decl.getType()).getType();
-
-
-        //TODO What do we do with not initialized local Java Variables?
-        switch(simpleType){
-        case BOOLEAN:
-        case BYTE:
-        case CHAR:
-        case FLOAT:
-        case DOUBLE:
-        case INT:
-        case LONG:
-        case SHORT:
-          newElement.assignConstant(scopedVarName, 0L);
-          break;
-        default:
-          missingFieldVariableObject = false;
-          newElement.forget(scopedVarName);
-        }
-
-      } else {
       // If variable not tracked, its Object is irrelevant
       missingFieldVariableObject = false;
       newElement.forget(scopedVarName);
-      }
+
     }
   }
 
