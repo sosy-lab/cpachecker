@@ -436,11 +436,11 @@ public class ASTConverter {
         && scope.getfullyQualifiedMainClassName().equals(
                                                   scope.getCurrentClassName())){
 
-      name = new StringBuilder(binding.getName().replace('.', '_'));
+      name = new StringBuilder(binding.getName());
 
     } else {
       name = new StringBuilder((getFullyQualifiedClassOrInterfaceName(
-          binding.getDeclaringClass()) + "_" + binding.getName()).replace('.', '_'));
+          binding.getDeclaringClass()) + "_" + binding.getName()));
 
       String[] typeNames = getTypeNames(binding.getParameterTypes());
 
@@ -468,7 +468,7 @@ public class ASTConverter {
         typeNames[c] = "java_lang_String";
       } else {
 
-        typeNames[c] = parameterTypeBindings.getQualifiedName().replace('.', '_');
+        typeNames[c] = parameterTypeBindings.getQualifiedName();
       }
 
       c++;
@@ -702,7 +702,7 @@ public class ASTConverter {
 
     ModifierBean mb = ModifierBean.getModifiers(p.getModifiers());
 
-    String qualifiedName = p.getName().getFullyQualifiedName().replace('.', '_');
+    String qualifiedName = p.getName().getFullyQualifiedName();
 
     return new JParameterDeclaration(getFileLocation(p), type, qualifiedName,
         mb.isFinal());
@@ -765,7 +765,7 @@ public class ASTConverter {
       postSideAssignments.clear();
     }
 
-    String qualifiedName = nameAndInitializer.getSecond().replace('.', '_');
+    String qualifiedName = nameAndInitializer.getSecond();
 
     Map<String, JFieldDeclaration> declarations = scope.getFieldDeclarations();
 
@@ -820,12 +820,12 @@ public class ASTConverter {
     if (vb.isField() && vb.getDeclaringClass() != null) {
 
       String declaringClassName =
-          vb.getDeclaringClass().getQualifiedName().replace(".", "_");
+          vb.getDeclaringClass().getQualifiedName();
 
       name.append(declaringClassName + "_");
     }
 
-    name.append(vb.getName().replace(".", "_"));
+    name.append(vb.getName());
 
     return name.toString();
   }
@@ -909,8 +909,8 @@ public class ASTConverter {
     }
 
     return new JVariableDeclaration(getFileLocation(d),
-        convert(type), d.getName().getFullyQualifiedName().replace('.', '_'),
-        d.getName().getFullyQualifiedName().replace('.', '_'),
+        convert(type), d.getName().getFullyQualifiedName(),
+        d.getName().getFullyQualifiedName(),
         initializerExpression, mB.isFinal());
   }
 
@@ -1076,7 +1076,7 @@ public class ASTConverter {
       name = getFullyQualifiedMethodName(binding);
     } else {
       // If binding can't be resolved, the constructor is not parsed in all cases.
-      name = sCI.toString().replace('.', '_');
+      name = sCI.toString();
     }
 
     JConstructorDeclaration declaration = (JConstructorDeclaration) scope.lookupMethod(name);
@@ -1510,7 +1510,7 @@ public class ASTConverter {
       name = getFullyQualifiedMethodName(binding);
     } else {
       // If binding can't be resolved, the constructor is not parsed in all cases.
-      name = cIC.toString().replace('.', '_');
+      name = cIC.toString();
     }
 
     JConstructorDeclaration declaration = (JConstructorDeclaration) scope.lookupMethod(name);
@@ -2476,16 +2476,16 @@ public class ASTConverter {
 
   private String getFullyQualifiedDefaultConstructorName(ITypeBinding classBinding) {
 
-    return (classBinding.getQualifiedName().replace('.', '_') + "_" + classBinding.getName()).replace('.', '_');
+    return (classBinding.getQualifiedName() + "_" + classBinding.getName());
   }
 
   public static String getFullyQualifiedClassOrInterfaceName(ITypeBinding classBinding) {
-    return classBinding.getQualifiedName().replace('.', '_');
+    return classBinding.getQualifiedName();
   }
 
   public static String getFullyQualifiedBindingNameFromType(JClassOrInterfaceType classType) {
     // TODO Wrong, What if _ is part of name?
-    return classType.getName().replace('_', '.');
+    return classType.getName();
   }
 
   static class ModifierBean {

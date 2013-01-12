@@ -459,7 +459,7 @@ class Scope {
   }
 
   public String getfullyQualifiedMainClassName() {
-    return fullyQualifiedMainClassName.replace(".", "_");
+    return fullyQualifiedMainClassName;
   }
 
   public String getCurrentClassName() {
