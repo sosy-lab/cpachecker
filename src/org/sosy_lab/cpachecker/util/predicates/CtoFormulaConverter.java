@@ -761,7 +761,7 @@ public class CtoFormulaConverter {
         CSimpleType resolved = getImplicitSimpleCType(s1, s2);
 
         if (!CTypeUtils.equals(s1, s2)) {
-          log(Level.INFO, "Implicit Cast: " + s1 + " and " + s2 + " to " + resolved);
+          log(Level.FINEST, "Implicit Cast: " + s1 + " and " + s2 + " to " + resolved);
         }
 
         return resolved;
@@ -2305,7 +2305,7 @@ public class CtoFormulaConverter {
 
           CType expType = fexp.getExpressionType();
           if (!(expType instanceof CPointerType)) {
-            log(Level.SEVERE, "Memory allocation function ("+fName+") with invalid return type (" + expType +"). Missing includes or file not preprocessed?");
+            log(Level.WARNING, "Memory allocation function ("+fName+") with invalid return type (" + expType +"). Missing includes or file not preprocessed?");
           }
 
           FormulaType<Formula> t = getFormulaTypeFromCType(expType);
