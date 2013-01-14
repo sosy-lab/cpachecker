@@ -62,7 +62,7 @@ def executeRun(args, rlimits, outputFileName, cpuIndex=None, memdata=False):
             resource.setrlimit(memresource, (memlimit, memlimit))
 
 
-    if cpuIndex:
+    if cpuIndex is not None:
         # use only one cpu for one subprocess
         import multiprocessing
         args = ['taskset', '-c', str(cpuIndex % multiprocessing.cpu_count())] + args
