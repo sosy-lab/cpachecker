@@ -218,16 +218,16 @@ def parseTableDefinitionFile(file):
     for testTag in tableGenFile.findall('test'):
         columnsToShow = extractColumnsFromTableDefinitionFile(testTag) or defaultColumnsToShow
         filelist = Util.getFileList(os.path.join(baseDir, testTag.get('filename'))) # expand wildcards
-        listOfTestFiles += [Result.createFromXML(file, parseTestFile(file), columnsToShow) for file in filelist]
+        listOfTestFiles += [RunSetResult.createFromXML(file, parseResultsFile(file), columnsToShow) for file in filelist]
 
     for unionTag in tableGenFile.findall('union'):
         columnsToShow = extractColumnsFromTableDefinitionFile(unionTag) or defaultColumnsToShow
-        result = Result([], {}, columnsToShow)
+        result = RunSetResult([], {}, columnsToShow)
 
         for testTag in unionTag.findall('test'):
             filelist = Util.getFileList(os.path.join(baseDir, testTag.get('filename'))) # expand wildcards
             for file in filelist:
-                result.append(file, parseTestFile(file))
+                result.append(file, parseResultsFile(file))
 
         if result.filelist:
             listOfTestFiles.append(result)
@@ -247,9 +247,11 @@ class Column:
         self.numberOfDigits = numOfDigits
 
 
-class Result():
+class RunSetResult():
     """
-    The Class Result is a wrapper for some columns to show and a filelist.
+    The Class RunSetResult contains all the results of one execution of a run set:
+    the sourcefiles tags (with sourcefiles + values), the columns to show
+    and the benchmark attributes.
     """
     def __init__(self, filelist, attributes, columns):
         self.filelist = filelist
@@ -275,24 +277,24 @@ class Result():
                     self.attributes[key] = newAttributes[key]
 
         self.filelist += resultElem.findall('sourcefile')
-        updateAttributes(Result._extractAttributesFromResult(resultFile, resultElem))
+        updateAttributes(RunSetResult._extractAttributesFromResult(resultFile, resultElem))
 
         if not self.columns:
-            self.columns = Result._extractExistingColumnsFromResult(resultFile, resultElem)
+            self.columns = RunSetResult._extractExistingColumnsFromResult(resultFile, resultElem)
 
     @staticmethod
     def createFromXML(resultFile, resultElem, columns=None):
         '''
-        This function extracts everything necessary for creating a Result object
+        This function extracts everything necessary for creating a RunSetResult object
         from the "test" XML tag of a benchmark result file.
-        It returns a Result object.
+        It returns a RunSetResult object.
         '''
-        attributes = Result._extractAttributesFromResult(resultFile, resultElem)
+        attributes = RunSetResult._extractAttributesFromResult(resultFile, resultElem)
 
         if not columns:
-            columns = Result._extractExistingColumnsFromResult(resultFile, resultElem)
+            columns = RunSetResult._extractExistingColumnsFromResult(resultFile, resultElem)
 
-        return Result(resultElem.findall('sourcefile'),
+        return RunSetResult(resultElem.findall('sourcefile'),
                 attributes, columns)
 
     @staticmethod
@@ -326,9 +328,9 @@ class Result():
         return attributes
 
 
-def parseTestFile(resultFile):
+def parseResultsFile(resultFile):
     '''
-    This function parses the resultfile to a resultElem.
+    This function parses a XML file with the results of the execution of a run set.
     It returns the "result" XML tag
     '''
     if not os.path.isfile(resultFile):
@@ -341,9 +343,9 @@ def parseTestFile(resultFile):
 
     if 'test' != resultElem.tag:
         print (("ERROR:\n" \
-            + "XML-file seems to be invalid.\n" \
-            + "The rootelement of testresult is not named 'test'.\n" \
-            + "If you want to run a table-definition-file,\n"\
+            + "XML file with benchmark results seems to be invalid.\n" \
+            + "The root element of the file is not named 'test'.\n" \
+            + "If you want to run a table-definition file,\n"\
             + "you should use the option '-x' or '--xml'.").replace('\n','\n    '))
         exit()
 
@@ -384,7 +386,7 @@ def getDefaultLogFolder(resultElem):
 
 def mergeSourceFiles(listOfTests):
     """
-    This function merges the filelists of all Result objects.
+    This function merges the filelists of all RunSetResult objects.
     If necessary, it can merge lists of names: [A,C] + [A,B] --> [A,B,C]
     and add dummy elements to the filelists.
     It also ensures the same order of files.
@@ -412,7 +414,7 @@ def mergeSourceFiles(listOfTests):
 
 def mergeFilelists(listOfTests, filenames):
     """
-    Set the filelists of all Result elements so that they contain the same files
+    Set the filelists of all RunSetResult elements so that they contain the same files
     in the same order. For missing files a dummy element is inserted.
     """
     for result in listOfTests:
@@ -445,9 +447,9 @@ def findCommonSourceFiles(listOfTests):
     return fileList
 
 
-class Test:
+class RunResult:
     """
-    The class Test contains the results of one test for one file.
+    The class RunResult contains the results of a single verification run.
     """
     def __init__(self, status, category, logFile, columns, values):
         assert(len(columns) == len(values))
@@ -458,10 +460,10 @@ class Test:
         self.category = category
 
     @staticmethod
-    def createTestFromXML(sourcefileTag, listOfColumns, fileIsUnsafe, correctOnly):
+    def createFromXML(sourcefileTag, listOfColumns, fileIsUnsafe, correctOnly):
         '''
-        This function collects the values from one tests for one file.
-        Only columns, that should be part of the table, are collected.
+        This function collects the values from one run.
+        Only columns that should be part of the table are collected.
         '''
 
         def getResultCategory(status):
@@ -516,7 +518,7 @@ class Test:
 
         if status == '':
             values = [''] * len(listOfColumns)
-            return Test(status, category, sourcefileTag.logfile, listOfColumns, values)
+            return RunResult(status, category, sourcefileTag.logfile, listOfColumns, values)
 
         values = []
 
@@ -542,19 +544,20 @@ class Test:
 
             values.append(value)
 
-        return Test(status, category, sourcefileTag.logfile, listOfColumns, values)
+        return RunResult(status, category, sourcefileTag.logfile, listOfColumns, values)
 
 
 class Row:
     """
-    The class Row contains the results for one file (a list of Tests).
+    The class Row contains all the results for one sourcefile (a list of RunResult instances).
+    It corresponds to one complete row in the final tables.
     """
     def __init__(self, fileName):
         self.fileName = fileName
         self.results = []
 
-    def addTest(self, test):
-        self.results.append(test)
+    def addRunResult(self, runresult):
+        self.results.append(runresult)
 
     def fileIsUnsafe(self):
         return Util.containsAny(self.fileName.lower(), BUG_SUBSTRING_LIST)
@@ -571,14 +574,14 @@ class Row:
 
 def rowsToColumns(rows):
     """
-    Convert a list of Rows into a column-wise list of list of Tests
+    Convert a list of Rows into a column-wise list of list of RunSetResult
     """
     return zip(*[row.results for row in rows])
 
 
 def getRows(listOfTests, fileNames, correctOnly):
     """
-    Create list of rows with all data. Each row consists of several tests.
+    Create list of rows with all data. Each row consists of several RunResults.
     """
     rows = [Row(fileName) for fileName in fileNames]
 
@@ -586,7 +589,7 @@ def getRows(listOfTests, fileNames, correctOnly):
     for result in listOfTests:
         # get values for each file in a test
         for fileResult, row in zip(result.filelist, rows):
-            row.addTest(Test.createTestFromXML(fileResult, result.columns, row.fileIsUnsafe(), correctOnly))
+            row.addRunResult(RunResult.createFromXML(fileResult, result.columns, row.fileIsUnsafe(), correctOnly))
 
     return rows
 
@@ -933,7 +936,7 @@ def main(args=None):
             inputFiles = [os.path.join(searchDir, '*.results*.xml')]
 
         inputFiles = Util.extendFileList(inputFiles) # expand wildcards
-        listOfTests = [Result.createFromXML(file, parseTestFile(file)) for file in inputFiles]
+        listOfTests = [RunSetResult.createFromXML(file, parseResultsFile(file)) for file in inputFiles]
 
         if len(inputFiles) == 1:
             name = os.path.basename(inputFiles[0])
