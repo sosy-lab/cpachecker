@@ -197,7 +197,7 @@ def parseTableDefinitionFile(file):
 
     def extractColumnsFromTableDefinitionFile(xmltag):
         """
-        Extract all columns mentioned in the test tag of a table definition file.
+        Extract all columns mentioned in the result tag of a table definition file.
         """
         return [Column(c.get("title"), c.text, c.get("numberOfDigits"))
                 for c in xmltag.findall('column')]
@@ -206,7 +206,7 @@ def parseTableDefinitionFile(file):
     tableGenFile = ET.ElementTree().parse(file)
     if 'table' != tableGenFile.tag:
         print ("ERROR:\n" \
-            + "    The XML-file seems to be invalid.\n" \
+            + "    The XML file seems to be invalid.\n" \
             + "    The rootelement of table-definition-file is not named 'table'.")
         exit()
 
@@ -214,19 +214,27 @@ def parseTableDefinitionFile(file):
 
     baseDir = os.path.dirname(file)
 
-    for testTag in tableGenFile.findall('test'):
-        columnsToShow = extractColumnsFromTableDefinitionFile(testTag) or defaultColumnsToShow
-        filelist = Util.getFileList(os.path.join(baseDir, testTag.get('filename'))) # expand wildcards
-        runSetResults += [RunSetResult.createFromXML(file, parseResultsFile(file), columnsToShow) for file in filelist]
+    def getResultTags(rootTag):
+        tags = rootTag.findall('result')
+        if not tags:
+            tags = rootTag.findall('test')
+            if tags:
+                print("Warning: file {0} contains deprecated 'test' tags, rename them to 'result'".format(file))
+        return tags
+
+    for resultTag in getResultTags(tableGenFile):
+        columnsToShow = extractColumnsFromTableDefinitionFile(resultTag) or defaultColumnsToShow
+        filelist = Util.getFileList(os.path.join(baseDir, resultTag.get('filename'))) # expand wildcards
+        runSetResults += [RunSetResult.createFromXML(resultsFile, parseResultsFile(resultsFile), columnsToShow) for resultsFile in filelist]
 
     for unionTag in tableGenFile.findall('union'):
         columnsToShow = extractColumnsFromTableDefinitionFile(unionTag) or defaultColumnsToShow
         result = RunSetResult([], {}, columnsToShow)
 
-        for testTag in unionTag.findall('test'):
-            filelist = Util.getFileList(os.path.join(baseDir, testTag.get('filename'))) # expand wildcards
-            for file in filelist:
-                result.append(file, parseResultsFile(file))
+        for resultTag in getResultTags(unionTag):
+            filelist = Util.getFileList(os.path.join(baseDir, resultTag.get('filename'))) # expand wildcards
+            for resultsFile in filelist:
+                result.append(resultsFile, parseResultsFile(resultsFile))
 
         if result.filelist:
             runSetResults.append(result)
