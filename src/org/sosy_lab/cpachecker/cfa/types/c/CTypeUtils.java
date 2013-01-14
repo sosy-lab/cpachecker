@@ -25,69 +25,69 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 
 public class CTypeUtils {
-  private static CTypeVisitor<CType, Exception> simplifyType = new CTypeVisitor<CType, Exception>() {
+  private static CTypeVisitor<CType, RuntimeException> simplifyType = new CTypeVisitor<CType, RuntimeException>() {
     @Override
-    public CType visit(CArrayType pArrayType) throws Exception {
+    public CType visit(CArrayType pArrayType) {
       return pArrayType;
     }
 
     @Override
-    public CType visit(CCompositeType pCompositeType) throws Exception {
+    public CType visit(CCompositeType pCompositeType) {
       return pCompositeType;
     }
 
     @Override
-    public CType visit(CElaboratedType pElaboratedType) throws Exception {
+    public CType visit(CElaboratedType pElaboratedType) {
       return pElaboratedType;
     }
 
     @Override
-    public CType visit(CEnumType pEnumType) throws Exception {
+    public CType visit(CEnumType pEnumType) {
       return pEnumType;
     }
 
     @Override
-    public CType visit(CFunctionPointerType pFunctionPointerType) throws Exception {
+    public CType visit(CFunctionPointerType pFunctionPointerType) {
       return pFunctionPointerType;
     }
 
     @Override
-    public CType visit(CFunctionType pFunctionType) throws Exception {
+    public CType visit(CFunctionType pFunctionType) {
       return pFunctionType;
     }
 
     @Override
-    public CType visit(CPointerType pPointerType) throws Exception {
+    public CType visit(CPointerType pPointerType) {
       return pPointerType;
     }
 
     @Override
-    public CType visit(CProblemType pProblemType) throws Exception {
+    public CType visit(CProblemType pProblemType) {
       return pProblemType;
     }
 
     @Override
-    public CType visit(CSimpleType pSimpleType) throws Exception {
+    public CType visit(CSimpleType pSimpleType) {
       return pSimpleType;
     }
 
     @Override
-    public CType visit(CTypedefType pTypedefType) throws Exception {
+    public CType visit(CTypedefType pTypedefType) {
       return pTypedefType.getRealType().accept(this);
     }
 
     @Override
-    public CType visit(CNamedType pCNamedType) throws Exception {
+    public CType visit(CNamedType pCNamedType) {
       throw new IllegalArgumentException();
     }
 
     @Override
-    public CType visit(CDummyType pCDummyType) throws Exception {
+    public CType visit(CDummyType pCDummyType) {
       throw new IllegalArgumentException();
     }
 
     @Override
-    public CType visit(CComplexType pCComplexType) throws Exception {
+    public CType visit(CComplexType pCComplexType) {
       throw new IllegalArgumentException();
     }
 
@@ -97,12 +97,7 @@ public class CTypeUtils {
     }};
 
   public static CType simplifyType(CType t1) {
-    try {
-      return t1.accept(simplifyType);
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw new IllegalArgumentException("Should not happen", e);
-    }
+    return t1.accept(simplifyType);
   }
   public static boolean equals(CType t1, CType t2){
     return simplifyType(t1).equals(simplifyType(t2));
