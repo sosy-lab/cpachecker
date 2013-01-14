@@ -660,8 +660,8 @@ def getTableHead(listOfTests, commonFileNamePrefix):
             'host':    getRow('Host', '{host}', collapse=True),
             'os':      getRow('OS', '{os}', collapse=True),
             'system':  getRow('System', 'CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}', collapse=True),
-            'date':    getRow('Date of run', '{date}', collapse=True),
-            'test':    getRow('Test', '{name}' if allBenchmarkNamesEqual else '{benchmarkname}.{name}'),
+            'date':    getRow('Date of execution', '{date}', collapse=True),
+            'runset':  getRow('Run set', '{name}' if allBenchmarkNamesEqual else '{benchmarkname}.{name}'),
             'branch':  getRow('Branch', '{branch}'),
             'options': getRow('Options', '{options}'),
             'title':   titleRow}
@@ -865,12 +865,12 @@ def main(args=None):
         args = sys.argv
 
     parser = argparse.ArgumentParser(
-        description="""Create table with the results of one or more benchmark runs.
+        description="""Create table with the results of one or more benchmark executions.
         Documented example files for the table definitions can be found in 'doc/examples'\n"""
     )
 
     parser.add_argument("tables",
-        metavar="TABLE",
+        metavar="RESULT",
         type=str,
         nargs='*',
         help="XML file with the results from the benchmark script"
@@ -885,7 +885,7 @@ def main(args=None):
         action="store",
         type=str,
         dest="outputPath",
-        help="Output path for the table."
+        help="Output path for the tables."
     )
     parser.add_argument("-d", "--dump",
         action="store_true", dest="dumpCounts",
@@ -932,7 +932,7 @@ def main(args=None):
             inputFiles = options.tables
         else:
             searchDir = outputPath or DEFAULT_OUTPUT_PATH
-            print ("searching resultfiles in '{}'...".format(searchDir))
+            print ("searching result files in '{}'...".format(searchDir))
             inputFiles = [os.path.join(searchDir, '*.results*.xml')]
 
         inputFiles = Util.extendFileList(inputFiles) # expand wildcards
@@ -957,7 +957,7 @@ def main(args=None):
         outputPath = '.'
 
     if not listOfTests:
-        print ('\nError! No file with testresults found.')
+        print ('\nError! No file with benchmark results found.')
         if options.xmltablefile:
             print ('Please check the filenames in your XML-file.')
         exit()

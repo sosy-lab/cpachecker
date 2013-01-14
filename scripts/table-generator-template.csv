@@ -1,4 +1,4 @@
-{{for line in ['tool', 'test', 'title']}}
+{{for line in ['tool', 'runset', 'title']}}
 {{if line in head and head[line]}}
 {{head[line].name.lower()}}	{{flatten([[value]*width for value, width in head[line].content]) | '\t'.join}}
 {{endif}}
