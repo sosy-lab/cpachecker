@@ -775,6 +775,10 @@ public class CtoFormulaConverter {
       }
     }
 
+    if (pT1.equals(pT2)) {
+      return pT1;
+    }
+
     int s1 = machineModel.getSizeof(pT1);
     int s2 = machineModel.getSizeof(pT2);
     CType res;
