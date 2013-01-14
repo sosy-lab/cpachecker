@@ -60,7 +60,7 @@ public class ARTToCTranslator {
 
     protected static void writeIndent(StringBuffer buffer, int indent) {
       for(int i = 0; i < indent; i++) {
-        buffer.append(" ");
+        // buffer.append(" ");
       }
     }
   }
@@ -407,7 +407,8 @@ public class ARTToCTranslator {
       CDeclarationEdge lDeclarationEdge = (CDeclarationEdge)pCFAEdge;
 
       if (lDeclarationEdge.getDeclaration().isGlobal()) {
-        globalDefinitionsList.add(lDeclarationEdge.getRawStatement() + ";");
+        String rawStatement = lDeclarationEdge.getRawStatement();
+        globalDefinitionsList.add(rawStatement + (rawStatement.endsWith(";") ? "" : ";"));
       } else {
         return lDeclarationEdge.getRawStatement();
       }
