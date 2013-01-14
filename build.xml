@@ -3,6 +3,10 @@
 <project basedir="." default="build" name="CPAchecker" xmlns:ivy="antlib:org.apache.ivy.ant">
     <property name="version" value="1.2-svn"/> <!-- change here for a release -->
 
+    <!-- Enable this property (either here or via command-line to prevent ivy from running)
+    <property name="ivy.disable" value=""/>
+    -->
+
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="source.format" value="1.7"/>
@@ -68,7 +72,7 @@
     </target>
 
     <!-- Ask Ivy to get all the dependencies for us -->
-    <target name="resolve-dependencies" depends="load-ivy, update-contrib">
+    <target name="resolve-dependencies" depends="load-ivy, update-contrib" unless="ivy.disable">
         <echo message="Downloading and installing dependencies with Ivy..."/>
         <ivy:resolve conf="build, runtime, test" log="download-only"/>
         <ivy:retrieve sync="true" overwriteMode="different" pattern="${ivy.lib.dir}/[conf]/[artifact](-[classifier]).[ext]"/>
@@ -83,7 +87,7 @@
         <antcall target="install-contrib"/>
     </target>
 
-    <target name="install-contrib" depends="load-ivy" description="retrieve sources and docs for external libraries">
+    <target name="install-contrib" depends="load-ivy" description="retrieve sources and docs for external libraries" unless="ivy.disable">
         <ivy:resolve conf="contrib" log="download-only"/>
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-contrib/[artifact](-[classifier]).[ext]"/>
     </target>
