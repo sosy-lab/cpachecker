@@ -1,5 +1,5 @@
-<!ELEMENT test (systeminfo, columns, sourcefile+, time?)>
-<!ATTLIST test name CDATA #IMPLIED
+<!ELEMENT result (systeminfo, columns, sourcefile+, time?)>
+<!ATTLIST result name CDATA #IMPLIED
                benchmarkname CDATA #REQUIRED
                date CDATA #REQUIRED
                tool CDATA #REQUIRED

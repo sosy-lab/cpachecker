@@ -293,7 +293,7 @@ class RunSetResult():
     def createFromXML(resultFile, resultElem, columns=None):
         '''
         This function extracts everything necessary for creating a RunSetResult object
-        from the "test" XML tag of a benchmark result file.
+        from the "result" XML tag of a benchmark result file.
         It returns a RunSetResult object.
         '''
         attributes = RunSetResult._extractAttributesFromResult(resultFile, resultElem)
@@ -348,10 +348,10 @@ def parseResultsFile(resultFile):
 
     resultElem = ET.ElementTree().parse(resultFile)
 
-    if 'test' != resultElem.tag:
+    if resultElem.tag not in ['result', 'test']:
         print (("ERROR:\n" \
             + "XML file with benchmark results seems to be invalid.\n" \
-            + "The root element of the file is not named 'test'.\n" \
+            + "The root element of the file is not named 'result' or 'test'.\n" \
             + "If you want to run a table-definition file,\n"\
             + "you should use the option '-x' or '--xml'.").replace('\n','\n    '))
         exit()

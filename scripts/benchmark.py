@@ -545,7 +545,7 @@ class OutputHandler:
                          cpuModel, numberOfCores, maxFrequency, memory, hostname):
 
         # store benchmarkInfo in XML
-        self.XMLHeader = ET.Element("test",
+        self.XMLHeader = ET.Element("result",
                     {"benchmarkname": self.benchmark.name, "date": self.benchmark.dateISO,
                      "tool": self.benchmark.toolName, "version": version})
         if memlimit is not None:
@@ -1254,8 +1254,8 @@ def main(argv=None):
 
     parser.add_argument("-x", "--moduloAndRest",
                       dest="moduloAndRest", default=(1,0), nargs=2, type=int,
-                      help="Run only a subset of tests for which (i %% a == b) holds" +
-                            "with i being the index of the test in the benchmark definition file " +
+                      help="Run only a subset of run definitions for which (i %% a == b) holds" +
+                            "with i being the index of the run definition in the benchmark definition file " +
                             "(starting with 1).",
                       metavar=("a","b"))
 
