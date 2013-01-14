@@ -1,6 +1,8 @@
 Changes since CPAchecker 1.2
 ----------------------------
 
+* r7183: scripts/regression.py removed.
+  All it's features are also supported by table-generator.py.
 * r7043: CPAchecker now requires Java 7.
   C.f. INSTALL.txt, README.txt and doc/Developing.txt for more information.
 * r7005: MathSAT4 is no longer available as SMT solver.
