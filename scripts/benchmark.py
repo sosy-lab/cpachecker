@@ -1192,7 +1192,7 @@ def executeBenchmark(benchmarkFile):
 
     outputHandler.outputAfterBenchmark()
     if config.commit and not STOPPED_BY_INTERRUPT and runSetsExecuted > 0:
-        Util.addFilesToGitRepository(outputHandler.allCreatedFiles,
+        Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
                                      config.commitMessage+'\n\n'+outputHandler.description)
 
 

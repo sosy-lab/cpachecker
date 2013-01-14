@@ -25,6 +25,7 @@ CPAchecker web page:
 from __future__ import absolute_import, unicode_literals
 
 import os
+import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
@@ -164,22 +165,22 @@ def findExecutable(program, fallback=None):
     sys.exit("ERROR: Could not find '{0}' executable".format(program))
 
 
-def addFilesToGitRepository(files, description):
+def addFilesToGitRepository(baseDir, files, description):
     """
     Add and commit all files given in a list into a git repository in the
-    OUTPUT_PATH directory. Nothing is done if the git repository has
+    baseDir directory. Nothing is done if the git repository has
     local changes.
 
     @param files: the files to commit
     @param description: the commit message
     """
-    if not os.path.isdir(OUTPUT_PATH):
+    if not os.path.isdir(baseDir):
         printOut('Output path is not a directory, cannot add files to git repository.')
         return
 
     # find out root directory of repository
     gitRoot = subprocess.Popen(['git', 'rev-parse', '--show-toplevel'],
-                               cwd=OUTPUT_PATH,
+                               cwd=baseDir,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout = gitRoot.communicate()[0]
     if gitRoot.returncode != 0:
