@@ -347,7 +347,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
     Map<Integer, Boolean> preds = Maps.newHashMap();
     for (AssignableTerm a : model.keySet()) {
-      if (a instanceof Variable && a.getType() == TermType.Boolean) {
+      if (a instanceof Model.Variable && a.getType() == TermType.Boolean) {
 
         String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(a.getName()).replaceFirst("");
         if (!name.equals(a.getName())) {
