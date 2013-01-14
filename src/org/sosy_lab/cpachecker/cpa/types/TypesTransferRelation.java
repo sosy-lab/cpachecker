@@ -226,13 +226,13 @@ public class TypesTransferRelation implements TransferRelation {
       String name = compositeSpecifier.getName();
       CompositeType compType;
 
-      switch (compositeSpecifier.getKey()) {
-      case CCompositeType.k_struct:
+      switch (compositeSpecifier.getKind()) {
+      case STRUCT:
         compType = new StructType(name, constant);
         name = "struct " + name;
         break;
 
-      case CCompositeType.k_union:
+      case UNION:
         compType = new StructType(name, constant);
         name = "union " + name;
         break;

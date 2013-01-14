@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
@@ -102,12 +103,24 @@ class ASTTypeConverter {
     } else if(t instanceof ICompositeType) {
       ICompositeType ct = (ICompositeType) t;
 
+      CCompositeTypeKind kind;
+      switch (ct.getKey()) {
+      case ICompositeType.k_struct:
+        kind = CCompositeTypeKind.STRUCT;
+        break;
+      case ICompositeType.k_union:
+        kind = CCompositeTypeKind.UNION;
+      break;
+      default:
+        throw new CFAGenerationRuntimeException("Unknown key " + ct.getKey() + " for composite type " + t);
+      }
+
       // empty linkedList for the Fields of the struct, they are created afterwards
       // with the right references in case of pointers to a struct of the same type
       // otherwise they would not point to the correct struct
       // TODO: volatile and const cannot be checked here until no, so both is set
       //       to false
-      CCompositeType compType = new CCompositeType(false, false, ct.getKey(), new LinkedList<CCompositeTypeMemberDeclaration>(), ct.getName());
+      CCompositeType compType = new CCompositeType(false, false, kind, new LinkedList<CCompositeTypeMemberDeclaration>(), ct.getName());
 
       // We need to cache compType before converting the type of its fields!
       // Otherwise we run into an infinite recursion if the type of one field
@@ -265,7 +278,7 @@ class ASTTypeConverter {
       return new CArrayType(isConst, isVolatile, ((CArrayType) i).getType(), ((CArrayType) i).getLength());
     } else if (i instanceof CCompositeType) {
       CCompositeType c = (CCompositeType) i;
-      return new CCompositeType(isConst, isVolatile, c.getKey(), c.getMembers(), c.getName());
+      return new CCompositeType(isConst, isVolatile, c.getKind(), c.getMembers(), c.getName());
     } else if (i instanceof CElaboratedType) {
       return new CElaboratedType(isConst, isVolatile, ((CElaboratedType) i).getKind(), ((CElaboratedType) i).getName());
     } else if (i instanceof CEnumType) {

@@ -123,6 +123,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
@@ -980,7 +981,20 @@ class ASTConverter {
       assert !newCs.isEmpty();
       list.addAll(newCs);
     }
-    return new CCompositeType(d.isConst(), d.isVolatile(), d.getKey(), list, convert(d.getName()));
+
+    CCompositeTypeKind kind;
+    switch (d.getKey()) {
+    case IASTCompositeTypeSpecifier.k_struct:
+      kind = CCompositeTypeKind.STRUCT;
+      break;
+    case IASTCompositeTypeSpecifier.k_union:
+      kind = CCompositeTypeKind.UNION;
+    break;
+    default:
+      throw new CFAGenerationRuntimeException("Unknown key " + d.getKey() + " for composite type", d);
+    }
+
+    return new CCompositeType(d.isConst(), d.isVolatile(), kind, list, convert(d.getName()));
   }
 
   private CEnumType convert(IASTEnumerationSpecifier d) {

@@ -33,24 +33,24 @@ import com.google.common.collect.ImmutableList;
 
 public final class CCompositeType implements CType {
 
-  private final int                   key;
+  private final CCompositeTypeKind    kind;
   private List<CCompositeTypeMemberDeclaration> members;
   private final String                name;
   private boolean   isConst;
   private boolean   isVolatile;
 
   public CCompositeType(final boolean pConst, final boolean pVolatile,
-      final int pKey, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName) {
+      final CCompositeTypeKind pKind, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName) {
 
     isConst= pConst;
     isVolatile=pVolatile;
-    key = pKey;
+    kind = pKind;
     members = ImmutableList.copyOf(pMembers);
     name = pName.intern();
   }
 
-  public int getKey() {
-    return key;
+  public CCompositeTypeKind getKind() {
+    return kind;
   }
 
   public List<CCompositeTypeMemberDeclaration> getMembers() {
@@ -85,14 +85,8 @@ public final class CCompositeType implements CType {
       lASTString.append("volatile ");
     }
 
-    if (key == k_struct) {
-      lASTString.append("struct ");
-    } else if (key == k_union) {
-      lASTString.append("union ");
-    } else {
-      lASTString.append("unknown ");
-    }
-
+    lASTString.append(kind.toASTString());
+    lASTString.append(' ');
     lASTString.append(name);
 
     lASTString.append(" {\n");
@@ -107,6 +101,16 @@ public final class CCompositeType implements CType {
     return lASTString.toString();
   }
 
+
+  public static enum CCompositeTypeKind {
+    STRUCT,
+    UNION,
+    ;
+
+    public String toASTString() {
+      return super.toString().toLowerCase();
+    }
+  }
 
   /**
    * This is the declaration of a member of a composite type.
@@ -166,7 +170,7 @@ public final class CCompositeType implements CType {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + key;
+    result = prime * result + kind.hashCode();
     result = prime * result + ((members == null) ? 0 : members.hashCode());
     result = prime * result + ((name == null) ? 0 : name.hashCode());
     return result;
@@ -185,6 +189,6 @@ public final class CCompositeType implements CType {
     return
         Objects.equals(name, other.name) &&
         Objects.equals(members, other.members) &&
-        key == other.key;
+        kind == other.kind;
   }
 }
