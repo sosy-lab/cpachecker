@@ -383,8 +383,15 @@ public class CtoFormulaConverter {
     } else if (tp instanceof CTypedefType) {
       return getTypeName(((CTypedefType)tp).getRealType());
 
+    } else if (tp instanceof CCompositeType) {
+      CCompositeType compositeType = ((CCompositeType)tp);
+      return compositeType.getKind().toASTString() + " " + compositeType.getName();
+
+    } else if (tp instanceof CSimpleType) {
+      return tp.toASTString("");
+
     } else {
-      throw new AssertionError("wrong type");
+      throw new AssertionError("Unknown type " + tp.getClass().getName());
     }
   }
 
