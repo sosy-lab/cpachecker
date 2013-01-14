@@ -4,5 +4,5 @@
 {{endif}}
 {{endfor}}
 {{for line in body}}
-{{line.shortFileName}}	{{[value or '' for test in line.results for value in test.values] | '\t'.join}}
+{{line.shortFileName}}	{{[value or '' for runResult in line.results for value in runResult.values] | '\t'.join}}
 {{endfor}}

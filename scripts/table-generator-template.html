@@ -59,7 +59,7 @@
 <script type="text/javascript">
 
 // All the data from the table head in nice JS data structures.
-var tests = {{tests|json}};     // list with all tests and their attributes
+var tests = {{runSets|json}};   // list with the attributes of all run sets
 var columns = {{columns|json}}; // nested list with all the columns headings
 var columnsToTest = [];         // for each column of the table the test it belongs to (first column is 0)
 
@@ -890,16 +890,16 @@ def formatOptions(str):
 <tbody>
 {{for line in body}}
 <tr><td title="Click here to show source code"><a href="{{line.filePath|url}}">{{line.shortFileName}}</a></td>
-  {{for test in line.results}}
-  {{for column, value in zip(test.columns, test.values)}}
+  {{for runResult in line.results}}
+  {{for column, value in zip(runResult.columns, runResult.values)}}
   {{if column.title == 'status'}}
-    {{if test.logFile}}
-    <td class="{{test.category}}" title="Click here to show output of tool"><a href="{{relpath(test.logFile, baseDir)|url}}">{{value.lower()}}</a></td>
+    {{if runResult.logFile}}
+    <td class="{{runResult.category}}" title="Click here to show output of tool"><a href="{{relpath(runResult.logFile, baseDir)|url}}">{{value.lower()}}</a></td>
     {{else}}
-    <td class="{{test.category}}">{{value.lower()}}</td>
+    <td class="{{runResult.category}}">{{value.lower()}}</td>
     {{endif}}
   {{else}}
-  <td class="{{test.category}}Value">{{value or '-'}}</td>
+  <td class="{{runResult.category}}Value">{{value or '-'}}</td>
   {{endif}}
   {{endfor}}
   {{endfor}}

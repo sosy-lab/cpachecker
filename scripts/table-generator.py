@@ -181,15 +181,14 @@ class Util:
 
 def parseTableDefinitionFile(file):
     '''
-    This function parses the input to get tests and columns.
-    The param 'file' is a xml-file defining the testfiles and columns.
+    This function parses the input to get run sets and columns.
+    The param 'file' is an XML file defining the result files and columns.
 
-    If columntitles are given in the xml-file,
-    they will be searched in the testfiles.
-    If no title is given, all columns of the testfile are taken.
+    If column titles are given in the XML file,
+    they will be searched in the result files.
+    If no title is given, all columns of the result file are taken.
 
-    @return: a list of tuples,
-    each tuple contains a test file and a list of columntitles
+    @return: a list of RunSetResult objects
     '''
     print ("reading table definition from '{0}'...".format(file))
     if not os.path.isfile(file):
@@ -203,7 +202,7 @@ def parseTableDefinitionFile(file):
         return [Column(c.get("title"), c.text, c.get("numberOfDigits"))
                 for c in xmltag.findall('column')]
 
-    listOfTestFiles = []
+    runSetResults = []
     tableGenFile = ET.ElementTree().parse(file)
     if 'table' != tableGenFile.tag:
         print ("ERROR:\n" \
@@ -218,7 +217,7 @@ def parseTableDefinitionFile(file):
     for testTag in tableGenFile.findall('test'):
         columnsToShow = extractColumnsFromTableDefinitionFile(testTag) or defaultColumnsToShow
         filelist = Util.getFileList(os.path.join(baseDir, testTag.get('filename'))) # expand wildcards
-        listOfTestFiles += [RunSetResult.createFromXML(file, parseResultsFile(file), columnsToShow) for file in filelist]
+        runSetResults += [RunSetResult.createFromXML(file, parseResultsFile(file), columnsToShow) for file in filelist]
 
     for unionTag in tableGenFile.findall('union'):
         columnsToShow = extractColumnsFromTableDefinitionFile(unionTag) or defaultColumnsToShow
@@ -230,9 +229,9 @@ def parseTableDefinitionFile(file):
                 result.append(file, parseResultsFile(file))
 
         if result.filelist:
-            listOfTestFiles.append(result)
+            runSetResults.append(result)
 
-    return listOfTestFiles
+    return runSetResults
 
 
 class Column:
@@ -363,17 +362,17 @@ def insertLogFileNames(resultFile, resultElem):
     logFolder = os.path.join(os.path.dirname(resultFile), resultElem.get('baseDir', ''), logFolder)
 
     # append begin of filename
-    testname = resultElem.get('name')
-    if testname is not None:
+    runSetName = resultElem.get('name')
+    if runSetName is not None:
         blockname = resultElem.get('block')
         if blockname is None:
-            logFolder += testname + "."
-        elif blockname == testname:
-            pass # real testname is empty
+            logFolder += runSetName + "."
+        elif blockname == runSetName:
+            pass # real runSetName is empty
         else:
-            assert testname.endswith("." + blockname)
-            testname = testname[:-(1 + len(blockname))] # remove last chars
-            logFolder += testname + "."
+            assert runSetName.endswith("." + blockname)
+            runSetName = runSetName[:-(1 + len(blockname))] # remove last chars
+            logFolder += runSetName + "."
 
     # for each file: append original filename and insert logFileName into sourcefileElement
     for sourcefile in resultElem.findall('sourcefile'):
@@ -384,7 +383,7 @@ def getDefaultLogFolder(resultElem):
     return logFolder
 
 
-def mergeSourceFiles(listOfTests):
+def mergeSourceFiles(runSetResults):
     """
     This function merges the filelists of all RunSetResult objects.
     If necessary, it can merge lists of names: [A,C] + [A,B] --> [A,B,C]
@@ -394,7 +393,7 @@ def mergeSourceFiles(listOfTests):
     """
     nameList = []
     nameSet = set()
-    for result in listOfTests:
+    for result in runSetResults:
         index = -1
         currentResultNameSet = set()
         for name in result.getSourceFileNames():
@@ -409,15 +408,15 @@ def mergeSourceFiles(listOfTests):
                 else:
                     index = nameList.index(name)
 
-    mergeFilelists(listOfTests, nameList)
+    mergeFilelists(runSetResults, nameList)
     return nameList
 
-def mergeFilelists(listOfTests, filenames):
+def mergeFilelists(runSetResults, filenames):
     """
     Set the filelists of all RunSetResult elements so that they contain the same files
     in the same order. For missing files a dummy element is inserted.
     """
-    for result in listOfTests:
+    for result in runSetResults:
         # create mapping from name to sourcefile tag
         dic = dict([(file.get('name'), file) for file in result.filelist])
         result.filelist = [] # clear and repopulate filelist
@@ -430,19 +429,19 @@ def mergeFilelists(listOfTests, filenames):
             result.filelist.append(fileResult)
 
 
-def findCommonSourceFiles(listOfTests):
-    filesInFirstTest = listOfTests[0].getSourceFileNames()
+def findCommonSourceFiles(runSetResults):
+    filesInFirstRunSet = runSetResults[0].getSourceFileNames()
 
-    fileSet = set(filesInFirstTest)
-    for result in listOfTests:
+    fileSet = set(filesInFirstRunSet)
+    for result in runSetResults:
         fileSet = fileSet & set(result.getSourceFileNames())
 
     fileList = []
     if not fileSet:
         print('No files are present in all benchmark results.')
     else:
-        fileList = [file for file in filesInFirstTest if file in fileSet]
-        mergeFilelists(listOfTests, fileList)
+        fileList = [file for file in filesInFirstRunSet if file in fileSet]
+        mergeFilelists(runSetResults, fileList)
 
     return fileList
 
@@ -574,20 +573,20 @@ class Row:
 
 def rowsToColumns(rows):
     """
-    Convert a list of Rows into a column-wise list of list of RunSetResult
+    Convert a list of Rows into a column-wise list of list of RunResult
     """
     return zip(*[row.results for row in rows])
 
 
-def getRows(listOfTests, fileNames, correctOnly):
+def getRows(runSetResults, fileNames, correctOnly):
     """
     Create list of rows with all data. Each row consists of several RunResults.
     """
     rows = [Row(fileName) for fileName in fileNames]
 
-    # get values for each test
-    for result in listOfTests:
-        # get values for each file in a test
+    # get values for each run set
+    for result in runSetResults:
+        # get values for each file in a run set
         for fileResult, row in zip(result.filelist, rows):
             row.addRunResult(RunResult.createFromXML(fileResult, result.columns, row.fileIsUnsafe(), correctOnly))
 
@@ -632,28 +631,31 @@ def filterRowsWithDifferences(rows):
 
 
 
-def getTableHead(listOfTests, commonFileNamePrefix):
+def getTableHead(runSetResults, commonFileNamePrefix):
 
-    testWidths = [len(test.columns) for test in listOfTests]
+    # This list contains the number of columns each run set has
+    # (the width of a run set in the final table)
+    # It is used for calculating the column spans of the header cells.
+    runSetWidths = [len(runSetResult.columns) for runSetResult in runSetResults]
 
     def getRow(rowName, format, collapse=False):
-        values = [format.format(**test.attributes) for test in listOfTests]
+        values = [format.format(**runSetResult.attributes) for runSetResult in runSetResults]
         if not any(values): return None # skip row without values completely
 
-        valuesAndWidths = list(Util.collapseEqualValues(values, testWidths)) \
-                          if collapse else list(zip(values, testWidths))
+        valuesAndWidths = list(Util.collapseEqualValues(values, runSetWidths)) \
+                          if collapse else list(zip(values, runSetWidths))
 
         return tempita.bunch(id=rowName.lower().split(' ')[0],
                              name=rowName,
                              content=valuesAndWidths)
 
-    benchmarkNames = [test.attributes['benchmarkname'] for test in listOfTests]
+    benchmarkNames = [runSetResult.attributes['benchmarkname'] for runSetResult in runSetResults]
     allBenchmarkNamesEqual = benchmarkNames.count(benchmarkNames[0]) == len(benchmarkNames)
 
-    titles      = [column.title for test in listOfTests for column in test.columns]
-    testWidths1 = [1]*sum(testWidths)
+    titles      = [column.title for runSetResult in runSetResults for column in runSetResult.columns]
+    runSetWidths1 = [1]*sum(runSetWidths)
     titleRow    = tempita.bunch(id='columnTitles', name=commonFileNamePrefix,
-                                content=list(zip(titles, testWidths1)))
+                                content=list(zip(titles, runSetWidths1)))
 
     return {'tool':    getRow('Tool', '{tool} {version}', collapse=True),
             'limit':   getRow('Limits', 'timelimit: {timelimit}, memlimit: {memlimit}', collapse=True),
@@ -672,7 +674,7 @@ def getStats(rows):
     countSafe = len(rows) - countUnsafe
     maxScore = SCORE_CORRECT_UNSAFE * countUnsafe + SCORE_CORRECT_SAFE * countSafe
 
-    stats = [getStatsOfTest(tests) for tests in rowsToColumns(rows)] # column-wise
+    stats = [getStatsOfRunSet(runResults) for runResults in rowsToColumns(rows)] # column-wise
     rowsForStats = list(map(Util.flatten, zip(*stats))) # row-wise
 
     return [tempita.bunch(default=None, title='total files', content=rowsForStats[0]),
@@ -682,19 +684,20 @@ def getStats(rows):
             tempita.bunch(default=None, title='score ({0} files, max score: {1})'.format(len(rows), maxScore), id='score', description='{0} safe files, {1} unsafe files'.format(countSafe, countUnsafe), content=rowsForStats[4])
             ]
 
-def getStatsOfTest(tests):
+def getStatsOfRunSet(runResults):
     """
     This function returns the numbers of the statistics.
+    @param runResults: All the results of the execution of one run set (as list of RunResult objects) 
     """
 
     # convert:
     # [['SAFE', 0,1], ['UNSAFE', 0,2]] -->  [['SAFE', 'UNSAFE'], [0,1, 0,2]]
     # in python2 this is a list, in python3 this is the iterator of the list
     # this works, because we iterate over the list some lines below
-    listsOfValues = zip(*[test.values for test in tests])
+    listsOfValues = zip(*[runResult.values for runResult in runResults])
 
-    columns = tests[0].columns
-    statusList = [test.category for test in tests]
+    columns = runResults[0].columns
+    statusList = [runResult.category for runResult in runResults]
 
     # collect some statistics
     sumRow = []
@@ -792,8 +795,8 @@ def getStatsOfNumberColumn(values, categoryList):
 def getCounts(rows): # for options.dumpCounts
     countsList = []
 
-    for testResults in rowsToColumns(rows):
-        statusList = [test.category for test in testResults]
+    for runResults in rowsToColumns(rows):
+        statusList = [runResult.category for runResult in runResults]
         correctSafe, correctUnsafe, wrongSafe, wrongUnsafe = getCategoryCount(statusList)
 
         correct = correctSafe + correctUnsafe
@@ -805,7 +808,7 @@ def getCounts(rows): # for options.dumpCounts
     return countsList
 
 
-def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, outputFilePattern, libUrl):
+def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, outputFilePattern, libUrl):
     '''
     create tables and write them to files
     '''
@@ -815,9 +818,9 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, outpu
     commonPrefix = commonPrefix[: commonPrefix.rfind('/') + 1] # only foldername
     list(map(lambda row: Row.setRelativePath(row, commonPrefix, outputPath), rows))
 
-    head = getTableHead(listOfTests, commonPrefix)
-    testData = [test.attributes for test in listOfTests]
-    testColumns = [[column.title for column in test.columns] for test in listOfTests]
+    head = getTableHead(runSetResults, commonPrefix)
+    runSetsData = [runSetResult.attributes for runSetResult in runSetResults]
+    runSetsColumns = [[column.title for column in runSet.columns] for runSet in runSetResults]
 
     templateNamespace={'flatten': Util.flatten,
                        'json': Util.json,
@@ -844,8 +847,8 @@ def createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, outpu
                         head=head,
                         body=rows,
                         foot=stats,
-                        tests=testData,
-                        columns=testColumns,
+                        runSets=runSetsData,
+                        columns=runSetsColumns,
                         lib_url=libUrl,
                         baseDir=outputPath,
                         ))
@@ -919,7 +922,7 @@ def main(args=None):
         if options.tables:
             print ("Invalid additional arguments '{}'".format(" ".join(options.tables)))
             exit()
-        listOfTests = parseTableDefinitionFile(options.xmltablefile)
+        runSetResults = parseTableDefinitionFile(options.xmltablefile)
         name = os.path.basename(options.xmltablefile)
         if name.endswith(".xml"):
             name = name[:-4]
@@ -936,7 +939,7 @@ def main(args=None):
             inputFiles = [os.path.join(searchDir, '*.results*.xml')]
 
         inputFiles = Util.extendFileList(inputFiles) # expand wildcards
-        listOfTests = [RunSetResult.createFromXML(file, parseResultsFile(file)) for file in inputFiles]
+        runSetResults = [RunSetResult.createFromXML(file, parseResultsFile(file)) for file in inputFiles]
 
         if len(inputFiles) == 1:
             name = os.path.basename(inputFiles[0])
@@ -956,7 +959,7 @@ def main(args=None):
     if not outputPath:
         outputPath = '.'
 
-    if not listOfTests:
+    if not runSetResults:
         print ('\nError! No file with benchmark results found.')
         if options.xmltablefile:
             print ('Please check the filenames in your XML-file.')
@@ -964,14 +967,14 @@ def main(args=None):
 
     print ('merging results ...')
     if options.common:
-        fileNames = findCommonSourceFiles(listOfTests)
+        fileNames = findCommonSourceFiles(runSetResults)
     else:
-        # merge list of tests, so that all tests contain the same filenames
-        fileNames = mergeSourceFiles(listOfTests)
+        # merge list of run sets, so that all run sets contain the same filenames
+        fileNames = mergeSourceFiles(runSetResults)
 
     # collect data and find out rows with differences
     print ('collecting data ...')
-    rows     = getRows(listOfTests, fileNames, options.correctOnly)
+    rows     = getRows(runSetResults, fileNames, options.correctOnly)
     if not rows:
         print ('Warning: No results found, no tables produced.')
         sys.exit()
@@ -980,7 +983,7 @@ def main(args=None):
 
     print ('generating table ...')
     if not os.path.isdir(outputPath): os.makedirs(outputPath)
-    createTables(name, listOfTests, fileNames, rows, rowsDiff, outputPath, outputFilePattern, options.libUrl)
+    createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, outputFilePattern, options.libUrl)
 
     print ('done')
 
