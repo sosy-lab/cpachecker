@@ -51,9 +51,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -110,6 +110,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
     while (reached.hasWaitingState()) {
       sound &= algorithm.run(reached);
+      assert ARGUtils.checkART(reached);
 
       AbstractState lastState = reached.getLastState();
       if (!(lastState instanceof ARGState)) {
@@ -170,6 +171,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
             }
 
             sound &= removeErrorState(reached, errorState);
+            assert ARGUtils.checkART(reached);
 
           } else {
             ARGPath path = ARGUtils.getOnePathTo(errorState);
