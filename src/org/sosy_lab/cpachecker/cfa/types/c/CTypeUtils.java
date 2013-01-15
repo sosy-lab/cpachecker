@@ -110,6 +110,10 @@ public class CTypeUtils {
     }
 
     public BaseCTypeEqualsVisitor copyWith(Object other) {
+      if (other instanceof CType) {
+        other = CTypeUtils.simplifyType((CType)other);
+      }
+
       return new BaseCTypeEqualsVisitor(other);
     }
 
@@ -299,21 +303,11 @@ public class CTypeUtils {
 
     @Override
     public Boolean visit(CTypedefType pThis) throws Exception {
-      // Should not happen
       if (this == obj) {
         return true;
       }
-      if (pThis.getClass() != obj.getClass()) {
-        return false;
-      }
-      CTypedefType other = (CTypedefType) obj;
-      return equalsTypedefType(pThis, other);
-    }
 
-    private Boolean equalsTypedefType(CTypedefType pThis, CTypedefType other) throws Exception {
-      return
-          Objects.equals(pThis.getName(), other.getName()) &&
-          pThis.getRealType().accept(this.copyWith(other.getRealType()));
+      return pThis.getRealType().accept(this);
     }
 
     @Override
@@ -402,11 +396,9 @@ public class CTypeUtils {
       return t1 == t2;
     }
 
-    CType simplifyType1 = simplifyType(t1);
-    CType simplifyType2 = simplifyType(t2);
-    BaseCTypeEqualsVisitor visitor = new BaseCTypeEqualsVisitor(simplifyType2);
+    BaseCTypeEqualsVisitor visitor = new BaseCTypeEqualsVisitor(simplifyType(t2));
     try {
-      return simplifyType1.accept(visitor);
+      return t1.accept(visitor);
     } catch (Exception e) {
       e.printStackTrace();
       throw new IllegalArgumentException("Should not happen", e);

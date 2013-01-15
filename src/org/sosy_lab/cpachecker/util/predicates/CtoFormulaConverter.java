@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -122,7 +121,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
@@ -441,13 +439,20 @@ public class CtoFormulaConverter {
 //         (t = (Variable<CType>) ssa.getVariable(var.getName())) == null
 //      || CTypeUtils.equals(t.getType(), var.getType())
 //      : "Saving variables with mutliple types is not possible!";
-    Variable<CType> t;
-    if ((t = (Variable<CType>) ssa.getVariable(var.getName())) != null
-      && !CTypeUtils.equals(t.getType(), var.getType())) {
-      log(Level.SEVERE,
-          "ERROR: Variable " + var.getName() + " was found with multiple types!"
-              + " Analysis with bitvectors will most likely fail! "
-              + "(Type1: " + t.getType() + ", Type2: " + var.getType() + ")");
+    Variable<CType> t = (Variable<CType>) ssa.getVariable(var.getName());
+    if (t != null) {
+      if (!CTypeUtils.equals(t.getType(), var.getType())) {
+        log(Level.WARNING,
+            "Variable " + var.getName() + " was found with multiple types!"
+                + " Analysis with bitvectors could fail! "
+                + "(Type1: " + t.getType() + ", Type2: " + var.getType() + ")");
+      }
+
+      if (getFormulaTypeFromCType(t.getType()) != getFormulaTypeFromCType(var.getType())){
+        throw new UnsupportedOperationException(
+            "Variable " + var.getName() + " used with types of different sizes! " +
+                "(Type1: " + t.getType() + ", Type2: " + var.getType() + ")");
+      }
     }
   }
 
@@ -656,7 +661,7 @@ public class CtoFormulaConverter {
    */
   private Formula makeCast(CType fromType, CType toType, Formula formula) {
 
-    if (CTypeUtils.equals(fromType, toType)){
+    if (CTypeUtils.equals(fromType, toType)) {
       return formula; // No cast required;
     }
 
@@ -668,40 +673,45 @@ public class CtoFormulaConverter {
     fromType = CTypeUtils.simplifyType(fromType);
     toType = CTypeUtils.simplifyType(toType);
 
-    if (fromType instanceof CSimpleType){
+    if (fromType instanceof CSimpleType) {
       CSimpleType sfromType = (CSimpleType)fromType;
-      if (toType instanceof CSimpleType){
+      if (toType instanceof CSimpleType) {
         CSimpleType stoType = (CSimpleType)toType;
         return makeSimpleCast(sfromType, stoType, formula);
       }
     }
 
     if (fromType instanceof CPointerType ||
-        toType instanceof CPointerType){
+        toType instanceof CPointerType) {
       // Ignore casts between Pointer and right sized types
-      if (getFormulaTypeFromCType(toType) == getFormulaTypeFromCType(fromType)){
+      if (getFormulaTypeFromCType(toType) == getFormulaTypeFromCType(fromType)) {
         return formula;
       }
     }
 
     if (fromType instanceof CEnumType ||
-        toType instanceof CEnumType){
+        toType instanceof CEnumType) {
       // Ignore casts between Enums and right sized types
-      if (getFormulaTypeFromCType(toType) == getFormulaTypeFromCType(fromType)){
+      if (getFormulaTypeFromCType(toType) == getFormulaTypeFromCType(fromType)) {
         return formula;
       }
     }
 
     if (fromType instanceof CElaboratedType && ((CElaboratedType)fromType).getKind() == ElaboratedType.ENUM ||
-        toType instanceof CElaboratedType && ((CElaboratedType)toType).getKind() == ElaboratedType.ENUM ){
+        toType instanceof CElaboratedType && ((CElaboratedType)toType).getKind() == ElaboratedType.ENUM ) {
       // Ignore casts between Enums and right sized types
-      if (getFormulaTypeFromCType(toType) == getFormulaTypeFromCType(fromType)){
+      if (getFormulaTypeFromCType(toType) == getFormulaTypeFromCType(fromType)) {
         return formula;
       }
     }
-    log(Level.WARNING, "WARNING: Could not handle cast from " + fromType + " to " + toType + "!");
-    FunctionFormulaType<Formula> func = getCastFunc(fromType, toType);
-    return ffmgr.createUninterpretedFunctionCall(func, Arrays.asList(formula));
+
+    if (machineModel.getSizeof(fromType) == machineModel.getSizeof(toType)) {
+      // We can most likely just ignore this cast
+      log(Level.WARNING, "WARNING: Ignoring cast from " + fromType + " to " + toType + "!");
+      return formula;
+    } else {
+      throw new UnsupportedOperationException("Cast from " + fromType + " to " + toType + " not supported!");
+    }
   }
 
 
@@ -777,31 +787,6 @@ public class CtoFormulaConverter {
     return ret;
   }
 
-  Map<CType, Map<CType, FunctionFormulaType<Formula>>> castMap = new Hashtable<>();
-
-  private FunctionFormulaType<Formula> getCastFunc(CType fromType, CType toType) {
-    Map<CType, FunctionFormulaType<Formula>> toTable;
-    if (!castMap.containsKey(fromType)) {
-      toTable = new Hashtable<>();
-      castMap.put(fromType, toTable);
-    } else {
-      toTable = castMap.get(fromType);
-    }
-
-    FunctionFormulaType<Formula> func;
-    if (!toTable.containsKey(toType)) {
-      FormulaType<Formula> intoFormulaType = getFormulaTypeFromCType(toType);
-      FormulaType<Formula> fromFormulaType = getFormulaTypeFromCType(fromType);
-      func = ffmgr.createFunction(
-          "CAST_FROM_"+fromType+"_TO_"+toType, intoFormulaType,
-          Arrays.<FormulaType<?>>asList(fromFormulaType));
-      toTable.put(toType, func);
-    } else {
-      func = toTable.get(toType);
-    }
-
-    return func;
-  }
   /**
    * Gets the Type of the given two, which C would implicitly cast to.
    * @param pT1
@@ -2552,7 +2537,11 @@ public class CtoFormulaConverter {
       }
 
       Formula rightVariable = pAssignment.getRightHandSide().accept(this);
-
+      // Handle implicit casts
+      rightVariable = makeCast(
+          pAssignment.getRightHandSide().getExpressionType(),
+          pAssignment.getLeftHandSide().getExpressionType(),
+          rightVariable);
       Formula lPtrVar = buildLvalueTerm(pAssignment.getLeftHandSide(), edge, function, ssa, constraints);
       BooleanFormula assignments = fmgr.assignment(lPtrVar, rightVariable);
 
@@ -2745,7 +2734,6 @@ public class CtoFormulaConverter {
         // update that pointer to reflect the new aliasing,
         // otherwise only update the index
         List<Variable<CType>> ptrVarNames = getAllPointerVariablesFromSsaMap(ssa);
-        Formula newLeftVar = leftVariable;
         for (Variable<CType> ptrVarName : ptrVarNames) {
           Variable<CType> varName = removePointerMaskVariable(ptrVarName);
           if (!varName.equals(leftVarName)) {
@@ -2757,7 +2745,8 @@ public class CtoFormulaConverter {
             assert fmgr.getFormulaType(var) == fmgr.getFormulaType(leftMemLocation)
                 : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
             BooleanFormula condition = fmgr.makeEqual(var, leftMemLocation);
-            BooleanFormula equivalence = fmgr.assignment(newPtrVar, newLeftVar);
+            // leftVariable can be anything
+            BooleanFormula equivalence = makeNondetAssignment(newPtrVar, leftVariable, ssa);
             BooleanFormula update = fmgr.assignment(newPtrVar, oldPtrVar);
 
             BooleanFormula constraint = bfmgr.ifThenElse(condition, equivalence, update);
