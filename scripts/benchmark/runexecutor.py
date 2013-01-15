@@ -260,9 +260,9 @@ def _findOwnCgroup(subsystem):
     """
     with open('/proc/self/cgroup') as ownCgroups:
         for ownCgroup in ownCgroups:
-            #each line is "id:subsystem:path"
+            #each line is "id:subsystem,subsystem:path"
             ownCgroup = ownCgroup.strip().split(':')
-            if ownCgroup[1] == subsystem:
+            if subsystem in ownCgroup[1].split(','):
                 return ownCgroup[2]
         return None
 
