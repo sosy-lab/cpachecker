@@ -1303,6 +1303,9 @@ def main(argv=None):
     except OSError:
         pass # this does not work on Windows
 
+    # do this after logger has been configured
+    runexecutor.init()
+
     for arg in config.files:
         if STOPPED_BY_INTERRUPT: break
         logging.debug("Benchmark {0} is started.".format(repr(arg)))
