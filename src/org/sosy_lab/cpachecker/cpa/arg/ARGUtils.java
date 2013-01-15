@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -479,4 +480,49 @@ public class ARGUtils {
       }
     };
   }
+
+  public static boolean checkART(ReachedSet pReached) {
+
+      Deque<AbstractState> workList = new ArrayDeque<>();
+      Set<ARGState> arg = new HashSet<>();
+
+      workList.add(pReached.getFirstState());
+      while (!workList.isEmpty()) {
+        ARGState currentElement = (ARGState)workList.removeFirst();
+        assert !currentElement.isDestroyed();
+
+        for (ARGState parent : currentElement.getParents()) {
+          assert parent.getChildren().contains(currentElement) : "Reference from parent to child is missing in ARG";
+        }
+        for (ARGState child : currentElement.getChildren()) {
+          assert child.getParents().contains(currentElement) : "Reference from child to parent is missing in ARG";
+        }
+
+        // check if (e \in ARG) => (e \in Reached || e.isCovered())
+        if (currentElement.isCovered()) {
+          // Assertion removed because now covered states are allowed to be in the reached set.
+          // But they don't need to be!
+  //        assert !pReached.contains(currentElement) : "Reached set contains covered element";
+
+        } else {
+          // There is a special case here:
+          // If the element is the sibling of the target state, it might have not
+          // been added to the reached set if CPAAlgorithm stopped before.
+          // But in this case its parent is in the waitlist.
+
+          assert pReached.contains(currentElement)
+              || pReached.getWaitlist().containsAll(currentElement.getParents())
+              : "Element in ARG but not in reached set";
+        }
+
+        if (arg.add(currentElement)) {
+          workList.addAll(currentElement.getChildren());
+        }
+      }
+
+      // check if (e \in Reached) => (e \in ARG)
+      assert arg.containsAll(pReached.asCollection()) : "Element in reached set but not in ARG";
+
+      return true;
+    }
 }

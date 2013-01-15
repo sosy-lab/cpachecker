@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -95,7 +91,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     logger.log(Level.FINEST, "Starting ARG based refinement");
     mArtCpa.clearCounterexample();
 
-    assert checkART(pReached) : "ARG and reached set do not match before refinement";
+    assert ARGUtils.checkART(pReached) : "ARG and reached set do not match before refinement";
 
     AbstractState lastElement = pReached.getLastState();
     assert lastElement instanceof ARGState : "Element in reached set which is not an ARGState";
@@ -124,7 +120,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
       throw e;
     }
 
-    assert checkART(pReached) : "ARG and reached set do not match after refinement";
+    assert ARGUtils.checkART(pReached) : "ARG and reached set do not match after refinement";
 
     if (!counterexample.isSpurious()) {
       ARGPath targetPath = counterexample.getTargetPath();
@@ -166,50 +162,5 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    */
   protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPAException {
     return ARGUtils.getOnePathTo(pLastElement);
-  }
-
-  private static boolean checkART(ReachedSet pReached) {
-
-    Deque<AbstractState> workList = new ArrayDeque<>();
-    Set<ARGState> arg = new HashSet<>();
-
-    workList.add(pReached.getFirstState());
-    while (!workList.isEmpty()) {
-      ARGState currentElement = (ARGState)workList.removeFirst();
-      assert !currentElement.isDestroyed();
-
-      for (ARGState parent : currentElement.getParents()) {
-        assert parent.getChildren().contains(currentElement) : "Reference from parent to child is missing in ARG";
-      }
-      for (ARGState child : currentElement.getChildren()) {
-        assert child.getParents().contains(currentElement) : "Reference from child to parent is missing in ARG";
-      }
-
-      // check if (e \in ARG) => (e \in Reached || e.isCovered())
-      if (currentElement.isCovered()) {
-        // Assertion removed because now covered states are allowed to be in the reached set.
-        // But they don't need to be!
-//        assert !pReached.contains(currentElement) : "Reached set contains covered element";
-
-      } else {
-        // There is a special case here:
-        // If the element is the sibling of the target state, it might have not
-        // been added to the reached set if CPAAlgorithm stopped before.
-        // But in this case its parent is in the waitlist.
-
-        assert pReached.contains(currentElement)
-            || pReached.getWaitlist().containsAll(currentElement.getParents())
-            : "Element in ARG but not in reached set";
-      }
-
-      if (arg.add(currentElement)) {
-        workList.addAll(currentElement.getChildren());
-      }
-    }
-
-    // check if (e \in Reached) => (e \in ARG)
-    assert arg.containsAll(pReached.asCollection()) : "Element in reached set but not in ARG";
-
-    return true;
   }
 }
