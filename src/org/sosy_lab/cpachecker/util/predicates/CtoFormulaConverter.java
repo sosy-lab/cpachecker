@@ -1835,9 +1835,6 @@ public class CtoFormulaConverter {
         throw new UnrecognizedCCodeException("Unknown binary operator", edge, exp);
 
       }
-      if (returnFormulaType != fmgr.getFormulaType(ret)){
-        System.out.println();
-      }
 
       assert returnFormulaType == fmgr.getFormulaType(ret);
       return ret;

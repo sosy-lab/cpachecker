@@ -332,8 +332,6 @@ public class PredicateTransferRelation implements TransferRelation {
         if (!formulaManager.checkCoverage(predicateElement.getAbstractionFormula(), pathFormula,
             successor.getAbstractionFormula())) {
           result = false;
-          System.out.println(predicateElement.getAbstractionFormula() + "\n----\n" + pathFormula + "\n----\n"
-              + successor.getAbstractionFormula());
         }
         abstractionCheckTimer.stop();
       }

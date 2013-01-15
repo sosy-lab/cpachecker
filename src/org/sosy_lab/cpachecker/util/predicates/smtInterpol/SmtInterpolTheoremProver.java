@@ -133,9 +133,7 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       if (importantTerms.length == 0) {
         // assert current model to get next model
         result.callback(model);
-        System.out.println(
-            "satCheck is SAT, but there is no model for important terms!");
-        break;
+        throw new IllegalStateException("SMTInterpol could not compute model for satisfiable formula");
       }
 
       assert importantTerms.length != 0 : "there is no valuation for zero important terms!";
