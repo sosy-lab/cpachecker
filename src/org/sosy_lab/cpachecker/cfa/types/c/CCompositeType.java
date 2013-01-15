@@ -71,7 +71,7 @@ public final class CCompositeType implements CType {
 
   @Override
   public String toString() {
-    return getName();
+    return getKind().toASTString() + " " + getName();
   }
 
   @Override

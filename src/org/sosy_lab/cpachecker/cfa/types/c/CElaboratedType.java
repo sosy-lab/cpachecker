@@ -59,6 +59,7 @@ public final class CElaboratedType implements CType {
     }
 
     lASTString.append(kind.toASTString());
+    lASTString.append(" ");
     lASTString.append(name);
     lASTString.append(" ");
     lASTString.append(pDeclarator);
@@ -67,7 +68,7 @@ public final class CElaboratedType implements CType {
   }
   @Override
   public String toString() {
-    return this.toASTString("");
+    return getKind().toASTString() + " " + getName();
   }
 
   public static enum ElaboratedType {
@@ -76,7 +77,7 @@ public final class CElaboratedType implements CType {
     UNION;
 
     public String toASTString() {
-      return name().toLowerCase() + " ";
+      return name().toLowerCase();
     }
   }
 
