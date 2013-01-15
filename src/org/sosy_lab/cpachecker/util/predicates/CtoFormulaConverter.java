@@ -1425,6 +1425,7 @@ public class CtoFormulaConverter {
       // equal to the dealiased right side or update the pointer
       // r is the right hand side variable, l is the left hand side variable
       // ∀p ∈ maybePointer: (p = *r) ⇒ (l = p ∧ *l = *p)
+      // Note: l = *r holds because of current statement
       List<Variable<CType>> ptrVars = getAllPointerVariablesFromSsaMap(ssa);
       for (Variable<CType> ptrVarName : ptrVars) {
         Variable<CType> varName = removePointerMaskVariable(ptrVarName);
@@ -1434,26 +1435,17 @@ public class CtoFormulaConverter {
           Formula var = makeVariable(varName, ssa);
           Formula ptrVar = makeVariable(ptrVarName, ssa);
 
-          BooleanFormula ptr;
-          BooleanFormula dirEq;
-          if (ptrVarName.getType() instanceof CDereferenceType){
-            // Variable from a aliasing formula, they are always to smapp, so fill up with nondet bits to make a pointer.
-            ptr = makeNondetAssignment(rPtrVar, var, ssa);
-            dirEq = makeNondetAssignment(lVar, var, ssa);
-          } else {
-            assert fmgr.getFormulaType(rPtrVar) == fmgr.getFormulaType(var)
-                : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
-            ptr = fmgr.makeEqual(rPtrVar, var);
-            dirEq = fmgr.makeEqual(lVar, var);
-          }
+          // p = *r. p is a pointer but *r can be anything
+          BooleanFormula ptr = makeNondetAssignment(rPtrVar, var, ssa);
+          // l = p. p is a pointer but l can be anything.
+          BooleanFormula dirEq = makeNondetAssignment(lVar, var, ssa);
 
+          // *l = *p. Both can be anything.
           BooleanFormula indirEq =
               makeNondetAssignment(lPtrVar, ptrVar, ssa);
-              // fmgr.makeEqual(lPtrVar, ptrVar);
+
           BooleanFormula consequence = bfmgr.and(dirEq, indirEq);
-
           BooleanFormula constraint = bfmgr.implication(ptr, consequence);
-
           constraints.addConstraint(constraint);
         }
       }
