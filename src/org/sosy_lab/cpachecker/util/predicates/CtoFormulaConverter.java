@@ -1165,18 +1165,8 @@ public class CtoFormulaConverter {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
       String retVarName = scoped(VAR_RETURN_NAME, function);
 
-      CFunctionDeclaration funcDecl = exp.getRightHandSide().getDeclaration();
-      CType retType;
-      if (funcDecl == null) {
-        log(Level.WARNING, "No function declaration was given for " + exp.toASTString());
-        if (ignoreCasts) {
-          retType = exp.getRightHandSide().getExpressionType();
-        } else {
-          throw new IllegalArgumentException("Can't add cast because the function declaration is missing! (" + exp.toASTString() + ")");
-        }
-      } else {
-        retType = funcDecl.getType().getReturnType();
-      }
+      CFunctionCallExpression funcCallExp = exp.getRightHandSide();
+      CType retType = getReturnType(funcCallExp);
 
       Variable<CType> var = Variable.create(retVarName, retType);
       Formula retVar = makeVariable(var, ssa);
@@ -1201,6 +1191,35 @@ public class CtoFormulaConverter {
       throw new UnrecognizedCCodeException("Unknown function exit expression", ce, retExp.asStatement());
     }
   }
+
+  private CType getReturnType(CFunctionCallExpression funcCallExp) {
+    // NOTE: When funCallExp.getExpressionType() does always return the return type of the function we don't
+    // need this function. However I'm not sure because there can be implicit casts. Just to be safe.
+    CType retType;
+    CFunctionDeclaration funcDecl = funcCallExp.getDeclaration();
+    if (funcDecl == null) {
+      // Check if we have a function pointer here.
+      CExpression functionNameExpression = funcCallExp.getFunctionNameExpression();
+      if (functionNameExpression instanceof CUnaryExpression) {
+        CUnaryExpression funNameExp = (CUnaryExpression)functionNameExpression;
+        CType expressionType = funNameExp.getExpressionType();
+        if (expressionType instanceof CFunctionPointerType) {
+          CFunctionPointerType funcPtrType = (CFunctionPointerType)expressionType;
+          return funcPtrType.getReturnType();
+        }
+      }
+      log(Level.WARNING, "No function declaration was given for " + funcCallExp.toASTString());
+      if (ignoreCasts) {
+        retType = funcCallExp.getExpressionType();
+      } else {
+        throw new IllegalArgumentException("Can't add cast because the function declaration is missing! (" + funcCallExp.toASTString() + ")");
+      }
+    } else {
+      retType = funcDecl.getType().getReturnType();
+    }
+    return retType;
+  }
+
 
   private BooleanFormula makeFunctionCall(CFunctionCallEdge edge,
       String callerFunction, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
@@ -2174,7 +2193,6 @@ public class CtoFormulaConverter {
       List<CExpression> pexps = fexp.getParameterExpressions();
       String func;
       CType expType = fexp.getExpressionType();
-      FormulaType<BitvectorFormula> t = getFormulaTypeFromCType(expType);
       if (fn instanceof CIdExpression) {
         func = ((CIdExpression)fn).getName();
         if (func.equals(ASSUME_FUNCTION_NAME) && pexps.size() == 1) {
@@ -2212,7 +2230,8 @@ public class CtoFormulaConverter {
 
       } else {
         CFunctionDeclaration declaration = fexp.getDeclaration();
-        if (declaration == null){
+        if (declaration == null) {
+          // This should not happen
           log(Level.WARNING, "Cant get declaration of function. Ignoring the call (" + fexp.toASTString() + ").");
           return makeFreshVariable(Variable.create(func,expType), ssa);
         }
@@ -2243,11 +2262,14 @@ public class CtoFormulaConverter {
            args.add(makeCast(pexp.getExpressionType(), paramType, arg));
         }
 
-        if (it2.hasNext()){
+        if (it2.hasNext()) {
           log(Level.WARNING, "Ignoring call to " + declaration.toASTString() + " because of varargs");
           return makeFreshVariable(Variable.create(func,expType), ssa);
         }
 
+        CType returnType = getReturnType(fexp);
+        assert CTypeUtils.equals(returnType, expType);
+        FormulaType<BitvectorFormula> t = getFormulaTypeFromCType(expType);
         return ffmgr.createFuncAndCall(func, t, args);
       }
     }
