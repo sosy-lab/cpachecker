@@ -17,7 +17,10 @@ unsigned compute_successor(unsigned state, std::string op) {
 		if(state == 4) {
 			state = 5;
 		}
-		else if(state == 7) {
+		else if (state == 5) {
+			printf("ERROR: error location is reachable\n");
+			exit(EXIT_FAILURE);
+		} else if(state == 7) {
 			state = 8;
 		}
 		else if(state == 10) {
@@ -45,6 +48,15 @@ unsigned compute_successor(unsigned state, std::string op) {
 		}
 		else if(state == 9) {
 			state = 10;
+		}
+	} else if (op == "ssl3_send_server_key_exchange") {
+		if (state == 6) {
+			state = 7;
+		}
+	} else if (op == "ssl3_send_certificate_request") {
+		if (state == 8) {
+			printf("ERROR: error location is reachable\n");
+			exit(EXIT_FAILURE);
 		}
 	}
 	return state;

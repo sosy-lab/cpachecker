@@ -63,8 +63,8 @@ STATE USEFIRST Start0011 :
   MATCH  "t4_started();"  -> ERROR;
 
 STATE USEFIRST Start0001 :
-  MATCH  "t1_started();"  -> GOTO Start1011;
-  MATCH  "t2_started();"  -> GOTO Start0111;
+  MATCH  "t1_started();"  -> GOTO Start1001;
+  MATCH  "t2_started();"  -> GOTO Start0101;
   MATCH  "t3_started();"  -> GOTO Start0011;
   MATCH  "t4_started();"  -> ERROR;
 
