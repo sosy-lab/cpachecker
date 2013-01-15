@@ -408,7 +408,7 @@ public class CtoFormulaConverter {
       // not from 1, because this is an assignment,
       // so the SSA index must be fresh.
     }
-    ssa.setIndex(varName, idx);
+    setSsaIndex(ssa, varName, idx);
     return idx;
   }
 
@@ -423,9 +423,49 @@ public class CtoFormulaConverter {
     if (idx <= 0) {
       logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", var);
       idx = 1;
-      ssa.setIndex(var, idx);
+      setSsaIndex(ssa, var, idx);
+    } else {
+      checkSsaSavedType(var, ssa);
     }
     return idx;
+  }
+
+  @SuppressWarnings("unchecked")
+  private void checkSsaSavedType(Variable<CType> var, SSAMapBuilder ssa) {
+    // Check if types match
+
+    // Assert when a variable already exists, that it has the same type
+    // TODO: Uncomment when parser is stable enough
+//    Variable<CType> t;
+//    assert
+//         (t = (Variable<CType>) ssa.getVariable(var.getName())) == null
+//      || CTypeUtils.equals(t.getType(), var.getType())
+//      : "Saving variables with mutliple types is not possible!";
+    Variable<CType> t;
+    if ((t = (Variable<CType>) ssa.getVariable(var.getName())) != null
+      && !CTypeUtils.equals(t.getType(), var.getType())) {
+      log(Level.SEVERE,
+          "ERROR: Variable " + var.getName() + " was found with multiple types!"
+              + " Analysis with bitvectors will most likely fail! "
+              + "(Type1: " + t.getType() + ", Type2: " + var.getType() + ")");
+    }
+  }
+
+  private void setSsaIndex(SSAMapBuilder ssa, Variable<CType> var, int idx) {
+    if (var.getType() instanceof CDereferenceType) {
+      CDereferenceType type = (CDereferenceType) var.getType();
+      if (type.getGuessedType() == null) {
+        // This should not happen when guessing aliasing types would always work
+        CType oneByte = new CSimpleType(false, false, CBasicType.CHAR, false, false, false, false, false, false, false);
+        var = Variable.create(
+            var.getName(),
+            (CType)new CDereferenceType(type.isConst(), type.isVolatile(), type.getType(), oneByte));
+      }
+    }
+
+    checkSsaSavedType(var, ssa);
+
+    ssa.setIndex(var, idx);
   }
 
   /**
@@ -457,7 +497,7 @@ public class CtoFormulaConverter {
     int idx = ssa.getIndex(var);
     assert idx <= 1 : var + " is assumed to be constant there was an assignment to it";
     if (idx != 1) {
-      ssa.setIndex(var, 1); // set index so that predicates will be instantiated correctly
+      setSsaIndex(ssa, var, 1); // set index so that predicates will be instantiated correctly
     }
 
     return fmgr.makeVariable(this.<T>getFormulaTypeFromCType(var.getType()), var.getName(), 1);
@@ -538,12 +578,23 @@ public class CtoFormulaConverter {
     return pointerVariable.substring(POINTER_VARIABLE.length(), pointerVariable.indexOf("__at__"));
   }
 
-  private Variable<CType> makePointerMaskVariable(Variable<CType> pointerVar, SSAMapBuilder ssa){
-    return Variable.create(makePointerMask(pointerVar.getName(), ssa), dereferencedType(pointerVar.getType()));
+  private Variable<CType> makePointerMaskVariable(Variable<CType> pointerVar, SSAMapBuilder ssa) {
+    Variable<CType> ptrMask = Variable.create(makePointerMask(pointerVar.getName(), ssa), dereferencedType(pointerVar.getType()));
+    if (ptrMask.getType() instanceof CDereferenceType) {
+      // lookup in ssa map: Maybe we assigned a size to this current variable
+      @SuppressWarnings("unchecked")
+      Variable<CType> savedVar = (Variable<CType>) ssa.getVariable(ptrMask.getName());
+      if (savedVar != null) {
+        ptrMask = ptrMask.withType(savedVar.getType());
+        assert savedVar.getType() instanceof CDereferenceType
+            : "The savedVar should also be a CDereferenceType!";
+      }
+    }
+    return ptrMask;
   }
 
 
-  private Variable<CType> removePointerMaskVariable(Variable<CType> pointerVar){
+  private Variable<CType> removePointerMaskVariable(Variable<CType> pointerVar) {
     return Variable.create(removePointerMask(pointerVar.getName()), makePointerType(pointerVar.getType()));
   }
 
@@ -569,7 +620,7 @@ public class CtoFormulaConverter {
     } else if (t instanceof CArrayType) {
       t = ((CArrayType)t).getType();
     } else {
-      t = new CDereferenceType(false, false, t);
+      t = new CDereferenceType(false, false, t, null);
     }
 
     return t;
@@ -978,6 +1029,7 @@ public class CtoFormulaConverter {
         }
 
         // update ssa index of nondet flag
+        //setSsaIndex(ssa, Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
         ssa.setIndex(Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
       }
     }
@@ -1195,7 +1247,7 @@ public class CtoFormulaConverter {
   private CType getReturnType(CFunctionCallExpression funcCallExp) {
     // NOTE: When funCallExp.getExpressionType() does always return the return type of the function we don't
     // need this function. However I'm not sure because there can be implicit casts. Just to be safe.
-    CType retType;
+    CType retType = null;
     CFunctionDeclaration funcDecl = funcCallExp.getDeclaration();
     if (funcDecl == null) {
       // Check if we have a function pointer here.
@@ -1205,19 +1257,29 @@ public class CtoFormulaConverter {
         CType expressionType = funNameExp.getExpressionType();
         if (expressionType instanceof CFunctionPointerType) {
           CFunctionPointerType funcPtrType = (CFunctionPointerType)expressionType;
-          return funcPtrType.getReturnType();
+          retType = funcPtrType.getReturnType();
         }
       }
-      log(Level.WARNING, "No function declaration was given for " + funcCallExp.toASTString());
-      if (ignoreCasts) {
-        retType = funcCallExp.getExpressionType();
-      } else {
-        throw new IllegalArgumentException("Can't add cast because the function declaration is missing! (" + funcCallExp.toASTString() + ")");
+      if (retType == null) {
+        log(Level.WARNING, "No function declaration was given for " + funcCallExp.toASTString());
+        if (ignoreCasts) {
+          retType = funcCallExp.getExpressionType();
+        } else {
+          throw new IllegalArgumentException("Can't add cast because the function declaration is missing! (" + funcCallExp.toASTString() + ")");
+        }
       }
     } else {
       retType = funcDecl.getType().getReturnType();
     }
-    return retType;
+    CType expType = funcCallExp.getExpressionType();
+    if (!CTypeUtils.equals(expType, retType)) {
+      // Bit ignore for now because we sometimes just get ElaboratedType instead of CompositeType
+      log(
+          Level.SEVERE,
+          "Returntype and ExpressionType are not equal: "
+              + expType.toString() +  ", " + retType.toString());
+    }
+    return expType;
   }
 
 
@@ -1395,6 +1457,7 @@ public class CtoFormulaConverter {
     CRightHandSide right = removeCast(pRight);
     Formula lVar = makeVariable(lVarName, ssa);
 
+    Variable<CType> lPtrVarName = makePointerMaskVariable(lVarName, ssa);
     if (isVariable(right)) {
       // C statement like: s1 = s2;
 
@@ -1406,10 +1469,50 @@ public class CtoFormulaConverter {
           hasRepresentableDereference(rIdExp)) {
         // we assume that either the left or the right hand side is a pointer
         // so we add the equality: *l = *r
-        Variable<CType> lPVarName = makePointerMaskVariable(lVarName, ssa);
         Variable<CType> rPtrVarName = makePointerVariableName(rIdExp, function, ssa);
 
-        Formula lPtrVar = makeVariable(lPVarName, ssa);
+        boolean leftT, rightT;
+        if ((leftT = lPtrVarName.getType() instanceof CDereferenceType) |
+            (rightT = rPtrVarName.getType() instanceof CDereferenceType)) {
+          // One of those types is no pointer
+
+          if (leftT) {
+            if (rightT) {
+              // Right is actually no pointer but was used as pointer before, so we can use its type.
+            }
+
+            // OK left is no pointer, but right is, for example:
+            // l = r; // l is unsigned int and r is *long
+            // now we assign *l to the type of *r if *l was not assigned before
+            CDereferenceType leftType = (CDereferenceType)lPtrVarName.getType();
+            CType currentGuess = leftType.getGuessedType();
+            if (currentGuess == null) {
+              lPtrVarName =
+                  lPtrVarName.withType(leftType.withGuess(rPtrVarName.getType()));
+            } else {
+              if (machineModel.getSizeof(rPtrVarName.getType()) != machineModel.getSizeof(currentGuess)) {
+                log(Level.WARNING, "Secound assignment of an variable that is no pointer with different size");
+              }
+            }
+          } else {
+            assert rightT : "left and right side are no pointers, however maybePointer was true for one side!";
+            // OK right is no pointer, but left is, for example:
+            // l = r; // l is unsigned long* and r is unsigned int
+
+            // r was probably assigned with a pointer before and should have a size
+            CType currentGuess = ((CDereferenceType)rPtrVarName.getType()).getGuessedType();
+            if (currentGuess == null) {
+              // NOTE: Should we set the size of r in this case?
+              log(Level.WARNING, "Assignment of a pointer with a variable that was never assigned by a pointer");
+            } else {
+              if (machineModel.getSizeof(rPtrVarName.getType()) != machineModel.getSizeof(currentGuess)) {
+                log(Level.WARNING, "Assignment of a pointer from a variable that was assigned by a pointer with different size!");
+              }
+            }
+          }
+        }
+
+        Formula lPtrVar = makeVariable(lPtrVarName, ssa);
         Formula rPtrVar = makeVariable(rPtrVarName, ssa);
         return makeNondetAssignment(lPtrVar, rPtrVar, ssa);
 
@@ -1422,7 +1525,15 @@ public class CtoFormulaConverter {
                hasRepresentableDereference(lVarName)) {
       // C statement like: s1 = *s2;
 
-      Variable<CType> lPtrVarName = makePointerMaskVariable(lVarName, ssa);
+      if (lPtrVarName.getType() instanceof CDereferenceType) {
+        // We have an assignment to a non-pointer type
+        CDereferenceType leftType = (CDereferenceType)lPtrVarName.getType();
+        if (leftType.getGuessedType() == null) {
+          // We have to guess the size of the dereferenced type here
+          // but there is no good guess.
+        }
+      }
+
       makeFreshIndex(lPtrVarName, ssa);
       removeOldPointerVariablesFromSsaMap(lPtrVarName, ssa);
 
@@ -1476,7 +1587,7 @@ public class CtoFormulaConverter {
       // s = &x
       // need to update the pointer on the left hand side
       if (right instanceof CUnaryExpression
-          && ((CUnaryExpression) right).getOperator() == UnaryOperator.AMPER){
+          && ((CUnaryExpression) right).getOperator() == UnaryOperator.AMPER) {
 
         CExpression rOperand =
             removeCast(((CUnaryExpression) right).getOperand());
@@ -1484,7 +1595,17 @@ public class CtoFormulaConverter {
             hasRepresentableDereference(lVarName)) {
           Variable<CType> rVarName = scopedIfNecessary((CIdExpression) rOperand, function);
           Formula rVar = makeVariable(rVarName, ssa);
-          Formula lPtrVar = makeVariable(makePointerMaskVariable(lVarName, ssa), ssa);
+
+          if (lPtrVarName.getType() instanceof CDereferenceType) {
+            // s is no pointer and if *s was not guessed jet we can use the type of x.
+            CDereferenceType leftType = (CDereferenceType)lPtrVarName.getType();
+            if (leftType.getGuessedType() == null) {
+              lPtrVarName =
+                  lPtrVarName.withType(leftType.withGuess(rOperand.getExpressionType()));
+            }
+            // TODO: Warn if sizes don't match
+          }
+          Formula lPtrVar = makeVariable(lPtrVarName, ssa);
 
           return makeNondetAssignment(lPtrVar, rVar, ssa);
         }
@@ -1855,7 +1976,8 @@ public class CtoFormulaConverter {
         }
       }
 
-      assert returnFormulaType == fmgr.getFormulaType(ret);
+      assert returnFormulaType == fmgr.getFormulaType(ret)
+           : "Returntype and Formulatype do not match in visit(CBinaryExpression)";
       return ret;
     }
 
@@ -1897,7 +2019,7 @@ public class CtoFormulaConverter {
 
           // we can omit the warning (no pointers involved),
           // and we don't need to scope the variable reference
-          return makeVariable(Variable.create(exprToVarName(fExp),fieldRef.getExpressionType()), ssa);
+          return makeVariable(Variable.create(exprToVarName(fExp),fExp.getExpressionType()), ssa);
         }
       }
 
@@ -1961,13 +2083,15 @@ public class CtoFormulaConverter {
         } else if (op == UnaryOperator.MINUS) {
           ret = fmgr.makeNegate(operandFormula);
         } else {
-          assert op == UnaryOperator.TILDE;
+          assert op == UnaryOperator.TILDE
+                : "This case should be impossible because of switch";
           ret = fmgr.makeNot(operandFormula);
         }
 
         CType returnType = exp.getExpressionType();
         FormulaType<?> returnFormulaType = getFormulaTypeFromCType(returnType);
-        assert returnFormulaType == fmgr.getFormulaType(ret);
+        assert returnFormulaType == fmgr.getFormulaType(ret)
+              : "Returntype and Formulatype do not match in visit(CUnaryExpression)";
         return ret;
       }
 
@@ -2268,8 +2392,7 @@ public class CtoFormulaConverter {
         }
 
         CType returnType = getReturnType(fexp);
-        assert CTypeUtils.equals(returnType, expType);
-        FormulaType<BitvectorFormula> t = getFormulaTypeFromCType(expType);
+        FormulaType<BitvectorFormula> t = getFormulaTypeFromCType(returnType);
         return ffmgr.createFuncAndCall(func, t, args);
       }
     }
@@ -2396,7 +2519,7 @@ public class CtoFormulaConverter {
     private BooleanFormula handleIndirectAssignment(CAssignment pAssignment)
         throws UnrecognizedCCodeException {
       CExpression lExp = removeCast(pAssignment.getLeftHandSide());
-      assert (lExp instanceof CUnaryExpression);
+      assert (lExp instanceof CUnaryExpression) : "No CUnaryExpression in handleIndirectAssignment";
 
       // the following expressions are supported by cil:
       // *p = a;
@@ -2405,7 +2528,7 @@ public class CtoFormulaConverter {
       // *p = function();
 
       CUnaryExpression l = (CUnaryExpression) lExp;
-      assert (l.getOperator() == UnaryOperator.STAR);
+      assert (l.getOperator() == UnaryOperator.STAR) : "No STAR operator in handleIndirectAssignment";
 
       CExpression lRawOperand = l.getOperand();
       CExpression lOperand = removeCast(lRawOperand);

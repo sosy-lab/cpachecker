@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
@@ -85,25 +83,10 @@ public class CArrayType extends AArrayType implements CType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((length == null) ? 0 : length.hashCode());
-    result = prime * result + ((getType() == null) ? 0 : getType().hashCode());
-    return result;
+    throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
-
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CArrayType other = (CArrayType) obj;
-
-    return
-        Objects.equals(length, other.length) &&
-        Objects.equals(getType(), other.getType());
+    return CTypeUtils.equals(this, obj);
   }
 }

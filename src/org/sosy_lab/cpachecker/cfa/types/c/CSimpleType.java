@@ -104,38 +104,12 @@ public final class CSimpleType implements CType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + (isComplex ? 1231 : 1237);
-    result = prime * result + (isImaginary ? 1231 : 1237);
-    result = prime * result + (isLong ? 1231 : 1237);
-    result = prime * result + (isLongLong ? 1231 : 1237);
-    result = prime * result + (isShort ? 1231 : 1237);
-    result = prime * result + (isSigned ? 1231 : 1237);
-    result = prime * result + (isUnsigned ? 1231 : 1237);
-    result = prime * result + ((type == null) ? 0 : type.hashCode());
-    return result;
+    throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CSimpleType other = (CSimpleType) obj;
-
-    return
-        isComplex == other.isComplex &&
-        isImaginary == other.isImaginary &&
-        isLong == other.isLong &&
-        isLongLong == other.isLongLong &&
-        isShort == other.isShort &&
-        isSigned == other.isSigned &&
-        isUnsigned == other.isUnsigned &&
-        type == other.type;
+    return CTypeUtils.equals(this, obj);
   }
 
   @Override

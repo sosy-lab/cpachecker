@@ -133,9 +133,36 @@ public final class CCompositeType implements CType {
 
 
 
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((name == null) ? 0 : name.hashCode());
+      result = prime * result + ((type == null) ? 0 : type.hashCode());
+      return result;
+    }
+
+
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      CCompositeTypeMemberDeclaration other = (CCompositeTypeMemberDeclaration) obj;
+      return
+          Objects.equals(name, other.name) &&
+          CTypeUtils.equals(type, other.type);
+    }
+
+
+
     public CType getType(){
       return type;
-  }
+    }
 
 
     public String getName() {
@@ -168,27 +195,11 @@ public final class CCompositeType implements CType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + kind.hashCode();
-    result = prime * result + ((members == null) ? 0 : members.hashCode());
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    return result;
+    throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CCompositeType other = (CCompositeType) obj;
-
-    return
-        Objects.equals(name, other.name) &&
-        Objects.equals(members, other.members) &&
-        kind == other.kind;
+    return CTypeUtils.equals(this, obj);
   }
 }

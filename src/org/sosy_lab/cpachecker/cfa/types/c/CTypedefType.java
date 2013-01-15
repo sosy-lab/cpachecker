@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Objects;
-
 /**
  * This represents a type which was created by using typedef.
  */
@@ -83,26 +81,11 @@ public final class CTypedefType implements CType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    result = prime * result + ((realType == null) ? 0 : realType.hashCode());
-    return result;
+    throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CTypedefType other = (CTypedefType) obj;
-
-    return
-        Objects.equals(name, other.name) &&
-        Objects.equals(realType, other.realType);
+    return CTypeUtils.equals(this, obj);
   }
-
 }

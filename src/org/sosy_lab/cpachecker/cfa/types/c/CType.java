@@ -33,6 +33,10 @@ public interface CType extends Type {
 
   public boolean isVolatile();
 
+  /**
+   * Will throw a UnsupportedOperationException
+   * @return
+   */
   @Override
   public int hashCode();
 

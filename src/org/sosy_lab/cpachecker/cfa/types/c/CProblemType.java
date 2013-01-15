@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import java.util.Objects;
 
 /**
  * This type is used when the parser could not determine the correct type.
@@ -63,23 +62,11 @@ public class CProblemType implements CType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((typeName == null) ? 0 : typeName.hashCode());
-    return result;
+    throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CProblemType other = (CProblemType) obj;
-
-    return
-        Objects.equals(typeName, other.typeName);
+    return CTypeUtils.equals(this, obj);
   }
 }

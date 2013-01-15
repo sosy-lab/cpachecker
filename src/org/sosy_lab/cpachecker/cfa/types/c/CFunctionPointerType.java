@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.transform;
 
 import java.util.List;
-import java.util.Objects;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -142,29 +141,11 @@ public class CFunctionPointerType implements CType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    result = prime * result + ((parameters == null) ? 0 : parameters.hashCode());
-    result = prime * result + ((returnType == null) ? 0 : returnType.hashCode());
-    result = prime * result + (takesVarArgs ? 1231 : 1237);
-    return result;
+    throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CFunctionPointerType other = (CFunctionPointerType) obj;
-    return
-        Objects.equals(name, other.name) &&
-        Objects.equals(parameters, other.parameters) &&
-        Objects.equals(returnType, other.returnType) &&
-        takesVarArgs == other.takesVarArgs;
+    return CTypeUtils.equals(this, obj);
   }
-
 }

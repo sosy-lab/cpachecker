@@ -31,15 +31,30 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 public final class CDereferenceType implements CType {
 
   private final CType type;
-  private boolean   isConst;
-  private boolean   isVolatile;
+  private final boolean   isConst;
+  private final boolean   isVolatile;
+  private final CType guessedType;
 
   public CDereferenceType(final boolean pConst, final boolean pVolatile,
-      final CType pType) {
+      final CType pType, CType pGuessedType) {
     isConst = pConst;
     isVolatile = pVolatile;
     type = pType;
+    guessedType = pGuessedType;
   }
+
+  public CType getGuessedType() {
+    return guessedType;
+  }
+
+  public CDereferenceType withGuess(CType guessedType){
+    if (this.guessedType != null) {
+      throw new IllegalArgumentException("Type was already guessed!");
+    }
+
+    return new CDereferenceType(isConst, isVolatile, type, guessedType);
+  }
+
 
   @Override
   public boolean isConst() {
@@ -91,26 +106,11 @@ public final class CDereferenceType implements CType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((type == null) ? 0 : type.hashCode());
-    return result;
+    throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (!super.equals(obj))
-      return false;
-    if (getClass() != obj.getClass())
-      return false;
-    CDereferenceType other = (CDereferenceType) obj;
-    if (type == null) {
-      if (other.type != null)
-        return false;
-    } else if (!type.equals(other.type))
-      return false;
-    return true;
+    return CTypeUtils.equals(this, obj);
   }
 }

@@ -277,8 +277,13 @@ public enum MachineModel {
 
       @Override
       public Integer visit(CDereferenceType pCDereferenceType) {
-        // Assume Char size, because we can't know what we are actually dereferencing.
-        return getSizeofChar();
+        // Assume Guessed size, because we can't know what we are actually dereferencing.
+        CType guess = pCDereferenceType.getGuessedType();
+        if (guess == null) {
+          return 1;
+        }
+
+        return guess.accept(this);
       }});
   }
 }

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import java.util.Objects;
 
 public final class CElaboratedType implements CType {
 
@@ -98,24 +97,11 @@ public final class CElaboratedType implements CType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((kind == null) ? 0 : kind.hashCode());
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    return result;
+    throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CElaboratedType other = (CElaboratedType) obj;
-    return
-        Objects.equals(name, other.name) &&
-        kind == other.kind;
+    return CTypeUtils.equals(this, obj);
   }
 }

@@ -62,4 +62,14 @@ public final class CNamedType implements CType {
   public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
     return pVisitor.visit(this);
   }
+
+  @Override
+  public int hashCode() {
+    throw new UnsupportedOperationException("Do not use hashCode of CType");
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return CTypeUtils.equals(this, obj);
+  }
 }

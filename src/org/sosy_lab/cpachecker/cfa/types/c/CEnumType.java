@@ -28,7 +28,6 @@ import static com.google.common.collect.Iterables.transform;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 
 import java.util.List;
-import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -141,25 +140,11 @@ public final class CEnumType implements CType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((enumerators == null) ? 0 : enumerators.hashCode());
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    return result;
+    throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CEnumType other = (CEnumType) obj;
-
-    return
-        Objects.equals(enumerators, other.enumerators) &&
-        Objects.equals(name, other.name);
+    return CTypeUtils.equals(this, obj);
   }
 }

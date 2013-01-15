@@ -27,7 +27,6 @@ import static com.google.common.collect.Iterables.transform;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 
 import java.util.List;
-import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
@@ -128,30 +127,11 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((getName() == null) ? 0 : getName().hashCode());
-    result = prime * result + ((getParameters() == null) ? 0 : getParameters().hashCode());
-    result = prime * result + ((getReturnType() == null) ? 0 : getReturnType().hashCode());
-    result = prime * result + (takesVarArgs() ? 1231 : 1237);
-    return result;
+    throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CFunctionType other = (CFunctionType) obj;
-
-    return
-        Objects.equals(getName(), other.getName()) &&
-        Objects.equals(getParameters(), other.getParameters()) &&
-        Objects.equals(getReturnType(), other.getReturnType()) &&
-        takesVarArgs() == other.takesVarArgs();
+    return CTypeUtils.equals(this, obj);
   }
-
 }

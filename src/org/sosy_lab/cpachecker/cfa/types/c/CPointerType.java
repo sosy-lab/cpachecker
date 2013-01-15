@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import java.util.Objects;
 
 
 public final class CPointerType implements CType {
@@ -90,23 +89,11 @@ public final class CPointerType implements CType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((type == null) ? 0 : type.hashCode());
-    return result;
+    throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CPointerType other = (CPointerType) obj;
-
-    return
-        Objects.equals(type, other.type);
+    return CTypeUtils.equals(this, obj);
   }
 }

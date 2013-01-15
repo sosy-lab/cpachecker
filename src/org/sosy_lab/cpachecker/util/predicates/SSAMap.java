@@ -95,7 +95,7 @@ public class SSAMap implements Serializable {
         }
       }
 
-      throw new IllegalArgumentException("variable not found!");
+      return null;
     }
 
     public void setIndex(Variable<?> var, int idx) {
