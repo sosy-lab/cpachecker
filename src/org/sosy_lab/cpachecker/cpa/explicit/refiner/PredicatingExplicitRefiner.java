@@ -39,15 +39,16 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.PredicateMap;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -65,9 +66,9 @@ public class PredicatingExplicitRefiner extends PredicateRefiner {
       LogManager pLogger, ConfigurableProgramAnalysis pCpa,
       InterpolationManager pInterpolationManager,
       final FormulaManagerView pFormulaManager,
-      final AbstractionManager pAbstractionManager)
+      final AbstractionManager pAbstractionManager, PathFormulaManager pPathFormulaManager)
           throws CPAException, InvalidConfigurationException {
-    super(pConfig, pLogger, pCpa, pInterpolationManager, pFormulaManager, pAbstractionManager);
+    super(pConfig, pLogger, pCpa, pInterpolationManager, pFormulaManager, pAbstractionManager, pPathFormulaManager);
   }
 
   // overridden just for visibility

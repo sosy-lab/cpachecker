@@ -52,9 +52,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.abm.AbstractABMBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -131,7 +131,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
 
     this.refiner = new ExtendedPredicateRefiner(predicateCpa.getConfiguration(),
         logger, pCpa, predicateCpa, manager, predicateCpa.getFormulaManager(),
-        predicateCpa.getAbstractionManager());
+        predicateCpa.getAbstractionManager(), predicateCpa.getPathFormulaManager());
   }
 
   @Override
@@ -161,9 +161,10 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         final ABMPredicateCPA predicateCpa,
         final InterpolationManager pInterpolationManager,
         final FormulaManagerView pFormulaManager,
-        final AbstractionManager pAbstractionManager) throws CPAException, InvalidConfigurationException {
+        final AbstractionManager pAbstractionManager,
+        final PathFormulaManager pPathFormulaManager) throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pCpa, pInterpolationManager, pFormulaManager, pAbstractionManager);
+      super(config, logger, pCpa, pInterpolationManager, pFormulaManager, pAbstractionManager, pPathFormulaManager);
 
       pfmgr = predicateCpa.getPathFormulaManager();
 

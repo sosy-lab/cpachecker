@@ -52,9 +52,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
@@ -113,10 +114,14 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<BooleanF
                       "of all abstract states in the reached set.")
   private boolean sharePredicates = false;
 
+  @Option(description="slice block formulas, experimental feature!")
+  private boolean sliceBlockFormulas = false;
+
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
   private final AbstractionManager amgr;
   private final FormulaManagerView fmgr;
+  private final PathFormulaManager pfmgr;
 
   private class Stats implements Statistics {
     @Override
@@ -162,14 +167,16 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<BooleanF
         pCpa,
         manager,
         predicateCpa.getFormulaManager(),
-        predicateCpa.getAbstractionManager());
+        predicateCpa.getAbstractionManager(),
+        predicateCpa.getPathFormulaManager());
   }
 
   protected PredicateRefiner(final Configuration config, final LogManager logger,
       final ConfigurableProgramAnalysis pCpa,
       final InterpolationManager pInterpolationManager,
       final FormulaManagerView pFormulaManager,
-      final AbstractionManager pAbstractionManager) throws CPAException, InvalidConfigurationException {
+      final AbstractionManager pAbstractionManager,
+      final PathFormulaManager pPathFormulaManager) throws CPAException, InvalidConfigurationException {
 
     super(config, logger, pCpa, pInterpolationManager);
 
@@ -177,6 +184,7 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<BooleanF
 
     amgr = pAbstractionManager;
     fmgr = pFormulaManager;
+    pfmgr = pPathFormulaManager;
   }
 
   @Override
@@ -211,11 +219,17 @@ public class PredicateRefiner extends AbstractInterpolationBasedRefiner<BooleanF
                   };
 
   @Override
-  protected List<BooleanFormula> getFormulasForPath(List<ARGState> path, ARGState initialState) throws CPATransferException {
-    return from(path)
-        .transform(toState(PredicateAbstractState.class))
-        .transform(GET_BLOCK_FORMULA)
-        .toImmutableList();
+  protected List<BooleanFormula> getFormulasForPath(List<ARGState> path, ARGState initialState)
+      throws CPATransferException {
+    if (sliceBlockFormulas) {
+      BlockFormulaSlicer bfs = new BlockFormulaSlicer(pfmgr);
+      return bfs.sliceFormulasForPath(path, initialState);
+    } else {
+      return from(path)
+          .transform(toState(PredicateAbstractState.class))
+          .transform(GET_BLOCK_FORMULA)
+          .toImmutableList();
+    }
   }
 
   @Override
