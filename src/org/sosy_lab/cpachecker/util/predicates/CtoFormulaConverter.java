@@ -1836,6 +1836,14 @@ public class CtoFormulaConverter {
 
       }
 
+      if (returnFormulaType != fmgr.getFormulaType(ret)) {
+        // Could be because both types got promoted
+        if (!CTypeUtils.equals(promT1, t1) && !CTypeUtils.equals(promT2, t2)) {
+          // We have to cast back to the return type
+          ret = makeCast(implicitType, returnType, ret);
+        }
+      }
+
       assert returnFormulaType == fmgr.getFormulaType(ret);
       return ret;
     }
