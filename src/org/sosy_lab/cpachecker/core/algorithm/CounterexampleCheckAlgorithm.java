@@ -260,6 +260,9 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   private boolean removeErrorState(ReachedSet reached, ARGState errorState) {
     boolean sound = true;
 
+    assert errorState.getChildren().isEmpty();
+    assert errorState.getCoveredByThis().isEmpty();
+
     // remove re-added parent of errorState to prevent computing
     // the same error state over and over
     Set<ARGState> parents = errorState.getParents();
@@ -267,10 +270,11 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
     ARGState parent = Iterables.getOnlyElement(parents);
 
-    if (parent.getChildren().size() > 1) {
+    if (parent.getChildren().size() > 1 || parent.getCoveredByThis().isEmpty()) {
       // The error state has a sibling, so the parent and the sibling
       // should stay in the reached set, but then the error state
       // would get re-discovered.
+      // Similarly for covered states.
       // Currently just handle this by removing them anyway,
       // as this probably doesn't occur.
       sound = false;
@@ -287,6 +291,15 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
       reached.remove(toRemove);
       toRemove.removeFromARG();
+    }
+
+    List<ARGState> coveredByParent = copyOf(parent.getCoveredByThis());
+    for (ARGState covered : coveredByParent) {
+      assert covered.getChildren().isEmpty();
+      assert covered.getCoveredByThis().isEmpty();
+
+      // covered is not in reached
+      covered.removeFromARG();
     }
 
     reached.remove(parent);
