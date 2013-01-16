@@ -77,7 +77,6 @@ public class SMGTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
       CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
-    // TODO Auto-generated method stub
     logger.log(Level.FINEST, "SMG GetSuccessor >>");
     logger.log(Level.FINEST, "Edge:", pCfaEdge.getEdgeType());
     logger.log(Level.FINEST, "Code:", pCfaEdge.getCode());
