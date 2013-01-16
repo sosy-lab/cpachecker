@@ -140,7 +140,7 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
       return false;
     }
 
-    return (memory.getHeapMemoryUsage().getUsed() > threshold);
+    return ((memory.getHeapMemoryUsage().getUsed() / (1024*1024)) > threshold);
   }
 
   private boolean checkProcessMemory() {
