@@ -25,9 +25,12 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -41,10 +44,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -66,6 +72,9 @@ public class SMGTransferRelation implements TransferRelation {
 
   final private LogManager logger;
   final private MachineModel machineModel;
+
+  private static final Set<String> BUILTINS = new HashSet<String>(Arrays.asList(
+      new String[] {"__VERIFIER_BUILTIN_PLOT"}));
 
   public SMGTransferRelation(Configuration config, LogManager pLogger,
       MachineModel pMachineModel) throws InvalidConfigurationException {
@@ -109,22 +118,60 @@ public class SMGTransferRelation implements TransferRelation {
 
       newState = handleAssignment(pState, pCfaEdge, lValue, rValue);
     }
+    else if (cStmt instanceof CFunctionCallStatement){
+      CFunctionCallStatement cFCall = (CFunctionCallStatement)cStmt;
+      CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
+      CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
+      String functionName = fileNameExpression.toASTString();
+
+      if (isABuiltIn(functionName)){
+        newState = handleBuiltin(pState, functionName, cFCExpression.getParameterExpressions());
+      }
+      else{
+        newState = new SMGState(pState);
+      }
+    }
     else
     {
       newState = new SMGState(pState);
     }
+//TODO: Emitting SMG plot on each step should be optional
+//    if (exportSMGFilePattern != null) {
+//      String name = "line-" + pCfaEdge.getLineNumber();
+//      File outputFile = new File(String.format(exportSMGFilePattern.getAbsolutePath(), name));
+//      try {
+//        Files.writeFile(outputFile, newState.toDot(name));
+//      } catch (IOException e){
+//        logger.logUserException(Level.WARNING, e, "Could not write SMG " + name + " to file");
+//      }
+//    }
 
-    if (exportSMGFilePattern != null) {
-      String name = "line-" + pCfaEdge.getLineNumber();
-      File outputFile = new File(String.format(exportSMGFilePattern.getAbsolutePath(), name));
-      try {
-        Files.writeFile(outputFile, newState.toDot(name));
-      } catch (IOException e){
-        logger.logUserException(Level.WARNING, e, "Could not write SMG " + name + " to file");
+    return newState;
+  }
+
+  private SMGState handleBuiltin(SMGState pState, String pFunctionName, List<CExpression> pParameterExpressions) {
+    SMGState newState;
+    if (pFunctionName == "__VERIFIER_BUILTIN_PLOT"){
+      if (exportSMGFilePattern != null) {
+        String name = ((CStringLiteralExpression)pParameterExpressions.get(0)).getContentString();
+        File outputFile = new File(String.format(exportSMGFilePattern.getAbsolutePath(), name));
+        try {
+          Files.writeFile(outputFile, pState.toDot(name));
+        } catch (IOException e){
+          logger.logUserException(Level.WARNING, e, "Could not write SMG " + name + " to file");
+        }
       }
+      newState = new SMGState(pState);
+    }
+    else {
+      newState = new SMGState(pState);
     }
 
     return newState;
+  }
+
+  private boolean isABuiltIn(String pFunctionName) {
+    return BUILTINS.contains(pFunctionName);
   }
 
   private SMGState handleAssignment(SMGState pState, CStatementEdge pCfaEdge, CExpression pLValue,
