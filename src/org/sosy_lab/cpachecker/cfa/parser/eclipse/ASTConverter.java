@@ -147,10 +147,8 @@ class ASTConverter {
   private final List<CAstNode> preSideAssignments = new ArrayList<>();
   private final List<CAstNode> postSideAssignments = new ArrayList<>();
 
-  // the following 2 fields store whether a ternary operator
-  // or a shortcutting operator have been encountered
-  private IASTExpression conditionalExpression = null;
-  private CIdExpression conditionalTemporaryVariable = null;
+  // this list is for ternary operators, &&, etc.
+  private final List<Pair<IASTExpression, CIdExpression>> conditionalExpressions = new ArrayList<>();
 
   public ASTConverter(Scope pScope, LogManager pLogger) {
     scope = pScope;
@@ -170,26 +168,17 @@ class ASTConverter {
   }
 
   public boolean hasConditionalExpression() {
-    return conditionalExpression != null;
+    return !conditionalExpressions.isEmpty();
   }
 
-  public IASTExpression getAndResetConditionalExpression() {
-    IASTExpression result = conditionalExpression;
-    conditionalExpression = null;
+  public List<Pair<IASTExpression, CIdExpression>> getAndResetConditionalExpressions() {
+    List<Pair<IASTExpression, CIdExpression>> result = new ArrayList<>(conditionalExpressions);
+    conditionalExpressions.clear();
     return result;
   }
 
-  public CIdExpression getConditionalTemporaryVariable() {
-    return conditionalTemporaryVariable;
-  }
-
   private void addConditionalExpression(IASTExpression e, CIdExpression tempVar) {
-    if (conditionalExpression != null) {
-      throw new CFAGenerationRuntimeException("Unsupported expression with multiple controlflow-involving operators", e);
-    }
-
-    conditionalExpression = checkNotNull(e);
-    conditionalTemporaryVariable = checkNotNull(tempVar);
+    conditionalExpressions.add(Pair.of(checkNotNull(e), checkNotNull(tempVar)));
   }
 
   public CExpression convertExpressionWithoutSideEffects(

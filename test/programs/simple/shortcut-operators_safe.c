@@ -33,6 +33,10 @@ int main() {
 	if (!!!(t || error())) { }
 	if (!!!(f && error())) { }
 
+	int test_multiple_operators_not_nested;
+	(t || error()) + (f && error()) + tmp++;
+
+	int test_expression_list_statement;
 	return ({
 		int __t = t;
 		int __f = f;
