@@ -55,6 +55,11 @@ public final class CStringLiteralExpression extends AStringLiteralExpression imp
     return getValue();
   }
 
+  public String getContentString(){
+    String literal = getValue();
+    return literal.substring(1, literal.length()-1);
+  }
+
   @Override
   public int hashCode() {
     return super.hashCode();
