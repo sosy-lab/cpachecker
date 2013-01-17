@@ -33,8 +33,8 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
@@ -58,9 +58,9 @@ public class ExplicitInterpolator {
   private ExplicitTransferRelation transfer = null;
 
   /**
-   * the path element where no successor could be found anymore
+   * the first path element without any successors
    */
-  public Pair<ARGState, CFAEdge> blockingElement = null;
+  public Pair<ARGState, CFAEdge> conflictingElement = null;
 
   /**
    * boolean flag telling whether the current path is feasible
@@ -68,9 +68,14 @@ public class ExplicitInterpolator {
   private boolean isFeasible = false;
 
   /**
-   * boolean flag telling whether the any previous path was feasible
+   * boolean flag telling whether any previous path was feasible
    */
   private boolean wasFeasible = false;
+
+  /**
+   * boolean flag telling whether to cancel the interpolation after the current run
+   */
+  boolean cancelInterpolation = false;
 
   /**
    * This method acts as the constructor of the class.
@@ -110,11 +115,12 @@ public class ExplicitInterpolator {
 
       Pair<ARGState, CFAEdge> interpolationState = errorPath.get(offset);
 
-      for(Pair<ARGState, CFAEdge> pathElement : skip(errorPath, offset)) {
-        if(wasFeasible && interpolationState == blockingElement) {
-          return interpolant;
-        }
+      // cancel the interpolation if we are interpolating at the conflicting element
+      if(wasFeasible && interpolationState == conflictingElement) {
+        cancelInterpolation = true;
+      }
 
+      for(Pair<ARGState, CFAEdge> pathElement : skip(errorPath, offset)) {
         Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
             successor,
             precision,
@@ -122,11 +128,13 @@ public class ExplicitInterpolator {
 
         successor = extractSuccessorState(successors);
 
-        // there is no successor, and current path element is not an error state => error path is spurious
+        // there is no successor and the current path element is not an error state => error path is spurious
         if(successor == null && !pathElement.getFirst().isTarget()) {
-          blockingElement = pathElement;
-          isFeasible      = false;
+          if(conflictingElement == null || conflictingElement.getFirst().isOlderThan(pathElement.getFirst())) {
+            conflictingElement = pathElement;
+          }
 
+          isFeasible = false;
           return Pair.of(currentVariable, null);
         }
 
@@ -140,6 +148,11 @@ public class ExplicitInterpolator {
 
           successor.forget(currentVariable);
         }
+      }
+
+      // signal callee to cancel any further interpolation runs
+      if(cancelInterpolation) {
+        return null;
       }
 
       isFeasible  = true;
