@@ -177,6 +177,10 @@ class ASTConverter {
     return result;
   }
 
+  public List<Pair<IASTExpression, CIdExpression>> getConditionalExpressions() {
+    return Collections.unmodifiableList(conditionalExpressions);
+  }
+
   private void addConditionalExpression(IASTExpression e, CIdExpression tempVar) {
     conditionalExpressions.add(Pair.of(checkNotNull(e), checkNotNull(tempVar)));
   }
