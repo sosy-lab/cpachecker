@@ -23,7 +23,46 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import java.io.File;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+
+import com.google.common.base.Splitter;
+import com.google.common.base.Splitter.MapSplitter;
+import com.google.common.collect.ImmutableMap;
+
+@Options(prefix="cpa.predicate.z3")
 public class Z3Settings {
+  @Option(description = "Use UIFs (recommended because its more precise)")
+  public boolean useUIFs = true;
+
+  @Option(description = "List of further options which will be passed to Z3. "
+      + "Format is 'key1=value1,key2=value2'")
+  public String furtherOptions = "";
+
+  @Option(description = "Export solver queries in Smtlib format into a file (for Z3).")
+  public boolean logAllQueries = false;
+  @Option(description = "Export solver queries in Smtlib format into a file (for Z3).")
+  @FileOption(Type.OUTPUT_FILE)
+  public File logfile = new File("mathsat5.%d.smt2");
+  public ImmutableMap<String,String> furtherOptionsMap ;
+
+  public Z3Settings(Configuration config) throws InvalidConfigurationException{
+    config.inject(this);
+
+    MapSplitter optionSplitter = Splitter.on(',').trimResults().omitEmptyStrings()
+                    .withKeyValueSeparator(Splitter.on('=').limit(2).trimResults());
+
+    try {
+      furtherOptionsMap = ImmutableMap.copyOf(optionSplitter.split(furtherOptions));
+    } catch (IllegalArgumentException e) {
+      throw new InvalidConfigurationException("Invalid Z3 option in \"" + furtherOptions + "\": " + e.getMessage(), e);
+    }
+  }
 
 }

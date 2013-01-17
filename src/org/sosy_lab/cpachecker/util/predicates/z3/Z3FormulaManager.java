@@ -23,13 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import java.util.Map;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRationalFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
 import com.microsoft.z3.Native;
 import com.microsoft.z3.Z3Exception;
@@ -38,15 +35,23 @@ import com.microsoft.z3.Z3Exception;
 public class Z3FormulaManager extends AbstractFormulaManager<Long> {
 
   private final long ctx;
+  private final Z3Settings settings;
 
-  public Z3FormulaManager(AbstractUnsafeFormulaManager<Long> pUnsafeManager,
-      AbstractFunctionFormulaManager<Long> pFunctionManager,
-      AbstractBooleanFormulaManager<Long> pBooleanManager,
-      AbstractRationalFormulaManager<Long> pRationalManager,
-      AbstractBitvectorFormulaManager<Long> pBitvectorManager) {
+  public Z3FormulaManager(Z3UnsafeFormulaManager pUnsafeManager,
+      Z3FunctionFormulaManager pFunctionManager,
+      Z3BooleanFormulaManager pBooleanManager,
+      Z3RationalFormulaManager pRationalManager,
+      Z3BitvectorFormulaManager pBitvectorManager,
+      Z3Settings pSettings) {
     super(pUnsafeManager, pFunctionManager, pBooleanManager,
         pRationalManager, pBitvectorManager);
-    this.ctx = ((Z3FormulaCreator) getFormulaCreator()).getEnv();
+    this.ctx = getFormulaCreator().getEnv();
+    this.settings = pSettings;
+  }
+
+  @Override
+  protected Z3FormulaCreator getFormulaCreator() {
+    return (Z3FormulaCreator) super.getFormulaCreator();
   }
 
   @Override
@@ -69,6 +74,16 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
   public String dumpFormula(Long pT) {
     try {
       return Native.astToString(ctx, pT);
+    } catch (Z3Exception e) {
+      throw new RuntimeException(e); // XXX: Z3Exception should be a runtime exception
+    }
+  }
+
+  long createEnvironment(long cfg) {
+    try {
+      for (Map.Entry<String, String> option : settings.furtherOptionsMap.entrySet())
+        Native.updateParamValue(cfg, option.getKey(), option.getValue());
+      return Native.mkContext(cfg);
     } catch (Z3Exception e) {
       throw new RuntimeException(e); // XXX: Z3Exception should be a runtime exception
     }
