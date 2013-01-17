@@ -93,9 +93,12 @@ public class AssignedVariablesCollector {
 
     case DeclarationEdge:
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
-      if (declaration instanceof CVariableDeclaration && declaration.getName() != null && declaration.isGlobal()) {
-        globalVariables.add(declaration.getName());
-        collectedVariables.put(edge, declaration.getName());
+      if (declaration instanceof CVariableDeclaration && declaration.getName() != null) {
+        if(declaration.isGlobal()) {
+          globalVariables.add(declaration.getName());
+        }
+
+        collectedVariables.put(edge, scoped(declaration.getName(), currentFunction));
       }
       break;
 
@@ -130,7 +133,7 @@ public class AssignedVariablesCollector {
 
       String functionName = functionCallEdge.getSuccessor().getFunctionDefinition().getName();
       for (CParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionDefinition().getType().getParameters()) {
-        String parameterName = functionName + "::" + parameter.getName();
+        String parameterName = scoped(parameter.getName(), functionName);
 
         // collect the formal parameter, and make the argument a depending variable
         collectedVariables.put(functionCallEdge, parameterName);
