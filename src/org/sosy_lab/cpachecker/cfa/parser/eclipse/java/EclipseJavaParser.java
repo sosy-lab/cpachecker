@@ -55,19 +55,14 @@ import com.google.common.io.Files;
  */
 public class EclipseJavaParser implements Parser {
 
-
-  private String javaRootPath = null;
-
-
   private static final boolean IGNORE_METHOD_BODY = true;
   private static final boolean PARSE_METHOD_BODY = false;
   private static final String JAVA_SOURCE_FILE_REGEX = ".*.java";
-
+  private static final int JAVA_ROOT_PATH = 0;
 
   private static final int  LENGTH_OF_SUFFIX = 5;
 
   private final ASTParser parser = ASTParser.newParser(AST.JLS4);
-
 
   private final LogManager logger;
 
@@ -77,14 +72,27 @@ public class EclipseJavaParser implements Parser {
   private final String encoding;
   private final String version;
 
-  public EclipseJavaParser(LogManager pLogger, String rootPath, String pEncoding, String pVersion, Timer pParseTimer, Timer pCfaTimer) {
+  private final String[] javaSourcePaths;
+
+  public EclipseJavaParser(LogManager pLogger, String javaRootPath, String pEncoding, String pVersion,
+      String javaSourcepath, Timer pParseTimer, Timer pCfaTimer) {
     logger = pLogger;
-    javaRootPath = rootPath;
     encoding = pEncoding;
     version = pVersion;
     parseTimer = pParseTimer;
     cfaTimer = pCfaTimer;
+    javaSourcePaths = getJavaSourcePaths(javaSourcepath, javaRootPath);
+  }
 
+  private String[] getJavaSourcePaths(String javaSourcepath, String javaRootPath) {
+
+    if (javaSourcepath.isEmpty()) {
+      String[] result = { javaRootPath };
+      return result;
+    } else {
+      String sourcepath = javaRootPath + File.pathSeparator + javaSourcepath;
+      return sourcepath.split(File.pathSeparator);
+    }
   }
 
   /**
@@ -109,22 +117,26 @@ public class EclipseJavaParser implements Parser {
 
   private Scope prepareScope(String FileName) throws JParserException {
 
-
     List<Pair<CompilationUnit,String>> astsOfFoundFiles = getASTsOfProgram();
 
     Map<String, String> typeOfFiles = new HashMap<>();
-    Map<String, JClassOrInterfaceType> types = getTypeHieachie(astsOfFoundFiles, typeOfFiles);
+    Map<String, JClassOrInterfaceType> types
+                            = getTypeHieachie(astsOfFoundFiles, typeOfFiles);
+
     String mainClassName = getMainClassName(FileName);
 
-    return new Scope(mainClassName, javaRootPath, types, typeOfFiles);
+    return new Scope(mainClassName, types, typeOfFiles);
   }
 
   private String getMainClassName(String pFileName) {
 
-    return pFileName.substring(javaRootPath.length(), pFileName.length() - LENGTH_OF_SUFFIX).replace(File.separatorChar, '.');
+    int pathLength = javaSourcePaths[JAVA_ROOT_PATH].length();
+
+    return pFileName.substring(pathLength, pFileName.length() - LENGTH_OF_SUFFIX).replace(File.separatorChar, '.');
   }
 
-  private Map<String, JClassOrInterfaceType> getTypeHieachie( List<Pair<CompilationUnit, String>> astsOfFoundFiles, Map<String, String> pTypeOfFiles) {
+  private Map<String, JClassOrInterfaceType> getTypeHieachie(List<Pair<CompilationUnit,
+      String>> astsOfFoundFiles, Map<String, String> pTypeOfFiles) {
 
     Map<String, JClassOrInterfaceType> types = new HashMap<>();
 
@@ -139,7 +151,7 @@ public class EclipseJavaParser implements Parser {
   }
 
   private List<Pair<CompilationUnit, String>> getASTsOfProgram() throws JParserException {
-    Queue<File> sourceFileToBeParsed = getProgramFilesInRootPath();
+    Queue<File> sourceFileToBeParsed = getJavaFilesInSourcePaths();
     List<Pair<CompilationUnit,String>> astsOfFoundFiles = new LinkedList<>();
 
     for (File file : sourceFileToBeParsed) {
@@ -147,6 +159,46 @@ public class EclipseJavaParser implements Parser {
     }
 
     return astsOfFoundFiles;
+  }
+
+  private Queue<File> getJavaFilesInSourcePaths() throws JParserException {
+
+    Queue<File> sourceFileToBeParsed = new LinkedList<>();
+
+    for(String path : javaSourcePaths) {
+     sourceFileToBeParsed.addAll(getJavaFilesInPath(path));
+    }
+
+    return sourceFileToBeParsed;
+  }
+
+  private Queue<File> getJavaFilesInPath(String path) throws JParserException {
+
+    File mainDirectory = new File(path);
+    assert mainDirectory.isDirectory() : "Could not find directory at" + path;
+
+    Queue<File> sourceFileToBeParsed = new LinkedList<>();
+    Queue<File> directorysToBeSearched = new LinkedList<>();
+    directorysToBeSearched.add(mainDirectory);
+
+    while (!directorysToBeSearched.isEmpty()) {
+
+      File directory = directorysToBeSearched.poll();
+
+      for (String fileName : directory.list()) {
+
+        File file =
+            new File(directory.getAbsolutePath() + File.separatorChar + fileName);
+
+        if (fileName.matches(JAVA_SOURCE_FILE_REGEX)) {
+          sourceFileToBeParsed.add(file);
+        } else if (file.isDirectory()) {
+          directorysToBeSearched.add(file);
+        }
+      }
+    }
+
+    return sourceFileToBeParsed;
   }
 
   @Override
@@ -159,44 +211,12 @@ public class EclipseJavaParser implements Parser {
     return parse(file, PARSE_METHOD_BODY);
   }
 
-  private Queue<File>
-                  getProgramFilesInRootPath() throws JParserException {
-
-    File mainDirectory = new File(javaRootPath);
-    assert mainDirectory.isDirectory() : "Could not find main directory at" + javaRootPath;
-
-    Queue<File> directorysToBeSearched = new LinkedList<>();
-    Queue<File> sourceFileToBeParsed = new LinkedList<>();
-    directorysToBeSearched.add(mainDirectory);
-
-    while (!directorysToBeSearched.isEmpty()) {
-
-      File directory = directorysToBeSearched.poll();
-
-      for (String filePath : directory.list()) {
-
-        File file =
-            new File(directory.getAbsolutePath() + File.separatorChar + filePath);
-
-        if (filePath.matches(JAVA_SOURCE_FILE_REGEX)) {
-          sourceFileToBeParsed.add(file);
-        } else if (file.isDirectory()) {
-          directorysToBeSearched.add(file);
-        }
-      }
-    }
-
-    return sourceFileToBeParsed;
-  }
-
   private CompilationUnit parse(File file, boolean ignoreMethodBody) throws JParserException {
 
-    final String[] sourceFilePath = new String[1];
-    sourceFilePath[0] = javaRootPath;
 
-    final String[] encodingList = { encoding };
+    final String[] encodingList = getEncodings();
 
-    parser.setEnvironment(null, sourceFilePath, encodingList, false);
+    parser.setEnvironment(null, javaSourcePaths, encodingList, false);
     parser.setResolveBindings(true);
     parser.setStatementsRecovery(true);
     parser.setBindingsRecovery(true);
@@ -224,11 +244,20 @@ public class EclipseJavaParser implements Parser {
 
   }
 
+  private String[] getEncodings() {
+
+    String[] encodings = new String[javaSourcePaths.length];
+
+    for (int counter = 0; counter < encodings.length; counter++) {
+      encodings[counter] = encoding;
+    }
+
+    return encodings;
+  }
+
   private ParseResult buildCFA(CompilationUnit ast, Scope scope) throws JParserException {
 
     cfaTimer.start();
-
-    CompilationUnit astNext;
 
     // AstDebugg checker = new AstDebugg(logger);
     // ast.accept(checker);
@@ -236,20 +265,25 @@ public class EclipseJavaParser implements Parser {
     CFABuilder builder = new CFABuilder(logger, scope);
     try {
 
-
       ast.accept(builder);
 
-      String nextClassToBeParsed = builder.getScope().getNextClassPath();
+      String nextClassToBeParsed = builder.getScope().getNextClass();
 
       while (nextClassToBeParsed != null) {
-        cfaTimer.stop();
-        astNext = parseAdditionalClasses(nextClassToBeParsed);
-        cfaTimer.start();
-        if (astNext != null) {
+
+        File classFile = searchForClassFile(nextClassToBeParsed);
+
+        if (classFile != null) {
+
+          cfaTimer.stop();
+          CompilationUnit astNext = parse(classFile);
+          cfaTimer.start();
+
           //astNext.accept(checker);
           astNext.accept(builder);
         }
-        nextClassToBeParsed = builder.getScope().getNextClassPath();
+
+        nextClassToBeParsed = builder.getScope().getNextClass();
       }
 
       DynamicBindingCreator tracker = new DynamicBindingCreator(builder);
@@ -263,17 +297,19 @@ public class EclipseJavaParser implements Parser {
     }
   }
 
-  private CompilationUnit parseAdditionalClasses(String pFileName) throws JParserException {
-    String name = javaRootPath + pFileName;
+  private File searchForClassFile(String nextClassToBeParsed) {
 
-    // There is a possibility that classes are in one and the same file
-    // in that case, the files don't exist
-    File file = new File(name);
-    if (file.isFile()) {
-      return parse(file);
-    } else {
-      return null;
+    String classFilePathPart = nextClassToBeParsed.replace('.', File.separatorChar) + ".java";
+
+    for (String sourcePath : javaSourcePaths) {
+      File file = new File(sourcePath + classFilePathPart);
+
+      if (file.exists()) {
+        return file;
+      }
     }
+
+    return null;
   }
 
   @Override

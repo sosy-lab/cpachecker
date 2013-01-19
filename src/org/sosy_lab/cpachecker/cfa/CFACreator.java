@@ -203,7 +203,8 @@ public class CFACreator {
         language = Language.JAVA;
 
         EclipseJavaParser par = new EclipseJavaParser(logger,
-            javaRootPath, encoding, version, parsingTime, conversionTime);
+            javaRootPath, encoding, version,
+            javaSourcepath, parsingTime, conversionTime);
 
         c = par.parseFile(filename);
 

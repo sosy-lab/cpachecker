@@ -95,15 +95,18 @@ public class TypeHierachyCreator extends ASTVisitor {
 
   private void handleHierachy(ITypeBinding typeBinding) {
     if (typeBinding != null) {
-      if(typeBinding.isClass() || typeBinding.isEnum()){
+      if(typeBinding.isClass() || typeBinding.isEnum()) {
 
         JClassType type =  convertClassType(typeBinding);
 
-         typeOfFiles.put(type.getName(), fileOfCU);
+        if (!(typeOfFiles.containsKey(type.getName()))) {
+          typeOfFiles.put(type.getName(), fileOfCU);
+        }
 
         boolean doesNotexist = add(type);
 
         if (doesNotexist) {
+
           JClassType nextType = type;
           boolean finished = typeBinding.getSuperclass() == null;
           while (!finished) {
@@ -137,28 +140,34 @@ public class TypeHierachyCreator extends ASTVisitor {
       } else if(typeBinding.isInterface()) {
 
         JInterfaceType type = convertInterfaceType(typeBinding);
-        add(type);
-
-        typeOfFiles.put(type.getName(), fileOfCU);
 
 
-        Queue<Pair<JInterfaceType ,ITypeBinding[]>> next = new LinkedList<>();
-        next.add(Pair.of(type, typeBinding.getInterfaces()));
+        boolean doesNotExist = add(type);
+
+        if (!(typeOfFiles.containsKey(type.getName()))) {
+          typeOfFiles.put(type.getName(), fileOfCU);
+        }
+
+        if (doesNotExist) {
+
+          Queue<Pair<JInterfaceType, ITypeBinding[]>> next = new LinkedList<>();
+          next.add(Pair.of(type, typeBinding.getInterfaces()));
 
 
-        while(!next.isEmpty()){
+          while (!next.isEmpty()) {
 
-          ITypeBinding[] superInterfacesBinding = next.peek().getSecond();
-          JInterfaceType nextType = next.poll().getFirst();
-          List<JInterfaceType> superTypes = new LinkedList<>();
+            ITypeBinding[] superInterfacesBinding = next.peek().getSecond();
+            JInterfaceType nextType = next.poll().getFirst();
+            List<JInterfaceType> superTypes = new LinkedList<>();
 
-            for(ITypeBinding binding : superInterfacesBinding) {
+            for (ITypeBinding binding : superInterfacesBinding) {
               JInterfaceType superInterface = convertInterfaceType(binding);
               superTypes.add(superInterface);
-              next.add( Pair.of(superInterface, binding.getInterfaces()));
+              next.add(Pair.of(superInterface, binding.getInterfaces()));
             }
 
             add(nextType, superTypes);
+          }
         }
       }
     }
@@ -244,7 +253,6 @@ public class TypeHierachyCreator extends ASTVisitor {
       }
 
    }
-
 
   private void add(JClassType pType, JClassType pParentClass ,List<JInterfaceType> pImplementedInterfaces) {
     add(pType , pParentClass);
@@ -340,5 +348,4 @@ public class TypeHierachyCreator extends ASTVisitor {
   public void setFileOfCU(String fileOfCU) {
     this.fileOfCU = fileOfCU;
   }
-
 }

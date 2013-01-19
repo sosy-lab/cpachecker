@@ -2467,7 +2467,6 @@ public class ASTConverter {
 
     List<JParameterDeclaration> param = new LinkedList<>();
 
-    // TODO File Location of Default Constructor???
     FileLocation fileLoc = new FileLocation(0, "", 0, 0, 0);
 
     JConstructorType type = new JConstructorType((JClassType) convert( classBinding), param , false);

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -83,7 +82,6 @@ class Scope {
 
   // fully Qualified main Class (not the ast name, but the real name with . instead of _)
   private final String fullyQualifiedMainClassName;
-  private final String rootPathofProgram;
 
   //Track and deliver Classes that need to be parsed
   private final Queue<String> classesToBeParsed = new ConcurrentLinkedQueue<>();
@@ -103,11 +101,10 @@ class Scope {
  * @param pTypes Type Hierarchy of program created by {@link TypeHierachyCreator}
  * @param pFileOfTypes Maps types to the sourceFile they were extracted from
  */
-  public Scope(String pFullyQualifiedMainClassName, String pRootPath,
+  public Scope(String pFullyQualifiedMainClassName,
       Map<String ,JClassOrInterfaceType> pTypes, Map<String, String> pFileOfTypes) {
     fullyQualifiedMainClassName = pFullyQualifiedMainClassName;
     types = pTypes;
-    rootPathofProgram = pRootPath;
     enterProgramScope();
     registeredClasses.add(fullyQualifiedMainClassName); // Register Main Class
     fileOfType = pFileOfTypes;
@@ -450,11 +447,11 @@ class Scope {
     return nextClass.getQualifiedName();
   }
 
-  public String getNextClassPath(){
+  public String getNextClass(){
     if(classesToBeParsed.isEmpty()){
       return null;
     } else {
-      return classesToBeParsed.poll().replace('.', File.separatorChar) + ".java";
+      return classesToBeParsed.poll();
     }
   }
 
@@ -466,12 +463,8 @@ class Scope {
     return currentClassName;
   }
 
- public Map< String ,JClassOrInterfaceType> getTypeHierachie() {
-   return types;
- }
-
-  public String getRootPath() {
-    return rootPathofProgram;
+  public Map< String ,JClassOrInterfaceType> getTypeHierachie() {
+    return types;
   }
 
   public Map<String, JFieldDeclaration> getFieldDeclarations() {
