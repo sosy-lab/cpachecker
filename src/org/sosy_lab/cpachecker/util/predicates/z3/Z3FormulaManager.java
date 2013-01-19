@@ -79,7 +79,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     }
   }
 
-  long createEnvironment(long cfg) {
+  long createContext(long cfg) {
     try {
       for (Map.Entry<String, String> option : settings.furtherOptionsMap.entrySet())
         Native.updateParamValue(cfg, option.getKey(), option.getValue());

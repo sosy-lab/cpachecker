@@ -55,10 +55,14 @@ public class Z3TheoremProver implements TheoremProver {
   public void init() {
     Preconditions.checkState(ctx == 0);
 
-    long cfg = Native.mkConfig();
-    Native.updateParamValue(cfg, "MODEL", "true");
-    this.ctx = mgr.createEnvironment(cfg, USE_SHARED_ENV, true);
-    Native.delConfig(cfg);
+    try {
+      long cfg = Native.mkConfig();
+      Native.updateParamValue(cfg, "MODEL", "true");
+      this.ctx = mgr.createContext(cfg);
+      Native.delConfig(cfg);
+    } catch (Z3Exception e) {
+      throw new RuntimeException(e); // XXX: Z3Exception should be a runtime exception
+    }
   }
 
   @Override
@@ -102,7 +106,7 @@ public class Z3TheoremProver implements TheoremProver {
   public Model getModel() throws SolverException {
     Preconditions.checkState(ctx != 0);
 
-    return Z3Model.createZ3Model(ctx, mgr, USE_SHARED_ENV);
+    return Z3Model.create(ctx, mgr);
   }
 
   @Override
