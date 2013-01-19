@@ -427,7 +427,7 @@ class Scope {
 
     for (JClassOrInterfaceType subClassType : toBeAdded) {
 
-      String name = ASTConverter.getFullyQualifiedBindingNameFromType(subClassType);
+      String name = subClassType.getName();
 
       if (!registeredClasses.contains(name)) {
         registeredClasses.add(name);

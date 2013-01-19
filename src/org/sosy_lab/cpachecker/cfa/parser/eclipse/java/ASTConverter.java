@@ -2483,11 +2483,6 @@ public class ASTConverter {
     return classBinding.getQualifiedName();
   }
 
-  public static String getFullyQualifiedBindingNameFromType(JClassOrInterfaceType classType) {
-    // TODO Wrong, What if _ is part of name?
-    return classType.getName();
-  }
-
   static class ModifierBean {
 
     private final boolean isFinal;
