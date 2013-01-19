@@ -142,6 +142,11 @@ public class CFACreator {
           "following src Path")
   private String version = JavaCore.VERSION_1_7;
 
+  @Option(name ="java.sourcepath",
+      description="use Language java with " +
+          "following src Path")
+  private String javaSourcepath = "";
+
   private final LogManager logger;
   private final CParser parser;
   private final CFAReduction cfaReduction;

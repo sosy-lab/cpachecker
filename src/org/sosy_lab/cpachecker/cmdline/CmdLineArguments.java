@@ -117,6 +117,7 @@ class CmdLineArguments {
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
           || handleArgument1("-config",        CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
           || handleArgument1("-timelimit",     "cpa.conditions.global.time.wall", arg, argsIt, properties)
+          || handleArgument1("-sourcepath",    "java.sourcepath",          arg, argsIt, properties)
           || handleMultipleArgument1("-spec",  "specification",           arg, argsIt, properties)
       ) {
         // nothing left to do
