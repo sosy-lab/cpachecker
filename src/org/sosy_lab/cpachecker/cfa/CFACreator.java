@@ -123,28 +123,24 @@ public class CFACreator {
   private Path exportCfaFile = Paths.get("cfa.dot");
 
   @Option(name ="language.java",
-      description="use Language java with " +
-          "following src Path")
+      description="use language Java")
   private boolean useJava = false;
 
   @Option(name ="java.rootPath",
-      description="use Language java with " +
-          "following src Path")
+      description="Java path that contains the main class")
   private String javaRootPath = null;
 
   @Option(name ="java.encoding",
-      description="use Language java with " +
-          "following src Path")
+      description="use the following encoding for java files")
   private String encoding = "utf8";
 
   @Option(name ="java.version",
-      description="use Language java with " +
-          "following src Path")
+      description="Specifies the java version of source code accepted")
   private String version = JavaCore.VERSION_1_7;
 
   @Option(name ="java.sourcepath",
-      description="use Language java with " +
-          "following src Path")
+      description="Specify the source code path to " +
+      		"search for java class or interface definitions")
   private String javaSourcepath = "";
 
   private final LogManager logger;
