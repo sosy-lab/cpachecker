@@ -225,30 +225,57 @@ public class EclipseJavaParser implements Parser {
   private Queue<File> getJavaFilesInPath(String path) throws JParserException {
 
     File mainDirectory = new File(path);
+
     assert mainDirectory.isDirectory() : "Could not find directory at" + path;
 
     Queue<File> sourceFileToBeParsed = new LinkedList<>();
     Queue<File> directorysToBeSearched = new LinkedList<>();
-    directorysToBeSearched.add(mainDirectory);
+
+    addDirectory(mainDirectory, directorysToBeSearched);
 
     while (!directorysToBeSearched.isEmpty()) {
 
       File directory = directorysToBeSearched.poll();
 
-      for (String fileName : directory.list()) {
-
-        File file =
-            new File(directory.getAbsolutePath() + File.separatorChar + fileName);
-
-        if (fileName.matches(JAVA_SOURCE_FILE_REGEX)) {
-          sourceFileToBeParsed.add(file);
-        } else if (file.isDirectory()) {
-          directorysToBeSearched.add(file);
+      if (directory.exists() && directory.canRead()) {
+        for (String fileName : directory.list()) {
+          addFileWhereAppropriate(fileName, directory,
+              sourceFileToBeParsed, directorysToBeSearched);
         }
       }
     }
 
     return sourceFileToBeParsed;
+  }
+
+  private void addFileWhereAppropriate(String fileName, File directory,
+      Queue<File> sourceFileToBeParsed, Queue<File> directorysToBeSearched) {
+
+    File file =
+        new File(directory.getAbsolutePath() + File.separatorChar + fileName);
+
+    if (fileName.matches(JAVA_SOURCE_FILE_REGEX)) {
+      addJavaFile(file, sourceFileToBeParsed);
+    } else if (file.isDirectory()) {
+      addDirectory(file, directorysToBeSearched);
+    }
+  }
+
+  private void addDirectory(File file, Queue<File> directorysToBeSearched) {
+    if (file.exists() && file.canRead()) {
+      directorysToBeSearched.add(file);
+    } else {
+      logger.log(Level.WARNING, "No permission to read directory " + file.getName() + ".");
+    }
+  }
+
+  private void addJavaFile(File file, Queue<File> sourceFileToBeParsed) {
+    if (file.exists() && file.canRead()) {
+      sourceFileToBeParsed.add(file);
+    } else {
+      logger.log(Level.WARNING, "No permission to read java file "
+                                  + file.getName() + ".");
+    }
   }
 
   @Override
