@@ -73,24 +73,31 @@ public class EclipseJavaParser implements Parser {
   private final String version;
 
   private final String[] javaSourcePaths;
+  private final String[] javaClassPaths;
 
   public EclipseJavaParser(LogManager pLogger, String javaRootPath, String pEncoding, String pVersion,
-      String javaSourcepath, Timer pParseTimer, Timer pCfaTimer) {
+      String javaSourcepath, String javaClasspath, Timer pParseTimer, Timer pCfaTimer) {
     logger = pLogger;
     encoding = pEncoding;
     version = pVersion;
     parseTimer = pParseTimer;
     cfaTimer = pCfaTimer;
-    javaSourcePaths = getJavaSourcePaths(javaSourcepath, javaRootPath);
-  }
-
-  private String[] getJavaSourcePaths(String javaSourcepath, String javaRootPath) {
+    javaClassPaths = getJavaPaths(javaClasspath, javaRootPath);
 
     if (javaSourcepath.isEmpty()) {
+      javaSourcePaths = javaClassPaths;
+    } else {
+      javaSourcePaths = getJavaPaths(javaSourcepath, javaRootPath);
+    }
+  }
+
+  private String[] getJavaPaths(String javaPath, String javaRootPath) {
+
+    if (javaPath.isEmpty()) {
       String[] result = { javaRootPath };
       return result;
     } else {
-      String sourcepath = javaRootPath + File.pathSeparator + javaSourcepath;
+      String sourcepath = javaRootPath + File.pathSeparator + javaPath;
       return sourcepath.split(File.pathSeparator);
     }
   }
@@ -152,7 +159,7 @@ public class EclipseJavaParser implements Parser {
 
   private List<Pair<CompilationUnit, String>> getASTsOfProgram() throws JParserException {
     Queue<File> sourceFileToBeParsed = getJavaFilesInSourcePaths();
-    List<Pair<CompilationUnit,String>> astsOfFoundFiles = new LinkedList<>();
+    List<Pair<CompilationUnit, String>> astsOfFoundFiles = new LinkedList<>();
 
     for (File file : sourceFileToBeParsed) {
       astsOfFoundFiles.add(Pair.of(parse(file, IGNORE_METHOD_BODY), file.getName()));
@@ -165,8 +172,8 @@ public class EclipseJavaParser implements Parser {
 
     Queue<File> sourceFileToBeParsed = new LinkedList<>();
 
-    for(String path : javaSourcePaths) {
-     sourceFileToBeParsed.addAll(getJavaFilesInPath(path));
+    for (String path : javaSourcePaths) {
+      sourceFileToBeParsed.addAll(getJavaFilesInPath(path));
     }
 
     return sourceFileToBeParsed;
@@ -213,10 +220,9 @@ public class EclipseJavaParser implements Parser {
 
   private CompilationUnit parse(File file, boolean ignoreMethodBody) throws JParserException {
 
-
     final String[] encodingList = getEncodings();
 
-    parser.setEnvironment(null, javaSourcePaths, encodingList, false);
+    parser.setEnvironment(javaClassPaths, javaSourcePaths, encodingList, false);
     parser.setResolveBindings(true);
     parser.setStatementsRecovery(true);
     parser.setBindingsRecovery(true);

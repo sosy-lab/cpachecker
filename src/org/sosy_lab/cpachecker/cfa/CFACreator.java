@@ -209,7 +209,7 @@ public class CFACreator {
 
         EclipseJavaParser par = new EclipseJavaParser(logger,
             javaRootPath, encoding, version,
-            javaSourcepath, parsingTime, conversionTime);
+            javaSourcepath, javaClasspath, parsingTime, conversionTime);
 
         c = par.parseFile(filename);
 
@@ -217,7 +217,6 @@ public class CFACreator {
         c = parser.parseFile(filename);
         language = Language.C;
       }
-
 
       logger.log(Level.FINE, "Parser Finished");
 
