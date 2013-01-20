@@ -31,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.logging.Level;
 
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
@@ -98,8 +99,50 @@ public class EclipseJavaParser implements Parser {
       return result;
     } else {
       String sourcepath = javaRootPath + File.pathSeparator + javaPath;
-      return sourcepath.split(File.pathSeparator);
+      String[] paths = sourcepath.split(File.pathSeparator);
+      String[] result;
+
+      if (existsNonExistingPath(paths)) {
+        result = deleteNonExistingPaths(paths);
+      } else {
+        result = paths;
+      }
+
+      return result;
     }
+  }
+
+  private boolean existsNonExistingPath(String[] paths) {
+
+    for (String path : paths) {
+      if (!new File(path).exists()) { return true; }
+    }
+    return false;
+  }
+
+  private String[] deleteNonExistingPaths(String[] pSourcepaths) {
+
+    LinkedList<String> resultList = new LinkedList<>();
+
+    for (String path : pSourcepaths) {
+      File directory = new File(path);
+      if (directory.exists()) {
+        resultList.add(path);
+      } else {
+        logger.log(Level.WARNING, "Path " + directory + "could not be found.");
+      }
+    }
+
+    String[] result = new String[resultList.size()];
+
+    int counter = 0;
+    for (String path : resultList) {
+
+      result[counter] = path;
+      counter++;
+    }
+
+    return result;
   }
 
   /**
