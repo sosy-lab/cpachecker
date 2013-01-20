@@ -109,7 +109,7 @@ class CmdLineArguments {
       if (   handleArgument0("-cbmc",    "analysis.useCBMC", "true",            arg, properties)
           || handleArgument0("-stats",   "statistics.print", "true",            arg, properties)
           || handleArgument0("-noout",   "output.disable",   "true",            arg, properties)
-          || handleArgument0("-java",    "language.java", "true",                  arg, properties)
+          || handleArgument0("-java",    "language.java", "true",               arg, properties)
           || handleArgument0("-32",      "analysis.machineModel", "Linux32",    arg, properties)
           || handleArgument0("-64",      "analysis.machineModel", "Linux64",    arg, properties)
           || handleArgument1("-outputpath",    "output.path",             arg, argsIt, properties)
@@ -117,7 +117,9 @@ class CmdLineArguments {
           || handleArgument1("-entryfunction", "analysis.entryFunction",  arg, argsIt, properties)
           || handleArgument1("-config",        CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
           || handleArgument1("-timelimit",     "cpa.conditions.global.time.wall", arg, argsIt, properties)
-          || handleArgument1("-sourcepath",    "java.sourcepath",          arg, argsIt, properties)
+          || handleArgument1("-sourcepath",    "java.sourcepath",         arg, argsIt, properties)
+          || handleArgument1("-cp",            "java.classpath",          arg, argsIt, properties)
+          || handleArgument1("-classpath",     "java.classpath",          arg, argsIt, properties)
           || handleMultipleArgument1("-spec",  "specification",           arg, argsIt, properties)
       ) {
         // nothing left to do

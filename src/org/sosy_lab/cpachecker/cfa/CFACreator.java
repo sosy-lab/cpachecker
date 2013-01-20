@@ -143,6 +143,11 @@ public class CFACreator {
       		"search for java class or interface definitions")
   private String javaSourcepath = "";
 
+  @Option(name ="java.classpath",
+      description="Specify the class code path to " +
+          "search for java class or interface definitions")
+  private String javaClasspath = "";
+
   private final LogManager logger;
   private final CParser parser;
   private final CFAReduction cfaReduction;
