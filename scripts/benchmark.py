@@ -122,6 +122,8 @@ class Benchmark:
 
         # get benchmark-name
         self.name = os.path.basename(benchmarkFile)[:-4] # remove ending ".xml"
+        if config.name:
+            self.name += "."+config.name
 
         # get current date as String to avoid problems, if script runs over midnight
         currentTime = time.localtime()
@@ -1229,6 +1231,11 @@ def main(argv=None):
                       help="Run only the files from the sourcefiles tag with SOURCE as name. "
                             + "This option can be specified several times.",
                       metavar="SOURCES")
+
+    parser.add_argument("-n", "--name",
+                      dest="name", default=None,
+                      help="Set name of benchmark execution to NAME",
+                      metavar="NAME")
 
     parser.add_argument("-o", "--outputpath",
                       dest="output_path", type=str,
