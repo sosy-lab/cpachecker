@@ -192,7 +192,7 @@ public class CPAchecker {
       // now everything necessary has been instantiated
 
       if (disableAnalysis) {
-        return new CPAcheckerResult(Result.NOT_YET_STARTED, null, null);
+        return new CPAcheckerResult(Result.NOT_YET_STARTED, null, stats);
       }
 
       // run analysis

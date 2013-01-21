@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core;
 
+import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
@@ -262,6 +263,10 @@ class MainCPAStatistics implements Statistics {
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+        checkNotNull(out);
+        checkNotNull(result);
+        checkArgument(result == Result.NOT_YET_STARTED || reached != null);
+
         // call stop again in case CPAchecker was terminated abnormally
         if (analysisTime.isRunning()) {
           analysisTime.stop();
@@ -273,45 +278,22 @@ class MainCPAStatistics implements Statistics {
           memStats.interrupt(); // stop memory statistics collection
         }
 
-        if (exportReachedSet && outputFile != null) {
-          try (Writer w = Files.openOutputFile(outputFile)) {
-            Joiner.on('\n').appendTo(w, reached);
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
-          } catch (OutOfMemoryError e) {
-            logger.logUserException(Level.WARNING, e,
-                "Could not write reached set to file due to memory problems");
-          }
-        }
+        if (result != Result.NOT_YET_STARTED) {
+          dumpReachedSet(reached);
 
-        for (Statistics s : subStats) {
-          String name = s.getName();
-          if (!Strings.isNullOrEmpty(name)) {
-            name = name + " statistics";
-            out.println(name);
-            out.println(Strings.repeat("-", name.length()));
-          }
-
-          try {
-            s.printStatistics(out, result, reached);
-          } catch (OutOfMemoryError e) {
-            logger.logUserException(Level.WARNING, e,
-                "Out of memory while generating statistics and writing output files");
-          }
-
-          if (!Strings.isNullOrEmpty(name)) {
-            out.println();
-          }
+          printSubStatistics(out, result, reached);
         }
 
         out.println("CPAchecker general statistics");
         out.println("-----------------------------");
 
-        try {
-          printReachedSetStatistics(reached, out);
-        } catch (OutOfMemoryError e) {
-          logger.logUserException(Level.WARNING, e,
-              "Out of memory while generating statistics about final reached set");
+        if (result != Result.NOT_YET_STARTED) {
+          try {
+            printReachedSetStatistics(reached, out);
+          } catch (OutOfMemoryError e) {
+            logger.logUserException(Level.WARNING, e,
+                "Out of memory while generating statistics about final reached set");
+          }
         }
 
         printTimeStatistics(out);
@@ -321,8 +303,48 @@ class MainCPAStatistics implements Statistics {
         printMemoryStatistics(out);
     }
 
+    private void dumpReachedSet(ReachedSet reached) {
+      assert reached != null : "ReachedSet may be null only if analysis not yet started";
+
+      if (exportReachedSet && outputFile != null) {
+        try (Writer w = Files.openOutputFile(outputFile)) {
+          Joiner.on('\n').appendTo(w, reached);
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
+        } catch (OutOfMemoryError e) {
+          logger.logUserException(Level.WARNING, e,
+              "Could not write reached set to file due to memory problems");
+        }
+      }
+    }
+
+    private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
+      assert reached != null : "ReachedSet may be null only if analysis not yet started";
+
+      for (Statistics s : subStats) {
+        String name = s.getName();
+        if (!Strings.isNullOrEmpty(name)) {
+          name = name + " statistics";
+          out.println(name);
+          out.println(Strings.repeat("-", name.length()));
+        }
+
+        try {
+          s.printStatistics(out, result, reached);
+        } catch (OutOfMemoryError e) {
+          logger.logUserException(Level.WARNING, e,
+              "Out of memory while generating statistics and writing output files");
+        }
+
+        if (!Strings.isNullOrEmpty(name)) {
+          out.println();
+        }
+      }
+    }
 
     private void printReachedSetStatistics(ReachedSet reached, PrintStream out) {
+      assert reached != null : "ReachedSet may be null only if analysis not yet started";
+
       if (reached instanceof ForwardingReachedSet) {
         reached = ((ForwardingReachedSet)reached).getDelegate();
       }

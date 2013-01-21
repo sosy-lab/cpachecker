@@ -39,7 +39,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 import com.google.common.io.Closeables;
 
@@ -116,7 +115,7 @@ class ShutdownHook extends Thread {
     logManager.flush();
     System.out.flush();
     System.err.flush();
-    if (mResult != null && mResult.getResult() != Result.NOT_YET_STARTED) {
+    if (mResult != null) {
 
       // setup output streams
       PrintStream console = printStatistics ? System.out : null;

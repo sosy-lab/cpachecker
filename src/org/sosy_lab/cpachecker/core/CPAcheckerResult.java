@@ -76,7 +76,7 @@ public class CPAcheckerResult {
    * may be written here, if configuration says so.
    */
   public void printStatistics(PrintStream target) {
-    if (stats != null && reached != null && result != Result.NOT_YET_STARTED) {
+    if (stats != null) {
       stats.printStatistics(target, result, reached);
     }
   }
