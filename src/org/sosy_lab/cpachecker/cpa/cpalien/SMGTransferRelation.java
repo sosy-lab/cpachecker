@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,29 +44,42 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
 @Options(prefix="cpa.cpalien")
 public class SMGTransferRelation implements TransferRelation {
+
+  private static int nextFreeId = 1;
 
   @Option(name="exportSMG.file", description="dump SMG for each edge")
   @FileOption(Type.OUTPUT_FILE)
@@ -105,7 +120,7 @@ public class SMGTransferRelation implements TransferRelation {
     return Collections.singleton(successor);
   }
 
-  private AbstractState handleStatement(SMGState pState, CStatementEdge pCfaEdge) {
+  private AbstractState handleStatement(SMGState pState, CStatementEdge pCfaEdge) throws UnrecognizedCCodeException {
     logger.log(Level.FINEST,  ">>> Handling statement");
     SMGState newState;
 
@@ -175,7 +190,7 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
   private SMGState handleAssignment(SMGState pState, CStatementEdge pCfaEdge, CExpression pLValue,
-      CRightHandSide pRValue) {
+      CRightHandSide pRValue) throws UnrecognizedCCodeException {
     SMGState newState;
     logger.log(Level.FINEST, "Handling assignment:", pLValue.toASTString(), "=", pRValue.toASTString());
 
@@ -190,7 +205,7 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
   private SMGState handleVariableAssignment(SMGState pState, CStatementEdge pCfaEdge, CIdExpression pVariableName,
-      CRightHandSide pRValue, CType pType) {
+      CRightHandSide pRValue, CType pType) throws UnrecognizedCCodeException {
     SMGState newState = new SMGState(pState);
 
     SMGObject assigned = pState.getObjectForVariable(pVariableName);
@@ -199,7 +214,22 @@ public class SMGTransferRelation implements TransferRelation {
       //      cast
     }
 
-    int value = 4; //TODO: Implement a real value creation from the expression
+    CType expressionType = pRValue.getExpressionType();
+
+    Integer value;
+
+    if(expressionType instanceof CPointerType) {
+       value = 4;
+    } else {
+      ExpressionValueVisitor visitor = new ExpressionValueVisitor(pCfaEdge, newState);
+      value = pRValue.accept(visitor);
+
+      if(value == null) {
+        value = newState.nextFreeValue();
+      }
+    }
+
+
 
     newState.addValue(value);
     SMGEdgeHasValue newEdge = new SMGEdgeHasValue(pType, 0, assigned, value);
@@ -232,6 +262,198 @@ public class SMGTransferRelation implements TransferRelation {
       }
     }
     return newState;
+  }
+
+  private class ExpressionValueVisitor extends DefaultCExpressionVisitor<Integer, UnrecognizedCCodeException>
+  implements CRightHandSideVisitor<Integer, UnrecognizedCCodeException>
+  {
+
+    private final CFAEdge edge;
+    private final SMGState smgState;
+
+    public ExpressionValueVisitor(CFAEdge pEdge, SMGState pSmgState) {
+      edge = pEdge;
+      smgState = pSmgState;
+    }
+
+    @Override
+    protected Integer visitDefault(CExpression pExp) {
+      return null;
+    }
+
+    @Override
+    public Integer visit(CIntegerLiteralExpression exp) throws UnrecognizedCCodeException {
+
+      boolean isZero = exp.getValue().equals(BigInteger.ZERO);
+      return isZero ? 0 : null;
+    }
+
+    @Override
+    public Integer visit(CCharLiteralExpression exp) throws UnrecognizedCCodeException {
+      return (exp.getCharacter() == 0) ? 0 : null;
+    }
+
+    @Override
+    public Integer visit(CFloatLiteralExpression exp) throws UnrecognizedCCodeException {
+
+      boolean isZero = exp.getValue().equals(BigDecimal.ZERO);
+      return isZero ? 0 : null;
+    }
+
+    @Override
+    public Integer visit(CIdExpression idExpression) throws UnrecognizedCCodeException {
+
+      SMGObject variableObject = smgState.getObjectForVariable(idExpression);
+
+      if (variableObject == null) {
+        return null;
+      }
+
+      Integer value = smgState.readValue(variableObject, 0, idExpression.getExpressionType());
+
+      return value;
+    }
+
+    @Override
+    public Integer visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
+
+      UnaryOperator unaryOperator = unaryExpression.getOperator();
+      CExpression unaryOperand = unaryExpression.getOperand();
+
+      switch (unaryOperator) {
+
+      case AMPER:
+        //TODO Exception, can't Amper with a simple Type as result
+      case STAR:
+        // TODO New Visitor
+      case MINUS:
+        int value = unaryOperand.accept(this);
+        return (value == 0) ? 0 : null;
+
+      case NOT:
+      case TILDE:
+      case SIZEOF:
+      default:
+        return null;
+      }
+    }
+
+    @Override
+    public Integer visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
+
+      BinaryOperator binaryOperator = pE.getOperator();
+      CExpression lVarInBinaryExp = pE.getOperand1();
+      CExpression rVarInBinaryExp = pE.getOperand2();
+
+      switch (binaryOperator) {
+      case PLUS:
+      case MINUS:
+      case DIVIDE:
+      case MULTIPLY:
+      case SHIFT_LEFT:
+      case MODULO:
+      case SHIFT_RIGHT:
+      case BINARY_AND:
+      case BINARY_OR:
+      case BINARY_XOR: {
+        Integer lVal = lVarInBinaryExp.accept(this);
+        if (lVal == null) { return null; }
+
+        Integer rVal = rVarInBinaryExp.accept(this);
+        if (rVal == null) { return null; }
+
+        boolean isZero;
+
+        switch (binaryOperator) {
+        case PLUS:
+        case SHIFT_LEFT:
+        case BINARY_OR:
+        case BINARY_XOR:
+        case SHIFT_RIGHT:
+          isZero = lVal == 0 && rVal == 0;
+          return (isZero) ? 0 : null;
+
+        case MINUS:
+        case MODULO:
+          // TODO Actually, we need proof of inequality here
+          isZero = (lVal == rVal);
+          return (isZero) ? 0 : null;
+
+        case DIVIDE:
+          // TODO maybe we should signal a division by zero error?
+          if (rVal == 0) { return null; }
+
+          isZero = lVal == 0;
+          return (isZero) ? 0 : null;
+
+        case MULTIPLY:
+        case BINARY_AND:
+          isZero = lVal == 0 || rVal == 0;
+          return (isZero) ? 0 : null;
+
+        default:
+          throw new AssertionError();
+        }
+      }
+
+      case EQUALS:
+      case NOT_EQUALS:
+      case GREATER_THAN:
+      case GREATER_EQUAL:
+      case LESS_THAN:
+      case LESS_EQUAL: {
+
+        Integer lVal = lVarInBinaryExp.accept(this);
+        if (lVal == null) { return null; }
+
+        Integer rVal = rVarInBinaryExp.accept(this);
+        if (rVal == null) { return null; }
+
+        long l = lVal;
+        long r = rVal;
+
+
+        boolean isZero;
+        switch (binaryOperator) {
+        case NOT_EQUALS:
+          isZero = (l == r);
+          break;
+        case EQUALS:
+        case GREATER_THAN:
+        case GREATER_EQUAL:
+        case LESS_THAN:
+        case LESS_EQUAL:
+          isZero = false;
+          break;
+
+        default:
+          throw new AssertionError();
+        }
+
+        // return 0 if the expression does  hold, otherwise null
+        return (isZero ? 0 : null);
+      }
+
+      default:
+        return null;
+      }
+    }
+
+    @Override
+    public Integer visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+      return null;
+    }
+
+  }
+
+  /**
+   * Generates different IDs per Value
+   *
+   * @return id for value
+   */
+  public static int nextId() {
+    nextFreeId++;
+    return nextFreeId;
   }
 
   @Override
