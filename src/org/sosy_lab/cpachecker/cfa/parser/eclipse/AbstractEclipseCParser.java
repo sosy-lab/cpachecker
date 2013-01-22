@@ -199,10 +199,27 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
    */
   protected static class StubScannerInfo implements IScannerInfo {
 
-    private static final ImmutableMap<String, String> MACROS = ImmutableMap.of(
-        // _Static_assert(cond, msg) feature of C11
-        "_Static_assert(c, m)", ""
-        );
+    private static final ImmutableMap<String, String> MACROS;
+
+    static {
+      ImmutableMap.Builder<String, String> macrosBuilder = ImmutableMap.builder();
+
+      // _Static_assert(cond, msg) feature of C11
+      macrosBuilder.put("_Static_assert(c, m)", "");
+
+      // These built-ins are defined as macros
+      // in org.eclipse.cdt.core.dom.parser.GNUScannerExtensionConfiguration.
+      // When the parser encounters their redefinition or
+      // some non-trivial usage in the code, we get parsing errors.
+      // So we redefine these macros to themselves in order to
+      // parse them as functions.
+      macrosBuilder.put("__builtin_va_arg", "__builtin_va_arg");
+      macrosBuilder.put("__builtin_constant_p", "__builtin_constant_p");
+      macrosBuilder.put("__builtin_types_compatible_p", "__builtin_types_compatible_p");
+      macrosBuilder.put("__offsetof__", "__offsetof__");
+
+      MACROS = macrosBuilder.build();
+    }
 
     protected final static IScannerInfo instance = new StubScannerInfo();
 
