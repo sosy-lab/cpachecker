@@ -31,15 +31,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class SMGDomain implements AbstractDomain {
 
   @Override
-  public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
-    // TODO Auto-generated method stub
-    return null;
+  public AbstractState join(AbstractState currentElement, AbstractState reachedState) throws CPAException {
+    return ((SMGState)currentElement).join((SMGState)reachedState);
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException {
-    // TODO Auto-generated method stub
-    return false;
+  public boolean isLessOrEqual(AbstractState currentElement, AbstractState reachedState) throws CPAException {
+    return ((SMGState) currentElement).isLessOrEqual((SMGState) reachedState);
   }
-
 }
