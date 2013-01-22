@@ -31,6 +31,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
@@ -540,7 +542,7 @@ class ASTConverter {
 
   private CTypeIdInitializerExpression convert(IASTTypeIdInitializerExpression e) {
     return new CTypeIdInitializerExpression(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()),
-        convert(e.getInitializer()), convert(e.getTypeId()));
+        convert(e.getInitializer(), null), convert(e.getTypeId()));
   }
 
   public CAstNode convert(final IASTStatement s) {
@@ -720,7 +722,7 @@ class ASTConverter {
       // actually binds to the left "x"!
       // int x = x;
 
-      declaration.addInitializer(convert(initializer));
+      declaration.addInitializer(convert(initializer, declaration));
 
       return declaration;
 
@@ -1037,7 +1039,7 @@ class ASTConverter {
     return result;
   }
 
-  private CInitializer convert(IASTInitializer i) {
+  private CInitializer convert(IASTInitializer i, @Nullable CVariableDeclaration declaration) {
     if (i == null) {
       return null;
 
@@ -1046,18 +1048,18 @@ class ASTConverter {
     } else if (i instanceof IASTInitializerList) {
       return convert((IASTInitializerList)i);
     } else if (i instanceof IASTEqualsInitializer) {
-      return convert((IASTEqualsInitializer)i);
+      return convert((IASTEqualsInitializer)i, declaration);
     } else if (i instanceof org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer) {
-      return convert((org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer)i);
+      return convert((org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer)i, declaration);
     } else {
       throw new CFAGenerationRuntimeException("unknown initializer: " + i.getClass().getSimpleName(), i);
     }
   }
 
-  private CInitializer convert(org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer init) {
+  private CInitializer convert(org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer init, @Nullable CVariableDeclaration declaration) {
     ICASTDesignator[] desInit = init.getDesignators();
 
-    CInitializer cInit = convert(init.getOperandInitializer());
+    CInitializer cInit = convert(init.getOperandInitializer(), declaration);
 
     FileLocation fileLoc = cInit.getFileLocation();
 
@@ -1108,7 +1110,7 @@ class ASTConverter {
   private CInitializerList convert(IASTInitializerList iList) {
     List<CInitializer> initializerList = new ArrayList<>(iList.getInitializers().length);
     for (IASTInitializer i : iList.getInitializers()) {
-      CInitializer newI = convert(i);
+      CInitializer newI = convert(i, null);
       if (newI != null) {
         initializerList.add(newI);
       }
@@ -1117,27 +1119,44 @@ class ASTConverter {
     return new CInitializerList(getLocation(iList), initializerList);
   }
 
-  private CInitializer convert(IASTEqualsInitializer i) {
+  private CInitializer convert(IASTEqualsInitializer i, @Nullable CVariableDeclaration declaration) {
     IASTInitializerClause ic = i.getInitializerClause();
     if (ic instanceof IASTExpression) {
       IASTExpression e = (IASTExpression)ic;
 
       CAstNode initializer = convertExpressionWithSideEffects(e);
-
-      if (initializer != null && initializer instanceof CAssignment){
-        preSideAssignments.add(initializer);
-        return new CInitializerExpression(getLocation(e), ((CAssignment)initializer).getLeftHandSide());
-      } else if (initializer != null && initializer instanceof CFunctionCallExpression && i.getParent() instanceof IASTDeclarator) {
-
-        String tmpname = convert(((IASTDeclarator)i.getParent()).getName());
-        postSideAssignments.add(new CFunctionCallAssignmentStatement(getLocation(i),
-                                                                        createTemporaryVariable(e, tmpname),
-                                                                        (CFunctionCallExpression) initializer));
+      if (initializer == null) {
         return null;
       }
 
-      if (initializer != null && !(initializer instanceof CExpression)) {
-        throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", e);
+      if (initializer instanceof CAssignment){
+        preSideAssignments.add(initializer);
+        return new CInitializerExpression(getLocation(e), ((CAssignment)initializer).getLeftHandSide());
+
+      } else if (initializer instanceof CFunctionCallExpression) {
+        FileLocation loc = getLocation(i);
+
+        if (declaration != null) {
+          // This is a variable declaration like "int i = f();"
+          // We can replace this with "int i; i = f();"
+          CIdExpression var = new CIdExpression(loc, declaration.getType(), declaration.getName(), declaration);
+          postSideAssignments.add(new CFunctionCallAssignmentStatement(loc, var,
+                                  (CFunctionCallExpression) initializer));
+          return null; // empty initializer
+
+        } else {
+          // This is something more complicated, like a function call inside an array initializer.
+          // We need a temporary variable.
+
+          CIdExpression var = createTemporaryVariable(e, null);
+          preSideAssignments.add(new CFunctionCallAssignmentStatement(loc, var,
+                                 (CFunctionCallExpression) initializer));
+          return new CInitializerExpression(loc, var);
+        }
+      }
+
+      if (!(initializer instanceof CExpression)) {
+        throw new CFAGenerationRuntimeException("Initializer is not free of side-effects, it is a " + initializer.getClass().getSimpleName(), e);
       }
 
       return new CInitializerExpression(getLocation(ic), (CExpression)initializer);
