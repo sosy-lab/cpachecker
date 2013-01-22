@@ -214,7 +214,7 @@ class ASTConverter {
 
   private CExpression addSideassignmentsForExpressionsWithoutSideEffects(CAstNode node,
                                                                             IASTExpression e){
-    CIdExpression tmp = createTemporaryVariable(e, null);
+    CIdExpression tmp = createTemporaryVariable(e);
 
     preSideAssignments.add(new CFunctionCallAssignmentStatement(getLocation(e),
                                                                 tmp,
@@ -227,7 +227,7 @@ class ASTConverter {
                                                               FileLocation fileLoc,
                                                               CType type,
                                                               BinaryOperator op) {
-    CIdExpression tmp = createTemporaryVariable(e, null);
+    CIdExpression tmp = createTemporaryVariable(e);
     preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmp, exp));
 
 
@@ -289,19 +289,19 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTConditionalExpression e) {
-    CIdExpression tmp = createTemporaryVariable(e, null);
+    CIdExpression tmp = createTemporaryVariable(e);
     addConditionalExpression(e, tmp);
     return tmp;
   }
 
   private CAstNode convert(IGNUASTCompoundStatementExpression e) {
-    CIdExpression tmp = createTemporaryVariable(e, null);
+    CIdExpression tmp = createTemporaryVariable(e);
     addConditionalExpression(e, tmp);
     return tmp;
   }
 
   private CAstNode convertExpressionListAsExpression(IASTExpressionList e) {
-    CIdExpression tmp = createTemporaryVariable(e, null);
+    CIdExpression tmp = createTemporaryVariable(e);
     addConditionalExpression(e, tmp);
     return tmp;
   }
@@ -316,17 +316,13 @@ class ASTConverter {
   /**
    * creates temporary variables with increasing numbers
    */
-  private CIdExpression createTemporaryVariable(IASTExpression e, String name) {
-    boolean nameWasInUse = true;
-    if (name == null) {
-      nameWasInUse = false;
-      name = "__CPAchecker_TMP_";
-      int i = 0;
-      while (scope.variableNameInUse(name + i, name + i)) {
-        i++;
-      }
-      name += i;
+  private CIdExpression createTemporaryVariable(IASTExpression e) {
+    String name = "__CPAchecker_TMP_";
+    int i = 0;
+    while (scope.variableNameInUse(name + i, name + i)) {
+      i++;
     }
+    name += i;
 
     CVariableDeclaration decl = new CVariableDeclaration(getLocation(e),
                                                false,
@@ -336,10 +332,9 @@ class ASTConverter {
                                                name,
                                                null);
 
-    if (!nameWasInUse) {
     scope.registerDeclaration(decl);
     preSideAssignments.add(decl);
-    }
+
     CIdExpression tmp = new CIdExpression(getLocation(e),
                                                 ASTTypeConverter.convert(e.getExpressionType()),
                                                 name,
@@ -352,7 +347,7 @@ class ASTConverter {
     switch (e.getOperator()) {
     case IASTBinaryExpression.op_logicalAnd:
     case IASTBinaryExpression.op_logicalOr:
-      CIdExpression tmp = createTemporaryVariable(e, null);
+      CIdExpression tmp = createTemporaryVariable(e);
       addConditionalExpression(e, tmp);
       return tmp;
     }
@@ -1148,7 +1143,7 @@ class ASTConverter {
           // This is something more complicated, like a function call inside an array initializer.
           // We need a temporary variable.
 
-          CIdExpression var = createTemporaryVariable(e, null);
+          CIdExpression var = createTemporaryVariable(e);
           preSideAssignments.add(new CFunctionCallAssignmentStatement(loc, var,
                                  (CFunctionCallExpression) initializer));
           return new CInitializerExpression(loc, var);
