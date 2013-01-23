@@ -512,6 +512,7 @@ $(document).ready(function() {
 // simple structure, that contains all data for the plot
 var graphData = {
   header : null,
+  isRunSet : null,
   filenames : null,
   indices : null, // columns from table
   data : null, // values are sorted if quantilePlot else not sorted, indizes always from 0 to N
@@ -529,9 +530,17 @@ function getColumnIndicesForHeader(header) {
   var columnIndizes = [];
   var cells = document.getElementById('columnTitles').cells;
 
-  for (i = 0; i < cells.length; i++) {
-    if ($(cells[i]).is(":visible") && (header == cells[i].textContent)) {
-      columnIndizes.push(i);
+  for (i = 1; i < cells.length; i++) { // skip first cell
+    if ($(cells[i]).is(":visible")) {
+      if (graphData.isRunSet) {
+        if ("status" != cells[i].textContent && header == columnsToTest[i-1].name) {
+          columnIndizes.push(i);
+        }
+      } else {
+        if (header == cells[i].textContent) {
+          columnIndizes.push(i);
+        }
+      }
     }
   }
 
@@ -674,9 +683,17 @@ function getYTicks() {
 // returns label of a test: 'tool+test+date'.
 function getLabels() {
   var labels = [];
-  for (i = 0; i < graphData.indices.length; i++) {
-    var index = graphData.indices[i];
-    labels.push(getNameOfTest(index));
+  if (graphData.isRunSet) {
+      var cells = document.getElementById('columnTitles').cells;
+      for (i = 0; i < graphData.indices.length; i++) {
+        var index = graphData.indices[i];
+        labels.push(cells[index].textContent);
+      }
+  } else {
+      for (i = 0; i < graphData.indices.length; i++) {
+        var index = graphData.indices[i];
+        labels.push(getNameOfTest(index));
+      }
   }
   return labels;
 };
@@ -844,6 +861,21 @@ $(document).ready(function() {
       .attr("title", "Click here to show a graph of this column")
     column.onclick = function (event) {
       graphData.header = event.target.textContent;
+      graphData.isRunSet = false;
+      showPlot();
+    }
+  }
+  
+  var runSetTitles = $('#run > td');
+  for (i = 1; i< runSetTitles.length; i++) { // do not use first column (i!=0)
+    var column = runSetTitles[i];
+    debug(column);
+    $(column)
+      .addClass("clickable")
+      .attr("title", "Click here to show a graph of this run-set")
+    column.onclick = function (event) {
+      graphData.header = event.target.textContent;
+      graphData.isRunSet = true;
       showPlot();
     }
   }
