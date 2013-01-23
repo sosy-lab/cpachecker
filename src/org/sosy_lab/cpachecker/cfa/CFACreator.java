@@ -149,7 +149,7 @@ public class CFACreator {
   private String javaClasspath = "";
 
   private final LogManager logger;
-  private final CParser parser;
+  private final Parser parser;
   private final CFAReduction cfaReduction;
 
   public final Timer parserInstantiationTime = new Timer();
@@ -169,8 +169,17 @@ public class CFACreator {
 
     this.logger = logger;
 
-    parserInstantiationTime.start();
-    parser = CParser.Factory.getParser(logger, CParser.Factory.getOptions(config));
+    if (useJava) {
+      parserInstantiationTime.start();
+      parser = new EclipseJavaParser(logger,
+          javaRootPath, encoding, version,
+          javaSourcepath, javaClasspath);
+
+    } else {
+      parserInstantiationTime.start();
+      parser = CParser.Factory.getParser(logger, CParser.Factory.getOptions(config));
+    }
+
     parsingTime = parser.getParseTime();
     conversionTime = parser.getCFAConstructionTime();
 
@@ -204,19 +213,13 @@ public class CFACreator {
       ParseResult c;
       Language language;
 
-      if(useJava){
+      if (useJava) {
         language = Language.JAVA;
-
-        EclipseJavaParser par = new EclipseJavaParser(logger,
-            javaRootPath, encoding, version,
-            javaSourcepath, javaClasspath, parsingTime, conversionTime);
-
-        c = par.parseFile(filename);
-
-      } else{
-        c = parser.parseFile(filename);
+      } else {
         language = Language.C;
       }
+
+      c = parser.parseFile(filename);
 
       logger.log(Level.FINE, "Parser Finished");
 

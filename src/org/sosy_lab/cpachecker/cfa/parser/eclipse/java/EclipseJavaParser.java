@@ -67,8 +67,8 @@ public class EclipseJavaParser implements Parser {
 
   private final LogManager logger;
 
-  private final Timer parseTimer;
-  private final Timer cfaTimer;
+  private final Timer parseTimer = new Timer();
+  private final Timer cfaTimer = new Timer();
 
   private final String encoding;
   private final String version;
@@ -77,12 +77,10 @@ public class EclipseJavaParser implements Parser {
   private final String[] javaClassPaths;
 
   public EclipseJavaParser(LogManager pLogger, String javaRootPath, String pEncoding, String pVersion,
-      String javaSourcepath, String javaClasspath, Timer pParseTimer, Timer pCfaTimer) {
+      String javaSourcepath, String javaClasspath) {
     logger = pLogger;
     encoding = pEncoding;
     version = pVersion;
-    parseTimer = pParseTimer;
-    cfaTimer = pCfaTimer;
     javaClassPaths = getJavaPaths(javaClasspath, javaRootPath);
 
     if (javaSourcepath.isEmpty()) {
