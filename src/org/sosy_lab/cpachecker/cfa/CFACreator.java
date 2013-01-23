@@ -40,7 +40,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.logging.Level;
 
-import org.eclipse.jdt.core.JavaCore;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
@@ -126,28 +125,6 @@ public class CFACreator {
       description="use language Java")
   private boolean useJava = false;
 
-  @Option(name ="java.rootPath",
-      description="Java path that contains the main class")
-  private String javaRootPath = null;
-
-  @Option(name ="java.encoding",
-      description="use the following encoding for java files")
-  private String encoding = "utf8";
-
-  @Option(name ="java.version",
-      description="Specifies the java version of source code accepted")
-  private String version = JavaCore.VERSION_1_7;
-
-  @Option(name ="java.sourcepath",
-      description="Specify the source code path to " +
-      		"search for java class or interface definitions")
-  private String javaSourcepath = "";
-
-  @Option(name ="java.classpath",
-      description="Specify the class code path to " +
-          "search for java class or interface definitions")
-  private String javaClasspath = "";
-
   private final LogManager logger;
   private final Parser parser;
   private final CFAReduction cfaReduction;
@@ -171,9 +148,7 @@ public class CFACreator {
 
     if (useJava) {
       parserInstantiationTime.start();
-      parser = new EclipseJavaParser(logger,
-          javaRootPath, encoding, version,
-          javaSourcepath, javaClasspath);
+      parser = new EclipseJavaParser(logger, config);
 
     } else {
       parserInstantiationTime.start();

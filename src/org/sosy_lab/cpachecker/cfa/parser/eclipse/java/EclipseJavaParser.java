@@ -40,6 +40,10 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
@@ -54,14 +58,30 @@ import com.google.common.io.Files;
  * Wrapper around the JDT Parser and CFA-Builder Implementation.
  *
  */
+@Options
 public class EclipseJavaParser implements Parser {
 
-  private static final boolean IGNORE_METHOD_BODY = true;
-  private static final boolean PARSE_METHOD_BODY = false;
-  private static final String JAVA_SOURCE_FILE_REGEX = ".*.java";
-  private static final int JAVA_ROOT_PATH = 0;
+  @Option(name ="java.encoding",
+      description="use the following encoding for java files")
+  private String encoding = "utf8";
 
-  private static final int  LENGTH_OF_SUFFIX = 5;
+  @Option(name ="java.version",
+      description="Specifies the java version of source code accepted")
+  private String version = JavaCore.VERSION_1_7;
+
+  @Option(name ="java.rootPath",
+      description="Java path that contains the main class")
+  private String javaRootPath = "";
+
+  @Option(name ="java.sourcepath",
+      description="Specify the source code path to " +
+          "search for java class or interface definitions")
+  private String javaSourcepath = "";
+
+  @Option(name ="java.classpath",
+      description="Specify the class code path to " +
+          "search for java class or interface definitions")
+  private String javaClasspath = "";
 
   private final ASTParser parser = ASTParser.newParser(AST.JLS4);
 
@@ -70,17 +90,21 @@ public class EclipseJavaParser implements Parser {
   private final Timer parseTimer = new Timer();
   private final Timer cfaTimer = new Timer();
 
-  private final String encoding;
-  private final String version;
-
   private final String[] javaSourcePaths;
   private final String[] javaClassPaths;
 
-  public EclipseJavaParser(LogManager pLogger, String javaRootPath, String pEncoding, String pVersion,
-      String javaSourcepath, String javaClasspath) {
+  private static final boolean IGNORE_METHOD_BODY = true;
+  private static final boolean PARSE_METHOD_BODY = false;
+  private static final String JAVA_SOURCE_FILE_REGEX = ".*.java";
+  private static final int JAVA_ROOT_PATH = 0;
+  private static final int  LENGTH_OF_SUFFIX = 5;
+
+  public EclipseJavaParser(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+
+    config.inject(this);
+
     logger = pLogger;
-    encoding = pEncoding;
-    version = pVersion;
+
     javaClassPaths = getJavaPaths(javaClasspath, javaRootPath);
 
     if (javaSourcepath.isEmpty()) {
