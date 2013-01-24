@@ -43,6 +43,7 @@ public class CLangSMG extends SMG {
 
   final private SMGObject nullObject = new SMGObject();
   final private int nullAddress = 0;
+  private boolean has_leaks = false;
 
   public CLangSMG() {
     SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
@@ -125,6 +126,13 @@ public class CLangSMG extends SMG {
 
   public Map<String, SMGObject> getGlobalObjects() {
     return Collections.unmodifiableMap(global_objects);
+  }
+
+  public boolean hasMemoryLeaks() {
+    // TODO: There needs to be a proper graph algorithm in the future
+    //       Right now, we can discover memory leaks only after unassigned
+    //       malloc call result, so we know that immediately.
+    return has_leaks;
   }
 }
 
