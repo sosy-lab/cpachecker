@@ -535,8 +535,7 @@ function getColumnIndicesForTarget(target) {
     for (i = 1; i < cells.length; i++) { // skip first cell
       if ($(cells[i]).is(":visible")) {
         if ("status" != cells[i].textContent
-            && tests[index-1] === columnsToTest[i-1]
-            && target.textContent == columnsToTest[i-1].name) {
+            && tests[index-1] === columnsToTest[i-1]) {
           columnIndizes.push(i);
         }
       }
