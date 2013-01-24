@@ -134,6 +134,10 @@ public class CLangSMG extends SMG {
     //       malloc call result, so we know that immediately.
     return has_leaks;
   }
+
+  public void setMemoryLeak(boolean pB) {
+    has_leaks = pB;
+  }
 }
 
 final class CLangStackFrame{

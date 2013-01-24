@@ -188,4 +188,8 @@ public class SMGState implements AbstractQueryableState {
   public void addPVEdge(SMGEdgePointsTo pNewPVEdge) {
     heap.addPointsToEdge(pNewPVEdge);
   }
+
+  public void setMemLeak() {
+    heap.setMemoryLeak(true);
+  }
 }
