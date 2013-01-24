@@ -62,6 +62,11 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("ARG.dot");
 
+  @Option(name="simplifiedARG.file",
+      description="export final ARG as .dot file, showing only loop heads and function entries/exits")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path simplifiedArgFile = Paths.get("ARGSimplified.dot");
+
   @Option(name="errorPath.export",
       description="export error path to file, if one is found")
   private boolean exportErrorPath = true;
@@ -231,6 +236,15 @@ public class ARGStatistics implements Statistics {
       try (Writer w = java.nio.file.Files.newBufferedWriter(argFile, Charset.defaultCharset())) {
         ARGState rootState = (ARGState)pReached.getFirstState();
         ARGUtils.convertARTToDot(w, rootState, null, getEdgesOfPath(targetPath));
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+    }
+
+    if (exportART && simplifiedArgFile != null) {
+      try (Writer w = java.nio.file.Files.newBufferedWriter(simplifiedArgFile, Charset.defaultCharset())) {
+        ARGState rootState = (ARGState)pReached.getFirstState();
+        ARGUtils.convertSimplifiedARGToDot(w, rootState);
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
       }

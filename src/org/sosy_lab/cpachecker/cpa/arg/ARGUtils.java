@@ -37,9 +37,13 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -49,7 +53,15 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.UnmodifiableIterator;
 
 /**
@@ -178,8 +190,77 @@ public class ARGUtils {
    * @throws IOException
    */
   public static void convertARTToDot(final Appendable sb, final ARGState rootState,
-      final Set<ARGState> displayedElements,
-      final Set<Pair<ARGState, ARGState>> highlightedEdges) throws IOException {
+      final @Nullable Set<ARGState> displayedElements,
+      final @Nullable Set<Pair<ARGState, ARGState>> highlightedEdges) throws IOException {
+
+    convertARGToDot(sb, rootState,
+        new Function<ARGState, Set<ARGState>>() {
+          @Override
+          public Set<ARGState> apply(ARGState pInput) {
+            return pInput.getChildren();
+          }
+        },
+        displayedElements == null ? Predicates.<ARGState>alwaysTrue() : Predicates.in(displayedElements),
+        highlightedEdges  == null ? Predicates.<Pair<ARGState, ARGState>>alwaysFalse() : Predicates.in(highlightedEdges));
+  }
+
+  /**
+   * Dump the ARG similar to {@link #convertARTToDot(Appendable, ARGState, Set, Set)},
+   * but include only loop head states and function entries/exists.
+   * @param sb Where to write the ARG into.
+   * @param rootState the root element of the ARG
+   * @throws IOException
+   */
+  public static void convertSimplifiedARGToDot(final Appendable sb, final ARGState rootState) throws IOException {
+
+    Predicate<ARGState> isRoot = new Predicate<ARGState>() {
+          @Override
+          public boolean apply(ARGState pInput) {
+            return pInput.getParents().isEmpty();
+          }
+        };
+
+    Predicate<AbstractState> atRelevantLocation = Predicates.compose(
+        new Predicate<CFANode>() {
+          @Override
+          public boolean apply(CFANode pInput) {
+            return pInput.isLoopStart()
+                || pInput instanceof FunctionEntryNode
+                || pInput instanceof FunctionExitNode;
+          }
+        },
+        AbstractStates.EXTRACT_LOCATION);
+
+
+    @SuppressWarnings("unchecked")
+    Predicate<ARGState> relevantState = Predicates.or(
+        isRoot,
+        AbstractStates.IS_TARGET_STATE,
+        atRelevantLocation
+        );
+
+    SetMultimap<ARGState, ARGState> successors = projectARG(rootState, relevantState);
+
+    convertARGToDot(sb, rootState,
+        Functions.forMap(successors.asMap(), ImmutableSet.<ARGState>of()),
+        Predicates.alwaysTrue(),
+        Predicates.alwaysFalse());
+  }
+
+  /**
+   * Create String with ARG in the DOT format of Graphviz.
+   * @param sb Where to write the ARG into.
+   * @param rootState the root element of the ARG
+   * @param successorFunction A function giving all successors of an ARGState. Only states reachable from root by iteratively applying this function will be dumped.
+   * @param displayedElements A predicate for selecting states that should be displayed. States which are only reachable via non-displayed states are ignored, too.
+   * @param highlightedEdges Which edges to highlight in the graph?
+   * @throws IOException
+   */
+  public static void convertARGToDot(final Appendable sb, final ARGState rootState,
+      final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
+      final Predicate<? super ARGState> toDisplay,
+      final Predicate<? super Pair<ARGState, ARGState>> highlightEdge) throws IOException {
+
     Deque<ARGState> worklist = new LinkedList<>();
     Set<Integer> nodesList = new HashSet<>();
     Set<ARGState> processed = new HashSet<>();
@@ -196,7 +277,7 @@ public class ARGUtils {
       if (processed.contains(currentElement)){
         continue;
       }
-      if (displayedElements != null && !displayedElements.contains(currentElement)) {
+      if (!toDisplay.apply(currentElement)) {
         continue;
       }
 
@@ -227,19 +308,20 @@ public class ARGUtils {
         edges.append(" [style=\"dashed\" weight=\"0\" label=\"covered by\"]\n");
       }
 
-      for (ARGState child : currentElement.getChildren()) {
+      for (ARGState child : successorFunction.apply(currentElement)) {
         edges.append(currentElement.getStateId());
         edges.append(" -> ");
         edges.append(child.getStateId());
         edges.append(" [");
 
-        boolean colored = highlightedEdges.contains(Pair.of(currentElement, child));
-        CFAEdge edge = currentElement.getEdgeToChild(child);
+        boolean colored = highlightEdge.apply(Pair.of(currentElement, child));
         if (colored) {
           edges.append("color=\"red\"");
         }
 
-        if (edge != null) {
+        if (currentElement.getChildren().contains(child)) {
+          CFAEdge edge = currentElement.getEdgeToChild(child);
+          assert edge != null;
           if (colored) {
             edges.append(" ");
           }
@@ -305,6 +387,56 @@ public class ARGUtils {
     }
 
     return builder.toString();
+  }
+
+  /**
+   * Project the ARG to a subset of "relevant" states.
+   * The result is a SetMultimap containing the successor relationships between all relevant states.
+   * A pair of states (a, b) is in the SetMultimap,
+   * if there is a path through the ARG from a to b which does not pass through
+   * any other relevant state.
+   *
+   * To get the predecessor relationship, you can use {@link Multimaps#invertFrom()}.
+   *
+   * @param root The start of the subgraph of the ARG to project.
+   * @param isRelevant The predicate determining which states are in the resulting relationship.
+   */
+  public static SetMultimap<ARGState, ARGState> projectARG(final ARGState root,
+      final Predicate<? super ARGState> isRelevant) {
+
+    SetMultimap<ARGState, ARGState> successors = HashMultimap.create();
+
+    // Our state is a stack of pairs of todo items.
+    // The first item of each pair is a relevant state,
+    // for which we are looking for relevant successor states.
+    // The second item is a state,
+    // whose children should be handled next.
+    Deque<Pair<ARGState, ARGState>> todo = new ArrayDeque<>();
+    Set<ARGState> visited = new HashSet<>();
+    todo.push(Pair.of(root, root));
+
+    while (!todo.isEmpty()) {
+      final Pair<ARGState, ARGState> currentPair = todo.pop();
+      final ARGState currentPredecessor = currentPair.getFirst();
+      final ARGState currentState = currentPair.getSecond();
+
+      if (!visited.add(currentState)) {
+        continue;
+      }
+
+      for (ARGState child : currentState.getChildren()) {
+        if (isRelevant.apply(child)) {
+          successors.put(currentPredecessor, child);
+
+          todo.push(Pair.of(child, child));
+
+        } else {
+          todo.push(Pair.of(currentPredecessor, child));
+        }
+      }
+    }
+
+    return successors;
   }
 
   /**

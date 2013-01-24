@@ -312,6 +312,10 @@ cpa.arg.file = "ARG.dot"
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
 
+# export final ARG as .dot file, showing only loop heads and function
+# entries/exits
+cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
+
 # signal the analysis to break in case of reached error state
 cpa.automaton.breakOnTargetState = true
 
