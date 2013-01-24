@@ -54,6 +54,10 @@
              The property used here is defined in build.xml according to the current Ant version. -->
         <dependency org="org.apache.ant" name="ant-junit" rev="${ant.version.exact}" transitive="false" conf="build->default"/>
 
+        <!-- Mockito
+             Mocking framework for tests. -->
+        <dependency org="org.mockito" name="mockito-core" rev="1.9.5" conf="test->default"/>
+
         <!-- Eclipse CDT
              Used for parsing C code. -->
         <dependency org="org.eclipse.cdt" name="core" rev="5.3.1.201109151620" conf="runtime->default; contrib->sources"/>
