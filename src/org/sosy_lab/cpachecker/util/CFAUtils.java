@@ -38,8 +38,11 @@ import java.util.TreeSet;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.base.Function;
@@ -371,7 +374,7 @@ public class CFAUtils {
     }
   }
 
-  public static Collection<Loop> findLoops(SortedSet<CFANode> nodes) throws ParserException {
+  public static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
     final int min = nodes.first().getNodeNumber();
     final int max = nodes.last().getNodeNumber();
     final int size = max + 1 - min;
@@ -422,7 +425,14 @@ public class CFAUtils {
 
     // check that the complete graph has collapsed
     if (!nodes.isEmpty()) {
-      throw new ParserException("Code structure is too complex, could not detect all loops!");
+      switch (language) {
+      case C:
+        throw new CParserException("Code structure is too complex, could not detect all loops!");
+      case JAVA:
+        throw new JParserException("Code structure is too complex, could not detect all loops!");
+      default:
+        throw new AssertionError("unknown language");
+      }
     }
 
     // THIRD step:

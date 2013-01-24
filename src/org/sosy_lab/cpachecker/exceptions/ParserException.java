@@ -51,21 +51,6 @@ public  class ParserException extends Exception {
     language = pLanguage;
   }
 
-  public ParserException(String msg) {
-    super(msg);
-    language = Language.UNSPECIFIED;
-  }
-
-  public ParserException(Throwable cause) {
-    super(cause.getMessage(), cause);
-    language = Language.UNSPECIFIED;
-  }
-
-  public ParserException(String msg, CFAEdge edge) {
-    super(UnrecognizedCCodeException.createMessage(msg, null, edge, null));
-    language = Language.UNSPECIFIED;
-  }
-
   public Language getLanguage() {
     return language;
   }

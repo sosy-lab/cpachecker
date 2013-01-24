@@ -29,7 +29,7 @@ package org.sosy_lab.cpachecker.cfa;
 public enum Language {
   C,
   JAVA,
-  UNSPECIFIED;
+  ;
 
   @Override
   public String toString() {
@@ -39,7 +39,7 @@ public enum Language {
     case JAVA:
       return "Java";
     default:
-      return "";
+      throw new AssertionError();
     }
   }
 }

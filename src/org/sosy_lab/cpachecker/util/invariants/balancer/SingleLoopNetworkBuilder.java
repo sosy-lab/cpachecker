@@ -35,11 +35,12 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -147,7 +148,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     SortedSet<CFANode> nodes = new TreeSet<>(getAllNodes());
     // Now ask CFAUtils to find any and all the loops in the counterexample path.
     try {
-      Collection<Loop> loops = CFAUtils.findLoops(nodes);
+      Collection<Loop> loops = CFAUtils.findLoops(nodes, Language.C);
 
       if (loops.size() > 1) {
         // there are too many loops

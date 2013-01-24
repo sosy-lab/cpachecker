@@ -121,9 +121,8 @@ public class CFACreator {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaFile = Paths.get("cfa.dot");
 
-  @Option(name ="language.java",
-      description="use language Java")
-  private boolean useJava = false;
+  @Option(description="C or Java?")
+  private Language language = Language.C;
 
   private final LogManager logger;
   private final Parser parser;
@@ -146,13 +145,17 @@ public class CFACreator {
 
     this.logger = logger;
 
-    if (useJava) {
-      parserInstantiationTime.start();
-      parser = new EclipseJavaParser(logger, config);
+    parserInstantiationTime.start();
 
-    } else {
-      parserInstantiationTime.start();
+    switch (language) {
+    case JAVA:
+      parser = new EclipseJavaParser(logger, config);
+      break;
+    case C:
       parser = CParser.Factory.getParser(logger, CParser.Factory.getOptions(config));
+      break;
+    default:
+      throw new AssertionError();
     }
 
     parsingTime = parser.getParseTime();
@@ -185,16 +188,7 @@ public class CFACreator {
 
       logger.log(Level.FINE, "Starting parsing of file");
 
-      ParseResult c;
-      Language language;
-
-      if (useJava) {
-        language = Language.JAVA;
-      } else {
-        language = Language.C;
-      }
-
-      c = parser.parseFile(filename);
+      ParseResult c = parser.parseFile(filename);
 
       logger.log(Level.FINE, "Parser Finished");
 
@@ -330,7 +324,7 @@ public class CFACreator {
       ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
       for (String functionName : cfa.getAllFunctionNames()) {
         SortedSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
-        loops.putAll(functionName, findLoops(nodes));
+        loops.putAll(functionName, findLoops(nodes, cfa.getLanguage()));
       }
       return Optional.of(loops.build());
 

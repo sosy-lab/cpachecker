@@ -31,10 +31,11 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -69,7 +70,7 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
   private Collection<Loop> findLoops() {
     Collection<Loop> loops;
     try {
-      loops = CFAUtils.findLoops(nodeSet);
+      loops = CFAUtils.findLoops(nodeSet, Language.C);
     } catch (Exception e) {
       logger.log(Level.FINEST, "While constructing path program, could not detect all loops.");
       loops = null;

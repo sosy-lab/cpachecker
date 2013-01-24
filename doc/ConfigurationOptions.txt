@@ -711,6 +711,9 @@ cpa.predicate.refinement.shortestCexTraceUseSuffix = false
 # trace
 cpa.predicate.refinement.shortestCexTraceZigZag = false
 
+# slice block formulas, experimental feature!
+cpa.predicate.refinement.sliceBlockFormulas = false
+
 # split each arithmetic equality into two inequalities when extracting
 # predicates from interpolants
 # split arithmetic equalities when extracting predicates from interpolants
@@ -776,11 +779,26 @@ cpa.uninitvars.stop = "sep"
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 
-# use Language java with following src Path
+# Specify the class code path to search for java class or interface
+# definitions
+java.classpath = ""
+
+# use the following encoding for java files
 java.encoding = "utf8"
-java.rootPath = no default value
+
+# Java path that contains the main class
+java.rootPath = ""
+
+# Specify the source code path to search for java class or interface
+# definitions
+java.sourcepath = ""
+
+# Specifies the java version of source code accepted
 java.version = JavaCore.VERSION_1_7
-language.java = false
+
+# C or Java?
+language = C
+  enum:     [C, JAVA]
 
 # C dialect for parser
 parser.dialect = GNUC
