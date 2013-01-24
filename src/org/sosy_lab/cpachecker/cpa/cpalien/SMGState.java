@@ -171,8 +171,7 @@ public class SMGState implements AbstractQueryableState {
 
   @Override
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
-    // TODO Auto-generated method stub
-    return null;
+    return checkProperty(pProperty);
   }
 
   @Override
