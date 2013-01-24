@@ -511,7 +511,7 @@ $(document).ready(function() {
 
 // simple structure, that contains all data for the plot
 var graphData = {
-  header : null,
+  target : null,
   isRunSet : null,
   filenames : null,
   indices : null, // columns from table
@@ -525,19 +525,26 @@ var graphData = {
   showCorrectOnly : true,
 };
 
-// this function collects the indices of columns with title "header"
-function getColumnIndicesForHeader(header) {
+// this function collects the indices of columns with target as cell above the column
+function getColumnIndicesForTarget(target) {
   var columnIndizes = [];
   var cells = document.getElementById('columnTitles').cells;
 
-  for (i = 1; i < cells.length; i++) { // skip first cell
-    if ($(cells[i]).is(":visible")) {
-      if (graphData.isRunSet) {
-        if ("status" != cells[i].textContent && header == columnsToTest[i-1].name) {
+  if (graphData.isRunSet) {
+    var index = $(target).index(); // index of runset relative to table-row
+    for (i = 1; i < cells.length; i++) { // skip first cell
+      if ($(cells[i]).is(":visible")) {
+        if ("status" != cells[i].textContent
+            && tests[index-1] === columnsToTest[i-1]
+            && target.textContent == columnsToTest[i-1].name) {
           columnIndizes.push(i);
         }
-      } else {
-        if (header == cells[i].textContent) {
+      }
+    }
+  } else {
+    for (i = 1; i < cells.length; i++) { // skip first cell
+      if ($(cells[i]).is(":visible")) {
+        if (target.textContent == cells[i].textContent) {
           columnIndizes.push(i);
         }
       }
@@ -552,7 +559,7 @@ function getColumnIndicesForHeader(header) {
 function collectTableData() {
   var data = [];
 
-  graphData.indices = getColumnIndicesForHeader(graphData.header);
+  graphData.indices = getColumnIndicesForTarget(graphData.target);
   for (j = 0; j < graphData.indices.length; j++) {
     data.push([]);
   }
@@ -582,7 +589,7 @@ function collectTableData() {
       if (graphData.showCorrectOnly && currentCell.className.indexOf('correct') != 0) {
         value = Number.NaN;  // using 'null' as unknown value causes problems in the plot
 
-      } else if (graphData.header === 'status') {
+      } else if (graphData.target.textContent === 'status') {
         if (currentCell.className.indexOf('correct') == 0)     value = 1;
         else if (currentCell.className.indexOf('wrong') == 0)  value = -1;
         else                                                   value = 0;
@@ -673,7 +680,7 @@ function getXTicks() {
 
 // get labels for y-direction
 function getYTicks() {
-  if (graphData.header == "status") {
+  if (graphData.target.textContent == "status") {
     return [[-1.5, " "], [-1, "wrong"], [0, "unknown"], [1, "correct"], [1.5, " "]];
   } else {
     return [];
@@ -735,7 +742,7 @@ function addLegendActions() {
 function highlightFormatter(str, seriesIndex, pointIndex) {
     var numberOfFile = graphData.originalData[seriesIndex][pointIndex][0];
     var filename = graphData.filenames[numberOfFile];
-    if (graphData.header == "status") {
+    if (graphData.target.textContent == "status") {
       if (str == 1)       str = "correct";
       else if (str == 0)  str = "unknown";
       else                str = "wrong";
@@ -798,7 +805,7 @@ function showPlot() {
   collectTableData();
 
   var plot = $.jqplot('chart', graphData.data, {
-    title: graphData.header,
+    title: graphData.target.textContent,
     legend: {
       show:true,
       placement: 'outsideGrid',
@@ -837,7 +844,7 @@ function showPlot() {
       },
       yaxis:{
         ticks: getYTicks(),
-        renderer: (graphData.isLogScale && graphData.header !== 'status') ? $.jqplot.LogAxisRenderer : $.jqplot.LinearAxisRenderer,
+        renderer: (graphData.isLogScale && graphData.target.textContent !== 'status') ? $.jqplot.LogAxisRenderer : $.jqplot.LinearAxisRenderer,
         pad: 1.2,
         tickOptions:{
           formatString: getYTicksFormat()
@@ -860,7 +867,7 @@ $(document).ready(function() {
       .addClass("clickable")
       .attr("title", "Click here to show a graph of this column")
     column.onclick = function (event) {
-      graphData.header = event.target.textContent;
+      graphData.target = event.target;
       graphData.isRunSet = false;
       showPlot();
     }
@@ -874,7 +881,7 @@ $(document).ready(function() {
       .addClass("clickable")
       .attr("title", "Click here to show a graph of this run-set")
     column.onclick = function (event) {
-      graphData.header = event.target.textContent;
+      graphData.target = event.target;
       graphData.isRunSet = true;
       showPlot();
     }
