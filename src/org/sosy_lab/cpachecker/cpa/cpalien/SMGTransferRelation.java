@@ -110,8 +110,8 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     public Integer evaluateMalloc(CFunctionCallExpression pFunctionCall, SMGState pCurrentState, CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
-      ExpressionValueVisitor v = new ExpressionValueVisitor(pCfaEdge, pCurrentState);
-      Integer value = pFunctionCall.getParameterExpressions().get(0) .accept(v);
+      MallocArgumentVisitor v = new MallocArgumentVisitor();
+      BigInteger value = pFunctionCall.getParameterExpressions().get(0) .accept(v);
 
       if (value == null){
         throw new UnrecognizedCCodeException("Not able to compute allocation size", pCfaEdge);
@@ -480,6 +480,44 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public Integer visit(CCastExpression cast) throws UnrecognizedCCodeException {
       return cast.getOperand().accept(this);
+    }
+  }
+
+  private class MallocArgumentVisitor extends DefaultCExpressionVisitor<BigInteger, UnrecognizedCCodeException>
+  implements CRightHandSideVisitor<BigInteger, UnrecognizedCCodeException>
+  {
+    @Override
+    protected BigInteger visitDefault(CExpression pExp) {
+      return null;
+    }
+
+    @Override
+    public BigInteger visit(CIntegerLiteralExpression exp) throws UnrecognizedCCodeException {
+      return exp.getValue();
+    }
+
+    @Override
+    public BigInteger visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
+
+      UnaryOperator unaryOperator = unaryExpression.getOperator();
+      CExpression unaryOperand = unaryExpression.getOperand();
+
+      switch (unaryOperator) {
+
+      case AMPER:
+      case NOT:
+      case TILDE:
+      case SIZEOF:
+        //TODO: Implement sizeof
+      default:
+        return null;
+      }
+    }
+
+    @Override
+    public BigInteger visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+      // TODO Auto-generated method stub
+      return null;
     }
   }
 
