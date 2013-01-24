@@ -88,7 +88,7 @@ public class SMGTransferRelation implements TransferRelation {
   final private LogManager logger;
   final private MachineModel machineModel;
 
-  private static final Set<String> BUILTINS = new HashSet<String>(Arrays.asList(
+  private static final Set<String> BUILTINS = new HashSet<>(Arrays.asList(
       new String[] {"__VERIFIER_BUILTIN_PLOT"}));
 
   public SMGTransferRelation(Configuration config, LogManager pLogger,
