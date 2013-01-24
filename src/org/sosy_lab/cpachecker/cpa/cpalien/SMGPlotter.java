@@ -124,11 +124,11 @@ public final class SMGPlotter {
   }
 
   private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge) {
-    return objectIndex.get(pEdge.getObject()) + " -> value_" + pEdge.getValue() + "[label=\"+" + pEdge.getOffset() + "b\"];";
+    return objectIndex.get(pEdge.getObject()) + " -> value_" + pEdge.getValue() + "[label=\"[" + pEdge.getOffset() + "]\"];";
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()) + ";";
+    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()) + "[label=\"+" + pEdge.getOffset() + "b\"];";
   }
 
   private static String smgObjectAsDot(SMGObject pObject){

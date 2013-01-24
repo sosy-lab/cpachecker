@@ -64,7 +64,7 @@ public class SMGState implements AbstractQueryableState {
     return heap.getObjectForVariable(pVariableName);
   }
 
-  public void insertNewHasValueEdge(SMGEdgeHasValue pNewEdge) {
+  public void addHVEdge(SMGEdgeHasValue pNewEdge) {
     heap.addHasValueEdge(pNewEdge);
     performConsistencyCheck();
   }
@@ -179,5 +179,13 @@ public class SMGState implements AbstractQueryableState {
   public void modifyProperty(String pModification) throws InvalidQueryException {
     // TODO Auto-generated method stub
 
+  }
+
+  public void addHeapObject(SMGObject pNewObject) {
+    heap.addHeapObject(pNewObject);
+  }
+
+  public void addPVEdge(SMGEdgePointsTo pNewPVEdge) {
+    heap.addPointsToEdge(pNewPVEdge);
   }
 }

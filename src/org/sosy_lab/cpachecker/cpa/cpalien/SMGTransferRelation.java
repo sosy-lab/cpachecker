@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -88,8 +89,53 @@ public class SMGTransferRelation implements TransferRelation {
   final private LogManager logger;
   final private MachineModel machineModel;
 
-  private static final Set<String> BUILTINS = new HashSet<>(Arrays.asList(
-      new String[] {"__VERIFIER_BUILTIN_PLOT"}));
+  private final class SMGBuiltins {
+    private final Set<String> BUILTINS = new HashSet<>(Arrays.asList(
+        new String[] {
+                      "__VERIFIER_BUILTIN_PLOT",
+                      "malloc",
+                     }));
+
+    public Integer evaluateVBPlot(CFunctionCallExpression pFunctionCall, SMGState pCurrentState) {
+      if (exportSMGFilePattern != null) {
+        String name = ((CStringLiteralExpression)pFunctionCall.getParameterExpressions().get(0)).getContentString();
+        File outputFile = new File(String.format(exportSMGFilePattern.getAbsolutePath(), name));
+        try {
+          Files.writeFile(outputFile, pCurrentState.toDot(name));
+        } catch (IOException e){
+          logger.logUserException(Level.WARNING, e, "Could not write SMG " + name + " to file");
+        }
+      }
+      return null;
+    }
+
+    public Integer evaluateMalloc(CFunctionCallExpression pFunctionCall, SMGState pCurrentState, CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
+      ExpressionValueVisitor v = new ExpressionValueVisitor(pCfaEdge, pCurrentState);
+      Integer value = pFunctionCall.getParameterExpressions().get(0) .accept(v);
+
+      if (value == null){
+        throw new UnrecognizedCCodeException("Not able to compute allocation size", pCfaEdge);
+      }
+      //TODO: Implement malloc failing
+      //TODO: Augment with line information
+      SMGObject newObject = new SMGObject(value.intValue(), "malloc");
+      Integer newValue = SMGValueFactory.getNewValue();
+      SMGEdgePointsTo newPVEdge = new SMGEdgePointsTo(newValue.intValue(), newObject, 0);
+
+      pCurrentState.addValue(newValue);
+      pCurrentState.addHeapObject(newObject);
+      pCurrentState.addPVEdge(newPVEdge);
+
+      return newValue;
+    }
+
+    public boolean isABuiltIn(String pFunctionName) {
+      return BUILTINS.contains(pFunctionName);
+    }
+  }
+
+  final private SMGBuiltins builtins = new SMGBuiltins();
+
 
   public SMGTransferRelation(Configuration config, LogManager pLogger,
       MachineModel pMachineModel) throws InvalidConfigurationException {
@@ -139,10 +185,19 @@ public class SMGTransferRelation implements TransferRelation {
       CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
       String functionName = fileNameExpression.toASTString();
 
-      if (isABuiltIn(functionName)){
-        newState = handleBuiltin(pState, functionName, cFCExpression.getParameterExpressions());
+      if (builtins.isABuiltIn(functionName)){
+        newState = new SMGState(pState);
+        switch(functionName){
+          case "__VERIFIER_BUILTIN_PLOT":
+            builtins.evaluateVBPlot(cFCExpression, newState);
+            break;
+          case "malloc":
+            logger.log(Level.WARNING, "Calling malloc and not using the result, resulting in memory leak at line " + pCfaEdge.getLineNumber());
+            builtins.evaluateMalloc(cFCExpression, newState, pCfaEdge);
+        }
       }
       else{
+        logger.log(Level.FINEST,  ">>> Handling statement: non-builtin function call");
         newState = new SMGState(pState);
       }
     }
@@ -150,32 +205,8 @@ public class SMGTransferRelation implements TransferRelation {
     {
       newState = new SMGState(pState);
     }
-    return newState;
-  }
-
-  private SMGState handleBuiltin(SMGState pState, String pFunctionName, List<CExpression> pParameterExpressions) {
-    SMGState newState;
-    if (pFunctionName == "__VERIFIER_BUILTIN_PLOT"){
-      if (exportSMGFilePattern != null) {
-        String name = ((CStringLiteralExpression)pParameterExpressions.get(0)).getContentString();
-        File outputFile = new File(String.format(exportSMGFilePattern.getAbsolutePath(), name));
-        try {
-          Files.writeFile(outputFile, pState.toDot(name));
-        } catch (IOException e){
-          logger.logUserException(Level.WARNING, e, "Could not write SMG " + name + " to file");
-        }
-      }
-      newState = new SMGState(pState);
-    }
-    else {
-      newState = new SMGState(pState);
-    }
 
     return newState;
-  }
-
-  private boolean isABuiltIn(String pFunctionName) {
-    return BUILTINS.contains(pFunctionName);
   }
 
   private SMGState handleAssignment(SMGState pState, CStatementEdge pCfaEdge, CExpression pLValue,
@@ -196,6 +227,7 @@ public class SMGTransferRelation implements TransferRelation {
   private SMGState handleVariableAssignment(SMGState pState, CStatementEdge pCfaEdge, CIdExpression pVariableName,
       CRightHandSide pRValue, CType pType) throws UnrecognizedCCodeException {
     SMGState newState = new SMGState(pState);
+    logger.log(Level.FINEST,  ">>> Handling statement: variable assignment");
 
     SMGObject assigned = pState.getObjectForVariable(pVariableName);
     if (assigned.getSizeInBytes() < machineModel.getSizeof(pType)){
@@ -218,9 +250,8 @@ public class SMGTransferRelation implements TransferRelation {
       }
     }
 
-    newState.addValue(value);
     SMGEdgeHasValue newEdge = new SMGEdgeHasValue(pType, 0, assigned, value);
-    newState.insertNewHasValueEdge(newEdge);
+    newState.addHVEdge(newEdge);
 
     return newState;
   }
@@ -428,9 +459,28 @@ public class SMGTransferRelation implements TransferRelation {
 
     @Override
     public Integer visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+      CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
+      String functionName = fileNameExpression.toASTString();
+
+      if (builtins.isABuiltIn(functionName)){
+        switch(functionName){
+          case "__VERIFIER_BUILTIN_PLOT":
+            return builtins.evaluateVBPlot(pIastFunctionCallExpression, smgState);
+          case "malloc":
+            return builtins.evaluateMalloc(pIastFunctionCallExpression, smgState, edge);
+        }
+      }
+      else{
+        return null;
+      }
+
       return null;
     }
 
+    @Override
+    public Integer visit(CCastExpression cast) throws UnrecognizedCCodeException {
+      return cast.getOperand().accept(this);
+    }
   }
 
   /**
