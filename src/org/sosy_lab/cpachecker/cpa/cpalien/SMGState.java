@@ -28,9 +28,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class SMGState implements AbstractState {
+public class SMGState implements AbstractQueryableState {
   private final CLangSMG heap;
   private final LogManager logger;
 
@@ -148,5 +149,35 @@ public class SMGState implements AbstractState {
   public boolean isLessOrEqual(SMGState reachedState) {
     // TODO Auto-generated method stub
     return false;
+  }
+
+  @Override
+  public String getCPAName() {
+    return "CPAlien";
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    // SMG Properties:
+    // has-leaks:boolean
+
+    switch(pProperty){
+      case "has-leaks":
+        return heap.hasMemoryLeaks();
+      default:
+        throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
+    }
+  }
+
+  @Override
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public void modifyProperty(String pModification) throws InvalidQueryException {
+    // TODO Auto-generated method stub
+
   }
 }
