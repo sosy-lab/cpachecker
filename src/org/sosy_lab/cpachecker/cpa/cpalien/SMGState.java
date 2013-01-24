@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.util.logging.Level;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -37,27 +39,25 @@ public class SMGState implements AbstractQueryableState {
 
   public SMGState(LogManager pLogger){
     heap = new CLangSMG();
-
     logger = pLogger;
-
-    performConsistencyCheck();
   }
 
   public SMGState(SMGState originalState){
     heap = new CLangSMG(originalState.heap);
     logger = originalState.logger;
-
-    performConsistencyCheck();
   }
 
   void addStackObject(SMGObject obj){
-    heap.addStackObject(obj);
-    performConsistencyCheck();
+    try {
+      heap.addStackObject(obj);
+    } catch (IllegalAccessException e) {
+      logger.log(Level.SEVERE, e.getMessage());
+      e.printStackTrace();
+    }
   }
 
   public void addValue(int pValue) {
     heap.addValue(Integer.valueOf(pValue));
-    performConsistencyCheck();
   }
 
   public SMGObject getObjectForVariable(CIdExpression pVariableName) {
@@ -66,7 +66,6 @@ public class SMGState implements AbstractQueryableState {
 
   public void addHVEdge(SMGEdgeHasValue pNewEdge) {
     heap.addHasValueEdge(pNewEdge);
-    performConsistencyCheck();
   }
 
   public void performConsistencyCheck(){

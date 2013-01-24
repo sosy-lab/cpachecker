@@ -86,10 +86,10 @@ public final class SMGPlotter {
   }
 
   private void addStackItemSubgraph(CLangStackFrame pStackFrame, StringBuilder pSb, int pIndex) {
-    pSb.append(newLineWithOffset("subgraph cluster_stack_" + pStackFrame.getFunctionName() + "{"));
+    pSb.append(newLineWithOffset("subgraph cluster_stack_" + pStackFrame.getFunctionDeclaration().getName() + "{"));
     offset += 2;
     pSb.append(newLineWithOffset("fontcolor=blue;"));
-    pSb.append(newLineWithOffset("label=\"" + pStackFrame.getFunctionSignature() + "\";"));
+    pSb.append(newLineWithOffset("label=\"" + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
 
     pSb.append(newLineWithOffset(smgScopeFrameAsDot(pStackFrame.getVariables(), String.valueOf(pIndex))));
 

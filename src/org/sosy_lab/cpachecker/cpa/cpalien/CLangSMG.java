@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -75,7 +76,7 @@ public class CLangSMG extends SMG {
     super.addObject(pObject);
   }
 
-  public void addStackObject(SMGObject pObj) {
+  public void addStackObject(SMGObject pObj) throws IllegalAccessException {
     super.addObject(pObj);
     stack_objects.peek().addStackVariable(pObj.getLabel(), pObj);
   }
@@ -140,43 +141,98 @@ public class CLangSMG extends SMG {
   }
 }
 
+/**
+ * Represents a C language stack frame
+ */
 final class CLangStackFrame{
-  private final CFunctionDeclaration stackFunction;
+
+  /**
+   * Function to which this stack frame belongs
+   */
+  private final CFunctionDeclaration stack_function;
+
+  /**
+   * A mapping from variable names to a set of SMG objects, representing
+   * local variables.
+   */
   final HashMap <String, SMGObject> stack_variables = new HashMap<>();
 
+  /**
+   * Constructor. Creates an empty frame.
+   *
+   * @param pFunctionDeclaration Function for which the frame is created
+   *
+   * TODO: Create objects for function parameters
+   */
   public CLangStackFrame(CFunctionDeclaration pFunctionDeclaration){
-    stackFunction = pFunctionDeclaration;
+    stack_function = pFunctionDeclaration;
   }
 
+  /**
+   * Copy constructor.
+   *
+   * @param origFrame
+   */
+  public CLangStackFrame(CLangStackFrame origFrame){
+    stack_function = origFrame.stack_function;
+    stack_variables.putAll(origFrame.stack_variables);
+  }
+
+  /**
+   * @param pName Variable name
+   * @return SMG object corresponding to pName in the frame
+   */
   public SMGObject getVariable(String pName) {
-    return stack_variables.get(pName);
+    SMGObject to_return = stack_variables.get(pName);
+
+    if (to_return == null){
+      throw new NoSuchElementException("No variable with name '" +
+                                       pName + "' in stack frame for function '" +
+                                       stack_function.toASTString() + "'");
+    }
+
+    return to_return;
   }
 
+  /**
+   * @param pName Variable name
+   * @return True if variable pName is present, false otherwise
+   */
   public boolean containsVariable(String pName) {
     return stack_variables.containsKey(pName);
   }
 
-  public void addStackVariable(String pLabel, SMGObject pObj) {
-    stack_variables.put(pLabel, pObj);
+  /**
+   * Adds a SMG object pObj to a stack frame, representing variable pVariableName
+   * @param pLabel
+   * @param pObj
+   */
+  public void addStackVariable(String pVariableName, SMGObject pObj) {
+    if (stack_variables.containsKey(pVariableName)){
+      throw new IllegalArgumentException("Stack frame for function '" +
+                                       stack_function.toASTString() +
+                                       "' already contains a variable '" +
+                                       pVariableName + "'");
+    }
+    stack_variables.put(pVariableName, pObj);
   }
 
-  public CLangStackFrame(CLangStackFrame origFrame){
-    stackFunction = origFrame.stackFunction;
-    stack_variables.putAll(origFrame.stack_variables);
+  /**
+   * @return Declaration of a function corresponding to the frame
+   *
+   * TODO: Test
+   */
+  public CFunctionDeclaration getFunctionDeclaration() {
+    return stack_function;
   }
 
-  public String getFunctionSignature() {
-    return stackFunction.toASTString();
-  }
-
+  /**
+   * @return a mapping from variables name to SMGObjects
+   */
   public HashMap<String, SMGObject> getVariables() {
     HashMap<String, SMGObject> variableMap = new HashMap<>();
     variableMap.putAll(stack_variables);
     return variableMap;
-  }
-
-  public String getFunctionName() {
-    return stackFunction.getName();
   }
 }
 
