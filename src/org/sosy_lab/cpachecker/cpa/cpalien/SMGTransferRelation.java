@@ -193,7 +193,7 @@ public class SMGTransferRelation implements TransferRelation {
             break;
           case "malloc":
             logger.log(Level.WARNING, "Calling malloc and not using the result, resulting in memory leak at line " + pCfaEdge.getLineNumber());
-            pState.setMemLeak();
+            newState.setMemLeak();
             builtins.evaluateMalloc(cFCExpression, newState, pCfaEdge);
         }
       }
