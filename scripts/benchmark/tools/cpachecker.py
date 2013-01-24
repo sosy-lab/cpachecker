@@ -1,4 +1,6 @@
+import logging
 import subprocess
+import sys
 
 import benchmark.util as Util
 import benchmark.tools.template
