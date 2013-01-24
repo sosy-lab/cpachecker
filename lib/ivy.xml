@@ -48,7 +48,7 @@
 
         <!-- JUnit
              Testing framework. -->
-        <dependency org="junit" name="junit" rev="4.10" conf="test->default"/>
+        <dependency org="junit" name="junit" rev="4.11" conf="test->default"/>
 
         <!-- The JUnit task for Ant so that we can run the tests.
              The property used here is defined in build.xml according to the current Ant version. -->
