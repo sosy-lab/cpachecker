@@ -150,17 +150,6 @@ public class SMGTransferRelation implements TransferRelation {
     {
       newState = new SMGState(pState);
     }
-//TODO: Emitting SMG plot on each step should be optional
-//    if (exportSMGFilePattern != null) {
-//      String name = "line-" + pCfaEdge.getLineNumber();
-//      File outputFile = new File(String.format(exportSMGFilePattern.getAbsolutePath(), name));
-//      try {
-//        Files.writeFile(outputFile, newState.toDot(name));
-//      } catch (IOException e){
-//        logger.logUserException(Level.WARNING, e, "Could not write SMG " + name + " to file");
-//      }
-//    }
-
     return newState;
   }
 
@@ -228,8 +217,6 @@ public class SMGTransferRelation implements TransferRelation {
         value = newState.nextFreeValue();
       }
     }
-
-
 
     newState.addValue(value);
     SMGEdgeHasValue newEdge = new SMGEdgeHasValue(pType, 0, assigned, value);
