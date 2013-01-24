@@ -259,6 +259,10 @@ class RunSet:
         # index is the number of the run set
         self.index = index
 
+        self.logFolder = benchmark.logFolder
+        if self.realName:
+            self.logFolder += self.realName + "."
+
         # get all run-set-specific options from rundefinitionTag
         self.options = benchmark.options + getOptionsFromXML(rundefinitionTag)
 
@@ -271,10 +275,6 @@ class RunSet:
             # there is exactly one source-file set to run, append its name to run-set name
             names.append(self.blocks[0].realName)
         self.name = '.'.join(filter(None, names))
-
-        self.logFolder = benchmark.logFolder
-        if self.name:
-            self.logFolder += self.name + "."
 
 
     def shouldBeExecuted(self):
@@ -909,9 +909,9 @@ class OutputHandler:
         runsElem.set("options", " ".join(runSet.options))
         if blockname is not None:
             runsElem.set("block", blockname)
-            runsElem.set("name", ((runSet.name + ".") if runSet.name else "") + blockname)
-        elif runSet.name:
-            runsElem.set("name", runSet.name)
+            runsElem.set("name", ((runSet.realName + ".") if runSet.realName else "") + blockname)
+        elif runSet.realName:
+            runsElem.set("name", runSet.realName)
 
         # collect XMLelements from all runs
         for run in runs: runsElem.append(run.xml)
