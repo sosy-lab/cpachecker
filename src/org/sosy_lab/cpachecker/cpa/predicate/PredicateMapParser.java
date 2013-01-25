@@ -27,8 +27,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -104,16 +106,19 @@ public class PredicateMapParser {
 
   private final CFA cfa;
 
+  private final LogManager logger;
   private final FormulaManager fmgr;
   private final AbstractionManager amgr;
 
   private final Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
 
   public PredicateMapParser(Configuration config, CFA pCfa,
+      LogManager pLogger,
       FormulaManager pFmgr, AbstractionManager pAmgr) throws InvalidConfigurationException {
     config.inject(this);
 
     cfa = pCfa;
+    logger = pLogger;
     fmgr = pFmgr;
     amgr = pAmgr;
   }
@@ -214,10 +219,12 @@ public class PredicateMapParser {
           // a section with a function name
 
           if (!cfa.getAllFunctionNames().contains(currentLine)) {
-            throw new PredicateMapParsingFailedException(currentLine + " is an unknown function", source, lineNo);
-          }
+            logger.log(Level.WARNING, "Cannot use predicates for function", currentLine + ", this function does not exist.");
+            currentSet = new HashSet<>(); // temporary set which will be thrown away and ignored
 
-          currentSet = functionPredicates.get(currentLine);
+          } else {
+            currentSet = functionPredicates.get(currentLine);
+          }
 
         } else {
           Matcher matcher = CFA_NODE_PATTERN.matcher(currentLine);
@@ -228,11 +235,21 @@ public class PredicateMapParser {
             int nodeId = Integer.parseInt(matcher.group(2)); // does not fail, we checked with regexp
 
             if (applyFunctionWide) {
-              currentSet = functionPredicates.get(function);
+              if (!cfa.getAllFunctionNames().contains(function)) {
+                logger.log(Level.WARNING, "Cannot use predicates for function", function + ", this function does not exist.");
+                currentSet = new HashSet<>(); // temporary set which will be thrown away and ignored
+              } else {
+                currentSet = functionPredicates.get(function);
+              }
 
             } else {
               CFANode node = getCFANodeWithId(nodeId);
-              currentSet = localPredicates.get(node);
+              if (node == null) {
+                logger.log(Level.WARNING, "Cannot use predicates for CFANode", nodeId + ", this node does not exist.");
+                currentSet = new HashSet<>(); // temporary set which will be thrown away and ignored
+              } else {
+                currentSet = localPredicates.get(node);
+              }
             }
 
           } else {

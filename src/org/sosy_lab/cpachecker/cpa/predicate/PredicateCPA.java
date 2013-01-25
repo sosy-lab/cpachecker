@@ -191,7 +191,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     if (predicatesFile != null) {
       try {
-        PredicateMapParser parser = new PredicateMapParser(config, cfa, formulaManager, abstractionManager);
+        PredicateMapParser parser = new PredicateMapParser(config, cfa, logger, formulaManager, abstractionManager);
         return parser.parsePredicates(predicatesFile, initialPredicates);
 
       } catch (IOException e) {
