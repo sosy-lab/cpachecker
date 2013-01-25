@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import static junit.framework.Assert.*;
+import static org.junit.Assert.*;
 import static org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval.*;
 
 import java.math.BigInteger;

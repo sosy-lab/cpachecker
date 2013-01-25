@@ -35,8 +35,8 @@ import java.util.logging.Level;
 
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
-import junit.framework.Assert;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
