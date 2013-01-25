@@ -122,7 +122,7 @@ public abstract class AbstractEclipseCParser<T> implements CParser {
       throw new CParserException("Not exactly one statement in function body: " + body);
     }
 
-    return new ASTConverter(new Scope(), logger).convert(statements[0]);
+    return new ASTConverter(new FunctionScope(), logger).convert(statements[0]);
   }
 
   protected static final int PARSER_OPTIONS =

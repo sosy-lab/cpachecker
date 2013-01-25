@@ -695,7 +695,7 @@ class ASTConverter {
       if (cStorageClass == CStorageClass.STATIC) {
         if (!isGlobal) {
           isGlobal = true;
-          name = "static__" + scope.getCurrentFunctionName() + "__" + name;
+          name = "static__" + ((FunctionScope)scope).getCurrentFunctionName() + "__" + name;
         }
         cStorageClass = CStorageClass.AUTO;
       }

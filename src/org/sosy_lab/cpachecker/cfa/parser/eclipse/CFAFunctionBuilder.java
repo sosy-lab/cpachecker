@@ -145,7 +145,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private FunctionEntryNode cfa = null;
   private final List<CFANode> cfaNodes = new ArrayList<>();
 
-  private final Scope scope;
+  private final FunctionScope scope;
   private final ASTConverter astCreator;
 
   private final LogManager logger;
@@ -153,11 +153,11 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private boolean encounteredAsm = false;
 
-  public CFAFunctionBuilder(LogManager pLogger, Scope pScope, ASTConverter pAstCreator) {
+  public CFAFunctionBuilder(LogManager pLogger, FunctionScope pScope) {
 
     logger = pLogger;
     scope = pScope;
-    astCreator = pAstCreator;
+    astCreator = new ASTConverter(pScope, pLogger);
     checkBinding = new CheckBindingVisitor(pLogger);
 
     shouldVisitDeclarations = true;
@@ -187,7 +187,6 @@ class CFAFunctionBuilder extends ASTVisitor {
   void finish() {
     assert astCreator.getAndResetPreSideAssignments().isEmpty();
     assert astCreator.getAndResetPostSideAssignments().isEmpty();
-    assert scope.isGlobalScope();
     assert locStack.isEmpty();
     assert loopStartStack.isEmpty();
     assert loopNextStack.isEmpty();
@@ -406,8 +405,6 @@ class CFAFunctionBuilder extends ASTVisitor {
       // remove node which were created but aren't part of CFA (e.g. because of dead code)
       cfaNodes.retainAll(reachableNodes);
       assert cfaNodes.size() == reachableNodes.size(); // they should be equal now
-
-      scope.leaveFunction();
     }
 
     return PROCESS_CONTINUE;

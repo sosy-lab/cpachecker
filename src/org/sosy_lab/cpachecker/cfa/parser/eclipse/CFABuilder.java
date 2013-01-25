@@ -47,10 +47,12 @@ import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
@@ -77,7 +79,7 @@ class CFABuilder extends ASTVisitor {
   private final Map<String, Boolean> globalInitializedVariables = new HashMap<>();
 
 
-  private final Scope scope = new Scope();
+  private final GlobalScope scope = new GlobalScope();
   private final ASTConverter astCreator;
 
   private final LogManager logger;
@@ -232,9 +234,12 @@ class CFABuilder extends ASTVisitor {
 
   @Override
   public int leave(IASTTranslationUnit translationUnit) {
+    ImmutableMap<String, CFunctionDeclaration> functions = scope.getFunctions();
+    ImmutableMap<String, CSimpleDeclaration> globalVars = scope.getGlobalVars();
+
     for (IASTFunctionDefinition declaration : functionDeclarations) {
-      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger,
-          scope, astCreator);
+      FunctionScope localScope = new FunctionScope(functions, globalVars);
+      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, localScope);
 
       declaration.accept(functionBuilder);
 
