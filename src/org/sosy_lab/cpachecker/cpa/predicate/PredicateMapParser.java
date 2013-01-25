@@ -29,10 +29,15 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -62,16 +67,20 @@ import com.google.common.collect.Sets;
  *   number of lines of the format "(declare-fun ...)" or "(define-fun ...)"
  *   with definitions in SMTLIB2 format.
  * - Every section except the first one starts with a line of the format "key:",
- *   where key is either "*", a function name of the program, or a node of the CFA
- *   (identified by "Nid", where id is the node number).
+ *   where key is either "*", "<FUNC>", or "<FUNC> N<ID>", with
+ *   <FUNC> being a function name of the program,
+ *   and <ID> being a CFA node id.
  *   This line defines where the following predicates are to be used.
  * - The following lines of the section contain SMTLIB2 statements of the form
  *   "(assert ...)". Each asserted term will be used as one predicate.
  */
+@Options(prefix="cpa.predicate.abstraction.initialPredicates")
 public class PredicateMapParser {
 
-  private static final Pattern CFA_NODE_PATTERN = Pattern.compile("^N[0-9][0-9]*");
-  private static final Pattern FUNCTION_NAME_PATTERN = Pattern.compile("^[_a-zA-Z][_a-zA-Z0-9]*$");
+  private static final String FUNCTION_NAME_REGEX = "([_a-zA-Z][_a-zA-Z0-9]*)";
+  private static final String CFA_NODE_REGEX      = "N([0-9][0-9]*)";
+  private static final Pattern FUNCTION_NAME_PATTERN = Pattern.compile("^" + FUNCTION_NAME_REGEX + "$");
+  private static final Pattern CFA_NODE_PATTERN = Pattern.compile("^" + FUNCTION_NAME_REGEX + " " + CFA_NODE_REGEX + "$");
 
   public static class PredicateMapParsingFailedException extends Exception {
     private static final long serialVersionUID = 5034288100943314517L;
@@ -87,28 +96,45 @@ public class PredicateMapParser {
     }
   }
 
+  @Option(description="Apply location-specific predicates to all locations in their function")
+  private boolean applyFunctionWide = false;
+
+  @Option(description="Apply location- and function-specific predicates globally (to all locations in the program)")
+  private boolean applyGlobally = false;
+
+  private final CFA cfa;
+
+  private final FormulaManager fmgr;
+  private final AbstractionManager amgr;
+
+  private final Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
+
+  public PredicateMapParser(Configuration config, CFA pCfa,
+      FormulaManager pFmgr, AbstractionManager pAmgr) throws InvalidConfigurationException {
+    config.inject(this);
+
+    cfa = pCfa;
+    fmgr = pFmgr;
+    amgr = pAmgr;
+  }
+
   /**
    * Parse a file in the format described above and create a PredicatePrecision
    * object with all the predicates.
    * @param file The file to parse.
-   * @param cfa The CFA.
    * @param initialGlobalPredicates A additional set of global predicates (for all locations).
-   * @param fmgr The FormulaManager which is used to parse the predicates.
-   * @param amgr The AbstractionManager which is used to create the AbstractionPredicates.
    * @return A PredicatePrecision containing all the predicates from the file.
    * @throws IOException If the file cannot be read.
    * @throws PredicateMapParsingFailedException If there is a syntax error in the file.
    */
-  public static PredicatePrecision parsePredicates(File file, CFA cfa,
-      Collection<AbstractionPredicate> initialGlobalPredicates,
-      FormulaManager fmgr, AbstractionManager amgr)
+  public PredicatePrecision parsePredicates(File file,
+      Collection<AbstractionPredicate> initialGlobalPredicates)
           throws IOException, PredicateMapParsingFailedException {
 
     Files.checkReadableFile(file);
 
     try (BufferedReader reader = java.nio.file.Files.newBufferedReader(file.toPath(), Charsets.US_ASCII)) {
-      return parsePredicates(reader, file.getName(),
-          cfa, initialGlobalPredicates, fmgr, amgr);
+      return parsePredicates(reader, file.getName(), initialGlobalPredicates);
     }
   }
 
@@ -117,9 +143,8 @@ public class PredicateMapParser {
    * Instead of reading from a file, this method reads from a BufferedReader
    * (available primarily for testing).
    */
-  static PredicatePrecision parsePredicates(BufferedReader reader, String source,
-      CFA cfa, Collection<AbstractionPredicate> initialGlobalPredicates,
-      FormulaManager fmgr, AbstractionManager amgr)
+  PredicatePrecision parsePredicates(BufferedReader reader, String source,
+      Collection<AbstractionPredicate> initialGlobalPredicates)
           throws IOException, PredicateMapParsingFailedException {
 
     // first, read first section with initial set of function definitions
@@ -155,8 +180,6 @@ public class PredicateMapParser {
     SetMultimap<String, AbstractionPredicate> functionPredicates = HashMultimap.create();
     SetMultimap<CFANode, AbstractionPredicate> localPredicates = HashMultimap.create();
 
-    Map<Integer, CFANode> idToNodeMap = null;
-
     Set<AbstractionPredicate> currentSet = null;
     while ((currentLine = reader.readLine()) != null) {
       lineNo++;
@@ -183,20 +206,9 @@ public class PredicateMapParser {
           throw new PredicateMapParsingFailedException("empty key is not allowed", source, lineNo);
         }
 
-        if (currentLine.equals("*")) {
+        if (currentLine.equals("*") || applyGlobally) {
           // the section "*"
           currentSet = globalPredicates;
-
-        } else if (CFA_NODE_PATTERN.matcher(currentLine).matches()) {
-          // a section with a CFA node
-
-          if (idToNodeMap == null) {
-            idToNodeMap = createMappingForCFANodes(cfa);
-          }
-          currentLine = currentLine.substring(1); // strip off "N"
-          int nodeId = Integer.parseInt(currentLine); // does not fail, we checked with regexp
-          CFANode node = idToNodeMap.get(nodeId);
-          currentSet = localPredicates.get(node);
 
         } else if (FUNCTION_NAME_PATTERN.matcher(currentLine).matches()) {
           // a section with a function name
@@ -208,7 +220,24 @@ public class PredicateMapParser {
           currentSet = functionPredicates.get(currentLine);
 
         } else {
-          throw new PredicateMapParsingFailedException(currentLine + " is not a valid key", source, lineNo);
+          Matcher matcher = CFA_NODE_PATTERN.matcher(currentLine);
+          if (matcher.matches()) {
+            // a section with a CFA node
+
+            String function = matcher.group(1);
+            int nodeId = Integer.parseInt(matcher.group(2)); // does not fail, we checked with regexp
+
+            if (applyFunctionWide) {
+              currentSet = functionPredicates.get(function);
+
+            } else {
+              CFANode node = getCFANodeWithId(nodeId);
+              currentSet = localPredicates.get(node);
+            }
+
+          } else {
+            throw new PredicateMapParsingFailedException(currentLine + " is not a valid key", source, lineNo);
+          }
         }
 
       } else {
@@ -232,11 +261,12 @@ public class PredicateMapParser {
     return new PredicatePrecision(localPredicates, functionPredicates, globalPredicates);
   }
 
-  private static Map<Integer, CFANode> createMappingForCFANodes(CFA cfa) {
-    Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
-    for (CFANode n : cfa.getAllNodes()) {
-      idToNodeMap.put(n.getNodeNumber(), n);
+  private CFANode getCFANodeWithId(int id) {
+    if (idToNodeMap.isEmpty()) {
+      for (CFANode n : cfa.getAllNodes()) {
+        idToNodeMap.put(n.getNodeNumber(), n);
+      }
     }
-    return idToNodeMap;
+    return idToNodeMap.get(id);
   }
 }

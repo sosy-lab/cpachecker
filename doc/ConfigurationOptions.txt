@@ -560,6 +560,13 @@ cpa.predicate.abstraction.dumpHardQueries = false
 # doc/examples/predmap.txt for an example)
 cpa.predicate.abstraction.initialPredicates = no default value
 
+# Apply location-specific predicates to all locations in their function
+cpa.predicate.abstraction.initialPredicates.applyFunctionWide = false
+
+# Apply location- and function-specific predicates globally (to all locations
+# in the program)
+cpa.predicate.abstraction.initialPredicates.applyGlobally = false
+
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]

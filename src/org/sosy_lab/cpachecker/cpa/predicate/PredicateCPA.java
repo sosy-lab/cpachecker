@@ -183,7 +183,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
   }
 
-  private PredicatePrecision readPredicatesFromFile(CFA cfa) {
+  private PredicatePrecision readPredicatesFromFile(CFA cfa) throws InvalidConfigurationException {
 
     Set<AbstractionPredicate> initialPredicates = checkBlockFeasibility
         ? Collections.<AbstractionPredicate>singleton(abstractionManager.makeFalsePredicate())
@@ -191,8 +191,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     if (predicatesFile != null) {
       try {
-        return PredicateMapParser.parsePredicates(predicatesFile,
-            cfa, initialPredicates, formulaManager, abstractionManager);
+        PredicateMapParser parser = new PredicateMapParser(config, cfa, formulaManager, abstractionManager);
+        return parser.parsePredicates(predicatesFile, initialPredicates);
 
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not read predicate map from file");
