@@ -124,7 +124,7 @@ public class ARGStatistics implements Statistics {
 
 
     if (!(   (exportErrorPath && (errorPathFile != null))
-          || (exportART       && (argFile != null      ))
+          || (exportART       && (argFile != null || simplifiedArgFile != null))
        )) {
 
       // do nothing, if !(exportErrorPath || exportART)
