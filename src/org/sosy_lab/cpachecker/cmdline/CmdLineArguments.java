@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 /**
@@ -79,9 +77,8 @@ class CmdLineArguments {
 
   private static final String CMC_CONFIGURATION_FILES_OPTION = "restartAlgorithm.configFiles";
 
-  private static final Set<String> UNSUPPORTED_SPECIFICATIONS = ImmutableSet.of(
-      "valid-free", "valid-deref", "valid-memtrack"
-      );
+  private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
+  private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
 
   /**
    * Reads the arguments and process them.
@@ -345,9 +342,15 @@ class CmdLineArguments {
 
         String newValue = args.next();
         if (arg.equals("-spec")
-            && UNSUPPORTED_SPECIFICATIONS.contains(newValue)) {
-          System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
-          System.exit(0);
+            && SPECIFICATION_FILES_PATTERN.matcher(newValue).matches()) {
+
+          File specFile = new File(String.format(SPECIFICATION_FILES_TEMPLATE, newValue));
+          if (specFile.exists()) {
+            newValue = specFile.getAbsolutePath();
+          } else {
+            System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
+            System.exit(0);
+          }
         }
 
         String value = properties.get(option);

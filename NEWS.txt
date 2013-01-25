@@ -1,6 +1,10 @@
 Changes since CPAchecker 1.2
 ----------------------------
 
+* r7277: The -spec command-line argument does not only accept file-name values,
+  but also single words. A file with a matching name from config/specification/*.spc
+  will be used in this case.
+  Example: scripts/cpa.sh -spec ErrorLabel ...
 * r7183: scripts/regression.py removed.
   All it's features are also supported by table-generator.py.
 * r7043: CPAchecker now requires Java 7.
