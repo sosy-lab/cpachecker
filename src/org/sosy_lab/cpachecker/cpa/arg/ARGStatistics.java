@@ -120,8 +120,8 @@ public class ARGStatistics implements Statistics {
 
   private final ARGCPA cpa;
 
-  private final Writer refinementGraphUnderlyingWriter;
-  private final ARGToDotWriter refinementGraphWriter;
+  private Writer refinementGraphUnderlyingWriter = null;
+  private ARGToDotWriter refinementGraphWriter = null;
 
   public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
     config.inject(this);
@@ -138,34 +138,40 @@ public class ARGStatistics implements Statistics {
         && errorPathGraphFile == null && errorPathJson == null && errorPathSourceFile == null) {
       exportErrorPath = false;
     }
+  }
 
-    // Open output file for refinement graph,
-    // we continuously write into this file during analysis.
-    Writer w = null;
-    ARGToDotWriter d = null;
-    if (exportART && refinementGraphFile != null) {
+  ARGToDotWriter getRefinementGraphWriter() {
+    if (!exportART || refinementGraphFile == null) {
+      return null;
+    }
+
+    if (refinementGraphWriter == null) {
+      // Open output file for refinement graph,
+      // we continuously write into this file during analysis.
+      // We do this lazily so that the file is written only if there are refinements.
       try {
-        w = Files.openOutputFile(refinementGraphFile);
-        d = new ARGToDotWriter(w);
+        refinementGraphUnderlyingWriter = Files.openOutputFile(refinementGraphFile);
+        refinementGraphWriter = new ARGToDotWriter(refinementGraphUnderlyingWriter);
       } catch (IOException e) {
-        if (w != null) {
+        if (refinementGraphUnderlyingWriter != null) {
           try {
-            w.close();
+            refinementGraphUnderlyingWriter.close();
           } catch (IOException innerException) {
             e.addSuppressed(innerException);
           }
-          w = null;
         }
 
         cpa.getLogger().logUserException(Level.WARNING, e,
             "Could not write refinement graph to file");
+
+        refinementGraphFile = null; // ensure we won't try again
+        refinementGraphUnderlyingWriter = null;
+        refinementGraphWriter = null;
       }
     }
-    refinementGraphUnderlyingWriter = w;
-    refinementGraphWriter = d;
-  }
 
-  ARGToDotWriter getRefinementGraphWriter() {
+    // either both are null or none
+    assert (refinementGraphUnderlyingWriter == null) == (refinementGraphWriter == null);
     return refinementGraphWriter;
   }
 
@@ -285,6 +291,7 @@ public class ARGStatistics implements Statistics {
         }
       }
 
+      assert (refinementGraphUnderlyingWriter == null) == (refinementGraphWriter == null);
       if (refinementGraphUnderlyingWriter != null) {
         try (Writer w = refinementGraphUnderlyingWriter) { // for auto-closing
           refinementGraphWriter.writeSubgraph(rootState,
