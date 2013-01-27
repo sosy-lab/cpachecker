@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 
 public class ExplicitState implements AbstractQueryableState, FormulaReportingState, Serializable {
@@ -232,21 +233,9 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
   public String toCompactString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("[");
 
-    boolean first = true;
-    for (Map.Entry<String, Long> entry: constantsMap.entrySet())
-    {
-      if (first) {
-        first = false;
-      } else {
-        sb.append(", ");
-      }
-      String key = entry.getKey();
-      sb.append(key);
-      sb.append("=");
-      sb.append(entry.getValue());
-    }
+    sb.append("[");
+    Joiner.on(", ").withKeyValueSeparator("=").appendTo(sb, constantsMap);
     sb.append("]");
 
     return sb.toString();

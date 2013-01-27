@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.rtt;
 import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,11 +34,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
+import com.google.common.base.Joiner;
 
-public class RTTState implements AbstractState {
+
+public class RTTState extends AbstractAppender implements AbstractState {
 
 
   public static final String KEYWORD_THIS = "this";
@@ -319,23 +323,6 @@ public class RTTState implements AbstractState {
     return constantsMap.hashCode();
   }
 
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("[");
-    for (Map.Entry<String, String> entry : constantsMap.entrySet()) {
-      String key = entry.getKey();
-      sb.append(" <");
-      sb.append(key);
-      sb.append(" = ");
-      sb.append(entry.getValue());
-      sb.append(">\n");
-    }
-
-    return sb.append("] size->  ").append(constantsMap.size()).toString();
-  }
-
-
   public String getCPAName() {
     return "JavaObjectRuntimeTracker";
   }
@@ -387,26 +374,11 @@ public class RTTState implements AbstractState {
     return classTypeMap.get(uniqueObject);
   }
 
-  public Object toCompactString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("[");
-
-    boolean first = true;
-    for (Map.Entry<String, String> entry: constantsMap.entrySet())
-    {
-      if (first) {
-        first = false;
-      } else {
-        sb.append(", ");
-      }
-      String key = entry.getKey();
-      sb.append(key);
-      sb.append("=");
-      sb.append(entry.getValue());
-    }
-    sb.append("]");
-
-    return sb.toString();
+  @Override
+  public void appendTo(Appendable a) throws IOException {
+    a.append("[");
+    Joiner.on(", ").withKeyValueSeparator("=").appendTo(a, constantsMap);
+    a.append("]");
   }
 
  void assignAssumptionType(String pReferenz, JClassOrInterfaceType pAssignableType) {

@@ -23,17 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static org.sosy_lab.common.Appenders.appendTo;
 import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -94,41 +97,33 @@ class ARGToDotWriter {
       final Predicate<? super ARGState> displayedElements,
       final Predicate<? super Pair<ARGState, ARGState>> highlightEdge) throws IOException {
 
-    Deque<ARGState> worklist = new LinkedList<>();
-    Set<Integer> nodesList = new HashSet<>();
+    Deque<ARGState> worklist = new ArrayDeque<>();
     Set<ARGState> processed = new HashSet<>();
     StringBuilder edges = new StringBuilder();
 
     worklist.add(rootState);
 
-    while (worklist.size() != 0){
+    while (!worklist.isEmpty()) {
       ARGState currentElement = worklist.removeLast();
-      if (processed.contains(currentElement)){
-        continue;
-      }
       if (!displayedElements.apply(currentElement)) {
         continue;
       }
-
-      processed.add(currentElement);
-
-      if (!nodesList.contains(currentElement.getStateId())){
-
-        String label = determineLabel(currentElement);
-
-        sb.append(""+currentElement.getStateId());
-        sb.append(" [");
-        String color = determineColor(currentElement);
-        if (color != null) {
-          sb.append("fillcolor=\"" + color + "\" ");
-        }
-        sb.append("label=\"" + label +"\" ");
-        sb.append("id=\"" + currentElement.getStateId() + "\"");
-        sb.append("]");
-        sb.append("\n");
-
-        nodesList.add(currentElement.getStateId());
+      if (!processed.add(currentElement)) {
+        continue;
       }
+
+      String label = determineLabel(currentElement);
+
+      sb.append(""+currentElement.getStateId());
+      sb.append(" [");
+      String color = determineColor(currentElement);
+      if (color != null) {
+        sb.append("fillcolor=\"" + color + "\" ");
+      }
+      sb.append("label=\"" + label +"\" ");
+      sb.append("id=\"" + currentElement.getStateId() + "\"");
+      sb.append("]");
+      sb.append("\n");
 
       for (ARGState covered : currentElement.getCoveredByThis()) {
         edges.append(covered.getStateId());
@@ -168,9 +163,7 @@ class ARGToDotWriter {
         }
 
         edges.append("]\n");
-        if (!worklist.contains(child)){
-          worklist.add(child);
-        }
+        worklist.add(child);
       }
     }
     sb.append(edges);
@@ -184,8 +177,13 @@ class ARGToDotWriter {
   }
 
   void enterSubgraph(String name, String label) throws IOException {
-    sb.append("subgraph " + name + " {\n");
-    sb.append("label=\"" + label + "\"\n");
+    sb.append("subgraph ");
+    sb.append(name);
+    sb.append(" {\n");
+
+    sb.append("label=\"");
+    sb.append(label);
+    sb.append("\"\n");
   }
 
   void leaveSubgraph() throws IOException {
@@ -205,6 +203,13 @@ class ARGToDotWriter {
     if (loc != null) {
       builder.append(" @ ");
       builder.append(loc.toString());
+      builder.append("\\n");
+      builder.append(loc.getFunctionName());
+      if (loc instanceof FunctionEntryNode) {
+        builder.append(" entry");
+      } else if (loc instanceof FunctionExitNode) {
+        builder.append(" exit");
+      }
     }
 
     for (AutomatonState state : asIterable(currentElement).filter(AutomatonState.class)) {
@@ -231,30 +236,25 @@ class ARGToDotWriter {
     RTTState rtt = AbstractStates.extractStateByType(currentElement, RTTState.class);
     if (rtt != null) {
       builder.append("\\n");
-      builder.append(rtt.toCompactString());
+      appendTo(builder, rtt);
     }
 
     return builder.toString();
   }
 
   private static String determineColor(ARGState currentElement) {
-    String color;
-
     if (currentElement.isCovered()) {
-      color = "green";
-
-    } else if (currentElement.isTarget()) {
-      color = "red";
-
-    } else {
-      PredicateAbstractState abselem = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
-      if (abselem != null && abselem.isAbstractionState()) {
-        color = "cornflowerblue";
-      } else {
-        color = null;
-      }
+      return "green";
+    }
+    if (currentElement.isTarget()) {
+      return "red";
     }
 
-    return color;
+    PredicateAbstractState abselem = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
+    if (abselem != null && abselem.isAbstractionState()) {
+      return "cornflowerblue";
+    }
+
+    return null;
   }
 }
