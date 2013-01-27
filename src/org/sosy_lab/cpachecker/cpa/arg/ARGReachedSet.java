@@ -263,11 +263,11 @@ public class ARGReachedSet {
     }
   }
 
-  public static class ForwardingARTReachedSet extends ARGReachedSet {
+  public static class ForwardingARGReachedSet extends ARGReachedSet {
 
     protected final ARGReachedSet delegate;
 
-    public ForwardingARTReachedSet(ARGReachedSet pReached) {
+    public ForwardingARGReachedSet(ARGReachedSet pReached) {
       super(pReached.mReached);
       delegate = pReached;
     }

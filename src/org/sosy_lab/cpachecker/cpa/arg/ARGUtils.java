@@ -408,7 +408,7 @@ public class ARGUtils {
     };
   }
 
-  public static boolean checkART(ReachedSet pReached) {
+  public static boolean checkARG(ReachedSet pReached) {
 
       Deque<AbstractState> workList = new ArrayDeque<>();
       Set<ARGState> arg = new HashSet<>();

@@ -223,7 +223,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<BooleanForm
     stats.coverTime.start();
     try {
       for (ARGState w : changedElements) {
-        if (cover(w, pReached, getArtCpa())) {
+        if (cover(w, pReached, getArgCpa())) {
           break; // all further elements are covered anyway
         }
       }

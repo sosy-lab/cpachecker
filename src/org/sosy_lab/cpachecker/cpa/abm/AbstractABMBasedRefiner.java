@@ -128,7 +128,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
     return path;
   }
 
-  private static class ABMReachedSet extends ARGReachedSet.ForwardingARTReachedSet {
+  private static class ABMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
     private final ABMTransferRelation transfer;
     private final ARGPath path;

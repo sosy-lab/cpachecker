@@ -42,8 +42,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-class ABMARTUtils {
-  private ABMARTUtils() {}
+class ABMARGUtils {
+  private ABMARGUtils() {}
 
   public static Multimap<Block, ReachedSet> gatherReachedSets(ABMCPA cpa, ReachedSet finalReachedSet) {
     Multimap<Block, ReachedSet> result = HashMultimap.create();

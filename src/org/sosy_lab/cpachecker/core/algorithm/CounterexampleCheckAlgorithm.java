@@ -110,7 +110,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
     while (reached.hasWaitingState()) {
       sound &= algorithm.run(reached);
-      assert ARGUtils.checkART(reached);
+      assert ARGUtils.checkARG(reached);
 
       AbstractState lastState = reached.getLastState();
       if (!(lastState instanceof ARGState)) {
@@ -171,7 +171,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
             }
 
             sound &= removeErrorState(reached, errorState);
-            assert ARGUtils.checkART(reached);
+            assert ARGUtils.checkARG(reached);
 
           } else {
             ARGPath path = ARGUtils.getOnePathTo(errorState);

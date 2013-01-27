@@ -63,7 +63,7 @@ import com.google.common.collect.SetMultimap;
 public class ARGStatistics implements Statistics {
 
   @Option(name="export", description="export final ARG as .dot file")
-  private boolean exportART = true;
+  private boolean exportARG = true;
 
   @Option(name="file",
       description="export final ARG as .dot file")
@@ -129,7 +129,7 @@ public class ARGStatistics implements Statistics {
     this.cpa = cpa;
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null) {
-      exportART = false;
+      exportARG = false;
     }
     if (!exportSource) {
       errorPathSourceFile = null;
@@ -141,7 +141,7 @@ public class ARGStatistics implements Statistics {
   }
 
   ARGToDotWriter getRefinementGraphWriter() {
-    if (!exportART || refinementGraphFile == null) {
+    if (!exportARG || refinementGraphFile == null) {
       return null;
     }
 
@@ -184,7 +184,7 @@ public class ARGStatistics implements Statistics {
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
 
-    if (!exportART && !exportErrorPath) {
+    if (!exportARG && !exportErrorPath) {
       // shortcut, avoid unnecessary creation of path etc.
       assert refinementGraphWriter == null;
       return;
@@ -265,7 +265,7 @@ public class ARGStatistics implements Statistics {
       }
     }
 
-    if (exportART) {
+    if (exportARG) {
       SetMultimap<ARGState, ARGState> relevantSuccessorRelation = ARGUtils.projectARG(rootState, ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
       Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 

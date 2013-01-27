@@ -548,7 +548,7 @@ public class ABMTransferRelation implements TransferRelation {
       if (PCCInformation.isPCCEnabled()) {
         if (!(reached.getFirstState() instanceof ARGState)) { throw new CPATransferException(
             "Cannot build proof, ARG, for ABM analysis."); }
-        rootOfBlock = ABMARTUtils.copyARG((ARGState) reached.getFirstState());
+        rootOfBlock = ABMARGUtils.copyARG((ARGState) reached.getFirstState());
       }
       argCache.put(reducedInitialState, reached.getPrecision(reached.getFirstState()), currentBlock, returnElements,
           rootOfBlock);
@@ -980,7 +980,7 @@ public class ABMTransferRelation implements TransferRelation {
           //and remember to explore the parent later
           openElements.push(parent);
         }
-        CFAEdge edge = ABMARTUtils.getEdgeToChild(parent, currentElement);
+        CFAEdge edge = ABMARGUtils.getEdgeToChild(parent, currentElement);
         if (edge == null) {
           //this is a summarized call and thus an direct edge could not be found
           //we have the transfer function to handle this case, as our reachSet is wrong

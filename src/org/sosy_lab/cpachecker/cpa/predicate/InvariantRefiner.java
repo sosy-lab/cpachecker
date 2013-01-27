@@ -94,7 +94,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     super(pCpa);
 
     predicateRefiner = PredicateRefiner.create(pCpa);
-    predicateCpa = this.getArtCpa().retrieveWrappedCpa(PredicateCPA.class);
+    predicateCpa = this.getArgCpa().retrieveWrappedCpa(PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(getClass().getSimpleName() + " needs a PredicateCPA");
     }

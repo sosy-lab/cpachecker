@@ -47,23 +47,23 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
   private int refinementNumber;
 
-  private final ARGCPA mArtCpa;
+  private final ARGCPA argCpa;
   private final LogManager logger;
 
   protected AbstractARGBasedRefiner(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     if (pCpa instanceof WrapperCPA) {
-      mArtCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(ARGCPA.class);
+      argCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(ARGCPA.class);
     } else {
       throw new InvalidConfigurationException("ARG CPA needed for refinement");
     }
-    if (mArtCpa == null) {
+    if (argCpa == null) {
       throw new InvalidConfigurationException("ARG CPA needed for refinement");
     }
-    this.logger = mArtCpa.getLogger();
+    this.logger = argCpa.getLogger();
   }
 
-  protected final ARGCPA getArtCpa() {
-    return mArtCpa;
+  protected final ARGCPA getArgCpa() {
+    return argCpa;
   }
 
   private static final Function<Pair<ARGState, CFAEdge>, String> pathToFunctionCalls
@@ -91,14 +91,14 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    */
   public final CounterexampleInfo performRefinementWithInfo(ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting ARG based refinement");
-    mArtCpa.clearCounterexample();
+    argCpa.clearCounterexample();
 
-    assert ARGUtils.checkART(pReached) : "ARG and reached set do not match before refinement";
+    assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
 
     AbstractState lastElement = pReached.getLastState();
     assert lastElement instanceof ARGState : "Element in reached set which is not an ARGState";
     assert ((ARGState)lastElement).isTarget() : "Last element in reached is not a target state before refinement";
-    ARGReachedSet reached = new ARGReachedSet(pReached, mArtCpa, refinementNumber++);
+    ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
 
     ARGPath path = computePath((ARGState)lastElement, reached);
 
@@ -118,11 +118,11 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
       // set the path from the exception as the target path
       // so it can be used for debugging
-      mArtCpa.setCounterexample(CounterexampleInfo.feasible(e.getErrorPath(), null));
+      argCpa.setCounterexample(CounterexampleInfo.feasible(e.getErrorPath(), null));
       throw e;
     }
 
-    assert ARGUtils.checkART(pReached) : "ARG and reached set do not match after refinement";
+    assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match after refinement";
 
     if (!counterexample.isSpurious()) {
       ARGPath targetPath = counterexample.getTargetPath();
@@ -131,7 +131,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
       assert targetPath.getFirst().getFirst() == path.getFirst().getFirst() : "Target path from refiner does not contain root node";
       assert targetPath.getLast().getFirst()  == path.getLast().getFirst() : "Target path from refiner does not contain target state";
 
-      mArtCpa.setCounterexample(counterexample);
+      argCpa.setCounterexample(counterexample);
     }
 
     logger.log(Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());

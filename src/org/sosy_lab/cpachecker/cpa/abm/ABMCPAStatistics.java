@@ -62,7 +62,7 @@ class ABMCPAStatistics implements Statistics {
       int sumCalls = transferRelation.cacheMisses + transferRelation.partialCacheHits + transferRelation.fullCacheHits;
 
       int sumARTElemets = 0;
-      for (ReachedSet subreached : ABMARTUtils.gatherReachedSets(cpa, reached).values()) {
+      for (ReachedSet subreached : ABMARGUtils.gatherReachedSets(cpa, reached).values()) {
         sumARTElemets += subreached.size();
       }
 
