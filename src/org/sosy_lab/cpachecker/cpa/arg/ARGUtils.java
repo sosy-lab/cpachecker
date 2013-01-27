@@ -213,12 +213,7 @@ public class ARGUtils {
    */
   public static void convertSimplifiedARGToDot(final Appendable sb, final ARGState rootState) throws IOException {
 
-    Predicate<ARGState> isRoot = new Predicate<ARGState>() {
-          @Override
-          public boolean apply(ARGState pInput) {
-            return pInput.getParents().isEmpty();
-          }
-        };
+    Predicate<ARGState> isRoot = Predicates.equalTo(rootState);
 
     Predicate<AbstractState> atRelevantLocation = Predicates.compose(
         new Predicate<CFANode>() {
@@ -239,12 +234,24 @@ public class ARGUtils {
         atRelevantLocation
         );
 
-    SetMultimap<ARGState, ARGState> successors = projectARG(rootState, relevantState);
+    SetMultimap<ARGState, ARGState> successors = projectARG(rootState,
+        new Function<ARGState, Set<ARGState>>() {
+          @Override
+          public Set<ARGState> apply(ARGState pInput) {
+            return pInput.getChildren();
+          }
+        },
+        relevantState);
 
-    convertARGToDot(sb, rootState,
+    sb.append("digraph ARG {\n");
+    // default style for nodes
+    sb.append("node [style=\"filled\" shape=\"box\" color=\"white\"]\n");
+
+    convertARGStatesToDot(sb, rootState,
         Functions.forMap(successors.asMap(), ImmutableSet.<ARGState>of()),
         Predicates.alwaysTrue(),
         Predicates.alwaysFalse());
+    sb.append("}\n");
   }
 
   /**
@@ -261,14 +268,33 @@ public class ARGUtils {
       final Predicate<? super ARGState> toDisplay,
       final Predicate<? super Pair<ARGState, ARGState>> highlightEdge) throws IOException {
 
+    sb.append("digraph ARG {\n");
+    // default style for nodes
+    sb.append("node [style=\"filled\" shape=\"box\" color=\"white\"]\n");
+
+    convertARGStatesToDot(sb, rootState, successorFunction, toDisplay, highlightEdge);
+    sb.append("}\n");
+  }
+
+  /**
+   * Create String with ARG in the DOT format of Graphviz.
+   * Only the states and edges are written, no surrounding graph definition.
+   * @param sb Where to write the ARG into.
+   * @param rootState the root element of the ARG
+   * @param successorFunction A function giving all successors of an ARGState. Only states reachable from root by iteratively applying this function will be dumped.
+   * @param displayedElements A predicate for selecting states that should be displayed. States which are only reachable via non-displayed states are ignored, too.
+   * @param highlightedEdges Which edges to highlight in the graph?
+   * @throws IOException
+   */
+  public static void convertARGStatesToDot(final Appendable sb, final ARGState rootState,
+      final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
+      final Predicate<? super ARGState> toDisplay,
+      final Predicate<? super Pair<ARGState, ARGState>> highlightEdge) throws IOException {
+
     Deque<ARGState> worklist = new LinkedList<>();
     Set<Integer> nodesList = new HashSet<>();
     Set<ARGState> processed = new HashSet<>();
     StringBuilder edges = new StringBuilder();
-
-    sb.append("digraph ARG {\n");
-    // default style for nodes
-    sb.append("node [style=\"filled\" shape=\"box\" color=\"white\"]\n");
 
     worklist.add(rootState);
 
@@ -345,7 +371,6 @@ public class ARGUtils {
       }
     }
     sb.append(edges);
-    sb.append("}\n");
   }
 
   private static String determineLabel(ARGState currentElement) {
@@ -402,6 +427,7 @@ public class ARGUtils {
    * @param isRelevant The predicate determining which states are in the resulting relationship.
    */
   public static SetMultimap<ARGState, ARGState> projectARG(final ARGState root,
+      final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
       final Predicate<? super ARGState> isRelevant) {
 
     SetMultimap<ARGState, ARGState> successors = HashMultimap.create();
@@ -424,7 +450,7 @@ public class ARGUtils {
         continue;
       }
 
-      for (ARGState child : currentState.getChildren()) {
+      for (ARGState child : successorFunction.apply(currentState)) {
         if (isRelevant.apply(child)) {
           successors.put(currentPredecessor, child);
 

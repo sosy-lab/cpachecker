@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.PrintWriter;
 import java.util.Collection;
 
 import org.sosy_lab.common.LogManager;
@@ -69,7 +70,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   private final ARGStopSep stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
-  private final Statistics stats;
+  private final ARGStatistics stats;
   private final ProofChecker wrappedProofChecker;
 
   private CounterexampleInfo lastCounterexample = null;
@@ -176,6 +177,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   public void setCounterexample(CounterexampleInfo pCounterexample) {
     checkArgument(!pCounterexample.isSpurious());
     lastCounterexample = pCounterexample;
+  }
+
+  PrintWriter getRefinementGraphWriter() {
+    return stats.getRefinementGraphWriter();
   }
 
   @Override

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -67,6 +68,11 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path simplifiedArgFile = Paths.get("ARGSimplified.dot");
 
+  @Option(name="refinements.file",
+      description="export simplified ARG that shows all refinements to .dot file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path refinementGraphFile = Paths.get("ARGRefinements.dot");
+
   @Option(name="errorPath.export",
       description="export error path to file, if one is found")
   private boolean exportErrorPath = true;
@@ -107,10 +113,29 @@ public class ARGStatistics implements Statistics {
 
   private final ARGCPA cpa;
 
+  private final Writer refinementGraphWriter;
+
   public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
     config.inject(this);
 
     this.cpa = cpa;
+
+    Writer w = null;
+    if (exportART && refinementGraphFile != null) {
+      try {
+        w = Files.openOutputFile(refinementGraphFile);
+        w.append("digraph ARG {\n");
+        w.append("node [style=\"filled\" shape=\"box\" color=\"white\"]\n");
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e,
+            "Could not write refinement graph to file");
+      }
+    }
+    refinementGraphWriter = w;
+  }
+
+  PrintWriter getRefinementGraphWriter() {
+    return new PrintWriter(refinementGraphWriter);
   }
 
   @Override
@@ -122,13 +147,13 @@ public class ARGStatistics implements Statistics {
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
 
-
     if (!(   (exportErrorPath && (errorPathFile != null))
           || (exportART       && (argFile != null || simplifiedArgFile != null))
        )) {
 
       // do nothing, if !(exportErrorPath || exportART)
       // shortcut, avoid unnecessary creation of path etc.
+      assert refinementGraphWriter == null;
       return;
     }
 
@@ -232,9 +257,10 @@ public class ARGStatistics implements Statistics {
       }
     }
 
+    ARGState rootState = (ARGState)pReached.getFirstState();
+
     if (exportART && argFile != null) {
       try (Writer w = java.nio.file.Files.newBufferedWriter(argFile, Charset.defaultCharset())) {
-        ARGState rootState = (ARGState)pReached.getFirstState();
         ARGUtils.convertARTToDot(w, rootState, null, getEdgesOfPath(targetPath));
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
@@ -243,11 +269,18 @@ public class ARGStatistics implements Statistics {
 
     if (exportART && simplifiedArgFile != null) {
       try (Writer w = java.nio.file.Files.newBufferedWriter(simplifiedArgFile, Charset.defaultCharset())) {
-        ARGState rootState = (ARGState)pReached.getFirstState();
         ARGUtils.convertSimplifiedARGToDot(w, rootState);
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
+    }
+
+    try (Writer w = refinementGraphWriter) {
+      ARGUtils.convertSimplifiedARGToDot(w, rootState);
+
+      w.append("}\n");
+    } catch (IOException e) {
+      cpa.getLogger().logUserException(Level.WARNING, e, "Could not write refinement graph to file");
     }
   }
 

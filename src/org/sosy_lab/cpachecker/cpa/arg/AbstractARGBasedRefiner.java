@@ -45,6 +45,8 @@ import com.google.common.collect.Collections2;
 
 public abstract class AbstractARGBasedRefiner implements Refiner {
 
+  private int refinementNumber;
+
   private final ARGCPA mArtCpa;
   private final LogManager logger;
 
@@ -96,7 +98,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     AbstractState lastElement = pReached.getLastState();
     assert lastElement instanceof ARGState : "Element in reached set which is not an ARGState";
     assert ((ARGState)lastElement).isTarget() : "Last element in reached is not a target state before refinement";
-    ARGReachedSet reached = new ARGReachedSet(pReached);
+    ARGReachedSet reached = new ARGReachedSet(pReached, mArtCpa, refinementNumber++);
 
     ARGPath path = computePath((ARGState)lastElement, reached);
 
