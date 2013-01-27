@@ -26,27 +26,23 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 
-import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 
@@ -171,57 +167,37 @@ public class ARGReachedSet {
       return;
     }
 
-    PrintWriter refinementGraph = cpa.getRefinementGraphWriter();
-
-    refinementGraph.append("subgraph cluster_" + refinementNumber + " {\n");
-    refinementGraph.append("label=\"Refinement " + refinementNumber + "\"\n");
-
-    try {
-      ARGUtils.convertSimplifiedARGToDot(refinementGraph, e);
-    } catch (IOException ex) {
-      throw new AssertionError(ex);
+    ARGToDotWriter refinementGraph = cpa.getRefinementGraphWriter();
+    if (refinementGraph == null) {
+      return;
     }
 
-    refinementGraph.append("}\n");
-
-
-    Predicate<ARGState> isRoot = Predicates.equalTo(e);
-
-    Predicate<AbstractState> atRelevantLocation = Predicates.compose(
-        new Predicate<CFANode>() {
-          @Override
-          public boolean apply(CFANode pInput) {
-            return pInput.isLoopStart()
-                || pInput instanceof FunctionEntryNode
-                || pInput instanceof FunctionExitNode;
-          }
-        },
-        AbstractStates.EXTRACT_LOCATION);
-
-
-    @SuppressWarnings("unchecked")
-    Predicate<ARGState> relevantState = Predicates.or(
-        isRoot,
-        AbstractStates.IS_TARGET_STATE,
-        atRelevantLocation
-        );
+    SetMultimap<ARGState, ARGState> successors = ARGUtils.projectARG(e,
+        ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
 
     SetMultimap<ARGState, ARGState> predecessors = ARGUtils.projectARG(e,
-        new Function<ARGState, Set<ARGState>>() {
-          @Override
-          public Set<ARGState> apply(ARGState pInput) {
-            return pInput.getParents();
-          }
-        },
-        relevantState);
+        ARGUtils.PARENTS_OF_STATE, ARGUtils.RELEVANT_STATE);
 
-    for (ARGState predecessor : predecessors.get(e)) {
-      // insert edge from predecessor to e in global graph
-      refinementGraph.append("" + predecessor.getStateId());
-      refinementGraph.append(" -> ");
-      refinementGraph.append("" + e.getStateId());
-      refinementGraph.append("\n");
+    try {
+      refinementGraph.enterSubgraph("cluster_" + refinementNumber,
+                                    "Refinement " + refinementNumber);
+
+      refinementGraph.writeSubgraph(e,
+          Functions.forMap(successors.asMap(), ImmutableSet.<ARGState>of()),
+          Predicates.alwaysTrue(),
+          Predicates.alwaysFalse());
+
+      refinementGraph.leaveSubgraph();
+
+      for (ARGState predecessor : predecessors.get(e)) {
+        // insert edge from predecessor to e in global graph
+        refinementGraph.writeEdge(predecessor, e);
+      }
+
+    } catch (IOException ex) {
+      cpa.getLogger().logUserException(Level.WARNING, ex, "Could not write refinement graph to file");
     }
+
   }
 
   /**

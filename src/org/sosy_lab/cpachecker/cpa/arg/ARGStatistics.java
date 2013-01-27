@@ -23,19 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Files;
@@ -51,6 +55,13 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
+
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -113,29 +124,42 @@ public class ARGStatistics implements Statistics {
 
   private final ARGCPA cpa;
 
-  private final Writer refinementGraphWriter;
+  private final Writer refinementGraphUnderlyingWriter;
+  private final ARGToDotWriter refinementGraphWriter;
 
   public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
     config.inject(this);
 
     this.cpa = cpa;
 
+    // Open output file for refinement graph,
+    // we continuously write into this file during analysis.
     Writer w = null;
+    ARGToDotWriter d = null;
     if (exportART && refinementGraphFile != null) {
       try {
         w = Files.openOutputFile(refinementGraphFile);
-        w.append("digraph ARG {\n");
-        w.append("node [style=\"filled\" shape=\"box\" color=\"white\"]\n");
+        d = new ARGToDotWriter(w);
       } catch (IOException e) {
+        if (w != null) {
+          try {
+            w.close();
+          } catch (IOException innerException) {
+            e.addSuppressed(innerException);
+          }
+          w = null;
+        }
+
         cpa.getLogger().logUserException(Level.WARNING, e,
             "Could not write refinement graph to file");
       }
     }
-    refinementGraphWriter = w;
+    refinementGraphUnderlyingWriter = w;
+    refinementGraphWriter = d;
   }
 
-  PrintWriter getRefinementGraphWriter() {
-    return new PrintWriter(refinementGraphWriter);
+  ARGToDotWriter getRefinementGraphWriter() {
+    return refinementGraphWriter;
   }
 
   @Override
@@ -147,49 +171,24 @@ public class ARGStatistics implements Statistics {
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
 
-    if (!(   (exportErrorPath && (errorPathFile != null))
-          || (exportART       && (argFile != null || simplifiedArgFile != null))
-       )) {
+    if (!exportART && !exportErrorPath && !exportSource) {
+        if (from(Arrays.asList(argFile, simplifiedArgFile, refinementGraphWriter,
+                               errorPathCoreFile, errorPathGraphFile, errorPathJson,
+                               errorPathSourceFile, errorPathAssignment))
+                .allMatch(Predicates.isNull())) {
 
-      // do nothing, if !(exportErrorPath || exportART)
-      // shortcut, avoid unnecessary creation of path etc.
-      assert refinementGraphWriter == null;
-      return;
+          // shortcut, avoid unnecessary creation of path etc.
+          return;
+        }
     }
 
-    ARGPath targetPath = null;
+    @Nullable final CounterexampleInfo counterexample = getCounterexample(pReached, pResult);
+    @Nullable final ARGPath targetPath = getTargetPath(counterexample, pReached);
+    final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge = getEdgesOfPath(targetPath);
 
     if (pResult != Result.SAFE) {
-      CounterexampleInfo counterexample = cpa.getLastCounterexample();
-      Object assignment = null;
-
-      if (counterexample != null) {
-        ARGState targetState = counterexample.getTargetPath().getLast().getFirst();
-        if (!pReached.contains(targetState)) {
-          // counterexample is outdated
-          counterexample = null;
-        }
-      }
-
-      if (counterexample != null) {
-        targetPath = counterexample.getTargetPath();
-        assignment = counterexample.getTargetPathAssignment();
-      }
-
-      if (targetPath == null) {
-        // try to find one
-        // This is imprecise if there are several paths in the ARG,
-        // because we randomly select one existing path,
-        // but this path may actually be infeasible.
-        ARGState lastElement = (ARGState)pReached.getLastState();
-        if (lastElement != null && lastElement.isTarget()) {
-          targetPath = ARGUtils.getOnePathTo(lastElement);
-        }
-      }
-      final ARGPath targetPath2 = targetPath; // just for final modifier
 
       if (targetPath != null) {
-
         if (exportErrorPath && errorPathFile != null) {
           // the shrinked errorPath only includes the nodes,
           // that are important for the error, it is not a complete path,
@@ -232,21 +231,24 @@ public class ARGStatistics implements Statistics {
           writeErrorPathFile(errorPathJson, new Appender() {
             @Override
             public void appendTo(Appendable pAppendable) throws IOException {
-              targetPath2.toJSON(pAppendable);
+              targetPath.toJSON(pAppendable);
             }
           });
           writeErrorPathFile(errorPathGraphFile, new Appender() {
             @Override
             public void appendTo(Appendable pAppendable) throws IOException {
-              ARGUtils.convertARTToDot(pAppendable, rootState, pathElements, getEdgesOfPath(targetPath2));
+              ARGToDotWriter.write(pAppendable, rootState,
+                  ARGUtils.CHILDREN_OF_STATE,
+                  Predicates.in(pathElements),
+                  isTargetPathEdge);
             }
           });
 
-          if (assignment != null) {
-            writeErrorPathFile(errorPathAssignment, assignment);
-          }
-
           if (counterexample != null) {
+            if (counterexample.getTargetPathAssignment() != null) {
+              writeErrorPathFile(errorPathAssignment, counterexample.getTargetPathAssignment());
+            }
+
             for (Pair<Object, File> info : counterexample.getAllFurtherInformation()) {
               if(info.getSecond() != null) {
                 writeErrorPathFile(info.getSecond().toPath(), info.getFirst());
@@ -258,10 +260,15 @@ public class ARGStatistics implements Statistics {
     }
 
     ARGState rootState = (ARGState)pReached.getFirstState();
+    SetMultimap<ARGState, ARGState> relevantSuccessorRelation = ARGUtils.projectARG(rootState, ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
+    Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
     if (exportART && argFile != null) {
       try (Writer w = java.nio.file.Files.newBufferedWriter(argFile, Charset.defaultCharset())) {
-        ARGUtils.convertARTToDot(w, rootState, null, getEdgesOfPath(targetPath));
+        ARGToDotWriter.write(w, rootState,
+            ARGUtils.CHILDREN_OF_STATE,
+            Predicates.alwaysTrue(),
+            isTargetPathEdge);
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
@@ -269,19 +276,64 @@ public class ARGStatistics implements Statistics {
 
     if (exportART && simplifiedArgFile != null) {
       try (Writer w = java.nio.file.Files.newBufferedWriter(simplifiedArgFile, Charset.defaultCharset())) {
-        ARGUtils.convertSimplifiedARGToDot(w, rootState);
+        ARGToDotWriter.write(w, rootState,
+            relevantSuccessorFunction,
+            Predicates.alwaysTrue(),
+            Predicates.alwaysFalse());
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
     }
 
-    try (Writer w = refinementGraphWriter) {
-      ARGUtils.convertSimplifiedARGToDot(w, rootState);
+    if (refinementGraphUnderlyingWriter != null) {
+      try (Writer w = refinementGraphUnderlyingWriter) { // for auto-closing
+        refinementGraphWriter.writeSubgraph(rootState,
+            relevantSuccessorFunction,
+            Predicates.alwaysTrue(),
+            Predicates.alwaysFalse());
+        refinementGraphWriter.finish();
 
-      w.append("}\n");
-    } catch (IOException e) {
-      cpa.getLogger().logUserException(Level.WARNING, e, "Could not write refinement graph to file");
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write refinement graph to file");
+      }
     }
+  }
+
+  private CounterexampleInfo getCounterexample(ReachedSet pReached, Result pResult) {
+    if (pResult == Result.SAFE) {
+      return null;
+    }
+
+    CounterexampleInfo counterexample = cpa.getLastCounterexample();
+
+    if (counterexample != null) {
+      ARGState targetState = counterexample.getTargetPath().getLast().getFirst();
+      if (!pReached.contains(targetState)) {
+        // counterexample is outdated
+        return null;
+      }
+    }
+    return counterexample;
+  }
+
+  private ARGPath getTargetPath(@Nullable final CounterexampleInfo counterexample, final ReachedSet pReached) {
+    ARGPath targetPath = null;
+
+    if (counterexample != null) {
+      targetPath = counterexample.getTargetPath();
+    }
+
+    if (targetPath == null) {
+      // try to find one
+      // This is imprecise if there are several paths in the ARG,
+      // because we randomly select one existing path,
+      // but this path may actually be infeasible.
+      ARGState lastElement = (ARGState)pReached.getLastState();
+      if (lastElement != null && lastElement.isTarget()) {
+        targetPath = ARGUtils.getOnePathTo(lastElement);
+      }
+    }
+    return targetPath;
   }
 
   private void writeErrorPathFile(Path file, Object content) {
@@ -295,9 +347,9 @@ public class ARGStatistics implements Statistics {
     }
   }
 
-  private static Set<Pair<ARGState, ARGState>> getEdgesOfPath(ARGPath pPath) {
+  private static Predicate<Pair<ARGState, ARGState>> getEdgesOfPath(@Nullable ARGPath pPath) {
     if (pPath == null) {
-      return Collections.emptySet();
+      return Predicates.alwaysFalse();
     }
 
     Set<Pair<ARGState, ARGState>> result = new HashSet<>(pPath.size());
@@ -309,6 +361,6 @@ public class ARGStatistics implements Statistics {
       result.add(Pair.of(lastElement, currentElement));
       lastElement = currentElement;
     }
-    return result;
+    return Predicates.in(result);
   }
 }

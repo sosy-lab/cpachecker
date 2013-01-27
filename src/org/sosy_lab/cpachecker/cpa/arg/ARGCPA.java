@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.io.PrintWriter;
 import java.util.Collection;
 
 import org.sosy_lab.common.LogManager;
@@ -179,7 +178,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     lastCounterexample = pCounterexample;
   }
 
-  PrintWriter getRefinementGraphWriter() {
+  ARGToDotWriter getRefinementGraphWriter() {
     return stats.getRefinementGraphWriter();
   }
 

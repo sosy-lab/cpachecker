@@ -24,20 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.*;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import java.io.IOException;
 import java.util.AbstractCollection;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
-
-import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -47,18 +43,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
@@ -159,260 +149,36 @@ public class ARGUtils {
     return result;
   }
 
-  private static String determineColor(ARGState currentElement)
-  {
-    String color;
 
-    if (currentElement.isCovered()) {
-      color = "green";
-
-    } else if (currentElement.isTarget()) {
-      color = "red";
-
-    } else {
-      PredicateAbstractState abselem = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
-      if (abselem != null && abselem.isAbstractionState()) {
-        color = "cornflowerblue";
-      } else {
-        color = null;
-      }
-    }
-
-    return color;
-  }
-
-  /**
-   * Create String with ARG in the DOT format of Graphviz.
-   * @param sb Where to write the ARG into.
-   * @param rootState the root element of the ARG
-   * @param displayedElements An optional set of elements. If given, all other elements are ignored. If null, all elements are dumped.
-   * @param highlightedEdges Set of edges to highlight in the graph.
-   * @throws IOException
-   */
-  public static void convertARTToDot(final Appendable sb, final ARGState rootState,
-      final @Nullable Set<ARGState> displayedElements,
-      final @Nullable Set<Pair<ARGState, ARGState>> highlightedEdges) throws IOException {
-
-    convertARGToDot(sb, rootState,
-        new Function<ARGState, Set<ARGState>>() {
-          @Override
-          public Set<ARGState> apply(ARGState pInput) {
-            return pInput.getChildren();
-          }
-        },
-        displayedElements == null ? Predicates.<ARGState>alwaysTrue() : Predicates.in(displayedElements),
-        highlightedEdges  == null ? Predicates.<Pair<ARGState, ARGState>>alwaysFalse() : Predicates.in(highlightedEdges));
-  }
-
-  /**
-   * Dump the ARG similar to {@link #convertARTToDot(Appendable, ARGState, Set, Set)},
-   * but include only loop head states and function entries/exists.
-   * @param sb Where to write the ARG into.
-   * @param rootState the root element of the ARG
-   * @throws IOException
-   */
-  public static void convertSimplifiedARGToDot(final Appendable sb, final ARGState rootState) throws IOException {
-
-    Predicate<ARGState> isRoot = Predicates.equalTo(rootState);
-
-    Predicate<AbstractState> atRelevantLocation = Predicates.compose(
-        new Predicate<CFANode>() {
-          @Override
-          public boolean apply(CFANode pInput) {
-            return pInput.isLoopStart()
-                || pInput instanceof FunctionEntryNode
-                || pInput instanceof FunctionExitNode;
-          }
-        },
-        AbstractStates.EXTRACT_LOCATION);
-
-
-    @SuppressWarnings("unchecked")
-    Predicate<ARGState> relevantState = Predicates.or(
-        isRoot,
-        AbstractStates.IS_TARGET_STATE,
-        atRelevantLocation
-        );
-
-    SetMultimap<ARGState, ARGState> successors = projectARG(rootState,
-        new Function<ARGState, Set<ARGState>>() {
-          @Override
-          public Set<ARGState> apply(ARGState pInput) {
-            return pInput.getChildren();
-          }
-        },
-        relevantState);
-
-    sb.append("digraph ARG {\n");
-    // default style for nodes
-    sb.append("node [style=\"filled\" shape=\"box\" color=\"white\"]\n");
-
-    convertARGStatesToDot(sb, rootState,
-        Functions.forMap(successors.asMap(), ImmutableSet.<ARGState>of()),
-        Predicates.alwaysTrue(),
-        Predicates.alwaysFalse());
-    sb.append("}\n");
-  }
-
-  /**
-   * Create String with ARG in the DOT format of Graphviz.
-   * @param sb Where to write the ARG into.
-   * @param rootState the root element of the ARG
-   * @param successorFunction A function giving all successors of an ARGState. Only states reachable from root by iteratively applying this function will be dumped.
-   * @param displayedElements A predicate for selecting states that should be displayed. States which are only reachable via non-displayed states are ignored, too.
-   * @param highlightedEdges Which edges to highlight in the graph?
-   * @throws IOException
-   */
-  public static void convertARGToDot(final Appendable sb, final ARGState rootState,
-      final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
-      final Predicate<? super ARGState> toDisplay,
-      final Predicate<? super Pair<ARGState, ARGState>> highlightEdge) throws IOException {
-
-    sb.append("digraph ARG {\n");
-    // default style for nodes
-    sb.append("node [style=\"filled\" shape=\"box\" color=\"white\"]\n");
-
-    convertARGStatesToDot(sb, rootState, successorFunction, toDisplay, highlightEdge);
-    sb.append("}\n");
-  }
-
-  /**
-   * Create String with ARG in the DOT format of Graphviz.
-   * Only the states and edges are written, no surrounding graph definition.
-   * @param sb Where to write the ARG into.
-   * @param rootState the root element of the ARG
-   * @param successorFunction A function giving all successors of an ARGState. Only states reachable from root by iteratively applying this function will be dumped.
-   * @param displayedElements A predicate for selecting states that should be displayed. States which are only reachable via non-displayed states are ignored, too.
-   * @param highlightedEdges Which edges to highlight in the graph?
-   * @throws IOException
-   */
-  public static void convertARGStatesToDot(final Appendable sb, final ARGState rootState,
-      final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
-      final Predicate<? super ARGState> toDisplay,
-      final Predicate<? super Pair<ARGState, ARGState>> highlightEdge) throws IOException {
-
-    Deque<ARGState> worklist = new LinkedList<>();
-    Set<Integer> nodesList = new HashSet<>();
-    Set<ARGState> processed = new HashSet<>();
-    StringBuilder edges = new StringBuilder();
-
-    worklist.add(rootState);
-
-    while (worklist.size() != 0){
-      ARGState currentElement = worklist.removeLast();
-      if (processed.contains(currentElement)){
-        continue;
-      }
-      if (!toDisplay.apply(currentElement)) {
-        continue;
-      }
-
-      processed.add(currentElement);
-
-      if (!nodesList.contains(currentElement.getStateId())){
-
-        String label = determineLabel(currentElement);
-
-        sb.append(""+currentElement.getStateId());
-        sb.append(" [");
-        String color = determineColor(currentElement);
-        if (color != null) {
-          sb.append("fillcolor=\"" + color + "\" ");
+  static final Function<ARGState, Set<ARGState>> CHILDREN_OF_STATE = new Function<ARGState, Set<ARGState>>() {
+        @Override
+        public Set<ARGState> apply(ARGState pInput) {
+          return pInput.getChildren();
         }
-        sb.append("label=\"" + label +"\" ");
-        sb.append("id=\"" + currentElement.getStateId() + "\"");
-        sb.append("]");
-        sb.append("\n");
+      };
 
-        nodesList.add(currentElement.getStateId());
-      }
-
-      for (ARGState covered : currentElement.getCoveredByThis()) {
-        edges.append(covered.getStateId());
-        edges.append(" -> ");
-        edges.append(currentElement.getStateId());
-        edges.append(" [style=\"dashed\" weight=\"0\" label=\"covered by\"]\n");
-      }
-
-      for (ARGState child : successorFunction.apply(currentElement)) {
-        edges.append(currentElement.getStateId());
-        edges.append(" -> ");
-        edges.append(child.getStateId());
-        edges.append(" [");
-
-        boolean colored = highlightEdge.apply(Pair.of(currentElement, child));
-        if (colored) {
-          edges.append("color=\"red\"");
+  static final Function<ARGState, Set<ARGState>> PARENTS_OF_STATE = new Function<ARGState, Set<ARGState>>() {
+        @Override
+        public Set<ARGState> apply(ARGState pInput) {
+          return pInput.getParents();
         }
+      };
 
-        if (currentElement.getChildren().contains(child)) {
-          CFAEdge edge = currentElement.getEdgeToChild(child);
-          assert edge != null;
-          if (colored) {
-            edges.append(" ");
-          }
-          edges.append("label=\"");
-          edges.append("Line ");
-          edges.append(edge.getLineNumber());
-          edges.append(": ");
-          edges.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
-          edges.append("\"");
-          edges.append(" id=\"");
-          edges.append(currentElement.getStateId());
-          edges.append(" -> ");
-          edges.append(child.getStateId());
-          edges.append("\"");
+  private static final Predicate<AbstractState> AT_RELEVANT_LOCATION = Predicates.compose(
+      new Predicate<CFANode>() {
+        @Override
+        public boolean apply(CFANode pInput) {
+          return pInput.isLoopStart()
+              || pInput instanceof FunctionEntryNode
+              || pInput instanceof FunctionExitNode;
         }
+      },
+      AbstractStates.EXTRACT_LOCATION);
 
-        edges.append("]\n");
-        if (!worklist.contains(child)){
-          worklist.add(child);
-        }
-      }
-    }
-    sb.append(edges);
-  }
-
-  private static String determineLabel(ARGState currentElement) {
-    StringBuilder builder = new StringBuilder();
-
-    builder.append(currentElement.getStateId());
-
-    CFANode loc = AbstractStates.extractLocation(currentElement);
-    if (loc != null) {
-      builder.append(" @ ");
-      builder.append(loc.toString());
-    }
-
-    for (AutomatonState state : asIterable(currentElement).filter(AutomatonState.class)) {
-      if (!state.getInternalStateName().equals("Init")) {
-        builder.append("\\n");
-        builder.append(state.getCPAName().replaceFirst("AutomatonAnalysis_", ""));
-        builder.append(": ");
-        builder.append(state.getInternalStateName());
-      }
-    }
-
-    PredicateAbstractState abstraction = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
-    if (abstraction != null && abstraction.isAbstractionState()) {
-      builder.append("\\n");
-      builder.append(abstraction.getAbstractionFormula());
-    }
-
-    ExplicitState explicit = AbstractStates.extractStateByType(currentElement, ExplicitState.class);
-    if (explicit != null) {
-      builder.append("\\n");
-      builder.append(explicit.toCompactString());
-    }
-
-    RTTState rtt = AbstractStates.extractStateByType(currentElement, RTTState.class);
-    if (rtt != null) {
-      builder.append("\\n");
-      builder.append(rtt.toCompactString());
-    }
-
-    return builder.toString();
-  }
+  static final Predicate<ARGState> RELEVANT_STATE = Predicates.or(
+      AbstractStates.IS_TARGET_STATE,
+      AT_RELEVANT_LOCATION
+      );
 
   /**
    * Project the ARG to a subset of "relevant" states.
@@ -423,12 +189,15 @@ public class ARGUtils {
    *
    * To get the predecessor relationship, you can use {@link Multimaps#invertFrom()}.
    *
-   * @param root The start of the subgraph of the ARG to project.
+   * @param root The start of the subgraph of the ARG to project (always considered relevant).
    * @param isRelevant The predicate determining which states are in the resulting relationship.
    */
-  public static SetMultimap<ARGState, ARGState> projectARG(final ARGState root,
+  static SetMultimap<ARGState, ARGState> projectARG(final ARGState root,
       final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
-      final Predicate<? super ARGState> isRelevant) {
+      Predicate<? super ARGState> isRelevant) {
+
+    isRelevant = Predicates.or(Predicates.equalTo(root),
+                               isRelevant);
 
     SetMultimap<ARGState, ARGState> successors = HashMultimap.create();
 
