@@ -130,25 +130,6 @@ public class ARGUtils {
     return path;
   }
 
-  /**
-   * Get the set of all elements covered by any of the given elements,
-   * i.e., the union of calling {@link ARGState#getCoveredByThis()} on all
-   * elements.
-   *
-   * However, elements in the given set are never in the returned set.
-   * If you pass in a subtree, this will return exactly the set of covering
-   * edges which enter the subtree.
-   */
-  public static Set<ARGState> getCoveredBy(Set<ARGState> elements) {
-    Set<ARGState> result = new HashSet<>();
-    for (ARGState element : elements) {
-      result.addAll(element.getCoveredByThis());
-    }
-
-    result.removeAll(elements);
-    return result;
-  }
-
 
   static final Function<ARGState, Set<ARGState>> CHILDREN_OF_STATE = new Function<ARGState, Set<ARGState>>() {
         @Override

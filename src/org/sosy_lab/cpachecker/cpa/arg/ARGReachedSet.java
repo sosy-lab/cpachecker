@@ -36,6 +36,9 @@ import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.base.Functions;
@@ -57,7 +60,7 @@ public class ARGReachedSet {
   private final ARGCPA cpa;
 
   private final ReachedSet mReached;
-//  private final UnmodifiableReachedSet mUnmodifiableReached;
+  private final UnmodifiableReachedSet mUnmodifiableReached;
 
   public ARGReachedSet(ReachedSet pReached) {
     this(pReached, null, -1);
@@ -65,14 +68,14 @@ public class ARGReachedSet {
 
   public ARGReachedSet(ReachedSet pReached, ARGCPA pCpa, int pRefinementNumber) {
     mReached = checkNotNull(pReached);
-//    mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
+    mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
 
     cpa = pCpa;
     refinementNumber = pRefinementNumber;
   }
 
-  public ReachedSet asReachedSet() {
-    return mReached;
+  public UnmodifiableReachedSet asReachedSet() {
+    return mUnmodifiableReached;
   }
 
   /**
@@ -104,6 +107,26 @@ public class ARGReachedSet {
       mReached.updatePrecision(ae, adaptPrecision(mReached.getPrecision(ae), p));
       mReached.reAddToWaitlist(ae);
     }
+  }
+
+  /**
+   * Safely remove a port of the ARG which has been proved as completely
+   * unreachable. This method takes care of the coverage relationships of the
+   * removed nodes, re-adding covered nodes to the waitlist if necessary.
+   * @param rootOfInfeasiblePart The root of the subtree to remove.
+   * @param pReached The reached set.
+   */
+  public void removeInfeasiblePartofARG(ARGState rootOfInfeasiblePart) {
+    Set<ARGState> infeasibleSubtree = rootOfInfeasiblePart.getSubgraph();
+
+    for (ARGState removedNode : infeasibleSubtree) {
+      removeCoverageOf(removedNode);
+    }
+
+    Set<ARGState> parentsOfRoot = ImmutableSet.copyOf(rootOfInfeasiblePart.getParents());
+    Set<ARGState> parentsOfRemovedStates = removeSet(infeasibleSubtree);
+
+    assert parentsOfRoot.equals(parentsOfRemovedStates);
   }
 
   /**
@@ -155,8 +178,6 @@ public class ARGReachedSet {
     }
     toUnreach.addAll(newToUnreach);
 
-    mReached.removeAll(toUnreach);
-
     Set<ARGState> toWaitlist = removeSet(toUnreach);
 
     return toWaitlist;
@@ -201,7 +222,7 @@ public class ARGReachedSet {
   }
 
   /**
-   * Remove a set of elements from the ARG. There are no sanity checks.
+   * Remove a set of elements from the ARG and reached set. There are no sanity checks.
    *
    * The result will be a set of elements that need to be added to the waitlist
    * to re-discover the removed elements. These are the parents of the removed
@@ -210,7 +231,9 @@ public class ARGReachedSet {
    * @param elements the elements to remove
    * @return the elements to re-add to the waitlist
    */
-  private static Set<ARGState> removeSet(Set<ARGState> elements) {
+  private Set<ARGState> removeSet(Set<ARGState> elements) {
+    mReached.removeAll(elements);
+
     Set<ARGState> toWaitlist = new LinkedHashSet<>();
     for (ARGState ae : elements) {
 
@@ -245,7 +268,7 @@ public class ARGReachedSet {
    *
    * @param element The covered ARGState to uncover.
    */
-  public void uncover(ARGState element) {
+  private void uncover(ARGState element) {
     element.uncover();
 
     // this is the subtree of elements which now become uncovered
@@ -263,6 +286,57 @@ public class ARGReachedSet {
     }
   }
 
+  /**
+   * Try covering an ARG state by other states in the reached set.
+   * If successful, also mark the subtree below this state as covered,
+   * which means that all states in this subtree do not cover any states anymore.
+   * @param v The state which should be covered if possible.
+   * @return whether the covering was successful
+   * @throws CPAException
+   */
+  public boolean tryToCover(ARGState v) throws CPAException {
+    assert v.mayCover();
+
+    cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
+    // ignore return value of stop, because it will always be false
+
+    if (v.isCovered()) {
+      Set<ARGState> subtree = v.getSubgraph();
+      subtree.remove(v);
+
+      removeCoverageOf(v);
+      for (ARGState childOfV : subtree) {
+        // all states in the subtree (including v) may not cover anymore
+        removeCoverageOf(childOfV);
+      }
+
+      for (ARGState childOfV : subtree) {
+        // all states in the subtree (excluding v)
+        // are removed from the waitlist,
+        // are not covered anymore directly
+
+        if (childOfV.isCovered()) {
+          childOfV.uncover();
+        }
+      }
+
+      for (ARGState childOfV : subtree) {
+        mReached.removeOnlyFromWaitlist(childOfV);
+
+        childOfV.setHasCoveredParent(true);
+
+        // each child of v now doesn't cover anything anymore
+        assert childOfV.getCoveredByThis().isEmpty();
+        assert !childOfV.mayCover();
+      }
+
+      mReached.removeOnlyFromWaitlist(v);
+
+      return true;
+    }
+    return false;
+  }
+
   public static class ForwardingARGReachedSet extends ARGReachedSet {
 
     protected final ARGReachedSet delegate;
@@ -273,7 +347,7 @@ public class ARGReachedSet {
     }
 
     @Override
-    public ReachedSet asReachedSet() {
+    public UnmodifiableReachedSet asReachedSet() {
       return delegate.asReachedSet();
     }
 

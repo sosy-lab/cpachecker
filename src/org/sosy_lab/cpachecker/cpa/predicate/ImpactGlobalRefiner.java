@@ -428,7 +428,7 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
    */
   private void finishRefinementOfPath(final ARGState unreachableState, List<ARGState> affectedStates,
       ReachedSet reached) throws CPAException {
-    ARGReachedSet arg = new ARGReachedSet(reached);
+    ARGReachedSet arg = new ARGReachedSet(reached, argCpa, -1);
 
     argUpdate.start();
     for (ARGState w : affectedStates) {
@@ -436,13 +436,13 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
     }
 
     // remove ARG part from unreachableState downwards
-    removeInfeasiblePartofARG(unreachableState, arg);
+    arg.removeInfeasiblePartofARG(unreachableState);
     argUpdate.stop();
 
     coverTime.start();
     try {
       for (ARGState w : affectedStates) {
-        if (cover(w, arg, argCpa)) {
+        if (arg.tryToCover(w)) {
           break; // all further elements are covered anyway
         }
       }

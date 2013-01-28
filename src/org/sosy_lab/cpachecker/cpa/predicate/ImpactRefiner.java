@@ -42,9 +42,9 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -159,7 +159,6 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<BooleanForm
   protected void performRefinement(ARGReachedSet pReached, List<ARGState> path,
       CounterexampleTraceInfo<BooleanFormula> cex, boolean pRepeatedCounterexample) throws CPAException {
 
-    ReachedSet reached = pReached.asReachedSet();
     ARGState lastElement = path.get(path.size()-1);
     assert lastElement.isTarget();
 
@@ -215,7 +214,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<BooleanForm
       pReached.removeCoverageOf(w);
     }
 
-    removeInfeasiblePartofARG(infeasiblePartOfART, pReached);
+    pReached.removeInfeasiblePartofARG(infeasiblePartOfART);
     stats.argUpdate.stop();
 
     // optimization: instead of closing all ancestors of v,
@@ -223,7 +222,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<BooleanForm
     stats.coverTime.start();
     try {
       for (ARGState w : changedElements) {
-        if (cover(w, pReached, getArgCpa())) {
+        if (pReached.tryToCover(w)) {
           break; // all further elements are covered anyway
         }
       }
@@ -231,7 +230,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<BooleanForm
       stats.coverTime.stop();
     }
 
-    assert !reached.contains(lastElement);
+    assert !pReached.asReachedSet().contains(lastElement);
   }
 
   @Override
