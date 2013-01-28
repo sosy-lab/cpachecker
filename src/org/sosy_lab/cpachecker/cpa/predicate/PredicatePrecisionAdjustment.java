@@ -50,6 +50,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   int numAbstractions = 0;
   int numAbstractionsFalse = 0;
   int maxBlockSize = 0;
+  int totalPredsPerAbstraction = 0;
   int maxPredsPerAbstraction = 0;
 
   private final LogManager logger;
@@ -100,6 +101,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
     maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
+    totalPredsPerAbstraction += preds.size();
 
     computingAbstractionTime.start();
 

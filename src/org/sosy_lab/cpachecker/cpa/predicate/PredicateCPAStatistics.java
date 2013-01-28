@@ -209,6 +209,7 @@ class PredicateCPAStatistics implements Statistics {
       int numAbstractions = as.numCallsAbstraction-as.numSymbolicAbstractions;
       if (numAbstractions > 0) {
         out.println("Max number of predicates per abstraction: " + prec.maxPredsPerAbstraction);
+        out.println("Avg number of predicates per abstraction: " + prec.totalPredsPerAbstraction / prec.numAbstractions);
         out.println("Total number of models for allsat:        " + as.allSatCount);
         out.println("Max number of models for allsat:          " + as.maxAllSatCount);
         out.println("Avg number of models for allsat:          " + as.allSatCount / as.numCallsAbstraction);
