@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static java.util.Collections.unmodifiableList;
 import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.util.StatisticsUtils.div;
 
 import java.io.PrintStream;
 import java.util.ArrayDeque;
@@ -34,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -118,9 +118,6 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
       out.println("  Coverage checks:                    " + coverTime);
       out.println("  ARG update:                         " + argUpdate);
     }
-  }
-  private static String div(int l1, int l2) {
-    return String.format(Locale.ROOT, "%.2f", (double)l1/l2);
   }
 
 

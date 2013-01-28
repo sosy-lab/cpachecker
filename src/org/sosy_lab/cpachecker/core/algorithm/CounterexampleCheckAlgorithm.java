@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.ImmutableList.copyOf;
+import static org.sosy_lab.cpachecker.util.StatisticsUtils.toPercent;
 
 import java.io.PrintStream;
 import java.util.ArrayDeque;
@@ -330,10 +331,6 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
         ((Statistics)checker).printStatistics(out, pResult, pReached);
       }
     }
-  }
-
-  private static String toPercent(double val, double full) {
-    return String.format("%1.0f", val/full*100) + "%";
   }
 
   @Override

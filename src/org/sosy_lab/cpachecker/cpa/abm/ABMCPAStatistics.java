@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.abm;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.util.StatisticsUtils.toPercent;
 
 import java.io.PrintStream;
 
@@ -95,8 +96,4 @@ class ABMCPAStatistics implements Statistics {
       }
     }
 
-
-    private String toPercent(double val, double full) {
-      return String.format("%1.0f", val/full*100) + "%";
-    }
 }

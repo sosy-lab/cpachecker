@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
+import static org.sosy_lab.cpachecker.util.StatisticsUtils.div;
+
 import java.io.File;
 import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -44,11 +45,11 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -254,8 +255,5 @@ public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBa
       formulaManager.stats.printStatistics(out, result, reached);
       out.println("  Error path post-processing:         " + errorPathProcessing);
     }
-  }
-  private static String div(int l1, int l2) {
-    return String.format(Locale.ROOT, "%.2f", (double)l1/l2);
   }
 }

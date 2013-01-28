@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.StatisticsUtils.*;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -209,10 +210,10 @@ class PredicateCPAStatistics implements Statistics {
       int numAbstractions = as.numCallsAbstraction-as.numSymbolicAbstractions;
       if (numAbstractions > 0) {
         out.println("Max number of predicates per abstraction: " + prec.maxPredsPerAbstraction);
-        out.println("Avg number of predicates per abstraction: " + prec.totalPredsPerAbstraction / prec.numAbstractions);
+        out.println("Avg number of predicates per abstraction: " + div(prec.totalPredsPerAbstraction, prec.numAbstractions));
         out.println("Total number of models for allsat:        " + as.allSatCount);
         out.println("Max number of models for allsat:          " + as.maxAllSatCount);
-        out.println("Avg number of models for allsat:          " + as.allSatCount / as.numCallsAbstraction);
+        out.println("Avg number of models for allsat:          " + div(as.allSatCount, as.numCallsAbstraction));
       }
       out.println();
       if (pfMgr != null) {
@@ -301,9 +302,5 @@ class PredicateCPAStatistics implements Statistics {
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write loop invariants to file");
       }
-    }
-
-    private String toPercent(double val, double full) {
-      return String.format("%1.0f", val/full*100) + "%";
     }
 }
