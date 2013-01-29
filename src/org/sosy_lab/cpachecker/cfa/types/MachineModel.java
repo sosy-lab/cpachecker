@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.types;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CDereferenceType;
@@ -268,11 +267,6 @@ public enum MachineModel {
       @Override
       public Integer visit(CDummyType pCDummyType) throws IllegalArgumentException {
         throw new IllegalArgumentException("Unknown C-Type: " + pCDummyType.getClass().toString());
-      }
-
-      @Override
-      public Integer visit(CComplexType pCComplexType) throws IllegalArgumentException {
-        throw new IllegalArgumentException("Unknown C-Type: " + pCComplexType.getClass().toString());
       }
 
       @Override

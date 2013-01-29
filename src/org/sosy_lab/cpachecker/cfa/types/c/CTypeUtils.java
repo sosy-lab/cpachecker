@@ -90,11 +90,6 @@ public class CTypeUtils {
     }
 
     @Override
-    public CType visit(CComplexType pCComplexType) {
-      throw new IllegalArgumentException();
-    }
-
-    @Override
     public CType visit(CDereferenceType pCDereferenceType) {
       return pCDereferenceType;
     }};
@@ -343,24 +338,6 @@ public class CTypeUtils {
 
     private Boolean equalsDummyType(CDummyType pThis, CDummyType other) {
       return true;
-    }
-
-    @Override
-    public Boolean visit(CComplexType pThis) throws Exception {
-
-      if (this == obj) {
-        return true;
-      }
-      if (pThis.getClass() != obj.getClass()) {
-        return false;
-      }
-      CComplexType other = (CComplexType) obj;
-      return equalsComplexType(pThis, other);
-    }
-
-    private Boolean equalsComplexType(CComplexType pThis, CComplexType other) {
-      return
-          Objects.equals(pThis.getName(), other.getName());
     }
 
     @Override

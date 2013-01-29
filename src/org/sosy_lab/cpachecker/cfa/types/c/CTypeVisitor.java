@@ -37,6 +37,5 @@ public interface CTypeVisitor<R, X extends Exception> {
   R visit(CTypedefType pTypedefType) throws X;
   R visit(CNamedType pCNamedType) throws X;
   R visit(CDummyType pCDummyType) throws X;
-  R visit(CComplexType pCComplexType) throws X;
   R visit(CDereferenceType pCDereferenceType) throws X;
 }
