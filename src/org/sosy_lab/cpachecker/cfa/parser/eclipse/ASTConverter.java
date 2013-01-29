@@ -641,18 +641,13 @@ class ASTConverter {
         || type instanceof CEnumType) {
       // struct, union, or enum declaration
       // split type definition from eventual variable declaration
-      CComplexTypeDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), (CComplexType)type);
+      CComplexType complexType = (CComplexType)type;
+      CComplexTypeDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), complexType);
       result.add(newD);
 
       // now replace type with an elaborated type referencing the new type
-      if (type instanceof CCompositeType) {
-        CCompositeType compositeType = (CCompositeType)type;
-        CElaboratedType.ComplexTypeKind kind = compositeType.getKind();
-        type = new CElaboratedType(type.isConst(), type.isVolatile(), kind, compositeType.getName(), newD.getType());
-      } else if (type instanceof CEnumType) {
-        CEnumType enumType = (CEnumType)type;
-        type = new CElaboratedType(type.isConst(), type.isVolatile(), ComplexTypeKind.ENUM, enumType.getName(), newD.getType());
-      }
+      type = new CElaboratedType(type.isConst(), type.isVolatile(), complexType.getKind(), complexType.getName(), newD.getType());
+
     } else if (type instanceof CElaboratedType) {
       boolean typeAlreadyKnown = scope.lookupType(((CElaboratedType) type).getQualifiedName()) != null;
       boolean variableDeclaration = declarators != null && declarators.length > 0;
