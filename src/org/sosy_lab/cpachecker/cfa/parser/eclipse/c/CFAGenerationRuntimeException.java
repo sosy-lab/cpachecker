@@ -35,7 +35,7 @@ import com.google.common.base.Strings;
 /**
  * Handles problems during CFA generation
  */
-public class CFAGenerationRuntimeException extends RuntimeException {
+class CFAGenerationRuntimeException extends RuntimeException {
 
   private static final long serialVersionUID = 6850681425709171716L;
 

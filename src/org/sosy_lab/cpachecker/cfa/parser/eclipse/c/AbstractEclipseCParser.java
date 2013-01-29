@@ -55,7 +55,7 @@ import com.google.common.collect.ImmutableMap;
  *
  * @param <T> The type that the CDT version uses to encapsulate the source code access.
  */
-public abstract class AbstractEclipseCParser<T> implements CParser {
+abstract class AbstractEclipseCParser<T> implements CParser {
 
   protected final ILanguage language;
 

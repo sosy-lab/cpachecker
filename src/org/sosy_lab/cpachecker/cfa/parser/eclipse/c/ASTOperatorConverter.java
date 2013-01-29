@@ -40,7 +40,7 @@ import com.google.common.collect.ImmutableSet;
 
 /** This Class contains functions,
  * that convert operators from C-source into CPAchecker-format. */
-public class ASTOperatorConverter {
+class ASTOperatorConverter {
 
   /** converts and returns the operator of an unaryExpression
    * (PLUS, MINUS, NOT, STAR,...) */

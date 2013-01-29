@@ -49,7 +49,7 @@ import com.google.common.collect.Lists;
  * Only variables can be declared.
  * Provides the mechanism to have nested scopes (i.e., inside {} blocks).
  */
-public class FunctionScope implements Scope {
+class FunctionScope implements Scope {
 
   private final ImmutableMap<String, CFunctionDeclaration> functions;
   private final ImmutableMap<String, CComplexTypeDeclaration> types;

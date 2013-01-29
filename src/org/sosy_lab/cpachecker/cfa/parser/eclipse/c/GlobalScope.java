@@ -48,7 +48,7 @@ import com.google.common.collect.ImmutableMap;
  * (i.e., outside of functions).
  * Allows to register functions, types and global variables.
  */
-public class GlobalScope implements Scope {
+class GlobalScope implements Scope {
 
   private final Map<String, CSimpleDeclaration> globalVars = new HashMap<>();
   private final Map<String, CFunctionDeclaration> functions = new HashMap<>();
