@@ -123,13 +123,20 @@ class ASTTypeConverter {
       default:
         throw new CFAGenerationRuntimeException("Unknown key " + ct.getKey() + " for composite type " + t);
       }
+      String name = ct.getName();
+      String qualifiedName = kind.toASTString() + " " + name;
+      CComplexType oldType = scope.lookupType(qualifiedName);
+      if (oldType != null) {
+        // We have seen this type already.
+        // Replace it with a CElaboratedType.
+        return new CElaboratedType(false, false, kind, name, oldType);
+      }
 
       // empty linkedList for the Fields of the struct, they are created afterwards
       // with the right references in case of pointers to a struct of the same type
       // otherwise they would not point to the correct struct
       // TODO: volatile and const cannot be checked here until no, so both is set
       //       to false
-      String name = ct.getName();
       CCompositeType compType = new CCompositeType(false, false, kind, new LinkedList<CCompositeTypeMemberDeclaration>(), name);
 
       // We need to cache compType before converting the type of its fields!
