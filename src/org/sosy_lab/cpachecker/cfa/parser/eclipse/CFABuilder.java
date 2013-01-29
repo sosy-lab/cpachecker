@@ -44,11 +44,12 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -208,8 +209,10 @@ class CFABuilder extends ASTVisitor {
         scope.registerDeclaration(newD);
       } else if (newD instanceof CFunctionDeclaration) {
         scope.registerFunctionDeclaration((CFunctionDeclaration) newD);
-      } else if (newD instanceof CTypeDeclaration) {
-        used = scope.registerTypeDeclaration((CTypeDeclaration)newD);
+      } else if (newD instanceof CComplexTypeDeclaration) {
+        used = scope.registerTypeDeclaration((CComplexTypeDeclaration)newD);
+      } else if (newD instanceof CTypeDefDeclaration) {
+        used = scope.registerTypeDeclaration((CTypeDefDeclaration)newD);
       }
 
       if (used) {

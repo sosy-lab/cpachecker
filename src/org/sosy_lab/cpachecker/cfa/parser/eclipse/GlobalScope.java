@@ -29,10 +29,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -56,7 +54,8 @@ public class GlobalScope implements Scope {
 
   private final Map<String, CSimpleDeclaration> globalVars = new HashMap<>();
   private final Map<String, CFunctionDeclaration> functions = new HashMap<>();
-  private final Map<String, CDeclaration> types = new HashMap<>();
+  private final Map<String, CComplexTypeDeclaration> types = new HashMap<>();
+  private final Map<String, CTypeDefDeclaration> typedefs = new HashMap<>();
 
   @Override
   public boolean isGlobalScope() {
@@ -135,51 +134,30 @@ public class GlobalScope implements Scope {
   }
 
   /**
-   * Register a type, e.g., a typedef or a new struct type.
+   * Register a type, e.g., a new struct type.
    *
    * @return True if the type actually needs to be declared, False if the declaration can be omitted because the type is already known.
    */
-  public boolean registerTypeDeclaration(CTypeDeclaration declaration) {
+  public boolean registerTypeDeclaration(CComplexTypeDeclaration declaration) {
     String name;
 
-    if (declaration instanceof CComplexTypeDeclaration) {
-      CComplexType type = ((CComplexTypeDeclaration)declaration).getType();
-      if (type instanceof CCompositeType) {
-        CCompositeType compositeType = (CCompositeType)type;
-        name = compositeType.getKind().toASTString() + " " + compositeType.getName();
-      } else if (type instanceof CEnumType) {
-        name = "enum " + ((CEnumType)type).getName();
-      } else if (type instanceof CElaboratedType) {
-        CElaboratedType elaboratedType = (CElaboratedType)type;
-        name = elaboratedType.getKind().toASTString() + " " + elaboratedType.getName();
-      } else {
-        throw new AssertionError(type.getClass().getName());
-      }
-    } else if (declaration instanceof CTypeDefDeclaration) {
-      name = ((CTypeDefDeclaration)declaration).getName();
+    CComplexType type = declaration.getType();
+    if (type instanceof CCompositeType) {
+      CCompositeType compositeType = (CCompositeType)type;
+      name = compositeType.getKind().toASTString() + " " + compositeType.getName();
+    } else if (type instanceof CEnumType) {
+      name = "enum " + ((CEnumType)type).getName();
+    } else if (type instanceof CElaboratedType) {
+      CElaboratedType elaboratedType = (CElaboratedType)type;
+      name = elaboratedType.getKind().toASTString() + " " + elaboratedType.getName();
     } else {
-      throw new AssertionError(declaration.getClass().getName());
+      throw new AssertionError(type.getClass().getName());
     }
 
     if (types.containsKey(name)) {
-      CDeclaration oldDeclaration = types.get(name);
-      CType type = declaration.getType();
+      CComplexTypeDeclaration oldDeclaration = types.get(name);
 
-      CType oldType = oldDeclaration.getType();
-      if (declaration instanceof CTypeDefDeclaration) {
-        assert oldDeclaration instanceof CTypeDefDeclaration;
-        if (!CTypeUtils.equals(type, oldType)) {
-          throw new CFAGenerationRuntimeException("Redeclaring " + name
-              + " in line " + declaration.getFileLocation().getStartingLineNumber()
-              + " with type " + type.toASTString("")
-              + ", originally declared in line " + oldDeclaration.getFileLocation().getStartingLineNumber()
-              + " with type " + oldType.toASTString(""));
-        }
-        // redundant typedef, ignore it
-        return false;
-      }
-
-      assert !(oldDeclaration instanceof CTypeDefDeclaration);
+      CComplexType oldType = oldDeclaration.getType();
 
       if (type instanceof CElaboratedType) {
         // the current declaration just re-declares an existing type
@@ -201,9 +179,37 @@ public class GlobalScope implements Scope {
       // We now have a real declaration for a type for which we have seen a forward declaration
       // We set a reference to the full type in the old type
       // and update the types map with the full type.
-      ((CElaboratedType)oldType).setRealType((CComplexType)type);
+      ((CElaboratedType)oldType).setRealType(type);
     }
     types.put(name, declaration);
+    return true;
+  }
+
+  /**
+   * Register a typedef.
+   *
+   * @return True if the type actually needs to be declared, False if the declaration can be omitted because the type is already known.
+   */
+  public boolean registerTypeDeclaration(CTypeDefDeclaration declaration) {
+    String name = declaration.getName();
+
+    if (typedefs.containsKey(name)) {
+      CTypeDefDeclaration oldDeclaration = typedefs.get(name);
+      CType type = declaration.getType();
+
+      CType oldType = oldDeclaration.getType();
+
+      if (!CTypeUtils.equals(type, oldType)) {
+        throw new CFAGenerationRuntimeException("Redeclaring " + name
+            + " in line " + declaration.getFileLocation().getStartingLineNumber()
+            + " with type " + type.toASTString("")
+            + ", originally declared in line " + oldDeclaration.getFileLocation().getStartingLineNumber()
+            + " with type " + oldType.toASTString(""));
+      }
+      // redundant typedef, ignore it
+      return false;
+    }
+    typedefs.put(name, declaration);
     return true;
   }
 
