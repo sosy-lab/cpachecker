@@ -90,7 +90,10 @@ class ASTTypeConverter {
     CType result = typeConversions.get(t);
     if (result == null) {
       result = checkNotNull(convert0(t));
-      typeConversions.put(t, result);
+      // re-check, in some cases we updated the map already
+      if (!typeConversions.containsKey(t)) {
+        typeConversions.put(t, result);
+      }
     }
     return result;
   }
@@ -126,12 +129,17 @@ class ASTTypeConverter {
       // otherwise they would not point to the correct struct
       // TODO: volatile and const cannot be checked here until no, so both is set
       //       to false
-      CCompositeType compType = new CCompositeType(false, false, kind, new LinkedList<CCompositeTypeMemberDeclaration>(), ct.getName());
+      String name = ct.getName();
+      CCompositeType compType = new CCompositeType(false, false, kind, new LinkedList<CCompositeTypeMemberDeclaration>(), name);
 
       // We need to cache compType before converting the type of its fields!
       // Otherwise we run into an infinite recursion if the type of one field
       // is (a pointer to) the struct itself.
-      typeConversions.put(t, compType);
+      // In order to prevent a recursive reference from compType to itself,
+      // we cheat and put a CElaboratedType instance in the map.
+      // This means that wherever the ICompositeType instance appears, it will be
+      // replaced by an CElaboratedType.
+      typeConversions.put(t, new CElaboratedType(false, false, kind, name, compType));
 
       compType.setMembers(conv(ct.getFields()));
 
