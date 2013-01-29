@@ -71,9 +71,7 @@ class CFABuilder extends ASTVisitor {
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
   // Data structure for storing global declarations
-  private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration, String>> globalDeclarations = Lists.newArrayList();
-
-  private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.IADeclaration, String>> globalDeclarations2 = Lists.newArrayList();
+  private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.IADeclaration, String>> globalDeclarations = Lists.newArrayList();
 
   // Data structure for checking amount of initializations per global variable
   private final Map<String, Boolean> globalInitializedVariables = new HashMap<>();
@@ -118,12 +116,8 @@ class CFABuilder extends ASTVisitor {
    * Retrieves list of all global declarations
    * @return global declarations
    */
-  public List<Pair<CDeclaration, String>> getGlobalDeclarations() {
+  public List<Pair<IADeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
-  }
-
-  public List<Pair<IADeclaration, String>> getGlobalDeclarations2() {
-    return globalDeclarations2;
   }
 
   /* (non-Javadoc)
@@ -148,9 +142,7 @@ class CFABuilder extends ASTVisitor {
       }
 
       scope.registerFunctionDeclaration(functionDefinition);
-      globalDeclarations.add(Pair.<CDeclaration, String>of(functionDefinition, fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
-
-      globalDeclarations2.add(Pair.of((IADeclaration)functionDefinition, fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
+      globalDeclarations.add(Pair.of((IADeclaration)functionDefinition, fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
 
 
       return PROCESS_SKIP;
@@ -215,9 +207,7 @@ class CFABuilder extends ASTVisitor {
         scope.registerFunctionDeclaration((CFunctionDeclaration) newD);
       }
 
-      globalDeclarations.add(Pair.of(newD, rawSignature));
-
-      globalDeclarations2.add(Pair.of((IADeclaration)newD, rawSignature));
+      globalDeclarations.add(Pair.of((IADeclaration)newD, rawSignature));
     }
 
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
