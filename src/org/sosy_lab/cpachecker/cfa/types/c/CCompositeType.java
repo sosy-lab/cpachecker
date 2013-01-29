@@ -28,6 +28,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.List;
 import java.util.Objects;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
+
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
@@ -109,6 +111,17 @@ public final class CCompositeType implements CType {
 
     public String toASTString() {
       return super.toString().toLowerCase();
+    }
+
+    public CElaboratedType.ElaboratedType toElaboratedTypeKind() {
+      switch (this) {
+      case STRUCT:
+        return ElaboratedType.STRUCT;
+      case UNION:
+        return ElaboratedType.UNION;
+      default:
+        throw new AssertionError();
+      }
     }
   }
 

@@ -128,6 +128,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -145,6 +146,8 @@ class ASTConverter {
   private final LogManager logger;
 
   private final Scope scope;
+
+  private int anonTypeCounter = 0;
 
   private final List<CAstNode> preSideAssignments = new ArrayList<>();
   private final List<CAstNode> postSideAssignments = new ArrayList<>();
@@ -627,19 +630,28 @@ class ASTConverter {
     CStorageClass cStorageClass = specifier.getFirst();
     CType type = specifier.getSecond();
 
-    List<CDeclaration> result;
+    List<CDeclaration> result = new ArrayList<>();
+
+    if (type instanceof CCompositeType
+        || type instanceof CEnumType) {
+      // struct, union, or enum declaration
+      // split type definition from eventual variable declaration
+      CDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), type);
+      result.add(newD);
+
+      // now replace type with an elaborated type referencing the new type
+      if (type instanceof CCompositeType) {
+        CCompositeType compositeType = (CCompositeType)type;
+        CElaboratedType.ElaboratedType kind = compositeType.getKind().toElaboratedTypeKind();
+        type = new CElaboratedType(type.isConst(), type.isVolatile(), kind, compositeType.getName());
+      } else if (type instanceof CEnumType) {
+        CEnumType enumType = (CEnumType)type;
+        type = new CElaboratedType(type.isConst(), type.isVolatile(), ElaboratedType.ENUM, enumType.getName());
+      }
+    }
+
     IASTDeclarator[] declarators = d.getDeclarators();
-    if (declarators == null || declarators.length == 0) {
-      // declaration without declarator, i.e. struct prototype
-      CDeclaration newD = createDeclaration(fileLoc, cStorageClass, type, null);
-      result = Collections.singletonList(newD);
-
-    } else if (declarators.length == 1) {
-      CDeclaration newD = createDeclaration(fileLoc, cStorageClass, type, declarators[0]);
-      result = Collections.singletonList(newD);
-
-    } else {
-      result = new ArrayList<>(declarators.length);
+    if (declarators != null) {
       for (IASTDeclarator c : declarators) {
 
         result.add(createDeclaration(fileLoc, cStorageClass, type, c));
@@ -722,13 +734,6 @@ class ASTConverter {
       return declaration;
 
     } else {
-      if (type instanceof CCompositeType
-          || type instanceof CEnumType
-          || type instanceof CElaboratedType) {
-        // struct prototype without variable declaration or similar type definitions
-        return new CComplexTypeDeclaration(fileLoc, isGlobal, type);
-      }
-
       throw new CFAGenerationRuntimeException("Declaration without declarator, but type is unknown: " + type.toASTString(""));
     }
 
@@ -984,7 +989,11 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unknown key " + d.getKey() + " for composite type", d);
     }
 
-    return new CCompositeType(d.isConst(), d.isVolatile(), kind, list, convert(d.getName()));
+    String name = convert(d.getName());
+    if (Strings.isNullOrEmpty(name)) {
+      name = "__anon_type_" + anonTypeCounter++;
+    }
+    return new CCompositeType(d.isConst(), d.isVolatile(), kind, list, name);
   }
 
   private CEnumType convert(IASTEnumerationSpecifier d) {
