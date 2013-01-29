@@ -41,6 +41,11 @@ interface Scope {
 
   CFunctionDeclaration lookupFunction(String name);
 
+  /**
+   * Look up {@link CComplexType}s by their name.
+   * @param name The fully qualified name (e.g., "struct s").
+   * @return The CComplexType instance or null.
+   */
   CComplexType lookupType(String name);
 
   void registerDeclaration(CSimpleDeclaration declaration);

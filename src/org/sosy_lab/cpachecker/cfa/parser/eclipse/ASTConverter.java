@@ -653,11 +653,13 @@ class ASTConverter {
         CEnumType enumType = (CEnumType)type;
         type = new CElaboratedType(type.isConst(), type.isVolatile(), ComplexTypeKind.ENUM, enumType.getName(), newD.getType());
       }
-    } else if (type instanceof CElaboratedType
-        && (declarators == null || declarators.length == 0)) {
-      // "struct s;"
-      CComplexTypeDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), (CElaboratedType)type);
-      result.add(newD);
+    } else if (type instanceof CElaboratedType) {
+      boolean typeAlreadyKnown = scope.lookupType(((CElaboratedType) type).getQualifiedName()) != null;
+      boolean variableDeclaration = declarators != null && declarators.length > 0;
+      if (!typeAlreadyKnown || !variableDeclaration) {
+        CComplexTypeDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), (CElaboratedType)type);
+        result.add(newD);
+      }
     }
 
     if (declarators != null) {
