@@ -23,10 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -53,6 +60,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.io.Files;
+
 @Options(prefix="cpa.explicit")
 public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, StatisticsProvider {
 
@@ -71,6 +83,10 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
   @Option(name="variableBlacklist",
       description="blacklist regex for variables that won't be tracked by ExplicitCPA")
   private String variableBlacklist = "";
+
+  @Option(description="get an initial precison from file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private File initialPrecisionFile = null;
 
   private ExplicitPrecision precision;
 
@@ -100,7 +116,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     stopOperator        = initializeStopOperator();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     reducer             = new ExplicitReducer();
-    statistics          = new ExplicitCPAStatistics();
+    statistics          = new ExplicitCPAStatistics(this);
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -132,7 +148,41 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
   }
 
   private ExplicitPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
-    return new ExplicitPrecision(variableBlacklist, config, cfa.getVarClassification());
+    return new ExplicitPrecision(variableBlacklist, config, cfa.getVarClassification(), restoreMappingFromFile(cfa));
+  }
+
+  private Multimap<CFANode, String> restoreMappingFromFile(CFA cfa) throws InvalidConfigurationException {
+    Multimap<CFANode, String> mapping = HashMultimap.create();
+    if(initialPrecisionFile == null) {
+      return mapping;
+    }
+
+    List<String> variablesAtLocations = null;
+    try {
+      variablesAtLocations = Files.readLines(initialPrecisionFile, Charset.defaultCharset());
+    } catch (IOException e) {
+      throw new InvalidConfigurationException("error reading precision from file", e);
+    }
+
+    Map<Integer, CFANode> idToCfaNode = createMappingForCFANodes(cfa);
+    for (String variablesAtLocation : variablesAtLocations) {
+      String[] splits = variablesAtLocation.split("=");
+
+      CFANode location = idToCfaNode.get(Integer.parseInt(splits[0].substring(1)));
+      String variables = splits[1].substring(1, splits[1].length() - 1);
+
+      mapping.putAll(location, Arrays.asList(variables.split(", ")));
+    }
+
+    return mapping;
+  }
+
+  private Map<Integer, CFANode> createMappingForCFANodes(CFA cfa) {
+    Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
+    for (CFANode n : cfa.getAllNodes()) {
+      idToNodeMap.put(n.getNodeNumber(), n);
+    }
+    return idToNodeMap;
   }
 
   @Override

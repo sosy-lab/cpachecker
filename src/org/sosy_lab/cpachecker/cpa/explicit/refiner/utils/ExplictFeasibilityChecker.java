@@ -29,10 +29,11 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 
 public class ExplictFeasibilityChecker {
@@ -65,7 +67,7 @@ public class ExplictFeasibilityChecker {
 
       TransferRelation transfer   = new ExplicitTransferRelation(config);
       AbstractState next          = new ExplicitState();
-      ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
+      ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
 
       for (Pair<ARGState, CFAEdge> pathElement : path) {
         Collection<? extends AbstractState> successors = transfer.getAbstractSuccessors(

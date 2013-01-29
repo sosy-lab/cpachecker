@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Pair;
@@ -87,13 +89,14 @@ public class ExplicitPrecision implements Precision {
   private Optional<VariableClassification> varClass;
 
   public ExplicitPrecision(String variableBlacklist, Configuration config,
-      Optional<VariableClassification> vc) throws InvalidConfigurationException {
+      Optional<VariableClassification> vc,
+      Multimap<CFANode, String> mapping) throws InvalidConfigurationException {
     config.inject(this);
 
     blackListPattern = Pattern.compile(variableBlacklist);
     this.varClass = vc;
 
-    cegarPrecision        = new CegarPrecision(config);
+    cegarPrecision        = new CegarPrecision(config, mapping);
     reachedSetThresholds  = new ReachedSetThresholds(config);
     pathThresholds        = new PathThresholds(config);
   }
@@ -205,6 +208,12 @@ public class ExplicitPrecision implements Precision {
       }
     }
 
+    private CegarPrecision(Configuration config, Multimap<CFANode, String> mapping) throws InvalidConfigurationException {
+      config.inject(this);
+
+      this.mapping = HashMultimap.create(mapping);
+    }
+
     /**
      * copy constructor
      *
@@ -261,7 +270,16 @@ public class ExplicitPrecision implements Precision {
 
     @Override
     public String toString() {
-      return Joiner.on(",").join(mapping.entries());
+      return Joiner.on(", ").join(mapping.entries());
+    }
+
+    /**
+     * This method joins this precision into a generic map, i.e. already joined precisions.
+     *
+     * @param consolidatedPrecision the generic map, i.e. the already joined precisions
+     */
+    public void consolidate(Map<CFANode, Collection<String>> consolidatedPrecision) {
+      consolidatedPrecision.putAll(mapping.asMap());
     }
   }
 

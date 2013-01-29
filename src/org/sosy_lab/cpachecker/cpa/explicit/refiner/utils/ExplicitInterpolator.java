@@ -33,6 +33,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 
 public class ExplicitInterpolator {
@@ -108,7 +110,7 @@ public class ExplicitInterpolator {
       Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
     try {
       ExplicitState successor     = new ExplicitState(new HashMap<>(inputInterpolant));
-      ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
+      ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
 
       Long currentVariableValue       = null;
       Pair<String, Long> interpolant  = null;
