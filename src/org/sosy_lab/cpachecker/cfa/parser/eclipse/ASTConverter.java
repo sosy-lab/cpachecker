@@ -631,6 +631,7 @@ class ASTConverter {
     CStorageClass cStorageClass = specifier.getFirst();
     CType type = specifier.getSecond();
 
+    IASTDeclarator[] declarators = d.getDeclarators();
     List<CDeclaration> result = new ArrayList<>();
 
     if (type instanceof CCompositeType
@@ -649,9 +650,13 @@ class ASTConverter {
         CEnumType enumType = (CEnumType)type;
         type = new CElaboratedType(type.isConst(), type.isVolatile(), ElaboratedType.ENUM, enumType.getName());
       }
+    } else if (type instanceof CElaboratedType
+        && (declarators == null || declarators.length == 0)) {
+      // "struct s;"
+      CDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), (CElaboratedType)type);
+      result.add(newD);
     }
 
-    IASTDeclarator[] declarators = d.getDeclarators();
     if (declarators != null) {
       for (IASTDeclarator c : declarators) {
 

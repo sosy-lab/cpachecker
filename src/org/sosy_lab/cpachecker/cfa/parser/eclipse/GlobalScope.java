@@ -28,11 +28,20 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -46,6 +55,7 @@ public class GlobalScope implements Scope {
 
   private final Map<String, CSimpleDeclaration> globalVars = new HashMap<>();
   private final Map<String, CFunctionDeclaration> functions = new HashMap<>();
+  private final Map<String, CDeclaration> types = new HashMap<>();
 
   @Override
   public boolean isGlobalScope() {
@@ -121,6 +131,75 @@ public class GlobalScope implements Scope {
     }
 
     globalVars.put(name, declaration);
+  }
+
+  /**
+   * Register a type, e.g., a typedef or a new struct type.
+   *
+   * @return True if the type actually needs to be declared, False if the declaration can be omitted because the type is already known.
+   */
+  public boolean registerTypeDeclaration(CTypeDeclaration declaration) {
+    String name;
+
+    if (declaration instanceof CComplexTypeDeclaration) {
+      CComplexType type = ((CComplexTypeDeclaration)declaration).getType();
+      if (type instanceof CCompositeType) {
+        CCompositeType compositeType = (CCompositeType)type;
+        name = compositeType.getKind().toASTString() + " " + compositeType.getName();
+      } else if (type instanceof CEnumType) {
+        name = "enum " + ((CEnumType)type).getName();
+      } else if (type instanceof CElaboratedType) {
+        CElaboratedType elaboratedType = (CElaboratedType)type;
+        name = elaboratedType.getKind().toASTString() + " " + elaboratedType.getName();
+      } else {
+        throw new AssertionError(type.getClass().getName());
+      }
+    } else if (declaration instanceof CTypeDefDeclaration) {
+      name = ((CTypeDefDeclaration)declaration).getName();
+    } else {
+      throw new AssertionError(declaration.getClass().getName());
+    }
+
+    if (types.containsKey(name)) {
+      CDeclaration oldDeclaration = types.get(name);
+
+      if (declaration instanceof CTypeDefDeclaration) {
+        assert oldDeclaration instanceof CTypeDefDeclaration;
+        if (!CTypeUtils.equals(declaration.getType(), oldDeclaration.getType())) {
+          throw new CFAGenerationRuntimeException("Redeclaring " + name
+              + " in line " + declaration.getFileLocation().getStartingLineNumber()
+              + " with type " + declaration.getType().toASTString("")
+              + ", originally declared in line " + oldDeclaration.getFileLocation().getStartingLineNumber()
+              + " with type " + oldDeclaration.getType().toASTString(""));
+        }
+        // redundant typedef, ignore it
+        return false;
+      }
+
+      assert !(oldDeclaration instanceof CTypeDefDeclaration);
+
+      if (declaration.getType() instanceof CElaboratedType) {
+        // the current declaration just re-declares an existing type
+        return false;
+      }
+
+      if (oldDeclaration.getType().getClass() == declaration.getType().getClass()) {
+        // two CCompositeTypes or two CEnumTypes
+        // declaring struct twice is not allowed, even with equal signatures
+
+        throw new CFAGenerationRuntimeException("Redeclaring " + name
+            + " in line " + declaration.getFileLocation().getStartingLineNumber()
+            + ", originally declared in line " + oldDeclaration.getFileLocation().getStartingLineNumber());
+      }
+
+      assert oldDeclaration.getType() instanceof CElaboratedType
+          && !(declaration.getType() instanceof CElaboratedType);
+
+      // We now have a real declaration for a type for which we have seen a forward declaration
+      // We update the declaration just like for a fresh type.
+    }
+    types.put(name, declaration);
+    return true;
   }
 
   public ImmutableMap<String, CFunctionDeclaration> getFunctions() {

@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -187,6 +188,8 @@ class CFABuilder extends ASTVisitor {
     String rawSignature = sd.getRawSignature();
 
     for (CDeclaration newD : newDs) {
+      boolean used = true;
+
       if (newD instanceof CVariableDeclaration) {
 
         CInitializer init = ((CVariableDeclaration) newD).getInitializer();
@@ -205,9 +208,13 @@ class CFABuilder extends ASTVisitor {
         scope.registerDeclaration(newD);
       } else if (newD instanceof CFunctionDeclaration) {
         scope.registerFunctionDeclaration((CFunctionDeclaration) newD);
+      } else if (newD instanceof CTypeDeclaration) {
+        used = scope.registerTypeDeclaration((CTypeDeclaration)newD);
       }
 
-      globalDeclarations.add(Pair.of((IADeclaration)newD, rawSignature));
+      if (used) {
+        globalDeclarations.add(Pair.of((IADeclaration)newD, rawSignature));
+      }
     }
 
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
