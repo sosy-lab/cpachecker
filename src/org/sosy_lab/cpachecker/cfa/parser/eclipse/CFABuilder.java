@@ -235,10 +235,11 @@ class CFABuilder extends ASTVisitor {
   @Override
   public int leave(IASTTranslationUnit translationUnit) {
     ImmutableMap<String, CFunctionDeclaration> functions = scope.getFunctions();
+    ImmutableMap<String, CComplexTypeDeclaration> types = scope.getTypes();
     ImmutableMap<String, CSimpleDeclaration> globalVars = scope.getGlobalVars();
 
     for (IASTFunctionDefinition declaration : functionDeclarations) {
-      FunctionScope localScope = new FunctionScope(functions, globalVars);
+      FunctionScope localScope = new FunctionScope(functions, types, globalVars);
       CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, localScope);
 
       declaration.accept(functionBuilder);

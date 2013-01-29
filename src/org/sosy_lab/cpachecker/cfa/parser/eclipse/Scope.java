@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 
 /**
  * Provides a symbol table that maps variable and functions to their declaration
@@ -39,6 +40,8 @@ interface Scope {
   CSimpleDeclaration lookupVariable(String name);
 
   CFunctionDeclaration lookupFunction(String name);
+
+  CComplexType lookupType(String name);
 
   void registerDeclaration(CSimpleDeclaration declaration);
 }

@@ -95,6 +95,15 @@ public class GlobalScope implements Scope {
     return functions.get(checkNotNull(name));
   }
 
+  @Override
+  public CComplexType lookupType(String name) {
+    CComplexTypeDeclaration declaration = types.get(checkNotNull(name));
+    if (declaration != null) {
+      return declaration.getType();
+    }
+    return null;
+  }
+
   public void registerFunctionDeclaration(CFunctionDeclaration declaration) {
     String name = declaration.getName();
     assert name != null;
@@ -215,6 +224,10 @@ public class GlobalScope implements Scope {
 
   public ImmutableMap<String, CFunctionDeclaration> getFunctions() {
     return ImmutableMap.copyOf(functions);
+  }
+
+  public ImmutableMap<String, CComplexTypeDeclaration> getTypes() {
+    return ImmutableMap.copyOf(types);
   }
 
   public ImmutableMap<String, CSimpleDeclaration> getGlobalVars() {

@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -75,6 +76,12 @@ import com.google.common.collect.Maps;
 /** This Class contains functions,
  * that convert types from C-source into CPAchecker-format. */
 class ASTTypeConverter {
+
+  private final Scope scope;
+
+  ASTTypeConverter(Scope pScope) {
+    scope = pScope;
+  }
 
   /** cache for all ITypes, so that they don't have to be parsed again and again
    *  (Eclipse seems to give us identical objects for identical types already). */
@@ -280,7 +287,7 @@ class ASTTypeConverter {
       CCompositeType c = (CCompositeType) i;
       return new CCompositeType(isConst, isVolatile, c.getKind(), c.getMembers(), c.getName());
     } else if (i instanceof CElaboratedType) {
-      return new CElaboratedType(isConst, isVolatile, ((CElaboratedType) i).getKind(), ((CElaboratedType) i).getName());
+      return new CElaboratedType(isConst, isVolatile, ((CElaboratedType) i).getKind(), ((CElaboratedType) i).getName(), ((CElaboratedType) i).getRealType());
     } else if (i instanceof CEnumType) {
       return new CEnumType(isConst, isVolatile, ((CEnumType) i).getEnumerators(), ((CEnumType) i).getName());
     } else if (i instanceof CFunctionPointerType) {
@@ -304,7 +311,8 @@ class ASTTypeConverter {
 
   private CType conv(final IEnumeration e) {
     // TODO we ignore the enumerators here
-    return new CElaboratedType(false, false, ElaboratedType.ENUM, e.getName());
+    CComplexType realType = scope.lookupType("enum " + e.getName());
+    return new CElaboratedType(false, false, ElaboratedType.ENUM, e.getName(), realType);
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */

@@ -30,10 +30,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
@@ -50,15 +52,18 @@ import com.google.common.collect.Lists;
 public class FunctionScope implements Scope {
 
   private final ImmutableMap<String, CFunctionDeclaration> functions;
+  private final ImmutableMap<String, CComplexTypeDeclaration> types;
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = Lists.newLinkedList();
   private final Deque<Map<String, CSimpleDeclaration>> varsList = Lists.newLinkedList();
 
   private String currentFunctionName = null;
 
   public FunctionScope(ImmutableMap<String, CFunctionDeclaration> pFunctions,
+      ImmutableMap<String, CComplexTypeDeclaration> pTypes,
       ImmutableMap<String, CSimpleDeclaration> pGlobalVars) {
 
     functions = pFunctions;
+    types = pTypes;
     varsStack.push(pGlobalVars);
     varsList.push(pGlobalVars);
 
@@ -67,6 +72,7 @@ public class FunctionScope implements Scope {
 
   public FunctionScope() {
     this(ImmutableMap.<String, CFunctionDeclaration>of(),
+         ImmutableMap.<String, CComplexTypeDeclaration>of(),
          ImmutableMap.<String, CSimpleDeclaration>of());
   }
 
@@ -131,6 +137,15 @@ public class FunctionScope implements Scope {
   @Override
   public CFunctionDeclaration lookupFunction(String name) {
     return functions.get(checkNotNull(name));
+  }
+
+  @Override
+  public CComplexType lookupType(String name) {
+    CComplexTypeDeclaration declaration = types.get(checkNotNull(name));
+    if (declaration != null) {
+      return declaration.getType();
+    }
+    return null;
   }
 
   @Override

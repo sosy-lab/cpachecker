@@ -161,7 +161,7 @@ class ASTConverter {
   public ASTConverter(Scope pScope, LogManager pLogger) {
     scope = pScope;
     logger = pLogger;
-    typeConverter = new ASTTypeConverter();
+    typeConverter = new ASTTypeConverter(scope);
     literalConverter = new ASTLiteralConverter(typeConverter);
   }
 
@@ -642,22 +642,22 @@ class ASTConverter {
         || type instanceof CEnumType) {
       // struct, union, or enum declaration
       // split type definition from eventual variable declaration
-      CDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), (CComplexType)type);
+      CComplexTypeDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), (CComplexType)type);
       result.add(newD);
 
       // now replace type with an elaborated type referencing the new type
       if (type instanceof CCompositeType) {
         CCompositeType compositeType = (CCompositeType)type;
         CElaboratedType.ElaboratedType kind = compositeType.getKind().toElaboratedTypeKind();
-        type = new CElaboratedType(type.isConst(), type.isVolatile(), kind, compositeType.getName());
+        type = new CElaboratedType(type.isConst(), type.isVolatile(), kind, compositeType.getName(), newD.getType());
       } else if (type instanceof CEnumType) {
         CEnumType enumType = (CEnumType)type;
-        type = new CElaboratedType(type.isConst(), type.isVolatile(), ElaboratedType.ENUM, enumType.getName());
+        type = new CElaboratedType(type.isConst(), type.isVolatile(), ElaboratedType.ENUM, enumType.getName(), newD.getType());
       }
     } else if (type instanceof CElaboratedType
         && (declarators == null || declarators.length == 0)) {
       // "struct s;"
-      CDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), (CElaboratedType)type);
+      CComplexTypeDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), (CElaboratedType)type);
       result.add(newD);
     }
 

@@ -43,6 +43,13 @@ public final class CElaboratedType implements CComplexType {
     name = pName.intern();
   }
 
+  public CElaboratedType(boolean pConst, final boolean pVolatile,
+      final ElaboratedType pKind, final String pName, final CComplexType pRealType) {
+    this(pConst, pVolatile, pKind, pName);
+
+    realType = pRealType;
+  }
+
   public String getName() {
     return name;
   }
