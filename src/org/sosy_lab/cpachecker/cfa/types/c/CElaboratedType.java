@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.*;
+
 
 public final class CElaboratedType implements CComplexType {
 
@@ -30,6 +32,8 @@ public final class CElaboratedType implements CComplexType {
   private final String   name;
   private boolean   isConst;
   private boolean   isVolatile;
+
+  private CComplexType realType = null;
 
   public CElaboratedType(boolean pConst, final boolean pVolatile,
       final ElaboratedType pKind, final String pName) {
@@ -45,6 +49,27 @@ public final class CElaboratedType implements CComplexType {
 
   public ElaboratedType getKind() {
     return kind;
+  }
+
+  /**
+   * Get the real type which this type references
+   * (either a CCompositeType or a CEnumType, or null if unknown).
+   */
+  public CComplexType getRealType() {
+    if (realType instanceof CElaboratedType) {
+      // resolve chains of elaborated types
+      return ((CElaboratedType)realType).getRealType();
+    }
+    return realType;
+  }
+
+  /**
+   * This method should be called only during parsing.
+   */
+  public void setRealType(CComplexType pRealType) {
+    checkState(realType == null);
+    checkNotNull(pRealType);
+    realType = pRealType;
   }
 
   @Override

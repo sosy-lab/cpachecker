@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 import com.google.common.base.Joiner;
@@ -162,15 +163,17 @@ public class GlobalScope implements Scope {
 
     if (types.containsKey(name)) {
       CDeclaration oldDeclaration = types.get(name);
+      CType type = declaration.getType();
 
+      CType oldType = oldDeclaration.getType();
       if (declaration instanceof CTypeDefDeclaration) {
         assert oldDeclaration instanceof CTypeDefDeclaration;
-        if (!CTypeUtils.equals(declaration.getType(), oldDeclaration.getType())) {
+        if (!CTypeUtils.equals(type, oldType)) {
           throw new CFAGenerationRuntimeException("Redeclaring " + name
               + " in line " + declaration.getFileLocation().getStartingLineNumber()
-              + " with type " + declaration.getType().toASTString("")
+              + " with type " + type.toASTString("")
               + ", originally declared in line " + oldDeclaration.getFileLocation().getStartingLineNumber()
-              + " with type " + oldDeclaration.getType().toASTString(""));
+              + " with type " + oldType.toASTString(""));
         }
         // redundant typedef, ignore it
         return false;
@@ -178,12 +181,12 @@ public class GlobalScope implements Scope {
 
       assert !(oldDeclaration instanceof CTypeDefDeclaration);
 
-      if (declaration.getType() instanceof CElaboratedType) {
+      if (type instanceof CElaboratedType) {
         // the current declaration just re-declares an existing type
         return false;
       }
 
-      if (oldDeclaration.getType().getClass() == declaration.getType().getClass()) {
+      if (oldType.getClass() == type.getClass()) {
         // two CCompositeTypes or two CEnumTypes
         // declaring struct twice is not allowed, even with equal signatures
 
@@ -192,11 +195,13 @@ public class GlobalScope implements Scope {
             + ", originally declared in line " + oldDeclaration.getFileLocation().getStartingLineNumber());
       }
 
-      assert oldDeclaration.getType() instanceof CElaboratedType
-          && !(declaration.getType() instanceof CElaboratedType);
+      assert oldType instanceof CElaboratedType
+          && !(type instanceof CElaboratedType);
 
       // We now have a real declaration for a type for which we have seen a forward declaration
-      // We update the declaration just like for a fresh type.
+      // We set a reference to the full type in the old type
+      // and update the types map with the full type.
+      ((CElaboratedType)oldType).setRealType((CComplexType)type);
     }
     types.put(name, declaration);
     return true;
