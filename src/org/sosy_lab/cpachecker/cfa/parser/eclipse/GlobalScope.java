@@ -34,9 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -148,20 +146,15 @@ public class GlobalScope implements Scope {
    * @return True if the type actually needs to be declared, False if the declaration can be omitted because the type is already known.
    */
   public boolean registerTypeDeclaration(CComplexTypeDeclaration declaration) {
-    String name;
-
     CComplexType type = declaration.getType();
-    if (type instanceof CCompositeType) {
-      CCompositeType compositeType = (CCompositeType)type;
-      name = compositeType.getKind().toASTString() + " " + compositeType.getName();
-    } else if (type instanceof CEnumType) {
-      name = "enum " + ((CEnumType)type).getName();
-    } else if (type instanceof CElaboratedType) {
-      CElaboratedType elaboratedType = (CElaboratedType)type;
-      name = elaboratedType.getKind().toASTString() + " " + elaboratedType.getName();
-    } else {
-      throw new AssertionError(type.getClass().getName());
+
+    if (type.getName().isEmpty()) {
+      // This is an unnamed type like "enum { e }".
+      // We ignore it.
+      return true;
     }
+
+    String name = type.getQualifiedName();
 
     if (types.containsKey(name)) {
       CComplexTypeDeclaration oldDeclaration = types.get(name);
