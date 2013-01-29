@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
-public final class CCompositeType implements CType {
+public final class CCompositeType implements CComplexType {
 
   private final CCompositeTypeKind    kind;
   private List<CCompositeTypeMemberDeclaration> members;

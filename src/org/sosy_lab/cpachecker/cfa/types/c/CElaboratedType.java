@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 
-public final class CElaboratedType implements CType {
+public final class CElaboratedType implements CComplexType {
 
   private final ElaboratedType kind;
   private final String   name;

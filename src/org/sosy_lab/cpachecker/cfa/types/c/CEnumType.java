@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public final class CEnumType implements CType {
+public final class CEnumType implements CComplexType {
 
   private final ImmutableList<CEnumerator> enumerators;
   private final String                     name;

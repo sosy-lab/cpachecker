@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 
 /**
  * This class represents declaration of complex types without declarations of
@@ -39,21 +38,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * TODO: As these declarations have no name, they should not be in the hierarchy
  * below {@link CSimpleDeclaration}.
  */
-public final class CComplexTypeDeclaration extends ADeclaration implements CDeclaration {
+public final class CComplexTypeDeclaration extends CTypeDeclaration {
 
   public CComplexTypeDeclaration(FileLocation pFileLocation,
-      boolean pIsGlobal, CType pType) {
-    super(pFileLocation, pIsGlobal, pType, null, null);
+      boolean pIsGlobal, CComplexType pType) {
+    super(pFileLocation, pIsGlobal, pType, null);
   }
 
   @Override
-  public CType getType(){
-    return (CType)super.getType();
-  }
-
-  @Override
-  public int hashCode() {
-    return super.hashCode();
+  public CComplexType getType() {
+    return (CComplexType)super.getType();
   }
 
   @Override

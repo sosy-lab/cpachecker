@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,34 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
- * This class represent typedef declarations.
- * Example code:
+ * This class represents declarations that define new types,
+ * e.g.
  *
+ * struct s { int i; }
  * typedef int my_int;
  */
-public final class CTypeDefDeclaration extends CTypeDeclaration {
+public abstract class CTypeDeclaration extends ADeclaration implements CDeclaration {
 
-  public CTypeDefDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
+  public CTypeDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
       CType pType, String pName) {
-    super(pFileLocation, pIsGlobal, pType, checkNotNull(pName));
+    super(pFileLocation, pIsGlobal, pType, pName, pName);
   }
 
   @Override
-  public String toASTString() {
-    return "typedef " + super.toASTString();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof CTypeDefDeclaration)) { return false; }
-    return super.equals(obj);
+  public CType getType(){
+    return (CType)super.getType();
   }
 }

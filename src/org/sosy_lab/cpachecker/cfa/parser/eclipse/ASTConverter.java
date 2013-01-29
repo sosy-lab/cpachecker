@@ -124,6 +124,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -636,7 +637,7 @@ class ASTConverter {
         || type instanceof CEnumType) {
       // struct, union, or enum declaration
       // split type definition from eventual variable declaration
-      CDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), type);
+      CDeclaration newD = new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), (CComplexType)type);
       result.add(newD);
 
       // now replace type with an elaborated type referencing the new type
