@@ -29,4 +29,27 @@ package org.sosy_lab.cpachecker.cfa.types.c;
  */
 public interface CComplexType extends CType {
 
+  ComplexTypeKind getKind();
+
+  /**
+   * Returns the unqualified name, e.g. for the type "struct s", this returns "s".
+   * @return A name string or the empty string if the type has no name.
+   */
+  String getName();
+
+  /**
+   * Returns the unqualified name, e.g. for the type "struct s", this returns "struct s".
+   * If the name is empty, this contains only the qualifier.
+   */
+  String getQualifiedName();
+
+  public static enum ComplexTypeKind {
+    ENUM,
+    STRUCT,
+    UNION;
+
+    public String toASTString() {
+      return name().toLowerCase();
+    }
+  }
 }

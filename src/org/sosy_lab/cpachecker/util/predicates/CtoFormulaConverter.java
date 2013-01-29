@@ -91,13 +91,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CDereferenceType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
@@ -696,8 +696,8 @@ public class CtoFormulaConverter {
       }
     }
 
-    if (fromType instanceof CElaboratedType && ((CElaboratedType)fromType).getKind() == ElaboratedType.ENUM ||
-        toType instanceof CElaboratedType && ((CElaboratedType)toType).getKind() == ElaboratedType.ENUM ) {
+    if (fromType instanceof CElaboratedType && ((CElaboratedType)fromType).getKind() == ComplexTypeKind.ENUM ||
+        toType instanceof CElaboratedType && ((CElaboratedType)toType).getKind() == ComplexTypeKind.ENUM ) {
       // Ignore casts between Enums and right sized types
       if (getFormulaTypeFromCType(toType) == getFormulaTypeFromCType(fromType)) {
         return formula;

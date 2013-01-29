@@ -65,8 +65,19 @@ public final class CEnumType implements CComplexType {
     return enumerators;
   }
 
+  @Override
+  public ComplexTypeKind getKind() {
+    return ComplexTypeKind.ENUM;
+  }
+
+  @Override
   public String getName() {
     return name;
+  }
+
+  @Override
+  public String getQualifiedName() {
+    return ("enum " + name).trim();
   }
 
   @Override

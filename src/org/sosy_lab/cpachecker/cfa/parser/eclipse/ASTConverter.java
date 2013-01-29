@@ -125,11 +125,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -648,11 +647,11 @@ class ASTConverter {
       // now replace type with an elaborated type referencing the new type
       if (type instanceof CCompositeType) {
         CCompositeType compositeType = (CCompositeType)type;
-        CElaboratedType.ElaboratedType kind = compositeType.getKind().toElaboratedTypeKind();
+        CElaboratedType.ComplexTypeKind kind = compositeType.getKind();
         type = new CElaboratedType(type.isConst(), type.isVolatile(), kind, compositeType.getName(), newD.getType());
       } else if (type instanceof CEnumType) {
         CEnumType enumType = (CEnumType)type;
-        type = new CElaboratedType(type.isConst(), type.isVolatile(), ElaboratedType.ENUM, enumType.getName(), newD.getType());
+        type = new CElaboratedType(type.isConst(), type.isVolatile(), ComplexTypeKind.ENUM, enumType.getName(), newD.getType());
       }
     } else if (type instanceof CElaboratedType
         && (declarators == null || declarators.length == 0)) {
@@ -987,13 +986,13 @@ class ASTConverter {
       list.addAll(newCs);
     }
 
-    CCompositeTypeKind kind;
+    ComplexTypeKind kind;
     switch (d.getKey()) {
     case IASTCompositeTypeSpecifier.k_struct:
-      kind = CCompositeTypeKind.STRUCT;
+      kind = ComplexTypeKind.STRUCT;
       break;
     case IASTCompositeTypeSpecifier.k_union:
-      kind = CCompositeTypeKind.UNION;
+      kind = ComplexTypeKind.UNION;
     break;
     default:
       throw new CFAGenerationRuntimeException("Unknown key " + d.getKey() + " for composite type", d);

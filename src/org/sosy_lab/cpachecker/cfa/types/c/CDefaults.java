@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 
 public class CDefaults {
 
@@ -67,7 +67,7 @@ public class CDefaults {
       // enum declaration: enum e { ... } var;
       return new CIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
 
-    } else if (type instanceof CElaboratedType && ((CElaboratedType)type).getKind() == ElaboratedType.ENUM) {
+    } else if (type instanceof CElaboratedType && ((CElaboratedType)type).getKind() == ComplexTypeKind.ENUM) {
       // enum declaration: enum e var;
       return new CIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
 

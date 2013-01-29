@@ -23,27 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 
 import java.util.List;
 import java.util.Objects;
-
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
 public final class CCompositeType implements CComplexType {
 
-  private final CCompositeTypeKind    kind;
+  private final CComplexType.ComplexTypeKind    kind;
   private List<CCompositeTypeMemberDeclaration> members;
   private final String                name;
   private boolean   isConst;
   private boolean   isVolatile;
 
   public CCompositeType(final boolean pConst, final boolean pVolatile,
-      final CCompositeTypeKind pKind, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName) {
+      final CComplexType.ComplexTypeKind pKind, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName) {
 
+    checkArgument(pKind == ComplexTypeKind.STRUCT || pKind == ComplexTypeKind.UNION);
     isConst= pConst;
     isVolatile=pVolatile;
     kind = pKind;
@@ -51,7 +50,8 @@ public final class CCompositeType implements CComplexType {
     name = pName.intern();
   }
 
-  public CCompositeTypeKind getKind() {
+  @Override
+  public CComplexType.ComplexTypeKind getKind() {
     return kind;
   }
 
@@ -63,17 +63,19 @@ public final class CCompositeType implements CComplexType {
     members = ImmutableList.copyOf(list);
   }
 
+  @Override
   public String getName() {
     return name;
   }
 
-  public static final int k_struct = 1;
-  public static final int k_union  = 2;
-
+  @Override
+  public String getQualifiedName() {
+    return (kind.toASTString() + " " + name).trim();
+  }
 
   @Override
   public String toString() {
-    return getKind().toASTString() + " " + getName();
+    return getQualifiedName();
   }
 
   @Override
@@ -101,28 +103,6 @@ public final class CCompositeType implements CComplexType {
     lASTString.append(pDeclarator);
 
     return lASTString.toString();
-  }
-
-
-  public static enum CCompositeTypeKind {
-    STRUCT,
-    UNION,
-    ;
-
-    public String toASTString() {
-      return super.toString().toLowerCase();
-    }
-
-    public CElaboratedType.ElaboratedType toElaboratedTypeKind() {
-      switch (this) {
-      case STRUCT:
-        return ElaboratedType.STRUCT;
-      case UNION:
-        return ElaboratedType.UNION;
-      default:
-        throw new AssertionError();
-      }
-    }
   }
 
   /**

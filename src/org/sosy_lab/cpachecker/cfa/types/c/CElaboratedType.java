@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.*;
 
 public final class CElaboratedType implements CComplexType {
 
-  private final ElaboratedType kind;
+  private final ComplexTypeKind kind;
   private final String   name;
   private boolean   isConst;
   private boolean   isVolatile;
@@ -36,7 +36,7 @@ public final class CElaboratedType implements CComplexType {
   private CComplexType realType = null;
 
   public CElaboratedType(boolean pConst, final boolean pVolatile,
-      final ElaboratedType pKind, final String pName) {
+      final ComplexTypeKind pKind, final String pName) {
     isConst = pConst;
     isVolatile = pVolatile;
     kind = pKind;
@@ -44,17 +44,24 @@ public final class CElaboratedType implements CComplexType {
   }
 
   public CElaboratedType(boolean pConst, final boolean pVolatile,
-      final ElaboratedType pKind, final String pName, final CComplexType pRealType) {
+      final ComplexTypeKind pKind, final String pName, final CComplexType pRealType) {
     this(pConst, pVolatile, pKind, pName);
 
     realType = pRealType;
   }
 
+  @Override
   public String getName() {
     return name;
   }
 
-  public ElaboratedType getKind() {
+  @Override
+  public String getQualifiedName() {
+    return (kind.toASTString() + " " + name).trim();
+  }
+
+  @Override
+  public ComplexTypeKind getKind() {
     return kind;
   }
 
@@ -101,16 +108,6 @@ public final class CElaboratedType implements CComplexType {
   @Override
   public String toString() {
     return getKind().toASTString() + " " + getName();
-  }
-
-  public static enum ElaboratedType {
-    ENUM,
-    STRUCT,
-    UNION;
-
-    public String toASTString() {
-      return name().toLowerCase();
-    }
   }
 
   @Override

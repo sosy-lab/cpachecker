@@ -55,11 +55,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType.ElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -110,13 +109,13 @@ class ASTTypeConverter {
     } else if(t instanceof ICompositeType) {
       ICompositeType ct = (ICompositeType) t;
 
-      CCompositeTypeKind kind;
+      ComplexTypeKind kind;
       switch (ct.getKey()) {
       case ICompositeType.k_struct:
-        kind = CCompositeTypeKind.STRUCT;
+        kind = ComplexTypeKind.STRUCT;
         break;
       case ICompositeType.k_union:
-        kind = CCompositeTypeKind.UNION;
+        kind = ComplexTypeKind.UNION;
       break;
       default:
         throw new CFAGenerationRuntimeException("Unknown key " + ct.getKey() + " for composite type " + t);
@@ -312,7 +311,7 @@ class ASTTypeConverter {
   private CType conv(final IEnumeration e) {
     // TODO we ignore the enumerators here
     CComplexType realType = scope.lookupType("enum " + e.getName());
-    return new CElaboratedType(false, false, ElaboratedType.ENUM, e.getName(), realType);
+    return new CElaboratedType(false, false, ComplexTypeKind.ENUM, e.getName(), realType);
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
@@ -395,16 +394,16 @@ class ASTTypeConverter {
   }
 
   CElaboratedType convert(final IASTElaboratedTypeSpecifier d) {
-    ElaboratedType type;
+    ComplexTypeKind type;
     switch (d.getKind()) {
     case IASTElaboratedTypeSpecifier.k_enum:
-      type = ElaboratedType.ENUM;
+      type = ComplexTypeKind.ENUM;
       break;
     case IASTElaboratedTypeSpecifier.k_struct:
-      type = ElaboratedType.STRUCT;
+      type = ComplexTypeKind.STRUCT;
       break;
     case IASTElaboratedTypeSpecifier.k_union:
-      type = ElaboratedType.UNION;
+      type = ComplexTypeKind.UNION;
       break;
     default:
       throw new CFAGenerationRuntimeException("Unknown elaborated type", d);
