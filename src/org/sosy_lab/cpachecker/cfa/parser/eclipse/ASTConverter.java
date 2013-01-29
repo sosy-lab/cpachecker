@@ -145,6 +145,8 @@ import com.google.common.collect.Lists;
 class ASTConverter {
 
   private final LogManager logger;
+  private final ASTLiteralConverter literalConverter;
+  private final ASTTypeConverter typeConverter;
 
   private final Scope scope;
 
@@ -159,6 +161,8 @@ class ASTConverter {
   public ASTConverter(Scope pScope, LogManager pLogger) {
     scope = pScope;
     logger = pLogger;
+    typeConverter = new ASTTypeConverter();
+    literalConverter = new ASTLiteralConverter(typeConverter);
   }
 
   public List<CAstNode> getAndResetPreSideAssignments() {
@@ -204,7 +208,7 @@ class ASTConverter {
     } else if(e instanceof IASTUnaryExpression && (((IASTUnaryExpression)e).getOperator() == IASTUnaryExpression.op_postFixDecr
                                                    || ((IASTUnaryExpression)e).getOperator() == IASTUnaryExpression.op_postFixIncr)) {
       return addSideAssignmentsForUnaryExpressions(e, ((CAssignment)node).getLeftHandSide(),
-          node.getFileLocation(), ASTTypeConverter.convert(e.getExpressionType()),
+          node.getFileLocation(), typeConverter.convert(e.getExpressionType()),
           ((CBinaryExpression)((CAssignment)node).getRightHandSide()).getOperator());
 
     } else if (node instanceof CAssignment) {
@@ -267,7 +271,7 @@ class ASTConverter {
       return convert((IASTIdExpression)e);
 
     } else if (e instanceof IASTLiteralExpression) {
-      return ASTLiteralConverter.convert((IASTLiteralExpression)e);
+      return literalConverter.convert((IASTLiteralExpression)e);
 
     } else if (e instanceof IASTUnaryExpression) {
       return convert((IASTUnaryExpression)e);
@@ -312,7 +316,7 @@ class ASTConverter {
 
   private CArraySubscriptExpression convert(IASTArraySubscriptExpression e) {
     return new CArraySubscriptExpression(getLocation(e),
-        ASTTypeConverter.convert(e.getExpressionType()),
+        typeConverter.convert(e.getExpressionType()),
         convertExpressionWithoutSideEffects(e.getArrayExpression()),
         convertExpressionWithoutSideEffects(e.getSubscriptExpression()));
   }
@@ -331,7 +335,7 @@ class ASTConverter {
     CVariableDeclaration decl = new CVariableDeclaration(getLocation(e),
                                                false,
                                                CStorageClass.AUTO,
-                                               ASTTypeConverter.convert(e.getExpressionType()),
+                                               typeConverter.convert(e.getExpressionType()),
                                                name,
                                                name,
                                                null);
@@ -340,7 +344,7 @@ class ASTConverter {
     preSideAssignments.add(decl);
 
     CIdExpression tmp = new CIdExpression(getLocation(e),
-                                                ASTTypeConverter.convert(e.getExpressionType()),
+                                                typeConverter.convert(e.getExpressionType()),
                                                 name,
                                                 decl);
     return tmp;
@@ -361,7 +365,7 @@ class ASTConverter {
     boolean isAssign = opPair.getSecond();
 
     FileLocation fileLoc = getLocation(e);
-    CType type = ASTTypeConverter.convert(e.getExpressionType());
+    CType type = typeConverter.convert(e.getExpressionType());
     CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getOperand1());
 
     if (isAssign) {
@@ -404,11 +408,11 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTCastExpression e) {
-    return new CCastExpression(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getOperand()), convert(e.getTypeId()));
+    return new CCastExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getOperand()), convert(e.getTypeId()));
   }
 
   private CFieldReference convert(IASTFieldReference e) {
-    return new CFieldReference(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()), convert(e.getFieldName()), convertExpressionWithoutSideEffects(e.getFieldOwner()), e.isPointerDereference());
+    return new CFieldReference(getLocation(e), typeConverter.convert(e.getExpressionType()), convert(e.getFieldName()), convertExpressionWithoutSideEffects(e.getFieldOwner()), e.isPointerDereference());
   }
 
   private CFunctionCallExpression convert(IASTFunctionCallExpression e) {
@@ -436,7 +440,7 @@ class ASTConverter {
       }
     }
 
-    return new CFunctionCallExpression(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()), functionName, params, declaration);
+    return new CFunctionCallExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), functionName, params, declaration);
   }
 
   private List<CExpression> convert(IASTExpressionList es) {
@@ -468,7 +472,7 @@ class ASTConverter {
     if (declaration != null) {
       name = declaration.getName(); // may have been renamed
     }
-    return new CIdExpression(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()), name, declaration);
+    return new CIdExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), name, declaration);
   }
 
   private CAstNode convert(IASTUnaryExpression e) {
@@ -480,7 +484,7 @@ class ASTConverter {
 
 
     FileLocation fileLoc = getLocation(e);
-    CType type = ASTTypeConverter.convert(e.getExpressionType());
+    CType type = typeConverter.convert(e.getExpressionType());
 
 
 
@@ -535,12 +539,12 @@ class ASTConverter {
   }
 
   private CTypeIdExpression convert(IASTTypeIdExpression e) {
-    return new CTypeIdExpression(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()),
+    return new CTypeIdExpression(getLocation(e), typeConverter.convert(e.getExpressionType()),
         ASTOperatorConverter.convertTypeIdOperator(e), convert(e.getTypeId()));
   }
 
   private CTypeIdInitializerExpression convert(IASTTypeIdInitializerExpression e) {
-    return new CTypeIdInitializerExpression(getLocation(e), ASTTypeConverter.convert(e.getExpressionType()),
+    return new CTypeIdInitializerExpression(getLocation(e), typeConverter.convert(e.getExpressionType()),
         convert(e.getInitializer(), null), convert(e.getTypeId()));
   }
 
@@ -875,7 +879,7 @@ class ASTConverter {
           // clear added modifiers
           tmpArrMod.clear();
 
-          type = ASTTypeConverter.convert((IASTPointerOperator)modifier, type);
+          type = typeConverter.convert((IASTPointerOperator)modifier, type);
 
         } else {
           assert false;
@@ -910,7 +914,7 @@ class ASTConverter {
     IASTStandardFunctionDeclarator sd = (IASTStandardFunctionDeclarator)d;
 
     // handle return type
-    returnType = ASTTypeConverter.convertPointerOperators(d.getPointerOperators(), returnType);
+    returnType = typeConverter.convertPointerOperators(d.getPointerOperators(), returnType);
     if (returnType instanceof CSimpleType) {
       CSimpleType t = (CSimpleType)returnType;
       if (t.getType() == CBasicType.UNSPECIFIED) {
@@ -952,22 +956,22 @@ class ASTConverter {
 
 
   private Pair<CStorageClass, ? extends CType> convert(IASTDeclSpecifier d) {
-    CStorageClass sc = ASTTypeConverter.convertCStorageClass(d);
+    CStorageClass sc = typeConverter.convertCStorageClass(d);
 
     if (d instanceof IASTCompositeTypeSpecifier) {
       return Pair.of(sc, convert((IASTCompositeTypeSpecifier)d));
 
     } else if (d instanceof IASTElaboratedTypeSpecifier) {
-      return Pair.of(sc, ASTTypeConverter.convert((IASTElaboratedTypeSpecifier)d));
+      return Pair.of(sc, typeConverter.convert((IASTElaboratedTypeSpecifier)d));
 
     } else if (d instanceof IASTEnumerationSpecifier) {
       return Pair.of(sc, convert((IASTEnumerationSpecifier)d));
 
     } else if (d instanceof IASTNamedTypeSpecifier) {
-      return Pair.of(sc, ASTTypeConverter.convert((IASTNamedTypeSpecifier)d));
+      return Pair.of(sc, typeConverter.convert((IASTNamedTypeSpecifier)d));
 
     } else if (d instanceof IASTSimpleDeclSpecifier) {
-      return Pair.of(sc, ASTTypeConverter.convert((IASTSimpleDeclSpecifier)d));
+      return Pair.of(sc, typeConverter.convert((IASTSimpleDeclSpecifier)d));
 
     } else {
       throw new CFAGenerationRuntimeException("unknown declSpecifier", d);

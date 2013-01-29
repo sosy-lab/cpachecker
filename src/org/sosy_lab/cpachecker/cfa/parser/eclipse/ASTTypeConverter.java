@@ -80,7 +80,7 @@ class ASTTypeConverter {
    *  (Eclipse seems to give us identical objects for identical types already). */
   private final static Map<IType, CType> typeConversions = Maps.newIdentityHashMap();
 
-  static CType convert(IType t) {
+  CType convert(IType t) {
     CType result = typeConversions.get(t);
     if (result == null) {
       result = checkNotNull(convert0(t));
@@ -90,7 +90,7 @@ class ASTTypeConverter {
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
-  private static CType convert0(IType t) {
+  private CType convert0(IType t) {
     if (t instanceof IBasicType) {
       return conv((IBasicType) t);
 
@@ -173,7 +173,7 @@ class ASTTypeConverter {
   }
 
   @SuppressWarnings("deprecation")
-  private static CSimpleType conv(final IBasicType t) {
+  private CSimpleType conv(final IBasicType t) {
     try {
 
       // The IBasicType has to be an ICBasicType or
@@ -235,15 +235,15 @@ class ASTTypeConverter {
     }
   }
 
-  private static CPointerType conv(final IPointerType t) {
+  private CPointerType conv(final IPointerType t) {
       return new CPointerType(t.isConst(), t.isVolatile(), convert(t.getType()));
   }
 
-  private static CTypedefType conv(final ITypedef t) {
+  private CTypedefType conv(final ITypedef t) {
       return new CTypedefType(false, false, t.getName(), convert(t.getType()));
   }
 
-  private static List<CCompositeTypeMemberDeclaration> conv(IField[] pFields) {
+  private List<CCompositeTypeMemberDeclaration> conv(IField[] pFields) {
     List<CCompositeTypeMemberDeclaration> list = new LinkedList<>();
 
     for(int i = 0; i < pFields.length; i++) {
@@ -252,7 +252,7 @@ class ASTTypeConverter {
     return list;
   }
 
-  private static CArrayType conv(final ICArrayType t) {
+  private CArrayType conv(final ICArrayType t) {
     CExpression length = null;
     IValue v = t.getSize();
     if (v != null && v.numericalValue() != null) {
@@ -264,7 +264,7 @@ class ASTTypeConverter {
     return new CArrayType(t.isConst(), t.isVolatile(), convert(t.getType()), length);
   }
 
-  private static CType conv(final IQualifierType t) {
+  private CType conv(final IQualifierType t) {
     CType i = convert(t.getType());
     boolean isConst = t.isConst();
     boolean isVolatile = t.isVolatile();
@@ -302,14 +302,14 @@ class ASTTypeConverter {
     }
   }
 
-  private static CType conv(final IEnumeration e) {
+  private CType conv(final IEnumeration e) {
     // TODO we ignore the enumerators here
     return new CElaboratedType(false, false, ElaboratedType.ENUM, e.getName());
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
   @SuppressWarnings("deprecation")
-  static CType convert(final IASTSimpleDeclSpecifier d) {
+  CType convert(final IASTSimpleDeclSpecifier d) {
     if (!(d instanceof ICASTSimpleDeclSpecifier)) { throw new CFAGenerationRuntimeException("Unsupported type", d); }
     ICASTSimpleDeclSpecifier dd = (ICASTSimpleDeclSpecifier) d;
 
@@ -356,7 +356,7 @@ class ASTTypeConverter {
         dd.isComplex(), dd.isImaginary(), dd.isLongLong());
   }
 
-  static CTypedefType convert(final IASTNamedTypeSpecifier d) {
+  CTypedefType convert(final IASTNamedTypeSpecifier d) {
     org.eclipse.cdt.core.dom.ast.IASTName name = d.getName();
     org.eclipse.cdt.core.dom.ast.IBinding binding = name.resolveBinding();
     if (!(binding instanceof IType)) {
@@ -365,7 +365,7 @@ class ASTTypeConverter {
     return new CTypedefType(d.isConst(), d.isVolatile(), ASTConverter.convert(name), convert((IType)binding));
   }
 
-  static CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {
+  CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {
     switch (d.getStorageClass()) {
     case IASTDeclSpecifier.sc_unspecified:
     case IASTDeclSpecifier.sc_auto:
@@ -386,7 +386,7 @@ class ASTTypeConverter {
     }
   }
 
-  static CElaboratedType convert(final IASTElaboratedTypeSpecifier d) {
+  CElaboratedType convert(final IASTElaboratedTypeSpecifier d) {
     ElaboratedType type;
     switch (d.getKind()) {
     case IASTElaboratedTypeSpecifier.k_enum:
@@ -406,7 +406,7 @@ class ASTTypeConverter {
   }
 
   /** returns a pointerType, that wraps the type. */
-  static CPointerType convert(final IASTPointerOperator po, final CType type) {
+  CPointerType convert(final IASTPointerOperator po, final CType type) {
     if (po instanceof IASTPointer) {
       IASTPointer p = (IASTPointer) po;
       return new CPointerType(p.isConst(), p.isVolatile(), type);
@@ -417,7 +417,7 @@ class ASTTypeConverter {
   }
 
   /** returns a pointerType, that wraps all the converted types. */
-  static CType convertPointerOperators(final IASTPointerOperator[] ps, CType type) {
+  CType convertPointerOperators(final IASTPointerOperator[] ps, CType type) {
     for (IASTPointerOperator p : ps) {
       type = convert(p, type);
     }

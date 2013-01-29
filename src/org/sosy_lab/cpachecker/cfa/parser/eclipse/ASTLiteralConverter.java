@@ -40,16 +40,22 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /** This Class contains functions,
  * that convert literals (chars, numbers) from C-source into CPAchecker-format. */
-public class ASTLiteralConverter {
+class ASTLiteralConverter {
+
+  private final ASTTypeConverter typeConverter;
+
+  ASTLiteralConverter(ASTTypeConverter pTypeConverter) {
+    typeConverter = pTypeConverter;
+  }
 
   private static void check(boolean assertion, String msg, IASTNode astNode) throws CFAGenerationRuntimeException {
     if (!assertion) { throw new CFAGenerationRuntimeException(msg, astNode); }
   }
 
   /** This function converts literals like chars or numbers. */
-  static CLiteralExpression convert(final IASTLiteralExpression e) {
+  CLiteralExpression convert(final IASTLiteralExpression e) {
     final FileLocation fileLoc = ASTConverter.getLocation(e);
-    final CType type = ASTTypeConverter.convert(e.getExpressionType());
+    final CType type = typeConverter.convert(e.getExpressionType());
 
     String valueStr = String.valueOf(e.getValue());
     switch (e.getKind()) {
