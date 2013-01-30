@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -94,6 +96,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
 
   @SuppressWarnings("unchecked")
   public static <T extends Formula> Class<T> getInterfaceHelper(T instance){
+    checkNotNull(instance);
     Class<?> c ;
     if (instance instanceof BooleanFormula){
       c = BooleanFormula.class;
@@ -160,6 +163,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
   @SuppressWarnings("unchecked")
   @Override
   public <T extends Formula> FormulaType<T> getFormulaType(T formula){
+    checkNotNull(formula);
     Class<T> clazz = getInterface(formula);
     FormulaType<?> t;
     if (clazz==BooleanFormula.class) {

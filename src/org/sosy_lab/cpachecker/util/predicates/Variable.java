@@ -73,6 +73,15 @@ public class Variable<Type> {
     return true;
   }
 
+  @Override
+  public String toString() {
+    if (type instanceof org.sosy_lab.cpachecker.cfa.types.Type) {
+      return ((org.sosy_lab.cpachecker.cfa.types.Type)type).toASTString(name);
+    } else {
+      return type + " " + name;
+    }
+  }
+
   public Variable<Type> withName(String newName) {
     return Variable.create(newName, type);
   }

@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -617,6 +619,7 @@ public class FormulaManagerView implements FormulaManager {
 
   @Override
   public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
+    checkNotNull(pFormula);
     return manager.getFormulaType(pFormula);
   }
 
