@@ -99,6 +99,8 @@ class Tool(benchmark.tools.template.BaseTool):
                 status = 'ERROR'
                 if 'Unsupported C feature (recursion)' in line:
                     status = 'ERROR (recursion)'
+                elif 'Unsupported C feature (threads)' in line:
+                    status = 'ERROR (threads)'
                 elif 'Parsing failed' in line:
                     status = 'ERROR (parsing failed)'
 
