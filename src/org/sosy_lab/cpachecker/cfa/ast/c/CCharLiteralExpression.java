@@ -25,19 +25,19 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CCharLiteralExpression extends ACharLiteralExpression implements CLiteralExpression {
 
   public CCharLiteralExpression(FileLocation pFileLocation,
-                                   CSimpleType pType,
+                                   CType pType,
                                    char pCharacter) {
     super(pFileLocation, pType, pCharacter);
   }
 
   @Override
-  public CSimpleType getExpressionType() {
-    return (CSimpleType) super.getExpressionType();
+  public CType getExpressionType() {
+    return (CType) super.getExpressionType();
   }
 
   @Override

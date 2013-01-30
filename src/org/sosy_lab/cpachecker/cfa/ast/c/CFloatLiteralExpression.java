@@ -27,20 +27,20 @@ import java.math.BigDecimal;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CFloatLiteralExpression extends AFloatLiteralExpression implements CLiteralExpression{
 
   public CFloatLiteralExpression(FileLocation pFileLocation,
-                                    CSimpleType pType,
+                                    CType pType,
                                     BigDecimal pValue) {
     super(pFileLocation, pType, pValue );
 
   }
 
   @Override
-  public CSimpleType getExpressionType() {
-    return (CSimpleType) super.getExpressionType();
+  public CType getExpressionType() {
+    return (CType) super.getExpressionType();
   }
 
   @Override

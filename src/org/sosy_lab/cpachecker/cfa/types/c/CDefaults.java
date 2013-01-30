@@ -47,17 +47,17 @@ public class CDefaults {
       CBasicType basicType = ((CSimpleType)type).getType();
       switch (basicType) {
       case CHAR:
-        return new CCharLiteralExpression(fileLoc, (CSimpleType)type, '\0');
+        return new CCharLiteralExpression(fileLoc, type, '\0');
 
       case DOUBLE:
       case FLOAT:
-        return new CFloatLiteralExpression(fileLoc, (CSimpleType)type, BigDecimal.ZERO);
+        return new CFloatLiteralExpression(fileLoc, type, BigDecimal.ZERO);
 
       case UNSPECIFIED:
       case BOOL:
       case INT:
       case VOID: // is this legitimate for "void"?
-        return new CIntegerLiteralExpression(fileLoc, (CSimpleType)type, BigInteger.ZERO);
+        return new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO);
 
       default:
         throw new AssertionError("Unknown basic type '" + basicType + "'");

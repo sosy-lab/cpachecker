@@ -34,15 +34,15 @@ public class CIntegerLiteralExpression extends AIntegerLiteralExpression impleme
 
 
   public CIntegerLiteralExpression(FileLocation pFileLocation,
-                                      CSimpleType pType,
+                                      CType pType,
                                       BigInteger pValue) {
     super(pFileLocation, pType, pValue);
   }
 
 
   @Override
-  public CSimpleType getExpressionType() {
-    return (CSimpleType) super.getExpressionType();
+  public CType getExpressionType() {
+    return (CType) super.getExpressionType();
   }
 
 

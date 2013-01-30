@@ -133,6 +133,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -251,9 +252,10 @@ class ASTConverter {
    * @return
    */
   private CIntegerLiteralExpression createSideeffectLiteralOne(CType expressionType, FileLocation fileLoc, IASTExpression expression) {
-    CSimpleType constantType; // the type of the "1"
-    if (expressionType instanceof CSimpleType) {
-      constantType = (CSimpleType)expressionType;
+    CType constantType; // the type of the "1"
+    if (expressionType instanceof CSimpleType
+        || expressionType instanceof CProblemType) { // necessary for parsing "x++" in automata
+      constantType = expressionType;
     } else if (expressionType instanceof CPointerType) {
       constantType = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
     } else {

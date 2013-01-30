@@ -66,10 +66,10 @@ class ASTLiteralConverter {
     String valueStr = String.valueOf(e.getValue());
     switch (e.getKind()) {
     case IASTLiteralExpression.lk_char_constant:
-      return new CCharLiteralExpression(fileLoc, (CSimpleType)type, parseCharacterLiteral(valueStr, e));
+      return new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, e));
 
     case IASTLiteralExpression.lk_integer_constant:
-      return new CIntegerLiteralExpression(fileLoc, (CSimpleType)type, parseIntegerLiteral(valueStr, e));
+      return new CIntegerLiteralExpression(fileLoc, type, parseIntegerLiteral(valueStr, e));
 
     case IASTLiteralExpression.lk_float_constant:
       BigDecimal value;
@@ -86,7 +86,7 @@ class ASTLiteralConverter {
         }
       }
 
-      return new CFloatLiteralExpression(fileLoc, (CSimpleType)type, value);
+      return new CFloatLiteralExpression(fileLoc, type, value);
 
     case IASTLiteralExpression.lk_string_literal:
       return new CStringLiteralExpression(fileLoc, type, valueStr);
