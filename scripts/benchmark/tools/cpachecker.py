@@ -1,6 +1,8 @@
 import logging
 import subprocess
 import sys
+import string
+import os
 
 import benchmark.util as Util
 import benchmark.tools.template
@@ -18,6 +20,15 @@ class Tool(benchmark.tools.template.BaseTool):
                 stdout=subprocess.PIPE).communicate()[0]
             versionHelpStr = Util.decodeToString(versionHelpStr)
             version = ' '.join(versionHelpStr.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
+
+            # CPAchecker might be within a SVN reposotiry
+            # Determine the revision and add it to the version!
+            cpaShDir = os.path.dirname(os.path.realpath(executable))
+            cpacheckerDir = os.path.abspath(os.path.join(cpaShDir, os.path.pardir))
+            svnProcess = subprocess.Popen("svnversion {0}".format(cpacheckerDir), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            (stdout, stderr) = svnProcess.communicate()
+            if not (svnProcess.returncode or stderr):
+                version = version + ' ' + string.strip(stdout)
         except IndexError:
             logging.critical('IndexError! Have you built CPAchecker?\n') # TODO better message
             sys.exit()
