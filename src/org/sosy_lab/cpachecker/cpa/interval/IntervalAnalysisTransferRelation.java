@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -355,7 +354,8 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
 
     // a plain (boolean) identifier, e.g. if (a)
     else if (expression instanceof CIdExpression) {
-      return handleAssumption(element, convertToBinaryAssume((CIdExpression)expression), cfaEdge, truthValue);
+      // this is simplified in the frontend
+      throw new UnrecognizedCCodeException(cfaEdge, expression);
     } else if (expression instanceof CBinaryExpression)
     {
       IntervalAnalysisState newElement = element.clone();
@@ -875,19 +875,6 @@ public class IntervalAnalysisTransferRelation implements TransferRelation
   private Collection<? extends AbstractState> noSuccessors()
   {
     return Collections.emptySet();
-  }
-
-  private CBinaryExpression convertToBinaryAssume(CIdExpression expression)
-  {
-    CIntegerLiteralExpression zero = new CIntegerLiteralExpression(expression.getFileLocation(),
-                                                                         expression.getExpressionType(),
-                                                                         BigInteger.ZERO);
-
-    return new CBinaryExpression(expression.getFileLocation(),
-                                    expression.getExpressionType(),
-                                    expression,
-                                    zero,
-                                    BinaryOperator.NOT_EQUALS);
   }
 
   /**
