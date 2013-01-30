@@ -2530,9 +2530,11 @@ public class CtoFormulaConverter {
       //TODO: check this
       Variable<CType> rVarName = Variable.create(null, pAssignment.getRightHandSide().getExpressionType());
       Formula rPtrVar = null;
+      boolean doDeepUpdate = false;
       if (r instanceof CIdExpression && hasRepresentableDereference((CIdExpression)r)) {
         rVarName = scopedIfNecessary((CIdExpression) r, function);
         rPtrVar = makePointerVariable((CIdExpression) r, function, ssa);
+        doDeepUpdate = true;
       }
 
       Formula rightVariable = pAssignment.getRightHandSide().accept(this);
@@ -2546,7 +2548,6 @@ public class CtoFormulaConverter {
 
       updateAllPointers(lVarName, lVar, rVarName, rightVariable);
 
-      boolean doDeepUpdate = (r instanceof CIdExpression);
       updateAllMemoryLocations(lVarName, rPtrVar, rightVariable, rVarName, doDeepUpdate);
 
       return assignments;
@@ -2996,9 +2997,13 @@ public class CtoFormulaConverter {
       case ENUM:
         return true;
       default:
-        // If the type was representable,
-        // the struct/union tag would be already resolved
-        return false;
+        // Return true if the type is resolved and it is a representable type.
+        if (pElaboratedType.getRealType() == null) {
+          log(Level.WARNING, "Type " + pElaboratedType.toASTString("") + " is not resolved!");
+          return false;
+        } else {
+          return pElaboratedType.getRealType().accept(this);
+        }
       }
     }
 
