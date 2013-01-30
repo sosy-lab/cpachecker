@@ -137,6 +137,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -251,12 +252,17 @@ class ASTConverter {
    * replacing "x++" with "x = x + 1";
    * @return
    */
-  private CIntegerLiteralExpression createSideeffectLiteralOne(CType expressionType, FileLocation fileLoc, IASTExpression expression) {
+  private CIntegerLiteralExpression createSideeffectLiteralOne(final CType expressionType, FileLocation fileLoc, IASTExpression expression) {
+    CType type = expressionType;
+    while (type instanceof CTypedefType) {
+      type = ((CTypedefType)type).getRealType();
+    }
+
     CType constantType; // the type of the "1"
-    if (expressionType instanceof CSimpleType
-        || expressionType instanceof CProblemType) { // necessary for parsing "x++" in automata
+    if (type instanceof CSimpleType
+        || type instanceof CProblemType) { // necessary for parsing "x++" in automata
       constantType = expressionType;
-    } else if (expressionType instanceof CPointerType) {
+    } else if (type instanceof CPointerType) {
       constantType = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
     } else {
       throw new CFAGenerationRuntimeException("Prefix operator used for wrong type " + expressionType, expression);
