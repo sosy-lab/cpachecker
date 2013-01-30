@@ -110,7 +110,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -1009,11 +1008,11 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       } else {
         // build new boolean expression: a==0 and switch branches
-        // TODO: probably the type of the zero is not always correct
+        CSimpleType intType = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
         CExpression zero =
-            new CIntegerLiteralExpression(exp.getFileLocation(), exp.getExpressionType(), BigInteger.ZERO);
+            new CIntegerLiteralExpression(exp.getFileLocation(), intType, BigInteger.ZERO);
         CExpression conv =
-            new CBinaryExpression(exp.getFileLocation(), exp.getExpressionType(), exp, zero, BinaryOperator.EQUALS);
+            new CBinaryExpression(exp.getFileLocation(), intType, exp, zero, BinaryOperator.EQUALS);
 
         addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen,
             condition.getFileLocation().getStartingLineNumber());
@@ -1571,7 +1570,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (tempVar != null) {
       // assign truth value to tempVar
       FileLocation loc = ASTConverter.getLocation(binExp);
-      CType intType = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+      CSimpleType intType = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
 
       CExpression one = new CIntegerLiteralExpression(loc, intType, BigInteger.ONE);
       CStatement assignOne = createStatement(loc, tempVar, one);

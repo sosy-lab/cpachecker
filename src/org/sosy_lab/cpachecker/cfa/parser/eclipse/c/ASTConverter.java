@@ -238,12 +238,30 @@ class ASTConverter {
     preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmp, exp));
 
 
-    CExpression one = new CIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+    CExpression one = createSideeffectLiteralOne(type, fileLoc, e);
     CBinaryExpression postExp = new CBinaryExpression(fileLoc, type, exp, one, op);
     preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, exp, postExp));
 
     return tmp;
-}
+  }
+
+  /**
+   * Create an expression for the "1" literal that is used for example when
+   * replacing "x++" with "x = x + 1";
+   * @return
+   */
+  private CIntegerLiteralExpression createSideeffectLiteralOne(CType expressionType, FileLocation fileLoc, IASTExpression expression) {
+    CSimpleType constantType; // the type of the "1"
+    if (expressionType instanceof CSimpleType) {
+      constantType = (CSimpleType)expressionType;
+    } else if (expressionType instanceof CPointerType) {
+      constantType = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+    } else {
+      throw new CFAGenerationRuntimeException("Prefix operator used for wrong type " + expressionType, expression);
+    }
+
+    return new CIntegerLiteralExpression(fileLoc, constantType, BigInteger.ONE);
+  }
 
   protected CAstNode convertExpressionWithSideEffects(IASTExpression e) {
     assert !(e instanceof CExpression);
@@ -502,7 +520,8 @@ class ASTConverter {
         break;
       default: throw new AssertionError();
       }
-      CExpression one = new CIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+
+      CExpression one = createSideeffectLiteralOne(type, fileLoc, e);
       CBinaryExpression preExp = new CBinaryExpression(fileLoc, type, operand, one, preOp);
 
       return new CExpressionAssignmentStatement(fileLoc, operand, preExp);
@@ -522,7 +541,7 @@ class ASTConverter {
       default: throw new AssertionError();
       }
 
-      CExpression postOne = new CIntegerLiteralExpression(fileLoc, type, BigInteger.ONE);
+      CExpression postOne = createSideeffectLiteralOne(type, fileLoc, e);
       CBinaryExpression postExp = new CBinaryExpression(fileLoc, type, operand, postOne, postOp);
       return new CExpressionAssignmentStatement(fileLoc, operand, postExp);
 
