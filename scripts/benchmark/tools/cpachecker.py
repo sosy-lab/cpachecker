@@ -86,6 +86,10 @@ class Tool(benchmark.tools.template.BaseTool):
                 status = 'JAVA HEAP ERROR'
             elif line.startswith('Error: ') and not status.startswith('ERROR'):
                 status = 'ERROR'
+                if 'Unsupported C feature (recursion)' in line:
+                    status = 'ERROR (recursion)'
+                elif 'Parsing failed' in line:
+                    status = 'ERROR (parsing failed)'
 
             elif line.startswith('Verification result: '):
                 line = line[21:].strip()
@@ -94,8 +98,9 @@ class Tool(benchmark.tools.template.BaseTool):
                 elif line.startswith('UNSAFE'):
                     newStatus = 'UNSAFE'
                 else:
-                    newStatus = 'UNKNOWN'
-                status = newStatus if not status else "{0} ({1})".format(status, newStatus)
+                    newStatus = 'UNKNOWN' if not status.startswith('ERROR') else None
+                if newStatus:
+                    status = newStatus if not status else "{0} ({1})".format(status, newStatus)
 
         if status == 'KILLED (UNKNOWN)':
             status = 'KILLED'
