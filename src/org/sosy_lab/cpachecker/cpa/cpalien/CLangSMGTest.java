@@ -31,6 +31,7 @@ import java.util.NoSuchElementException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
@@ -39,6 +40,7 @@ public class CLangSMGTest {
   private CFunctionType functionType = mock(CFunctionType.class);
   private CFunctionDeclaration functionDeclaration;
   private CLangStackFrame sf;
+  private LogManager logger = mock(LogManager.class);
 
   @Before
   public void setUp(){
@@ -100,5 +102,33 @@ public class CLangSMGTest {
     CFunctionDeclaration fd = sf.getFunctionDeclaration();
     Assert.assertNotNull(fd);
     Assert.assertEquals("Correct function is returned", "foo", fd.getName());
+  }
+
+  @Test
+  public void ConsistencyViolationDisjunctnessTest() throws IllegalAccessException{
+    CLangSMG smg = new CLangSMG();
+    SMGObject obj = new SMGObject(8, "label");
+
+    Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+    smg.addHeapObject(obj);
+    Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+    smg.addGlobalObject(obj);
+    Assert.assertFalse(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+
+    smg = new CLangSMG();
+    smg.addStackFrame(sf.getFunctionDeclaration());
+
+    Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+    smg.addHeapObject(obj);
+    Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+    smg.addStackObject(obj);
+    Assert.assertFalse(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+
+    smg = new CLangSMG();
+    smg.addStackFrame(sf.getFunctionDeclaration());
+    smg.addGlobalObject(obj);
+    Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+    smg.addStackObject(obj);
+    Assert.assertFalse(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
   }
 }

@@ -36,6 +36,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
+import com.google.common.collect.Sets;
+
 /**
  * Extending SMG with notions specific for programs in C language:
  *  - separation of global, heap and stack objects
@@ -154,7 +156,7 @@ public class CLangSMG extends SMG {
    * TODO: Consistency check: different objects with same label (invalid C)
    * TODO: Test for this consistency check
    */
-  private void addGlobalObject(SMGObject pObject) {
+  public void addGlobalObject(SMGObject pObject) {
     this.global_objects.put(pObject.getLabel(), pObject);
     super.addObject(pObject);
   }
@@ -401,11 +403,73 @@ class CLangSMGConsistencyVerifier{
     return result;
   }
 
+  static private boolean verifyDisjunctHeapAndGlobal(LogManager pLogger, CLangSMG smg){
+    Map<String, SMGObject> globals = smg.getGlobalObjects();
+    Set<SMGObject> heap = smg.getHeapObjects();
+
+    boolean toReturn = Collections.disjoint(globals.values(), heap);
+
+    if (! toReturn){
+      pLogger.log(Level.SEVERE, "CLangSMG inconsistent, heap and global objects are not disjoint");
+    }
+
+    return toReturn;
+  }
+
+  static private boolean verifyDisjunctHeapAndStack(LogManager pLogger, CLangSMG smg){
+    ArrayDeque<CLangStackFrame> stack_frames = smg.getStackFrames();
+    Set<SMGObject> stack = new HashSet<>();
+
+    for (CLangStackFrame frame: stack_frames){
+      stack.addAll(frame.stack_variables.values());
+    }
+    Set<SMGObject> heap = smg.getHeapObjects();
+
+    boolean toReturn = Collections.disjoint(stack, heap);
+
+    if (! toReturn){
+      pLogger.log(Level.SEVERE, "CLangSMG inconsistent, heap and stack objects are not disjoint: " + Sets.intersection(stack, heap));
+    }
+
+    return toReturn;
+  }
+
+  static private boolean verifyDisjunctGlobalAndStack(LogManager pLogger, CLangSMG smg){
+    ArrayDeque<CLangStackFrame> stack_frames = smg.getStackFrames();
+    Set<SMGObject> stack = new HashSet<>();
+
+    for (CLangStackFrame frame: stack_frames){
+      stack.addAll(frame.stack_variables.values());
+    }
+    Map<String, SMGObject> globals = smg.getGlobalObjects();
+
+    boolean toReturn = Collections.disjoint(stack, globals.values());
+
+    if (! toReturn){
+      pLogger.log(Level.SEVERE, "CLangSMG inconsistent, global and stack objects are not disjoint");
+    }
+
+    return toReturn;
+  }
+
   static public boolean verifyCLangSMG(LogManager pLogger, CLangSMG smg){
     boolean toReturn = true;
     pLogger.log(Level.FINEST, "Starting constistency check of a CLangSMG");
     // TODO: Verify consistency using public interface
-    // toReturn = toReturn && verifyCLangSMGProperty(smg.isObjectConsistent(), pLogger, "Checking object consistency of CLangSMG");
+
+    toReturn = toReturn && verifyCLangSMGProperty(
+        verifyDisjunctHeapAndGlobal(pLogger, smg),
+        pLogger,
+        "Checking CLangSMG consistency: heap and global object sets are disjunt");
+    toReturn = toReturn && verifyCLangSMGProperty(
+        verifyDisjunctHeapAndStack(pLogger, smg),
+        pLogger,
+        "Checking CLangSMG consistency: heap and stack objects are disjunct");
+    toReturn = toReturn && verifyCLangSMGProperty(
+        verifyDisjunctGlobalAndStack(pLogger, smg),
+        pLogger,
+        "Checking CLangSMG consistency: global and stack objects are disjunct");
+
     pLogger.log(Level.FINEST, "Ending consistency check of a CLangSMG");
 
     return toReturn;
