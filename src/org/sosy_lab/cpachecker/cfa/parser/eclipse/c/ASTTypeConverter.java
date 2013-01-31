@@ -424,7 +424,9 @@ class ASTTypeConverter {
       throw new CFAGenerationRuntimeException("Unknown elaborated type", d);
     }
 
-    return new CElaboratedType(d.isConst(), d.isVolatile(), type, ASTConverter.convert(d.getName()));
+    String name = ASTConverter.convert(d.getName());
+    CComplexType realType = scope.lookupType(type.toASTString() + " " + name);
+    return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, realType);
   }
 
   /** returns a pointerType, that wraps the type. */
