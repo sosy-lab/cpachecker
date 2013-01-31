@@ -147,10 +147,12 @@ public class PredicateAbstractionManager {
     stats.numCallsAbstraction++;
 
     if (predicates.isEmpty()) {
+      logger.log(Level.FINEST, "Abstraction", stats.numCallsAbstraction, "with empty precision is true");
       stats.numSymbolicAbstractions++;
       return makeTrueAbstractionFormula(pathFormula.getFormula());
     }
 
+    logger.log(Level.FINEST, "Computing abstraction", stats.numCallsAbstraction, "with", predicates.size(), "predicates");
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
     logger.log(Level.ALL, "Path formula:", pathFormula);
     logger.log(Level.ALL, "Predicates:", predicates);
@@ -173,7 +175,8 @@ public class PredicateAbstractionManager {
         BooleanFormula instantiatedFormula = fmgr.instantiate(stateFormula, pathFormula.getSsa());
 
         result = new AbstractionFormula(fmgr, result.asRegion(), stateFormula, instantiatedFormula, pathFormula.getFormula());
-        logger.log(Level.ALL, "Abstraction was cached, result is", result);
+        logger.log(Level.FINEST, "Abstraction", stats.numCallsAbstraction, "was cached");
+        logger.log(Level.ALL, "Abstraction result is", result);
         stats.numCallsAbstractionCached++;
         return result;
       }
@@ -192,6 +195,7 @@ public class PredicateAbstractionManager {
       abstractionCache.put(absKey, result);
     }
 
+    logger.log(Level.ALL, "Abstraction result is", result);
     return result;
   }
 
@@ -387,10 +391,12 @@ public class PredicateAbstractionManager {
       }
     }
 
+    long abstractionTime = stats.abstractionSolveTime.getLengthOfLastInterval()
+        + stats.abstractionEnumTime.getLengthOfLastOuterInterval();
+    logger.log(Level.FINEST, "Computing abstraction took", abstractionTime, "ms");
+
     if (dumpHardAbstractions) {
       // we want to dump "hard" problems...
-      long abstractionTime = stats.abstractionSolveTime.getLengthOfLastInterval()
-          + stats.abstractionEnumTime.getLengthOfLastOuterInterval();
 
       if (abstractionTime > 10000) {
         File dumpFile;
@@ -406,7 +412,6 @@ public class PredicateAbstractionManager {
       }
     }
 
-    logger.log(Level.ALL, "Abstraction computed, result is", result);
     return result;
   }
 
