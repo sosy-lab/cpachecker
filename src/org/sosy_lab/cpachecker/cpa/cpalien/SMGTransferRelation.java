@@ -230,7 +230,7 @@ public class SMGTransferRelation implements TransferRelation {
     SMGState newState = new SMGState(pState);
     logger.log(Level.FINEST,  ">>> Handling statement: variable assignment");
 
-    SMGObject assigned = pState.getObjectForVariable(pVariableName);
+    SMGObject assigned = pState.getObjectForVisibleVariable(pVariableName);
     if (assigned.getSizeInBytes() < machineModel.getSizeof(pType)){
       //TODO: Warn about the attempted assignment, probably a result of invalid
       //      cast
@@ -322,7 +322,7 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public Integer visit(CIdExpression idExpression) throws UnrecognizedCCodeException {
 
-      SMGObject variableObject = smgState.getObjectForVariable(idExpression);
+      SMGObject variableObject = smgState.getObjectForVisibleVariable(idExpression);
 
       if (variableObject == null) {
         return null;

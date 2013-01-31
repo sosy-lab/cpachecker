@@ -87,8 +87,8 @@ public class CLangSMG extends SMG {
         + global_objects + "\n " + this.valuesToString() + "\n " + this.ptToString() + "\n " + this.hvToString() + "\n]";
   }
 
-  public SMGObject getObjectForVariable(CIdExpression pVariableName) {
-    // Look in the local state
+  public SMGObject getObjectForVisibleVariable(CIdExpression pVariableName) {
+    // Look in the local frame
     if (stack_objects.peek().containsVariable(pVariableName.getName())){
       return stack_objects.peek().getVariable(pVariableName.getName());
     }
@@ -114,7 +114,7 @@ public class CLangSMG extends SMG {
     stack_objects.push(newFrame);
   }
 
-  public ArrayDeque<CLangStackFrame> getStackObjects() {
+  public ArrayDeque<CLangStackFrame> getStackFrames() {
     //TODO: This still allows modification, as queues do not have
     // the appropriate unmodifiable method. There is probably some good
     // way how to provide a read-only view for iteration, but I do not know it

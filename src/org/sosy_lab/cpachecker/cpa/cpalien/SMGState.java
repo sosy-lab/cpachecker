@@ -60,8 +60,8 @@ public class SMGState implements AbstractQueryableState {
     heap.addValue(Integer.valueOf(pValue));
   }
 
-  public SMGObject getObjectForVariable(CIdExpression pVariableName) {
-    return heap.getObjectForVariable(pVariableName);
+  public SMGObject getObjectForVisibleVariable(CIdExpression pVariableName) {
+    return heap.getObjectForVisibleVariable(pVariableName);
   }
 
   public void addHVEdge(SMGEdgeHasValue pNewEdge) {
