@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.types;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CDereferenceType;
@@ -205,13 +206,19 @@ public enum MachineModel {
       }
 
       @Override
-      public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
-        switch (pElaboratedType.getKind()) {
+      public Integer visit(CElaboratedType elaboratedType) throws IllegalArgumentException {
+        switch (elaboratedType.getKind()) {
         case ENUM:
           return getSizeofInt();
         case STRUCT:
-          // TODO: Get declaration and real size
-          return getSizeofInt();
+          CComplexType type = elaboratedType.getRealType();
+
+          if (type == null) {
+            // TODO Warning of logger, real Type cannot be found.
+            return null;
+          }
+
+          return type.accept(this);
         case UNION:
           // TODO: Get declaration and real size
           return getSizeofInt();
