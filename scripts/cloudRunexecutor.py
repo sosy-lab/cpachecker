@@ -37,9 +37,13 @@ def main(argv=None):
         fobj = open(outputFileName, "w")
         fobj.write(result)
         fobj.close()
+	
+	return returnvalue
 
     else:
-        print "Help todo"
+        print "to few arg; expected 4 arguments:"
+	print "<command> <memlimit in MB> <timelimit in s> <output file name>"
+
 
 
 if __name__ == "__main__":
