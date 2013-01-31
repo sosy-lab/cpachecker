@@ -76,9 +76,9 @@ public class CLangSMG extends SMG {
     super.addObject(pObject);
   }
 
-  public void addStackObject(SMGObject pObj) throws IllegalAccessException {
-    super.addObject(pObj);
-    stack_objects.peek().addStackVariable(pObj.getLabel(), pObj);
+  public void addStackObject(SMGObject pObject) throws IllegalAccessException {
+    super.addObject(pObject);
+    stack_objects.peek().addStackVariable(pObject.getLabel(), pObject);
   }
 
   @Override
