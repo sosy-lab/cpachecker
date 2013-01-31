@@ -112,6 +112,7 @@ public final class CEnumType implements CComplexType {
     private static final CType INT_TYPE = new CSimpleType(true, false, CBasicType.INT, false, false, true, false, false, false, false);
 
     private final Long           value;
+    private CEnumType             enumType;
 
     public CEnumerator(final FileLocation pFileLocation,
                           final String pName,
@@ -120,6 +121,21 @@ public final class CEnumType implements CComplexType {
 
       checkNotNull(pName);
       value = pValue;
+    }
+
+    /**
+     * Get the enum that declared this enumerator.
+     */
+    public CEnumType getEnum() {
+      return enumType;
+    }
+
+    /**
+     * This method should be called only during parsing.
+     */
+    public void setEnum(CEnumType pEnumType) {
+      checkState(enumType == null);
+      enumType = pEnumType;
     }
 
     @Override

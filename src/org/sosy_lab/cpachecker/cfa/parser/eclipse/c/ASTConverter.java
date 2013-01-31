@@ -497,7 +497,27 @@ class ASTConverter {
     if (declaration != null) {
       name = declaration.getName(); // may have been renamed
     }
-    return new CIdExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), name, declaration);
+
+    CType type = typeConverter.convert(e.getExpressionType());
+
+    if (declaration instanceof CEnumerator
+        && type instanceof CElaboratedType
+        && ((CElaboratedType)type).getKind() == ComplexTypeKind.ENUM
+        && ((CElaboratedType)type).getRealType() == null) {
+
+      // This is a reference to a value of an anonymous enum ("enum { e }").
+      // Such types cannot be looked up, and thus the CElaboratedType misses
+      // the reference to the enum type.
+      CEnumType enumType = ((CEnumerator)declaration).getEnum();
+      // enumType is null if an enum value is referenced inside the enum declaration,
+      // e.g. like this: "enum { e1, e2 = e1 }"
+      if (enumType != null) {
+        type = new CElaboratedType(type.isConst(), type.isVolatile(), ComplexTypeKind.ENUM,
+            enumType.getName(), enumType);
+      }
+    }
+
+    return new CIdExpression(getLocation(e), type, name, declaration);
   }
 
   private CAstNode convert(IASTUnaryExpression e) {
@@ -1041,7 +1061,11 @@ class ASTConverter {
         lastValue = null;
       }
     }
-    return new CEnumType(d.isConst(), d.isVolatile(), list, convert(d.getName()));
+    CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, convert(d.getName()));
+    for (CEnumerator enumValue : enumType.getEnumerators()) {
+      enumValue.setEnum(enumType);
+    }
+    return enumType;
   }
 
   private CEnumerator convert(IASTEnumerationSpecifier.IASTEnumerator e, Long lastValue) {
