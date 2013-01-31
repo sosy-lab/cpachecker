@@ -188,6 +188,6 @@ public class SMGState implements AbstractQueryableState {
   }
 
   public void setMemLeak() {
-    heap.setMemoryLeak(true);
+    heap.setMemoryLeak();
   }
 }

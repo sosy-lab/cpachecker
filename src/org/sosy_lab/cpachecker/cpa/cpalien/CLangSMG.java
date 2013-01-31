@@ -125,8 +125,8 @@ public class CLangSMG extends SMG {
     return has_leaks;
   }
 
-  public void setMemoryLeak(boolean pB) {
-    has_leaks = pB;
+  public void setMemoryLeak() {
+    has_leaks = true;
   }
 }
 
