@@ -1475,7 +1475,7 @@ public class CtoFormulaConverter {
                   lPtrVarName.withType(leftType.withGuess(rPtrVarName.getType()));
             } else {
               if (machineModel.getSizeof(rPtrVarName.getType()) != machineModel.getSizeof(currentGuess)) {
-                log(Level.WARNING, "Secound assignment of an variable that is no pointer with different size");
+                log(Level.WARNING, "Second assignment of an variable that is no pointer with different size");
               }
             }
           } else {
@@ -1487,7 +1487,7 @@ public class CtoFormulaConverter {
             CType currentGuess = ((CDereferenceType)rPtrVarName.getType()).getGuessedType();
             if (currentGuess == null) {
               // NOTE: Should we set the size of r in this case?
-              log(Level.WARNING, "Assignment of a pointer with a variable that was never assigned by a pointer");
+              log(Level.WARNING, "Pointer " + lVarName.getName() + " is assigned the value of variable " + rIdExp.getName() + " which contains a non-pointer value in line " + right.getFileLocation().getStartingLineNumber());
             } else {
               if (machineModel.getSizeof(rPtrVarName.getType()) != machineModel.getSizeof(currentGuess)) {
                 log(Level.WARNING, "Assignment of a pointer from a variable that was assigned by a pointer with different size!");
