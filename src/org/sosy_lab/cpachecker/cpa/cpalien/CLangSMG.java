@@ -98,17 +98,6 @@ public class CLangSMG extends SMG {
     return null;
   }
 
-  public boolean isObjectConsistent(){
-    HashSet<SMGObject> objectUnion = new HashSet<>();
-    objectUnion.addAll(heap_objects);
-    objectUnion.addAll(global_objects.values());
-    for (CLangStackFrame stack_frame : stack_objects){
-      objectUnion.addAll(stack_frame.stack_variables.values() );
-    }
-
-    return this.objectEquals(objectUnion);
-  }
-
   public void addStackFrame(CFunctionDeclaration pFunctionDeclaration) {
     CLangStackFrame newFrame = new CLangStackFrame(pFunctionDeclaration);
     stack_objects.push(newFrame);
@@ -247,7 +236,8 @@ class CLangSMGConsistencyVerifier{
   static public boolean verifyCLangSMG(LogManager pLogger, CLangSMG smg){
     boolean toReturn = true;
     pLogger.log(Level.FINEST, "Starting constistency check of a CLangSMG");
-    toReturn = toReturn && verifyCLangSMGProperty(smg.isObjectConsistent(), pLogger, "Checking object consistency of CLangSMG");
+    // TODO: Verify consistency using public interface
+    // toReturn = toReturn && verifyCLangSMGProperty(smg.isObjectConsistent(), pLogger, "Checking object consistency of CLangSMG");
     pLogger.log(Level.FINEST, "Ending consistency check of a CLangSMG");
 
     return toReturn;
