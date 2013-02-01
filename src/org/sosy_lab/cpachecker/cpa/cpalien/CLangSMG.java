@@ -65,10 +65,6 @@ public class CLangSMG extends SMG {
 
   /**
    * A container for global objects
-   *
-   * TODO: Full consistency check
-   *  - all three container classes are disjunct
-   *  - union of all containers is the generic object container in parent class
    */
   final private HashMap<String, SMGObject> global_objects = new HashMap<>();
 
@@ -91,8 +87,6 @@ public class CLangSMG extends SMG {
    *
    * Newly constructed CLangSMG contains a single nullObject with an address
    * pointing to it, and is empty otherwise.
-   *
-   * TODO: Test
    */
   public CLangSMG() {
     SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
@@ -106,8 +100,6 @@ public class CLangSMG extends SMG {
    * @param pHeap original CLangSMG
    *
    * Copy constructor.
-   *
-   * TODO: Test
    */
   public CLangSMG(CLangSMG pHeap) {
     super(pHeap);
@@ -452,10 +444,83 @@ class CLangSMGConsistencyVerifier{
     return toReturn;
   }
 
+  static private boolean verifyStackGlobalHeapUnion(LogManager pLogger, CLangSMG smg){
+    HashSet<SMGObject> object_union = new HashSet<>();
+
+    object_union.addAll(smg.getHeapObjects());
+    object_union.addAll(smg.getGlobalObjects().values());
+
+    for (CLangStackFrame frame : smg.getStackFrames()){
+      object_union.addAll(frame.getVariables().values());
+    }
+
+    boolean toReturn = object_union.containsAll(smg.getObjects()) &&
+                       smg.getObjects().containsAll(object_union);
+
+    if (! toReturn){
+      pLogger.log(Level.SEVERE, "CLangSMG inconsistent: union of stack, heap and global object is not the same set as the set of SMG objects");
+    }
+
+    return toReturn;
+  }
+
+  static private boolean verifyNullObject(LogManager pLogger, CLangSMG smg){
+    for (SMGObject obj: smg.getGlobalObjects().values()){
+      if(! obj.notNull()){
+        pLogger.log(Level.SEVERE, "CLangSMG inconsistent: null object in global object set [" + obj + "]");
+        return false;
+      }
+    }
+
+    SMGObject firstNull = null;
+    for (SMGObject obj: smg.getHeapObjects()){
+      if(! obj.notNull()){
+        if (firstNull != null){
+          pLogger.log(Level.SEVERE, "CLangSMG inconsistent: second null object in heap object set [first=" + firstNull + ", second=" + obj +"]" );
+          return false;
+        }
+        else{
+          firstNull = obj;
+        }
+      }
+    }
+
+    for (CLangStackFrame frame: smg.getStackFrames()){
+      for (SMGObject obj: frame.getVariables().values()){
+        if (! obj.notNull()){
+          pLogger.log(Level.SEVERE, "CLangSMG inconsistent: null object in stack object set [" + obj + "]");
+          return false;
+        }
+      }
+    }
+
+    if (firstNull == null){
+      pLogger.log(Level.SEVERE, "CLangSMG inconsistent: no null object");
+      return false;
+    }
+
+    Integer null_value = null;
+    for(Integer value: smg.getValues()){
+      if (smg.getObjectPointedBy(value) == firstNull){
+        null_value = value;
+      }
+    }
+    if (null_value == null){
+      pLogger.log(Level.SEVERE, "CLangSMG inconsistent: no value pointing to null object");
+      return false;
+    }
+
+    if (! smg.getValuesForObject(firstNull).isEmpty()){
+      pLogger.log(Level.SEVERE, "CLangSMG inconsistent: null object has some value");
+      return false;
+    }
+
+    return true;
+  }
+
   static public boolean verifyCLangSMG(LogManager pLogger, CLangSMG smg){
     boolean toReturn = true;
     pLogger.log(Level.FINEST, "Starting constistency check of a CLangSMG");
-    // TODO: Verify consistency using public interface
 
     toReturn = toReturn && verifyCLangSMGProperty(
         verifyDisjunctHeapAndGlobal(pLogger, smg),
@@ -469,6 +534,14 @@ class CLangSMGConsistencyVerifier{
         verifyDisjunctGlobalAndStack(pLogger, smg),
         pLogger,
         "Checking CLangSMG consistency: global and stack objects are disjunct");
+    toReturn = toReturn && verifyCLangSMGProperty(
+        verifyStackGlobalHeapUnion(pLogger, smg),
+        pLogger,
+        "Checking CLangSMG consistency: global, stack and heap object union contains all objects in SMG");
+    toReturn = toReturn && verifyCLangSMGProperty(
+        verifyNullObject(pLogger, smg),
+        pLogger,
+        "Checking CLangSMG consistency: null object invariants hold");
 
     pLogger.log(Level.FINEST, "Ending consistency check of a CLangSMG");
 

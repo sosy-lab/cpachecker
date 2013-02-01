@@ -29,24 +29,18 @@ import java.util.HashMap;
 import java.util.NoSuchElementException;
 
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CLangSMGTest {
 
   private CFunctionType functionType = mock(CFunctionType.class);
-  private CFunctionDeclaration functionDeclaration;
-  private CLangStackFrame sf;
+  private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo");
+  private CLangStackFrame sf =  new CLangStackFrame(functionDeclaration);
   private LogManager logger = mock(LogManager.class);
-
-  @Before
-  public void setUp(){
-    functionDeclaration = new CFunctionDeclaration(null, functionType, "foo");
-    sf = new CLangStackFrame(functionDeclaration);
-  }
 
   @Test
   public void CLangStackFrameConstructorTest() {
@@ -105,6 +99,56 @@ public class CLangSMGTest {
   }
 
   @Test
+  public void CLangSMGConstructorTest(){
+    CLangSMG smg = new CLangSMG();
+
+    Assert.assertEquals(1, smg.getObjects().size());
+    Assert.assertEquals(1, smg.getValues().size());
+    Assert.assertEquals(0, smg.getStackFrames().size());
+    Assert.assertEquals(1, smg.getHeapObjects().size());
+    Assert.assertEquals(0, smg.getGlobalObjects().size());
+
+    SMGObject object = smg.getObjects().iterator().next();
+    Integer value = smg.getValues().iterator().next();
+
+    Assert.assertFalse(object.notNull());
+    SMGObject target_object = smg.getObjectPointedBy(value);
+
+    Assert.assertEquals(object, target_object);
+
+    SMGObject obj1 = new SMGObject(8, "obj1");
+    SMGObject obj2 = new SMGObject(8, "obj2");
+
+    Integer val1 = Integer.valueOf(1);
+    Integer val2 = Integer.valueOf(2);
+
+    SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, 0);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mock(CType.class), 0, obj2, val2.intValue());
+
+    smg.addValue(val1.intValue());
+    smg.addValue(val2.intValue());
+    smg.addHeapObject(obj1);
+    smg.addGlobalObject(obj2);
+    smg.addPointsToEdge(pt);
+    smg.addHasValueEdge(hv);
+    Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+
+    // Copy constructor
+
+    CLangSMG smg_copy = new CLangSMG(smg);
+    Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg_copy));
+
+    Assert.assertEquals(3, smg_copy.getObjects().size());
+    Assert.assertEquals(3, smg_copy.getValues().size());
+    Assert.assertEquals(0, smg_copy.getStackFrames().size());
+    Assert.assertEquals(2, smg_copy.getHeapObjects().size());
+    Assert.assertEquals(1, smg_copy.getGlobalObjects().size());
+
+    Assert.assertEquals(obj1, smg_copy.getObjectPointedBy(val1));
+    Assert.assertEquals(hv, smg_copy.getValuesForObject(obj2).iterator().next());
+  }
+
+  @Test
   public void ConsistencyViolationDisjunctnessTest() throws IllegalAccessException{
     CLangSMG smg = new CLangSMG();
     SMGObject obj = new SMGObject(8, "label");
@@ -131,4 +175,53 @@ public class CLangSMGTest {
     smg.addStackObject(obj);
     Assert.assertFalse(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
   }
+
+  @Test
+  public void ConsistencyViolationUnionTest() throws IllegalAccessException{
+    CLangSMG smg = new CLangSMG();
+    Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+    SMGObject stack_obj = new SMGObject(8, "stack_variable");
+    SMGObject heap_obj = new SMGObject(8, "heap_object");
+    SMGObject global_obj = new SMGObject(8, "global_variable");
+    SMGObject dummy_obj = new SMGObject(8, "dummy_object");
+
+    smg.addStackFrame(sf.getFunctionDeclaration());
+    Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+    smg.addStackObject(stack_obj);
+    Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+    smg.addGlobalObject(global_obj);
+    Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+    smg.addHeapObject(heap_obj);
+    Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+    smg.addObject(dummy_obj);
+    Assert.assertFalse(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+  }
+
+  @Test
+  public void ConsistencyViolationNullTest() throws IllegalAccessException{
+    SMGObject fake_null = new SMGObject();
+
+    CLangSMG smg = new CLangSMG();
+    smg.addGlobalObject(fake_null);
+    Assert.assertFalse(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+
+    smg = new CLangSMG();
+    smg.addHeapObject(fake_null);
+    Assert.assertFalse(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+
+    smg = new CLangSMG();
+    smg.addStackFrame(sf.getFunctionDeclaration());
+    smg.addStackObject(fake_null);
+    Assert.assertFalse(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+
+    smg = new CLangSMG();
+    SMGObject null_object = smg.getHeapObjects().iterator().next();
+    Integer some_value = Integer.valueOf(5);
+    SMGEdgeHasValue edge = new SMGEdgeHasValue(mock(CType.class), 0, null_object, some_value);
+
+    smg.addValue(some_value);
+    smg.addHasValueEdge(edge);
+    Assert.assertFalse(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+  }
+
 }
