@@ -650,7 +650,7 @@ public final class InterpolationManager {
       // (C)                          itp_{n-1} & f_n => false
 
       // Check (A)
-      if (!checkImplication(formulas.get(0), interpolants.get(0), prover)) {
+      if (!solver.implies(formulas.get(0), interpolants.get(0))) {
         throw new SolverException("First interpolant is not implied by first formula");
       }
 
@@ -658,14 +658,14 @@ public final class InterpolationManager {
       for (int i = 1; i <= (n-1); i++) {
         BooleanFormula conjunct = bfmgr.and(interpolants.get(i-1), formulas.get(i));
 
-        if (!checkImplication(conjunct, interpolants.get(i), prover)) {
+        if (!solver.implies(conjunct, interpolants.get(i))) {
           throw new SolverException("Interpolant " + interpolants.get(i) + " is not implied by previous part of the path");
         }
       }
 
       // Check (C).
       BooleanFormula conjunct = bfmgr.and(interpolants.get(n-1), formulas.get(n));
-      if (!checkImplication(conjunct, bfmgr.makeBoolean(false), prover)) {
+      if (!solver.implies(conjunct, bfmgr.makeBoolean(false))) {
         throw new SolverException("Last interpolant fails to prove infeasibility of the path");
       }
 
@@ -703,18 +703,6 @@ public final class InterpolationManager {
     } finally {
       interpolantVerificationTimer.stop();
     }
-  }
-
-  private <T> boolean checkImplication(BooleanFormula a, BooleanFormula b, InterpolatingTheoremProver<T> prover) throws InterruptedException {
-    // check unsatisfiability of negation of (a => b),
-    // i.e., check unsatisfiability of (a & !b)
-    BooleanFormula f = bfmgr.and(a, bfmgr.not(b));
-    prover.reset();
-    prover.init();
-
-    prover.addFormula(f);
-    boolean unsat = prover.isUnsat();
-    return unsat;
   }
 
   /**
