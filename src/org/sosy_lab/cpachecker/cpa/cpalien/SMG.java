@@ -72,6 +72,10 @@ public class SMG {
     return Collections.unmodifiableSet(values);
   }
 
+  final public Set<SMGObject> getObjects(){
+    return Collections.unmodifiableSet(objects);
+  }
+
   final public Set<SMGEdgeHasValue> getHVEdges(){
     return Collections.unmodifiableSet(hv_edges);
   }
