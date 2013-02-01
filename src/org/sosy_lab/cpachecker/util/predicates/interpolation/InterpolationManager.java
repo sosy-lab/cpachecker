@@ -84,14 +84,14 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @Options(prefix="cpa.predicate.refinement")
 public final class InterpolationManager {
 
-  static class Stats {
+  public static class Stats {
     private final Timer cexAnalysisTimer = new Timer();
     private final Timer satCheckTime = new Timer();
     private final Timer getInterpolantTime = new Timer();
     private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
     private final Timer interpolantVerificationTimer = new Timer();
 
-    void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
       out.println("  Counterexample analysis:            " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.printMaxTime() + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
       if (cexAnalysisGetUsefulBlocksTimer.getMaxTime() != 0) {
         out.println("    Cex.focusing:                     " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
@@ -104,7 +104,7 @@ public final class InterpolationManager {
     }
   }
 
-  final Stats stats = new Stats();
+  public final Stats stats = new Stats();
 
   private final LogManager logger;
   private final FormulaManagerView fmgr;

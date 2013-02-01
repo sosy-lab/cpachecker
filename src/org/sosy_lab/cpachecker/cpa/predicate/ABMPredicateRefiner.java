@@ -79,7 +79,7 @@ import com.google.common.collect.Lists;
  * Implements predicate refinements when using ABM.
  * It is based on the {@link AbstractABMBasedRefiner} and delegates the work to
  * a {@link ExtendedPredicateRefiner}, which is a small extension of the regular
- * {@link PredicateRefiner}.
+ * {@link PredicateCPARefiner}.
  *
  * So the hierarchy is as follows:
  *
@@ -88,11 +88,8 @@ import com.google.common.collect.Lists;
  *                         |
  *           +-------------+-------------+
  *           |                           |
- * AbstractABMBasedRefiner   AbstractInterpolationBasedRefiner
+ * AbstractABMBasedRefiner       PredicateCPARefiner ---> PredicateAbstractionRefinementStrategy
  *           ^                           ^
- *           |                           |
- *           |                    PredicateRefiner
- *           |                           ^
  *           |                           |
  *   ABMPredicateRefiner ---> ExtendedPredicateRefiner
  *
@@ -179,14 +176,6 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       this.predicateCpa = predicateCpa;
 
       predicateCpa.getABMStats().addRefiner(this);
-    }
-
-    /**
-     * Overridden just for visibility
-     */
-    @Override
-    protected final CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
-      return super.performRefinement(pReached, pPath);
     }
 
     private static final Function<PredicateAbstractState, Region> GET_REGION

@@ -29,11 +29,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -52,13 +49,6 @@ class PredicatingExplicitRefiner extends PredicateCPARefiner {
           throws CPAException, InvalidConfigurationException {
     super(pConfig, pLogger, pCpa, pInterpolationManager, pPathFormulaManager,
         new PredicatingExplicitRefinementStrategy(pConfig, pLogger, pFormulaManager, pAbstractionManager));
-  }
-
-  // overridden just for visibility
-  @Override
-  protected CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath) throws CPAException,
-      InterruptedException {
-    return super.performRefinement(pReached, pPath);
   }
 
   // overridden just for visibility
