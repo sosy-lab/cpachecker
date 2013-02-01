@@ -324,13 +324,14 @@ public final class InterpolationManager {
           verifyInterpolants(interpolants, f, pItpProver);
         }
 
-        info = new CounterexampleTraceInfo();
-
-        int i = 1;
-        for (BooleanFormula itp : interpolants) {
-          logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
-          info.addInterpolant(itp);
+        if (logger.wouldBeLogged(Level.ALL)) {
+          int i = 1;
+          for (BooleanFormula itp : interpolants) {
+            logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
+          }
         }
+
+        info = CounterexampleTraceInfo.infeasible(interpolants);
 
       } else {
         // this is a real bug
@@ -738,7 +739,7 @@ public final class InterpolationManager {
     BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
     if (bfmgr.isTrue(branchingFormula)) {
-      return new CounterexampleTraceInfo(f, getModel(pItpProver), Collections.<Integer, Boolean>emptyMap());
+      return CounterexampleTraceInfo.feasible(f, getModel(pItpProver), ImmutableMap.<Integer, Boolean>of());
     }
 
     // add formula to solver environment
@@ -750,7 +751,7 @@ public final class InterpolationManager {
 
     if (stillSatisfiable) {
       Model model = getModel(pItpProver);
-      return new CounterexampleTraceInfo(f, model, pmgr.getBranchingPredicateValuesFromModel(model));
+      return CounterexampleTraceInfo.feasible(f, model, pmgr.getBranchingPredicateValuesFromModel(model));
 
     } else {
       // this should not happen
@@ -759,7 +760,7 @@ public final class InterpolationManager {
       dumpInterpolationProblem(f);
       dumpFormulaToFile("formula", branchingFormula, f.size());
 
-      return new CounterexampleTraceInfo(f, new Model(fmgr), Collections.<Integer, Boolean>emptyMap());
+      return CounterexampleTraceInfo.feasible(f, new Model(fmgr), ImmutableMap.<Integer, Boolean>of());
     }
   }
 
@@ -781,9 +782,9 @@ public final class InterpolationManager {
     try {
       thmProver.push(f);
       if (thmProver.isUnsat()) {
-        return new CounterexampleTraceInfo();
+        return CounterexampleTraceInfo.infeasible(ImmutableList.<BooleanFormula>of());
       } else {
-        return new CounterexampleTraceInfo(Collections.singletonList(f), getModel(thmProver), ImmutableMap.<Integer, Boolean>of());
+        return CounterexampleTraceInfo.feasible(ImmutableList.of(f), getModel(thmProver), ImmutableMap.<Integer, Boolean>of());
       }
     } finally {
       thmProver.reset();

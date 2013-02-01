@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -34,7 +33,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 
 
 /**
@@ -43,25 +41,38 @@ import com.google.common.collect.Lists;
  */
 public class CounterexampleTraceInfo {
     private final boolean spurious;
-    private final List<BooleanFormula> interpolants;
+    private final ImmutableList<BooleanFormula> interpolants;
     private final Model mCounterexampleModel;
-    private final List<BooleanFormula> mCounterexampleFormula;
-    private final Map<Integer, Boolean> branchingPreds;
+    private final ImmutableList<BooleanFormula> mCounterexampleFormula;
+    private final ImmutableMap<Integer, Boolean> branchingPreds;
 
-    public CounterexampleTraceInfo() {
-      mCounterexampleFormula = Collections.emptyList();
-      mCounterexampleModel = null;
-      spurious = true;
-      interpolants = Lists.newArrayList();
-      branchingPreds = ImmutableMap.of();
+    private CounterexampleTraceInfo(boolean pSpurious, ImmutableList<BooleanFormula> pInterpolants,
+        Model pCounterexampleModel, ImmutableList<BooleanFormula> pCounterexampleFormula,
+        ImmutableMap<Integer, Boolean> pBranchingPreds) {
+      spurious = pSpurious;
+      interpolants = pInterpolants;
+      mCounterexampleModel = pCounterexampleModel;
+      mCounterexampleFormula = pCounterexampleFormula;
+      branchingPreds = pBranchingPreds;
     }
 
-    public CounterexampleTraceInfo(List<BooleanFormula> pCounterexampleFormula, Model pModel, Map<Integer, Boolean> preds) {
-      mCounterexampleFormula = checkNotNull(pCounterexampleFormula);
-      mCounterexampleModel = checkNotNull(pModel);
-      spurious = false;
-      interpolants = ImmutableList.of();
-      branchingPreds = preds;
+    static CounterexampleTraceInfo infeasible(List<BooleanFormula> pInterpolants) {
+      return new CounterexampleTraceInfo(true,
+          ImmutableList.copyOf(pInterpolants),
+          null,
+          ImmutableList.<BooleanFormula>of(),
+          ImmutableMap.<Integer, Boolean>of()
+          );
+    }
+
+    static CounterexampleTraceInfo feasible(List<BooleanFormula> pCounterexampleFormula,
+        Model pModel, Map<Integer, Boolean> preds) {
+      return new CounterexampleTraceInfo(false,
+          ImmutableList.<BooleanFormula>of(),
+          checkNotNull(pModel),
+          ImmutableList.copyOf(pCounterexampleFormula),
+          ImmutableMap.copyOf(preds)
+          );
     }
 
     /**
@@ -79,14 +90,6 @@ public class CounterexampleTraceInfo {
     public List<BooleanFormula> getInterpolants() {
       checkState(spurious);
       return interpolants;
-    }
-
-    /**
-     * Add an interpolant to the end of the list of interpolants.
-     */
-    public void addInterpolant(BooleanFormula itp) {
-      checkState(spurious);
-      interpolants.add(itp);
     }
 
     @Override
