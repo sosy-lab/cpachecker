@@ -63,11 +63,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
  * abstraction, this is left to sub-classes.
  *
  * It does, however, produce a nice error path in case of a feasible counterexample.
- *
- * @param <I> The type of the result of the interpolation query.
  */
 @Options(prefix="cpa.predicate.refinement")
-public abstract class AbstractInterpolationBasedRefiner<I> extends AbstractARGBasedRefiner {
+public abstract class AbstractInterpolationBasedRefiner extends AbstractARGBasedRefiner {
 
   @Option(name="msatCexFile",
       description="where to dump the counterexample formula in case the error location is reached")

@@ -59,7 +59,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 
 @Options(prefix="cpa.predicate.refinement")
-public class PredicateCPARefiner extends AbstractInterpolationBasedRefiner<BooleanFormula> implements StatisticsProvider {
+public class PredicateCPARefiner extends AbstractInterpolationBasedRefiner implements StatisticsProvider {
 
   @Option(description="slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
