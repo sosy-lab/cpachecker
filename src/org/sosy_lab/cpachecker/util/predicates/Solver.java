@@ -28,20 +28,13 @@ import java.util.Map;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.Maps;
 
 /**
- * Alternative to {@link TheoremProver} which provides not basic calls to the
- * solver but more high-level queries.
- *
- * All methods of this class may only be called when the backing prover is in
- * its default state (i.e., a call to {@link TheoremProver#init()} would not fail.
- * It is guaranteed that after using methods of this class, the solver is again
- * in the same state.
+ * Abstraction of an SMT solver that also provides some higher-level methods.
  */
 public class Solver {
 
@@ -65,9 +58,12 @@ public class Solver {
 
   /**
    * Direct reference to the underlying SMT solver for more complicated queries.
+   * This creates a fresh, new, environment in the solver.
+   * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
+   * It is recommended to use the try-with-resources syntax.
    */
-  public ProverEnvironment getTheoremProver() {
-    return factory.createTheoremProver();
+  public ProverEnvironment newProverEnvironment() {
+    return factory.newProverEnvironment();
   }
 
   /**
@@ -75,7 +71,7 @@ public class Solver {
    */
   public boolean isUnsat(BooleanFormula f) {
     solverTime.start();
-    try (ProverEnvironment prover = getTheoremProver()) {
+    try (ProverEnvironment prover = newProverEnvironment()) {
       prover.push(f);
       return prover.isUnsat();
 

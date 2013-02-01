@@ -108,7 +108,7 @@ public class FormulaManagerFactory {
     return fmgr;
   }
 
-  public ProverEnvironment createTheoremProver() {
+  public ProverEnvironment newProverEnvironment() {
     if (solver.equals(SMTINTERPOL)) {
       return new SmtInterpolTheoremProver((SmtInterpolFormulaManager)fmgr);
     } else {

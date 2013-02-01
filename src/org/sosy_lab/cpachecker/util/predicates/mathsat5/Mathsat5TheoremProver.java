@@ -38,8 +38,6 @@ import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
 
 import com.google.common.base.Preconditions;
 
@@ -145,7 +143,7 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
   /**
    * callback used to build the predicate abstraction of a formula
    */
-  static class MathsatAllSatCallback implements Mathsat5NativeApi.AllSatModelCallback, TheoremProver.AllSatResult {
+  static class MathsatAllSatCallback implements Mathsat5NativeApi.AllSatModelCallback, AllSatResult {
 
     private final RegionCreator rmgr;
 

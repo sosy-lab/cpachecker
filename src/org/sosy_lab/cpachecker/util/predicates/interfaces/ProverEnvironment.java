@@ -30,17 +30,37 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
 
-
+/**
+ * This class provides an interface to an incremental SMT solver
+ * with methods for pushing and popping formulas as well as sat checks.
+ * Instances of this class can be used once for a series of related queries.
+ * After that, the {@link #close} method should be called
+ * (preferably using the try-with-resources syntax).
+ * All methods are expected to throw {@link IllegalStateException}s after
+ * close was called.
+ */
 public interface ProverEnvironment extends AutoCloseable {
 
+  /**
+   * Add a formula to the environment stack, asserting it.
+   */
   void push(BooleanFormula f);
 
+  /**
+   * Remove one formula from the environment stack.
+   */
   void pop();
 
+  /**
+   * Check whether the conjunction of all formulas on the stack is unsatisfiable.
+   */
   boolean isUnsat();
 
+  /**
+   * Get a satisfying assignment.
+   * This should be called only immediately after an {@link #isUnsat()} call that returned <code>false</code>.
+   */
   Model getModel() throws SolverException;
 
   /**
@@ -59,4 +79,18 @@ public interface ProverEnvironment extends AutoCloseable {
 
   @Override
   void close();
+
+  interface AllSatResult {
+
+    /**
+     * The result of an allSat call as an abstract formula.
+     */
+    public Region getResult();
+
+    /**
+     * The number of satisfying assignments contained in the result, of
+     * {@link Integer#MAX_VALUE} if this number is infinite.
+     */
+    public int getCount();
+  }
 }
