@@ -107,7 +107,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   // the previously analyzed counterexample to detect repeated counterexamples
   private List<BooleanFormula> lastErrorPath = null;
 
-  protected PredicateCPARefiner(final Configuration config, final LogManager pLogger,
+  public PredicateCPARefiner(final Configuration config, final LogManager pLogger,
       final ConfigurableProgramAnalysis pCpa,
       final InterpolationManager pInterpolationManager,
       final PathFormulaManager pPathFormulaManager,
@@ -325,7 +325,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     });
   }
 
-  protected void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+  private void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     int numberOfRefinements = totalRefinement.getNumberOfIntervals();
 
     if (numberOfRefinements > 0) {

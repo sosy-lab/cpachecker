@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
-import java.io.PrintStream;
+import java.util.Collection;
 
 import javax.annotation.Nullable;
 
@@ -31,12 +31,12 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -61,7 +63,7 @@ import com.google.common.collect.Multimap;
  * Refiner implementation that delegates to {@link ExplicitInterpolationBasedExplicitRefiner},
  * and if this fails, optionally delegates also to {@link PredicatingExplicitRefiner}.
  */
-public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner {
+public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
 
   /**
    * refiner used for explicit interpolation refinement
@@ -71,7 +73,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner {
   /**
    * backup-refiner used for predicate refinement, when explicit refinement fails (due to lack of expressiveness)
    */
-  private PredicatingExplicitRefiner predicatingRefiner;
+  private PredicateCPARefiner predicatingRefiner;
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -96,7 +98,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner {
     LogManager logger                           = explicitCpa.getLogger();
 
     PathFormulaManager pathFormulaManager;
-    PredicatingExplicitRefiner backupRefiner    = null;
+    PredicateCPARefiner backupRefiner    = null;
 
     PredicateCPA predicateCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
     if(predicateCpa != null) {
@@ -115,14 +117,19 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner {
           config,
           logger);
 
-      backupRefiner = new PredicatingExplicitRefiner(
+      RefinementStrategy backupRefinementStrategy = new PredicatingExplicitRefinementStrategy(
+          config,
+          logger,
+          formulaManager,
+          absManager);
+
+      backupRefiner = new PredicateCPARefiner(
           config,
           logger,
           cpa,
           manager,
-          formulaManager,
-          absManager,
-          pathFormulaManager);
+          pathFormulaManager,
+          backupRefinementStrategy);
 
     } else {
       FormulaManagerFactory factory         = new FormulaManagerFactory(config, logger);
@@ -143,7 +150,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner {
       final LogManager logger,
       final ConfigurableProgramAnalysis cpa,
       final PathFormulaManager pathFormulaManager,
-      @Nullable final PredicatingExplicitRefiner pBackupRefiner) throws CPAException, InvalidConfigurationException {
+      @Nullable final PredicateCPARefiner pBackupRefiner) throws CPAException, InvalidConfigurationException {
 
     super(cpa);
 
@@ -185,12 +192,11 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner {
     }
   }
 
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("Explicit Refinement:");
-    explicitInterpolatingRefiner.printStatistics(out, result, reached);
-
-    if(predicatingRefiner != null) {
-      predicatingRefiner.printStatistics(out, result, reached);
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(explicitInterpolatingRefiner);
+    if (predicatingRefiner != null) {
+      predicatingRefiner.collectStatistics(pStatsCollection);
     }
   }
 }

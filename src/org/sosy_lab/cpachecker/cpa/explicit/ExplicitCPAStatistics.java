@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.explicit.refiner.DelegatingExplicitRefiner;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Joiner;
@@ -104,10 +103,6 @@ public class ExplicitCPAStatistics implements Statistics {
     out.println("Avg. number of global variables: " + ((totalNumberOfGlobalVariables * 10000) / reached.size()) / 10000.0);
 
     if (refiner != null) {
-      if (refiner instanceof DelegatingExplicitRefiner) {
-        ((DelegatingExplicitRefiner)refiner).printStatistics(out, result, reached);
-      }
-
       if(precisionFile != null) {
         exportPrecision(reached);
       }

@@ -41,10 +41,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
@@ -58,7 +59,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.explicit.refiner")
-public class ExplicitInterpolationBasedExplicitRefiner {
+public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   /**
    * whether or not to always use the initial node as starting point for the next re-exploration of the ARG
    */
@@ -244,8 +245,13 @@ public class ExplicitInterpolationBasedExplicitRefiner {
     }
   }
 
-  protected void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println(this.getClass().getSimpleName() + ":");
+  @Override
+  public String getName() {
+    return "Explicit Interpolation-Based Refiner";
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     out.println("  number of explicit refinements:                      " + numberOfRefinements);
     out.println("  number of successful explicit refinements:           " + numberOfSuccessfulRefinements);
     out.println("  number of explicit interpolations:                   " + numberOfInterpolations);
