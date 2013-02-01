@@ -23,44 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
-
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.List;
-
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
+public abstract class ImpactRefiner implements Refiner {
 
-public class ImpactRefiner extends AbstractInterpolationBasedRefiner<BooleanFormula> implements StatisticsProvider {
-
-  private final RefinementStrategy strategy;
-
-  public static ImpactRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " needs a PredicateCPA");
@@ -74,80 +53,29 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<BooleanForm
     Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
     FormulaManagerView fmgr = predicateCpa.getFormulaManager();
+    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
     Solver solver = predicateCpa.getSolver();
 
     InterpolationManager manager = new InterpolationManager(
-                                                  fmgr,
-                                                  predicateCpa.getPathFormulaManager(),
-                                                  solver,
-                                                  predicateCpa.getFormulaManagerFactory(),
-                                                  config, logger);
+        fmgr,
+        pfmgr,
+        solver,
+        predicateCpa.getFormulaManagerFactory(),
+        config,
+        logger);
 
-    return new ImpactRefiner(config, logger, pCpa, manager, fmgr, solver);
-  }
+    RefinementStrategy strategy = new ImpactRefinementStrategy(
+        config,
+        logger,
+        fmgr,
+        solver);
 
-
-  protected ImpactRefiner(final Configuration config, final LogManager logger,
-      final ConfigurableProgramAnalysis pCpa,
-      final InterpolationManager pInterpolationManager,
-      final FormulaManagerView pFmgr, final Solver pSolver) throws InvalidConfigurationException, CPAException {
-
-    super(config, logger, pCpa, pInterpolationManager);
-
-    strategy = new ImpactRefinementStrategy(config, logger, pFmgr, pSolver);
-  }
-
-
-  @Override
-  protected List<ARGState> transformPath(ARGPath pPath) {
-    // filter abstraction states
-
-    List<ARGState> result = from(pPath)
-                               .skip(1)
-                               .transform(Pair.<ARGState>getProjectionToFirst())
-                               .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
-                                                          toState(PredicateAbstractState.class)))
-                               .toImmutableList();
-
-    assert pPath.getLast().getFirst() == result.get(result.size()-1);
-    return result;
-  }
-
-  @Override
-  protected List<BooleanFormula> getFormulasForPath(List<ARGState> pPath, ARGState pInitialState) {
-    return from(pPath)
-            .transform(toState(PredicateAbstractState.class))
-            .transform(new Function<PredicateAbstractState, BooleanFormula>() {
-                @Override
-                public BooleanFormula apply(PredicateAbstractState s) {
-                  return s.getAbstractionFormula().getBlockFormula();
-                }
-              })
-            .toImmutableList();
-  }
-
-  @Override
-  protected void performRefinement(ARGReachedSet pReached, List<ARGState> pPath,
-      CounterexampleTraceInfo<BooleanFormula> pCounterexample, boolean pRepeatedCounterexample) throws CPAException {
-    strategy.performRefinement(pReached, pPath, pCounterexample, pRepeatedCounterexample);
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(new Statistics() {
-
-      private final Statistics statistics = strategy.getStatistics();
-
-      @Override
-      public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-        ImpactRefiner.this.printStatistics(pOut, pResult, pReached);
-        statistics.printStatistics(pOut, pResult, pReached);
-      }
-
-      @Override
-      public String getName() {
-        return strategy.getStatistics().getName();
-      }
-    });
-  }
+    return new PredicateCPARefiner(
+        config,
+        logger,
+        pCpa,
+        manager,
+        pfmgr,
+        strategy);
+    }
 }

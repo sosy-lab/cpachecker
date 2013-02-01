@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 // TODO: check whether this class is needed at all or if it can just be replaced by PredicateRefiner
-class PredicatingExplicitRefiner extends PredicateRefiner {
+class PredicatingExplicitRefiner extends PredicateCPARefiner {
 
   protected PredicatingExplicitRefiner(Configuration pConfig,
       LogManager pLogger, ConfigurableProgramAnalysis pCpa,

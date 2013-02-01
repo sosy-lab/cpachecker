@@ -145,7 +145,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
    * This is a small extension of PredicateRefiner that overrides
    * {@link #getFormulasForPath(List, ARGState)} so that it respects ABM.
    */
-  static final class ExtendedPredicateRefiner extends PredicateRefiner {
+  static final class ExtendedPredicateRefiner extends PredicateCPARefiner {
 
     final Timer ssaRenamingTimer = new Timer();
 

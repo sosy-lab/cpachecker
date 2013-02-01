@@ -76,7 +76,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
   @Option(description="split arithmetic equalities when extracting predicates from interpolants")
   private boolean splitItpAtoms = false;
 
-  private final PredicateRefiner predicateRefiner;
+  private final PredicateCPARefiner predicateRefiner;
   private final PredicateAbstractionRefinementStrategy predicateRefinementStrategy;
   private final PredicateCPA predicateCpa;
   private final Configuration config;
