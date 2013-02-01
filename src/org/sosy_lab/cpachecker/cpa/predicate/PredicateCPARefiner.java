@@ -185,7 +185,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     assert path.size() == formulas.size();
 
     // build the counterexample
-    final CounterexampleTraceInfo<BooleanFormula> counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
+    final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -215,10 +215,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
       final ARGPath targetPath;
-      final CounterexampleTraceInfo<BooleanFormula> preciseCounterexample;
+      final CounterexampleTraceInfo preciseCounterexample;
 
       if (branchingOccurred) {
-        Pair<ARGPath, CounterexampleTraceInfo<BooleanFormula>> preciseInfo = findPreciseErrorPath(pPath, counterexample);
+        Pair<ARGPath, CounterexampleTraceInfo> preciseInfo = findPreciseErrorPath(pPath, counterexample);
 
         if (preciseInfo != null) {
           targetPath = preciseInfo.getFirst();
@@ -298,7 +298,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
   }
 
-  private Pair<ARGPath, CounterexampleTraceInfo<BooleanFormula>> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo<BooleanFormula> counterexample) {
+  private Pair<ARGPath, CounterexampleTraceInfo> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo counterexample) {
     errorPathProcessing.start();
     try {
 
@@ -324,7 +324,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       }
 
       // try to create a better satisfying assignment by replaying this single path
-      CounterexampleTraceInfo<BooleanFormula> info2;
+      CounterexampleTraceInfo info2;
       try {
         info2 = formulaManager.checkPath(targetPath.asEdgesList());
 

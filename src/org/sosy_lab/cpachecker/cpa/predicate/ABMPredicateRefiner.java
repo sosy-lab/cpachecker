@@ -314,7 +314,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     public void performRefinement(
         ARGReachedSet pReached,
         List<ARGState> pPath,
-        CounterexampleTraceInfo<BooleanFormula> pCounterexample,
+        CounterexampleTraceInfo pCounterexample,
         boolean pRepeatedCounterexample) throws CPAException {
 
       // overriding this method is needed, as, in principle, it is possible to get two successive spurious counterexamples

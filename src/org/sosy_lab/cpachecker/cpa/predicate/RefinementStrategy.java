@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 /**
@@ -42,7 +41,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 public interface RefinementStrategy {
 
   void performRefinement(ARGReachedSet pReached, List<ARGState> path,
-      CounterexampleTraceInfo<BooleanFormula> cex, boolean pRepeatedCounterexample) throws CPAException;
+      CounterexampleTraceInfo cex, boolean pRepeatedCounterexample) throws CPAException;
 
   Statistics getStatistics();
 }

@@ -93,7 +93,7 @@ class ImpactRefinementStrategy implements RefinementStrategy {
 
   @Override
   public void performRefinement(ARGReachedSet pReached, List<ARGState> path,
-      CounterexampleTraceInfo<BooleanFormula> cex, boolean pRepeatedCounterexample) throws CPAException {
+      CounterexampleTraceInfo cex, boolean pRepeatedCounterexample) throws CPAException {
 
     ARGState lastElement = path.get(path.size()-1);
     assert lastElement.isTarget();

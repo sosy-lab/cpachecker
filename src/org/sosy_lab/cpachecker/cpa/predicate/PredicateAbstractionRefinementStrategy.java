@@ -147,7 +147,7 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
   @Override
   public void performRefinement(ARGReachedSet pReached,
       List<ARGState> pPath,
-      CounterexampleTraceInfo<BooleanFormula> pCounterexample,
+      CounterexampleTraceInfo pCounterexample,
       boolean pRepeatedCounterexample) throws CPAException {
 
     // extract predicates from interpolants

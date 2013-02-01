@@ -41,9 +41,9 @@ import com.google.common.collect.Lists;
  * A class that stores information about a counterexample trace.
  * For spurious counterexamples, this stores the interpolants.
  */
-public class CounterexampleTraceInfo<I> {
+public class CounterexampleTraceInfo {
     private final boolean spurious;
-    private final List<I> interpolants;
+    private final List<BooleanFormula> interpolants;
     private final Model mCounterexampleModel;
     private final List<BooleanFormula> mCounterexampleFormula;
     private final Map<Integer, Boolean> branchingPreds;
@@ -76,7 +76,7 @@ public class CounterexampleTraceInfo<I> {
      *
      * @return a list of interpolants
      */
-    public List<I> getInterpolants() {
+    public List<BooleanFormula> getInterpolants() {
       checkState(spurious);
       return interpolants;
     }
@@ -84,7 +84,7 @@ public class CounterexampleTraceInfo<I> {
     /**
      * Add an interpolant to the end of the list of interpolants.
      */
-    public void addInterpolant(I itp) {
+    public void addInterpolant(BooleanFormula itp) {
       checkState(spurious);
       interpolants.add(itp);
     }

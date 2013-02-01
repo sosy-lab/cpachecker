@@ -218,7 +218,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         path.add(0, commonParent); // now path is [commonParent; argElement] (including x and v)
         assert formulas.size() == path.size() + 1;
 
-        CounterexampleTraceInfo<BooleanFormula> interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet());
+        CounterexampleTraceInfo interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet());
 
         if (!interpolantInfo.isSpurious()) {
           logger.log(Level.FINER, "Forced covering unsuccessful.");

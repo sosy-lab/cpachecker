@@ -190,7 +190,7 @@ public final class InterpolationManager {
 //    }
   }
 
-  public String dumpCounterexample(CounterexampleTraceInfo<BooleanFormula> cex) {
+  public String dumpCounterexample(CounterexampleTraceInfo cex) {
     return fmgr.dumpFormula(bfmgr.conjunction(cex.getCounterExampleFormulas()));
   }
 
@@ -204,7 +204,7 @@ public final class InterpolationManager {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public CounterexampleTraceInfo<BooleanFormula> buildCounterexampleTrace(
+  public CounterexampleTraceInfo buildCounterexampleTrace(
       final List<BooleanFormula> pFormulas,
       final Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
 
@@ -215,14 +215,14 @@ public final class InterpolationManager {
 
     assert executor != null;
 
-    Callable<CounterexampleTraceInfo<BooleanFormula>> tc = new Callable<CounterexampleTraceInfo<BooleanFormula>>() {
+    Callable<CounterexampleTraceInfo> tc = new Callable<CounterexampleTraceInfo>() {
       @Override
-      public CounterexampleTraceInfo<BooleanFormula> call() throws CPAException, InterruptedException {
+      public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
         return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
       }
     };
 
-    Future<CounterexampleTraceInfo<BooleanFormula>> future = executor.submit(tc);
+    Future<CounterexampleTraceInfo> future = executor.submit(tc);
 
     try {
       // here we get the result of the post computation but there is a time limit
@@ -249,7 +249,7 @@ public final class InterpolationManager {
    * @return counterexample info with predicated information
    * @throws CPAException
    */
-  private <T> CounterexampleTraceInfo<BooleanFormula> buildCounterexampleTraceWithSpecifiedItp(
+  private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
       List<BooleanFormula> pFormulas, Set<ARGState> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
 
     logger.log(Level.FINEST, "Building counterexample trace");
@@ -316,7 +316,7 @@ public final class InterpolationManager {
 
 
       // Get either interpolants or error path information
-      CounterexampleTraceInfo<BooleanFormula> info;
+      CounterexampleTraceInfo info;
       if (spurious) {
 
         List<BooleanFormula> interpolants = getInterpolants(pItpProver, itpGroupsIds);
@@ -324,7 +324,7 @@ public final class InterpolationManager {
           verifyInterpolants(interpolants, f, pItpProver);
         }
 
-        info = new CounterexampleTraceInfo<>();
+        info = new CounterexampleTraceInfo();
 
         int i = 1;
         for (BooleanFormula itp : interpolants) {
@@ -728,7 +728,7 @@ public final class InterpolationManager {
    * @throws CPATransferException
    * @throws InterruptedException
    */
-  private <T> CounterexampleTraceInfo<BooleanFormula> getErrorPath(List<BooleanFormula> f,
+  private <T> CounterexampleTraceInfo getErrorPath(List<BooleanFormula> f,
       InterpolatingTheoremProver<T> pItpProver, Set<ARGState> elementsOnPath)
       throws CPATransferException, InterruptedException {
 
@@ -738,7 +738,7 @@ public final class InterpolationManager {
     BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
     if (bfmgr.isTrue(branchingFormula)) {
-      return new CounterexampleTraceInfo<>(f, getModel(pItpProver), Collections.<Integer, Boolean>emptyMap());
+      return new CounterexampleTraceInfo(f, getModel(pItpProver), Collections.<Integer, Boolean>emptyMap());
     }
 
     // add formula to solver environment
@@ -750,7 +750,7 @@ public final class InterpolationManager {
 
     if (stillSatisfiable) {
       Model model = getModel(pItpProver);
-      return new CounterexampleTraceInfo<>(f, model, pmgr.getBranchingPredicateValuesFromModel(model));
+      return new CounterexampleTraceInfo(f, model, pmgr.getBranchingPredicateValuesFromModel(model));
 
     } else {
       // this should not happen
@@ -759,7 +759,7 @@ public final class InterpolationManager {
       dumpInterpolationProblem(f);
       dumpFormulaToFile("formula", branchingFormula, f.size());
 
-      return new CounterexampleTraceInfo<>(f, new Model(fmgr), Collections.<Integer, Boolean>emptyMap());
+      return new CounterexampleTraceInfo(f, new Model(fmgr), Collections.<Integer, Boolean>emptyMap());
     }
   }
 
@@ -773,7 +773,7 @@ public final class InterpolationManager {
     }
   }
 
-  public CounterexampleTraceInfo<BooleanFormula> checkPath(List<CFAEdge> pPath) throws CPATransferException {
+  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
     BooleanFormula f = pmgr.makeFormulaForPath(pPath).getFormula();
 
     TheoremProver thmProver = solver.getTheoremProver();
@@ -781,9 +781,9 @@ public final class InterpolationManager {
     try {
       thmProver.push(f);
       if (thmProver.isUnsat()) {
-        return new CounterexampleTraceInfo<>();
+        return new CounterexampleTraceInfo();
       } else {
-        return new CounterexampleTraceInfo<>(Collections.singletonList(f), getModel(thmProver), ImmutableMap.<Integer, Boolean>of());
+        return new CounterexampleTraceInfo(Collections.singletonList(f), getModel(thmProver), ImmutableMap.<Integer, Boolean>of());
       }
     } finally {
       thmProver.reset();

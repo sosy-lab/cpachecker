@@ -67,7 +67,7 @@ class PredicatingExplicitRefinementStrategy extends PredicateAbstractionRefineme
   public void performRefinement(
       ARGReachedSet pReached,
       List<ARGState> errorPath,
-      CounterexampleTraceInfo<BooleanFormula> counterexampleTraceInfo,
+      CounterexampleTraceInfo counterexampleTraceInfo,
       boolean pRepeatedCounterexample)
       throws CPAException {
     numberOfPredicateRefinements++;
@@ -87,7 +87,7 @@ class PredicatingExplicitRefinementStrategy extends PredicateAbstractionRefineme
       UnmodifiableReachedSet reachedSet,
       Precision oldPrecision,
       List<ARGState> errorPath,
-      CounterexampleTraceInfo<BooleanFormula> pInfo) throws CPAException {
+      CounterexampleTraceInfo pInfo) throws CPAException {
 
     // extract predicates from interpolants
     List<Collection<AbstractionPredicate>> newPreds = Lists.newArrayList();

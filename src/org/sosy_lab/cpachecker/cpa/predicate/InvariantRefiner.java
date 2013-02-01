@@ -27,6 +27,7 @@ import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.transform;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Vector;
@@ -66,7 +67,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.collect.Lists;
 
@@ -123,14 +123,14 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     totalRefinement.start();
 
     // build the counterexample
-    CounterexampleTraceInfo<Collection<AbstractionPredicate>> counterexample = buildCounterexampleTrace(pPath);
+    List<Collection<AbstractionPredicate>> predicates = buildCounterexampleTrace(pPath);
 
-    if (counterexample != null) {
+    if (predicates != null) {
       // the counterexample path was spurious, and we refine
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
       List<ARGState> path = PredicateCPARefiner.transformPath(pPath);
-      predicateRefinementStrategy.performRefinement(pReached, path, counterexample.getInterpolants(), false);
+      predicateRefinementStrategy.performRefinement(pReached, path, predicates, false);
 
       totalRefinement.stop();
       return CounterexampleInfo.spurious();
@@ -142,9 +142,9 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
 
   }
 
-  private CounterexampleTraceInfo<Collection<AbstractionPredicate>> buildCounterexampleTrace(ARGPath pPath) throws CPAException {
+  private List<Collection<AbstractionPredicate>> buildCounterexampleTrace(ARGPath pPath) throws CPAException {
 
-    CounterexampleTraceInfo<Collection<AbstractionPredicate>> ceti = null;
+    List<Collection<AbstractionPredicate>> ceti = null;
 
     NetworkBuilder nbuilder = null;
     try {
@@ -184,7 +184,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
         logger.log(Level.ALL, "Invariants:\n", tnet.dumpTemplates());
 
         // Build a CounterexampleTraceInfo object.
-        ceti = new CounterexampleTraceInfo<>();
+        ceti = new ArrayList<>();
         // Add the predicates for each of the computed invariants.
         addPredicates(ceti, tnet, pPath);
         // Break out of the while loop on invariant template choices.
@@ -206,7 +206,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     return ceti;
   }
 
-  private void addPredicates(CounterexampleTraceInfo<Collection<AbstractionPredicate>> ceti, TemplateNetwork tnet, ARGPath pPath) throws CPAException {
+  private void addPredicates(List<Collection<AbstractionPredicate>> ceti, TemplateNetwork tnet, ARGPath pPath) throws CPAException {
     // Since we are going to use the methods in PredicateRefiner, we need to pad the List
     // of AbstractionPredicate Collections in ceti to make the predicates in phi correspond to
     // the loop head location, and so that the predicates after that location are all 'false'.
@@ -234,9 +234,9 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
         boolean atomic = true;
         //Collection<AbstractionPredicate> phiPreds = makeAbstractionPredicates(phi);
         Collection<AbstractionPredicate> phiPreds = makeAbstrPreds(phi, atomic);
-        ceti.addInterpolant(phiPreds);
+        ceti.add(phiPreds);
       } else {
-        ceti.addInterpolant(trueFormula);
+        ceti.add(trueFormula);
       }
     }
   }
