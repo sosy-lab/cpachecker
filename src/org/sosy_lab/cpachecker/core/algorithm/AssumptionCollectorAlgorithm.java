@@ -78,60 +78,18 @@ import com.google.common.collect.Sets;
 @Options(prefix="assumptions")
 public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvider {
 
-  private class AssumptionCollectionStatistics implements Statistics {
-    @Override
-    public String getName() {
-      return "Assumption Collection algorithm";
-    }
-
-    @Override
-    public void printStatistics(PrintStream out, Result pResult,
-        ReachedSet pReached) {
-
-      AssumptionWithLocation resultAssumption = collectLocationAssumptions(pReached, exceptionAssumptions);
-
-      out.println("Number of locations with assumptions: " + resultAssumption.getNumberOfLocations());
-
-      if (exportAssumptions) {
-        if (assumptionsFile != null) {
-          try {
-            Files.writeFile(assumptionsFile, resultAssumption);
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
-          }
-        }
-
-        if (assumptionAutomatonFile != null) {
-          try (Writer w = Files.openOutputFile(assumptionAutomatonFile)) {
-            produceAssumptionAutomaton(w, pReached);
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
-          }
-          out.println("Number of states in automaton:        " + automatonStates);
-        }
-      }
-    }
-  }
-
-  // statistics
-  private int automatonStates = 0;
-
-
   @Option(name="export", description="write collected assumptions to file")
   private boolean exportAssumptions = true;
 
-  @Option(name="file",
-      description="write collected assumptions to file")
+  @Option(name="file", description="write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-      private Path assumptionsFile = Paths.get("assumptions.txt");
+  private Path assumptionsFile = Paths.get("assumptions.txt");
 
-  @Option(name="automatonFile",
-      description="write collected assumptions as automaton to file")
+  @Option(name="automatonFile", description="write collected assumptions as automaton to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-      private Path assumptionAutomatonFile = Paths.get("AssumptionAutomaton.txt");
+  private Path assumptionAutomatonFile = Paths.get("AssumptionAutomaton.txt");
 
-  @Option(description="Add a threshold to the automaton, "
-      + "after so many branches on a path the automaton will be ignored (0 to disable)")
+  @Option(description="Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
   @IntegerOption(min=0)
   private int automatonBranchingThreshold = 0;
 
@@ -140,32 +98,32 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private final FormulaManager formulaManager;
   private final AssumptionWithLocation exceptionAssumptions;
   private final AssumptionStorageCPA cpa;
+  private final BooleanFormulaManager bfmgr;
 
   // store only the ids, not the states in order to prevent memory leaks
   private final Set<Integer> exceptionStates = new HashSet<>();
 
-
-  private final BooleanFormulaManager bfmgr;
+  // statistics
+  private int automatonStates = 0;
 
   public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     config.inject(this);
 
     this.logger = logger;
-    innerAlgorithm = algo;
-    cpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(AssumptionStorageCPA.class);
-    if (cpa == null) {
+    this.innerAlgorithm = algo;
+    this.cpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(AssumptionStorageCPA.class);
+    if (this.cpa == null) {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for AssumptionCollectionAlgorithm");
     }
-    formulaManager = cpa.getFormulaManager();
-    bfmgr = formulaManager.getBooleanFormulaManager();
-    exceptionAssumptions = new AssumptionWithLocation(formulaManager);
+    this.formulaManager = cpa.getFormulaManager();
+    this.bfmgr = formulaManager.getBooleanFormulaManager();
+    this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
   }
 
   @Override
   public boolean run(ReachedSet reached) throws CPAException, InterruptedException {
     boolean isComplete = true;
-
     boolean restartCPA = false;
 
     // loop if restartCPA is set to false
@@ -174,6 +132,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       try {
         // run the inner algorithm to fill the reached set
         isComplete &= innerAlgorithm.run(reached);
+
       } catch (RefinementFailedException failedRefinement) {
         logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
 
@@ -208,7 +167,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         errorState.removeFromARG();
 
         restartCPA = true;
-
         isComplete = false;
 
         // TODO: handle CounterexampleAnalysisFailed similar to RefinementFailedException
@@ -238,7 +196,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         // get stored assumption
 
         AssumptionStorageState e = AbstractStates.extractStateByType(state, AssumptionStorageState.class);
-
         BooleanFormula assumption = bfmgr.and(e.getAssumption(), e.getStopFormula());
 
         if (!bfmgr.isTrue(assumption)) {
@@ -456,5 +413,39 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       ((StatisticsProvider)innerAlgorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(new AssumptionCollectionStatistics());
+  }
+
+  private class AssumptionCollectionStatistics implements Statistics {
+    @Override
+    public String getName() {
+      return "Assumption Collection algorithm";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+
+      AssumptionWithLocation resultAssumption = collectLocationAssumptions(pReached, exceptionAssumptions);
+
+      out.println("Number of locations with assumptions: " + resultAssumption.getNumberOfLocations());
+
+      if (exportAssumptions) {
+        if (assumptionsFile != null) {
+          try {
+            Files.writeFile(assumptionsFile, resultAssumption);
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+          }
+        }
+
+        if (assumptionAutomatonFile != null) {
+          try (Writer w = Files.openOutputFile(assumptionAutomatonFile)) {
+            produceAssumptionAutomaton(w, pReached);
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+          }
+          out.println("Number of states in automaton:        " + automatonStates);
+        }
+      }
+    }
   }
 }
