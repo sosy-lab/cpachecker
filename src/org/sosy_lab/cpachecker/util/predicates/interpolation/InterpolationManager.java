@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
@@ -44,6 +46,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -70,7 +73,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -295,11 +300,14 @@ public final class InterpolationManager {
           dumpInterpolationProblem(f);
         }
 
+        // re-order formulas if needed
+        List<Pair<BooleanFormula, Integer>> orderedFormulas = orderFormulas(f);
+
         // initialize all interpolation group ids with "null"
         itpGroupsIds = new ArrayList<>(Collections.<T>nCopies(f.size(), null));
 
         // ask solver for satisfiability
-        spurious = checkInfeasabilityOfTrace(f, itpGroupsIds, pItpProver);
+        spurious = checkInfeasabilityOfTrace(orderedFormulas, itpGroupsIds, pItpProver);
         assert itpGroupsIds.size() == f.size();
         assert !itpGroupsIds.contains(null); // has to be filled completely
 
@@ -489,18 +497,15 @@ public final class InterpolationManager {
   }
 
   /**
-   * Check the satisfiability of a list of formulas, using the ZigZag or Suffix
-   * strategies if configuration says so.
-   * This method honors the {@link #incrementalCheck} configuration option.
-   *
+   * Put the list of formulas into the order in which they should be given to
+   * the solver, as defined by the {@link #direction} configuration option.
    * @param traceFormulas The list of formulas to check.
-   * @param itpGroupsIds The list where to store the references to the interpolation groups.
-   * @param pItpProver The solver to use.
-   * @return True if the formulas are unsatisfiable.
-   * @throws InterruptedException
+   * @return The same list of formulas in different order, and each formula has its position in the original list as second element of the pair.
    */
-  private <T> boolean checkInfeasabilityOfTrace(List<BooleanFormula> traceFormulas,
-      List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) throws InterruptedException {
+  private List<Pair<BooleanFormula, Integer>> orderFormulas(final List<BooleanFormula> traceFormulas) {
+
+    // In this list are all formulas together with their position in the original list
+    ImmutableList.Builder<Pair<BooleanFormula, Integer>> orderedFormulas = ImmutableList.builder();
 
     if (direction == CexTraceAnalysisDirection.ZIGZAG) {
       int e = traceFormulas.size()-1;
@@ -510,19 +515,7 @@ public final class InterpolationManager {
         int i = fromStart ? s++ : e--;
         fromStart = !fromStart;
 
-        BooleanFormula fm = traceFormulas.get(i);
-        assert itpGroupsIds.get(i) == null;
-        itpGroupsIds.set(i, pItpProver.addFormula(fm));
-
-        if (incrementalCheck && !bfmgr.isTrue(fm)) {
-          if (pItpProver.isUnsat()) {
-            for (int j = s; j <= e; ++j) {
-              assert itpGroupsIds.get(j) == null;
-              itpGroupsIds.set(j, pItpProver.addFormula(traceFormulas.get(j)));
-            }
-            return true;
-          }
-        }
+        orderedFormulas.add(Pair.of(traceFormulas.get(i), i));
       }
 
     } else {
@@ -533,29 +526,52 @@ public final class InterpolationManager {
            backwards ? i >= 0 : i < traceFormulas.size();
            i += increment) {
 
-        BooleanFormula fm = traceFormulas.get(i);
-        assert itpGroupsIds.get(i) == null;
-        itpGroupsIds.set(i, pItpProver.addFormula(fm));
+        orderedFormulas.add(Pair.of(traceFormulas.get(i), i));
+      }
+    }
 
-        if (incrementalCheck && !bfmgr.isTrue(fm)) {
-          if (pItpProver.isUnsat()) {
-            // we need to add the other formulas to the itpProver
-            // anyway, so it can setup its internal state properly
-            for (int j = i+increment;
-                 backwards ? j >= 0 : j < traceFormulas.size();
-                 j += increment) {
-              assert itpGroupsIds.get(j) == null;
-              itpGroupsIds.set(j, pItpProver.addFormula(traceFormulas.get(j)));
-            }
-            return true;
-          }
+    ImmutableList<Pair<BooleanFormula, Integer>> result = orderedFormulas.build();
+    assert traceFormulas.size() == result.size();
+    assert ImmutableMultiset.copyOf(from(result).transform(Pair.getProjectionToFirst()))
+                             .equals(ImmutableMultiset.copyOf(traceFormulas))
+            : "Ordered list does not contain the same formulas with the same count";
+    return result;
+  }
+
+  /**
+   * Check the satisfiability of a list of formulas, using them in the given order.
+   * This method honors the {@link #incrementalCheck} configuration option.
+   *
+   * @param traceFormulas The list of formulas to check, each formula with its index of where it should be added in the list of interpolation groups.
+   * @param itpGroupsIds The list where to store the references to the interpolation groups.
+   * @param pItpProver The solver to use.
+   * @return True if the formulas are unsatisfiable.
+   * @throws InterruptedException
+   */
+  private <T> boolean checkInfeasabilityOfTrace(List<Pair<BooleanFormula, Integer>> traceFormulas,
+      List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) throws InterruptedException {
+
+    boolean isStillFeasible = true;
+
+    for (Pair<BooleanFormula, Integer> p : traceFormulas) {
+      BooleanFormula f = p.getFirst();
+      int index = p.getSecond();
+
+      assert itpGroupsIds.get(index) == null;
+      itpGroupsIds.set(index, pItpProver.addFormula(f));
+
+      if (incrementalCheck && isStillFeasible && !bfmgr.isTrue(f)) {
+        if (pItpProver.isUnsat()) {
+          // We need to iterate through the full loop
+          // to add all formulas, but this prevents us from doing further sat checks.
+          isStillFeasible = false;
         }
       }
     }
 
     if (incrementalCheck) {
-      // we did unsat checks, but none returned true
-      return false;
+      // we did unsat checks
+      return !isStillFeasible;
     } else {
       return pItpProver.isUnsat();
     }
