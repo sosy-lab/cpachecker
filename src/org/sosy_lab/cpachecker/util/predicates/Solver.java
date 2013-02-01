@@ -47,7 +47,7 @@ public class Solver {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final TheoremProver prover;
+  private final FormulaManagerFactory factory;
 
   private final Map<BooleanFormula, Boolean> implicationCache = Maps.newHashMap();
 
@@ -57,17 +57,17 @@ public class Solver {
   public int trivialImplicationChecks = 0;
   public int cachedImplicationChecks = 0;
 
-  public Solver(FormulaManagerView pFmgr, TheoremProver pProver) {
+  public Solver(FormulaManagerView pFmgr, FormulaManagerFactory pFactory) {
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
-    prover = pProver;
+    factory = pFactory;
   }
 
   /**
    * Direct reference to the underlying SMT solver for more complicated queries.
    */
-  public TheoremProver getTheoremProver() {
-    return prover;
+  public ProverEnvironment getTheoremProver() {
+    return factory.createTheoremProver();
   }
 
   /**
@@ -75,7 +75,7 @@ public class Solver {
    */
   public boolean isUnsat(BooleanFormula f) {
     solverTime.start();
-    try (ProverEnvironment prover = this.prover.init()) {
+    try (ProverEnvironment prover = getTheoremProver()) {
       prover.push(f);
       return prover.isUnsat();
 

@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import com.google.common.base.Preconditions;
@@ -47,16 +48,19 @@ import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.Valuation;
 
-public class SmtInterpolTheoremProver implements TheoremProver, ProverEnvironment {
+public class SmtInterpolTheoremProver implements ProverEnvironment {
 
   private final SmtInterpolFormulaManager mgr;
   private SmtInterpolEnvironment env;
-  private List<Term> assertedTerms;
+  private final List<Term> assertedTerms;
 
   public SmtInterpolTheoremProver(
       SmtInterpolFormulaManager pMgr) {
     this.mgr = pMgr;
-    env = null;
+
+    assertedTerms = new ArrayList<>();
+    env = mgr.createEnvironment();
+    checkNotNull(env);
   }
 
   @Override
@@ -87,26 +91,12 @@ public class SmtInterpolTheoremProver implements TheoremProver, ProverEnvironmen
   }
 
   @Override
-  public ProverEnvironment init() {
-    Preconditions.checkNotNull(mgr);
-    assert (env == null);
-    assertedTerms = new ArrayList<>();
-    env = mgr.createEnvironment();
-    return this;
-  }
-
-  @Override
-  public void reset() {
+  public void close() {
     Preconditions.checkNotNull(env);
     while (assertedTerms.size() > 0) { // cleanup stack
       pop();
     }
     env = null;
-  }
-
-  @Override
-  public void close() {
-    reset();
   }
 
   @Override

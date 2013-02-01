@@ -389,7 +389,7 @@ public final class InterpolationManager {
 
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
 
-    try (ProverEnvironment thmProver = solver.getTheoremProver().init()) {
+    try (ProverEnvironment thmProver = solver.getTheoremProver()) {
 
     logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
         "of length:", f.size());
@@ -776,7 +776,7 @@ public final class InterpolationManager {
   public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
     BooleanFormula f = pmgr.makeFormulaForPath(pPath).getFormula();
 
-    try (ProverEnvironment thmProver = solver.getTheoremProver().init()) {
+    try (ProverEnvironment thmProver = solver.getTheoremProver()) {
       thmProver.push(f);
       if (thmProver.isUnsat()) {
         return CounterexampleTraceInfo.infeasible(ImmutableList.<BooleanFormula>of());

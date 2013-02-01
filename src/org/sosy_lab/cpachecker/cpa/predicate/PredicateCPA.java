@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.ImmutableSetMultimap;
@@ -143,8 +142,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     pathFormulaManager = pfMgr;
 
-    TheoremProver theoremProver = formulaManagerFactory.createTheoremProver();
-    solver = new Solver(formulaManager, theoremProver);
+    solver = new Solver(formulaManager, formulaManagerFactory);
 
     RegionManager regionManager;
     if (abstractionType.equals("FORMULA")) {

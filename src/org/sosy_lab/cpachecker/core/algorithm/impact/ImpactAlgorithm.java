@@ -64,7 +64,6 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -87,7 +86,6 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PathFormulaManager pfmgr;
-  private final TheoremProver prover;
   private final Solver solver;
   private final InterpolationManager imgr;
 
@@ -141,8 +139,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     fmgr = new FormulaManagerView(factory.getFormulaManager(), config, logger);
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = new CachingPathFormulaManager(new PathFormulaManagerImpl(fmgr, config, logger, cfa.getMachineModel()));
-    prover = factory.createTheoremProver();
-    solver = new Solver(fmgr, prover);
+    solver = new Solver(fmgr, factory);
     imgr = new InterpolationManager(fmgr, pfmgr, solver, factory, config, logger);
   }
 

@@ -83,11 +83,11 @@ import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Predicate;
@@ -178,7 +178,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pmgr;
-  private final TheoremProver prover;
+  private final Solver solver;
 
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
@@ -206,7 +206,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     fmgr = predCpa.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-    prover = predCpa.getSolver().getTheoremProver();
+    solver = predCpa.getSolver();
   }
 
   @Override
@@ -229,14 +229,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         return soundInner;
       }
 
-      try (ProverEnvironment prover = this.prover.init()) {
+      try (ProverEnvironment prover = solver.getTheoremProver()) {
 
         // first check safety
-        boolean safe = checkTargetStates(pReachedSet);
+        boolean safe = checkTargetStates(pReachedSet, prover);
         logger.log(Level.FINER, "Program is safe?:", safe);
 
         if (!safe) {
-          createErrorPath(pReachedSet);
+          createErrorPath(pReachedSet, prover);
         }
 
         prover.pop(); // remove program formula from solver stack
@@ -248,11 +248,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         if (soundInner && safe) {
 
           // check bounding assertions
-          sound = checkBoundingAssertions(pReachedSet);
+          sound = checkBoundingAssertions(pReachedSet, prover);
 
           // try to prove program safety via induction
           if (induction) {
-            sound = sound || checkWithInduction();
+            sound = sound || checkWithInduction(prover);
           }
         }
 
@@ -268,7 +268,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
    * This method tries to find a feasible path to (one of) the target state(s).
    * It does so by asking the solver for a satisfying assignment.
    */
-  private void createErrorPath(final ReachedSet pReachedSet) throws CPATransferException {
+  private void createErrorPath(final ReachedSet pReachedSet, final ProverEnvironment prover) throws CPATransferException {
     if (!(cpa instanceof ARGCPA)) {
       logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");
       return;
@@ -362,7 +362,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private boolean checkTargetStates(final ReachedSet pReachedSet) {
+  private boolean checkTargetStates(final ReachedSet pReachedSet, final ProverEnvironment prover) {
     List<AbstractState> targetStates = from(pReachedSet)
                                             .filter(IS_TARGET_STATE)
                                             .toImmutableList();
@@ -391,7 +391,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private boolean checkBoundingAssertions(final ReachedSet pReachedSet) {
+  private boolean checkBoundingAssertions(final ReachedSet pReachedSet, final ProverEnvironment prover) {
     FluentIterable<AbstractState> stopStates = from(pReachedSet)
                                                     .filter(IS_STOP_STATE);
 
@@ -429,7 +429,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return f;
   }
 
-  private boolean checkWithInduction() throws CPAException, InterruptedException {
+  private boolean checkWithInduction(final ProverEnvironment prover) throws CPAException, InterruptedException {
     if (!cfa.getLoopStructure().isPresent()) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
       return false;

@@ -39,10 +39,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
 
 import com.google.common.base.Preconditions;
 
-public class Mathsat5TheoremProver implements TheoremProver, ProverEnvironment {
+public class Mathsat5TheoremProver implements ProverEnvironment {
 
   private static final boolean USE_SHARED_ENV = true;
 
@@ -52,7 +53,11 @@ public class Mathsat5TheoremProver implements TheoremProver, ProverEnvironment {
   public Mathsat5TheoremProver(
       Mathsat5FormulaManager pMgr) {
     mgr = pMgr;
-    curEnv = 0;
+
+    long cfg = msat_create_config();
+    msat_set_option_checked(cfg, "model_generation", "true");
+    curEnv = mgr.createEnvironment(cfg, USE_SHARED_ENV, true);
+    checkNotNull(curEnv);
   }
 
   @Override
@@ -87,25 +92,10 @@ public class Mathsat5TheoremProver implements TheoremProver, ProverEnvironment {
   }
 
   @Override
-  public ProverEnvironment init() {
-    Preconditions.checkState(curEnv == 0);
-
-    long cfg = msat_create_config();
-    msat_set_option_checked(cfg, "model_generation", "true");
-    curEnv = mgr.createEnvironment(cfg, USE_SHARED_ENV, true);
-    return this;
-  }
-
-  @Override
-  public void reset() {
+  public void close() {
     Preconditions.checkState(curEnv != 0);
     msat_destroy_env(curEnv);
     curEnv = 0;
-  }
-
-  @Override
-  public void close() {
-    reset();
   }
 
   @Override

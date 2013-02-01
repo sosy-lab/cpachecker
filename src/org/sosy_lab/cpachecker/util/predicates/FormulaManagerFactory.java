@@ -30,7 +30,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5Settings;
@@ -69,7 +69,6 @@ public class FormulaManagerFactory {
   private String solver = MATHSAT5;
 
   private final FormulaManager fmgr;
-  private final TheoremProver prover;
 
   public FormulaManagerFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
@@ -81,15 +80,12 @@ public class FormulaManagerFactory {
 
 
     FormulaManager lFmgr;
-    TheoremProver lProver;
     if (solver.equals(SMTINTERPOL)) {
       if (useBitvectors) {
         throw new InvalidConfigurationException("Using bitvectors for program variables is not supported when SMTInterpol is used.");
       }
       lFmgr = org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager
           .create(config, logger, useIntegers);
-      lProver =
-          new SmtInterpolTheoremProver((SmtInterpolFormulaManager) lFmgr);
 
     } else {
       try {
@@ -98,7 +94,6 @@ public class FormulaManagerFactory {
         Mathsat5Settings settings = new Mathsat5Settings(config);
         lFmgr = Mathsat5FormulaManager.create(logger, settings);
 
-        lProver = new Mathsat5TheoremProver((Mathsat5FormulaManager)lFmgr);
       } catch (UnsatisfiedLinkError e) {
         throw new InvalidConfigurationException("The SMT solver " + solver
             + " is not available on this machine."
@@ -107,15 +102,18 @@ public class FormulaManagerFactory {
     }
 
     fmgr = lFmgr;
-    prover = lProver;
   }
 
   public FormulaManager getFormulaManager() {
     return fmgr;
   }
 
-  public TheoremProver createTheoremProver() {
-    return prover;
+  public ProverEnvironment createTheoremProver() {
+    if (solver.equals(SMTINTERPOL)) {
+      return new SmtInterpolTheoremProver((SmtInterpolFormulaManager)fmgr);
+    } else {
+      return new Mathsat5TheoremProver((Mathsat5FormulaManager)fmgr);
+    }
   }
 
   public InterpolatingTheoremProver<?> createInterpolatingTheoremProver(boolean shared) {

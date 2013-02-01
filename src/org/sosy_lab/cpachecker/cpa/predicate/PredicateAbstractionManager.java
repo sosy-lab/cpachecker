@@ -205,7 +205,7 @@ public class PredicateAbstractionManager {
 
     stats.abstractionEnumTime.startOuter();
 
-    try (ProverEnvironment thmProver = solver.getTheoremProver().init()) {
+    try (ProverEnvironment thmProver = solver.getTheoremProver()) {
       thmProver.push(f);
 
       boolean feasibility;
@@ -376,7 +376,7 @@ public class PredicateAbstractionManager {
     } else {
       logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
       AllSatResult allSatResult;
-      try (ProverEnvironment thmProver = solver.getTheoremProver().init()) {
+      try (ProverEnvironment thmProver = solver.getTheoremProver()) {
         thmProver.push(fm);
         allSatResult = thmProver.allSat(predVars, amgr.getRegionCreator(),
             stats.abstractionSolveTime, stats.abstractionEnumTime);
