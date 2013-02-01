@@ -44,13 +44,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
     public Mathsat5InterpolatingProver(
         Mathsat5FormulaManager pMgr, boolean shared) {
         mgr = pMgr;
-        interpolEnv = 0;
         useSharedEnv = shared;
-    }
-
-    @Override
-    public void init() {
-        Preconditions.checkState(interpolEnv == 0);
 
         long cfg = msat_create_config();
         msat_set_option_checked(cfg, "interpolation", "true");
@@ -59,6 +53,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
         msat_set_option_checked(cfg, "theory.eq_propagation", "false");
 
         interpolEnv = mgr.createEnvironment(cfg, useSharedEnv, false);
+        Preconditions.checkState(interpolEnv != 0);
     }
 
     @Override
@@ -109,7 +104,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
     }
 
     @Override
-    public void reset() {
+    public void close() {
         Preconditions.checkState(interpolEnv != 0);
 
         msat_destroy_env(interpolEnv);

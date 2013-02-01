@@ -116,7 +116,7 @@ public class FormulaManagerFactory {
     }
   }
 
-  public InterpolatingTheoremProver<?> createInterpolatingTheoremProver(boolean shared) {
+  public InterpolatingTheoremProver<?> newProverEnvironmentWithInterpolation(boolean shared) {
     if (solver.equals(SMTINTERPOL)) {
       return new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) fmgr);
     } else {

@@ -47,19 +47,14 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     private final SmtInterpolFormulaManager mgr;
     private SmtInterpolEnvironment env;
 
-    List<String> assertedFormulas; // Collection of termNames
-    Map<String, Term> annotatedTerms; // Collection of termNames
-    private String prefix = "term_"; // for termnames
-    static int counter = 0; // for different termnames // TODO static?
+    private final List<String> assertedFormulas; // Collection of termNames
+    private final Map<String, Term> annotatedTerms; // Collection of termNames
+    private static final String prefix = "term_"; // for termnames
+    private static int counter = 0; // for different termnames // TODO static?
 
     public SmtInterpolInterpolatingProver(
         SmtInterpolFormulaManager pMgr) {
       mgr = pMgr;
-      env = null;
-    }
-
-    @Override
-    public void init() {
       env = mgr.createEnvironment();
       assertedFormulas = new ArrayList<>();
       annotatedTerms = new HashMap<>();
@@ -152,13 +147,12 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     }
 
     @Override
-    public void reset() {
+    public void close() {
       Preconditions.checkNotNull(env);
-      while (assertedFormulas.size() > 0) { // cleanup stack
+      while (!assertedFormulas.isEmpty()) { // cleanup stack
         popFormula();
       }
-      assertedFormulas = null;
-      annotatedTerms = null;
+      annotatedTerms.clear();
       env = null;
     }
 

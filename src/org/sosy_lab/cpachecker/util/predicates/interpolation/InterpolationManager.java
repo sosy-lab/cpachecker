@@ -109,7 +109,7 @@ public final class InterpolationManager {
   private final PathFormulaManager pmgr;
   private final Solver solver;
 
-  private final InterpolatingTheoremProver<?> itpProver;
+  private final FormulaManagerFactory factory;
 
   @Option(description="apply deletion-filter to the abstract counterexample, to get "
     + "a minimal set of blocks, before applying interpolation-based refinement")
@@ -171,8 +171,7 @@ public final class InterpolationManager {
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = pPmgr;
     solver = pSolver;
-
-    itpProver = pFmgrFactory.createInterpolatingTheoremProver(false);
+    factory = pFmgrFactory;
 
     if (itpTimeLimit == 0) {
       executor = null;
@@ -210,7 +209,9 @@ public final class InterpolationManager {
 
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
-      return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
+      try (InterpolatingTheoremProver<?> itpProver = factory.newProverEnvironmentWithInterpolation(false)) {
+        return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
+      }
     }
 
     assert executor != null;
@@ -218,7 +219,9 @@ public final class InterpolationManager {
     Callable<CounterexampleTraceInfo> tc = new Callable<CounterexampleTraceInfo>() {
       @Override
       public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
-        return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
+        try (InterpolatingTheoremProver<?> itpProver = factory.newProverEnvironmentWithInterpolation(false)) {
+          return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
+        }
       }
     };
 
@@ -254,8 +257,7 @@ public final class InterpolationManager {
 
     logger.log(Level.FINEST, "Building counterexample trace");
     cexAnalysisTimer.start();
-    pItpProver.init();
-    try {
+    try (InterpolatingTheoremProver<?> prover = factory.newProverEnvironmentWithInterpolation(false)){
 
       // Final adjustments to the list of formulas
       List<BooleanFormula> f = new ArrayList<>(pFormulas); // copy because we will change the list
@@ -343,7 +345,6 @@ public final class InterpolationManager {
       return info;
 
     } finally {
-      pItpProver.reset();
       cexAnalysisTimer.stop();
     }
   }

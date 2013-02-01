@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -78,13 +79,13 @@ import com.google.common.collect.SetMultimap;
  * We do so by recursively traversing the ARG in a DFS order,
  * refining infeasible paths one by one.
  */
-public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
+public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
 
   private final LogManager logger;
 
   private FormulaManagerView fmgr;
   private Solver solver;
-  private InterpolatingTheoremProver<T> itpProver;
+  private FormulaManagerFactory factory;
   private ARGCPA argCpa;
 
   // statistics
@@ -122,7 +123,7 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
 
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  public static ImpactGlobalRefiner<?> create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+  public static ImpactGlobalRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " needs a PredicateCPA");
@@ -138,18 +139,18 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
                                     (ARGCPA)pCpa,
                                     predicateCpa.getFormulaManager(),
                                     predicateCpa.getSolver(),
-                                    predicateCpa.getFormulaManagerFactory().createInterpolatingTheoremProver(false));
+                                    predicateCpa.getFormulaManagerFactory());
   }
 
   private ImpactGlobalRefiner(Configuration config, LogManager pLogger,
       ARGCPA pArgCpa, FormulaManagerView pFmgr, Solver pSolver,
-      InterpolatingTheoremProver<T> pItpProver) {
+      FormulaManagerFactory pFactory) {
 
     logger = pLogger;
     argCpa = pArgCpa;
     fmgr = pFmgr;
     solver = pSolver;
-    itpProver = pItpProver;
+    factory = pFactory;
   }
 
   @Override
@@ -232,12 +233,19 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
     // We do not descend beyond unreachable states,
     // but instead perform refinement on them.
 
-    itpProver.init();
-    List<T> itpStack = new ArrayList<>();
-    boolean successful = step(root, itpStack, successors, predecessors, pReached, targets);
-    assert itpStack.isEmpty();
-    itpProver.reset();
+    try (InterpolatingTheoremProver<?> itpProver = factory.newProverEnvironmentWithInterpolation(false)) {
+      return performRefinement0(root, successors, predecessors, pReached, targets, itpProver);
+    }
+  }
 
+  // This is just a separate method to get the generics right.
+  // (The arguments of the list and the prover need to match.)
+  private <T> boolean performRefinement0(ARGState current, SetMultimap<ARGState, ARGState> successors,
+      Map<ARGState, ARGState> predecessors, ReachedSet pReached, List<AbstractState> targets,
+      InterpolatingTheoremProver<T> itpProver) throws InterruptedException, CPAException {
+    List<T> itpStack = new ArrayList<>();
+    boolean successful = step(current, itpStack, successors, predecessors, pReached, targets, itpProver);
+    assert itpStack.isEmpty();
     return successful;
   }
 
@@ -265,8 +273,9 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
    * @param targets The set of target states.
    * @return False if a feasible counterexample was found, True if refinement was successful.
    */
-  private boolean step(ARGState current, List<T> itpStack, SetMultimap<ARGState, ARGState> successors,
-      Map<ARGState, ARGState> predecessors, ReachedSet pReached, List<AbstractState> targets)
+  private <T> boolean step(ARGState current, List<T> itpStack, SetMultimap<ARGState, ARGState> successors,
+      Map<ARGState, ARGState> predecessors, ReachedSet pReached, List<AbstractState> targets,
+      InterpolatingTheoremProver<T> itpProver)
       throws InterruptedException, CPAException {
 
     for (ARGState succ : successors.get(current)) {
@@ -281,7 +290,7 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
         satCheckTime.stop();
         if (isUnsat) {
           logger.log(Level.FINE, "Found unreachable state", succ);
-          performRefinementOnPath(unmodifiableList(itpStack), succ, predecessors, pReached);
+          performRefinementOnPath(unmodifiableList(itpStack), succ, predecessors, pReached, itpProver);
 
         } else if (targets.contains(succ)) {
           // We have found a reachable target state, immediately abort refinement.
@@ -291,7 +300,7 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
         } else {
           // Not yet infeasible, but path is longer,
           // so descend recursively.
-          boolean successful = step(succ, itpStack, successors, predecessors, pReached, targets);
+          boolean successful = step(succ, itpStack, successors, predecessors, pReached, targets, itpProver);
 
           if (!successful) {
             return false;
@@ -328,8 +337,9 @@ public class ImpactGlobalRefiner<T> implements Refiner, StatisticsProvider {
    * @param reached The reached set.
    * @throws CPAException
    */
-  private void performRefinementOnPath(List<T> itpStack, final ARGState unreachableState,
-      Map<ARGState, ARGState> predecessors, ReachedSet reached) throws CPAException {
+  private <T> void performRefinementOnPath(List<T> itpStack, final ARGState unreachableState,
+      Map<ARGState, ARGState> predecessors, ReachedSet reached,
+      InterpolatingTheoremProver<T> itpProver) throws CPAException {
     assert !itpStack.isEmpty();
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     assert bfmgr.isFalse( itpProver.getInterpolant(itpStack) ); // last interpolant is False

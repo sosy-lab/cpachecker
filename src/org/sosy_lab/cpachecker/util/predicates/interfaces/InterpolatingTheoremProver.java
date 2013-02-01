@@ -28,17 +28,51 @@ import java.util.List;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 
-
 /**
- * @param <T> The type of the objects which can be used to select formulas for
- * interpolant creation.
+ * This class provides an interface to an incremental SMT solver
+ * with methods for pushing and popping formulas as well as sat checks.
+ * Furthermore, interpolants can be generated for an unsatisfiable list of formulas.
+ *
+ * Instances of this class can be used once for a series of related queries.
+ * After that, the {@link #close} method should be called
+ * (preferably using the try-with-resources syntax).
+ * All methods are expected to throw {@link IllegalStateException}s after
+ * close was called.
+
+ * @param <T> The type of the objects which can be used to select formulas for interpolant creation.
  */
-public interface InterpolatingTheoremProver<T> {
-    public void init();
-    public void reset();
-    public T addFormula(BooleanFormula f);
-    public void popFormula();
-    public boolean isUnsat() throws InterruptedException;
-    public BooleanFormula getInterpolant(List<T> formulasOfA);
-    public Model getModel() throws SolverException;
+public interface InterpolatingTheoremProver<T> extends AutoCloseable {
+
+  /**
+   * Add a formula to the environment stack, asserting it.
+   * The returned value can be used when selecting the formulas for interpolant generation.
+   */
+  T addFormula(BooleanFormula f);
+
+  /**
+   * Remove one formula from the environment stack.
+   */
+  void popFormula();
+
+  /**
+   * Check whether the conjunction of all formulas on the stack is unsatisfiable.
+   */
+  boolean isUnsat() throws InterruptedException;
+
+  /**
+   * Get an interpolant for two groups of formulas.
+   * This should be called only immediately after an {@link #isUnsat()} call that returned <code>true</code>.
+   * @param formulasOfA A list of values returned by {@link #addFormula(BooleanFormula)}. All the corresponding formulas from group A, the remaining formulas form group B.
+   * @return An interpolant for A and B
+   */
+  BooleanFormula getInterpolant(List<T> formulasOfA);
+
+  /**
+   * Get a satisfying assignment.
+   * This should be called only immediately after an {@link #isUnsat()} call that returned <code>false</code>.
+   */
+  Model getModel() throws SolverException;
+
+  @Override
+  void close();
 }
