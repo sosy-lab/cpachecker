@@ -68,10 +68,6 @@ public class SMG {
     return "pointsTo=" + pt_edges.toString();
   }
 
-  final public boolean objectEquals(Set<SMGObject> objSet){
-    return objects.equals(objSet);
-  }
-
   final public Set<Integer> getValues(){
     return Collections.unmodifiableSet(values);
   }
