@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
+import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -50,6 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.abm.AbstractABMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -141,8 +144,6 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
                                           predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
                                           strategy);
-
-    predicateCpa.getABMStats().addRefiner(refiner);
   }
 
   @Override
@@ -156,9 +157,9 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
    * This is a small extension of PredicateCPARefiner that overrides
    * {@link #getFormulasForPath(List, ARGState)} so that it respects ABM.
    */
-  static final class ExtendedPredicateRefiner extends PredicateCPARefiner {
+  private static final class ExtendedPredicateRefiner extends PredicateCPARefiner {
 
-    final Timer ssaRenamingTimer = new Timer();
+    private final Timer ssaRenamingTimer = new Timer();
 
     private final PathFormulaManager pfmgr;
 
@@ -250,6 +251,17 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         todo.addAll(currentElement.getChildren());
       }
       return abstractionFormulas;
+    }
+
+    @Override
+    public void collectStatistics(Collection<Statistics> pStatsCollection) {
+      pStatsCollection.add(new Stats() {
+        @Override
+        public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+          super.printStatistics(out, result, reached);
+          out.println("Time for SSA renaming:                " + ssaRenamingTimer);
+        }
+      });
     }
   }
 

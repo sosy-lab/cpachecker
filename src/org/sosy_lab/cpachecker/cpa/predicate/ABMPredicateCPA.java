@@ -78,7 +78,7 @@ public class ABMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
     reducer = new ABMPredicateReducer(getFormulaManager().getBooleanFormulaManager(), this, relevantPredicatesComputer);
     blk = pBlk;
-    stats = new ABMPredicateCPAStatistics();
+    stats = new ABMPredicateCPAStatistics(reducer);
   }
 
   RelevantPredicatesComputer getRelevantPredicatesComputer() {

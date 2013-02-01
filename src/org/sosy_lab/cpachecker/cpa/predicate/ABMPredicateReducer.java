@@ -55,9 +55,9 @@ import com.google.common.collect.SetMultimap;
 
 public class ABMPredicateReducer implements Reducer {
 
-  static final Timer reduceTimer = new Timer();
-  static final Timer expandTimer = new Timer();
-  static final Timer extractTimer = new Timer();
+  final Timer reduceTimer = new Timer();
+  final Timer expandTimer = new Timer();
+  final Timer extractTimer = new Timer();
 
   private final PathFormulaManager pmgr;
   private final PredicateAbstractionManager pamgr;

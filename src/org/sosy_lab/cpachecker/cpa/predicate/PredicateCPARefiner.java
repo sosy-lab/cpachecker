@@ -91,7 +91,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private File dumpCexFile = new File("counterexample.msat");
 
 
-  private class Stats implements Statistics {
+  class Stats implements Statistics {
 
     private final Statistics statistics = strategy.getStatistics();
 
