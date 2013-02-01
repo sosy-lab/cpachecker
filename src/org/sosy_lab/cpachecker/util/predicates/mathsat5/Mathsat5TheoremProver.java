@@ -109,18 +109,16 @@ public class Mathsat5TheoremProver implements TheoremProver, ProverEnvironment {
   }
 
   @Override
-  public AllSatResult allSat(BooleanFormula f, Collection<BooleanFormula> important,
+  public AllSatResult allSat(Collection<BooleanFormula> important,
       RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) {
     checkNotNull(rmgr);
     checkNotNull(solveTime);
     checkNotNull(enumTime);
+    Preconditions.checkState(curEnv != 0);
 
     if (important.isEmpty()) {
       throw new RuntimeException("Error occurred during Mathsat allsat: all-sat should not be called with empty 'important'-Collection");
     }
-
-    long allsatEnv = mgr.createEnvironment(msat_create_config(), USE_SHARED_ENV, true);
-    long formula = getTerm(f);
 
     long[] imp = new long[important.size()];
     int i = 0;
@@ -130,11 +128,10 @@ public class Mathsat5TheoremProver implements TheoremProver, ProverEnvironment {
 
     }
 
-    MathsatAllSatCallback callback = new MathsatAllSatCallback(this, rmgr, solveTime, enumTime, allsatEnv);
+    MathsatAllSatCallback callback = new MathsatAllSatCallback(this, rmgr, solveTime, enumTime, curEnv);
     solveTime.start();
-    msat_assert_formula(allsatEnv, formula);
 
-    int numModels = msat_all_sat(allsatEnv, imp, callback);
+    int numModels = msat_all_sat(curEnv, imp, callback);
 
     if (solveTime.isRunning()) {
       solveTime.stop();
@@ -143,7 +140,7 @@ public class Mathsat5TheoremProver implements TheoremProver, ProverEnvironment {
     }
 
     if (numModels == -1) {
-      throw new RuntimeException("Error occurred during Mathsat allsat: " + msat_last_error_message(allsatEnv));
+      throw new RuntimeException("Error occurred during Mathsat allsat: " + msat_last_error_message(curEnv));
 
     } else if (numModels == -2) {
       // infinite models
@@ -151,7 +148,6 @@ public class Mathsat5TheoremProver implements TheoremProver, ProverEnvironment {
     } else {
       assert numModels == callback.count;
     }
-    msat_destroy_env(allsatEnv);
 
     return callback;
   }

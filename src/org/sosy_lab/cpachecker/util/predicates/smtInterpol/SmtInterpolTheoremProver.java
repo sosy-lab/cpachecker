@@ -110,19 +110,17 @@ public class SmtInterpolTheoremProver implements TheoremProver, ProverEnvironmen
   }
 
   @Override
-  public AllSatResult allSat(BooleanFormula f, Collection<BooleanFormula> formulas,
+  public AllSatResult allSat(Collection<BooleanFormula> formulas,
                              RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) {
     checkNotNull(rmgr);
     checkNotNull(solveTime);
     checkNotNull(enumTime);
 
-    SmtInterpolEnvironment allsatEnv = mgr.createEnvironment();
+    SmtInterpolEnvironment allsatEnv = env;
     checkNotNull(allsatEnv);
 
     // create new allSatResult
     SmtInterpolAllSatCallback result = new SmtInterpolAllSatCallback(rmgr, solveTime, enumTime);
-
-    allsatEnv.push(1);
 
     // unpack formulas to terms
     Term[] importantTerms = new Term[formulas.size()];
@@ -133,7 +131,6 @@ public class SmtInterpolTheoremProver implements TheoremProver, ProverEnvironmen
 
     solveTime.start();
     int numModels = 0;
-    allsatEnv.assertTerm(AbstractFormulaManager.<Term>getTerm(f));
     while (allsatEnv.checkSat() == LBool.SAT) {
       Term[] model = new Term[importantTerms.length];
 
@@ -175,7 +172,7 @@ public class SmtInterpolTheoremProver implements TheoremProver, ProverEnvironmen
       enumTime.stopOuter();
     }
 
-    allsatEnv.pop(numModels + 1); // we pushed some levels on assertionStack, remove them
+    allsatEnv.pop(numModels); // we pushed some levels on assertionStack, remove them
     return result;
   }
 

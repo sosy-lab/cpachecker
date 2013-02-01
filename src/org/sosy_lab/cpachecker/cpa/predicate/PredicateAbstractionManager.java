@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -376,9 +375,12 @@ public class PredicateAbstractionManager {
 
     } else {
       logger.log(Level.ALL, "COMPUTING ALL-SMT ON FORMULA: ", fm);
-      TheoremProver thmProver = solver.getTheoremProver();
-      AllSatResult allSatResult = thmProver.allSat(fm, predVars, amgr.getRegionCreator(),
-          stats.abstractionSolveTime, stats.abstractionEnumTime);
+      AllSatResult allSatResult;
+      try (ProverEnvironment thmProver = solver.getTheoremProver().init()) {
+        thmProver.push(fm);
+        allSatResult = thmProver.allSat(predVars, amgr.getRegionCreator(),
+            stats.abstractionSolveTime, stats.abstractionEnumTime);
+      }
       result = allSatResult.getResult();
 
       // update statistics
