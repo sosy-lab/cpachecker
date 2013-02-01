@@ -90,6 +90,31 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private File dumpCexFile = new File("counterexample.msat");
 
 
+  private class Stats implements Statistics {
+
+    private final Statistics statistics = strategy.getStatistics();
+
+    @Override
+    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+      int numberOfRefinements = totalRefinement.getNumberOfIntervals();
+
+      if (numberOfRefinements > 0) {
+        out.println("Avg. length of target path (in blocks):     " + div(totalPathLength, numberOfRefinements));
+        out.println();
+        out.println("Time for refinement:                  " + totalRefinement);
+        formulaManager.printStatistics(out, result, reached);
+        out.println("  Error path post-processing:         " + errorPathProcessing);
+      }
+
+      statistics.printStatistics(out, result, reached);
+    }
+
+    @Override
+    public String getName() {
+      return strategy.getStatistics().getName();
+    }
+  }
+
   // statistics
   private int totalPathLength = 0; // measured in blocks
 
@@ -308,32 +333,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(new Statistics() {
-
-      private final Statistics statistics = strategy.getStatistics();
-
-      @Override
-      public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-        PredicateCPARefiner.this.printStatistics(pOut, pResult, pReached);
-        statistics.printStatistics(pOut, pResult, pReached);
-      }
-
-      @Override
-      public String getName() {
-        return strategy.getStatistics().getName();
-      }
-    });
-  }
-
-  private void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    int numberOfRefinements = totalRefinement.getNumberOfIntervals();
-
-    if (numberOfRefinements > 0) {
-      out.println("Avg. length of target path (in blocks):     " + div(totalPathLength, numberOfRefinements));
-      out.println();
-      out.println("Time for refinement:                  " + totalRefinement);
-      formulaManager.stats.printStatistics(out, result, reached);
-      out.println("  Error path post-processing:         " + errorPathProcessing);
-    }
+    pStatsCollection.add(new Stats());
   }
 }

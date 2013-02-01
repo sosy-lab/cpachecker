@@ -84,27 +84,24 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @Options(prefix="cpa.predicate.refinement")
 public final class InterpolationManager {
 
-  public static class Stats {
-    private final Timer cexAnalysisTimer = new Timer();
-    private final Timer satCheckTime = new Timer();
-    private final Timer getInterpolantTime = new Timer();
-    private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
-    private final Timer interpolantVerificationTimer = new Timer();
+  private final Timer cexAnalysisTimer = new Timer();
+  private final Timer satCheckTimer = new Timer();
+  private final Timer getInterpolantTimer = new Timer();
+  private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
+  private final Timer interpolantVerificationTimer = new Timer();
 
-    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      out.println("  Counterexample analysis:            " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.printMaxTime() + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
-      if (cexAnalysisGetUsefulBlocksTimer.getMaxTime() != 0) {
-        out.println("    Cex.focusing:                     " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
-      }
-      out.println("    Refinement sat check:             " + satCheckTime);
-      out.println("    Interpolant computation:          " + getInterpolantTime);
-      if (interpolantVerificationTimer.getNumberOfIntervals() > 0) {
-        out.println("    Interpolant verification:         " + interpolantVerificationTimer);
-      }
+  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    out.println("  Counterexample analysis:            " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.printMaxTime() + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
+    if (cexAnalysisGetUsefulBlocksTimer.getMaxTime() != 0) {
+      out.println("    Cex.focusing:                     " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
+    }
+    out.println("    Refinement sat check:             " + satCheckTimer);
+    out.println("    Interpolant computation:          " + getInterpolantTimer);
+    if (interpolantVerificationTimer.getNumberOfIntervals() > 0) {
+      out.println("    Interpolant verification:         " + interpolantVerificationTimer);
     }
   }
 
-  public final Stats stats = new Stats();
 
   private final LogManager logger;
   private final FormulaManagerView fmgr;
@@ -256,7 +253,7 @@ public final class InterpolationManager {
       List<BooleanFormula> pFormulas, Set<ARGState> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
 
     logger.log(Level.FINEST, "Building counterexample trace");
-    stats.cexAnalysisTimer.start();
+    cexAnalysisTimer.start();
     pItpProver.init();
     try {
 
@@ -286,7 +283,7 @@ public final class InterpolationManager {
 
       // Check feasibility of counterexample
       logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
-      stats.satCheckTime.start();
+      satCheckTimer.start();
 
       boolean spurious;
       List<T> itpGroupsIds;
@@ -312,7 +309,7 @@ public final class InterpolationManager {
         assert !itpGroupsIds.contains(null); // has to be filled completely
 
       } finally {
-        stats.satCheckTime.stop();
+        satCheckTimer.stop();
       }
 
       logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
@@ -346,7 +343,7 @@ public final class InterpolationManager {
 
     } finally {
       pItpProver.reset();
-      stats.cexAnalysisTimer.stop();
+      cexAnalysisTimer.stop();
     }
   }
 
@@ -387,7 +384,7 @@ public final class InterpolationManager {
    */
   private List<BooleanFormula> getUsefulBlocks(List<BooleanFormula> f) {
 
-    stats.cexAnalysisGetUsefulBlocksTimer.start();
+    cexAnalysisGetUsefulBlocksTimer.start();
 
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
 
@@ -491,7 +488,7 @@ public final class InterpolationManager {
 
     logger.log(Level.ALL, "DEBUG_1", "Done getUsefulBlocks");
 
-    stats.cexAnalysisGetUsefulBlocksTimer.stop();
+    cexAnalysisGetUsefulBlocksTimer.stop();
 
     return f;
   }
@@ -611,9 +608,9 @@ public final class InterpolationManager {
       logger.log(Level.ALL, "Looking for interpolant for formulas from",
           start_of_a, "to", i);
 
-      stats.getInterpolantTime.start();
+      getInterpolantTimer.start();
       BooleanFormula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
-      stats.getInterpolantTime.stop();
+      getInterpolantTimer.stop();
 
       if (dumpInterpolationProblems) {
         dumpFormulaToFile("interpolant", itp, i);
@@ -641,7 +638,7 @@ public final class InterpolationManager {
   }
 
   private <T> void verifyInterpolants(List<BooleanFormula> interpolants, List<BooleanFormula> formulas, InterpolatingTheoremProver<T> prover) throws SolverException, InterruptedException {
-    stats.interpolantVerificationTimer.start();
+    interpolantVerificationTimer.start();
     try {
 
       final int n = interpolants.size();
@@ -704,7 +701,7 @@ public final class InterpolationManager {
       }
 
     } finally {
-      stats.interpolantVerificationTimer.stop();
+      interpolantVerificationTimer.stop();
     }
   }
 
@@ -821,6 +818,6 @@ public final class InterpolationManager {
   }
 
   private File formatFormulaOutputFile(String formula, int index) {
-    return fmgr.formatFormulaOutputFile("interpolation", stats.cexAnalysisTimer.getNumberOfIntervals(), formula, index);
+    return fmgr.formatFormulaOutputFile("interpolation", cexAnalysisTimer.getNumberOfIntervals(), formula, index);
   }
 }
