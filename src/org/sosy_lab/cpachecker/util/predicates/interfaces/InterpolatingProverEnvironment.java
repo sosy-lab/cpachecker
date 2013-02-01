@@ -41,28 +41,28 @@ import org.sosy_lab.cpachecker.util.predicates.Model;
 
  * @param <T> The type of the objects which can be used to select formulas for interpolant creation.
  */
-public interface InterpolatingTheoremProver<T> extends AutoCloseable {
+public interface InterpolatingProverEnvironment<T> extends AutoCloseable {
 
   /**
    * Add a formula to the environment stack, asserting it.
    * The returned value can be used when selecting the formulas for interpolant generation.
    */
-  T addFormula(BooleanFormula f);
+  T push(BooleanFormula f);
 
   /**
    * Remove one formula from the environment stack.
    */
-  void popFormula();
+  void pop();
 
   /**
    * Check whether the conjunction of all formulas on the stack is unsatisfiable.
    */
-  boolean isUnsat() throws InterruptedException;
+  boolean isUnsat();
 
   /**
    * Get an interpolant for two groups of formulas.
    * This should be called only immediately after an {@link #isUnsat()} call that returned <code>true</code>.
-   * @param formulasOfA A list of values returned by {@link #addFormula(BooleanFormula)}. All the corresponding formulas from group A, the remaining formulas form group B.
+   * @param formulasOfA A list of values returned by {@link #push(BooleanFormula)}. All the corresponding formulas from group A, the remaining formulas form group B.
    * @return An interpolant for A and B
    */
   BooleanFormula getInterpolant(List<T> formulasOfA);

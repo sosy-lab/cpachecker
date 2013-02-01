@@ -32,7 +32,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import com.google.common.base.Preconditions;
@@ -42,7 +42,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProver<Term> {
+public class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<Term> {
 
     private final SmtInterpolFormulaManager mgr;
     private SmtInterpolEnvironment env;
@@ -61,7 +61,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     }
 
     @Override
-    public Term addFormula(BooleanFormula f) {
+    public Term push(BooleanFormula f) {
       Preconditions.checkNotNull(env);
 
       Term t = AbstractFormulaManager.getTerm(f);
@@ -77,7 +77,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     }
 
     @Override
-    public void popFormula() {
+    public void pop() {
       Preconditions.checkNotNull(env);
       assertedFormulas.remove(assertedFormulas.size()-1); // remove last term
       env.pop(1);
@@ -150,7 +150,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingTheoremProve
     public void close() {
       Preconditions.checkNotNull(env);
       while (!assertedFormulas.isEmpty()) { // cleanup stack
-        popFormula();
+        pop();
       }
       annotatedTerms.clear();
       env = null;

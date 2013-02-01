@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
@@ -209,7 +209,7 @@ public final class InterpolationManager {
 
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
-      try (InterpolatingTheoremProver<?> itpProver = factory.newProverEnvironmentWithInterpolation(false)) {
+      try (InterpolatingProverEnvironment<?> itpProver = factory.newProverEnvironmentWithInterpolation(false)) {
         return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
       }
     }
@@ -219,7 +219,7 @@ public final class InterpolationManager {
     Callable<CounterexampleTraceInfo> tc = new Callable<CounterexampleTraceInfo>() {
       @Override
       public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
-        try (InterpolatingTheoremProver<?> itpProver = factory.newProverEnvironmentWithInterpolation(false)) {
+        try (InterpolatingProverEnvironment<?> itpProver = factory.newProverEnvironmentWithInterpolation(false)) {
           return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
         }
       }
@@ -253,11 +253,11 @@ public final class InterpolationManager {
    * @throws CPAException
    */
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
-      List<BooleanFormula> pFormulas, Set<ARGState> elementsOnPath, InterpolatingTheoremProver<T> pItpProver) throws CPAException, InterruptedException {
+      List<BooleanFormula> pFormulas, Set<ARGState> elementsOnPath, InterpolatingProverEnvironment<T> pItpProver) throws CPAException, InterruptedException {
 
     logger.log(Level.FINEST, "Building counterexample trace");
     cexAnalysisTimer.start();
-    try (InterpolatingTheoremProver<?> prover = factory.newProverEnvironmentWithInterpolation(false)){
+    try (InterpolatingProverEnvironment<?> prover = factory.newProverEnvironmentWithInterpolation(false)){
 
       // Final adjustments to the list of formulas
       List<BooleanFormula> f = new ArrayList<>(pFormulas); // copy because we will change the list
@@ -547,7 +547,7 @@ public final class InterpolationManager {
    * @throws InterruptedException
    */
   private <T> boolean checkInfeasabilityOfTrace(List<Pair<BooleanFormula, Integer>> traceFormulas,
-      List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) throws InterruptedException {
+      List<T> itpGroupsIds, InterpolatingProverEnvironment<T> pItpProver) throws InterruptedException {
 
     boolean isStillFeasible = true;
 
@@ -556,7 +556,7 @@ public final class InterpolationManager {
       int index = p.getSecond();
 
       assert itpGroupsIds.get(index) == null;
-      itpGroupsIds.set(index, pItpProver.addFormula(f));
+      itpGroupsIds.set(index, pItpProver.push(f));
 
       if (incrementalCheck && isStillFeasible && !bfmgr.isTrue(f)) {
         if (pItpProver.isUnsat()) {
@@ -584,7 +584,7 @@ public final class InterpolationManager {
    * @return A list of all the interpolants.
    */
   private <T> List<BooleanFormula> getInterpolants(
-      InterpolatingTheoremProver<T> pItpProver, List<T> itpGroupsIds) {
+      InterpolatingProverEnvironment<T> pItpProver, List<T> itpGroupsIds) {
 
     List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(itpGroupsIds.size()-1);
 
@@ -638,7 +638,7 @@ public final class InterpolationManager {
     return interpolants;
   }
 
-  private <T> void verifyInterpolants(List<BooleanFormula> interpolants, List<BooleanFormula> formulas, InterpolatingTheoremProver<T> prover) throws SolverException, InterruptedException {
+  private <T> void verifyInterpolants(List<BooleanFormula> interpolants, List<BooleanFormula> formulas, InterpolatingProverEnvironment<T> prover) throws SolverException, InterruptedException {
     interpolantVerificationTimer.start();
     try {
 
@@ -718,7 +718,7 @@ public final class InterpolationManager {
    * @throws InterruptedException
    */
   private <T> CounterexampleTraceInfo getErrorPath(List<BooleanFormula> f,
-      InterpolatingTheoremProver<T> pItpProver, Set<ARGState> elementsOnPath)
+      InterpolatingProverEnvironment<T> pItpProver, Set<ARGState> elementsOnPath)
       throws CPATransferException, InterruptedException {
 
     // get the branchingFormula
@@ -731,7 +731,7 @@ public final class InterpolationManager {
     }
 
     // add formula to solver environment
-    pItpProver.addFormula(branchingFormula);
+    pItpProver.push(branchingFormula);
 
     // need to ask solver for satisfiability again,
     // otherwise model doesn't contain new predicates
@@ -752,7 +752,7 @@ public final class InterpolationManager {
     }
   }
 
-  private <T> Model getModel(InterpolatingTheoremProver<T> pItpProver) {
+  private <T> Model getModel(InterpolatingProverEnvironment<T> pItpProver) {
     try {
       return pItpProver.getModel();
     } catch (SolverException e) {

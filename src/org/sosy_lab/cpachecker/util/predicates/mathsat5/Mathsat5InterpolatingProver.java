@@ -30,11 +30,11 @@ import java.util.List;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 
 import com.google.common.base.Preconditions;
 
-public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<Integer> {
+public class Mathsat5InterpolatingProver implements InterpolatingProverEnvironment<Integer> {
 
     private final Mathsat5FormulaManager mgr;
     private long interpolEnv;
@@ -57,7 +57,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
     }
 
     @Override
-    public Integer addFormula(BooleanFormula f) {
+    public Integer push(BooleanFormula f) {
         Preconditions.checkState(interpolEnv != 0);
         long t = Mathsat5FormulaManager.getTerm( f );
         //long t = ((Mathsat5Formula)f).getTerm();
@@ -72,7 +72,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingTheoremProver<I
     }
 
     @Override
-    public void popFormula() {
+    public void pop() {
         msat_pop_backtrack_point(interpolEnv);
     }
 
