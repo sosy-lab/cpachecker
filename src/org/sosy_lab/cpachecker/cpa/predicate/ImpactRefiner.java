@@ -178,7 +178,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<BooleanForm
         continue;
       }
 
-      if (bfmgr.isTrue(itp)) {
+      if (bfmgr.isFalse(itp)) {
         // we have reached the part of the path that is infeasible
         infeasiblePartOfART = w;
         break;
