@@ -128,6 +128,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
           logger,
           cpa,
           manager,
+          formulaManager,
           pathFormulaManager,
           backupRefinementStrategy);
 

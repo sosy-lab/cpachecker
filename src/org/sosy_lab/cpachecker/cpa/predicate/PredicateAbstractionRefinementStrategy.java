@@ -121,15 +121,11 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
       out.println("  ARG update:                         " + argUpdate);
       out.println();
       out.println("Number of refs with location-based cutoff:  " + numberOfRefinementsWithStrategy2);
-      out.println("Avg. number of blocks unchanged in path:    " + div(totalUnchangedPrefixLength, numberOfRefinements));
-      out.println("Avg. number of states with non-trivial itp: " + div(totalNumberOfStatesWithNonTrivialInterpolant, numberOfRefinements));
       out.println("Avg. number of affected states:             " + div(totalNumberOfAffectedStates, numberOfRefinements));
     }
   }
 
   // statistics
-  private int totalUnchangedPrefixLength = 0; // measured in blocks
-  private int totalNumberOfStatesWithNonTrivialInterpolant = 0;
   private int totalNumberOfAffectedStates = 0;
   private int numberOfRefinementsWithStrategy2 = 0;
 
@@ -181,7 +177,6 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
     if (bfmgr.isFalse(interpolant)) {
       preds = ImmutableSet.of(amgr.makeFalsePredicate());
     } else {
-      totalNumberOfStatesWithNonTrivialInterpolant++;
       preds = getAtomsAsPredicates(interpolant);
     }
     assert !preds.isEmpty();
@@ -317,8 +312,6 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
           pmapBuilder.putAll(loc, localPreds);
           totalNumberOfAffectedStates++;
         }
-      } else {
-        totalUnchangedPrefixLength++;
       }
     }
     if (!predicatesFound) {

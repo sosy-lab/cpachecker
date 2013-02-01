@@ -75,6 +75,7 @@ public abstract class ImpactRefiner implements Refiner {
         logger,
         pCpa,
         manager,
+        fmgr,
         pfmgr,
         strategy);
     }

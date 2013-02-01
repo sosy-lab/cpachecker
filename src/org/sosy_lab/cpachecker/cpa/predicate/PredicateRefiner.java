@@ -68,6 +68,7 @@ public abstract class PredicateRefiner implements Refiner {
         logger,
         pCpa,
         manager,
+        fmgr,
         pfmgr,
         strategy);
   }

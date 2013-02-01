@@ -56,8 +56,6 @@ class ImpactRefinementStrategy implements RefinementStrategy {
 
   private class Stats implements Statistics {
 
-    private int totalUnchangedPrefixLength = 0; // measured in blocks
-    private int totalNumberOfStatesWithNonTrivialInterpolant = 0;
     private int totalNumberOfAffectedStates = 0;
 
     private final Timer itpCheck  = new Timer();
@@ -77,8 +75,6 @@ class ImpactRefinementStrategy implements RefinementStrategy {
       out.println("  Coverage checks:                    " + coverTime);
       out.println("  ARG update:                         " + argUpdate);
       out.println();
-      out.println("Avg. number of blocks unchanged in path:    " + div(totalUnchangedPrefixLength, numberOfRefinements));
-      out.println("Avg. number of states with non-trivial itp: " + div(totalNumberOfStatesWithNonTrivialInterpolant, numberOfRefinements));
       out.println("Avg. number of affected states:             " + div(totalNumberOfAffectedStates, numberOfRefinements));
     }
   }
@@ -114,7 +110,6 @@ class ImpactRefinementStrategy implements RefinementStrategy {
 
       if (bfmgr.isTrue(itp)) {
         // do nothing
-        stats.totalUnchangedPrefixLength++;
         continue;
       }
 
@@ -123,7 +118,6 @@ class ImpactRefinementStrategy implements RefinementStrategy {
         infeasiblePartOfART = w;
         break;
       }
-      stats.totalNumberOfStatesWithNonTrivialInterpolant++;
 
       itp = fmgr.uninstantiate(itp);
       BooleanFormula stateFormula = getStateFormula(w);
