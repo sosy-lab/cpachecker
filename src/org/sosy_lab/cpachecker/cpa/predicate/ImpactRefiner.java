@@ -24,17 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -46,13 +43,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.AbstractInterpolationBasedRefiner;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -63,30 +58,7 @@ import com.google.common.base.Predicates;
 
 public class ImpactRefiner extends AbstractInterpolationBasedRefiner<BooleanFormula> implements StatisticsProvider {
 
-  private class Stats implements Statistics {
-
-    private final Timer itpCheck  = new Timer();
-    private final Timer coverTime = new Timer();
-    private final Timer argUpdate = new Timer();
-
-    @Override
-    public String getName() {
-      return "Impact Refiner";
-    }
-
-    @Override
-    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      ImpactRefiner.this.printStatistics(out, pResult, pReached);
-      out.println("  Checking whether itp is new:        " + itpCheck);
-      out.println("  Coverage checks:                    " + coverTime);
-      out.println("  ARG update:                         " + argUpdate);
-    }
-  }
-
-  protected final FormulaManagerView fmgr;
-  protected final Solver solver;
-
-  private final Stats stats = new Stats();
+  private final RefinementStrategy strategy;
 
   public static ImpactRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
@@ -122,8 +94,7 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<BooleanForm
 
     super(config, logger, pCpa, pInterpolationManager);
 
-    solver = pSolver;
-    fmgr = pFmgr;
+    strategy = new ImpactRefinementStrategy(config, logger, pFmgr, pSolver);
   }
 
 
@@ -156,85 +127,27 @@ public class ImpactRefiner extends AbstractInterpolationBasedRefiner<BooleanForm
   }
 
   @Override
-  protected void performRefinement(ARGReachedSet pReached, List<ARGState> path,
-      CounterexampleTraceInfo<BooleanFormula> cex, boolean pRepeatedCounterexample) throws CPAException {
-
-    ARGState lastElement = path.get(path.size()-1);
-    assert lastElement.isTarget();
-
-    path = path.subList(0, path.size()-1); // skip last element, itp is always false there
-    assert cex.getInterpolants().size() ==  path.size();
-
-    List<ARGState> changedElements = new ArrayList<>();
-    ARGState infeasiblePartOfART = lastElement;
-    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
-    for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
-      BooleanFormula itp = interpolationPoint.getFirst();
-      ARGState w = interpolationPoint.getSecond();
-
-      if (bfmgr.isTrue(itp)) {
-        // do nothing
-        totalUnchangedPrefixLength++;
-        continue;
-      }
-
-      if (bfmgr.isFalse(itp)) {
-        // we have reached the part of the path that is infeasible
-        infeasiblePartOfART = w;
-        break;
-      }
-      totalNumberOfStatesWithNonTrivialInterpolant++;
-
-      itp = fmgr.uninstantiate(itp);
-      BooleanFormula stateFormula = getStateFormula(w);
-
-      stats.itpCheck.start();
-      boolean isNewItp = !solver.implies(stateFormula, itp);
-      stats.itpCheck.stop();
-
-      if (isNewItp) {
-        addFormulaToState(itp, w, fmgr);
-        changedElements.add(w);
-      }
-    }
-    totalNumberOfAffectedStates += changedElements.size();
-
-    if (changedElements.isEmpty() && pRepeatedCounterexample) {
-      // TODO One cause for this exception is that the CPAAlgorithm sometimes
-      // re-adds the parent of the error element to the waitlist, and thus the
-      // error element would get re-discovered immediately again.
-      // Currently the CPAAlgorithm does this only when there are siblings of
-      // the target state, which should rarely happen.
-      // We still need a better handling for this situation.
-      throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
-    }
-
-    stats.argUpdate.start();
-    for (ARGState w : changedElements) {
-      pReached.removeCoverageOf(w);
-    }
-
-    pReached.removeInfeasiblePartofARG(infeasiblePartOfART);
-    stats.argUpdate.stop();
-
-    // optimization: instead of closing all ancestors of v,
-    // close only those that were strengthened during refine
-    stats.coverTime.start();
-    try {
-      for (ARGState w : changedElements) {
-        if (pReached.tryToCover(w)) {
-          break; // all further elements are covered anyway
-        }
-      }
-    } finally {
-      stats.coverTime.stop();
-    }
-
-    assert !pReached.asReachedSet().contains(lastElement);
+  protected void performRefinement(ARGReachedSet pReached, List<ARGState> pPath,
+      CounterexampleTraceInfo<BooleanFormula> pCounterexample, boolean pRepeatedCounterexample) throws CPAException {
+    strategy.performRefinement(pReached, pPath, pCounterexample, pRepeatedCounterexample);
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
+    pStatsCollection.add(new Statistics() {
+
+      private final Statistics statistics = strategy.getStatistics();
+
+      @Override
+      public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+        ImpactRefiner.this.printStatistics(pOut, pResult, pReached);
+        statistics.printStatistics(pOut, pResult, pReached);
+      }
+
+      @Override
+      public String getName() {
+        return strategy.getStatistics().getName();
+      }
+    });
   }
 }

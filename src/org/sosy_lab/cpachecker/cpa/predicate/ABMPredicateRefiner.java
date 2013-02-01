@@ -164,7 +164,8 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         final AbstractionManager pAbstractionManager,
         final PathFormulaManager pPathFormulaManager) throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pCpa, pInterpolationManager, pFormulaManager, pAbstractionManager, pPathFormulaManager);
+      super(config, logger, pCpa, pInterpolationManager, pPathFormulaManager,
+          new PredicateAbstractionRefinementStrategy(config, logger, pFormulaManager, pAbstractionManager));
 
       pfmgr = predicateCpa.getPathFormulaManager();
 

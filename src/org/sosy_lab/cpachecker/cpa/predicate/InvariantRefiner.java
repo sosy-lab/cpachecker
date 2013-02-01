@@ -42,10 +42,10 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -77,6 +77,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
   private boolean splitItpAtoms = false;
 
   private final PredicateRefiner predicateRefiner;
+  private final PredicateAbstractionRefinementStrategy predicateRefinementStrategy;
   private final PredicateCPA predicateCpa;
   private final Configuration config;
   private final LogManager logger;
@@ -111,6 +112,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
 
     //prover = predicateCpa.getTheoremProver();
 
+    predicateRefinementStrategy = new PredicateAbstractionRefinementStrategy(config, logger, emgr, amgr);
   }
 
   public static InvariantRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
@@ -130,7 +132,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
       List<ARGState> path = predicateRefiner.transformPath(pPath);
-      predicateRefiner.performRefinement(pReached, path, counterexample.getInterpolants(), false);
+      predicateRefinementStrategy.performRefinement(pReached, path, counterexample.getInterpolants(), false);
 
       totalRefinement.stop();
       return CounterexampleInfo.spurious();
