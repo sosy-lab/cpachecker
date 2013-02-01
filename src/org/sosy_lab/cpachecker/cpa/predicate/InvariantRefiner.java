@@ -76,7 +76,6 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
   @Option(description="split arithmetic equalities when extracting predicates from interpolants")
   private boolean splitItpAtoms = false;
 
-  private final PredicateCPARefiner predicateRefiner;
   private final PredicateAbstractionRefinementStrategy predicateRefinementStrategy;
   private final PredicateCPA predicateCpa;
   private final Configuration config;
@@ -94,7 +93,6 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
   public InvariantRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
 
-    predicateRefiner = PredicateRefiner.create(pCpa);
     predicateCpa = this.getArgCpa().retrieveWrappedCpa(PredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(getClass().getSimpleName() + " needs a PredicateCPA");
@@ -131,7 +129,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
       // the counterexample path was spurious, and we refine
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      List<ARGState> path = predicateRefiner.transformPath(pPath);
+      List<ARGState> path = PredicateCPARefiner.transformPath(pPath);
       predicateRefinementStrategy.performRefinement(pReached, path, counterexample.getInterpolants(), false);
 
       totalRefinement.stop();

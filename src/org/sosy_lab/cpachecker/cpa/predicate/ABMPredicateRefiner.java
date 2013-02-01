@@ -85,10 +85,10 @@ import com.google.common.collect.Lists;
  *
  *               AbstractARGBasedRefiner
  *                         ^
- *                         |
- *           +-------------+-------------+
- *           |                           |
- * AbstractABMBasedRefiner       PredicateCPARefiner ---> PredicateAbstractionRefinementStrategy
+ *                         |                                PredicateAbstractionRefinementStrategy
+ *           +-------------+-------------+                                    ^
+ *           |                           |                                    |
+ * AbstractABMBasedRefiner       PredicateCPARefiner ---> ABMPredicateAbstractionRefinementStrategy
  *           ^                           ^
  *           |                           |
  *   ABMPredicateRefiner ---> ExtendedPredicateRefiner
@@ -126,9 +126,23 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
                                           predicateCpa.getConfiguration(),
                                           logger);
 
-    this.refiner = new ExtendedPredicateRefiner(predicateCpa.getConfiguration(),
-        logger, pCpa, predicateCpa, manager, predicateCpa.getFormulaManager(),
-        predicateCpa.getAbstractionManager(), predicateCpa.getPathFormulaManager());
+    RefinementStrategy strategy = new ABMPredicateAbstractionRefinementStrategy(
+                                          predicateCpa.getConfiguration(),
+                                          logger,
+                                          predicateCpa,
+                                          predicateCpa.getFormulaManager(),
+                                          predicateCpa.getAbstractionManager());
+
+    this.refiner = new ExtendedPredicateRefiner(
+                                          predicateCpa.getConfiguration(),
+                                          logger,
+                                          pCpa,
+                                          manager,
+                                          predicateCpa.getFormulaManager(),
+                                          predicateCpa.getPathFormulaManager(),
+                                          strategy);
+
+    predicateCpa.getABMStats().addRefiner(refiner);
   }
 
   @Override
@@ -139,7 +153,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
   }
 
   /**
-   * This is a small extension of PredicateRefiner that overrides
+   * This is a small extension of PredicateCPARefiner that overrides
    * {@link #getFormulasForPath(List, ARGState)} so that it respects ABM.
    */
   static final class ExtendedPredicateRefiner extends PredicateCPARefiner {
@@ -147,109 +161,17 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     final Timer ssaRenamingTimer = new Timer();
 
     private final PathFormulaManager pfmgr;
-    private final RefineableRelevantPredicatesComputer relevantPredicatesComputer;
-    private final ABMPredicateCPA predicateCpa;
-
-    private List<Region> lastAbstractions = null;
-    private boolean refinedLastRelevantPredicatesComputer = false;
 
     private ExtendedPredicateRefiner(final Configuration config, final LogManager logger,
         final ConfigurableProgramAnalysis pCpa,
-        final ABMPredicateCPA predicateCpa,
         final InterpolationManager pInterpolationManager,
         final FormulaManagerView pFormulaManager,
-        final AbstractionManager pAbstractionManager,
-        final PathFormulaManager pPathFormulaManager) throws CPAException, InvalidConfigurationException {
+        final PathFormulaManager pPathFormulaManager,
+        final RefinementStrategy strategy) throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pCpa, pInterpolationManager, pFormulaManager, pPathFormulaManager,
-          new PredicateAbstractionRefinementStrategy(config, logger, pFormulaManager, pAbstractionManager));
+      super(config, logger, pCpa, pInterpolationManager, pFormulaManager, pPathFormulaManager, strategy);
 
-      pfmgr = predicateCpa.getPathFormulaManager();
-
-      RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
-      if (relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {
-        this.relevantPredicatesComputer = (RefineableRelevantPredicatesComputer)relevantPredicatesComputer;
-      } else {
-        this.relevantPredicatesComputer = null;
-      }
-
-      this.predicateCpa = predicateCpa;
-
-      predicateCpa.getABMStats().addRefiner(this);
-    }
-
-    private static final Function<PredicateAbstractState, Region> GET_REGION
-    = new Function<PredicateAbstractState, Region>() {
-        @Override
-        public Region apply(PredicateAbstractState e) {
-          assert e.isAbstractionState();
-          return e.getAbstractionFormula().asRegion();
-        }
-      };
-
-    private List<Region> getRegionsForPath(List<ARGState> path) throws CPATransferException {
-      return from(path)
-              .transform(toState(PredicateAbstractState.class))
-              .transform(GET_REGION)
-              .toImmutableList();
-    }
-
-    @Override
-    protected void performRefinement(
-        ARGReachedSet pReached,
-        List<ARGState> pPath,
-        CounterexampleTraceInfo<BooleanFormula> pCounterexample,
-        boolean pRepeatedCounterexample) throws CPAException {
-
-      // overriding this method is needed, as, in principle, it is possible to get two successive spurious counterexamples
-      // which only differ in its abstractions (with 'aggressive caching').
-
-      boolean refinedRelevantPredicatesComputer = false;
-
-      if (pRepeatedCounterexample) {
-        //block formulas are the same as last time; check if abstractions also agree
-        pRepeatedCounterexample = getRegionsForPath(pPath).equals(lastAbstractions);
-
-        if (pRepeatedCounterexample && !refinedLastRelevantPredicatesComputer && relevantPredicatesComputer != null) {
-          //even abstractions agree; try refining relevant predicates reducer
-          refineRelevantPredicatesComputer(pPath, pReached);
-          pRepeatedCounterexample = false;
-          refinedRelevantPredicatesComputer = true;
-        }
-      }
-
-      lastAbstractions = getRegionsForPath(pPath);
-      refinedLastRelevantPredicatesComputer = refinedRelevantPredicatesComputer;
-      super.performRefinement(pReached, pPath, pCounterexample, pRepeatedCounterexample);
-    }
-
-    private void refineRelevantPredicatesComputer(List<ARGState> pPath, ARGReachedSet pReached) {
-      UnmodifiableReachedSet reached = pReached.asReachedSet();
-      Precision oldPrecision = reached.getPrecision(reached.getLastState());
-      PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
-
-      BlockPartitioning partitioning = predicateCpa.getPartitioning();
-      Deque<Block> openBlocks = new ArrayDeque<>();
-      openBlocks.push(partitioning.getMainBlock());
-      for (ARGState pathElement : pPath) {
-        CFANode currentNode = AbstractStates.extractLocation(pathElement);
-        if (partitioning.isCallNode(currentNode)) {
-          openBlocks.push(partitioning.getBlockForCallNode(currentNode));
-        }
-
-        Collection<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode);
-        for (Block block : openBlocks) {
-          for (AbstractionPredicate pred : localPreds) {
-            relevantPredicatesComputer.considerPredicateAsRelevant(block, pred);
-          }
-        }
-
-        while (openBlocks.peek().isReturnNode(currentNode)) {
-          openBlocks.pop();
-        }
-      }
-
-      ((ABMPredicateReducer)predicateCpa.getReducer()).clearCaches();
+      pfmgr = pPathFormulaManager;
     }
 
     @Override
@@ -328,6 +250,110 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         todo.addAll(currentElement.getChildren());
       }
       return abstractionFormulas;
+    }
+  }
+
+  /**
+   * This is an extension of {@link PredicateAbstractionRefinementStrategy}
+   * that takes care of updating the ABM state.
+   */
+  private static class ABMPredicateAbstractionRefinementStrategy extends PredicateAbstractionRefinementStrategy {
+
+    private final RefineableRelevantPredicatesComputer relevantPredicatesComputer;
+    private final ABMPredicateCPA predicateCpa;
+
+    private List<Region> lastAbstractions = null;
+    private boolean refinedLastRelevantPredicatesComputer = false;
+
+    private ABMPredicateAbstractionRefinementStrategy(final Configuration config, final LogManager logger,
+        final ABMPredicateCPA predicateCpa,
+        final FormulaManagerView pFormulaManager,
+        final AbstractionManager pAbstractionManager) throws CPAException, InvalidConfigurationException {
+
+      super(config, logger, pFormulaManager, pAbstractionManager);
+
+      RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
+      if (relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {
+        this.relevantPredicatesComputer = (RefineableRelevantPredicatesComputer)relevantPredicatesComputer;
+      } else {
+        this.relevantPredicatesComputer = null;
+      }
+
+      this.predicateCpa = predicateCpa;
+    }
+
+    private static final Function<PredicateAbstractState, Region> GET_REGION
+    = new Function<PredicateAbstractState, Region>() {
+        @Override
+        public Region apply(PredicateAbstractState e) {
+          assert e.isAbstractionState();
+          return e.getAbstractionFormula().asRegion();
+        }
+      };
+
+    private List<Region> getRegionsForPath(List<ARGState> path) throws CPATransferException {
+      return from(path)
+              .transform(toState(PredicateAbstractState.class))
+              .transform(GET_REGION)
+              .toImmutableList();
+    }
+
+    @Override
+    public void performRefinement(
+        ARGReachedSet pReached,
+        List<ARGState> pPath,
+        CounterexampleTraceInfo<BooleanFormula> pCounterexample,
+        boolean pRepeatedCounterexample) throws CPAException {
+
+      // overriding this method is needed, as, in principle, it is possible to get two successive spurious counterexamples
+      // which only differ in its abstractions (with 'aggressive caching').
+
+      boolean refinedRelevantPredicatesComputer = false;
+
+      if (pRepeatedCounterexample) {
+        //block formulas are the same as last time; check if abstractions also agree
+        pRepeatedCounterexample = getRegionsForPath(pPath).equals(lastAbstractions);
+
+        if (pRepeatedCounterexample && !refinedLastRelevantPredicatesComputer && relevantPredicatesComputer != null) {
+          //even abstractions agree; try refining relevant predicates reducer
+          refineRelevantPredicatesComputer(pPath, pReached);
+          pRepeatedCounterexample = false;
+          refinedRelevantPredicatesComputer = true;
+        }
+      }
+
+      lastAbstractions = getRegionsForPath(pPath);
+      refinedLastRelevantPredicatesComputer = refinedRelevantPredicatesComputer;
+      super.performRefinement(pReached, pPath, pCounterexample, pRepeatedCounterexample);
+    }
+
+    private void refineRelevantPredicatesComputer(List<ARGState> pPath, ARGReachedSet pReached) {
+      UnmodifiableReachedSet reached = pReached.asReachedSet();
+      Precision oldPrecision = reached.getPrecision(reached.getLastState());
+      PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
+
+      BlockPartitioning partitioning = predicateCpa.getPartitioning();
+      Deque<Block> openBlocks = new ArrayDeque<>();
+      openBlocks.push(partitioning.getMainBlock());
+      for (ARGState pathElement : pPath) {
+        CFANode currentNode = AbstractStates.extractLocation(pathElement);
+        if (partitioning.isCallNode(currentNode)) {
+          openBlocks.push(partitioning.getBlockForCallNode(currentNode));
+        }
+
+        Collection<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode);
+        for (Block block : openBlocks) {
+          for (AbstractionPredicate pred : localPreds) {
+            relevantPredicatesComputer.considerPredicateAsRelevant(block, pred);
+          }
+        }
+
+        while (openBlocks.peek().isReturnNode(currentNode)) {
+          openBlocks.pop();
+        }
+      }
+
+      ((ABMPredicateReducer)predicateCpa.getReducer()).clearCaches();
     }
   }
 

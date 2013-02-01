@@ -206,7 +206,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         }
       }
 
-      performRefinement(pReached, path, counterexample, repeatedCounterexample);
+      strategy.performRefinement(pReached, path, counterexample, repeatedCounterexample);
 
       totalRefinement.stop();
       return CounterexampleInfo.spurious();
@@ -248,7 +248,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
   }
 
-  final List<ARGState> transformPath(ARGPath pPath) {
+  static List<ARGState> transformPath(ARGPath pPath) {
     List<ARGState> result = from(pPath)
       .skip(1)
       .transform(Pair.<ARGState>getProjectionToFirst())
@@ -296,11 +296,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
           .transform(GET_BLOCK_FORMULA)
           .toImmutableList();
     }
-  }
-
-  protected void performRefinement(ARGReachedSet pReached, List<ARGState> pPath,
-      CounterexampleTraceInfo<BooleanFormula> pCounterexample, boolean pRepeatedCounterexample) throws CPAException {
-    strategy.performRefinement(pReached, pPath, pCounterexample, pRepeatedCounterexample);
   }
 
   private Pair<ARGPath, CounterexampleTraceInfo<BooleanFormula>> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo<BooleanFormula> counterexample) {
