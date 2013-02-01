@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.Model;
 
 public interface TheoremProver {
 
-  void init();
+  ProverEnvironment init();
   void push(BooleanFormula f);
   void pop();
   boolean isUnsat();

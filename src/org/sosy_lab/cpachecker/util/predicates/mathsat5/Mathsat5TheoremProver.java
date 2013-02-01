@@ -36,12 +36,13 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 
 import com.google.common.base.Preconditions;
 
-public class Mathsat5TheoremProver implements TheoremProver {
+public class Mathsat5TheoremProver implements TheoremProver, ProverEnvironment {
 
   private static final boolean USE_SHARED_ENV = true;
 
@@ -86,12 +87,13 @@ public class Mathsat5TheoremProver implements TheoremProver {
   }
 
   @Override
-  public void init() {
+  public ProverEnvironment init() {
     Preconditions.checkState(curEnv == 0);
 
     long cfg = msat_create_config();
     msat_set_option_checked(cfg, "model_generation", "true");
     curEnv = mgr.createEnvironment(cfg, USE_SHARED_ENV, true);
+    return this;
   }
 
   @Override
@@ -99,6 +101,11 @@ public class Mathsat5TheoremProver implements TheoremProver {
     Preconditions.checkState(curEnv != 0);
     msat_destroy_env(curEnv);
     curEnv = 0;
+  }
+
+  @Override
+  public void close() {
+    reset();
   }
 
   @Override

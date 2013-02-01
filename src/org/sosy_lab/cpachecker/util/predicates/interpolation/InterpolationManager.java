@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -389,8 +389,7 @@ public final class InterpolationManager {
 
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
 
-    TheoremProver thmProver = solver.getTheoremProver();
-    thmProver.init();
+    try (ProverEnvironment thmProver = solver.getTheoremProver().init()) {
 
     logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
         "of length:", f.size());
@@ -485,7 +484,7 @@ public final class InterpolationManager {
       thmProver.pop();
     }
 
-    thmProver.reset();
+    }
 
     logger.log(Level.ALL, "DEBUG_1", "Done getUsefulBlocks");
 
@@ -777,21 +776,17 @@ public final class InterpolationManager {
   public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
     BooleanFormula f = pmgr.makeFormulaForPath(pPath).getFormula();
 
-    TheoremProver thmProver = solver.getTheoremProver();
-    thmProver.init();
-    try {
+    try (ProverEnvironment thmProver = solver.getTheoremProver().init()) {
       thmProver.push(f);
       if (thmProver.isUnsat()) {
         return CounterexampleTraceInfo.infeasible(ImmutableList.<BooleanFormula>of());
       } else {
         return CounterexampleTraceInfo.feasible(ImmutableList.of(f), getModel(thmProver), ImmutableMap.<Integer, Boolean>of());
       }
-    } finally {
-      thmProver.reset();
     }
   }
 
-  private <T> Model getModel(TheoremProver thmProver) {
+  private <T> Model getModel(ProverEnvironment thmProver) {
     try {
       return thmProver.getModel();
     } catch (SolverException e) {

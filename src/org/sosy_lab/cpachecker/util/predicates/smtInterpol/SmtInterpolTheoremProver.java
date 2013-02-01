@@ -36,6 +36,7 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
@@ -46,7 +47,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.Valuation;
 
-public class SmtInterpolTheoremProver implements TheoremProver {
+public class SmtInterpolTheoremProver implements TheoremProver, ProverEnvironment {
 
   private final SmtInterpolFormulaManager mgr;
   private SmtInterpolEnvironment env;
@@ -86,11 +87,12 @@ public class SmtInterpolTheoremProver implements TheoremProver {
   }
 
   @Override
-  public void init() {
+  public ProverEnvironment init() {
     Preconditions.checkNotNull(mgr);
     assert (env == null);
     assertedTerms = new ArrayList<>();
     env = mgr.createEnvironment();
+    return this;
   }
 
   @Override
@@ -100,6 +102,11 @@ public class SmtInterpolTheoremProver implements TheoremProver {
       pop();
     }
     env = null;
+  }
+
+  @Override
+  public void close() {
+    reset();
   }
 
   @Override

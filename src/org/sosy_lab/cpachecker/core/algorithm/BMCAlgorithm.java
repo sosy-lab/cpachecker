@@ -68,9 +68,9 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -86,6 +86,7 @@ import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -228,8 +229,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         return soundInner;
       }
 
-      prover.init();
-      try {
+      try (ProverEnvironment prover = this.prover.init()) {
 
         // first check safety
         boolean safe = checkTargetStates(pReachedSet);
@@ -257,9 +257,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         }
 
         return sound && soundInner;
-
-      } finally {
-        prover.reset();
       }
 
     } finally {

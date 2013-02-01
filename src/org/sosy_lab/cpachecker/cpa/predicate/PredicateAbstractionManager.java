@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.TheoremProver.AllSatResult;
@@ -205,9 +206,7 @@ public class PredicateAbstractionManager {
 
     stats.abstractionEnumTime.startOuter();
 
-    TheoremProver thmProver = solver.getTheoremProver();
-    thmProver.init();
-    try {
+    try (ProverEnvironment thmProver = solver.getTheoremProver().init()) {
       thmProver.push(f);
 
       boolean feasibility;
@@ -309,7 +308,6 @@ public class PredicateAbstractionManager {
       }
 
     } finally {
-      thmProver.reset();
 
       stats.abstractionEnumTime.stopOuter();
     }
