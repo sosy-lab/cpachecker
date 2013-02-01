@@ -101,10 +101,10 @@ public final class InterpolationManager {
 
   final Stats stats = new Stats();
 
-  protected final LogManager logger;
-  protected final FormulaManagerView fmgr;
-  protected final BooleanFormulaManagerView bfmgr;
-  protected final PathFormulaManager pmgr;
+  private final LogManager logger;
+  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
+  private final PathFormulaManager pmgr;
   private final Solver solver;
 
   private final InterpolatingTheoremProver<?> itpProver;
@@ -113,20 +113,20 @@ public final class InterpolationManager {
     + "a minimal set of blocks, before applying interpolation-based refinement")
   private boolean getUsefulBlocks = false;
 
-  @Option(name="shortestCexTrace",
+  @Option(name="incrementalCexTraceCheck",
       description="use incremental search in counterexample analysis, "
         + "to find the minimal infeasible prefix")
-  private boolean shortestTrace = false;
+  private boolean incrementalCheck = false;
 
-  @Option(name="shortestCexTraceUseSuffix",
-      description="if shortestCexTrace is used, "
-        + "start from the end with the incremental search")
-  private boolean useSuffix = false;
-
-  @Option(name="shortestCexTraceZigZag",
-      description="if shortestCexTrace is used, "
-        + "alternatingly search from start and end of the trace")
-  private boolean useZigZag = false;
+  @Option(name="cexTraceCheckDirection",
+      description="Direction for doing counterexample analysis: from start of trace, from end of trace, or alternatingly from start and end of the trace towards the middle")
+  private CexTraceAnalysisDirection direction = CexTraceAnalysisDirection.FORWARDS;
+  private static enum CexTraceAnalysisDirection {
+    FORWARDS,
+    BACKWARDS,
+    ZIGZAG,
+    ;
+  }
 
   @Option(name="addWellScopedPredicates",
       description="refinement will try to build 'well-scoped' predicates, "
@@ -287,8 +287,8 @@ public final class InterpolationManager {
       List<T> itpGroupsIds;
       try {
 
-        if (shortestTrace && getUsefulBlocks) {
-          f = Collections.unmodifiableList(getUsefulBlocks(f, useSuffix, useZigZag));
+        if (getUsefulBlocks) {
+          f = Collections.unmodifiableList(getUsefulBlocks(f));
         }
 
         if (dumpInterpolationProblems) {
@@ -298,12 +298,8 @@ public final class InterpolationManager {
         // initialize all interpolation group ids with "null"
         itpGroupsIds = new ArrayList<>(Collections.<T>nCopies(f.size(), null));
 
-        if (getUsefulBlocks || !shortestTrace) {
-          spurious = checkInfeasibilityOfFullTrace(f, itpGroupsIds, pItpProver);
-
-        } else {
-          spurious = checkInfeasabilityOfShortestTrace(f, itpGroupsIds, pItpProver);
-        }
+        // ask solver for satisfiability
+        spurious = checkInfeasabilityOfTrace(f, itpGroupsIds, pItpProver);
         assert itpGroupsIds.size() == f.size();
         assert !itpGroupsIds.contains(null); // has to be filled completely
 
@@ -376,13 +372,12 @@ public final class InterpolationManager {
   /**
    * Try to find out which formulas out of a list of formulas are relevant for
    * making the conjunction unsatisfiable.
+   * This method honors the {@link #direction} configuration option.
    *
    * @param f The list of formulas to check.
-   * @param suffixTrace Whether to start from the end of the list.
-   * @param zigZag Whether to use a zig-zag way, using formulas from the beginning and the end.
    * @return A sublist of f that contains the useful formulas.
    */
-  private List<BooleanFormula> getUsefulBlocks(List<BooleanFormula> f, boolean suffixTrace, boolean zigZag) {
+  private List<BooleanFormula> getUsefulBlocks(List<BooleanFormula> f) {
 
     stats.cexAnalysisGetUsefulBlocksTimer.start();
 
@@ -394,12 +389,13 @@ public final class InterpolationManager {
     logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
         "of length:", f.size());
 
-    BooleanFormula[] needed = new BooleanFormula[f.size()];
+    final BooleanFormula[] needed = new BooleanFormula[f.size()];
     for (int i = 0; i < needed.length; ++i) {
       needed[i] =  bfmgr.makeBoolean(true);
     }
-    int pos = suffixTrace ? f.size()-1 : 0;
-    int incr = suffixTrace ? -1 : 1;
+    final boolean backwards = direction == CexTraceAnalysisDirection.BACKWARDS;
+    final int start = backwards ? f.size()-1 : 0;
+    final int increment = backwards ? -1 : 1;
     int toPop = 0;
 
     while (true) {
@@ -418,17 +414,12 @@ public final class InterpolationManager {
       }
       // 3. otherwise, assert one block at a time, until we get an
       // inconsistency
-      if (zigZag) {
+      if (direction == CexTraceAnalysisDirection.ZIGZAG) {
         int s = 0;
         int e = f.size()-1;
         boolean fromStart = false;
         while (true) {
-          int i = fromStart ? s : e;
-          if (fromStart) {
-            ++s;
-          } else {
-            --e;
-          }
+          int i = fromStart ? s++ : e--;
           fromStart = !fromStart;
 
           BooleanFormula t = f.get(i);
@@ -454,8 +445,9 @@ public final class InterpolationManager {
           }
         }
       } else {
-        for (int i = pos; suffixTrace ? i >= 0 : i < f.size();
-        i += incr) {
+        for (int i = start;
+             backwards ? i >= 0 : i < f.size();
+             i += increment) {
           BooleanFormula t = f.get(i);
           thmProver.push(t);
           ++toPop;
@@ -496,33 +488,10 @@ public final class InterpolationManager {
     return f;
   }
 
-
   /**
-   * Check the satisfiability of all formulas in a list.
-   *
-   * @param f The list of formulas to check.
-   * @param itpGroupsIds The list where to store the references to the interpolation groups.
-   * @param pItpProver The solver to use.
-   * @return True if the formulas are unsatisfiable.
-   * @throws InterruptedException
-   */
-  private <T> boolean checkInfeasibilityOfFullTrace(List<BooleanFormula> f,
-      List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver)
-      throws InterruptedException {
-    // check all formulas in f at once
-
-    for (int i = useSuffix ? f.size()-1 : 0;
-    useSuffix ? i >= 0 : i < f.size(); i += useSuffix ? -1 : 1) {
-
-      itpGroupsIds.set(i, pItpProver.addFormula(f.get(i)));
-    }
-
-    return pItpProver.isUnsat();
-  }
-
-  /**
-   * Check the satisfiability of a list of formulas, while trying to use as few
-   * formulas as possible to make it unsatisfiable.
+   * Check the satisfiability of a list of formulas, using the ZigZag or Suffix
+   * strategies if configuration says so.
+   * This method honors the {@link #incrementalCheck} configuration option.
    *
    * @param traceFormulas The list of formulas to check.
    * @param itpGroupsIds The list where to store the references to the interpolation groups.
@@ -530,65 +499,66 @@ public final class InterpolationManager {
    * @return True if the formulas are unsatisfiable.
    * @throws InterruptedException
    */
-  private <T> boolean checkInfeasabilityOfShortestTrace(List<BooleanFormula> traceFormulas,
+  private <T> boolean checkInfeasabilityOfTrace(List<BooleanFormula> traceFormulas,
       List<T> itpGroupsIds, InterpolatingTheoremProver<T> pItpProver) throws InterruptedException {
-    Boolean tmpSpurious = null;
 
-    if (useZigZag) {
+    if (direction == CexTraceAnalysisDirection.ZIGZAG) {
       int e = traceFormulas.size()-1;
       int s = 0;
       boolean fromStart = false;
       while (s <= e) {
-        int i = fromStart ? s : e;
-        if (fromStart) {
-          s++;
-        } else {
-          e--;
-        }
+        int i = fromStart ? s++ : e--;
         fromStart = !fromStart;
 
-        tmpSpurious = null;
         BooleanFormula fm = traceFormulas.get(i);
+        assert itpGroupsIds.get(i) == null;
         itpGroupsIds.set(i, pItpProver.addFormula(fm));
-        if (!bfmgr.isTrue(fm)) {
+
+        if (incrementalCheck && !bfmgr.isTrue(fm)) {
           if (pItpProver.isUnsat()) {
-            tmpSpurious = Boolean.TRUE;
             for (int j = s; j <= e; ++j) {
+              assert itpGroupsIds.get(j) == null;
               itpGroupsIds.set(j, pItpProver.addFormula(traceFormulas.get(j)));
             }
-            break;
-          } else {
-            tmpSpurious = Boolean.FALSE;
+            return true;
           }
         }
       }
 
     } else {
-      for (int i = useSuffix ? traceFormulas.size()-1 : 0;
-      useSuffix ? i >= 0 : i < traceFormulas.size(); i += useSuffix ? -1 : 1) {
+      final boolean backwards = direction == CexTraceAnalysisDirection.BACKWARDS;
+      final int increment = backwards ? -1 : 1;
 
-        tmpSpurious = null;
+      for (int i = backwards ? traceFormulas.size()-1 : 0;
+           backwards ? i >= 0 : i < traceFormulas.size();
+           i += increment) {
+
         BooleanFormula fm = traceFormulas.get(i);
+        assert itpGroupsIds.get(i) == null;
         itpGroupsIds.set(i, pItpProver.addFormula(fm));
-        if (!bfmgr.isTrue(fm)) {
+
+        if (incrementalCheck && !bfmgr.isTrue(fm)) {
           if (pItpProver.isUnsat()) {
-            tmpSpurious = Boolean.TRUE;
             // we need to add the other formulas to the itpProver
             // anyway, so it can setup its internal state properly
-            for (int j = i+(useSuffix ? -1 : 1);
-            useSuffix ? j >= 0 : j < traceFormulas.size();
-            j += useSuffix ? -1 : 1) {
+            for (int j = i+increment;
+                 backwards ? j >= 0 : j < traceFormulas.size();
+                 j += increment) {
+              assert itpGroupsIds.get(j) == null;
               itpGroupsIds.set(j, pItpProver.addFormula(traceFormulas.get(j)));
             }
-            break;
-          } else {
-            tmpSpurious = Boolean.FALSE;
+            return true;
           }
         }
       }
     }
 
-    return (tmpSpurious == null) ? pItpProver.isUnsat() : tmpSpurious;
+    if (incrementalCheck) {
+      // we did unsat checks, but none returned true
+      return false;
+    } else {
+      return pItpProver.isUnsat();
+    }
   }
 
   /**

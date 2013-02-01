@@ -312,6 +312,9 @@ cpa.arg.file = "ARG.dot"
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
 
+# export simplified ARG that shows all refinements to .dot file
+cpa.arg.refinements.file = "ARGRefinements.dot"
+
 # export final ARG as .dot file, showing only loop heads and function
 # entries/exits
 cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
@@ -444,6 +447,9 @@ cpa.defuse.merge = "sep"
 # (uninitialized) variables to 1L, when the true-branch is handled.
 cpa.explicit.initAssumptionVars = false
 
+# get an initial precison from file
+cpa.explicit.initialPrecisionFile = no default value
+
 # which merge operator to use for ExplicitCPA
 cpa.explicit.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -477,6 +483,9 @@ cpa.explicit.precision.refinement.useScopedInterpolation = false
 # whether or not to only abstract variables that where updated in the
 # foregoing post operation
 cpa.explicit.precisionAdjustment.useDeltaPrecision = false
+
+# target file to hold the exported precision
+cpa.explicit.precisionFile = no default value
 
 # whether or not to always use the inital node as starting point for the next
 # re-exploration of the ARG
@@ -684,12 +693,22 @@ cpa.predicate.refinement.addWellScopedPredicates = false
 # interpolant
 cpa.predicate.refinement.atomicPredicates = true
 
+# Direction for doing counterexample analysis: from start of trace, from end
+# of trace, or alternatingly from start and end of the trace towards the
+# middle
+cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
+  enum:     [FORWARDS, BACKWARDS, ZIGZAG]
+
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
 # apply deletion-filter to the abstract counterexample, to get a minimal set
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
+
+# use incremental search in counterexample analysis, to find the minimal
+# infeasible prefix
+cpa.predicate.refinement.incrementalCexTraceCheck = false
 
 # During refinement, keep predicates from all removed parts of the ARG.
 # Otherwise, only predicates from the error path are kept.
@@ -710,17 +729,6 @@ cpa.predicate.refinement.restartAfterRefinements = 0
 # During refinement, add all new predicates to the precisions of all abstract
 # states in the reached set.
 cpa.predicate.refinement.sharePredicates = false
-
-# use incremental search in counterexample analysis, to find the minimal
-# infeasible prefix
-cpa.predicate.refinement.shortestCexTrace = false
-
-# if shortestCexTrace is used, start from the end with the incremental search
-cpa.predicate.refinement.shortestCexTraceUseSuffix = false
-
-# if shortestCexTrace is used, alternatingly search from start and end of the
-# trace
-cpa.predicate.refinement.shortestCexTraceZigZag = false
 
 # slice block formulas, experimental feature!
 cpa.predicate.refinement.sliceBlockFormulas = false
@@ -789,23 +797,6 @@ cpa.uninitvars.stop = "sep"
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
-
-# Specify the class code path to search for java class or interface
-# definitions
-java.classpath = ""
-
-# use the following encoding for java files
-java.encoding = "utf8"
-
-# Java path that contains the main class
-java.rootPath = ""
-
-# Specify the source code path to search for java class or interface
-# definitions
-java.sourcepath = ""
-
-# Specifies the java version of source code accepted
-java.version = JavaCore.VERSION_1_7
 
 # C or Java?
 language = C
