@@ -71,4 +71,25 @@ public class SMGTest {
     Assert.assertTrue(smg.getObjects().containsAll(set));
     Assert.assertTrue(set.containsAll(smg.getObjects()));
   }
+
+  @Test
+  public void testGetObjectPointedBy(){
+    Assert.assertEquals(obj1, smg.getObjectPointedBy(val1));
+    Assert.assertNull(smg.getObjectPointedBy(val2));
+  }
+
+  @Test
+  public void getGetValuesForObject(){
+    Assert.assertEquals(smg.getValuesForObject(obj1).size(), 0);
+    Assert.assertEquals(smg.getValuesForObject(obj2).size(), 2);
+
+    Assert.assertEquals(smg.getValuesForObject(obj2, 0).size(), 1);
+    Assert.assertTrue(smg.getValuesForObject(obj2, 0).contains(hv2has2at0));
+    Assert.assertEquals(smg.getValuesForObject(obj2, 3).size(), 0);
+    Assert.assertEquals(smg.getValuesForObject(obj2, 4).size(), 1);
+    Assert.assertTrue(smg.getValuesForObject(obj2, 4).contains(hv2has1at4));
+
+    //TODO: Filter by types
+  }
+
 }

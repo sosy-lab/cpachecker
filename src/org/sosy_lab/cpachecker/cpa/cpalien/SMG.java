@@ -83,4 +83,42 @@ public class SMG {
   final public Set<SMGEdgePointsTo> getPTEdges(){
     return Collections.unmodifiableSet(pt_edges);
   }
+
+
+  /**
+   * @param value
+   * @return
+   *
+   * TODO: More documentation
+   * TODO: Test
+   * TODO: Consistency check: no value can point to more objects
+   */
+  final public SMGObject getObjectPointedBy(Integer value){
+    for (SMGEdgePointsTo edge: pt_edges){
+      if (value == edge.getValue()){
+        return edge.getObject();
+      }
+    }
+
+    return null;
+  }
+
+  private HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, Integer pOffset){
+    HashSet<SMGEdgeHasValue> toReturn = new HashSet<>();
+    for (SMGEdgeHasValue edge: hv_edges){
+      if (edge.getObject() == pObject && (pOffset == null || edge.getOffset() == pOffset)){
+        toReturn.add(edge);
+      }
+    }
+
+    return toReturn;
+  }
+
+  public HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject) {
+    return getValuesForObject(pObject, null);
+  }
+
+  public HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, int pOffset) {
+    return getValuesForObject(pObject, Integer.valueOf(pOffset));
+  }
 }
