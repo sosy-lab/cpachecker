@@ -399,6 +399,9 @@ class MainCPAStatistics implements Statistics {
         }
       }
       out.println("  Number of target states:    " + from(reached).filter(IS_TARGET_STATE).size());
+      if (reached.hasWaitingState()) {
+        out.println("  Size of final wait list     " + reached.getWaitlistSize());
+      }
     }
 
     private void printTimeStatistics(PrintStream out) {
