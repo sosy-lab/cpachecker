@@ -2689,7 +2689,6 @@ public class CtoFormulaConverter {
     @Override
     public Formula visit(CUnaryExpression exp)
         throws UnrecognizedCCodeException {
-      CExpression opExp = removeCast(exp.getOperand());
       UnaryOperator op = exp.getOperator();
 
       switch (op) {
@@ -2705,7 +2704,8 @@ public class CtoFormulaConverter {
           // *((type*)tmp) or *((type*)(tmp->field)) or *((type*)(s.a))
           if (exp.getOperand() instanceof CCastExpression) {
             CCastExpression cast = (CCastExpression) exp.getOperand();
-            f = makeExtractOrConcatNondet(dereferencedType(opExp.getExpressionType()), dereferencedType(cast.getExpressionType()), f);
+            // Use fieldPtrMask.getType because of possible type guessing.
+            f = makeExtractOrConcatNondet(fieldPtrMask.getType(), dereferencedType(cast.getExpressionType()), f);
           }
           return f;
         }
@@ -3062,7 +3062,7 @@ public class CtoFormulaConverter {
         CCastExpression ptrCast = (CCastExpression)leftSide.getOperand();
 
         lPtrVar = makeExtractOrConcatNondet(
-            dereferencedType(ptrCast.getOperand().getExpressionType()),
+            lPtrVarName.getType(), // Possible type guessing
             dereferencedType(ptrCast.getExpressionType()),
             lPtrVar);
       }
@@ -3690,8 +3690,6 @@ public class CtoFormulaConverter {
     @Override
     public Formula visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
       if (pE.getOperator() == UnaryOperator.STAR) {
-        CExpression exp = removeCast(pE.getOperand());
-
         // When the expression is supported we can create a Variable.
         if (isSupportedExpression(pE)) {
           // *a = ...
@@ -3702,7 +3700,8 @@ public class CtoFormulaConverter {
           // *((int*) a) = ...
           if (pE.getOperand() instanceof CCastExpression) {
             CCastExpression cast = (CCastExpression) pE.getOperand();
-            f = makeExtractOrConcatNondet(dereferencedType(exp.getExpressionType()), dereferencedType(cast.getExpressionType()), f);
+            // Use ptrVarName.getType() because of possible type guessing
+            f = makeExtractOrConcatNondet(ptrVarName.getType(), dereferencedType(cast.getExpressionType()), f);
           }
           return f;
         } else {
