@@ -130,7 +130,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
       List<ARGState> path = PredicateCPARefiner.transformPath(pPath);
-      predicateRefinementStrategy.performRefinement(pReached, path, predicates, false);
+      predicateRefinementStrategy.performRefinement0(pReached, path, predicates, false);
 
       totalRefinement.stop();
       return CounterexampleInfo.spurious();

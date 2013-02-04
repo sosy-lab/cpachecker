@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 /**
  * Refinement strategy similar to McMillan's Impact algorithm.
@@ -99,7 +98,7 @@ class ImpactRefinementStrategy implements RefinementStrategy {
 
   @Override
   public void performRefinement(ARGReachedSet pReached, List<ARGState> path,
-      CounterexampleTraceInfo cex, boolean pRepeatedCounterexample) throws CPAException {
+      List<BooleanFormula> interpolants, boolean pRepeatedCounterexample) throws CPAException {
 
     startRefinementOfPath();
 
@@ -107,11 +106,11 @@ class ImpactRefinementStrategy implements RefinementStrategy {
     assert lastElement.isTarget();
 
     path = path.subList(0, path.size()-1); // skip last element, itp is always false there
-    assert cex.getInterpolants().size() ==  path.size();
+    assert interpolants.size() ==  path.size();
 
     List<ARGState> changedElements = new ArrayList<>();
     ARGState infeasiblePartOfART = lastElement;
-    for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
+    for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(interpolants, path)) {
       stats.totalPathLengthToInfeasibility++;
       BooleanFormula itp = interpolationPoint.getFirst();
       ARGState w = interpolationPoint.getSecond();

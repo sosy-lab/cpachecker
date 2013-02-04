@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.collect.Lists;
 
@@ -67,7 +66,7 @@ class PredicatingExplicitRefinementStrategy extends PredicateAbstractionRefineme
   public void performRefinement(
       ARGReachedSet pReached,
       List<ARGState> errorPath,
-      CounterexampleTraceInfo counterexampleTraceInfo,
+      List<BooleanFormula> pInterpolants,
       boolean pRepeatedCounterexample)
       throws CPAException {
     numberOfPredicateRefinements++;
@@ -75,7 +74,7 @@ class PredicatingExplicitRefinementStrategy extends PredicateAbstractionRefineme
     UnmodifiableReachedSet reached = pReached.asReachedSet();
     Precision oldPrecision = reached.getPrecision(reached.getLastState());
 
-    Pair<ARGState, Precision> result = performRefinement(reached, oldPrecision, errorPath, counterexampleTraceInfo);
+    Pair<ARGState, Precision> result = performRefinement(reached, oldPrecision, errorPath, pInterpolants);
 
     ARGState root = result.getFirst();
     logger.log(Level.FINEST, "Found spurious counterexample,",
@@ -87,11 +86,11 @@ class PredicatingExplicitRefinementStrategy extends PredicateAbstractionRefineme
       UnmodifiableReachedSet reachedSet,
       Precision oldPrecision,
       List<ARGState> errorPath,
-      CounterexampleTraceInfo pInfo) throws CPAException {
+      List<BooleanFormula> pInterpolants) throws CPAException {
 
     // extract predicates from interpolants
     List<Collection<AbstractionPredicate>> newPreds = Lists.newArrayList();
-    for (BooleanFormula interpolant : pInfo.getInterpolants()) {
+    for (BooleanFormula interpolant : pInterpolants) {
       newPreds.add(convertInterpolant(interpolant));
     }
 

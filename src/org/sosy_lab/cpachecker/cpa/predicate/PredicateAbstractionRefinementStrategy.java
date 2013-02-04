@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -147,18 +146,18 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
   @Override
   public void performRefinement(ARGReachedSet pReached,
       List<ARGState> pPath,
-      CounterexampleTraceInfo pCounterexample,
+      List<BooleanFormula> pInterpolants,
       boolean pRepeatedCounterexample) throws CPAException {
 
     // extract predicates from interpolants
     predicateCreation.start();
     List<Collection<AbstractionPredicate>> newPreds = Lists.newArrayList();
-    for (BooleanFormula interpolant : pCounterexample.getInterpolants()) {
+    for (BooleanFormula interpolant : pInterpolants) {
       newPreds.add(convertInterpolant(interpolant));
     }
     predicateCreation.stop();
 
-    performRefinement(pReached, pPath, newPreds, pRepeatedCounterexample);
+    performRefinement0(pReached, pPath, newPreds, pRepeatedCounterexample);
   }
 
   /**
@@ -205,7 +204,7 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
     return preds;
   }
 
-  protected final void performRefinement(ARGReachedSet pReached,
+  protected final void performRefinement0(ARGReachedSet pReached,
       List<ARGState> pPath,
       List<Collection<AbstractionPredicate>> newPreds,
       boolean pRepeatedCounterexample) throws CPAException {

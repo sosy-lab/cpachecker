@@ -206,7 +206,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         }
       }
 
-      strategy.performRefinement(pReached, path, counterexample, repeatedCounterexample);
+      strategy.performRefinement(pReached, path, counterexample.getInterpolants(), repeatedCounterexample);
 
       totalRefinement.stop();
       return CounterexampleInfo.spurious();

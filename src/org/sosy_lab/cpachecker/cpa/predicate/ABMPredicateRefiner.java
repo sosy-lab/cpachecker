@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
 import com.google.common.base.Function;
@@ -314,7 +313,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     public void performRefinement(
         ARGReachedSet pReached,
         List<ARGState> pPath,
-        CounterexampleTraceInfo pCounterexample,
+        List<BooleanFormula> pInterpolants,
         boolean pRepeatedCounterexample) throws CPAException {
 
       // overriding this method is needed, as, in principle, it is possible to get two successive spurious counterexamples
@@ -336,7 +335,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
 
       lastAbstractions = getRegionsForPath(pPath);
       refinedLastRelevantPredicatesComputer = refinedRelevantPredicatesComputer;
-      super.performRefinement(pReached, pPath, pCounterexample, pRepeatedCounterexample);
+      super.performRefinement(pReached, pPath, pInterpolants, pRepeatedCounterexample);
     }
 
     private void refineRelevantPredicatesComputer(List<ARGState> pPath, ARGReachedSet pReached) {
