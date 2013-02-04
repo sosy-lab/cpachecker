@@ -243,10 +243,10 @@ public class CtoFormulaConverter {
   private boolean ignoreCasts = true;
 
   @Option(description = "Handle field access via extract and concat instead of new variables.")
-  private boolean handleFieldAccess = true;
+  private boolean handleFieldAccess = false;
 
   @Option(description = "Handle field aliasing formulas.")
-  private boolean handleFieldAliasing = true;
+  private boolean handleFieldAliasing = false;
 
   private final Set<String> printedWarnings = new HashSet<>();
 
