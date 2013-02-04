@@ -1675,16 +1675,19 @@ public class CtoFormulaConverter {
             // l = r; // l is unsigned long* and r is unsigned int
 
             // r was probably assigned with a pointer before and should have a size
-            CType currentGuess = getGuessedType(rPtrVarName.getType());
-            if (currentGuess == null) {
-              // TODO: This currently happens when assigning a function to a function pointer.
-              // NOTE: Should we set the size of r in this case?
-              log(Level.WARNING, "Pointer " + lVarName.getName() + " is assigned the value of variable " +
-                  right.toASTString() + " which contains a non-pointer value in line " +
-                  right.getFileLocation().getStartingLineNumber());
-            } else {
-              if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
-                log(Level.WARNING, "Assignment of a pointer from a variable that was assigned by a pointer with different size!");
+            if (!(right.getExpressionType() instanceof CFunctionPointerType)) {
+              // ignore function pointer assignments
+              CType currentGuess = getGuessedType(rPtrVarName.getType());
+              if (currentGuess == null) {
+                // TODO: This currently happens when assigning a function to a function pointer.
+                // NOTE: Should we set the size of r in this case?
+                log(Level.WARNING, "Pointer " + lVarName.getName() + " is assigned the value of variable " +
+                    right.toASTString() + " which contains a non-pointer value in line " +
+                    right.getFileLocation().getStartingLineNumber());
+              } else {
+                if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
+                  log(Level.WARNING, "Assignment of a pointer from a variable that was assigned by a pointer with different size!");
+                }
               }
             }
           }
