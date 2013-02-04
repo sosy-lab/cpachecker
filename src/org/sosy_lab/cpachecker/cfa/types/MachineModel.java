@@ -100,6 +100,9 @@ public enum MachineModel {
   // according to ANSI C, sizeof(char) is always 1
   private final int mSizeofChar = 1;
 
+  // a char is always a byte, but a byte doesn't have to be 8 bits
+  private final int mSizeofCharInBits = 8;
+
   private MachineModel(int pSizeofShort, int pSizeofInt, int pSizeofLongInt,
       int pSizeofLongLongInt, int pSizeofFloat, int pSizeofDouble,
       int pSizeofLongDouble, int pSizeofVoid, int pSizeofBool, int pSizeOfPtr) {
@@ -113,6 +116,10 @@ public enum MachineModel {
     sizeofVoid = pSizeofVoid;
     sizeofBool = pSizeofBool;
     sizeofPtr = pSizeOfPtr;
+  }
+
+  public int getSizeofCharInBits() {
+    return mSizeofCharInBits;
   }
 
   public int getSizeofShort() {

@@ -327,8 +327,9 @@ public class CtoFormulaConverter {
   protected <T extends Formula> FormulaType<T> getFormulaTypeFromCType(CType type) {
     int byteSize = machineModel.getSizeof(type);
 
+    int bitsPerByte = machineModel.getSizeofCharInBits();
     // byte to bits
-    FormulaType<T> t = (FormulaType<T>) efmgr.getFormulaType(byteSize * 8);
+    FormulaType<T> t = (FormulaType<T>) efmgr.getFormulaType(byteSize * bitsPerByte);
     return t;
   }
 
@@ -719,7 +720,9 @@ public class CtoFormulaConverter {
     assert pFormula instanceof BitvectorFormula : "Can't makeExtractOrConcatNondet for something other than Bitvectors";
     int sfrom = machineModel.getSizeof(pFromType);
     int sto = machineModel.getSizeof(pToType);
-    return (T) changeFormulaSize(sfrom * 8, sto * 8, (BitvectorFormula)pFormula);
+
+    int bitsPerByte = machineModel.getSizeofCharInBits();
+    return (T) changeFormulaSize(sfrom * bitsPerByte, sto * bitsPerByte, (BitvectorFormula)pFormula);
   }
 
   /**
@@ -755,14 +758,16 @@ public class CtoFormulaConverter {
     int sfrom = machineModel.getSizeof(pfromType);
     int sto = machineModel.getSizeof(ptoType);
 
+    int bitsPerByte = machineModel.getSizeofCharInBits();
+
     // Currently everything is a bitvector
     Formula ret;
     if (sfrom > sto) {
-      ret = fmgr.makeExtract(pFormula, sto * 8 - 1, 0);
+      ret = fmgr.makeExtract(pFormula, sto * bitsPerByte - 1, 0);
     } else if (sfrom < sto) {
       // Sign extend with ones when pfromType is signed and sign bit is set
       BitvectorFormula extendBits;
-      int bitsToExtend = (sto - sfrom) * 8;
+      int bitsToExtend = (sto - sfrom) * bitsPerByte;
       if (pfromType.isUnsigned()){
         extendBits = efmgr.makeBitvector(bitsToExtend, 0);
       } else {
@@ -770,7 +775,7 @@ public class CtoFormulaConverter {
         BitvectorFormula ones = efmgr.makeBitvector(bitsToExtend, -1);
 
         // Formula if sign bit is set
-        Formula msb = fmgr.makeExtract(pFormula, sfrom * 8 - 1, sfrom * 8 - 1);
+        Formula msb = fmgr.makeExtract(pFormula, sfrom * bitsPerByte - 1, sfrom * bitsPerByte - 1);
         BooleanFormula zeroExtend = fmgr.makeEqual(msb, efmgr.makeBitvector(1, 0));
 
 
@@ -952,8 +957,10 @@ public class CtoFormulaConverter {
 
     // If the type of the operand with signed integer type can represent all of the values of the type of the operand with unsigned integer type,
     // the operand with unsigned integer type is converted to the type of the operand with signed integer type.
-    int s1 = machineModel.getSizeof(pT1) * 8;
-    int s2 = machineModel.getSizeof(pT2) * 8;
+
+    int bitsPerByte = machineModel.getSizeofCharInBits();
+    int s1 = machineModel.getSizeof(pT1) * bitsPerByte;
+    int s2 = machineModel.getSizeof(pT2) * bitsPerByte;
 
     // When pT1 is signed then it can represent - 2^(s1-1) to 2^(s1-1) - 1 and pT2 can represent 0 to 2^(s2) -1
     if (!pT1.isUnsigned() && s1 > s2) {
@@ -974,7 +981,8 @@ public class CtoFormulaConverter {
 
   @SuppressWarnings("unchecked")
   protected <T extends Formula> FormulaType<T> getNondetType() {
-    return (FormulaType<T>) efmgr.getFormulaType(machineModel.getSizeofInt() * 8);
+    int bitsPerByte = machineModel.getSizeofCharInBits();
+    return (FormulaType<T>) efmgr.getFormulaType(machineModel.getSizeofInt() * bitsPerByte);
   }
 
 //  @Override
@@ -1458,7 +1466,7 @@ public class CtoFormulaConverter {
         boolean leftT, rightT;
         if ((leftT = lPtrVarName.getType() instanceof CDereferenceType) |
             (rightT = rPtrVarName.getType() instanceof CDereferenceType)) {
-          // One of those types is no pointer
+          // One of those types is no pointer so try to guess dereferenced type.
 
           if (leftT) {
             if (rightT) {
@@ -2479,6 +2487,9 @@ public class CtoFormulaConverter {
     @Override
     public BooleanFormula visit(CAssignment assignment)
         throws UnrecognizedCCodeException {
+      // TODO: Check if we can generalise this code to create a generic formula for the left
+      // and for the right side and handle aliasing-formulas depending on the CTypes
+
       CExpression left = removeCast(assignment.getLeftHandSide());
 
       if (left instanceof CIdExpression) {
