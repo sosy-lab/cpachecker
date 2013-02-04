@@ -21,55 +21,58 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.types.c;
+package org.sosy_lab.cpachecker.util.predicates.ctoformulahelper;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 /**
  * We use this type to be able to track the type of structs
  */
-public class CFieldDereferenceTrackType implements CType {
+public class CFieldTrackType extends CtoFormulaCType {
 
+  private final CType structType;
+  private final CType structTypeRepectingCasts;
   private final CType fieldType;
-  private final CType fieldPtrType;
 
 
-  public CFieldDereferenceTrackType(CType pFieldPtrType, CType fieldType) {
-    fieldPtrType = pFieldPtrType;
-    this.fieldType = fieldType;
+  public CFieldTrackType(CType pFieldType, CType pStructType, CType pStructTypeRepectingCasts) {
+    structType = pStructType;
+    fieldType = pFieldType;
+    structTypeRepectingCasts = pStructTypeRepectingCasts;
   }
 
   @Override
   public String toASTString(String pDeclarator) {
-    return fieldPtrType.toASTString(pDeclarator);
+    return fieldType.toASTString(pDeclarator);
   }
 
   @Override
   public boolean isConst() {
-    return fieldPtrType.isConst();
+    return fieldType.isConst();
   }
 
   @Override
   public boolean isVolatile() {
-    return fieldPtrType.isVolatile();
+    return fieldType.isVolatile();
   }
 
   public CType getType() {
-    return fieldPtrType;
-  }
-
-  public CType getReferencingFieldType() {
     return fieldType;
   }
 
-  @Override
-  public String toString() {
-    return fieldPtrType.toString();
+  public CType getStructType() {
+    return structType;
   }
 
+  public CType getStructTypeRepectingCasts() {
+    return structTypeRepectingCasts;
+  }
+
+
   @Override
-  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
-    // We do not really want to participate
-    return fieldPtrType.accept(pVisitor);
+  public String toString() {
+    return fieldType.toString();
   }
 
   @Override
@@ -79,7 +82,13 @@ public class CFieldDereferenceTrackType implements CType {
 
   @Override
   public boolean equals(Object obj) {
-    return CTypeUtils.equals(fieldPtrType, obj);
+    return CTypeUtils.equals(fieldType, obj);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CtoFormulaTypeVisitor<R, X> pVisitor) throws X {
+    // We do not really want to participate
+    return fieldType.accept(pVisitor);
   }
 
 }

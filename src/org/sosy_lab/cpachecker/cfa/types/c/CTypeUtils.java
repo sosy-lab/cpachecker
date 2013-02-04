@@ -35,9 +35,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import com.google.common.base.Function;
 
 
-
 public class CTypeUtils {
-  private static CTypeVisitor<CType, RuntimeException> simplifyType = new CTypeVisitor<CType, RuntimeException>() {
+  private static CTypeVisitor<CType, RuntimeException> simplifyType = new BaseCTypeSimplifyVisitor();
+
+  public static class BaseCTypeSimplifyVisitor implements CTypeVisitor<CType, RuntimeException> {
     @Override
     public CType visit(CArrayType pArrayType) {
       // We do not support arrays, so simplify to pointer
@@ -102,11 +103,7 @@ public class CTypeUtils {
     public CType visit(CDummyType pCDummyType) {
       throw new IllegalArgumentException();
     }
-
-    @Override
-    public CType visit(CDereferenceType pCDereferenceType) {
-      return pCDereferenceType;
-    }};
+  }
 
   public static CType simplifyType(CType t1) {
     return t1.accept(simplifyType);
@@ -119,20 +116,36 @@ public class CTypeUtils {
       this.obj = other;
     }
 
+    protected Object getObj() {
+      return obj;
+    }
+
+    protected CType simplifyType(CType t1) {
+      return CTypeUtils.simplifyType(t1);
+    }
+
     public BaseCTypeEqualsVisitor copyWith(Object other) {
       if (other instanceof CType) {
-        other = CTypeUtils.simplifyType((CType)other);
+        other = simplifyType((CType)other);
       }
 
       return new BaseCTypeEqualsVisitor(other);
     }
 
-    private BaseCTypeEqualsVisitor workCopy(Object other, List<String> stack) {
+    protected BaseCTypeEqualsVisitor workCopy(Object other, List<String> stack) {
       BaseCTypeEqualsVisitor copy = copyWith(other);
       copy.stack = stack;
       return copy;
     }
 
+    protected boolean compareTypes(CType t1, CType t2) {
+      try {
+        return simplifyType(t1).accept(this.workCopy(t2, stack));
+      } catch (Exception e) {
+        e.printStackTrace();
+        return false;
+      }
+    }
     @Override
     public Boolean visit(CArrayType pThis) throws Exception {
       if (this == obj) {
@@ -186,14 +199,6 @@ public class CTypeUtils {
           pThis.getKind() == other.getKind();
     }
 
-    private boolean compareTypes(CType t1, CType t2) {
-      try {
-        return simplifyType(t1).accept(this.workCopy(t2, stack));
-      } catch (Exception e) {
-        e.printStackTrace();
-        return false;
-      }
-    }
 
     private boolean compareMembers(List<CCompositeTypeMemberDeclaration> l1, List<CCompositeTypeMemberDeclaration> l2) throws Exception {
       return compareLists(l1, l2, new Function<Pair<CCompositeTypeMemberDeclaration,CCompositeTypeMemberDeclaration>, Boolean>() {
@@ -442,26 +447,8 @@ public class CTypeUtils {
     private Boolean equalsDummyType(CDummyType pThis, CDummyType other) {
       return true;
     }
-
-    @Override
-    public Boolean visit(CDereferenceType pThis) throws Exception {
-
-      if (this == obj) {
-        return true;
-      }
-      if (pThis.getClass() != obj.getClass()) {
-        return false;
-      }
-      CDereferenceType other = (CDereferenceType) obj;
-      return equalsDereferenceType(pThis, other);
-    }
-
-    private Boolean equalsDereferenceType(CDereferenceType pThis, CDereferenceType other) throws Exception {
-      return
-          compareTypes(pThis.getType(), other.getType());
-    }
-
   }
+
   public static boolean equals(CType t1, Object other) {
     if (t1 == null || other == null) {
       return t1 == other;

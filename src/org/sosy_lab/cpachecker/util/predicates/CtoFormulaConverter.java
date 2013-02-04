@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CtoFormulaTypeUtils.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -100,13 +101,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
-import org.sosy_lab.cpachecker.cfa.types.c.CDereferenceType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CFieldDereferenceTrackType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFieldTrackType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
@@ -114,14 +112,17 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CDereferenceType;
+import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CFieldTrackType;
+import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CtoFormulaTypeUtils.CtoFormulaSizeofVisitor;
+import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CtoFormulaTypeVisitor;
+import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.IndirectionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -255,6 +256,9 @@ public class CtoFormulaConverter {
   private final RepresentabilityCTypeVisitor representabilityCTypeVisitor
     = new RepresentabilityCTypeVisitor();
 
+  private final IndirectionVisitor indirectionVisitor = new IndirectionVisitor();
+  private final CtoFormulaSizeofVisitor sizeofVisitor;
+
   protected final FormulaManagerView fmgr;
   protected final  BooleanFormulaManagerView bfmgr;
   protected final  RationalFormulaManagerView nfmgr;
@@ -270,8 +274,13 @@ public class CtoFormulaConverter {
           throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
 
+    if (handleFieldAliasing && !handleFieldAccess) {
+      throw new InvalidConfigurationException("Enabling field-aliasing when field-access is disabled is unsupported!");
+    }
+
     this.fmgr = fmgr;
     this.machineModel = pMachineModel;
+    this.sizeofVisitor = new CtoFormulaSizeofVisitor(pMachineModel);
 
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.nfmgr = fmgr.getRationalFormulaManager();
@@ -321,6 +330,16 @@ public class CtoFormulaConverter {
     }
   }
 
+  /**
+   * Returns the size in bytes of the given type.
+   * Always use this method instead of machineModel.getSizeOf,
+   * because this method can handle dereference-types.
+   * @param pType the type to calculate the size of.
+   * @return the size in bytes of the given type.
+   */
+  private int getSizeof(CType pType) {
+    return pType.accept(sizeofVisitor);
+  }
 
   /** Looks up the variable name in the current namespace. */
   private Variable<CType> scopedIfNecessary(CExpression exp, SSAMapBuilder ssa, String function) {
@@ -379,20 +398,13 @@ public class CtoFormulaConverter {
     } else {
       throw new AssertionError("Can't create more complex Variables for Fieldaccess");
     }
-//    if (!(exp instanceof CCastExpression)) {
-//      assert CTypeUtils.equals(name.getType(), exp.getExpressionType())
-//         : "Some types are not how they should be!";
-//    }
     return name;
   }
 
   private Variable<CType> makeFieldVariable(Variable<CType> pName, CFieldReference fExp, SSAMapBuilder ssa) {
-
     Pair<Integer,Integer> msb_lsb = getFieldOffsetMsbLsb(fExp);
-    // NOTE: Besides this Assertion ALWAYS use pName.getType(),
+    // NOTE: ALWAYS use pName.getType(),
     // because pName.getType() could be an instance of CFieldTrackType
-//    assert CTypeUtils.equals(pName.getType(), getRealFieldOwner(fExp).getExpressionType())
-//     : "Something with the types went wrong!";
     return Variable.create(
         makeFieldVariableName(pName.getName(), msb_lsb, ssa),
         (CType)new CFieldTrackType(fExp.getExpressionType(), pName.getType(), getRealFieldOwner(fExp).getExpressionType()));
@@ -400,7 +412,7 @@ public class CtoFormulaConverter {
 
   @SuppressWarnings("unchecked")
   protected <T extends Formula> FormulaType<T> getFormulaTypeFromCType(CType type) {
-    int byteSize = machineModel.getSizeof(type);
+    int byteSize = getSizeof(type);
 
     int bitsPerByte = machineModel.getSizeofCharInBits();
     // byte to bits
@@ -516,7 +528,7 @@ public class CtoFormulaConverter {
     // Check if types match
 
     // Assert when a variable already exists, that it has the same type
-    // TODO: Uncomment when parser is stable enough
+    // TODO: Un-comment when parser and code-base is stable enough
 //    Variable<CType> t;
 //    assert
 //         (t = (Variable<CType>) ssa.getVariable(var.getName())) == null
@@ -524,7 +536,7 @@ public class CtoFormulaConverter {
 //      : "Saving variables with mutliple types is not possible!";
     Variable<CType> t = (Variable<CType>) ssa.getVariable(var.getName());
     if (t != null) {
-      if (!CTypeUtils.equals(t.getType(), var.getType())) {
+      if (!areEqual(t.getType(), var.getType())) {
         log(Level.WARNING,
             "Variable " + var.getName() + " was found with multiple types!"
                 + " Analysis with bitvectors could fail! "
@@ -540,20 +552,22 @@ public class CtoFormulaConverter {
   }
 
   private void setSsaIndex(SSAMapBuilder ssa, Variable<CType> var, int idx) {
-    if (var.getType() instanceof CDereferenceType) {
-      CDereferenceType type = (CDereferenceType) var.getType();
-      if (type.getGuessedType() == null) {
+    if (isDereferenceType(var.getType())) {
+      CType guess = getGuessedType(var.getType());
+      if (guess == null) {
         // This should not happen when guessing aliasing types would always work
+        log(Level.WARNING, "No Guess for " + var.getName());
         CType oneByte = new CSimpleType(false, false, CBasicType.CHAR, false, false, false, false, false, false, false);
         var = Variable.create(
             var.getName(),
-            (CType)new CDereferenceType(type.isConst(), type.isVolatile(), type.getType(), oneByte));
+            setGuessedType(var.getType(), oneByte));
       }
     }
 
-    // TODO: handle guessing of fields!
-    //assert !(var.getType() instanceof CFieldDereferenceTrackType) :
-    //  "It is not possible to create a variable with a CFieldDereferenceTrackType";
+    assert
+      !isDereferenceType(var.getType()) ||
+      getGuessedType(var.getType()) != null
+      : "The guess should be resolved now!";
 
     checkSsaSavedType(var, ssa);
 
@@ -632,6 +646,11 @@ public class CtoFormulaConverter {
     // Than we would get a 8 bit struct here, because we can't handle the cast properly anywhere else.
     // The only thing we can do at this point is to expand the variable with nondet bits.
     CType runtimeType = trackType.getStructTypeRepectingCasts();
+
+    if (!areEqual(staticType, runtimeType)) {
+      log(Level.WARNING, "staticType and runtimeType do not match for " + var.getName() + " so analysis could be inprecise");
+    }
+
     T realStruct = makeExtractOrConcatNondet(staticType, runtimeType, struct);
 
     return (T) accessField(msb_lsb, realStruct);
@@ -665,7 +684,6 @@ public class CtoFormulaConverter {
    * This method does not handle scoping and the NON_DET_VARIABLE!
    * But it does handles Fields.
    */
-  @Deprecated
   private  <T extends Formula> T makeFreshVariable(Variable<CType> var, SSAMapBuilder ssa) {
     return resolveFields(var, ssa, true);
   }
@@ -675,7 +693,7 @@ public class CtoFormulaConverter {
     return POINTER_VARIABLE + scopedId + "__at__" + ssa.getIndex(scopedId) + "__end";
   }
 
-  private Variable<CType> makePointerMask(Variable<CType> pointerVar, SSAMapBuilder ssa) {
+  private static Variable<CType> makePointerMask(Variable<CType> pointerVar, SSAMapBuilder ssa) {
     Variable<CType> ptrMask = Variable.create(makePointerMaskName(pointerVar.getName(), ssa), dereferencedType(pointerVar.getType()));
     if (ptrMask.getType() instanceof CDereferenceType) {
       // lookup in ssa map: Maybe we assigned a size to this current variable
@@ -728,85 +746,17 @@ public class CtoFormulaConverter {
 
 
 
-  private Variable<CType> removePointerMaskVariable(Variable<CType> pointerVar) {
+  private static Variable<CType> removePointerMaskVariable(Variable<CType> pointerVar) {
     return Variable.create(removePointerMask(pointerVar.getName()), makePointerType(pointerVar.getType()));
   }
 
-  private CType makePointerType(CType pType) {
-    if (pType instanceof CFieldDereferenceTrackType) {
-      return ((CFieldDereferenceTrackType) pType).getReferencingFieldType();
-    }
-    if (pType instanceof CDereferenceType) {
-      return ((CDereferenceType) pType).getType();
-    }
-    return new CPointerType(false, false, pType);
-  }
-
-  private static CType dereferencedType(CType t) {
-
-    if (t instanceof CFieldTrackType) {
-      return new CFieldDereferenceTrackType(dereferencedType(((CFieldTrackType) t).getType()), t);
-    }
-
-    CType simple = CTypeUtils.simplifyType(t);
-    if (simple instanceof CPointerType) {
-      return ((CPointerType)simple).getType();
-    } else if (simple instanceof CArrayType) {
-      return ((CArrayType)simple).getType();
-    } else {
-      return new CDereferenceType(false, false, t, null);
-    }
-  }
-
-  /**
-   * Checks if the given type is the result of dereferencing a non-pointer type.
-   * @param pType the type to check
-   * @return true if the given type is the result of dereferencing a non-pointer type.
-   */
-  private boolean isDereferenceType(CType pType) {
-    return
-        pType instanceof CDereferenceType ||
-        (pType instanceof CFieldDereferenceTrackType &&
-          isDereferenceType(((CFieldDereferenceTrackType)pType).getType()));
-  }
-
-  private CType getGuessedType(CType pType) {
-    if (pType instanceof CDereferenceType) {
-      CDereferenceType ref = (CDereferenceType) pType ;
-      return ref.getGuessedType();
-    }
-
-    if (pType instanceof CFieldDereferenceTrackType) {
-      return getGuessedType(((CFieldDereferenceTrackType)pType).getType());
-    }
-
-    throw new IllegalArgumentException("No DereferenceType!");
-  }
-
-  private CType setGuessedType(CType pType, CType set) {
-    if (pType instanceof CDereferenceType) {
-      CDereferenceType ref = (CDereferenceType) pType ;
-      return ref.withGuess(set);
-    }
-
-    if (pType instanceof CFieldDereferenceTrackType) {
-      CFieldDereferenceTrackType ref = (CFieldDereferenceTrackType)pType;
-
-      return new CFieldDereferenceTrackType(
-          setGuessedType(ref.getType(), set),
-          ref.getReferencingFieldType());
-    }
-
-    throw new IllegalArgumentException("No DereferenceType!");
-  }
-
   /**Returns the concatenation of MEMORY_ADDRESS_VARIABLE_PREFIX and varName */
-  private String makeMemoryLocationVariableName(String varName) {
+  private static String makeMemoryLocationVariableName(String varName) {
     return MEMORY_ADDRESS_VARIABLE_PREFIX + varName;
   }
 
   /**Returns the concatenation of MEMORY_ADDRESS_VARIABLE_PREFIX and varName */
-  private Variable<CType> makeMemoryLocationVariable(Variable<CType> varName) {
+  private static Variable<CType> makeMemoryLocationVariable(Variable<CType> varName) {
     return Variable.create(makeMemoryLocationVariableName(varName.getName()), makePointerType(varName.getType()));
   }
 
@@ -834,12 +784,12 @@ public class CtoFormulaConverter {
    */
   private Formula makeCast(CType fromType, CType toType, Formula formula) {
     // UNDEFINED: Casting a numeric value into a value that can't be represented by the target type (either directly or via static_cast)
-    if (CTypeUtils.equals(fromType, toType)) {
+    if (areEqual(fromType, toType)) {
       return formula; // No cast required;
     }
 
-    fromType = CTypeUtils.simplifyType(fromType);
-    toType = CTypeUtils.simplifyType(toType);
+    fromType = simplifyType(fromType);
+    toType = simplifyType(toType);
 
     boolean fromCanBeHandledAsInt, toCanBeHandledAsInt;
     boolean fromIsPointer, toIsPointer;
@@ -881,7 +831,7 @@ public class CtoFormulaConverter {
       }
     }
 
-    if (machineModel.getSizeof(fromType) == machineModel.getSizeof(toType)) {
+    if (getSizeof(fromType) == getSizeof(toType)) {
       // We can most likely just ignore this cast
       log(Level.WARNING, "WARNING: Ignoring cast from " + fromType + " to " + toType + "!");
       return formula;
@@ -904,8 +854,8 @@ public class CtoFormulaConverter {
   private <T extends Formula> T makeExtractOrConcatNondet(CType pFromType, CType pToType, T pFormula) {
     assert pFormula instanceof BitvectorFormula
       : "Can't makeExtractOrConcatNondet for something other than Bitvectors";
-    int sfrom = machineModel.getSizeof(pFromType);
-    int sto = machineModel.getSizeof(pToType);
+    int sfrom = getSizeof(pFromType);
+    int sto = getSizeof(pToType);
 
     int bitsPerByte = machineModel.getSizeofCharInBits();
     return (T) changeFormulaSize(sfrom * bitsPerByte, sto * bitsPerByte, (BitvectorFormula)pFormula);
@@ -992,8 +942,8 @@ public class CtoFormulaConverter {
    * @return
    */
   private CType getImplicitCType(CType pT1, CType pT2) {
-    pT1 = CTypeUtils.simplifyType(pT1);
-    pT2 = CTypeUtils.simplifyType(pT2);
+    pT1 = simplifyType(pT1);
+    pT2 = simplifyType(pT2);
 
     // UNDEFINED: What should happen when we have two pointer?
     // For example when two pointers get multiplied or added
@@ -1004,7 +954,7 @@ public class CtoFormulaConverter {
         CSimpleType s2 = (CSimpleType)pT2;
         CSimpleType resolved = getImplicitSimpleCType(s1, s2);
 
-        if (!CTypeUtils.equals(s1, s2)) {
+        if (!areEqual(s1, s2)) {
           log(Level.FINEST, "Implicit Cast: " + s1 + " and " + s2 + " to " + resolved);
         }
 
@@ -1022,9 +972,9 @@ public class CtoFormulaConverter {
       return pT1;
     }
 
-    int s1 = machineModel.getSizeof(pT1);
-    int s2 = machineModel.getSizeof(pT2);
-    CType res;
+    int s1 = getSizeof(pT1);
+    int s2 = getSizeof(pT2);
+    CType res = pT1;
     if (s1 > s2) {
       res = pT1;
     } else if (s2 > s1) {
@@ -1036,7 +986,7 @@ public class CtoFormulaConverter {
     return res;
   }
 
-  private int getConversionRank(CSimpleType t) {
+  private static int getConversionRank(CSimpleType t) {
     // From https://www.securecoding.cert.org/confluence/display/seccode/INT02-C.+Understand+integer+conversion+rules
     CBasicType type = t.getType();
 
@@ -1073,17 +1023,15 @@ public class CtoFormulaConverter {
       }
     }
 
-    throw new IllegalArgumentException("Unknown type to rank: " + t.toString());
-    // Notes (TODO):
+    // Notes: The following is not important, because we simplify all types.
+    // I did add them only for the sake of completeness.
+
     // The rank of any standard integer type shall be greater than the rank of any extended integer type with the same width.
-
     // The rank of any extended signed integer type relative to another extended signed integer type with the same precision is implementation-defined, but still subject to the other rules for determining the integer conversion rank.
-
     // The rank of a signed integer type shall be greater than the rank of any signed integer type with less precision.
-
     // No two signed integer types shall have the same rank, even if they have the same representation.
-
     // The rank of any enumerated type shall equal the rank of the compatible integer type.
+    throw new IllegalArgumentException("Unknown type to rank: " + t.toString());
   }
 
   private CType getPromotedCType(CType t) {
@@ -1134,7 +1082,7 @@ public class CtoFormulaConverter {
     // See also http://stackoverflow.com/questions/50605/signed-to-unsigned-conversion-in-c-is-it-always-safe
 
     // If both operands have the same type, no further conversion is needed.
-    if (CTypeUtils.equals(pT1, pT2)) {
+    if (areEqual(pT1, pT2)) {
       return pT1;
     }
 
@@ -1334,9 +1282,7 @@ public class CtoFormulaConverter {
       varName = scoped(varNameWithoutFunction, function);
     }
     CType declType = decl.getType();
-    //FormulaType<Formula> t= getFormulaTypeFromCType(declType);
     Variable<CType> var = Variable.create(varName, declType);
-    // TODO get the type of the variable, and act accordingly
 
     // if the var is unsigned, add the constraint that it should
     // be > 0
@@ -1378,8 +1324,6 @@ public class CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     }
 
-    //CType initType = init.getExpressionType();
-
     // initializer value present
     // Do a regular assignment
     CExpressionAssignmentStatement assign =
@@ -1394,21 +1338,6 @@ public class CtoFormulaConverter {
       v = new StatementToFormulaVisitor(function, ssa, constraints, edge);
     }
     return assign.accept(v);
-//    Formula minit = buildTerm(init, edge, function, ssa, constraints);
-//    BooleanFormula assignments = makeAssignment(var, initType, minit, ssa);
-//
-//    if (handlePointerAliasing) {
-//      // we need to add the pointer alias
-//      BooleanFormula pAssign = buildDirectSecondLevelAssignment(var,
-//          removeCast(init), function, constraints, ssa);
-//      assignments = bfmgr.and(pAssign, assignments);
-//
-//      // no need to add pointer updates:
-//      // the left hand variable cannot yet be aliased
-//      // because it is newly created
-//    }
-//
-//    return assignments;
   }
 
 
@@ -1476,7 +1405,7 @@ public class CtoFormulaConverter {
     }
 
     CType expType = funcCallExp.getExpressionType();
-    if (!CTypeUtils.equals(expType, retType)) {
+    if (!areEqual(expType, retType)) {
       // Bit ignore for now because we sometimes just get ElaboratedType instead of CompositeType
       log(
           Level.SEVERE,
@@ -1691,8 +1620,6 @@ public class CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     }
 
-    // TODO: We should not only test if instance is of type CDereferenceType
-    // but use isDereferenceType(pType)
     Formula lVar = makeVariable(lVarName, ssa);
 
     Variable<CType> lPtrVarName = makePointerMask(lVarName, ssa);
@@ -1728,7 +1655,7 @@ public class CtoFormulaConverter {
               lPtrVarName =
                   lPtrVarName.withType(setGuessedType(leftPtrType, rPtrVarName.getType()));
             } else {
-              if (machineModel.getSizeof(rPtrVarName.getType()) != machineModel.getSizeof(currentGuess)) {
+              if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
                 log(Level.WARNING, "Second assignment of an variable that is no pointer with different size");
               }
             }
@@ -1746,7 +1673,7 @@ public class CtoFormulaConverter {
                   right.toASTString() + " which contains a non-pointer value in line " +
                   right.getFileLocation().getStartingLineNumber());
             } else {
-              if (machineModel.getSizeof(rPtrVarName.getType()) != machineModel.getSizeof(currentGuess)) {
+              if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
                 log(Level.WARNING, "Assignment of a pointer from a variable that was assigned by a pointer with different size!");
               }
             }
@@ -1848,8 +1775,11 @@ public class CtoFormulaConverter {
             if (guess == null) {
               lPtrVarName =
                   lPtrVarName.withType(setGuessedType(leftPtrType, rOperand.getExpressionType()));
+            } else {
+              if (getSizeof(guess) != getSizeof(rOperand.getExpressionType())) {
+                log(Level.WARNING, "Size of an old guess doesn't match with the current guess: " + lPtrVarName.getName());
+              }
             }
-            // TODO: Warn if sizes don't match
           }
           Formula lPtrVar = makeVariable(lPtrVarName, ssa);
 
@@ -1873,6 +1803,7 @@ public class CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     }
   }
+
 
   private BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
       String function, SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
@@ -2005,19 +1936,6 @@ public class CtoFormulaConverter {
     return pre_after;
   }
 
-  /**
-   * CFieldReferences can be direct or indirect (pointer-dereferencing).
-   * This method nests the owner in a CUnaryExpression if the access is indirect.
-   */
-  private CExpression getRealFieldOwner(CFieldReference fExp) {
-    CExpression fieldOwner = fExp.getFieldOwner();
-    if (fExp.isPointerDereference()) {
-      CType dereferencedType = dereferencedType(fieldOwner.getExpressionType());
-      assert !(dereferencedType instanceof CDereferenceType) : "We should be able to dereference!";
-      fieldOwner = new CUnaryExpression(null, dereferencedType, fieldOwner, UnaryOperator.STAR);
-    }
-    return fieldOwner;
-  }
 
   private boolean isIndirectFieldReference(CFieldReference fexp) {
     if (fexp.isPointerDereference()) {
@@ -2036,14 +1954,14 @@ public class CtoFormulaConverter {
    */
   private Pair<Integer, Integer> getFieldOffsetMsbLsb(CFieldReference fExp) {
     CExpression fieldRef = getRealFieldOwner(fExp);
-    CType structType = CTypeUtils.simplifyType(fieldRef.getExpressionType());
+    CType structType = simplifyType(fieldRef.getExpressionType());
 
     assert structType instanceof CCompositeType :
         "expecting CCompositeType on structs!";
     // f is now the structure, access it:
     int bitsPerByte = machineModel.getSizeofCharInBits();
     int offset = getFieldOffset((CCompositeType) structType, fExp.getFieldName(), fExp.getExpressionType()) * bitsPerByte;
-    int fieldSize = machineModel.getSizeof(fExp.getExpressionType()) * bitsPerByte;
+    int fieldSize = getSizeof(fExp.getExpressionType()) * bitsPerByte;
     int lsb = offset;
     int msb = offset + fieldSize - 1;
     Pair<Integer, Integer> msb_Lsb = Pair.of(msb, lsb);
@@ -2058,7 +1976,7 @@ public class CtoFormulaConverter {
       for (CCompositeTypeMemberDeclaration member : structType.getMembers() ) {
         if (member.getName().equals(fieldName)) {
           if (assertFieldType != null) {
-            if (!CTypeUtils.equals(assertFieldType, member.getType())){
+            if (!areEqual(assertFieldType, member.getType())){
               log(Level.SEVERE,
                   "Expected the same type for member (Ignore it for function pointer): " +
                       assertFieldType.toString() + ", " + member.getType().toString());
@@ -2068,7 +1986,7 @@ public class CtoFormulaConverter {
           return off;
         }
 
-        off += machineModel.getSizeof(member.getType());
+        off += getSizeof(member.getType());
       }
 
       throw new AssertionError("field " + fieldName + " was not found in " + structType);
@@ -2358,74 +2276,6 @@ public class CtoFormulaConverter {
       throw new AssertionError("No idea what happened", e);
     }
   }
-  private final IndirectionVisitor indirectionVisitor = new IndirectionVisitor();
-  private class IndirectionVisitor implements CExpressionVisitor<Integer, Exception> {
-
-    @Override
-    public Integer visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws Exception {
-      return pIastArraySubscriptExpression
-          .getArrayExpression().accept(this) + 1;
-    }
-
-    @Override
-    public Integer visit(CBinaryExpression pIastBinaryExpression) throws Exception {
-      return
-      Math.max(
-          pIastBinaryExpression.getOperand1().accept(this),
-          pIastBinaryExpression.getOperand2().accept(this));
-    }
-
-    @Override
-    public Integer visit(CCastExpression pIastCastExpression) throws Exception {
-      return pIastCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Integer visit(CFieldReference pIastFieldReference) throws Exception {
-      return getRealFieldOwner(pIastFieldReference).accept(this);
-    }
-
-    @Override
-    public Integer visit(CIdExpression pIastIdExpression) throws Exception {
-      return 0;
-    }
-
-    @Override
-    public Integer visit(CCharLiteralExpression pIastCharLiteralExpression) throws Exception {
-      return 0;
-    }
-
-    @Override
-    public Integer visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws Exception {
-      return 0;
-    }
-
-    @Override
-    public Integer visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws Exception {
-      return 0;
-    }
-
-    @Override
-    public Integer visit(CStringLiteralExpression pIastStringLiteralExpression) throws Exception {
-      return 0;
-    }
-
-    @Override
-    public Integer visit(CTypeIdExpression pIastTypeIdExpression) throws Exception {
-      return 0;
-    }
-
-    @Override
-    public Integer visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws Exception {
-      return 0;
-    }
-
-    @Override
-    public Integer visit(CUnaryExpression pIastUnaryExpression) throws Exception {
-      return pIastUnaryExpression.getOperand().accept(this) + 1;
-    }
-
-  }
 
   private class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
@@ -2559,7 +2409,7 @@ public class CtoFormulaConverter {
 
       if (returnFormulaType != fmgr.getFormulaType(ret)) {
         // Could be because both types got promoted
-        if (!CTypeUtils.equals(promT1, t1) && !CTypeUtils.equals(promT2, t2)) {
+        if (!areEqual(promT1, t1) && !areEqual(promT2, t2)) {
           // We have to cast back to the return type
           ret = makeCast(implicitType, returnType, ret);
         }
@@ -2739,7 +2589,7 @@ public class CtoFormulaConverter {
       return fmgr.makeNumber(
           CtoFormulaConverter.this
             .getFormulaTypeFromCType(pExp.getExpressionType()),
-          machineModel.getSizeof(pCType));
+          getSizeof(pCType));
     }
   }
 
@@ -3388,7 +3238,7 @@ public class CtoFormulaConverter {
             //    if (k_2 = g->s) then *k_2 else
             //        ... else nondetbits
 
-            CType expType = CTypeUtils.simplifyType(leftSide.getExpressionType());
+            CType expType = simplifyType(leftSide.getExpressionType());
             if (expType instanceof CCompositeType) {
               // Ok now we have to do something if varname is actually
               CCompositeType structType = (CCompositeType)expType;
@@ -3399,7 +3249,7 @@ public class CtoFormulaConverter {
                 Formula g_s = accessField(leftField, rightVariable);
                 // From g->s we search *(g->s)
                 // Start with nondet bits
-                int fieldSize = machineModel.getSizeof(member.getType()) * machineModel.getSizeofCharInBits();
+                int fieldSize = getSizeof(member.getType()) * machineModel.getSizeofCharInBits();
                 Formula content_of_g_s =
                     changeFormulaSize(0, fieldSize, efmgr.makeBitvector(0, 0));
 
@@ -3485,7 +3335,7 @@ public class CtoFormulaConverter {
           // If the left side is a simple CIdExpression "l = ..." than we have to see if
           // l is a structure and handle pointer aliasing for all fields.
 
-          CType simpleTypes = CTypeUtils.simplifyType(lRawExpr.getExpressionType());
+          CType simpleTypes = simplifyType(lRawExpr.getExpressionType());
           if (simpleTypes instanceof CCompositeType) {
             // There are 3 cases:
             // - the right side is of the form *r
@@ -3496,7 +3346,7 @@ public class CtoFormulaConverter {
             // - the right side is of the form &r, this should not happen
             //     for every member we have to emit *(s.t) = *((&r).t)
             // -> Exactly this does the buildDirectSecondLevelAssignment method for us
-            if (CTypeUtils.equals(right.getExpressionType(), simpleTypes)) {
+            if (areEqual(right.getExpressionType(), simpleTypes)) {
               CCompositeType structureType = (CCompositeType) simpleTypes;
               for (CCompositeTypeMemberDeclaration member : structureType.getMembers()) {
                 // We pretend to have a assignment of the form
@@ -3817,7 +3667,7 @@ public class CtoFormulaConverter {
     }
   }
 
-  private class RepresentabilityCTypeVisitor implements CTypeVisitor<Boolean, RuntimeException> {
+  private class RepresentabilityCTypeVisitor implements CtoFormulaTypeVisitor<Boolean, RuntimeException> {
 
     @Override
     public Boolean visit(CArrayType pArrayType) {

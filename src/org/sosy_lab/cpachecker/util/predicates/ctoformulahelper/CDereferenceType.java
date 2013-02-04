@@ -21,14 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.types.c;
+package org.sosy_lab.cpachecker.util.predicates.ctoformulahelper;
+
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 /**
  * We use this type to be able to track the type of aliases
  * (For example we could create a formula like *l = *r
  * when the right side is actually no pointer then we use CDereferenceType(typeof(r)))
  */
-public final class CDereferenceType implements CType {
+public final class CDereferenceType extends CtoFormulaCType {
 
   private final CType type;
   private final boolean   isConst;
@@ -100,11 +104,6 @@ public final class CDereferenceType implements CType {
   }
 
   @Override
-  public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
-  }
-
-  @Override
   public int hashCode() {
     throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
@@ -112,5 +111,10 @@ public final class CDereferenceType implements CType {
   @Override
   public boolean equals(Object obj) {
     return CTypeUtils.equals(this, obj);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CtoFormulaTypeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
   }
 }
