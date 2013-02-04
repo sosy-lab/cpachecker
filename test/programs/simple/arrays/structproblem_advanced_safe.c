@@ -13,7 +13,13 @@ struct list {
    struct list *next ;
 };
 
-
+/*
+ We call this file structproblem as we are accessing struct-fields via pointer.
+ Note C11 §6.7.2.1(14):
+"Each non-bit-field member of a structure or union object is aligned
+in an implementation-defined manner appropriate to its type." 
+ This is why we are not using actual structs in this code.
+ */
 int main() {
   int i = 3;
   int j = 4;

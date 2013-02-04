@@ -1,7 +1,7 @@
-# 1 "./signextension2.safe.c"
+# 1 "./signextension2_safe.c"
 # 1 "<eingebaut>"
 # 1 "<Kommandozeile>"
-# 1 "./signextension2.safe.c"
+# 1 "./signextension2_safe.c"
 # 1 "/usr/include/stdio.h" 1 3 4
 # 28 "/usr/include/stdio.h" 3 4
 # 1 "/usr/include/features.h" 1 3 4
@@ -31,8 +31,8 @@
 
 
 
-# 1 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.5.4/include/stddef.h" 1 3 4
-# 211 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.5.4/include/stddef.h" 3 4
+# 1 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.6.3/include/stddef.h" 1 3 4
+# 212 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.6.3/include/stddef.h" 3 4
 typedef long unsigned int size_t;
 # 35 "/usr/include/stdio.h" 2 3 4
 
@@ -149,7 +149,7 @@ typedef struct _IO_FILE __FILE;
 # 32 "/usr/include/libio.h" 3 4
 # 1 "/usr/include/_G_config.h" 1 3 4
 # 15 "/usr/include/_G_config.h" 3 4
-# 1 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.5.4/include/stddef.h" 1 3 4
+# 1 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.6.3/include/stddef.h" 1 3 4
 # 16 "/usr/include/_G_config.h" 2 3 4
 
 
@@ -189,8 +189,8 @@ typedef unsigned int _G_uint16_t __attribute__ ((__mode__ (__HI__)));
 typedef unsigned int _G_uint32_t __attribute__ ((__mode__ (__SI__)));
 # 33 "/usr/include/libio.h" 2 3 4
 # 53 "/usr/include/libio.h" 3 4
-# 1 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.5.4/include/stdarg.h" 1 3 4
-# 40 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.5.4/include/stdarg.h" 3 4
+# 1 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.6.3/include/stdarg.h" 1 3 4
+# 40 "/usr/lib/gcc/x86_64-pc-linux-gnu/4.6.3/include/stdarg.h" 3 4
 typedef __builtin_va_list __gnuc_va_list;
 # 54 "/usr/include/libio.h" 2 3 4
 # 172 "/usr/include/libio.h" 3 4
@@ -314,8 +314,8 @@ extern int __overflow (_IO_FILE *, int);
 # 462 "/usr/include/libio.h" 3 4
 extern int _IO_getc (_IO_FILE *__fp);
 extern int _IO_putc (int __c, _IO_FILE *__fp);
-extern int _IO_feof (_IO_FILE *__fp) __attribute__ ((__nothrow__ ));
-extern int _IO_ferror (_IO_FILE *__fp) __attribute__ ((__nothrow__ ));
+extern int _IO_feof (_IO_FILE *__fp) __attribute__ ((__nothrow__ , __leaf__));
+extern int _IO_ferror (_IO_FILE *__fp) __attribute__ ((__nothrow__ , __leaf__));
 
 extern int _IO_peekc_locked (_IO_FILE *__fp);
 
@@ -323,9 +323,9 @@ extern int _IO_peekc_locked (_IO_FILE *__fp);
 
 
 
-extern void _IO_flockfile (_IO_FILE *) __attribute__ ((__nothrow__ ));
-extern void _IO_funlockfile (_IO_FILE *) __attribute__ ((__nothrow__ ));
-extern int _IO_ftrylockfile (_IO_FILE *) __attribute__ ((__nothrow__ ));
+extern void _IO_flockfile (_IO_FILE *) __attribute__ ((__nothrow__ , __leaf__));
+extern void _IO_funlockfile (_IO_FILE *) __attribute__ ((__nothrow__ , __leaf__));
+extern int _IO_ftrylockfile (_IO_FILE *) __attribute__ ((__nothrow__ , __leaf__));
 # 492 "/usr/include/libio.h" 3 4
 extern int _IO_vfscanf (_IO_FILE * __restrict, const char * __restrict,
    __gnuc_va_list, int *__restrict);
@@ -337,7 +337,7 @@ extern size_t _IO_sgetn (_IO_FILE *, void *, size_t);
 extern __off64_t _IO_seekoff (_IO_FILE *, __off64_t, int, int);
 extern __off64_t _IO_seekpos (_IO_FILE *, __off64_t, int);
 
-extern void _IO_free_backup_area (_IO_FILE *) __attribute__ ((__nothrow__ ));
+extern void _IO_free_backup_area (_IO_FILE *) __attribute__ ((__nothrow__ , __leaf__));
 # 76 "/usr/include/stdio.h" 2 3 4
 
 
@@ -376,15 +376,15 @@ extern struct _IO_FILE *stderr;
 
 
 
-extern int remove (__const char *__filename) __attribute__ ((__nothrow__ ));
+extern int remove (__const char *__filename) __attribute__ ((__nothrow__ , __leaf__));
 
-extern int rename (__const char *__old, __const char *__new) __attribute__ ((__nothrow__ ));
+extern int rename (__const char *__old, __const char *__new) __attribute__ ((__nothrow__ , __leaf__));
 
 
 
 
 extern int renameat (int __oldfd, __const char *__old, int __newfd,
-       __const char *__new) __attribute__ ((__nothrow__ ));
+       __const char *__new) __attribute__ ((__nothrow__ , __leaf__));
 
 
 
@@ -395,16 +395,16 @@ extern int renameat (int __oldfd, __const char *__old, int __newfd,
 
 extern FILE *tmpfile (void) ;
 # 210 "/usr/include/stdio.h" 3 4
-extern char *tmpnam (char *__s) __attribute__ ((__nothrow__ )) ;
+extern char *tmpnam (char *__s) __attribute__ ((__nothrow__ , __leaf__)) ;
 
 
 
 
 
-extern char *tmpnam_r (char *__s) __attribute__ ((__nothrow__ )) ;
+extern char *tmpnam_r (char *__s) __attribute__ ((__nothrow__ , __leaf__)) ;
 # 228 "/usr/include/stdio.h" 3 4
 extern char *tempnam (__const char *__dir, __const char *__pfx)
-     __attribute__ ((__nothrow__ )) __attribute__ ((__malloc__)) ;
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__malloc__)) ;
 
 
 
@@ -441,37 +441,37 @@ extern FILE *freopen (__const char *__restrict __filename,
 # 296 "/usr/include/stdio.h" 3 4
 
 # 307 "/usr/include/stdio.h" 3 4
-extern FILE *fdopen (int __fd, __const char *__modes) __attribute__ ((__nothrow__ )) ;
+extern FILE *fdopen (int __fd, __const char *__modes) __attribute__ ((__nothrow__ , __leaf__)) ;
 # 320 "/usr/include/stdio.h" 3 4
 extern FILE *fmemopen (void *__s, size_t __len, __const char *__modes)
-  __attribute__ ((__nothrow__ )) ;
+  __attribute__ ((__nothrow__ , __leaf__)) ;
 
 
 
 
-extern FILE *open_memstream (char **__bufloc, size_t *__sizeloc) __attribute__ ((__nothrow__ )) ;
+extern FILE *open_memstream (char **__bufloc, size_t *__sizeloc) __attribute__ ((__nothrow__ , __leaf__)) ;
 
 
 
 
 
 
-extern void setbuf (FILE *__restrict __stream, char *__restrict __buf) __attribute__ ((__nothrow__ ));
+extern void setbuf (FILE *__restrict __stream, char *__restrict __buf) __attribute__ ((__nothrow__ , __leaf__));
 
 
 
 extern int setvbuf (FILE *__restrict __stream, char *__restrict __buf,
-      int __modes, size_t __n) __attribute__ ((__nothrow__ ));
+      int __modes, size_t __n) __attribute__ ((__nothrow__ , __leaf__));
 
 
 
 
 
 extern void setbuffer (FILE *__restrict __stream, char *__restrict __buf,
-         size_t __size) __attribute__ ((__nothrow__ ));
+         size_t __size) __attribute__ ((__nothrow__ , __leaf__));
 
 
-extern void setlinebuf (FILE *__stream) __attribute__ ((__nothrow__ ));
+extern void setlinebuf (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__));
 
 
 
@@ -541,14 +541,14 @@ extern int fscanf (FILE *__restrict __stream,
 extern int scanf (__const char *__restrict __format, ...) ;
 
 extern int sscanf (__const char *__restrict __s,
-     __const char *__restrict __format, ...) __attribute__ ((__nothrow__ ));
+     __const char *__restrict __format, ...) __attribute__ ((__nothrow__ , __leaf__));
 # 449 "/usr/include/stdio.h" 3 4
 extern int fscanf (FILE *__restrict __stream, __const char *__restrict __format, ...) __asm__ ("" "__isoc99_fscanf")
 
                                ;
 extern int scanf (__const char *__restrict __format, ...) __asm__ ("" "__isoc99_scanf")
                               ;
-extern int sscanf (__const char *__restrict __s, __const char *__restrict __format, ...) __asm__ ("" "__isoc99_sscanf") __attribute__ ((__nothrow__ ))
+extern int sscanf (__const char *__restrict __s, __const char *__restrict __format, ...) __asm__ ("" "__isoc99_sscanf") __attribute__ ((__nothrow__ , __leaf__))
 
                       ;
 # 469 "/usr/include/stdio.h" 3 4
@@ -574,7 +574,7 @@ extern int vscanf (__const char *__restrict __format, __gnuc_va_list __arg)
 
 extern int vsscanf (__const char *__restrict __s,
       __const char *__restrict __format, __gnuc_va_list __arg)
-     __attribute__ ((__nothrow__ )) __attribute__ ((__format__ (__scanf__, 2, 0)));
+     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__format__ (__scanf__, 2, 0)));
 # 500 "/usr/include/stdio.h" 3 4
 extern int vfscanf (FILE *__restrict __s, __const char *__restrict __format, __gnuc_va_list __arg) __asm__ ("" "__isoc99_vfscanf")
 
@@ -584,7 +584,7 @@ extern int vfscanf (FILE *__restrict __s, __const char *__restrict __format, __g
 extern int vscanf (__const char *__restrict __format, __gnuc_va_list __arg) __asm__ ("" "__isoc99_vscanf")
 
      __attribute__ ((__format__ (__scanf__, 1, 0))) ;
-extern int vsscanf (__const char *__restrict __s, __const char *__restrict __format, __gnuc_va_list __arg) __asm__ ("" "__isoc99_vsscanf") __attribute__ ((__nothrow__ ))
+extern int vsscanf (__const char *__restrict __s, __const char *__restrict __format, __gnuc_va_list __arg) __asm__ ("" "__isoc99_vsscanf") __attribute__ ((__nothrow__ , __leaf__))
 
 
 
@@ -776,18 +776,18 @@ extern int fsetpos (FILE *__stream, __const fpos_t *__pos);
 # 821 "/usr/include/stdio.h" 3 4
 
 
-extern void clearerr (FILE *__stream) __attribute__ ((__nothrow__ ));
+extern void clearerr (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__));
 
-extern int feof (FILE *__stream) __attribute__ ((__nothrow__ )) ;
+extern int feof (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__)) ;
 
-extern int ferror (FILE *__stream) __attribute__ ((__nothrow__ )) ;
-
-
+extern int ferror (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__)) ;
 
 
-extern void clearerr_unlocked (FILE *__stream) __attribute__ ((__nothrow__ ));
-extern int feof_unlocked (FILE *__stream) __attribute__ ((__nothrow__ )) ;
-extern int ferror_unlocked (FILE *__stream) __attribute__ ((__nothrow__ )) ;
+
+
+extern void clearerr_unlocked (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__));
+extern int feof_unlocked (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__)) ;
+extern int ferror_unlocked (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__)) ;
 
 
 
@@ -812,12 +812,12 @@ extern __const char *__const sys_errlist[];
 
 
 
-extern int fileno (FILE *__stream) __attribute__ ((__nothrow__ )) ;
+extern int fileno (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__)) ;
 
 
 
 
-extern int fileno_unlocked (FILE *__stream) __attribute__ ((__nothrow__ )) ;
+extern int fileno_unlocked (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__)) ;
 # 870 "/usr/include/stdio.h" 3 4
 extern FILE *popen (__const char *__command, __const char *__modes) ;
 
@@ -831,19 +831,19 @@ extern int pclose (FILE *__stream);
 
 
 
-extern char *ctermid (char *__s) __attribute__ ((__nothrow__ ));
+extern char *ctermid (char *__s) __attribute__ ((__nothrow__ , __leaf__));
 # 910 "/usr/include/stdio.h" 3 4
-extern void flockfile (FILE *__stream) __attribute__ ((__nothrow__ ));
+extern void flockfile (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__));
 
 
 
-extern int ftrylockfile (FILE *__stream) __attribute__ ((__nothrow__ )) ;
+extern int ftrylockfile (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__)) ;
 
 
-extern void funlockfile (FILE *__stream) __attribute__ ((__nothrow__ ));
+extern void funlockfile (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__));
 # 940 "/usr/include/stdio.h" 3 4
 
-# 2 "./signextension2.safe.c" 2
+# 2 "./signextension2_safe.c" 2
 
 int main() {
   unsigned int allOne = -1;
