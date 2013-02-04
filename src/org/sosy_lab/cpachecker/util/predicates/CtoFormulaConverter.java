@@ -338,7 +338,12 @@ public class CtoFormulaConverter {
    * @return the size in bytes of the given type.
    */
   private int getSizeof(CType pType) {
-    return pType.accept(sizeofVisitor);
+    int size = pType.accept(sizeofVisitor);
+    if (size == 0) {
+      // UNDEFINED: http://stackoverflow.com/questions/1626446/what-is-the-size-of-an-empty-struct-in-c
+      log(Level.WARNING, "NOTE: Empty structs are UNDEFINED!");
+    }
+    return size;
   }
 
   /** Looks up the variable name in the current namespace. */
@@ -878,7 +883,11 @@ public class CtoFormulaConverter {
     // Currently everything is a bitvector
     BitvectorFormula ret;
     if (sfrombits > stobits) {
-      ret = fmgr.makeExtract(pFormula, stobits - 1, 0);
+      if (stobits == 0) {
+        ret = efmgr.makeBitvector(0, 0);
+      } else {
+        ret = fmgr.makeExtract(pFormula, stobits - 1, 0);
+      }
     } else if (sfrombits < stobits) {
       // Sign extend with ones when pfromType is signed and sign bit is set
       int bitsToExtend = stobits - sfrombits;
