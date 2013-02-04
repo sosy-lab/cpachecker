@@ -30,8 +30,8 @@ public final class CElaboratedType implements CComplexType {
 
   private final ComplexTypeKind kind;
   private final String   name;
-  private boolean   isConst;
-  private boolean   isVolatile;
+  private final boolean   isConst;
+  private final boolean   isVolatile;
 
   private CComplexType realType = null;
 

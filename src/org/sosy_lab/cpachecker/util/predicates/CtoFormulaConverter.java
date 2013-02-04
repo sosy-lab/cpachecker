@@ -796,11 +796,11 @@ public class CtoFormulaConverter {
       return new CFieldDereferenceTrackType(dereferencedType(((CFieldTrackType) t).getType()), t);
     }
 
-    t = CTypeUtils.simplifyType(t);
-    if (t instanceof CPointerType) {
-      t = ((CPointerType)t).getType();
+    CType simple = CTypeUtils.simplifyType(t);
+    if (simple instanceof CPointerType) {
+      t = ((CPointerType)simple).getType();
     } else if (t instanceof CArrayType) {
-      t = ((CArrayType)t).getType();
+      t = ((CArrayType)simple).getType();
     } else {
       t = new CDereferenceType(false, false, t, null);
     }

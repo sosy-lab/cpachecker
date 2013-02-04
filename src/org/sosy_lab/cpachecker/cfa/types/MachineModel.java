@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.types;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CDereferenceType;
@@ -102,6 +102,7 @@ public enum MachineModel {
 
   // a char is always a byte, but a byte doesn't have to be 8 bits
   private final int mSizeofCharInBits = 8;
+  private CSimpleType ptrEquivalent;
 
   private MachineModel(int pSizeofShort, int pSizeofInt, int pSizeofLongInt,
       int pSizeofLongLongInt, int pSizeofFloat, int pSizeofDouble,
@@ -116,6 +117,22 @@ public enum MachineModel {
     sizeofVoid = pSizeofVoid;
     sizeofBool = pSizeofBool;
     sizeofPtr = pSizeOfPtr;
+
+    if (sizeofPtr == sizeofInt) {
+      ptrEquivalent = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+    } else if (sizeofPtr == sizeofLongInt) {
+      ptrEquivalent = new CSimpleType(false, false, CBasicType.INT, true, false, false, false, false, false, false);
+    } else if (sizeofPtr == sizeofLongLongInt) {
+      ptrEquivalent = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, true);
+    } else if (sizeofPtr == sizeofShort) {
+      ptrEquivalent = new CSimpleType(false, false, CBasicType.INT, false, true, false, false, false, false, false);
+    } else {
+      throw new AssertionError("No ptr-Equivalent found");
+    }
+  }
+
+  public CSimpleType getPointerEquivalentSimpleType() {
+    return ptrEquivalent;
   }
 
   public int getSizeofCharInBits() {
@@ -213,21 +230,20 @@ public enum MachineModel {
       }
 
       @Override
-      public Integer visit(CElaboratedType elaboratedType) throws IllegalArgumentException {
-        switch (elaboratedType.getKind()) {
+      public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
+        CType def = pElaboratedType.getRealType();
+        if (def != null) {
+          return def.accept(this);
+        }
+
+        switch (pElaboratedType.getKind()) {
         case ENUM:
           return getSizeofInt();
         case STRUCT:
-          CComplexType type = elaboratedType.getRealType();
-
-          if (type == null) {
-            // TODO Warning of logger, real Type cannot be found.
-            return null;
-          }
-
-          return type.accept(this);
+          // TODO: UNDEFINED
+          return getSizeofInt();
         case UNION:
-          // TODO: Get declaration and real size
+          // TODO: UNDEFINED
           return getSizeofInt();
         default:
           return getSizeofInt();
