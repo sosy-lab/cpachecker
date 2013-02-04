@@ -752,7 +752,7 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Takes a field variable name and returns the name of the associated
+   * Takes a field variable name and returns the name and offset of the associated
    * struct variable.
    */
   static Pair<String, Pair<Integer, Integer>> removeFieldVariable(String fieldVariable) {
@@ -780,7 +780,7 @@ public class CtoFormulaConverter {
     if (pType instanceof CFieldDereferenceTrackType) {
       return ((CFieldDereferenceTrackType) pType).getReferencingFieldType();
     }
-    if (pType instanceof CDereferenceType){
+    if (pType instanceof CDereferenceType) {
       return ((CDereferenceType) pType).getType();
     }
     return new CPointerType(false, false, pType);
@@ -803,14 +803,12 @@ public class CtoFormulaConverter {
 
     CType simple = CTypeUtils.simplifyType(t);
     if (simple instanceof CPointerType) {
-      t = ((CPointerType)simple).getType();
-    } else if (t instanceof CArrayType) {
-      t = ((CArrayType)simple).getType();
+      return ((CPointerType)simple).getType();
+    } else if (simple instanceof CArrayType) {
+      return ((CArrayType)simple).getType();
     } else {
-      t = new CDereferenceType(false, false, t, null);
+      return new CDereferenceType(false, false, t, null);
     }
-
-    return t;
   }
 
   /**
@@ -835,7 +833,6 @@ public class CtoFormulaConverter {
     return Variable.create(makeMemoryLocationVariableName(varName.getName()), makePointerType(varName.getType()));
   }
 
-  // name has to be scoped already
   /**
    * makes a fresh variable out of the varName and assigns the rightHandSide to it
    * @param varName has to be scoped already
@@ -922,6 +919,10 @@ public class CtoFormulaConverter {
   }
 
 
+  /**
+   * Change the size of the given formula from fromType to toType.
+   * This method extracts or concats with nondet-bits.
+   */
   @SuppressWarnings("unchecked")
   private <T extends Formula> T makeExtractOrConcatNondet(CType pFromType, CType pToType, T pFormula) {
     assert pFormula instanceof BitvectorFormula
@@ -941,8 +942,7 @@ public class CtoFormulaConverter {
    * @param sfrom
    * @param sto
    * @param pFormula
-   * @param expandOnFront use true then used for casts and false when expanding structs
-   * @return
+   * @return the resized formula
    */
   private BitvectorFormula changeFormulaSize(int sfrombits, int stobits, BitvectorFormula pFormula) {
     assert fmgr.getFormulaType(pFormula) == efmgr.getFormulaType(sfrombits)
@@ -965,6 +965,12 @@ public class CtoFormulaConverter {
     assert fmgr.getFormulaType(ret) == efmgr.getFormulaType(stobits);
     return ret;
   }
+
+  /**
+   * Handles casts between simple types.
+   * When the fromType is a signed type a bit-extension will be done,
+   * on any other case it will be filled with 0 bits.
+   */
   private Formula makeSimpleCast(CSimpleType pfromType, CSimpleType ptoType, Formula pFormula) {
     int sfrom = machineModel.getSizeof(pfromType);
     int sto = machineModel.getSizeof(ptoType);
