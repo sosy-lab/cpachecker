@@ -456,6 +456,13 @@ public class FormulaManagerView implements FormulaManager {
     return (T) t;
   }
 
+  /**
+   * Returns a term representing the selection of pFormula[pMsb:pLsb].
+   * @param pFormula
+   * @param pMsb
+   * @param pLsb
+   * @return
+   */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeExtract(T pFormula, int pMsb, int pLsb) {
     Class<T> clazz = getInterface(pFormula);

@@ -175,6 +175,15 @@ class Mathsat5NativeApi {
   public static native long msat_make_array_write(long e, long arr, long idx, long elem);
   public static native long msat_make_bv_number(long e, String numRep, int width, int base);
   public static native long msat_make_bv_concat(long e, long t1, long t2);
+
+  /**
+   * Returns a term representing the selection of t[msb:lsb].
+   * @param e   The environment of the definition
+   * @param msb   The most significant bit of the selection.
+   * @param lsb   The least significant bit of the selection.
+   * @param t   The argument.
+   * @return a term representing the selection of t[msb:lsb].
+   */
   public static native long msat_make_bv_extract(long e, int msb, int lsb, long t);
   public static native long msat_make_bv_or(long e, long t1, long t2);
   public static native long msat_make_bv_xor(long e, long t1, long t2);
