@@ -58,10 +58,8 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.SingleLoopNetworkBuilder
 import org.sosy_lab.cpachecker.util.invariants.balancer.TemplateNetwork;
 import org.sosy_lab.cpachecker.util.invariants.balancer.WeispfenningBalancer;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateBoolean;
-import org.sosy_lab.cpachecker.util.invariants.templates.TemplateConstraint;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
-import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -82,7 +80,6 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
   private final LogManager logger;
   private final AbstractionManager amgr;
   private final FormulaManagerView emgr;
-  private final TemplateFormulaManager tmgr;
   //private final TemplatePathFormulaBuilder tpfb;
   //private final TheoremProver prover;
 
@@ -105,7 +102,6 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     amgr = predicateCpa.getAbstractionManager();
     emgr = predicateCpa.getFormulaManager();
 
-    tmgr = new TemplateFormulaManager();
     //tpfb = new TemplatePathFormulaBuilder();
 
     //prover = predicateCpa.getTheoremProver();
@@ -123,14 +119,14 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     totalRefinement.start();
 
     // build the counterexample
-    List<Collection<AbstractionPredicate>> predicates = buildCounterexampleTrace(pPath);
+    List<BooleanFormula> predicates = buildCounterexampleTrace(pPath);
 
     if (predicates != null) {
       // the counterexample path was spurious, and we refine
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
       List<ARGState> path = PredicateCPARefiner.transformPath(pPath);
-      predicateRefinementStrategy.performRefinement0(pReached, path, predicates, false);
+      predicateRefinementStrategy.performRefinement(pReached, path, predicates, false);
 
       totalRefinement.stop();
       return CounterexampleInfo.spurious();
@@ -142,9 +138,9 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
 
   }
 
-  private List<Collection<AbstractionPredicate>> buildCounterexampleTrace(ARGPath pPath) throws CPAException {
+  private List<BooleanFormula> buildCounterexampleTrace(ARGPath pPath) throws CPAException {
 
-    List<Collection<AbstractionPredicate>> ceti = null;
+    List<BooleanFormula> ceti = null;
 
     NetworkBuilder nbuilder = null;
     try {
@@ -206,7 +202,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     return ceti;
   }
 
-  private void addPredicates(List<Collection<AbstractionPredicate>> ceti, TemplateNetwork tnet, ARGPath pPath) throws CPAException {
+  private void addPredicates(List<BooleanFormula> ceti, TemplateNetwork tnet, ARGPath pPath) throws CPAException {
     // Since we are going to use the methods in PredicateRefiner, we need to pad the List
     // of AbstractionPredicate Collections in ceti to make the predicates in phi correspond to
     // the loop head location, and so that the predicates after that location are all 'false'.
@@ -215,8 +211,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     BooleanFormulaManagerView bfmgr = emgr.getBooleanFormulaManager();
 
     // Make true and false formulas.
-    Collection<AbstractionPredicate> trueFormula = new Vector<>();
-    trueFormula.add(amgr.makePredicate(bfmgr.makeBoolean(true)));
+    BooleanFormula trueFormula = bfmgr.makeBoolean(true);
     Collection<AbstractionPredicate> falseFormula = new Vector<>();
     falseFormula.add(amgr.makePredicate(bfmgr.makeBoolean(false)));
 
@@ -231,61 +226,15 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
       CFANode loc = path.get(i);
       phi = tnet.getTemplate(loc).getTemplateFormula();
       if (phi != null) {
-        boolean atomic = true;
-        //Collection<AbstractionPredicate> phiPreds = makeAbstractionPredicates(phi);
-        Collection<AbstractionPredicate> phiPreds = makeAbstrPreds(phi, atomic);
-        ceti.add(phiPreds);
+        ceti.add(convertFormula(phi));
       } else {
         ceti.add(trueFormula);
       }
     }
   }
 
-  private Collection<AbstractionPredicate> makeAbstrPreds(TemplateFormula invariant, boolean atomic) {
-    if (atomic) {
-      return makeAbstractionPredicates(invariant);
-    } else {
-      return makeAbstractionPredicatesNonatomic(invariant);
-    }
-  }
-
-  private Collection<AbstractionPredicate> makeAbstractionPredicates(TemplateFormula invariant) {
-    // Extract the atomic formulas from 'invariant',
-    // then create equivalent Formulas using emgr,
-    // and finally pass these, one atom at a time,
-    // to amgr's makePredicate method, which will
-    // return an AbstractionPredicate for each atom.
-
-    // Here we use the same booleans (splitItpAtoms, false) that are used in the call to
-    // extractAtoms in PredicateRefinementManager.getAtomsAsPredicates:
-    FormulaManagerView templateView = new FormulaManagerView(tmgr);
-    Collection<BooleanFormula> atoms =
-        templateView.extractAtoms(
-            templateView.wrapInView((TemplateBoolean)invariant), splitItpAtoms, false);
-
-    Collection<AbstractionPredicate> preds = new Vector<>();
-
-    for (BooleanFormula atom : atoms) {
-      try {
-        TemplateConstraint tc = (TemplateConstraint)atom;
-        BooleanFormula formula = tc.translate(emgr);
-        preds.add( amgr.makePredicate(formula) );
-      } catch (ClassCastException e) {
-        // This should not happen! If it does, then tmgr.extractAtoms did something wrong.
-        logger.log(Level.ALL, "Refinement atom was not in the form of a constraint.", atom);
-      }
-    }
-
-    return preds;
-  }
-
-  private Collection<AbstractionPredicate> makeAbstractionPredicatesNonatomic(TemplateFormula invariant) {
-    // Like makeAbstractionPredicates, only does /not/ split the passed
-    // invariant into atoms, but keeps it whole.
-    Collection<AbstractionPredicate> preds = new Vector<>();
-    BooleanFormula formula = ((TemplateBoolean)invariant).translate(emgr);
-    preds.add( amgr.makePredicate(formula) );
-    return preds;
+  private BooleanFormula convertFormula(TemplateFormula invariant) {
+    return ((TemplateBoolean)invariant).translate(emgr);
   }
 
   private List<CFANode> transformPath(ARGPath pPath) {
