@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.div;
 
 import java.io.PrintStream;
@@ -59,11 +61,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 
 /**
@@ -104,6 +105,7 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
   protected final LogManager logger;
   private final AbstractionManager amgr;
   private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
 
   private class Stats implements Statistics {
     @Override
@@ -119,12 +121,16 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
       out.println("  Precision update:                   " + precisionUpdate);
       out.println("  ARG update:                         " + argUpdate);
       out.println();
+      out.println("Avg. length of refined path (in blocks):    " + div(totalPathLengthToInfeasibility, numberOfRefinements));
+      out.println("Avg. number of blocks unchanged in path:    " + div(totalUnchangedPrefixLength, numberOfRefinements));
       out.println("Number of refs with location-based cutoff:  " + numberOfRefinementsWithStrategy2);
       out.println("Avg. number of affected states:             " + div(totalNumberOfAffectedStates, numberOfRefinements));
     }
   }
 
   // statistics
+  private int totalPathLengthToInfeasibility = 0; // measured in blocks
+  private int totalUnchangedPrefixLength = 0; // measured in blocks
   private int totalNumberOfAffectedStates = 0;
   private int numberOfRefinementsWithStrategy2 = 0;
 
@@ -141,23 +147,83 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
     logger = pLogger;
     amgr = pAbstractionManager;
     fmgr = pFormulaManager;
+    bfmgr = pFormulaManager.getBooleanFormulaManager();
   }
 
-  @Override
-  public void performRefinement(ARGReachedSet pReached,
-      List<ARGState> pPath,
-      List<BooleanFormula> pInterpolants,
-      boolean pRepeatedCounterexample) throws CPAException {
+  private ListMultimap<CFANode, AbstractionPredicate> newPredicates;
 
-    // extract predicates from interpolants
-    predicateCreation.start();
-    List<Collection<AbstractionPredicate>> newPreds = Lists.newArrayList();
-    for (BooleanFormula interpolant : pInterpolants) {
-      newPreds.add(convertInterpolant(interpolant));
+  @Override
+  public void performRefinement(ARGReachedSet pReached, List<ARGState> path,
+      List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException {
+
+    startRefinementOfPath();
+
+    ARGState lastElement = path.get(path.size()-1);
+    assert lastElement.isTarget();
+
+    path = path.subList(0, path.size()-1); // skip last element, itp is always false there
+    assert pInterpolants.size() ==  path.size();
+
+    List<ARGState> changedElements = new ArrayList<>();
+    ARGState infeasiblePartOfART = lastElement;
+    for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(pInterpolants, path)) {
+      totalPathLengthToInfeasibility++;
+      BooleanFormula itp = interpolationPoint.getFirst();
+      ARGState w = interpolationPoint.getSecond();
+
+      if (bfmgr.isTrue(itp)) {
+        // do nothing
+        totalUnchangedPrefixLength++;
+        continue;
+      }
+
+      if (bfmgr.isFalse(itp)) {
+        // we have reached the part of the path that is infeasible
+        infeasiblePartOfART = w;
+        break;
+      }
+
+      if (!performRefinementForState(itp, w)) {
+        changedElements.add(w);
+      }
     }
+    if (infeasiblePartOfART == lastElement) {
+      totalPathLengthToInfeasibility++;
+    }
+    totalNumberOfAffectedStates += changedElements.size();
+
+    if (changedElements.isEmpty() && pRepeatedCounterexample) {
+      // TODO One cause for this exception is that the CPAAlgorithm sometimes
+      // re-adds the parent of the error element to the waitlist, and thus the
+      // error element would get re-discovered immediately again.
+      // Currently the CPAAlgorithm does this only when there are siblings of
+      // the target state, which should rarely happen.
+      // We still need a better handling for this situation.
+      throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
+    }
+
+    finishRefinementOfPath(infeasiblePartOfART, changedElements, pReached, pRepeatedCounterexample);
+
+    assert !pReached.asReachedSet().contains(lastElement);
+  }
+
+  public void startRefinementOfPath() {
+    checkState(newPredicates == null);
+    newPredicates = ArrayListMultimap.create();
+  }
+
+  public boolean performRefinementForState(BooleanFormula pInterpolant, ARGState interpolationPoint) {
+    checkState(newPredicates != null);
+    checkArgument(!bfmgr.isTrue(pInterpolant));
+
+    predicateCreation.start();
+    Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant);
+    CFANode loc = AbstractStates.extractLocation(interpolationPoint);
+
+    newPredicates.putAll(loc, localPreds);
     predicateCreation.stop();
 
-    performRefinement0(pReached, pPath, newPreds, pRepeatedCounterexample);
+    return false;
   }
 
   /**
@@ -166,7 +232,6 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
    * @return A set of predicates.
    */
   protected final Collection<AbstractionPredicate> convertInterpolant(BooleanFormula interpolant) {
-    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     if (bfmgr.isTrue(interpolant)) {
       return Collections.<AbstractionPredicate>emptySet();
     }
@@ -204,22 +269,35 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
     return preds;
   }
 
-  protected final void performRefinement0(ARGReachedSet pReached,
-      List<ARGState> pPath,
-      List<Collection<AbstractionPredicate>> newPreds,
-      boolean pRepeatedCounterexample) throws CPAException {
-    precisionUpdate.start();
+  public void finishRefinementOfPath(ARGState pUnreachableState,
+      List<ARGState> pAffectedStates, ARGReachedSet pReached,
+      boolean pRepeatedCounterexample)
+      throws CPAException {
+
+    if (newPredicates.isEmpty() && pUnreachableState.isTarget()) {
+      // The only reason why this might appear is that the very last block is
+      // infeasible in itself, however, we check for such cases during strengthen,
+      // so they shouldn't appear here.
+      throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
+    }
+
+    newPredicates.put(extractLocation(pUnreachableState), amgr.makeFalsePredicate());
+    pAffectedStates.add(pUnreachableState);
+
+    // We have two different strategies for the refinement root: set it to
+    // the first interpolation point or set it to highest location in the ARG
+    // where the same CFANode appears.
+    // Both work, so this is a heuristics question to get the best performance.
+    // My benchmark showed, that at least for the benchmarks-lbe examples it is
+    // best to use strategy one iff newPredicatesFound.
 
     // get previous precision
     UnmodifiableReachedSet reached = pReached.asReachedSet();
     PredicatePrecision targetStatePrecision = extractPredicatePrecision(reached.getPrecision(reached.getLastState()));
 
-    // collect predicates from refinement and find refinement root
-    Pair<ARGState, Multimap<CFANode, AbstractionPredicate>> refinementResult =
-            performRefinement(targetStatePrecision, pPath, newPreds, pRepeatedCounterexample);
+    ARGState refinementRoot = getRefinementRoot(pAffectedStates, targetStatePrecision, pRepeatedCounterexample);
 
-    ARGState refinementRoot = refinementResult.getFirst();
-    Multimap<CFANode, AbstractionPredicate> newPredicates = refinementResult.getSecond();
+    logger.log(Level.FINEST, "Removing everything below", refinementRoot, "from ARG.");
 
     // check whether we should restart
     refinementCount++;
@@ -234,6 +312,7 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
     }
 
     // now create new precision
+    precisionUpdate.start();
     PredicatePrecision basePrecision;
     if (keepAllPredicates) {
       basePrecision = findAllPredicatesFromSubgraph(refinementRoot, reached);
@@ -264,6 +343,8 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
     }
 
     argUpdate.stop();
+
+    newPredicates = null;
   }
 
   protected final PredicatePrecision extractPredicatePrecision(Precision oldPrecision) throws IllegalStateException {
@@ -274,68 +355,12 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
     return oldPredicatePrecision;
   }
 
-  private Pair<ARGState, Multimap<CFANode, AbstractionPredicate>> performRefinement(
-      PredicatePrecision oldPrecision, List<ARGState> pPath,
-      List<Collection<AbstractionPredicate>> newPreds,
-      boolean pRepeatedCounterexample) throws CPAException {
+  private ARGState getRefinementRoot(List<ARGState> pAffectedStates, PredicatePrecision targetStatePrecision,
+      boolean pRepeatedCounterexample) throws RefinementFailedException {
+    boolean newPredicatesFound = !targetStatePrecision.getLocalPredicates().entries().containsAll(newPredicates.entries());
 
-    // target state is not really an interpolation point, exclude it
-    List<ARGState> interpolationPoints = pPath.subList(0, pPath.size()-1);
-    assert interpolationPoints.size() == newPreds.size();
-
-    boolean predicatesFound = false;
-    boolean newPredicatesFound = false;
-    ARGState firstInterpolationPoint = null;
-
-    ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pmapBuilder = ImmutableSetMultimap.builder();
-    pmapBuilder.putAll(oldPrecision.getLocalPredicates());
-
-    // iterate through interpolationPoints and find first point with new predicates, from there we have to cut the ARG
-    // also build new precision
-    int i = 0;
-    for (ARGState interpolationPoint : interpolationPoints) {
-      Collection<AbstractionPredicate> localPreds = newPreds.get(i++);
-
-      if (localPreds.size() > 0) {
-        // found predicates
-        predicatesFound = true;
-        CFANode loc = AbstractStates.extractLocation(interpolationPoint);
-
-        if (firstInterpolationPoint == null) {
-          firstInterpolationPoint = interpolationPoint;
-        }
-
-        if (!oldPrecision.getPredicates(loc).containsAll(localPreds)) {
-          // new predicates for this location
-          newPredicatesFound = true;
-          pmapBuilder.putAll(loc, localPreds);
-          totalNumberOfAffectedStates++;
-        }
-      }
-    }
-    if (!predicatesFound) {
-      // The only reason why this might appear is that the very last block is
-      // infeasible in itself, however, we check for such cases during strengthen,
-      // so they shouldn't appear here.
-      throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
-    }
-    assert firstInterpolationPoint != null;
-
-    // We have two different strategies for the refinement root: set it to
-    // the firstInterpolationPoint or set it to highest location in the ARG
-    // where the same CFANode appears.
-    // Both work, so this is a heuristics question to get the best performance.
-    // My benchmark showed, that at least for the benchmarks-lbe examples it is
-    // best to use strategy one iff newPredicatesFound.
-
-    ARGState refinementRoot = null;
-    if (newPredicatesFound) {
-      refinementRoot = firstInterpolationPoint;
-
-      logger.log(Level.FINEST, "Found spurious counterexample,",
-          "trying strategy 1: remove everything below", refinementRoot, "from ARG.");
-
-    } else {
+    ARGState firstInterpolationPoint = pAffectedStates.get(0);
+    if (!newPredicatesFound) {
       if (pRepeatedCounterexample) {
         throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
       }
@@ -346,20 +371,21 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
       logger.log(Level.FINEST, "Found spurious counterexample,",
           "trying strategy 2: remove everything below node", firstInterpolationPointLocation, "from ARG.");
 
-      // find first element in path with location == firstInterpolationPointLocation,
+      // find top-most element in path with location == firstInterpolationPointLocation,
       // this is not necessary equal to firstInterpolationPoint
-      for (ARGState abstractionPoint : pPath) {
-        CFANode loc = AbstractStates.extractLocation(abstractionPoint);
-        if (loc.equals(firstInterpolationPointLocation)) {
-          refinementRoot = abstractionPoint;
-          break;
+      ARGState current = firstInterpolationPoint;
+      while (!current.getParents().isEmpty()) {
+        current = Iterables.get(current.getParents(), 0);
+
+        if (extractStateByType(current, PredicateAbstractState.class).isAbstractionState()) {
+          CFANode loc = AbstractStates.extractLocation(current);
+          if (loc.equals(firstInterpolationPointLocation)) {
+            firstInterpolationPoint = current;
+          }
         }
       }
-      if (refinementRoot == null) {
-        throw new CPAException("Inconsistent ARG, did not find element for " + firstInterpolationPointLocation);
-      }
     }
-    return Pair.of(refinementRoot, (Multimap<CFANode, AbstractionPredicate>)pmapBuilder.build());
+    return firstInterpolationPoint;
   }
 
   /**
