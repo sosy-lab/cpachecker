@@ -108,11 +108,11 @@ public class FormulaManagerFactory {
     return fmgr;
   }
 
-  public ProverEnvironment newProverEnvironment() {
+  public ProverEnvironment newProverEnvironment(boolean generateModels) {
     if (solver.equals(SMTINTERPOL)) {
       return new SmtInterpolTheoremProver((SmtInterpolFormulaManager)fmgr);
     } else {
-      return new Mathsat5TheoremProver((Mathsat5FormulaManager)fmgr);
+      return new Mathsat5TheoremProver((Mathsat5FormulaManager)fmgr, generateModels);
     }
   }
 

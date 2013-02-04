@@ -48,12 +48,14 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
   private final Mathsat5FormulaManager mgr;
   private long curEnv;
 
-  public Mathsat5TheoremProver(
-      Mathsat5FormulaManager pMgr) {
+  public Mathsat5TheoremProver(Mathsat5FormulaManager pMgr,
+      boolean generateModels) {
     mgr = pMgr;
 
     long cfg = msat_create_config();
-    msat_set_option_checked(cfg, "model_generation", "true");
+    if (generateModels) {
+      msat_set_option_checked(cfg, "model_generation", "true");
+    }
     curEnv = mgr.createEnvironment(cfg, USE_SHARED_ENV, true);
     checkNotNull(curEnv);
   }

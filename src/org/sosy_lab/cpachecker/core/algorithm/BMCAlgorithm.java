@@ -229,7 +229,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         return soundInner;
       }
 
-      try (ProverEnvironment prover = solver.newProverEnvironment()) {
+      try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration()) {
 
         // first check safety
         boolean safe = checkTargetStates(pReachedSet, prover);

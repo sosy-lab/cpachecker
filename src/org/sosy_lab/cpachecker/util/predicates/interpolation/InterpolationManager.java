@@ -765,7 +765,7 @@ public final class InterpolationManager {
   public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
     BooleanFormula f = pmgr.makeFormulaForPath(pPath).getFormula();
 
-    try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
+    try (ProverEnvironment thmProver = solver.newProverEnvironmentWithModelGeneration()) {
       thmProver.push(f);
       if (thmProver.isUnsat()) {
         return CounterexampleTraceInfo.infeasible(ImmutableList.<BooleanFormula>of());
