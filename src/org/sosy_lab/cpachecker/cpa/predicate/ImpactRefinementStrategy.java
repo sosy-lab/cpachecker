@@ -24,14 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.*;
-import static org.sosy_lab.cpachecker.util.StatisticsUtils.div;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -41,23 +38,17 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
  * Refinement strategy similar to McMillan's Impact algorithm.
  * The states of the ARG are strengthened by conjunctively adding the interpolants to them.
  */
-class ImpactRefinementStrategy implements RefinementStrategy {
+class ImpactRefinementStrategy extends RefinementStrategy {
 
   private class Stats implements Statistics {
-
-    private int totalPathLengthToInfeasibility = 0; // measured in blocks
-    private int totalUnchangedPrefixLength = 0; // measured in blocks
-    private int totalNumberOfAffectedStates = 0;
 
     private final Timer itpCheck  = new Timer();
     private final Timer coverTime = new Timer();
@@ -70,95 +61,37 @@ class ImpactRefinementStrategy implements RefinementStrategy {
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      int numberOfRefinements = argUpdate.getNumberOfIntervals();
-
       out.println("  Checking whether itp is new:        " + itpCheck);
       out.println("  Coverage checks:                    " + coverTime);
       out.println("  ARG update:                         " + argUpdate);
       out.println();
-      out.println("Avg. length of refined path (in blocks):    " + div(totalPathLengthToInfeasibility, numberOfRefinements));
-      out.println("Avg. number of blocks unchanged in path:    " + div(totalUnchangedPrefixLength, numberOfRefinements));
-      out.println("Avg. number of affected states:             " + div(totalNumberOfAffectedStates, numberOfRefinements));
+      ImpactRefinementStrategy.this.printStatistics(out);
     }
   }
 
   private final Stats stats = new Stats();
 
   private final FormulaManagerView fmgr;
-  private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
 
   protected ImpactRefinementStrategy(final Configuration config, final LogManager logger,
       final FormulaManagerView pFmgr, final Solver pSolver) throws InvalidConfigurationException, CPAException {
+    super(pFmgr.getBooleanFormulaManager());
 
     solver = pSolver;
     fmgr = pFmgr;
-    bfmgr = pFmgr.getBooleanFormulaManager();
   }
 
   @Override
-  public void performRefinement(ARGReachedSet pReached, List<ARGState> path,
-      List<BooleanFormula> interpolants, boolean pRepeatedCounterexample) throws CPAException {
-
-    startRefinementOfPath();
-
-    ARGState lastElement = path.get(path.size()-1);
-    assert lastElement.isTarget();
-
-    path = path.subList(0, path.size()-1); // skip last element, itp is always false there
-    assert interpolants.size() ==  path.size();
-
-    List<ARGState> changedElements = new ArrayList<>();
-    ARGState infeasiblePartOfART = lastElement;
-    for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(interpolants, path)) {
-      stats.totalPathLengthToInfeasibility++;
-      BooleanFormula itp = interpolationPoint.getFirst();
-      ARGState w = interpolationPoint.getSecond();
-
-      if (bfmgr.isTrue(itp)) {
-        // do nothing
-        stats.totalUnchangedPrefixLength++;
-        continue;
-      }
-
-      if (bfmgr.isFalse(itp)) {
-        // we have reached the part of the path that is infeasible
-        infeasiblePartOfART = w;
-        break;
-      }
-
-      if (!performRefinementForState(itp, w)) {
-        changedElements.add(w);
-      }
-    }
-    if (infeasiblePartOfART == lastElement) {
-      stats.totalPathLengthToInfeasibility++;
-    }
-    stats.totalNumberOfAffectedStates += changedElements.size();
-
-    if (changedElements.isEmpty() && pRepeatedCounterexample) {
-      // TODO One cause for this exception is that the CPAAlgorithm sometimes
-      // re-adds the parent of the error element to the waitlist, and thus the
-      // error element would get re-discovered immediately again.
-      // Currently the CPAAlgorithm does this only when there are siblings of
-      // the target state, which should rarely happen.
-      // We still need a better handling for this situation.
-      throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
-    }
-
-    finishRefinementOfPath(infeasiblePartOfART, changedElements, pReached, pRepeatedCounterexample);
-
-    assert !pReached.asReachedSet().contains(lastElement);
-  }
-
-  public void startRefinementOfPath() {
+  protected void startRefinementOfPath() {
   }
 
   /**
    * For each interpolant, we strengthen the corresponding state by
    * conjunctively adding the interpolant to its state formula.
    */
-  public boolean performRefinementForState(BooleanFormula itp,
+  @Override
+  protected boolean performRefinementForState(BooleanFormula itp,
       ARGState w) {
 
     itp = fmgr.uninstantiate(itp);
@@ -180,7 +113,8 @@ class ImpactRefinementStrategy implements RefinementStrategy {
    * and re-establish the coverage invariant (i.e., that states on the path
    * are either covered or cannot be covered).
    */
-  public void finishRefinementOfPath(ARGState infeasiblePartOfART,
+  @Override
+  protected void finishRefinementOfPath(ARGState infeasiblePartOfART,
       List<ARGState> changedElements, ARGReachedSet pReached,
       boolean pRepeatedCounterexample)
       throws CPAException {

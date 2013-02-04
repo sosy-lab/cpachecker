@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
-import static org.sosy_lab.cpachecker.util.StatisticsUtils.div;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -36,7 +35,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -73,7 +71,7 @@ import com.google.common.collect.Sets;
  * and removing the relevant parts of the ARG).
  */
 @Options(prefix="cpa.predicate.refinement")
-public class PredicateAbstractionRefinementStrategy implements RefinementStrategy {
+public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   @Option(description="use only the atoms from the interpolants as predicates, "
     + "and not the whole interpolant")
@@ -115,23 +113,16 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      int numberOfRefinements = argUpdate.getNumberOfIntervals();
-
       out.println("  Predicate creation:                 " + predicateCreation);
       out.println("  Precision update:                   " + precisionUpdate);
       out.println("  ARG update:                         " + argUpdate);
       out.println();
-      out.println("Avg. length of refined path (in blocks):    " + div(totalPathLengthToInfeasibility, numberOfRefinements));
-      out.println("Avg. number of blocks unchanged in path:    " + div(totalUnchangedPrefixLength, numberOfRefinements));
+      PredicateAbstractionRefinementStrategy.this.printStatistics(out);
       out.println("Number of refs with location-based cutoff:  " + numberOfRefinementsWithStrategy2);
-      out.println("Avg. number of affected states:             " + div(totalNumberOfAffectedStates, numberOfRefinements));
     }
   }
 
   // statistics
-  private int totalPathLengthToInfeasibility = 0; // measured in blocks
-  private int totalUnchangedPrefixLength = 0; // measured in blocks
-  private int totalNumberOfAffectedStates = 0;
   private int numberOfRefinementsWithStrategy2 = 0;
 
   private final Timer predicateCreation = new Timer();
@@ -141,6 +132,7 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
   protected PredicateAbstractionRefinementStrategy(final Configuration config,
       final LogManager pLogger, final FormulaManagerView pFormulaManager,
       final AbstractionManager pAbstractionManager) throws CPAException, InvalidConfigurationException {
+    super(pFormulaManager.getBooleanFormulaManager());
 
     config.inject(this, PredicateAbstractionRefinementStrategy.class);
 
@@ -153,65 +145,12 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
   private ListMultimap<CFANode, AbstractionPredicate> newPredicates;
 
   @Override
-  public void performRefinement(ARGReachedSet pReached, List<ARGState> path,
-      List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException {
-
-    startRefinementOfPath();
-
-    ARGState lastElement = path.get(path.size()-1);
-    assert lastElement.isTarget();
-
-    path = path.subList(0, path.size()-1); // skip last element, itp is always false there
-    assert pInterpolants.size() ==  path.size();
-
-    List<ARGState> changedElements = new ArrayList<>();
-    ARGState infeasiblePartOfART = lastElement;
-    for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(pInterpolants, path)) {
-      totalPathLengthToInfeasibility++;
-      BooleanFormula itp = interpolationPoint.getFirst();
-      ARGState w = interpolationPoint.getSecond();
-
-      if (bfmgr.isTrue(itp)) {
-        // do nothing
-        totalUnchangedPrefixLength++;
-        continue;
-      }
-
-      if (bfmgr.isFalse(itp)) {
-        // we have reached the part of the path that is infeasible
-        infeasiblePartOfART = w;
-        break;
-      }
-
-      if (!performRefinementForState(itp, w)) {
-        changedElements.add(w);
-      }
-    }
-    if (infeasiblePartOfART == lastElement) {
-      totalPathLengthToInfeasibility++;
-    }
-    totalNumberOfAffectedStates += changedElements.size();
-
-    if (changedElements.isEmpty() && pRepeatedCounterexample) {
-      // TODO One cause for this exception is that the CPAAlgorithm sometimes
-      // re-adds the parent of the error element to the waitlist, and thus the
-      // error element would get re-discovered immediately again.
-      // Currently the CPAAlgorithm does this only when there are siblings of
-      // the target state, which should rarely happen.
-      // We still need a better handling for this situation.
-      throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
-    }
-
-    finishRefinementOfPath(infeasiblePartOfART, changedElements, pReached, pRepeatedCounterexample);
-
-    assert !pReached.asReachedSet().contains(lastElement);
-  }
-
   public void startRefinementOfPath() {
     checkState(newPredicates == null);
     newPredicates = ArrayListMultimap.create();
   }
 
+  @Override
   public boolean performRefinementForState(BooleanFormula pInterpolant, ARGState interpolationPoint) {
     checkState(newPredicates != null);
     checkArgument(!bfmgr.isTrue(pInterpolant));
@@ -269,6 +208,7 @@ public class PredicateAbstractionRefinementStrategy implements RefinementStrateg
     return preds;
   }
 
+  @Override
   public void finishRefinementOfPath(ARGState pUnreachableState,
       List<ARGState> pAffectedStates, ARGReachedSet pReached,
       boolean pRepeatedCounterexample)

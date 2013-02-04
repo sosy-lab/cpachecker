@@ -101,8 +101,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
       if (numberOfRefinements > 0) {
         out.println("Avg. length of target path (in blocks):     " + div(totalPathLength, numberOfRefinements));
-        out.println("Avg. number of blocks unchanged in path:    " + div(totalUnchangedPrefixLength, numberOfSuccessfulRefinements));
-        out.println("Avg. number of states with non-trivial itp: " + div(totalNumberOfStatesWithNonTrivialInterpolant, numberOfSuccessfulRefinements));
         out.println();
         out.println("Time for refinement:                  " + totalRefinement);
         formulaManager.printStatistics(out, result, reached);
@@ -119,18 +117,13 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   }
 
   // statistics
-  private int numberOfSuccessfulRefinements = 0;
   private int totalPathLength = 0; // measured in blocks
-  private int totalUnchangedPrefixLength = 0; // measured in blocks
-  private int totalNumberOfStatesWithNonTrivialInterpolant = 0;
 
   private final Timer totalRefinement = new Timer();
   private final Timer errorPathProcessing = new Timer();
 
-
   private final LogManager logger;
 
-  private final FormulaManagerView fmgr;
   private final PathFormulaManager pfmgr;
   private final InterpolationManager formulaManager;
   private final RefinementStrategy strategy;
@@ -152,7 +145,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     logger = pLogger;
     formulaManager = pInterpolationManager;
-    fmgr = pFormulaManager;
     pfmgr = pPathFormulaManager;
     strategy = pStrategy;
   }
@@ -190,21 +182,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     // if error is spurious refine
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
-      numberOfSuccessfulRefinements++;
 
       boolean repeatedCounterexample = formulas.equals(lastErrorPath);
       lastErrorPath = formulas;
-
-      // just statistics
-      for (BooleanFormula interpolant : counterexample.getInterpolants()) {
-        if (fmgr.getBooleanFormulaManager().isTrue(interpolant)) {
-          totalUnchangedPrefixLength++;
-        } else if (fmgr.getBooleanFormulaManager().isFalse(interpolant)) {
-          break;
-        } else {
-          totalNumberOfStatesWithNonTrivialInterpolant++;
-        }
-      }
 
       strategy.performRefinement(pReached, path, counterexample.getInterpolants(), repeatedCounterexample);
 
