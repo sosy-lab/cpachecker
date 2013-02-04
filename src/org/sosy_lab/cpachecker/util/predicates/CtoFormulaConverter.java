@@ -701,14 +701,14 @@ public class CtoFormulaConverter {
 
   private static Variable<CType> makePointerMask(Variable<CType> pointerVar, SSAMapBuilder ssa) {
     Variable<CType> ptrMask = Variable.create(makePointerMaskName(pointerVar.getName(), ssa), dereferencedType(pointerVar.getType()));
-    if (ptrMask.getType() instanceof CDereferenceType) {
+    if (isDereferenceType(ptrMask.getType())) {
       // lookup in ssa map: Maybe we assigned a size to this current variable
       @SuppressWarnings("unchecked")
       Variable<CType> savedVar = (Variable<CType>) ssa.getVariable(ptrMask.getName());
       if (savedVar != null) {
         ptrMask = ptrMask.withType(savedVar.getType());
-        assert savedVar.getType() instanceof CDereferenceType
-            : "The savedVar should also be a CDereferenceType!";
+        assert isDereferenceType(savedVar.getType())
+            : "The savedVar should also be a DereferenceType!";
       }
     }
     return ptrMask;
