@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
@@ -151,7 +152,12 @@ public class CtoFormulaTypeUtils {
 
     CType simple = CtoFormulaTypeUtils.simplifyType(t);
     if (simple instanceof CPointerType) {
-      return ((CPointerType)simple).getType();
+      CType inner = ((CPointerType)simple).getType();
+      if (areEqual(inner, CSimpleType.Void)) {
+        // Enable guessing for void*
+        return new CDereferenceType(false, false, t, null);
+      }
+      return inner;
     } else if (simple instanceof CArrayType) {
       return ((CArrayType)simple).getType();
     } else {
