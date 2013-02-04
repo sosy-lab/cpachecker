@@ -240,6 +240,9 @@ public class CtoFormulaConverter {
   @Option(description = "Handle implicit and explicit casts.")
   private boolean ignoreCasts = true;
 
+  @Option(description = "Handle field access via extract and concat instead of new variables.")
+  private boolean handleFieldAccess = false;
+
   private final Set<String> printedWarnings = new HashSet<>();
 
   private final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<>();
@@ -318,12 +321,9 @@ public class CtoFormulaConverter {
 
   /** Looks up the variable name in the current namespace. */
   private Variable<CType> scopedIfNecessary(CExpression exp, SSAMapBuilder ssa, String function) {
-    assert (
-        exp instanceof CIdExpression ||
-        exp instanceof CFieldReference ||
-        exp instanceof CUnaryExpression ||
-        exp instanceof CCastExpression)
-        : "Can only handle simple statements";
+    assert
+        isSupportedExpression(exp)
+        : "Can only handle supported expressions";
     Variable<CType> name;
     if (exp instanceof CIdExpression) {
       CIdExpression var = (CIdExpression) exp;
@@ -423,7 +423,7 @@ public class CtoFormulaConverter {
     return isRepresentableType(dereferencedType(v.getType()));
   }
 
-  private boolean hasRepresentableDereference(CIdExpression e) {
+  private boolean hasRepresentableDereference(CExpression e) {
     return isRepresentableType(dereferencedType(e.getExpressionType()));
   }
 
@@ -469,17 +469,8 @@ public class CtoFormulaConverter {
    * Produces a fresh new SSA index for an assignment
    * and updates the SSA map.
    */
-  private int makeFreshIndex(Variable<CType> varName, SSAMapBuilder ssa) {
-    int idx = ssa.getIndex(varName);
-    if (idx > 0) {
-      idx = idx+1;
-    } else {
-      idx = VARIABLE_UNINITIALIZED; // AG - IMPORTANT!!! We must start from 2 and
-      // not from 1, because this is an assignment,
-      // so the SSA index must be fresh.
-    }
-    setSsaIndex(ssa, varName, idx);
-    return idx;
+  private int makeFreshIndex(Variable<CType> var, SSAMapBuilder ssa) {
+    return getIndex(var, ssa, true);
   }
 
   /**
@@ -489,14 +480,30 @@ public class CtoFormulaConverter {
    * @return the index of the variable
    */
   private int getIndex(Variable<CType> var, SSAMapBuilder ssa) {
+    return getIndex(var, ssa, false);
+  }
+
+  private int getIndex(Variable<CType> var, SSAMapBuilder ssa, boolean makeFresh) {
     int idx = ssa.getIndex(var);
-    if (idx <= 0) {
-      logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", var);
-      idx = 1;
+    if (makeFresh) {
+      if (idx > 0) {
+        idx = idx+1;
+      } else {
+        idx = VARIABLE_UNINITIALIZED; // AG - IMPORTANT!!! We must start from 2 and
+        // not from 1, because this is an assignment,
+        // so the SSA index must be fresh.
+      }
       setSsaIndex(ssa, var, idx);
     } else {
-      checkSsaSavedType(var, ssa);
+      if (idx <= 0) {
+        logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", var);
+        idx = 1;
+        setSsaIndex(ssa, var, idx);
+      } else {
+        checkSsaSavedType(var, ssa);
+      }
     }
+
     return idx;
   }
 
@@ -586,37 +593,20 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Create a formula for a given variable.
-   * This method does not handle scoping and the NON_DET_VARIABLE!
-   *
-   * This method does not update the index of the variable.
-   */
-  private <T extends Formula> T makeVariableRaw(Variable<CType> var, SSAMapBuilder ssa) {
-
-    int idx = getIndex(var, ssa);
-    assert !IS_FIELD_VARIABLE.apply(var.getName())
-      : "Never make variables for field! Always use the underlaying bitvector! Fieldvariable-Names are only used as intermediate step!";
-    return fmgr.makeVariable(this.<T>getFormulaTypeFromCType(var.getType()), var.getName(), idx);
-  }
-
-  /**
-   * Create a formula for a given variable with a fresh index for the left-hand
+   * Create a formula for a given variable with a fresh index for the left-hand if needed
    * side of an assignment.
    * This method does not handle scoping and the NON_DET_VARIABLE!
    */
-  private  <T extends Formula> T makeFreshVariableRaw(Variable<CType> var, SSAMapBuilder ssa) {
-    int idx = makeFreshIndex(var, ssa);
-    assert !IS_FIELD_VARIABLE.apply(var.getName())
-      : "Never make variables for field! Always use the underlaying bitvector! Fieldvariable-Names are only used as intermediate step!";
-    return fmgr.makeVariable(this.<T>getFormulaTypeFromCType(var.getType()), var.getName(), idx);
-  }
-
   @SuppressWarnings("unchecked")
-  private <T extends Formula> T resolveFields(Variable<CType> var, SSAMapBuilder ssa, Function<Pair<Variable<CType>, SSAMapBuilder>, T> rawVariableBuilder) {
+  private <T extends Formula> T resolveFields(Variable<CType> var, SSAMapBuilder ssa, boolean makeFreshIndex) {
     // Resolve Fields
 
     if (!IS_FIELD_VARIABLE.apply(var.getName())) {
-      return rawVariableBuilder.apply(Pair.of(var, ssa));
+      int idx = getIndex(var, ssa, makeFreshIndex);
+
+      assert !IS_FIELD_VARIABLE.apply(var.getName())
+        : "Never make variables for field! Always use the underlaying bitvector! Fieldvariable-Names are only used as intermediate step!";
+      return fmgr.makeVariable(this.<T>getFormulaTypeFromCType(var.getType()), var.getName(), idx);
     }
 
     Pair<String, Pair<Integer, Integer>> data = removeFieldVariable(var.getName());
@@ -628,7 +618,7 @@ public class CtoFormulaConverter {
 
     CFieldTrackType trackType = (CFieldTrackType)var.getType();
     CType staticType = trackType.getStructType();
-    T struct = resolveFields(Variable.create(structName, staticType), ssa, rawVariableBuilder);
+    T struct = resolveFields(Variable.create(structName, staticType), ssa, makeFreshIndex);
     // At this point it is possible, because of casts, that we have a weird type
     // Because we are currently unable to create dynamic sized bitvectors
     // We can't save in content_of variables the real bitvector
@@ -652,26 +642,29 @@ public class CtoFormulaConverter {
    * This method does not update the index of the variable.
    */
   private  <T extends Formula> T makeVariable(Variable<CType> var, SSAMapBuilder ssa) {
-    return resolveFields(var, ssa, new Function<Pair<Variable<CType>,SSAMapBuilder>, T>() {
-      @Override
-      public T apply(Pair<Variable<CType>, SSAMapBuilder> pInput) {
-        return makeVariableRaw(pInput.getFirst(), pInput.getSecond());
-      }
-    });
+    return resolveFields(var, ssa, false);
   }
+
+  /**
+   * Create a formula for a given variable with a fresh index if needed.
+   * This method does not handle scoping and the NON_DET_VARIABLE!
+   * But it does handles Fields.
+   *
+   * This method does not update the index of the variable.
+   */
+  private  <T extends Formula> T makeVariable(Variable<CType> var, SSAMapBuilder ssa, boolean makeFreshIndex) {
+    return resolveFields(var, ssa, makeFreshIndex);
+  }
+
   /**
    * Create a formula for a given variable with a fresh index for the left-hand
    * side of an assignment.
    * This method does not handle scoping and the NON_DET_VARIABLE!
    * But it does handles Fields.
    */
+  @Deprecated
   private  <T extends Formula> T makeFreshVariable(Variable<CType> var, SSAMapBuilder ssa) {
-    return resolveFields(var, ssa, new Function<Pair<Variable<CType>,SSAMapBuilder>, T>() {
-      @Override
-      public T apply(Pair<Variable<CType>, SSAMapBuilder> pInput) {
-        return makeFreshVariableRaw(pInput.getFirst(), pInput.getSecond());
-      }
-    });
+    return resolveFields(var, ssa, true);
   }
 
   /**
@@ -918,6 +911,11 @@ public class CtoFormulaConverter {
     }
   }
 
+  private Formula makeCast(CCastExpression e, Formula inner) {
+    CType after = e.getExpressionType();
+    CType before = e.getOperand().getExpressionType();
+    return makeCast(before, after, inner);
+  }
 
   /**
    * Change the size of the given formula from fromType to toType.
@@ -1613,7 +1611,7 @@ public class CtoFormulaConverter {
     // otherwise cause throwing exceptions
     if ((maybePointer(leftId, function, ssa)
         || maybePointer((CType) null, retVarName.getName(), ssa)) &&
-        hasRepresentableDereference((CIdExpression)leftId) &&
+        hasRepresentableDereference(leftId) &&
         hasRepresentableDereference(retVarName)) {
       // we assume that either the left or the right hand side is a pointer
       // so we add the equality: *l = *r
@@ -1681,7 +1679,8 @@ public class CtoFormulaConverter {
           hasRepresentableDereference(rIdExp)) {
         // we assume that either the left or the right hand side is a pointer
         // so we add the equality: *l = *r
-        Variable<CType> rPtrVarName = makePointerVariableName(rIdExp, function, ssa);
+        Variable<CType> rightVar = scopedIfNecessary(rIdExp, ssa, function);
+        Variable<CType> rPtrVarName = makePointerMask(rightVar, ssa);
 
         boolean leftT, rightT;
         if ((leftT = lPtrVarName.getType() instanceof CDereferenceType) |
@@ -1754,14 +1753,16 @@ public class CtoFormulaConverter {
 
       CExpression rRawExpr = ((CUnaryExpression) right).getOperand();
       CExpression rExpr = removeCast(rRawExpr);
-      if (!(rExpr instanceof CIdExpression) ||
-          !(hasRepresentableDereference((CIdExpression)rExpr))) {
+      if (!(isSupportedExpression((CExpression)right)) ||
+          !(hasRepresentableDereference(rExpr))) {
         // these are statements like s1 = *(s2.f)
         // TODO check whether doing nothing is correct
         return bfmgr.makeBoolean(true);
       }
 
-      Formula rPtrVar = makePointerVariable(rRawExpr, function, ssa);
+      Variable<CType> rPtrVarName = scopedIfNecessary((CExpression)right, ssa, function);
+      Formula rPtrVar = makeVariable(rPtrVarName, ssa);
+      //Formula rPtrVar = makePointerVariable(rRawExpr, function, ssa);
 
       // the dealiased address of the right hand side may be a pointer itself.
       // to ensure tracking, we need to set the left side
@@ -1917,8 +1918,6 @@ public class CtoFormulaConverter {
     return false;
   }
 
-
-
   /** Returns if a given expression may be a pointer. */
   private boolean maybePointer(CExpression pExp, String function, SSAMapBuilder ssa) {
     CExpression exp = removeCast(pExp);
@@ -1930,33 +1929,27 @@ public class CtoFormulaConverter {
 
     return false;
   }
+
   /**
-   * Creates a Formula which accesses
-   * @param fExp
-   * @param visitor
-   * @return
-   * @throws UnrecognizedCCodeException
+   * Creates a Formula which accesses the given bits.
    */
   private Formula accessField(Pair<Integer, Integer> msb_Lsb, Formula f) {
-    // Get the field
     return fmgr.makeExtract(f, msb_Lsb.getFirst(), msb_Lsb.getSecond());
   }
 
   /**
-   * Creates a Formula which accesses
-   * @param fExp
-   * @param visitor
-   * @return
-   * @throws UnrecognizedCCodeException
+   * Creates a Formula which accesses the given Field
    */
   private Formula accessField(CFieldReference fExp, Formula f) {
-    // TODO: possibly refactor this into a ExpressionToFormulaBaseVisitor?
-
     // Get the underlaying structure
     Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
     return accessField(msb_Lsb, f);
   }
 
+  /**
+   * Returns the given struct but without the bits indicated by the given
+   * CFieldReference.
+   */
   private Formula withoutField(CFieldReference fExp, Formula f) {
 
     Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
@@ -1973,6 +1966,10 @@ public class CtoFormulaConverter {
     return fmgr.makeConcat(pre, after);
   }
 
+  /**
+   * CFieldReferences can be direct or indirect (pointer-dereferencing).
+   * This method nests the owner in a CUnaryExpression if the access is indirect.
+   */
   private CExpression getRealFieldOwner(CFieldReference fExp) {
     CExpression fieldOwner = fExp.getFieldOwner();
     if (fExp.isPointerDereference()) {
@@ -1983,6 +1980,9 @@ public class CtoFormulaConverter {
     return fieldOwner;
   }
 
+  /**
+   * Returns the offset of the given CFieldReference within the structure in bits.
+   */
   private Pair<Integer, Integer> getFieldOffsetMsbLsb(CFieldReference fExp) {
     CExpression fieldRef = fExp.getFieldOwner();
     CType structType = CTypeUtils.simplifyType(fieldRef.getExpressionType());
@@ -2005,8 +2005,6 @@ public class CtoFormulaConverter {
 
   /**
    * Returns the offset of the given field in the given struct in bytes
-   * @param pFExp
-   * @return
    */
   private int getFieldOffset(CCompositeType structType, String fieldName, CType assertFieldType) {
       int off = 0;
@@ -2129,29 +2127,76 @@ public class CtoFormulaConverter {
   }
 
   /**
+   * Indicates which level of indirection is supported.
+   * This should stay 1 unless you know what you are doing.
+   * The main reason for this limit is that we would have to emit a lot more formulas for every additional level.
+   */
+  private int supportedIndirectionLevel = 1;
+
+  /**
    * Returns true when we are able to produce a variable<CType> from this expression.
-   * @param exp the expression
+   * With this method we are able to control which expressions we handle and
+   * which we just create variables for.
+   * @param exp the expression.
+   * @param level the current level of indirection.
    * @return true if we can create a variable from this expression.
    */
-  private boolean isSupportedExpression (CExpression exp) {
+  private boolean isSupportedExpression (CExpression exp, int level) {
+    if (level > supportedIndirectionLevel) {
+      return false;
+    }
+
     if (exp instanceof CIdExpression) {
       return true;
-    } else if (exp instanceof CFieldReference) {
+    } else if (handleFieldAccess && exp instanceof CFieldReference) {
       CFieldReference fexp = (CFieldReference)exp;
-      return isSupportedExpression(fexp.getFieldOwner());
+      return isSupportedExpression(getRealFieldOwner(fexp), level);
     } else if (exp instanceof CCastExpression) {
       CCastExpression cexp = (CCastExpression)exp;
-      return isSupportedExpression(cexp.getOperand());
+      return isSupportedExpression(cexp.getOperand(), level);
     } else if (exp instanceof CUnaryExpression) {
       CUnaryExpression uexp = (CUnaryExpression)exp;
       UnaryOperator op = uexp.getOperator();
       return
           (op == UnaryOperator.AMPER || op == UnaryOperator.STAR) &&
-          isSupportedExpression(uexp.getOperand());
+          isSupportedExpression(uexp.getOperand(), level + 1);
     }
 
     return false;
   }
+
+  /**
+   * Returns true when we are able to produce a variable<CType> from this expression.
+   * With this method we are able to control which expressions we handle and
+   * which we just create variables for.
+   * @param exp the expression
+   * @return true if we can create a variable from this expression.
+   */
+  private boolean isSupportedExpression(CExpression exp) {
+    return isSupportedExpression(exp, 0);
+  }
+
+  /**
+   * We call this method for unsupported Expressions and just make a new Variable.
+   */
+  private Formula makeVariableUnsafe(CExpression exp, String function, SSAMapBuilder ssa, boolean makeFresh) {
+
+    // We actually support this expression?
+    assert (!isSupportedExpression(exp))
+       : "A supported Expression is handled as unsupported!";
+
+    if (makeFresh) {
+      warnUnsafeAssignment();
+      logDebug("Assigning to ", exp);
+    } else {
+      warnUnsafeVar(exp);
+    }
+
+    String var = scoped(exprToVarName(exp), function);
+    Variable<CType> v = Variable.create(var, exp.getExpressionType());
+    return makeVariable(v, ssa, makeFresh);
+  }
+
 
   /**
    * This class tracks constraints which are created during AST traversal but
@@ -2187,10 +2232,7 @@ public class CtoFormulaConverter {
     @Override
     protected Formula visitDefault(CExpression exp)
         throws UnrecognizedCCodeException {
-      assert !(exp instanceof CIdExpression) && !(exp instanceof CFieldReference)
-        : "We should be able to handle these cases, this is probably a bug!";
-      warnUnsafeVar(exp);
-      return makeVariable(Variable.create(scoped(exprToVarName(exp), function), exp.getExpressionType()), ssa);
+      return makeVariableUnsafe(exp, function, ssa, false);
     }
 
     @Override
@@ -2322,9 +2364,7 @@ public class CtoFormulaConverter {
     @Override
     public Formula visit(CCastExpression cexp) throws UnrecognizedCCodeException {
       Formula operand = cexp.getOperand().accept(this);
-      CType expType = cexp.getExpressionType();
-      CType operandType = cexp.getOperand().getExpressionType();
-      return makeCast(operandType, expType, operand);
+      return makeCast(cexp, operand);
     }
 
     @Override
@@ -2346,10 +2386,25 @@ public class CtoFormulaConverter {
 
     @Override
     public Formula visit(CFieldReference fExp) throws UnrecognizedCCodeException {
+      if (handleFieldAccess) {
+    	  CExpression fieldOwner = getRealFieldOwner(fExp);
+    	  Formula f = fieldOwner.accept(this);
+    	  return accessField(fExp, f);
+      }
 
-      CExpression fieldOwner = getRealFieldOwner(fExp);
-      Formula f = fieldOwner.accept(this);
-      return accessField(fExp, f);
+      CExpression fieldRef = fExp.getFieldOwner();
+      if (fieldRef instanceof CIdExpression) {
+        CSimpleDeclaration decl = ((CIdExpression) fieldRef).getDeclaration();
+        if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal()) {
+          // this is the reference to a global field variable
+
+          // we can omit the warning (no pointers involved),
+          // and we don't need to scope the variable reference
+          return makeVariable(Variable.create(exprToVarName(fExp),fExp.getExpressionType()), ssa);
+        }
+      }
+
+      return super.visit(fExp);
     }
 
 
@@ -2755,9 +2810,9 @@ public class CtoFormulaConverter {
       Formula r = assignment.getRightHandSide().accept(this);
       Formula l = buildLvalueTerm(assignment.getLeftHandSide(), edge, function, ssa, constraints);
       r = makeCast(
-          assignment.getRightHandSide().getExpressionType(),
-          assignment.getLeftHandSide().getExpressionType(),
-          r);
+            assignment.getRightHandSide().getExpressionType(),
+            assignment.getLeftHandSide().getExpressionType(),
+            r);
 
       BooleanFormula a = fmgr.assignment(l, r);
       return Triple.of(r, l, a);
@@ -2890,46 +2945,52 @@ public class CtoFormulaConverter {
           : "Unsupported leftHandSide in Indirect Assignment";
 
 
-      CExpression lRawOperand;
+      CUnaryExpression p;
       if (lExpr instanceof CUnaryExpression) {
         // the following expressions are supported by cil:
         // *p = a;
         // *p = 1;
         // *p = a | b; (or any other binary statement)
         // *p = function();
-        CUnaryExpression p = (CUnaryExpression) lExpr;
-        assert p.getOperator() == UnaryOperator.STAR  : "Expected pointer dereferencing";
-        lRawOperand = p.getOperand();
+        p = (CUnaryExpression) lExpr;
       } else {
         // p->s = ... is the same as (*p).s = ... which we see as *p = ... (because the bitvector was changed)
         CFieldReference l = (CFieldReference) lExpr;
         assert (l.isPointerDereference()) : "No pointer-dereferencing in handleIndirectFieldAssignment";
 
-        CExpression lRawOwner = l.getFieldOwner();
-        lRawOperand = lRawOwner;
+        p = (CUnaryExpression)getRealFieldOwner(l);
+        //CExpression lRawOwner = l.getFieldOwner();
+        //lRawOperand = lRawOwner;
 
         //TODO: We have to add some additional formulas to ensure tracking of pointer masks of the field s.
       }
 
+      assert p.getOperator() == UnaryOperator.STAR  : "Expected pointer dereferencing";
+      CExpression lRawOperand = p.getOperand();
+
       CExpression lOperand = removeCast(lRawOperand);
-      if (!(lOperand instanceof CIdExpression) && !(lOperand instanceof CFieldReference)) {
+      if (!isSupportedExpression(p)) {
         // TODO: *(a + 2) = b
+        // NOTE: We do not support multiple levels of indirection (**t)
         return super.visit(pAssignment);
       }
 
       Variable<CType> lVarName = scopedIfNecessary(lOperand, ssa, function);
       Formula lVar = makeVariable(lVarName, ssa);
-      //lVar = addPointerCast(lRawOperand, lVar, lVarName);
 
       CRightHandSide r = pAssignment.getRightHandSide();
 
-      //TODO: check this
-      Variable<CType> rVarName = Variable.create(null, pAssignment.getRightHandSide().getExpressionType());
+      // NOTE: When doDeepUpdate is false rVarName will only be used for comparision in updateAllPointers
+      // So this is OK.
+      Variable<CType> rVarName = Variable.create(null, r.getExpressionType());
       Formula rPtrVar = null;
       boolean doDeepUpdate = false;
-      if (r instanceof CIdExpression && hasRepresentableDereference((CIdExpression)r)) {
-        rVarName = scopedIfNecessary((CIdExpression) r, ssa, function);
-        rPtrVar = makePointerVariable((CIdExpression) r, function, ssa);
+      // We need r to be one level lower than we support, as we need its pointer mask for a deep update
+      if (r instanceof CExpression &&
+          isSupportedExpression((CExpression) r, 1) &&
+          hasRepresentableDereference((CExpression) r)) {
+        rVarName = scopedIfNecessary((CExpression) r, ssa, function);
+        rPtrVar = makeVariable(makePointerMask(rVarName, ssa), ssa);
         doDeepUpdate = true;
       }
 
@@ -3082,7 +3143,7 @@ public class CtoFormulaConverter {
           Formula newPtrVar = makeVariable(ptrVarName, ssa);
           BooleanFormula condition;
           if (isDereferenceType(ptrVarName.getType())){
-            // Variable from a aliasing formula, they are always to smapp, so fill up with nondet bits to make a pointer.
+            // Variable from a aliasing formula, they are always to small, so fill up with nondet bits to make a pointer.
             condition = makeNondetAssignment(var, leftVar, ssa);
           } else {
             assert fmgr.getFormulaType(var) == fmgr.getFormulaType(leftVar)
@@ -3214,41 +3275,57 @@ public class CtoFormulaConverter {
       return makeFreshVariable(var, ssa);
     }
 
-    protected Formula makeUIF(CExpression exp) {
-      warnUnsafeAssignment();
-      logDebug("Assigning to ", exp);
-
-      String var = scoped(exprToVarName(exp), function);
-      Variable<CType> v = Variable.create(var, exp.getExpressionType());
-      return makeFreshVariable(v, ssa);
+    /**  This method is called when we don't know what else to do. */
+    protected Formula giveUpAndJustMakeVariable(CExpression exp) {
+      return makeVariableUnsafe(exp, function, ssa, true);
     }
+
 
     @Override
     public Formula visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
-      return makeUIF(pE);
+      return giveUpAndJustMakeVariable(pE);
     }
 
     @Override
     public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
+      if (!handleFieldAccess) {
+    	  CExpression fieldRef = fexp.getFieldOwner();
+    	  if (fieldRef instanceof CIdExpression) {
+  	      CSimpleDeclaration decl = ((CIdExpression) fieldRef).getDeclaration();
+  	      if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal()) {
+      		  // this is the reference to a global field variable
+      		  // we don't need to scope the variable reference
+      		  String var = exprToVarName(fexp);
+
+      		  Variable<CType> v = Variable.create(var, decl.getType());
+      		  return makeFreshVariable(v, ssa);
+  	      }
+    	  }
+    	  return giveUpAndJustMakeVariable(fexp);
+      }
+
       // s.a = ...
       // s->b = ...
       // make a new s and return the formula accessing the field
       // as constraint add that all other fields (the rest of the bitvector) remains the same.
       CExpression owner = getRealFieldOwner(fexp);
+      // This will just create the formula with the current ssa-index.
       Formula oldStructure = buildTerm(owner, edge, function, ssa, constraints);
+      // This will eventually increment the ssa-index and return the new formula.
       Formula newStructure = owner.accept(this);
 
-      Formula fieldFormula = accessField(fexp, newStructure);
-
+      // Other fields did not change.
       Formula oldRestS = withoutField(fexp, oldStructure);
       Formula newRestS = withoutField(fexp, newStructure);
       constraints.addConstraint(fmgr.makeEqual(oldRestS, newRestS));
+
+      Formula fieldFormula = accessField(fexp, newStructure);
       return fieldFormula;
     }
 
     @Override
     public Formula visit(CArraySubscriptExpression pE) throws UnrecognizedCCodeException {
-      return makeUIF(pE);
+      return giveUpAndJustMakeVariable(pE);
     }
   }
 
@@ -3294,27 +3371,32 @@ public class CtoFormulaConverter {
       return ffmgr.createFuncAndCall(opname, idx, formulaType, Arrays.asList( term ));
     }
 
-//    @Override
-//    public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
-//      String field = fexp.getFieldName();
-//      CExpression owner = fexp.getFieldOwner();
-//      Formula term = buildTerm(owner, edge, function, ssa, constraints);
-//
-//      String tpname = getTypeName(owner.getExpressionType());
-//      String ufname =
-//        (fexp.isPointerDereference() ? "->{" : ".{") +
-//        tpname + "," + field + "}";
-//      FormulaList args = new AbstractFormulaList(term);
-//
-//
-//      CType expType = fexp.getExpressionType();
-//      FormulaType<Formula> formulaType = getFormulaTypeFromCType(expType);
-//      int idx = makeLvalIndex(Variable.create(ufname, expType), args, ssa);
-//
-//      // see above for the case of &x and *x
-//      return ffmgr.createFuncAndCall(
-//          ufname, idx, formulaType, Arrays.asList( term ));
-//    }
+    @Override
+    public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
+      if (!handleFieldAccess) {
+    	  String field = fexp.getFieldName();
+    	  CExpression owner = fexp.getFieldOwner();
+    	  Formula term = buildTerm(owner, edge, function, ssa, constraints);
+
+    	  String tpname = getTypeName(owner.getExpressionType());
+    	  String ufname =
+    	      (fexp.isPointerDereference() ? "->{" : ".{") +
+    	      tpname + "," + field + "}";
+    	  FormulaList args = new AbstractFormulaList(term);
+
+
+    	  CType expType = fexp.getExpressionType();
+    	  FormulaType<Formula> formulaType = getFormulaTypeFromCType(expType);
+    	  int idx = makeLvalIndex(Variable.create(ufname, expType), args, ssa);
+
+    	  // see above for the case of &x and *x
+    	  return ffmgr.createFuncAndCall(
+					 ufname, idx, formulaType, Arrays.asList( term ));
+      }
+
+      // When handleFieldAccess is true we can handle this case already
+      return super.visit(fexp);
+    }
 
     @Override
     public Formula visit(CArraySubscriptExpression aexp) throws UnrecognizedCCodeException {
@@ -3341,9 +3423,9 @@ public class CtoFormulaConverter {
 
     @Override
     public Formula visit(CCastExpression e) throws UnrecognizedCCodeException {
-      return e.getOperand().accept(this);
+    	Formula inner = e.getOperand().accept(this);
+    	return makeCast(e, inner);
     }
-
 
 
     @Override
@@ -3351,15 +3433,12 @@ public class CtoFormulaConverter {
       if (pE.getOperator() == UnaryOperator.STAR) {
         CExpression exp = removeCast(pE.getOperand());
 
-        if (exp instanceof CIdExpression) {
+        // When the expression is supported we can create a Variable.
+        if (isSupportedExpression(pE)) {
           // *a = ...
           Variable<CType> ptrVarName = scopedIfNecessary(pE, ssa, function);
           makeFreshIndex(ptrVarName, ssa);
           Formula f = makeVariable(ptrVarName, ssa);
-//          CIdExpression ptrId = (CIdExpression) exp;
-//          Variable<CType> ptrVarName = makePointerVariableName(ptrId, function, ssa);
-//          makeFreshIndex(ptrVarName, ssa);
-//          Formula f = makePointerVariable(pE.getOperand(), function, ssa);
 
           // *((int*) a) = ...
           if (pE.getOperand() instanceof CCastExpression) {
@@ -3373,9 +3452,11 @@ public class CtoFormulaConverter {
           // *(s->f) = ...
           // *(a+b) = ...
 
-          return makeUIF(pE);
+          return giveUpAndJustMakeVariable(pE);
         }
       } else {
+      	// &f = ... which doesn't make much sense.
+      	log(Level.WARNING, "Strange addressof operator.");
         return super.visit(pE);
       }
     }
