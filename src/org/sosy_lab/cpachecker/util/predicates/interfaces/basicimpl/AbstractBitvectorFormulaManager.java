@@ -379,6 +379,9 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
   }
   protected abstract TFormulaInfo makeVariableImpl(int pLength, String pVar);
 
+  /**
+   * Returns a term representing the (arithmetic if signed is true) right shift of number by toShift.
+   */
   @Override
   public BitvectorFormula shiftRight(BitvectorFormula pNumber, BitvectorFormula toShift, boolean signed) {
     TFormulaInfo param1 = extractInfo(pNumber);

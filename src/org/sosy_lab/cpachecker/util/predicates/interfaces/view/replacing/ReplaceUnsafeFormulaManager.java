@@ -51,7 +51,7 @@ public class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
     FormulaType<? extends Formula> unwrapped = unwrapTypes.apply(pType);
     return
        replaceManager.wrap(
-           pType.getInterfaceType(),
+           pType,
            rawUnsafeManager.typeFormula(unwrapped, replaceManager.unwrap(pF)));
   }
 

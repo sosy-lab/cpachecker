@@ -125,7 +125,7 @@ public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManag
 
     Formula f = rawFunctionFormulaManager.createUninterpretedFunctionCall(rep.wrapped, newArgs);
 
-    return replaceManager.wrap(pFuncType.getInterfaceType(), f);
+    return replaceManager.wrap(pFuncType.getReturnType(), f);
   }
 
   @SuppressWarnings("unchecked")

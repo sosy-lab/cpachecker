@@ -52,7 +52,8 @@ public class ReplacingFormulaManager implements FormulaManager {
 
   public ReplacingFormulaManager(
       FormulaManager rawFormulaManager,
-      final boolean replaceBitvectorWithRationalAndFunctions) {
+      final boolean replaceBitvectorWithRationalAndFunctions,
+      final boolean ignoreExtractConcat) {
     this.rawFormulaManager = rawFormulaManager;
 
     // Setup replacement environment
@@ -91,7 +92,8 @@ public class ReplacingFormulaManager implements FormulaManager {
           new ReplaceBitvectorWithRationalAndFunctionTheory(
               this,
               rawFormulaManager.getRationalFormulaManager(),
-              functionTheory);
+              rawFormulaManager.getFunctionFormulaManager(),
+              ignoreExtractConcat);
       replacedBitvectorTheory = true;
     } else {
       bitvectorTheory = rawFormulaManager.getBitvectorFormulaManager();
@@ -99,14 +101,14 @@ public class ReplacingFormulaManager implements FormulaManager {
   }
 
   @SuppressWarnings("unchecked")
-  public <T1 extends Formula, T2 extends Formula> T1 simpleWrap(Class<T1> clazz, T2 toWrap){
+  public <T1 extends Formula, T2 extends Formula> T1 simpleWrap(FormulaType<T1> type, T2 toWrap) {
     Formula f;
-    if (clazz == BitvectorFormula.class) {
-      f = new WrappingBitvectorFormula<>(toWrap);
-    } else if (clazz == RationalFormula.class) {
-      f = new WrappingRationalFormula<>(toWrap);
-    } else if (clazz == BooleanFormula.class) {
-      f = new WrappingBooleanFormula<>(toWrap);
+    if (FormulaType.isBitVectorType(type)) {
+      f = new WrappingBitvectorFormula<>((FormulaType<BitvectorFormula>)type, toWrap);
+    } else if (FormulaType.isRationalType(type)) {
+      f = new WrappingRationalFormula<>((FormulaType<RationalFormula>)type, toWrap);
+    } else if (FormulaType.isBooleanType(type)) {
+      f = new WrappingBooleanFormula<>((FormulaType<BooleanFormula>)type, toWrap);
     } else {
       throw new IllegalArgumentException("cant wrap this type");
     }
@@ -115,24 +117,24 @@ public class ReplacingFormulaManager implements FormulaManager {
   }
 
   @SuppressWarnings("unchecked")
-  public <T1 extends Formula, T2 extends Formula> T1 wrap(Class<T1> clazz, T2 toWrap){
+  public <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> type, T2 toWrap) {
     Class<T2> toWrapClazz = getInterface(toWrap);
 
-    if (replacedBitvectorTheory && clazz == BitvectorFormula.class
-        || replacedBooleanTheory && clazz == BooleanFormula.class
-        || replacedRationalTheory && clazz == RationalFormula.class) {
-      return simpleWrap(clazz, toWrap);
-    } else if (toWrapClazz == clazz) {
+    if (replacedBitvectorTheory && FormulaType.isBitVectorType(type)
+        || replacedBooleanTheory && FormulaType.isBooleanType(type)
+        || replacedRationalTheory && FormulaType.isRationalType(type)) {
+      return simpleWrap(type, toWrap);
+    } else if (toWrapClazz == type.getInterfaceType()) {
       return (T1) toWrap;
     } else {
-      throw new IllegalArgumentException("unknown wrap call");
+      throw new IllegalArgumentException("invalid wrap call");
     }
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T unwrap(Formula f){
-    if (f instanceof WrappingFormula<?>){
-      return ((WrappingFormula<T>)f).getWrapped();
+  public <T extends Formula> T unwrap(Formula f) {
+    if (f instanceof WrappingFormula<?,?>){
+      return ((WrappingFormula<T,?>)f).getWrapped();
     } else {
       return (T) f;
     }
@@ -167,19 +169,9 @@ public class ReplacingFormulaManager implements FormulaManager {
   @Override
   public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
     FormulaType<?> t;
-    if (pFormula instanceof WrappingFormula<?>){
-      if (pFormula instanceof WrappingBooleanFormula<?>) {
-        t = FormulaType.BooleanType;
-      } else if (pFormula instanceof WrappingRationalFormula<?>) {
-        t = FormulaType.RationalType;
-      } else if (pFormula instanceof WrappingBitvectorFormula<?>) {
-        t =
-            bitvectorTheory.getFormulaType(
-                bitvectorTheory.getLength((BitvectorFormula)pFormula));
-      } else {
-        throw new IllegalArgumentException("Invalid wrapping formula");
-      }
-
+    if (pFormula instanceof WrappingFormula<?,?>) {
+      WrappingFormula<?, ?> castFormula = (WrappingFormula<?,?>)pFormula;
+      t = castFormula.getType();
     } else {
       t = rawFormulaManager.getFormulaType(pFormula);
     }
@@ -200,7 +192,7 @@ public class ReplacingFormulaManager implements FormulaManager {
 
   @Override
   public <T extends Formula> Class<T> getInterface(T pInstance) {
-    if (pInstance instanceof WrappingFormula<?>) {
+    if (pInstance instanceof WrappingFormula<?,?>) {
       return AbstractFormulaManager.getInterfaceHelper(pInstance);
     } else {
       return rawFormulaManager.getInterface(pInstance);
@@ -209,7 +201,7 @@ public class ReplacingFormulaManager implements FormulaManager {
 
   @Override
   public String dumpFormula(Formula pT) {
-    if (pT instanceof WrappingFormula<?>) {
+    if (pT instanceof WrappingFormula<?,?>) {
       pT = unwrap(pT);
     }
 

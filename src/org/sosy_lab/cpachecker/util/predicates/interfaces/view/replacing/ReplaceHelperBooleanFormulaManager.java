@@ -82,7 +82,7 @@ public class ReplaceHelperBooleanFormulaManager implements BooleanFormulaManager
     Formula f1 = replaceManager.unwrap(pF1);
     Formula f2 = replaceManager.unwrap(pF2);
 
-    return replaceManager.wrap(replaceManager.getInterface(pF1), rawBooleanManager.ifThenElse(pCond, f1, f2));
+    return replaceManager.wrap(replaceManager.getFormulaType(pF1), rawBooleanManager.ifThenElse(pCond, f1, f2));
   }
 
   @Override

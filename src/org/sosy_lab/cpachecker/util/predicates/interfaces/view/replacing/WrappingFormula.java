@@ -24,36 +24,42 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 
 
-public abstract class WrappingFormula<TWrap extends Formula> {
+public abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
   private TWrap wrapped;
-  public WrappingFormula(TWrap toWrap){
+  private FormulaType<TOut> type;
+  public WrappingFormula(FormulaType<TOut> type, TWrap toWrap) {
     wrapped = toWrap;
+    this.type = type;
   }
 
-  public TWrap getWrapped(){return wrapped;}
+  public TWrap getWrapped() { return wrapped; }
+  public FormulaType<TOut> getType() { return type; }
 }
 
 class WrappingBitvectorFormula<TWrap extends Formula>
-extends WrappingFormula<TWrap>
+extends WrappingFormula<TWrap, BitvectorFormula>
 implements BitvectorFormula {
-  public WrappingBitvectorFormula(TWrap pToWrap) {
-    super(pToWrap);
+  public WrappingBitvectorFormula(FormulaType<BitvectorFormula> type, TWrap pToWrap) {
+    super(type, pToWrap);
   }
 }
 class WrappingRationalFormula<TWrap extends Formula>
-extends WrappingFormula<TWrap>
-implements BitvectorFormula {
-  public WrappingRationalFormula(TWrap pToWrap) {
-    super(pToWrap);
+extends WrappingFormula<TWrap, RationalFormula>
+implements RationalFormula {
+  public WrappingRationalFormula(FormulaType<RationalFormula> type, TWrap pToWrap) {
+    super(type, pToWrap);
   }
 }
 class WrappingBooleanFormula<TWrap extends Formula>
-extends WrappingFormula<TWrap>
-implements BitvectorFormula {
-  public WrappingBooleanFormula(TWrap pToWrap) {
-    super(pToWrap);
+extends WrappingFormula<TWrap, BooleanFormula>
+implements BooleanFormula {
+  public WrappingBooleanFormula(FormulaType<BooleanFormula> type, TWrap pToWrap) {
+    super(type, pToWrap);
   }
 }

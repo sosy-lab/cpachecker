@@ -30,7 +30,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -58,7 +57,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
@@ -125,11 +123,10 @@ public class FormulaManagerView implements FormulaManager {
   @Option(description="replace the Bitvector with the Rational- and FunctionTheory")
   private boolean replaceBitvectorWithRationalAndFunctionTheory = true;
 
+  @Option(description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced.")
+  private boolean ignoreExtractConcat = true;
+
   private LogManager logger;
-
-  private FunctionFormulaType<BitvectorFormula> stringUfDecl;
-
-  private FormulaType<RationalFormula> stringType;
 
   public FormulaManagerView(LoadManagers loadManagers, FormulaManager baseManager) {
     init(loadManagers, baseManager);
@@ -146,13 +143,6 @@ public class FormulaManagerView implements FormulaManager {
     booleanFormulaManager.couple(this);
     functionFormulaManager = loadManagers.wrapManager(baseManager.getFunctionFormulaManager());
     functionFormulaManager.couple(this);
-
-    // TODO must be changeable via a public api to represent the pointer to a string (or anything else if required)
-    FormulaType<BitvectorFormula> pointerType = bitvectorFormulaManager.getFormulaType(4 * 8);
-    stringType = FormulaType.RationalType;
-    stringUfDecl =
-        functionFormulaManager.createFunction(
-            "__string__", pointerType, Arrays.<FormulaType<? extends Formula>>asList(stringType));
   }
 
 
@@ -161,7 +151,7 @@ public class FormulaManagerView implements FormulaManager {
     config.inject(this);
     if (replaceBitvectorWithRationalAndFunctionTheory) {
       baseManager =
-          new ReplacingFormulaManager(baseManager, replaceBitvectorWithRationalAndFunctionTheory);
+          new ReplacingFormulaManager(baseManager, replaceBitvectorWithRationalAndFunctionTheory, ignoreExtractConcat);
     }
 
     init(loadManagers, baseManager);
@@ -180,12 +170,6 @@ public class FormulaManagerView implements FormulaManager {
 
   public FormulaManagerView(FormulaManager wrapped) {
     this(DEFAULTMANAGERS, wrapped);
-  }
-
-  public BitvectorFormula makeString(int pN) {
-    return
-        functionFormulaManager.createUninterpretedFunctionCall(
-            stringUfDecl, Arrays.asList((Formula)this.makeNumber(stringType, pN)));
   }
 
   public File formatFormulaOutputFile(String function, int call, String formula, int index) {

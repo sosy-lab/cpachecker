@@ -80,6 +80,9 @@ public class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaMan
     return creator.makeVariable(bvType, var);
   }
 
+  /**
+   * Returns a term representing the (arithmetic if signed is true) right shift of number by toShift.
+   */
   @Override
   public Long shiftRight(Long number, Long toShift, boolean signed) {
     long t;

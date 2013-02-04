@@ -105,6 +105,9 @@ public interface BitvectorFormulaManager {
   public boolean isOr(BitvectorFormula bits);
   public boolean isXor(BitvectorFormula bits);
 
+  /**
+   * Returns a term representing the (arithmetic if signed is true) right shift of number by toShift.
+   */
   public BitvectorFormula shiftRight(BitvectorFormula number,BitvectorFormula toShift, boolean signed);
 
   public BitvectorFormula shiftLeft(BitvectorFormula number,BitvectorFormula toShift);

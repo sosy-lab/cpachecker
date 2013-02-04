@@ -127,6 +127,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
@@ -238,9 +239,6 @@ public class CtoFormulaConverter {
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
       "printf", "printk"
       );
-
-  @Option(description = "Handle implicit and explicit casts.")
-  private boolean ignoreCasts = true;
 
   @Option(description = "Handle field access via extract and concat instead of new variables.")
   private boolean handleFieldAccess = false;
@@ -838,11 +836,6 @@ public class CtoFormulaConverter {
     // UNDEFINED: Casting a numeric value into a value that can't be represented by the target type (either directly or via static_cast)
     if (CTypeUtils.equals(fromType, toType)) {
       return formula; // No cast required;
-    }
-
-    if (ignoreCasts) {
-      log(Level.ALL, "IGNORING CAST from " + fromType + " to " + toType + "!");
-      return formula;
     }
 
     fromType = CTypeUtils.simplifyType(fromType);
@@ -1476,11 +1469,7 @@ public class CtoFormulaConverter {
       }
       if (retType == null) {
         log(Level.WARNING, "No function declaration was given for " + funcCallExp.toASTString());
-        if (ignoreCasts) {
-          retType = funcCallExp.getExpressionType();
-        } else {
-          throw new IllegalArgumentException("Can't add cast because the function declaration is missing! (" + funcCallExp.toASTString() + ")");
-        }
+        throw new IllegalArgumentException("Can't add cast because the function declaration is missing! (" + funcCallExp.toASTString() + ")");
       }
     } else {
       retType = funcDecl.getType().getReturnType();
@@ -2651,6 +2640,7 @@ public class CtoFormulaConverter {
       return fmgr.makeNumber(t,fExp.getValue().longValue());
     }
 
+    private FunctionFormulaType<BitvectorFormula> stringUfDecl;
     @Override
     public Formula visit(CStringLiteralExpression lexp) throws UnrecognizedCCodeException {
       // we create a string constant representing the given
@@ -2659,9 +2649,18 @@ public class CtoFormulaConverter {
       BitvectorFormula result = stringLitToFormula.get(literal);
 
       if (result == null) {
+        if (stringUfDecl == null) {
+          FormulaType<BitvectorFormula> pointerType =
+              efmgr.getFormulaType(machineModel.getSizeofPtr() * machineModel.getSizeofCharInBits());
+          stringUfDecl =
+              ffmgr.createFunction(
+                  "__string__", pointerType, Arrays.<FormulaType<? extends Formula>>asList(FormulaType.RationalType));
+        }
+
         // generate a new string literal. We generate a new UIf
         int n = nextStringLitIndex++;
-        result =  fmgr.makeString(n);
+        result = ffmgr.createUninterpretedFunctionCall(
+            stringUfDecl, Arrays.asList((Formula)nfmgr.makeNumber(n)));
         stringLitToFormula.put(literal, result);
       }
 

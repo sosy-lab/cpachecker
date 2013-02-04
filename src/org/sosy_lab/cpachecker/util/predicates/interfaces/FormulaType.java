@@ -54,6 +54,16 @@ public abstract class FormulaType<T extends Formula> {
     }
   }
 
+  public static <T extends Formula> boolean isBitVectorType(FormulaType<T> f) {
+    return f instanceof BitvectorType;
+  }
+  public static <T extends Formula> boolean isRationalType(FormulaType<T> f) {
+    return f == RationalType;
+  }
+  public static <T extends Formula> boolean isBooleanType(FormulaType<T> f) {
+    return f == BooleanType;
+  }
+
   public static class BitvectorType extends FormulaType<BitvectorFormula> {
     private int size;
 

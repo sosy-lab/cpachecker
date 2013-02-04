@@ -244,6 +244,9 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
     return manager.getLength(extractFromView(pNumber));
   }
 
+  /**
+   * Returns a term representing the (arithmetic if signed is true) right shift of number by toShift.
+   */
   @Override
   public BitvectorFormula shiftRight(BitvectorFormula pNumber, BitvectorFormula pToShift, boolean signed) {
     return wrapInView(manager.shiftRight(extractFromView(pNumber),extractFromView(pToShift),signed));
@@ -260,4 +263,5 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
   public BitvectorFormula extract(BitvectorFormula pNumber, int pMsb, int pLsb) {
     return wrapInView(manager.extract(extractFromView(pNumber), pMsb, pLsb));
   }
+
 }
