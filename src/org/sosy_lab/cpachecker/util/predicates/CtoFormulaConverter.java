@@ -919,23 +919,6 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Change the size of the given "from" formula to the size of the "to" formula
-   * This method extracts or concats with nondet-bits.
-   */
-  @SuppressWarnings("unchecked")
-  private <T extends Formula> T makeExtractOrConcatNondet(Formula from, Formula to) {
-    assert from instanceof BitvectorFormula
-      : "Can't makeExtractOrConcatNondet for something other than Bitvectors";
-    assert to instanceof BitvectorFormula
-      : "Can't makeExtractOrConcatNondet for something other than Bitvectors";
-
-    int sfrom = efmgr.getLength((BitvectorFormula) from);
-    int sto = efmgr.getLength((BitvectorFormula) to);
-
-    return (T) changeFormulaSize(sfrom, sto, (BitvectorFormula)from);
-  }
-
-  /**
    * Change the given Formulasize from the given size to the new size.
    * if sfrom > sto an extract will be done.
    * if sto > sfrom an concat with nondet-bits will be done.
@@ -1707,8 +1690,17 @@ public class CtoFormulaConverter {
       log(Level.WARNING, "Not a CExpression on the right side: " + pRight.toASTString());
       return bfmgr.makeBoolean(true);
     }
-
     CExpression right = (CExpression)pRight;
+
+    if (!isSupportedExpression(right)) {
+      if (isTooComplexExpression(right)) {
+        // The right side is too complex
+        warnToComplex(right);
+      }
+      // If it is not too complex we probably need no 2nd level
+      // TODO: Check the statement above.
+      return bfmgr.makeBoolean(true);
+    }
 
     // TODO: We should not only test if instance is of type CDereferenceType
     // but use isDereferenceType(pType)
@@ -2288,6 +2280,87 @@ public class CtoFormulaConverter {
     }
   }
 
+  private boolean isTooComplexExpression(CExpression c) {
+    try {
+      if (!c.accept(tooComplexVisitor)) {
+        return false;
+      }
+
+      return getIndirectionLevel(c) > supportedIndirectionLevel;
+    } catch (Exception e) {
+      e.printStackTrace();
+      throw new AssertionError("No idea what happened", e);
+    }
+  }
+  private final TooComplexVisitor tooComplexVisitor = new TooComplexVisitor();
+  private class TooComplexVisitor implements CExpressionVisitor<Boolean, Exception> {
+
+    @Override
+    public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws Exception {
+      return true;
+    }
+
+    @Override
+    public Boolean visit(CBinaryExpression pIastBinaryExpression) throws Exception {
+      return
+          pIastBinaryExpression.getOperand1().accept(this) ||
+          pIastBinaryExpression.getOperand2().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CCastExpression pIastCastExpression) throws Exception {
+      return pIastCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CFieldReference pIastFieldReference) throws Exception {
+      return
+          handleFieldAccess &&
+          getRealFieldOwner(pIastFieldReference).accept(this);
+    }
+
+    @Override
+    public Boolean visit(CIdExpression pIastIdExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CTypeIdExpression pIastTypeIdExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws Exception {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CUnaryExpression pIastUnaryExpression) throws Exception {
+      return pIastUnaryExpression.getOperand().accept(this);
+    }
+
+  }
+
   private int getIndirectionLevel(CExpression c) {
     try {
       return c.accept(indirectionVisitor);
@@ -2790,11 +2863,11 @@ public class CtoFormulaConverter {
         CExpression operand = removeCast(exp.getOperand());
         UnaryOperator op = exp.getOperator();
 
-        if (op != UnaryOperator.AMPER || !(operand instanceof CIdExpression)) {
+        if (op != UnaryOperator.AMPER || !isSupportedExpression(operand)) {
           return super.visitDefault(exp);
         }
 
-        return makeMemLocationVariable((CIdExpression) operand, function);
+        return makeMemLocationVariable(operand, function);
     }
 
     /**
@@ -2803,7 +2876,7 @@ public class CtoFormulaConverter {
      *
      * @param function The scope of the variable.
      */
-    private Formula makeMemLocationVariable(CIdExpression exp, String function) {
+    private Formula makeMemLocationVariable(CExpression exp, String function) {
       Variable<CType> v =
           scopedIfNecessary(exp, ssa, function);
       Variable<CType> addressVariable = makeMemoryLocationVariable(v);
@@ -3338,12 +3411,7 @@ public class CtoFormulaConverter {
                   }
 
                   Formula k = makeVariable(inner_varName, ssa);
-                  BooleanFormula cond;
-                  if (isDereferenceType(inner_ptrVarName.getType())) {
-                    cond = makeNondetAssignment(k, g_s);
-                  } else {
-                    cond = fmgr.makeEqual(k, g_s);
-                  }
+                  BooleanFormula cond = makeNondetAssignment(k, g_s);
 
                   Formula found = makeVariable(inner_ptrVarName, ssa);
                   found = changeFormulaSize(efmgr.getLength((BitvectorFormula) found), fieldSize, (BitvectorFormula) found);
