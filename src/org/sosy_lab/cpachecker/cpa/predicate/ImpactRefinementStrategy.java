@@ -82,6 +82,7 @@ class ImpactRefinementStrategy implements RefinementStrategy {
   private final Stats stats = new Stats();
 
   private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
 
   protected ImpactRefinementStrategy(final Configuration config, final LogManager logger,
@@ -89,11 +90,14 @@ class ImpactRefinementStrategy implements RefinementStrategy {
 
     solver = pSolver;
     fmgr = pFmgr;
+    bfmgr = pFmgr.getBooleanFormulaManager();
   }
 
   @Override
   public void performRefinement(ARGReachedSet pReached, List<ARGState> path,
       CounterexampleTraceInfo cex, boolean pRepeatedCounterexample) throws CPAException {
+
+    startRefinementOfPath();
 
     ARGState lastElement = path.get(path.size()-1);
     assert lastElement.isTarget();
@@ -103,7 +107,6 @@ class ImpactRefinementStrategy implements RefinementStrategy {
 
     List<ARGState> changedElements = new ArrayList<>();
     ARGState infeasiblePartOfART = lastElement;
-    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
       BooleanFormula itp = interpolationPoint.getFirst();
       ARGState w = interpolationPoint.getSecond();
@@ -119,15 +122,7 @@ class ImpactRefinementStrategy implements RefinementStrategy {
         break;
       }
 
-      itp = fmgr.uninstantiate(itp);
-      BooleanFormula stateFormula = getStateFormula(w);
-
-      stats.itpCheck.start();
-      boolean isNewItp = !solver.implies(stateFormula, itp);
-      stats.itpCheck.stop();
-
-      if (isNewItp) {
-        addFormulaToState(itp, w, fmgr);
+      if (!performRefinementForState(itp, w)) {
         changedElements.add(w);
       }
     }
@@ -142,6 +137,45 @@ class ImpactRefinementStrategy implements RefinementStrategy {
       // We still need a better handling for this situation.
       throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
     }
+
+    finishRefinementOfPath(infeasiblePartOfART, changedElements, pReached, pRepeatedCounterexample);
+
+    assert !pReached.asReachedSet().contains(lastElement);
+  }
+
+  public void startRefinementOfPath() {
+  }
+
+  /**
+   * For each interpolant, we strengthen the corresponding state by
+   * conjunctively adding the interpolant to its state formula.
+   */
+  public boolean performRefinementForState(BooleanFormula itp,
+      ARGState w) {
+
+    itp = fmgr.uninstantiate(itp);
+    BooleanFormula stateFormula = getStateFormula(w);
+
+    stats.itpCheck.start();
+    boolean isNewItp = !solver.implies(stateFormula, itp);
+    stats.itpCheck.stop();
+
+    if (isNewItp) {
+      addFormulaToState(itp, w, fmgr);
+    }
+    return !isNewItp;
+  }
+
+  /**
+   * After a path was strengthened, we need to take care of the coverage relation.
+   * We also remove the infeasible part from the ARG,
+   * and re-establish the coverage invariant (i.e., that states on the path
+   * are either covered or cannot be covered).
+   */
+  public void finishRefinementOfPath(ARGState infeasiblePartOfART,
+      List<ARGState> changedElements, ARGReachedSet pReached,
+      boolean pRepeatedCounterexample)
+      throws CPAException {
 
     stats.argUpdate.start();
     for (ARGState w : changedElements) {
@@ -163,8 +197,6 @@ class ImpactRefinementStrategy implements RefinementStrategy {
     } finally {
       stats.coverTime.stop();
     }
-
-    assert !pReached.asReachedSet().contains(lastElement);
   }
 
   @Override
