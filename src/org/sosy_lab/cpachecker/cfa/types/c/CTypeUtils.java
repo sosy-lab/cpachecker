@@ -40,7 +40,8 @@ public class CTypeUtils {
   private static CTypeVisitor<CType, RuntimeException> simplifyType = new CTypeVisitor<CType, RuntimeException>() {
     @Override
     public CType visit(CArrayType pArrayType) {
-      return pArrayType;
+      // We do not support arrays, so simplify to pointer
+      return new CPointerType(pArrayType.isConst(), pArrayType.isVolatile(), pArrayType.getType());
     }
 
     @Override

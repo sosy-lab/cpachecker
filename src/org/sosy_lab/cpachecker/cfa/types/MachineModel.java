@@ -216,7 +216,9 @@ public enum MachineModel {
       @Override
       public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
         // TODO: This has to be checked (Example: Char pathbuf[1 + 1];)
-        return getSizeofInt();
+        // We do not support arrays, so treat them as pointer.
+        return getSizeofPtr();
+        //return getSizeofInt();
       }
 
       @Override

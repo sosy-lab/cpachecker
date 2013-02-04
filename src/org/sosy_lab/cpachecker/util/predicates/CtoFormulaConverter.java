@@ -2954,7 +2954,7 @@ public class CtoFormulaConverter {
         }
       } else {
         log(Level.WARNING, getLogMessage("Ignoring function call through function pointer", fexp));
-        func = "<func>{" + fn.toASTString() + "}";
+        func = "<func>{" + function + "::" + fn.toASTString() + "}";
       }
 
       if (pexps.isEmpty()) {
@@ -2966,7 +2966,7 @@ public class CtoFormulaConverter {
         if (declaration == null) {
           // This should not happen
           log(Level.WARNING, "Cant get declaration of function. Ignoring the call (" + fexp.toASTString() + ").");
-          return makeFreshVariable(Variable.create(func,expType), ssa);
+          return makeFreshVariable(Variable.create(func,expType), ssa); // BUG when expType = void
         }
 
         List<CType> paramTypes =
