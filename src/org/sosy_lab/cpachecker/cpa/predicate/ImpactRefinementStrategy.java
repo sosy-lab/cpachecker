@@ -56,6 +56,8 @@ class ImpactRefinementStrategy implements RefinementStrategy {
 
   private class Stats implements Statistics {
 
+    private int totalPathLengthToInfeasibility = 0; // measured in blocks
+    private int totalUnchangedPrefixLength = 0; // measured in blocks
     private int totalNumberOfAffectedStates = 0;
 
     private final Timer itpCheck  = new Timer();
@@ -75,6 +77,8 @@ class ImpactRefinementStrategy implements RefinementStrategy {
       out.println("  Coverage checks:                    " + coverTime);
       out.println("  ARG update:                         " + argUpdate);
       out.println();
+      out.println("Avg. length of refined path (in blocks):    " + div(totalPathLengthToInfeasibility, numberOfRefinements));
+      out.println("Avg. number of blocks unchanged in path:    " + div(totalUnchangedPrefixLength, numberOfRefinements));
       out.println("Avg. number of affected states:             " + div(totalNumberOfAffectedStates, numberOfRefinements));
     }
   }
@@ -108,11 +112,13 @@ class ImpactRefinementStrategy implements RefinementStrategy {
     List<ARGState> changedElements = new ArrayList<>();
     ARGState infeasiblePartOfART = lastElement;
     for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(cex.getInterpolants(), path)) {
+      stats.totalPathLengthToInfeasibility++;
       BooleanFormula itp = interpolationPoint.getFirst();
       ARGState w = interpolationPoint.getSecond();
 
       if (bfmgr.isTrue(itp)) {
         // do nothing
+        stats.totalUnchangedPrefixLength++;
         continue;
       }
 
@@ -125,6 +131,9 @@ class ImpactRefinementStrategy implements RefinementStrategy {
       if (!performRefinementForState(itp, w)) {
         changedElements.add(w);
       }
+    }
+    if (infeasiblePartOfART == lastElement) {
+      stats.totalPathLengthToInfeasibility++;
     }
     stats.totalNumberOfAffectedStates += changedElements.size();
 
