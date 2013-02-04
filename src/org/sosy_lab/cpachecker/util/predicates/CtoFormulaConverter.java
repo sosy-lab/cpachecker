@@ -502,6 +502,7 @@ public class CtoFormulaConverter {
 
   @SuppressWarnings("unchecked")
   private void checkSsaSavedType(Variable<CType> var, SSAMapBuilder ssa) {
+
     // Check if types match
 
     // Assert when a variable already exists, that it has the same type
@@ -539,6 +540,10 @@ public class CtoFormulaConverter {
             (CType)new CDereferenceType(type.isConst(), type.isVolatile(), type.getType(), oneByte));
       }
     }
+
+    // TODO: handle guessing of fields!
+    //assert !(var.getType() instanceof CFieldDereferenceTrackType) :
+    //  "It is not possible to create a variable with a CFieldDereferenceTrackType";
 
     checkSsaSavedType(var, ssa);
 
@@ -808,6 +813,18 @@ public class CtoFormulaConverter {
     return t;
   }
 
+  /**
+   * Checks if the given type is the result of dereferencing a non-pointer type.
+   * @param pType the type to check
+   * @return true if the given type is the result of dereferencing a non-pointer type.
+   */
+  private boolean isDereferenceType(CType pType) {
+    return
+        pType instanceof CDereferenceType ||
+        (pType instanceof CFieldDereferenceTrackType &&
+          isDereferenceType(((CFieldDereferenceTrackType)pType).getType()));
+  }
+
   /**Returns the concatenation of MEMORY_ADDRESS_VARIABLE_PREFIX and varName */
   private String makeMemoryLocationVariableName(String varName) {
     return MEMORY_ADDRESS_VARIABLE_PREFIX + varName;
@@ -875,9 +892,6 @@ public class CtoFormulaConverter {
       if (toCanBeHandledAsInt) {
         toType = toIsPointer ? machineModel.getPointerEquivalentSimpleType() : CSimpleType.SimpleInteger;
       }
-//      if (getFormulaTypeFromCType(toType) == getFormulaTypeFromCType(fromType)) {
-//        return formula;
-//      }
     }
 
 
@@ -1643,6 +1657,7 @@ public class CtoFormulaConverter {
       CRightHandSide pRight, String function,
       Constraints constraints, SSAMapBuilder ssa) {
 
+    // TODO: Not only test if instance is of type CDereferenceType but use isDereferenceType(pType)
     CRightHandSide right = removeCast(pRight);
     Formula lVar = makeVariable(lVarName, ssa);
 
@@ -2107,6 +2122,31 @@ public class CtoFormulaConverter {
   }
 
   /**
+   * Returns true when we are able to produce a variable<CType> from this expression.
+   * @param exp the expression
+   * @return true if we can create a variable from this expression.
+   */
+  private boolean isSupportedExpression (CExpression exp) {
+    if (exp instanceof CIdExpression) {
+      return true;
+    } else if (exp instanceof CFieldReference) {
+      CFieldReference fexp = (CFieldReference)exp;
+      return isSupportedExpression(fexp.getFieldOwner());
+    } else if (exp instanceof CCastExpression) {
+      CCastExpression cexp = (CCastExpression)exp;
+      return isSupportedExpression(cexp.getOperand());
+    } else if (exp instanceof CUnaryExpression) {
+      CUnaryExpression uexp = (CUnaryExpression)exp;
+      UnaryOperator op = uexp.getOperator();
+      return
+          (op == UnaryOperator.AMPER || op == UnaryOperator.STAR) &&
+          isSupportedExpression(uexp.getOperand());
+    }
+
+    return false;
+  }
+
+  /**
    * This class tracks constraints which are created during AST traversal but
    * cannot be applied at the time of creation.
    */
@@ -2516,7 +2556,7 @@ public class CtoFormulaConverter {
 
       case STAR:
         // *tmp or *(tmp->field) or *(s.a)
-        if (opExp instanceof CIdExpression || opExp instanceof CFieldReference) {
+        if (isSupportedExpression(opExp)) {
           Variable<CType> fieldPtrMask  = scopedIfNecessary(exp, ssa, function);
           Formula f = makeVariable(fieldPtrMask, ssa);
 
@@ -2793,30 +2833,6 @@ public class CtoFormulaConverter {
       return super.visit(fexp);
     }
 
-    /**
-     * Returns true when we are able to produce a variable<CType> from this expression.
-     * @param exp the expression
-     * @return true if we can create a variable from this expression.
-     */
-    private boolean isSupportedExpression (CExpression exp) {
-      if (exp instanceof CIdExpression) {
-        return true;
-      } else if (exp instanceof CFieldReference) {
-        CFieldReference fexp = (CFieldReference)exp;
-        return isSupportedExpression(fexp.getFieldOwner());
-      } else if (exp instanceof CCastExpression) {
-        CCastExpression cexp = (CCastExpression)exp;
-        return isSupportedExpression(cexp.getOperand());
-      } else if (exp instanceof CUnaryExpression) {
-        CUnaryExpression uexp = (CUnaryExpression)exp;
-        UnaryOperator op = uexp.getOperator();
-        return
-            (op == UnaryOperator.AMPER || op == UnaryOperator.STAR) &&
-            isSupportedExpression(uexp.getOperand());
-      }
-
-      return false;
-    }
 
     @Override
     public BooleanFormula visit(CAssignment assignment)
@@ -3058,7 +3074,7 @@ public class CtoFormulaConverter {
           makeFreshIndex(ptrVarName, ssa);
           Formula newPtrVar = makeVariable(ptrVarName, ssa);
           BooleanFormula condition;
-          if (ptrVarName.getType() instanceof CDereferenceType){
+          if (isDereferenceType(ptrVarName.getType())){
             // Variable from a aliasing formula, they are always to smapp, so fill up with nondet bits to make a pointer.
             condition = makeNondetAssignment(var, leftVar, ssa);
           } else {
@@ -3075,6 +3091,8 @@ public class CtoFormulaConverter {
         }
       }
     }
+
+
 
     /** A direct assignment changes the value of the variable on the left side. */
     private BooleanFormula handleDirectAssignment(CAssignment assignment)
