@@ -44,7 +44,7 @@ public final class CCastExpression extends AExpression implements CExpression {
 
   @Override
   public CType getExpressionType() {
-    return type;
+    return (CType)super.getExpressionType();
   }
 
   public CExpression getOperand() {
