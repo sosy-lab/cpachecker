@@ -482,6 +482,9 @@ public class FormulaManagerView implements FormulaManager {
 
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeConcat(T pFormula, T pAppendFormula) {
+    if ((pFormula == null) ^ (pAppendFormula == null)) {
+      return com.google.common.base.Objects.firstNonNull(pFormula, pAppendFormula);
+    }
     Class<T> clazz = getInterface(pFormula);
     Formula t;
     if (clazz==BooleanFormula.class) {
@@ -495,6 +498,14 @@ public class FormulaManagerView implements FormulaManager {
     }
 
     return (T) t;
+  }
+
+  public <T extends Formula> T makeConcat(List<T> formulas) {
+    T conc = null;
+    for (T t : formulas) {
+      conc = makeConcat(conc, t);
+    }
+    return conc;
   }
 
   public  <T extends Formula> BooleanFormula makeEqual(T pLhs, T pRhs) {

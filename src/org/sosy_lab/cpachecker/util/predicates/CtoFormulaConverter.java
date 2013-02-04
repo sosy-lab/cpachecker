@@ -241,7 +241,10 @@ public class CtoFormulaConverter {
   private boolean ignoreCasts = true;
 
   @Option(description = "Handle field access via extract and concat instead of new variables.")
-  private boolean handleFieldAccess = false;
+  private boolean handleFieldAccess = true;
+
+  @Option(description = "Handle field aliasing formulas.")
+  private boolean handleFieldAliasing = true;
 
   private final Set<String> printedWarnings = new HashSet<>();
 
@@ -667,46 +670,6 @@ public class CtoFormulaConverter {
     return resolveFields(var, ssa, true);
   }
 
-  /**
-   * Adds a pointer cast to the given content variable if expr is a CCastExpression.
-   * This method is honoring ignoreCasts
-   * @param expr
-   * @param rawFormula
-   * @param ptrVarName
-   * @return
-   */
-  @Deprecated // don't use it as it makes no sense
-  private <T extends Formula> T addPointerCast(CExpression expr, T rawFormula, Variable<CType> ptrVarName) {
-    if (expr instanceof CCastExpression && !ignoreCasts) {
-
-      CCastExpression castExp = (CCastExpression)expr;
-      // If we have a cast to a bigger type we fill with nondet-bits
-      // on any other case we just extract
-      CType totype = castExp.getExpressionType();
-      assert totype instanceof CPointerType : "Strange cast to a non pointer type before dereferencing.";
-      totype = dereferencedType(totype);
-
-      //ptrVar is the dereferenced space.
-      return makeExtractOrConcatNondet(ptrVarName.getType(), totype, rawFormula);
-    }
-
-    return rawFormula;
-  }
-
-  /** Returns the pointer variable belonging to a given Expression (only for Id- and CastExpression */
-  @Deprecated // don't use it as it is better to call scopedIfNecessary directly
-  private <T extends Formula> T makePointerVariable(CExpression expr, String function,
-      SSAMapBuilder ssa) {
-    CExpression castRemoved = removeCast(expr);
-    assert castRemoved instanceof CIdExpression
-        : "We can only handle CIdExpressions on this point";
-    Variable<CType> ptrVarName = makePointerVariableName((CIdExpression) castRemoved, function, ssa);
-    T f = this.<T>makeVariable(ptrVarName, ssa);
-    f = addPointerCast(expr, f, ptrVarName);
-
-    return f;
-  }
-
   /** Takes a (scoped) variable name and returns the pointer variable name. */
   static String makePointerMaskName(String scopedId, SSAMapBuilder ssa) {
     return POINTER_VARIABLE + scopedId + "__at__" + ssa.getIndex(scopedId) + "__end";
@@ -777,15 +740,6 @@ public class CtoFormulaConverter {
       return ((CDereferenceType) pType).getType();
     }
     return new CPointerType(false, false, pType);
-  }
-
-  /** Returns the pointer variable name corresponding to a given IdExpression */
-  @Deprecated // don't use it as it is better to call scopedIfNecessary directly
-  private Variable<CType> makePointerVariableName(CIdExpression expr,
-      String function, SSAMapBuilder ssa) {
-
-    Variable<CType> scopedId = scopedIfNecessary(expr, ssa, function);
-    return makePointerMask(scopedId, ssa);
   }
 
   private static CType dereferencedType(CType t) {
@@ -1618,13 +1572,15 @@ public class CtoFormulaConverter {
     // type correspondence (e.g. boolean, real, bit vector etc.)
     // Types of unknown sizes, e.g. CProblemType, can't be represented and would
     // otherwise cause throwing exceptions
-    if ((maybePointer(leftId, function, ssa)
-        || maybePointer((CType) null, retVarName.getName(), ssa)) &&
+    Variable<CType> leftVar = scopedIfNecessary(leftId, ssa, function);
+    if ((maybePointer(leftVar, ssa)
+        || maybePointer(retVarName, ssa)) &&
         hasRepresentableDereference(leftId) &&
         hasRepresentableDereference(retVarName)) {
       // we assume that either the left or the right hand side is a pointer
       // so we add the equality: *l = *r
-      Formula lPtrVar = makePointerVariable(leftId, function, ssa);
+      Variable<CType> leftPtrMask = makePointerMask(leftVar, ssa);
+      Formula lPtrVar =  makeVariable(leftPtrMask, ssa);
       Variable<CType> retPtrVarName = makePointerMask(retVarName, ssa);
 
       Formula retPtrVar = makeVariable(retPtrVarName, ssa);
@@ -1672,23 +1628,35 @@ public class CtoFormulaConverter {
       CRightHandSide pRight, String function,
       Constraints constraints, SSAMapBuilder ssa) {
 
-    // TODO: Not only test if instance is of type CDereferenceType but use isDereferenceType(pType)
-    CRightHandSide right = removeCast(pRight);
+    if (!hasRepresentableDereference(lVarName)) {
+      // The left side is a type that should not be dereferenced, so no 2nd level assignment
+      return bfmgr.makeBoolean(true);
+    }
+
+    if (!(pRight instanceof CExpression)) {
+      // The right side is something strange
+      log(Level.WARNING, "Not a CExpression on the right side: " + pRight.toASTString());
+      return bfmgr.makeBoolean(true);
+    }
+
+    CExpression right = (CExpression)pRight;
+
+    // TODO: We should not only test if instance is of type CDereferenceType
+    // but use isDereferenceType(pType)
     Formula lVar = makeVariable(lVarName, ssa);
 
     Variable<CType> lPtrVarName = makePointerMask(lVarName, ssa);
-    if (isVariable(right)) {
-      // C statement like: s1 = s2;
+    if (right instanceof CIdExpression ||
+        (right instanceof CFieldReference && !((CFieldReference)right).isPointerDereference())) {
+      // C statement like: s1 = s2; OR s1 = s2.d;
 
       // include aliases if the left or right side may be a pointer a pointer
       // Assume no pointers affected if unrepresentable values are assigned
-      CIdExpression rIdExp = (CIdExpression) right;
-      if ((maybePointer(lVarName, ssa) || maybePointer(rIdExp, function, ssa)) &&
-          hasRepresentableDereference(lVarName) &&
-          hasRepresentableDereference(rIdExp)) {
+      Variable<CType> rightVar = scopedIfNecessary(right, ssa, function);
+      if ((maybePointer(lVarName, ssa) || maybePointer(rightVar, ssa)) &&
+          hasRepresentableDereference(right)) {
         // we assume that either the left or the right hand side is a pointer
         // so we add the equality: *l = *r
-        Variable<CType> rightVar = scopedIfNecessary(rIdExp, ssa, function);
         Variable<CType> rPtrVarName = makePointerMask(rightVar, ssa);
 
         boolean leftT, rightT;
@@ -1722,8 +1690,11 @@ public class CtoFormulaConverter {
             // r was probably assigned with a pointer before and should have a size
             CType currentGuess = ((CDereferenceType)rPtrVarName.getType()).getGuessedType();
             if (currentGuess == null) {
+              // TODO: This currently happens when assigning a function to a function pointer.
               // NOTE: Should we set the size of r in this case?
-              log(Level.WARNING, "Pointer " + lVarName.getName() + " is assigned the value of variable " + rIdExp.getName() + " which contains a non-pointer value in line " + right.getFileLocation().getStartingLineNumber());
+              log(Level.WARNING, "Pointer " + lVarName.getName() + " is assigned the value of variable " +
+                  right.toASTString() + " which contains a non-pointer value in line " +
+                  right.getFileLocation().getStartingLineNumber());
             } else {
               if (machineModel.getSizeof(rPtrVarName.getType()) != machineModel.getSizeof(currentGuess)) {
                 log(Level.WARNING, "Assignment of a pointer from a variable that was assigned by a pointer with different size!");
@@ -1734,16 +1705,20 @@ public class CtoFormulaConverter {
 
         Formula lPtrVar = makeVariable(lPtrVarName, ssa);
         Formula rPtrVar = makeVariable(rPtrVarName, ssa);
-        return makeNondetAssignment(lPtrVar, rPtrVar, ssa);
 
+        return makeNondetAssignment(lPtrVar, rPtrVar, ssa);
       } else {
         // we can assume, that no pointers are affected in this assignment
         return bfmgr.makeBoolean(true);
       }
 
-    } else if (isPointerDereferencing(right) &&
-               hasRepresentableDereference(lVarName)) {
+    } else if ((right instanceof CUnaryExpression &&
+                   ((CUnaryExpression) right).getOperator() == UnaryOperator.STAR) ||
+                ((right instanceof CFieldReference &&
+                    !((CFieldReference)right).isPointerDereference()))) {
       // C statement like: s1 = *s2;
+      // OR s1 = *(s.b)
+      // OR s1 = s->b
 
       if (lPtrVarName.getType() instanceof CDereferenceType) {
         // We have an assignment to a non-pointer type
@@ -1760,16 +1735,14 @@ public class CtoFormulaConverter {
 
       Formula lPtrVar = makeVariable(lPtrVarName, ssa);
 
-      CExpression rRawExpr = ((CUnaryExpression) right).getOperand();
-      CExpression rExpr = removeCast(rRawExpr);
-      if (!(isSupportedExpression((CExpression)right)) ||
-          !(hasRepresentableDereference(rExpr))) {
-        // these are statements like s1 = *(s2.f)
-        // TODO check whether doing nothing is correct
+      if (!(isSupportedExpression(right)) ||
+          !(hasRepresentableDereference(right))) {
+        // these are statements like s1 = *(s2->f)
+        log(Level.WARNING, "Ignoring 2nd level assignment, because right statement is too complex: " + right.toASTString());
         return bfmgr.makeBoolean(true);
       }
 
-      Variable<CType> rPtrVarName = scopedIfNecessary((CExpression)right, ssa, function);
+      Variable<CType> rPtrVarName = scopedIfNecessary(right, ssa, function);
       Formula rPtrVar = makeVariable(rPtrVarName, ssa);
       //Formula rPtrVar = makePointerVariable(rRawExpr, function, ssa);
 
@@ -1808,6 +1781,7 @@ public class CtoFormulaConverter {
 
     } else if (isMemoryLocation(right)) {
       // s = &x
+      // OR s = (&x).t
       // need to update the pointer on the left hand side
       if (right instanceof CUnaryExpression
           && ((CUnaryExpression) right).getOperator() == UnaryOperator.AMPER) {
@@ -1832,6 +1806,9 @@ public class CtoFormulaConverter {
 
           return makeNondetAssignment(lPtrVar, rVar, ssa);
         }
+      } else if (right instanceof CFieldReference) {
+        // Weird Case
+        log(Level.WARNING, "Strange MemoryLocation: " + right.toASTString());
       }
 
       // s = malloc()
@@ -1839,11 +1816,8 @@ public class CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
 
     } else {
-      // s = 1
       // s = someFunction()
       // s = a + b
-      // s = x.f
-      // s = x->f
       // s = a[i]
 
       // no second level assignment necessary
@@ -1890,21 +1864,8 @@ public class CtoFormulaConverter {
     }
   }
 
-
-  private static boolean isVariable(CAstNode exp) {
-    return exp instanceof CIdExpression;
-  }
-
-  private static boolean isPointerDereferencing(CAstNode exp) {
-    return (exp instanceof CUnaryExpression
-        && ((CUnaryExpression) exp).getOperator() == UnaryOperator.STAR);
-  }
-
-  private static boolean isStaticallyDeclaredPointer(CType expr) {
-    return expr instanceof CPointerType;
-  }
-
   private boolean isMemoryLocation(CAstNode exp) {
+    exp = removeCast(exp);
 
     // memory allocating function?
     if (exp instanceof CFunctionCall) {
@@ -1922,19 +1883,10 @@ public class CtoFormulaConverter {
     } else if (exp instanceof CUnaryExpression
         && ((CUnaryExpression) exp).getOperator() == UnaryOperator.AMPER) {
       return true;
+    } else if (exp instanceof CFieldReference && !((CFieldReference)exp).isPointerDereference()) {
+      return isMemoryLocation(((CFieldReference)exp).getFieldOwner());
     }
 
-    return false;
-  }
-
-  /** Returns if a given expression may be a pointer. */
-  private boolean maybePointer(CExpression pExp, String function, SSAMapBuilder ssa) {
-    CExpression exp = removeCast(pExp);
-    if (exp instanceof CIdExpression) {
-      CIdExpression idExp = (CIdExpression) exp;
-      CType type = exp.getExpressionType();
-      return maybePointer(type, scopedIfNecessary(idExp, ssa, function).getName(), ssa);
-    }
 
     return false;
   }
@@ -1955,14 +1907,38 @@ public class CtoFormulaConverter {
     return accessField(msb_Lsb, f);
   }
 
+  private Formula replaceField(Pair<Integer, Integer> msb_Lsb, Formula f, Formula newField) {
+
+    assert efmgr.getLength((BitvectorFormula) newField) == msb_Lsb.getFirst() + 1 - msb_Lsb.getSecond()
+        : "The new formula has not the right size";
+
+    Pair<Formula, Formula> pre_after = getPreAfterFormulas(f, msb_Lsb);
+
+    return fmgr.<Formula>makeConcat(Arrays.<Formula>asList(pre_after.getFirst(), newField, pre_after.getSecond()));
+  }
+
+  private Formula replaceField(CFieldReference fExp, Formula pLVar, Formula pRightVariable) {
+    Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
+
+    return replaceField(msb_Lsb, pLVar, pRightVariable);
+  }
+
+
   /**
    * Returns the given struct but without the bits indicated by the given
    * CFieldReference.
    */
   private Formula withoutField(CFieldReference fExp, Formula f) {
-
     Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
+    Pair<Formula, Formula> pre_after = getPreAfterFormulas(f, msb_Lsb);
+    return fmgr.makeConcat(pre_after.getFirst(), pre_after.getSecond());
+  }
+
+  private Pair<Formula, Formula> getPreAfterFormulas(Formula f, Pair<Integer, Integer> msb_Lsb) {
     int size = efmgr.getLength((BitvectorFormula) f);
+    assert size > msb_Lsb.getFirst() : "f is too small";
+    assert 0 <= msb_Lsb.getSecond() && msb_Lsb.getFirst() >= msb_Lsb.getSecond() : "msb_Lsb is invalid";
+
     Formula pre = efmgr.makeBitvector(0, 0);
     if (msb_Lsb.getFirst() + 1 < size) {
       pre = fmgr.makeExtract(f, size - 1, msb_Lsb.getFirst() + 1);
@@ -1972,7 +1948,8 @@ public class CtoFormulaConverter {
       after = fmgr.makeExtract(f, msb_Lsb.getSecond() - 1, 0);
     }
 
-    return fmgr.makeConcat(pre, after);
+    Pair<Formula, Formula> pre_after = Pair.of(pre, after);
+    return pre_after;
   }
 
   /**
@@ -2020,8 +1997,11 @@ public class CtoFormulaConverter {
       for (CCompositeTypeMemberDeclaration member : structType.getMembers() ) {
         if (member.getName().equals(fieldName)) {
           if (assertFieldType != null) {
-            assert CTypeUtils.equals(assertFieldType, member.getType())
-              : "Expected the same type for member";
+            if (!CTypeUtils.equals(assertFieldType, member.getType())){
+              log(Level.SEVERE,
+                  "Expected the same type for member (Ignore it for function pointer): " +
+                      assertFieldType.toString() + ", " + member.getType().toString());
+            }
           }
 
           return off;
@@ -2033,18 +2013,14 @@ public class CtoFormulaConverter {
       throw new AssertionError("field " + fieldName + " was not found in " + structType);
   }
 
-  private static boolean maybePointer(Variable<CType> varName, SSAMapBuilder ssa){
-    return maybePointer(varName.getType(), varName.getName(), ssa);
-  }
-
-  private static boolean maybePointer(CType type, String varName, SSAMapBuilder ssa) {
-    if (type != null && isStaticallyDeclaredPointer(type)) {
+  private static boolean maybePointer(Variable<CType> var, SSAMapBuilder ssa) {
+    if (var.getType() instanceof CPointerType) {
       return true;
     }
 
     // check if it has been used as a pointer before
     List<Variable<CType>> ptrVarNames = getAllPointerVariablesFromSsaMap(ssa);
-    String expPtrVarName = makePointerMaskName(varName, ssa);
+    String expPtrVarName = makePointerMaskName(var.getName(), ssa);
     return ptrVarNames.contains(Variable.create(expPtrVarName, FormulaType.BooleanType));
   }
 
@@ -2134,6 +2110,14 @@ public class CtoFormulaConverter {
     }
     return exp;
   }
+
+  private CAstNode removeCast(CAstNode exp) {
+    if (exp instanceof CCastExpression) {
+      return removeCast(((CCastExpression) exp).getOperand());
+    }
+    return exp;
+  }
+
 
   /**
    * Indicates which level of indirection is supported.
@@ -2627,7 +2611,7 @@ public class CtoFormulaConverter {
 
       case STAR:
         // *tmp or *(tmp->field) or *(s.a)
-        if (isSupportedExpression(opExp)) {
+        if (isSupportedExpression(exp)) {
           Variable<CType> fieldPtrMask  = scopedIfNecessary(exp, ssa, function);
           Formula f = makeVariable(fieldPtrMask, ssa);
 
@@ -2908,9 +2892,6 @@ public class CtoFormulaConverter {
     @Override
     public BooleanFormula visit(CAssignment assignment)
         throws UnrecognizedCCodeException {
-      // TODO: Check if we can generalise this code to create a generic formula for the left
-      // and for the right side and handle aliasing-formulas depending on the CTypes
-
       CExpression left = removeCast(assignment.getLeftHandSide());
 
       if (left instanceof CIdExpression) {
@@ -2928,7 +2909,8 @@ public class CtoFormulaConverter {
 
         CFieldReference fieldRef = (CFieldReference)left;
         if (isSupportedExpression(left)) {
-          if (!fieldRef.isPointerDereference()) {
+          CExpression realOwner = getRealFieldOwner(fieldRef);
+          if (!(realOwner instanceof CUnaryExpression)) {
             // p.s = ... which we handle quite similar to the p = ... case
             return handleDirectAssignment(assignment);
           } else {
@@ -2938,6 +2920,7 @@ public class CtoFormulaConverter {
         }
       }
 
+      log(Level.WARNING, "Statement is too complex (should be simplified), ignoring pointer aliasing: " + assignment.toASTString());
       return super.visit(assignment);
     }
 
@@ -2954,42 +2937,43 @@ public class CtoFormulaConverter {
           : "Unsupported leftHandSide in Indirect Assignment";
 
 
-      CUnaryExpression p;
+      CUnaryExpression leftSide;
       if (lExpr instanceof CUnaryExpression) {
         // the following expressions are supported by cil:
         // *p = a;
         // *p = 1;
         // *p = a | b; (or any other binary statement)
         // *p = function();
-        p = (CUnaryExpression) lExpr;
+        leftSide = (CUnaryExpression) lExpr;
       } else {
         // p->s = ... is the same as (*p).s = ... which we see as *p = ... (because the bitvector was changed)
         CFieldReference l = (CFieldReference) lExpr;
         assert (l.isPointerDereference()) : "No pointer-dereferencing in handleIndirectFieldAssignment";
 
-        p = (CUnaryExpression)getRealFieldOwner(l);
-        //CExpression lRawOwner = l.getFieldOwner();
-        //lRawOperand = lRawOwner;
-
-        //TODO: We have to add some additional formulas to ensure tracking of pointer masks of the field s.
+        leftSide = (CUnaryExpression)getRealFieldOwner(l);
       }
 
-      assert p.getOperator() == UnaryOperator.STAR  : "Expected pointer dereferencing";
-      CExpression lRawOperand = p.getOperand();
+      assert leftSide.getOperator() == UnaryOperator.STAR  : "Expected pointer dereferencing";
 
-      CExpression lOperand = removeCast(lRawOperand);
-      if (!isSupportedExpression(p)) {
+      if (!isSupportedExpression(leftSide)) {
         // TODO: *(a + 2) = b
         // NOTE: We do not support multiple levels of indirection (**t)
+        log(
+            Level.WARNING,
+            "Ignoring 2nd level of assignment, because left side is too complex: " +
+                pAssignment.toASTString());
         return super.visit(pAssignment);
       }
 
-      Variable<CType> lVarName = scopedIfNecessary(lOperand, ssa, function);
+      SSAMapBuilder oldssa = new SSAMapBuilder(ssa.build());
+      Variable<CType> lVarName = scopedIfNecessary(leftSide.getOperand(), ssa, function);
+      Variable<CType> lPtrVarName = makePointerMask(lVarName, ssa);
       Formula lVar = makeVariable(lVarName, ssa);
+      Formula lPtrVar = makeVariable(lPtrVarName, ssa);
 
       CRightHandSide r = pAssignment.getRightHandSide();
 
-      // NOTE: When doDeepUpdate is false rVarName will only be used for comparision in updateAllPointers
+      // NOTE: When doDeepUpdate is false rVarName will only be used for comparison in updateAllPointers
       // So this is OK.
       Variable<CType> rVarName = Variable.create(null, r.getExpressionType());
       Formula rPtrVar = null;
@@ -3008,13 +2992,25 @@ public class CtoFormulaConverter {
       Formula rightVariable = assignmentFormulas.getFirst();
       BooleanFormula assignments = assignmentFormulas.getThird();
 
+      if (!(lExpr instanceof CUnaryExpression)) {
+        // NOTE: rightVariable is only the changed field, set it to the complete bitvector
+        rightVariable = replaceField((CFieldReference) lExpr, lPtrVar, rightVariable);
+
+        // We can't make a pointermask from the right side.
+        doDeepUpdate = false;
+        rVarName = Variable.create(null, r.getExpressionType()); // Only for comparison
+      }
+
       // To ensure tracking we have to update all pointers which are equal to p (now they point to the right side)
       updateAllPointers(lVarName, lVar, rVarName, rightVariable);
-
       updateAllMemoryLocations(lVarName, rPtrVar, rightVariable, doDeepUpdate);
 
+      // Basically we have nothing more to do,
+      // because *(p->b) is not allowed as it has
+      // two levels of indirection and should be simplified.
       return assignments;
     }
+
 
     private void updateAllMemoryLocations(
         Variable<CType> lVarName, Formula rPtrVar, Formula rVar, boolean deepUpdate) {
@@ -3174,27 +3170,93 @@ public class CtoFormulaConverter {
     /** A direct assignment changes the value of the variable on the left side. */
     private BooleanFormula handleDirectAssignment(CAssignment assignment)
         throws UnrecognizedCCodeException {
-      CExpression lExpr = removeCast(assignment.getLeftHandSide());
+      CExpression lRawExpr = assignment.getLeftHandSide();
+      CExpression lExpr = removeCast(lRawExpr);
       assert(lExpr instanceof CIdExpression
           || (lExpr instanceof CFieldReference && !((CFieldReference)lExpr).isPointerDereference()))
           : "We currently can't handle too complex lefthandside-Expressions";
 
       CRightHandSide right = removeCast(assignment.getRightHandSide());
 
-      Variable<CType> leftVarName = scopedIfNecessary(lExpr, ssa, function);
+      Variable<CType> leftVarName = scopedIfNecessary(lRawExpr, ssa, function);
 
-      // assignment (first level) -- uses superclass
+      // assignment (first level)
+      // Just the assignment formula p = t
       Triple<Formula, Formula, BooleanFormula> assignmentFormulas = visitAssignment(assignment);
       Formula leftVariable = assignmentFormulas.getSecond();
       BooleanFormula firstLevelFormula = assignmentFormulas.getThird();
 
-      // assignment (second level)
+      // assignment (second level) *p = *t if nessesary
       Variable<CType> lVarName = scopedIfNecessary(lExpr, ssa, function);
       BooleanFormula secondLevelFormula = buildDirectSecondLevelAssignment(
           lVarName, right, function, constraints, ssa);
 
       BooleanFormula assignmentFormula = bfmgr.and(firstLevelFormula, secondLevelFormula);
 
+      updatePointerAliasedTo(leftVarName, leftVariable);
+
+
+      if (handleFieldAliasing) {
+        if (lExpr instanceof CIdExpression) {
+          // If the left side is a simple CIdExpression "l = ..." than we have to see if
+          // l is a structure and handle pointer aliasing for all fields.
+
+          CType simpleTypes = CTypeUtils.simplifyType(lExpr.getExpressionType());
+          if (simpleTypes instanceof CCompositeType) {
+            // There are 3 cases:
+            // - the right side is of the form *r
+            //     for every member we have to emit
+            //     ∀p ∈ maybePointer: (p = r->t) ⇒ (l.t = p ∧ *(l.t) = *p)
+            // - the right side is of the form r
+            //     for every member we have to emit *(s.t) = *(r.t)
+            // - the right side is of the form &r, this should not happen
+            //     for every member we have to emit *(s.t) = *((&r).t)
+            // -> Exactly this does the buildDirectSecondLevelAssignment method for us
+            if (CTypeUtils.equals(right.getExpressionType(), simpleTypes)) {
+              CCompositeType structureType = (CCompositeType) simpleTypes;
+              for (CCompositeTypeMemberDeclaration member : structureType.getMembers()) {
+                // We pretend to have a assignment of the form
+                // l.t = (r).t
+                CFieldReference leftField =
+                    new CFieldReference(null, member.getType(), member.getName(), lExpr, false);
+
+                CFieldReference rightField =
+                    new CFieldReference(null, member.getType(), member.getName(), (CExpression)right, false);
+                Variable<CType> leftFieldVar = scopedIfNecessary(leftField, ssa, function);
+                BooleanFormula secondLevelFormulaForMember = buildDirectSecondLevelAssignment(
+                    leftFieldVar, rightField, function, constraints, ssa);
+                assignmentFormula = bfmgr.and(assignmentFormula, secondLevelFormulaForMember);
+
+                // Also update all pointers aliased to the field.
+                Formula leftFieldFormula = makeVariable(leftFieldVar, ssa);
+                updatePointerAliasedTo(leftFieldVar, leftFieldFormula);
+              }
+            } else {
+              log(Level.WARNING, "Can't handle aliasing of a strange assignment to a structure: " + assignment.toASTString());
+            }
+          }
+        } else {
+          CFieldReference fexp = (CFieldReference)lExpr;
+          assert !fexp.isPointerDereference()
+            : "direct assignment but indirect expression!";
+          // If we have a CFieldReference on the left "l.t = ..." than we only have to update
+          // the single field.
+          // This is what we have done with the above buildDirectSecondLevelAssignment-Call.
+          // And from the imaginary right side will exist no pointer so there is nothing to do.
+
+          // Well we have to update all pointers aliased to the structure.
+          // Because above we updated the field.
+          CExpression owner = getRealFieldOwner(fexp);
+          Variable<CType> structVar = scopedIfNecessary(owner, ssa, function);
+          Formula structFormula = makeVariable(structVar, ssa);
+          updatePointerAliasedTo(structVar, structFormula);
+        }
+      }
+
+      return assignmentFormula;
+    }
+
+    private void updatePointerAliasedTo(Variable<CType> leftVarName, Formula leftVariable) {
       // updates
       if (isKnownMemoryLocation(leftVarName)) {
         Variable<CType> leftMemLocationName = makeMemoryLocationVariable(leftVarName);
@@ -3224,9 +3286,7 @@ public class CtoFormulaConverter {
             constraints.addConstraint(constraint);
           }
         }
-
       }
-      return assignmentFormula;
     }
 
     /** Returns whether the address of a given variable has been used before. */
