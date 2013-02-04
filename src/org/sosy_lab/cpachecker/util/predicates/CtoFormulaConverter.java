@@ -1685,7 +1685,11 @@ public class CtoFormulaConverter {
   }
 
   private void warnToComplex(IAstNode node) {
-    log(Level.WARNING, "Ignoring pointer aliasing, because statement is too complex, please simplify: " + node.toASTString() + " (Line: " + node.getFileLocation().getStartingLineNumber() + ")");
+    if (handleFieldAccess) {
+      log(Level.WARNING, "Ignoring pointer aliasing, because statement is too complex, please simplify: " + node.toASTString() + " (Line: " + node.getFileLocation().getStartingLineNumber() + ")");
+    } else {
+      log(Level.WARNING, "Ignoring pointer aliasing, because statement is too complex, please simplify or enable handleFieldAccess: " + node.toASTString() + " (Line: " + node.getFileLocation().getStartingLineNumber() + ")");
+    }
   }
 
   private BooleanFormula buildDirectSecondLevelAssignment(
@@ -1713,7 +1717,7 @@ public class CtoFormulaConverter {
     Variable<CType> lPtrVarName = makePointerMask(lVarName, ssa);
     CType leftPtrType = lPtrVarName.getType();
     if (right instanceof CIdExpression ||
-        (right instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)right))) {
+        (handleFieldAccess && right instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)right))) {
       // C statement like: s1 = s2; OR s1 = s2.d;
 
       // include aliases if the left or right side may be a pointer a pointer
@@ -1779,7 +1783,7 @@ public class CtoFormulaConverter {
 
     } else if ((right instanceof CUnaryExpression &&
                    ((CUnaryExpression) right).getOperator() == UnaryOperator.STAR) ||
-               right instanceof CFieldReference && isIndirectFieldReference((CFieldReference)right)) {
+               (handleFieldAccess && right instanceof CFieldReference && isIndirectFieldReference((CFieldReference)right))) {
       // C statement like: s1 = *s2;
       // OR s1 = *(s.b)
       // OR s1 = s->b
@@ -2546,7 +2550,7 @@ public class CtoFormulaConverter {
 
           // we can omit the warning (no pointers involved),
           // and we don't need to scope the variable reference
-          return makeVariable(Variable.create(exprToVarName(fExp),fExp.getExpressionType()), ssa);
+          return makeVariable(Variable.create(exprToVarName(fExp), fExp.getExpressionType()), ssa);
         }
       }
 
@@ -3054,7 +3058,7 @@ public class CtoFormulaConverter {
         // *p = ...
         return handleIndirectAssignment(assignment);
 
-      } else if (left instanceof CFieldReference) {
+      } else if (handleFieldAccess && left instanceof CFieldReference) {
         // p->t = ...
         // p.s = ...
 
@@ -3583,7 +3587,7 @@ public class CtoFormulaConverter {
       		  // we don't need to scope the variable reference
       		  String var = exprToVarName(fexp);
 
-      		  Variable<CType> v = Variable.create(var, decl.getType());
+      		  Variable<CType> v = Variable.create(var, fexp.getExpressionType());
       		  return makeFreshVariable(v, ssa);
   	      }
     	  }
