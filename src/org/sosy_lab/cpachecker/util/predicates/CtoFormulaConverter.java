@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -120,6 +121,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CDereferenceType;
 import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CFieldTrackType;
+import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CtoFormulaTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CtoFormulaTypeUtils.CtoFormulaSizeofVisitor;
 import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CtoFormulaTypeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.IndirectionVisitor;
@@ -246,6 +248,9 @@ public class CtoFormulaConverter {
 
   @Option(description = "Handle field aliasing formulas.")
   private boolean handleFieldAliasing = false;
+
+  @Option(description = "Handle field aliasing formulas.")
+  private boolean omitNonPointerInFieldAliasing = true;
 
   private final Set<String> printedWarnings = new HashSet<>();
 
@@ -3197,6 +3202,51 @@ public class CtoFormulaConverter {
 
       } else {
         // no deep update of pointers required
+        Map<String, Formula> memberMaskMap = null;
+        CType expType = simplifyType(leftSide.getExpressionType());
+        if (handleFieldAliasing && expType instanceof CCompositeType) {
+          // Read comment below.
+
+          CCompositeType structType = (CCompositeType)expType;
+          memberMaskMap = new Hashtable<>();
+          for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
+            // TODO: check if we can omit member with a maybePointer call.
+            // I think we can't because even when the current member was not used as pointer
+            // the same member could be used as pointer on an other variable.
+            if (omitNonPointerInFieldAliasing && !CtoFormulaTypeUtils.isPointerType(member.getType())) {
+              continue;
+            }
+
+            CFieldReference leftField =
+                new CFieldReference(null, member.getType(), member.getName(), leftSide, false);
+
+            Formula g_s = accessField(leftField, rightVariable);
+            // From g->s we search *(g->s)
+            // Start with nondet bits
+            CType maskType = dereferencedType(member.getType());
+            int fieldMaskSize = getSizeof(maskType) * machineModel.getSizeofCharInBits();
+            Formula content_of_g_s =
+                changeFormulaSize(0, fieldMaskSize, efmgr.makeBitvector(0, 0));
+
+            for (Variable<CType> inner_ptrVarName : ptrVarNames) {
+              Variable<CType> inner_varName = removePointerMaskVariable(inner_ptrVarName);
+              if (inner_varName.equals(lVarName) || inner_varName.equals(rVarName)) {
+                continue;
+              }
+
+              Formula k = makeVariable(inner_varName, ssa);
+              BooleanFormula cond = makeNondetAssignment(k, g_s);
+
+              Formula found = makeVariable(inner_ptrVarName, ssa);
+              found = changeFormulaSize(efmgr.getLength((BitvectorFormula) found), fieldMaskSize, (BitvectorFormula) found);
+
+              content_of_g_s = bfmgr.ifThenElse(cond, found, content_of_g_s);
+            }
+
+            memberMaskMap.put(member.getName(), content_of_g_s);
+          }
+        }
+
 
         for (Variable<CType> memAddress : memAddresses) {
           Variable<CType> varName = getVariableFromMemoryAddress(memAddress);
@@ -3226,12 +3276,12 @@ public class CtoFormulaConverter {
           // *m_new = *m_old
           BooleanFormula update = makeNondetAssignment(newVar, oldVar);
 
-          if (handleFieldAliasing) {
+          if (memberMaskMap != null) {
             // When we found a address which was changed
             // and if this is a structure, we also have to update
             // the pointer masks of the fields.
 
-            // TODO: The content_of_g_s formula doesn't have to be generated for all mem addresses
+            // The content_of_g_s formula doesn't have to be generated for all mem addresses
             // we can do this above for all
 
             // Currently we are in the statement *g = ...
@@ -3247,35 +3297,20 @@ public class CtoFormulaConverter {
             //    if (k_2 = g->s) then *k_2 else
             //        ... else nondetbits
 
-            CType expType = simplifyType(leftSide.getExpressionType());
-            if (expType instanceof CCompositeType) {
-              // Ok now we have to do something if varname is actually
-              CCompositeType structType = (CCompositeType)expType;
+            // Ok now we have to do something if varname is actually
+            CCompositeType structType = (CCompositeType)expType;
+
+            // Note we only handle aliasing for memory addresses which make sense.
+            // varname should be the same structure
+            if (areEqual(varName.getType(), structType)) {
               for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
+                Formula content_of_g_s = memberMaskMap.get(member.getName());
+                if (content_of_g_s == null) {
+                  continue;
+                }
+
                 CFieldReference leftField =
                     new CFieldReference(null, member.getType(), member.getName(), leftSide, false);
-
-                Formula g_s = accessField(leftField, rightVariable);
-                // From g->s we search *(g->s)
-                // Start with nondet bits
-                int fieldSize = getSizeof(member.getType()) * machineModel.getSizeofCharInBits();
-                Formula content_of_g_s =
-                    changeFormulaSize(0, fieldSize, efmgr.makeBitvector(0, 0));
-
-                for (Variable<CType> inner_ptrVarName : ptrVarNames) {
-                  Variable<CType> inner_varName = removePointerMaskVariable(inner_ptrVarName);
-                  if (inner_varName.equals(lVarName) || inner_varName.equals(rVarName)) {
-                    continue;
-                  }
-
-                  Formula k = makeVariable(inner_varName, ssa);
-                  BooleanFormula cond = makeNondetAssignment(k, g_s);
-
-                  Formula found = makeVariable(inner_ptrVarName, ssa);
-                  found = changeFormulaSize(efmgr.getLength((BitvectorFormula) found), fieldSize, (BitvectorFormula) found);
-
-                  content_of_g_s = bfmgr.ifThenElse(cond, found, content_of_g_s);
-                }
 
                 Variable<CType> f_s = makeFieldVariable(varName, leftField, ssa);
                 Variable<CType> content_of_f_s_Name = makePointerMask(f_s, ssa);
@@ -3284,7 +3319,7 @@ public class CtoFormulaConverter {
                 makeFreshIndex(content_of_f_s_Name, ssa);
                 Formula content_of_f_s_new = makeVariable(content_of_f_s_Name, ssa);
                 equality =
-                    bfmgr.and(equality, makeNondetAssignment(content_of_g_s, content_of_f_s_new));
+                    bfmgr.and(equality, fmgr.makeEqual(content_of_g_s, content_of_f_s_new));
                 update =
                     bfmgr.and(update, fmgr.makeEqual(content_of_f_s_old, content_of_f_s_new));
               }
@@ -3302,6 +3337,7 @@ public class CtoFormulaConverter {
 
       return assignments;
     }
+
 
 
     private Variable<CType> getVariableFromMemoryAddress(Variable<CType> pMemAddress) {

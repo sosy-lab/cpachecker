@@ -239,4 +239,8 @@ public class CtoFormulaTypeUtils {
 
     throw new IllegalArgumentException("No DereferenceType!");
   }
+
+  public static boolean isPointerType(CType pType) {
+    return pType instanceof CPointerType;
+  }
 }
