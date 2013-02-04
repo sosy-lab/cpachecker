@@ -924,12 +924,13 @@ public class CtoFormulaConverter {
 
   @SuppressWarnings("unchecked")
   private <T extends Formula> T makeExtractOrConcatNondet(CType pFromType, CType pToType, T pFormula) {
-    assert pFormula instanceof BitvectorFormula : "Can't makeExtractOrConcatNondet for something other than Bitvectors";
+    assert pFormula instanceof BitvectorFormula
+      : "Can't makeExtractOrConcatNondet for something other than Bitvectors";
     int sfrom = machineModel.getSizeof(pFromType);
     int sto = machineModel.getSizeof(pToType);
 
     int bitsPerByte = machineModel.getSizeofCharInBits();
-    return (T) changeFormulaSize(sfrom * bitsPerByte, sto * bitsPerByte, (BitvectorFormula)pFormula, true);
+    return (T) changeFormulaSize(sfrom * bitsPerByte, sto * bitsPerByte, (BitvectorFormula)pFormula);
   }
 
   /**
@@ -940,9 +941,13 @@ public class CtoFormulaConverter {
    * @param sfrom
    * @param sto
    * @param pFormula
+   * @param expandOnFront use true then used for casts and false when expanding structs
    * @return
    */
-  private BitvectorFormula changeFormulaSize(int sfrombits, int stobits, BitvectorFormula pFormula, boolean expandOnFront) {
+  private BitvectorFormula changeFormulaSize(int sfrombits, int stobits, BitvectorFormula pFormula) {
+    assert fmgr.getFormulaType(pFormula) == efmgr.getFormulaType(sfrombits)
+         : "expected to get sfrombits sized formula!";
+
     // Currently everything is a bitvector
     BitvectorFormula ret;
     if (sfrombits > stobits) {
@@ -952,11 +957,7 @@ public class CtoFormulaConverter {
       int bitsToExtend = stobits - sfrombits;
       FormulaType<BitvectorFormula> t = efmgr.getFormulaType(bitsToExtend);
       BitvectorFormula extendBits = fmgr.makeVariable(t, CtoFormulaConverter.EXPAND_VARIABLE + expands++, 0); // for every call a new variable
-      if (expandOnFront) {
-        ret = fmgr.makeConcat(extendBits , pFormula);
-      } else {
-        ret = fmgr.makeConcat(pFormula, extendBits);
-      }
+      ret = fmgr.makeConcat(extendBits , pFormula);
     } else {
       ret = pFormula;
     }
@@ -978,7 +979,7 @@ public class CtoFormulaConverter {
       // Sign extend with ones when pfromType is signed and sign bit is set
       BitvectorFormula extendBits;
       int bitsToExtend = (sto - sfrom) * bitsPerByte;
-      if (pfromType.isUnsigned()){
+      if (pfromType.isUnsigned()) {
         extendBits = efmgr.makeBitvector(bitsToExtend, 0);
       } else {
         BitvectorFormula zeroes = efmgr.makeBitvector(bitsToExtend, 0);
@@ -1631,7 +1632,8 @@ public class CtoFormulaConverter {
       return fmgr.assignment(left, right);
     }
 
-    if ((Class<?>)tl.getInterfaceType() == BitvectorFormula.class && (Class<?>)tr.getInterfaceType() == BitvectorFormula.class){
+    if ((Class<?>)tl.getInterfaceType() == BitvectorFormula.class &&
+        (Class<?>)tr.getInterfaceType() == BitvectorFormula.class) {
 
       BitvectorFormula leftBv = (BitvectorFormula) left;
       BitvectorFormula rightBv = (BitvectorFormula) right;
@@ -1641,10 +1643,10 @@ public class CtoFormulaConverter {
       // Expand the smaller one with nondet-bits
       if (leftSize < rightSize) {
         leftBv =
-            changeFormulaSize(leftSize, rightSize, leftBv, false);
+            changeFormulaSize(leftSize, rightSize, leftBv);
       } else {
         rightBv =
-            changeFormulaSize(rightSize, leftSize, rightBv, false);
+            changeFormulaSize(rightSize, leftSize, rightBv);
       }
       return bitvectorFormulaManager.equal(leftBv, rightBv);
     }
@@ -1987,11 +1989,10 @@ public class CtoFormulaConverter {
         "expecting CCompositeType on structs!";
     // f is now the structure, access it:
     int bitsPerByte = machineModel.getSizeofCharInBits();
-    int structSize = machineModel.getSizeof(structType) * bitsPerByte;
     int offset = getFieldOffset((CCompositeType) structType, fExp.getFieldName(), fExp.getExpressionType()) * bitsPerByte;
     int fieldSize = machineModel.getSizeof(fExp.getExpressionType()) * bitsPerByte;
-    int msb = (structSize - 1) - offset;
-    int lsb = msb - fieldSize + 1;
+    int lsb = offset;
+    int msb = offset + fieldSize - 1;
     Pair<Integer, Integer> msb_Lsb = Pair.of(msb, lsb);
     return msb_Lsb;
   }
@@ -2013,7 +2014,7 @@ public class CtoFormulaConverter {
           return off;
         }
 
-        off = machineModel.getSizeof(member.getType());
+        off += machineModel.getSizeof(member.getType());
       }
 
       throw new AssertionError("field " + fieldName + " was not found in " + structType);
