@@ -919,6 +919,23 @@ public class CtoFormulaConverter {
   }
 
   /**
+   * Change the size of the given "from" formula to the size of the "to" formula
+   * This method extracts or concats with nondet-bits.
+   */
+  @SuppressWarnings("unchecked")
+  private <T extends Formula> T makeExtractOrConcatNondet(Formula from, Formula to) {
+    assert from instanceof BitvectorFormula
+      : "Can't makeExtractOrConcatNondet for something other than Bitvectors";
+    assert to instanceof BitvectorFormula
+      : "Can't makeExtractOrConcatNondet for something other than Bitvectors";
+
+    int sfrom = efmgr.getLength((BitvectorFormula) from);
+    int sto = efmgr.getLength((BitvectorFormula) to);
+
+    return (T) changeFormulaSize(sfrom, sto, (BitvectorFormula)from);
+  }
+
+  /**
    * Change the given Formulasize from the given size to the new size.
    * if sfrom > sto an extract will be done.
    * if sto > sfrom an concat with nondet-bits will be done.
@@ -1628,7 +1645,7 @@ public class CtoFormulaConverter {
       Variable<CType> retPtrVarName = makePointerMask(retVarName, ssa);
 
       Formula retPtrVar = makeVariable(retPtrVarName, ssa);
-      return makeNondetAssignment(lPtrVar, retPtrVar, ssa);
+      return makeNondetAssignment(lPtrVar, retPtrVar);
 
     } else {
       // we can assume, that no pointers are affected in this assignment
@@ -1637,7 +1654,7 @@ public class CtoFormulaConverter {
   }
 
   private int expands = 0;
-  private BooleanFormula makeNondetAssignment(Formula left, Formula right, SSAMapBuilder ssa) {
+  private BooleanFormula makeNondetAssignment(Formula left, Formula right) {
     BitvectorFormulaManagerView bitvectorFormulaManager = efmgr;
     FormulaType<Formula> tl = fmgr.getFormulaType(left);
     FormulaType<Formula> tr = fmgr.getFormulaType(right);
@@ -1696,7 +1713,7 @@ public class CtoFormulaConverter {
     Variable<CType> lPtrVarName = makePointerMask(lVarName, ssa);
     CType leftPtrType = lPtrVarName.getType();
     if (right instanceof CIdExpression ||
-        (right instanceof CFieldReference && !((CFieldReference)right).isPointerDereference())) {
+        (right instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)right))) {
       // C statement like: s1 = s2; OR s1 = s2.d;
 
       // include aliases if the left or right side may be a pointer a pointer
@@ -1754,7 +1771,7 @@ public class CtoFormulaConverter {
         Formula lPtrVar = makeVariable(lPtrVarName, ssa);
         Formula rPtrVar = makeVariable(rPtrVarName, ssa);
 
-        return makeNondetAssignment(lPtrVar, rPtrVar, ssa);
+        return makeNondetAssignment(lPtrVar, rPtrVar);
       } else {
         // we can assume, that no pointers are affected in this assignment
         return bfmgr.makeBoolean(true);
@@ -1762,8 +1779,7 @@ public class CtoFormulaConverter {
 
     } else if ((right instanceof CUnaryExpression &&
                    ((CUnaryExpression) right).getOperator() == UnaryOperator.STAR) ||
-                ((right instanceof CFieldReference &&
-                    ((CFieldReference)right).isPointerDereference()))) {
+               right instanceof CFieldReference && isIndirectFieldReference((CFieldReference)right)) {
       // C statement like: s1 = *s2;
       // OR s1 = *(s.b)
       // OR s1 = s->b
@@ -1810,13 +1826,13 @@ public class CtoFormulaConverter {
           Formula ptrVar = makeVariable(ptrVarName, ssa);
 
           // p = *r. p is a pointer but *r can be anything
-          BooleanFormula ptr = makeNondetAssignment(rPtrVar, var, ssa);
+          BooleanFormula ptr = makeNondetAssignment(rPtrVar, var);
           // l = p. p is a pointer but l can be anything.
-          BooleanFormula dirEq = makeNondetAssignment(lVar, var, ssa);
+          BooleanFormula dirEq = makeNondetAssignment(lVar, var);
 
           // *l = *p. Both can be anything.
           BooleanFormula indirEq =
-              makeNondetAssignment(lPtrVar, ptrVar, ssa);
+              makeNondetAssignment(lPtrVar, ptrVar);
 
           BooleanFormula consequence = bfmgr.and(dirEq, indirEq);
           BooleanFormula constraint = bfmgr.implication(ptr, consequence);
@@ -1852,7 +1868,7 @@ public class CtoFormulaConverter {
           }
           Formula lPtrVar = makeVariable(lPtrVarName, ssa);
 
-          return makeNondetAssignment(lPtrVar, rVar, ssa);
+          return makeNondetAssignment(lPtrVar, rVar);
         }
       } else if (right instanceof CFieldReference) {
         // Weird Case
@@ -1935,7 +1951,7 @@ public class CtoFormulaConverter {
     } else if (exp instanceof CUnaryExpression
         && ((CUnaryExpression) exp).getOperator() == UnaryOperator.AMPER) {
       return true;
-    } else if (exp instanceof CFieldReference && !((CFieldReference)exp).isPointerDereference()) {
+    } else if (exp instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)exp)) {
       return isMemoryLocation(((CFieldReference)exp).getFieldOwner());
     }
 
@@ -2018,16 +2034,24 @@ public class CtoFormulaConverter {
     return fieldOwner;
   }
 
+  private boolean isIndirectFieldReference(CFieldReference fexp) {
+    if (fexp.isPointerDereference()) {
+      return true;
+    }
+
+    if (fexp.getFieldOwner() instanceof CUnaryExpression) {
+      return true;
+    }
+
+    return false;
+  }
+
   /**
    * Returns the offset of the given CFieldReference within the structure in bits.
    */
   private Pair<Integer, Integer> getFieldOffsetMsbLsb(CFieldReference fExp) {
-    CExpression fieldRef = fExp.getFieldOwner();
+    CExpression fieldRef = getRealFieldOwner(fExp);
     CType structType = CTypeUtils.simplifyType(fieldRef.getExpressionType());
-    if (fExp.isPointerDereference()) {
-      assert structType instanceof CPointerType : "Expected pointer on dereferencing";
-      structType = CTypeUtils.simplifyType(((CPointerType)structType).getType());
-    }
 
     assert structType instanceof CCompositeType :
         "expecting CCompositeType on structs!";
@@ -2676,13 +2700,11 @@ public class CtoFormulaConverter {
     @Override
     public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
       String field = fexp.getFieldName();
-      CExpression owner = fexp.getFieldOwner();
+      CExpression owner = getRealFieldOwner(fexp);
       Formula term = owner.accept(this);
 
       String tpname = getTypeName(owner.getExpressionType());
-      String ufname =
-          (fexp.isPointerDereference() ? "->{" : ".{") + tpname + "," + field
-              + "}";
+      String ufname = ".{" + tpname + "," + field + "}";
 
       // see above for the case of &x and *x
       return makeUIF(Variable.create(ufname, fexp.getExpressionType()), ssa, term);
@@ -3062,7 +3084,7 @@ public class CtoFormulaConverter {
         throws UnrecognizedCCodeException {
       CExpression lExpr = removeCast(pAssignment.getLeftHandSide());
 
-      assert (lExpr instanceof CUnaryExpression || (lExpr instanceof CFieldReference && ((CFieldReference)lExpr).isPointerDereference()))
+      assert (lExpr instanceof CUnaryExpression || (lExpr instanceof CFieldReference && isIndirectFieldReference((CFieldReference)lExpr)))
           : "Unsupported leftHandSide in Indirect Assignment";
 
 
@@ -3073,11 +3095,12 @@ public class CtoFormulaConverter {
         // *p = 1;
         // *p = a | b; (or any other binary statement)
         // *p = function();
+        // *s.t = ...
         leftSide = (CUnaryExpression) lExpr;
       } else {
         // p->s = ... is the same as (*p).s = ... which we see as *p = ... (because the bitvector was changed)
         CFieldReference l = (CFieldReference) lExpr;
-        assert (l.isPointerDereference()) : "No pointer-dereferencing in handleIndirectFieldAssignment";
+        assert isIndirectFieldReference(l) : "No pointer-dereferencing in handleIndirectFieldAssignment";
 
         leftSide = (CUnaryExpression)getRealFieldOwner(l);
       }
@@ -3087,6 +3110,7 @@ public class CtoFormulaConverter {
       if (!isSupportedExpression(leftSide)) {
         // TODO: *(a + 2) = b
         // NOTE: We do not support multiple levels of indirection (**t)
+        // *(p->t) = ...
         warnToComplex(leftSide);
         return super.visit(pAssignment);
       }
@@ -3137,28 +3161,47 @@ public class CtoFormulaConverter {
         rVarName = Variable.create(null, r.getExpressionType()); // Only for comparison
       }
 
-      // To ensure tracking we have to update all pointers which are equal to p (now they point to the right side)
-      updateAllPointers(lVarName, lVar, rVarName, rightVariable);
-      updateAllMemoryLocations(lVarName, rPtrVar, rightVariable, doDeepUpdate);
+      // To ensure tracking we have to update all pointers which are equal to p
+      // (now they point to the right side)
+      // update all pointer variables (they might have a new value)
+      // every variable aliased to the left hand side,
+      // has its pointer set to the right hand side,
+      // for all other pointer variables, the index is updated
+      List<Variable<CType>> ptrVarNames = getAllPointerVariablesFromSsaMap(ssa);
+      for (Variable<CType> ptrVarName : ptrVarNames) {
+        Variable<CType> varName = removePointerMaskVariable(ptrVarName);
 
-      // Basically we have nothing more to do,
-      // because *(p->b) is not allowed as it has
-      // two levels of indirection and should be simplified.
-      return assignments;
-    }
+        if (!varName.equals(lVarName) && !varName.equals(rVarName)) {
+          Formula var = makeVariable(varName, ssa);
 
+          Formula oldPtrVar = makeVariable(ptrVarName, ssa);
+          makeFreshIndex(ptrVarName, ssa);
+          Formula newPtrVar = makeVariable(ptrVarName, ssa);
+          BooleanFormula condition;
+          if (isDereferenceType(ptrVarName.getType())) {
+            // Variable from a aliasing formula, they are always to small, so fill up with nondet bits to make a pointer.
+            condition = makeNondetAssignment(var, lVar);
+          } else {
+            assert fmgr.getFormulaType(var) == fmgr.getFormulaType(lVar)
+                : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
+            condition = fmgr.makeEqual(var, lVar);
+          }
+          //BooleanFormula condition = fmgr.makeEqual(var, leftVar);
+          BooleanFormula equality = makeNondetAssignment(newPtrVar, rightVariable);
 
-    private void updateAllMemoryLocations(
-        Variable<CType> lVarName, Formula rPtrVar, Formula rVar, boolean deepUpdate) {
+          BooleanFormula indexUpdate = fmgr.assignment(newPtrVar, oldPtrVar);
 
-      Formula lVar = makeVariable(lVarName, ssa);
+          BooleanFormula variableUpdate = bfmgr.ifThenElse(condition, equality, indexUpdate);
+          constraints.addConstraint(variableUpdate);
+        }
+      }
 
       // for all memory addresses also update the aliasing
       // if the left variable is an alias for an address,
       // then the left side is (deep) equal to the right side
       // otherwise update the variables
       List<Variable<CType>> memAddresses = getAllMemoryLocationsFromSsaMap(ssa);
-      if (deepUpdate) {
+      if (doDeepUpdate) {
         for (Variable<CType> memAddress : memAddresses) {
           Variable<CType> varName = getVariableFromMemoryAddress(memAddress);
           //String varName = getVariableNameFromMemoryAddress(memAddress.getName());
@@ -3190,9 +3233,9 @@ public class CtoFormulaConverter {
             // We create the formula of the comments above.
 
             // *m_new = r (they don't need to have the same types so use makeNondetAssignment)
-            BooleanFormula varEquality = makeNondetAssignment(newVar, rVar, ssa);
+            BooleanFormula varEquality = makeNondetAssignment(newVar, rightVariable);
             // **m_new = *r
-            BooleanFormula ptrVarEquality = makeNondetAssignment(newPtrVar, rPtrVar, ssa);
+            BooleanFormula ptrVarEquality = makeNondetAssignment(newPtrVar, rPtrVar);
             // *m_new = *m_old
             BooleanFormula varUpdate = fmgr.assignment(newVar, oldVar);
             // **m_new = **m_old
@@ -3223,38 +3266,113 @@ public class CtoFormulaConverter {
         for (Variable<CType> memAddress : memAddresses) {
           Variable<CType> varName = getVariableFromMemoryAddress(memAddress);
 
-          if (!varName.equals(lVarName) && hasRepresentableDereference(varName)) {
-            // *m_old
-            Formula oldVar = makeVariable(varName, ssa);
-            makeFreshIndex(varName, ssa);
-            // *m_new
-            Formula newVar = makeVariable(varName, ssa);
-            // **m_new
-            Variable<CType> newPtrVarName = makePointerMask(varName, ssa);
-            removeOldPointerVariablesFromSsaMap(newPtrVarName, ssa);
-
-            // m_new
-            Formula memAddressVar = makeVariable(memAddress, ssa);
-
-            assert fmgr.getFormulaType(lVar) == fmgr.getFormulaType(memAddressVar)
-                : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
-            // p = m_new
-            BooleanFormula condition = fmgr.makeEqual(lVar, memAddressVar);
-            // *m_new = r
-            BooleanFormula equality = makeNondetAssignment(newVar, rVar, ssa);
-            // *m_new = *m_old
-            BooleanFormula update = makeNondetAssignment(newVar, oldVar, ssa);
-
-            // if p = m then *m_new = r else *m_new = *m_old
-            // means when the pointer equals to our current memory address we
-            // know that this memory address contains the right side.
-            // If not we know that this memory address was unchanged (same as before).
-            BooleanFormula variableUpdate = bfmgr.ifThenElse(condition, equality, update);
-            constraints.addConstraint(variableUpdate);
+          if (varName.equals(lVarName) || !hasRepresentableDereference(varName)) {
+            continue;
           }
+          // *m_old
+          Formula oldVar = makeVariable(varName, ssa);
+          makeFreshIndex(varName, ssa);
+          // *m_new
+          Formula newVar = makeVariable(varName, ssa);
+          // **m_new
+          Variable<CType> newPtrVarName = makePointerMask(varName, ssa);
+          removeOldPointerVariablesFromSsaMap(newPtrVarName, ssa);
+
+          // m_new
+          Formula memAddressVar = makeVariable(memAddress, ssa);
+
+          assert fmgr.getFormulaType(lVar) == fmgr.getFormulaType(memAddressVar)
+              : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
+          // p = m_new
+          BooleanFormula condition = fmgr.makeEqual(lVar, memAddressVar);
+          // *m_new = r
+          BooleanFormula equality = makeNondetAssignment(newVar, rightVariable);
+
+          // *m_new = *m_old
+          BooleanFormula update = makeNondetAssignment(newVar, oldVar);
+
+          if (handleFieldAliasing) {
+            // When we found a address which was changed
+            // and if this is a structure, we also have to update
+            // the pointer masks of the fields.
+
+            // TODO: The content_of_g_s formula doesn't have to be generated for all mem addresses
+            // we can do this above for all
+
+            // Currently we are in the statement *g = ...
+            // Now say the condition is met and we found a p with p = m_new
+            // This basically means we have a variable f with &f = m_new
+            // For every changed field s we have to set the pointer mask
+            // *(f.s) = *(g->s)
+            // the *(g->s) part is the tricky one.
+            // To get the content we basically have to search all pointers again.
+            // If one pointer k is equal to g->s we can use *k
+            // We build the following formula: Let {k_1,...,k_n} = maybepointer
+            // if (k_1 = g->s) then *k_1 else
+            //    if (k_2 = g->s) then *k_2 else
+            //        ... else nondetbits
+
+            CType expType = CTypeUtils.simplifyType(leftSide.getExpressionType());
+            if (expType instanceof CCompositeType) {
+              // Ok now we have to do something if varname is actually
+              CCompositeType structType = (CCompositeType)expType;
+              for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
+                CFieldReference leftField =
+                    new CFieldReference(null, member.getType(), member.getName(), leftSide, false);
+
+                Formula g_s = accessField(leftField, rightVariable);
+                // From g->s we search *(g->s)
+                // Start with nondet bits
+                int fieldSize = machineModel.getSizeof(member.getType()) * machineModel.getSizeofCharInBits();
+                Formula content_of_g_s =
+                    changeFormulaSize(0, fieldSize, efmgr.makeBitvector(0, 0));
+
+                for (Variable<CType> inner_ptrVarName : ptrVarNames) {
+                  Variable<CType> inner_varName = removePointerMaskVariable(inner_ptrVarName);
+                  if (inner_varName.equals(lVarName) || inner_varName.equals(rVarName)) {
+                    continue;
+                  }
+
+                  Formula k = makeVariable(inner_varName, ssa);
+                  BooleanFormula cond;
+                  if (isDereferenceType(inner_ptrVarName.getType())) {
+                    cond = makeNondetAssignment(k, g_s);
+                  } else {
+                    cond = fmgr.makeEqual(k, g_s);
+                  }
+
+                  Formula found = makeVariable(inner_ptrVarName, ssa);
+                  found = changeFormulaSize(efmgr.getLength((BitvectorFormula) found), fieldSize, (BitvectorFormula) found);
+
+                  content_of_g_s = bfmgr.ifThenElse(cond, found, content_of_g_s);
+                }
+
+                Variable<CType> f_s = makeFieldVariable(varName, leftField, ssa);
+                Variable<CType> content_of_f_s_Name = makePointerMask(f_s, ssa);
+
+                Formula content_of_f_s_old = makeVariable(content_of_f_s_Name, ssa);
+                makeFreshIndex(content_of_f_s_Name, ssa);
+                Formula content_of_f_s_new = makeVariable(content_of_f_s_Name, ssa);
+                equality =
+                    bfmgr.and(equality, makeNondetAssignment(content_of_g_s, content_of_f_s_new));
+                update =
+                    bfmgr.and(update, fmgr.makeEqual(content_of_f_s_old, content_of_f_s_new));
+              }
+            }
+          }
+
+          // if p = m then *m_new = r else *m_new = *m_old
+          // means when the pointer equals to our current memory address we
+          // know that this memory address contains the right side.
+          // If not we know that this memory address was unchanged (same as before).
+          BooleanFormula variableUpdate = bfmgr.ifThenElse(condition, equality, update);
+          constraints.addConstraint(variableUpdate);
         }
       }
+
+      return assignments;
     }
+
 
     private Variable<CType> getVariableFromMemoryAddress(Variable<CType> pMemAddress) {
       return Variable.create(
@@ -3262,54 +3380,13 @@ public class CtoFormulaConverter {
           dereferencedType(pMemAddress.getType()));
     }
 
-    /**
-     * Call this method if you need to update all pointers
-     */
-    private void updateAllPointers(Variable<CType> leftVarName, Formula leftVar,
-        Variable<CType> rightVarName, Formula rightVariable) {
-
-      // update all pointer variables (they might have a new value)
-      // every variable aliased to the left hand side,
-      // has its pointer set to the right hand side,
-      // for all other pointer variables, the index is updated
-      List<Variable<CType>> ptrVarNames = getAllPointerVariablesFromSsaMap(ssa);
-      for (Variable<CType> ptrVarName : ptrVarNames) {
-        Variable<CType> varName = removePointerMaskVariable(ptrVarName);
-
-        if (!varName.equals(leftVarName) && !varName.equals(rightVarName)) {
-          Formula var = makeVariable(varName, ssa);
-
-          Formula oldPtrVar = makeVariable(ptrVarName, ssa);
-          makeFreshIndex(ptrVarName, ssa);
-          Formula newPtrVar = makeVariable(ptrVarName, ssa);
-          BooleanFormula condition;
-          if (isDereferenceType(ptrVarName.getType())){
-            // Variable from a aliasing formula, they are always to small, so fill up with nondet bits to make a pointer.
-            condition = makeNondetAssignment(var, leftVar, ssa);
-          } else {
-            assert fmgr.getFormulaType(var) == fmgr.getFormulaType(leftVar)
-                : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
-            condition = fmgr.makeEqual(var, leftVar);
-          }
-          //BooleanFormula condition = fmgr.makeEqual(var, leftVar);
-          BooleanFormula equality = makeNondetAssignment(newPtrVar, rightVariable, ssa);
-          BooleanFormula indexUpdate = fmgr.assignment(newPtrVar, oldPtrVar);
-
-          BooleanFormula variableUpdate = bfmgr.ifThenElse(condition, equality, indexUpdate);
-          constraints.addConstraint(variableUpdate);
-        }
-      }
-    }
-
-
-
     /** A direct assignment changes the value of the variable on the left side. */
     private BooleanFormula handleDirectAssignment(CAssignment assignment)
         throws UnrecognizedCCodeException {
       CExpression lRawExpr = assignment.getLeftHandSide();
       CExpression lExpr = removeCast(lRawExpr);
       assert(lExpr instanceof CIdExpression
-          || (lExpr instanceof CFieldReference && !((CFieldReference)lExpr).isPointerDereference()))
+          || (lExpr instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)lExpr)))
           : "We currently can't handle too complex lefthandside-Expressions";
 
       CRightHandSide right = removeCast(assignment.getRightHandSide());
@@ -3337,7 +3414,7 @@ public class CtoFormulaConverter {
           // If the left side is a simple CIdExpression "l = ..." than we have to see if
           // l is a structure and handle pointer aliasing for all fields.
 
-          CType simpleTypes = CTypeUtils.simplifyType(lExpr.getExpressionType());
+          CType simpleTypes = CTypeUtils.simplifyType(lRawExpr.getExpressionType());
           if (simpleTypes instanceof CCompositeType) {
             // There are 3 cases:
             // - the right side is of the form *r
@@ -3373,7 +3450,7 @@ public class CtoFormulaConverter {
           }
         } else {
           CFieldReference fexp = (CFieldReference)lExpr;
-          assert !fexp.isPointerDereference()
+          assert !isIndirectFieldReference(fexp)
             : "direct assignment but indirect expression!";
           // If we have a CFieldReference on the left "l.t = ..." than we only have to update
           // the single field.
@@ -3410,12 +3487,16 @@ public class CtoFormulaConverter {
             Formula oldPtrVar = makeVariable(ptrVarName, ssa);
             makeFreshIndex(ptrVarName, ssa);
             Formula newPtrVar = makeVariable(ptrVarName, ssa);
-
-            assert fmgr.getFormulaType(var) == fmgr.getFormulaType(leftMemLocation)
-                : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
-            BooleanFormula condition = fmgr.makeEqual(var, leftMemLocation);
+            BooleanFormula condition;
+            if (isDereferenceType(ptrVarName.getType())) {
+              condition = makeNondetAssignment(var, leftMemLocation);
+            } else {
+              assert fmgr.getFormulaType(var) == fmgr.getFormulaType(leftMemLocation)
+                  : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
+              condition = fmgr.makeEqual(var, leftMemLocation);
+            }
             // leftVariable can be anything
-            BooleanFormula equivalence = makeNondetAssignment(newPtrVar, leftVariable, ssa);
+            BooleanFormula equivalence = makeNondetAssignment(newPtrVar, leftVariable);
             BooleanFormula update = fmgr.assignment(newPtrVar, oldPtrVar);
 
             BooleanFormula constraint = bfmgr.ifThenElse(condition, equivalence, update);
@@ -3580,13 +3661,11 @@ public class CtoFormulaConverter {
     public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
       if (!handleFieldAccess) {
     	  String field = fexp.getFieldName();
-    	  CExpression owner = fexp.getFieldOwner();
+    	  CExpression owner = getRealFieldOwner(fexp);
     	  Formula term = buildTerm(owner, edge, function, ssa, constraints);
 
     	  String tpname = getTypeName(owner.getExpressionType());
-    	  String ufname =
-    	      (fexp.isPointerDereference() ? "->{" : ".{") +
-    	      tpname + "," + field + "}";
+    	  String ufname = ".{" + tpname + "," + field + "}";
     	  FormulaList args = new AbstractFormulaList(term);
 
 
