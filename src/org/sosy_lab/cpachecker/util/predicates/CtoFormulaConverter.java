@@ -1016,6 +1016,9 @@ public class CtoFormulaConverter {
     pT1 = CTypeUtils.simplifyType(pT1);
     pT2 = CTypeUtils.simplifyType(pT2);
 
+    // UNDEFINED: What should happen when we have two pointer?
+    // For example when two pointers get multiplied or added
+    // This is always weird.
     if (pT1 instanceof CSimpleType) {
       CSimpleType s1 = (CSimpleType)pT1;
       if (pT2 instanceof CSimpleType) {
@@ -1027,6 +1030,12 @@ public class CtoFormulaConverter {
         }
 
         return resolved;
+      } else if (pT2 instanceof CPointerType) {
+        return pT2;
+      }
+    } else if (pT1 instanceof CPointerType) {
+      if (pT2 instanceof CSimpleType) {
+        return pT1;
       }
     }
 
@@ -1044,7 +1053,7 @@ public class CtoFormulaConverter {
     } else {
       res = pT1;
     }
-    log(Level.WARNING, "Could not get implicit Type of " + pT1 + " and " + pT2+ ", using " + res);
+    log(Level.WARNING, "Could not get implicit Type of " + pT1 + " and " + pT2 + ", using " + res);
     return res;
   }
 
