@@ -299,10 +299,6 @@ public class CtoFormulaConverter {
     logDebug("Unhandled expression treated as free variable", exp);
   }
 
-  private void warnUnsafeAssignment() {
-    log(Level.WARNING, "Program contains array, pointer, or field access; analysis is imprecise in case of aliasing.");
-  }
-
   private String getLogMessage(String msg, CAstNode astNode) {
     return "Line " + astNode.getFileLocation().getStartingLineNumber()
             + ": " + msg
@@ -346,7 +342,7 @@ public class CtoFormulaConverter {
     int size = pType.accept(sizeofVisitor);
     if (size == 0) {
       // UNDEFINED: http://stackoverflow.com/questions/1626446/what-is-the-size-of-an-empty-struct-in-c
-      log(Level.WARNING, "NOTE: Empty structs are UNDEFINED!");
+      log(Level.WARNING, "NOTE: Empty structs are UNDEFINED! (" + pType.toString() + ")");
     }
     return size;
   }
@@ -566,7 +562,7 @@ public class CtoFormulaConverter {
       CType guess = getGuessedType(var.getType());
       if (guess == null) {
         // This should not happen when guessing aliasing types would always work
-        log(Level.WARNING, "No Guess for " + var.getName());
+        log(Level.FINE, "No Type-Guess for " + var.getName());
         CType oneByte = new CSimpleType(false, false, CBasicType.CHAR, false, false, false, false, false, false, false);
         var = Variable.create(
             var.getName(),
@@ -658,7 +654,7 @@ public class CtoFormulaConverter {
     CType runtimeType = trackType.getStructTypeRepectingCasts();
 
     if (!areEqual(staticType, runtimeType)) {
-      log(Level.WARNING, "staticType and runtimeType do not match for " + var.getName() + " so analysis could be inprecise");
+      log(Level.WARNING, "staticType and runtimeType do not match for " + var.getName() + " so analysis could be imprecise");
     }
 
     T realStruct = makeExtractOrConcatNondet(staticType, runtimeType, struct);
@@ -1411,7 +1407,7 @@ public class CtoFormulaConverter {
         }
       }
       if (retType == null) {
-        log(Level.WARNING, "No function declaration was given for " + funcCallExp.toASTString());
+        log(Level.SEVERE, "No function declaration was given for " + funcCallExp.toASTString());
         throw new IllegalArgumentException("Can't add cast because the function declaration is missing! (" + funcCallExp.toASTString() + ")");
       }
     } else {
@@ -1466,7 +1462,7 @@ public class CtoFormulaConverter {
       assert (!formalParamName.isEmpty()) : edge;
 
       if (formalParam.getType() instanceof CPointerType) {
-        warnUnsafeAssignment();
+        log(Level.WARNING, "Program contains pointer parameter; analysis is imprecise in case of aliasing.");
         logDebug("Ignoring the semantics of pointer for parameter "
             + formalParamName, fn.getFunctionDefinition());
       }
@@ -1603,7 +1599,7 @@ public class CtoFormulaConverter {
     if (handleFieldAccess) {
       log(Level.WARNING, "Ignoring pointer aliasing, because statement is too complex, please simplify: " + node.toASTString() + " (Line: " + node.getFileLocation().getStartingLineNumber() + ")");
     } else {
-      log(Level.WARNING, "Ignoring pointer aliasing, because statement is too complex, please simplify or enable handleFieldAccess: " + node.toASTString() + " (Line: " + node.getFileLocation().getStartingLineNumber() + ")");
+      log(Level.WARNING, "Ignoring pointer aliasing, because statement is too complex, please simplify or enable handleFieldAccess and handleFieldAliasing: " + node.toASTString() + " (Line: " + node.getFileLocation().getStartingLineNumber() + ")");
     }
   }
 
@@ -1619,11 +1615,11 @@ public class CtoFormulaConverter {
 
     if (!(pRight instanceof CExpression)) {
       // The right side is something strange
-      log(Level.WARNING, "Not a CExpression on the right side: " + pRight.toASTString());
+      log(Level.WARNING, "Not a CExpression on the right side, ignoring aliasing: " + pRight.toASTString());
       return bfmgr.makeBoolean(true);
     }
-    CExpression right = (CExpression)pRight;
 
+    CExpression right = (CExpression)pRight;
     if (!isSupportedExpression(right)) {
       if (isTooComplexExpression(right)) {
         // The right side is too complex
@@ -2172,7 +2168,7 @@ public class CtoFormulaConverter {
        : "A supported Expression is handled as unsupported!";
 
     if (makeFresh) {
-      warnUnsafeAssignment();
+      log(Level.WARNING, "Program contains array, or pointer (multiple level of indirection), or field (enable handleFieldAccess and handleFieldAliasing) access; analysis is imprecise in case of aliasing.");
       logDebug("Assigning to ", exp);
     } else {
       warnUnsafeVar(exp);
@@ -3204,47 +3200,50 @@ public class CtoFormulaConverter {
         // no deep update of pointers required
         Map<String, Formula> memberMaskMap = null;
         CType expType = simplifyType(leftSide.getExpressionType());
-        if (handleFieldAliasing && expType instanceof CCompositeType) {
+        if (handleFieldAliasing) {
           // Read comment below.
-
-          CCompositeType structType = (CCompositeType)expType;
-          memberMaskMap = new Hashtable<>();
-          for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
-            // TODO: check if we can omit member with a maybePointer call.
-            // I think we can't because even when the current member was not used as pointer
-            // the same member could be used as pointer on an other variable.
-            if (omitNonPointerInFieldAliasing && !CtoFormulaTypeUtils.isPointerType(member.getType())) {
-              continue;
-            }
-
-            CFieldReference leftField =
-                new CFieldReference(null, member.getType(), member.getName(), leftSide, false);
-
-            Formula g_s = accessField(leftField, rightVariable);
-            // From g->s we search *(g->s)
-            // Start with nondet bits
-            CType maskType = dereferencedType(member.getType());
-            int fieldMaskSize = getSizeof(maskType) * machineModel.getSizeofCharInBits();
-            Formula content_of_g_s =
-                changeFormulaSize(0, fieldMaskSize, efmgr.makeBitvector(0, 0));
-
-            for (Variable<CType> inner_ptrVarName : ptrVarNames) {
-              Variable<CType> inner_varName = removePointerMaskVariable(inner_ptrVarName);
-              if (inner_varName.equals(lVarName) || inner_varName.equals(rVarName)) {
+          if (expType instanceof CCompositeType) {
+            CCompositeType structType = (CCompositeType)expType;
+            memberMaskMap = new Hashtable<>();
+            for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
+              // TODO: check if we can omit member with a maybePointer call.
+              // I think we can't because even when the current member was not used as pointer
+              // the same member could be used as pointer on an other variable.
+              if (omitNonPointerInFieldAliasing && !CtoFormulaTypeUtils.isPointerType(member.getType())) {
                 continue;
               }
 
-              Formula k = makeVariable(inner_varName, ssa);
-              BooleanFormula cond = makeNondetAssignment(k, g_s);
+              CFieldReference leftField =
+                  new CFieldReference(null, member.getType(), member.getName(), leftSide, false);
 
-              Formula found = makeVariable(inner_ptrVarName, ssa);
-              found = changeFormulaSize(efmgr.getLength((BitvectorFormula) found), fieldMaskSize, (BitvectorFormula) found);
+              Formula g_s = accessField(leftField, rightVariable);
+              // From g->s we search *(g->s)
+              // Start with nondet bits
+              CType maskType = dereferencedType(member.getType());
+              int fieldMaskSize = getSizeof(maskType) * machineModel.getSizeofCharInBits();
+              Formula content_of_g_s =
+                  changeFormulaSize(0, fieldMaskSize, efmgr.makeBitvector(0, 0));
 
-              content_of_g_s = bfmgr.ifThenElse(cond, found, content_of_g_s);
+              for (Variable<CType> inner_ptrVarName : ptrVarNames) {
+                Variable<CType> inner_varName = removePointerMaskVariable(inner_ptrVarName);
+                if (inner_varName.equals(lVarName) || inner_varName.equals(rVarName)) {
+                  continue;
+                }
+
+                Formula k = makeVariable(inner_varName, ssa);
+                BooleanFormula cond = makeNondetAssignment(k, g_s);
+
+                Formula found = makeVariable(inner_ptrVarName, ssa);
+                found = changeFormulaSize(efmgr.getLength((BitvectorFormula) found), fieldMaskSize, (BitvectorFormula) found);
+
+                content_of_g_s = bfmgr.ifThenElse(cond, found, content_of_g_s);
+              }
+
+              memberMaskMap.put(member.getName(), content_of_g_s);
             }
-
-            memberMaskMap.put(member.getName(), content_of_g_s);
           }
+        } else {
+          warnFieldAliasing();
         }
 
 
@@ -3391,7 +3390,9 @@ public class CtoFormulaConverter {
             // - the right side is of the form &r, this should not happen
             //     for every member we have to emit *(s.t) = *((&r).t)
             // -> Exactly this does the buildDirectSecondLevelAssignment method for us
-            if (areEqual(right.getExpressionType(), simpleTypes)) {
+
+            // Note (TODO?): No 2nd level assignment for statements like t = call();
+            if (areEqual(right.getExpressionType(), simpleTypes) && right instanceof CExpression) {
               CCompositeType structureType = (CCompositeType) simpleTypes;
               for (CCompositeTypeMemberDeclaration member : structureType.getMembers()) {
                 // We pretend to have a assignment of the form
@@ -3411,7 +3412,7 @@ public class CtoFormulaConverter {
                 updatePointerAliasedTo(leftFieldVar, leftFieldFormula);
               }
             } else {
-              log(Level.WARNING, "Can't handle aliasing of a strange assignment to a structure: " + assignment.toASTString());
+              log(Level.SEVERE, "Can't handle aliasing of a strange assignment to a structure: " + assignment.toASTString());
             }
           }
         } else {
@@ -3430,9 +3431,17 @@ public class CtoFormulaConverter {
           Formula structFormula = makeVariable(structVar, ssa);
           updatePointerAliasedTo(structVar, structFormula);
         }
+      } else {
+        warnFieldAliasing();
       }
 
       return assignmentFormula;
+    }
+
+    private void warnFieldAliasing() {
+      if (handleFieldAccess) {
+        log(Level.WARNING, "You should enable handleFieldAliasing if possible.");
+      }
     }
 
     private void updatePointerAliasedTo(Variable<CType> leftVarName, Formula leftVariable) {
@@ -3706,7 +3715,7 @@ public class CtoFormulaConverter {
         }
       } else {
       	// &f = ... which doesn't make much sense.
-      	log(Level.WARNING, "Strange addressof operator.");
+      	log(Level.WARNING, "Strange addressof operator on the left side:" + pE.toString());
         return super.visit(pE);
       }
     }
