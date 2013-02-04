@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -77,7 +76,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -96,21 +94,16 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
-import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
@@ -119,12 +112,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CDereferenceType;
 import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CFieldTrackType;
 import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CtoFormulaTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CtoFormulaTypeUtils.CtoFormulaSizeofVisitor;
-import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CtoFormulaTypeVisitor;
-import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.IndirectionVisitor;
+import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.TooComplexVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -258,10 +249,6 @@ public class CtoFormulaConverter {
   private int nextStringLitIndex = 0;
 
   private final MachineModel machineModel;
-  private final RepresentabilityCTypeVisitor representabilityCTypeVisitor
-    = new RepresentabilityCTypeVisitor();
-
-  private final IndirectionVisitor indirectionVisitor = new IndirectionVisitor();
   private final CtoFormulaSizeofVisitor sizeofVisitor;
 
   protected final FormulaManagerView fmgr;
@@ -273,6 +260,8 @@ public class CtoFormulaConverter {
 
   private static final int                 VARIABLE_UNSET          = -1;
   private static final int                 VARIABLE_UNINITIALIZED  = 2;
+
+  private final TooComplexVisitor tooComplexVisitor;
 
   public CtoFormulaConverter(Configuration config, FormulaManagerView fmgr,
       MachineModel pMachineModel, LogManager logger)
@@ -286,6 +275,7 @@ public class CtoFormulaConverter {
     this.fmgr = fmgr;
     this.machineModel = pMachineModel;
     this.sizeofVisitor = new CtoFormulaSizeofVisitor(pMachineModel);
+    this.tooComplexVisitor = new TooComplexVisitor(handleFieldAccess);
 
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.nfmgr = fmgr.getRationalFormulaManager();
@@ -433,11 +423,6 @@ public class CtoFormulaConverter {
     }
     // Default behaviour, structs for example
     return false;
-  }
-
-  // Checks if there is some formula type to represent the C type
-  private boolean isRepresentableType(CType pType) {
-    return pType.accept(representabilityCTypeVisitor);
   }
 
   private boolean hasRepresentableDereference(Variable<CType> v) {
@@ -1949,19 +1934,6 @@ public class CtoFormulaConverter {
     return pre_after;
   }
 
-
-  private boolean isIndirectFieldReference(CFieldReference fexp) {
-    if (fexp.isPointerDereference()) {
-      return true;
-    }
-
-    if (fexp.getFieldOwner() instanceof CUnaryExpression) {
-      return true;
-    }
-
-    return false;
-  }
-
   /**
    * Returns the offset of the given CFieldReference within the structure in bits.
    */
@@ -2206,84 +2178,7 @@ public class CtoFormulaConverter {
         return false;
       }
 
-      return getIndirectionLevel(c) > supportedIndirectionLevel;
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw new AssertionError("No idea what happened", e);
-    }
-  }
-  private final TooComplexVisitor tooComplexVisitor = new TooComplexVisitor();
-  private class TooComplexVisitor implements CExpressionVisitor<Boolean, Exception> {
-
-    @Override
-    public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws Exception {
-      return true;
-    }
-
-    @Override
-    public Boolean visit(CBinaryExpression pIastBinaryExpression) throws Exception {
-      return
-          pIastBinaryExpression.getOperand1().accept(this) ||
-          pIastBinaryExpression.getOperand2().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CCastExpression pIastCastExpression) throws Exception {
-      return pIastCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CFieldReference pIastFieldReference) throws Exception {
-      return
-          handleFieldAccess &&
-          getRealFieldOwner(pIastFieldReference).accept(this);
-    }
-
-    @Override
-    public Boolean visit(CIdExpression pIastIdExpression) throws Exception {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) throws Exception {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws Exception {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws Exception {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression) throws Exception {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CTypeIdExpression pIastTypeIdExpression) throws Exception {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws Exception {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CUnaryExpression pIastUnaryExpression) throws Exception {
-      return pIastUnaryExpression.getOperand().accept(this);
-    }
-
-  }
-
-  private int getIndirectionLevel(CExpression c) {
-    try {
-      return c.accept(indirectionVisitor);
+      return CtoFormulaTypeUtils.getIndirectionLevel(c) > supportedIndirectionLevel;
     } catch (Exception e) {
       e.printStackTrace();
       throw new AssertionError("No idea what happened", e);
@@ -2999,8 +2894,7 @@ public class CtoFormulaConverter {
 
         CFieldReference fieldRef = (CFieldReference)left;
         if (isSupportedExpression(left)) {
-          CExpression realOwner = getRealFieldOwner(fieldRef);
-          if (!(realOwner instanceof CUnaryExpression)) {
+          if (!isIndirectFieldReference(fieldRef)) {
             // p.s = ... which we handle quite similar to the p = ... case
             return handleDirectAssignment(assignment);
           } else {
@@ -3720,92 +3614,6 @@ public class CtoFormulaConverter {
       	log(Level.WARNING, "Strange addressof operator on the left side:" + pE.toString());
         return super.visit(pE);
       }
-    }
-  }
-
-  private class RepresentabilityCTypeVisitor implements CtoFormulaTypeVisitor<Boolean, RuntimeException> {
-
-    @Override
-    public Boolean visit(CArrayType pArrayType) {
-      return pArrayType.getType().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CCompositeType pCompositeType) {
-      for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
-        if (!decl.getType().accept(this)) {
-          return false;
-        }
-      }
-
-      return true;
-    }
-
-    @Override
-    public Boolean visit(CElaboratedType pElaboratedType) {
-      switch (pElaboratedType.getKind()) {
-      case ENUM:
-        return true;
-      default:
-        // Return true if the type is resolved and it is a representable type.
-        if (pElaboratedType.getRealType() == null) {
-          log(Level.WARNING, "Type " + pElaboratedType.toASTString("") + " is not resolved!");
-          return false;
-        } else {
-          return pElaboratedType.getRealType().accept(this);
-        }
-      }
-    }
-
-    @Override
-    public Boolean visit(CEnumType pEnumType) {
-      return true;
-    }
-
-    @Override
-    public Boolean visit(CFunctionPointerType pFunctionPointerType) {
-      return true;
-    }
-
-    @Override
-    public Boolean visit(CFunctionType pFunctionType) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CPointerType pPointerType) {
-      return true;
-    }
-
-    @Override
-    public Boolean visit(CProblemType pProblemType) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CSimpleType pSimpleType) {
-      return true;
-    }
-
-    @Override
-    public Boolean visit(CTypedefType pTypedefType) {
-      return pTypedefType.getRealType().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CNamedType pCNamedType) {
-      // If the type was representable, the name would be already resolved
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CDummyType pCDummyType) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CDereferenceType pCDereferenceType) {
-      return pCDereferenceType.getType().accept(this);
     }
   }
 }
