@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -74,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -770,6 +772,36 @@ public class CtoFormulaConverter {
           isDereferenceType(((CFieldDereferenceTrackType)pType).getType()));
   }
 
+  private CType getGuessedType(CType pType) {
+    if (pType instanceof CDereferenceType) {
+      CDereferenceType ref = (CDereferenceType) pType ;
+      return ref.getGuessedType();
+    }
+
+    if (pType instanceof CFieldDereferenceTrackType) {
+      return getGuessedType(((CFieldDereferenceTrackType)pType).getType());
+    }
+
+    throw new IllegalArgumentException("No DereferenceType!");
+  }
+
+  private CType setGuessedType(CType pType, CType set) {
+    if (pType instanceof CDereferenceType) {
+      CDereferenceType ref = (CDereferenceType) pType ;
+      return ref.withGuess(set);
+    }
+
+    if (pType instanceof CFieldDereferenceTrackType) {
+      CFieldDereferenceTrackType ref = (CFieldDereferenceTrackType)pType;
+
+      return new CFieldDereferenceTrackType(
+          setGuessedType(ref.getType(), set),
+          ref.getReferencingFieldType());
+    }
+
+    throw new IllegalArgumentException("No DereferenceType!");
+  }
+
   /**Returns the concatenation of MEMORY_ADDRESS_VARIABLE_PREFIX and varName */
   private String makeMemoryLocationVariableName(String varName) {
     return MEMORY_ADDRESS_VARIABLE_PREFIX + varName;
@@ -1353,25 +1385,37 @@ public class CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     }
 
-    CType initType = init.getExpressionType();
+    //CType initType = init.getExpressionType();
 
     // initializer value present
-
-    Formula minit = buildTerm(init, edge, function, ssa, constraints);
-    BooleanFormula assignments = makeAssignment(var, initType, minit, ssa);
-
+    // Do a regular assignment
+    CExpressionAssignmentStatement assign =
+        new CExpressionAssignmentStatement(
+            decl.getFileLocation(),
+            new CIdExpression(decl.getFileLocation(), decl.getType(), decl.getName(), decl),
+            init);
+    StatementToFormulaVisitor v;
     if (handlePointerAliasing) {
-      // we need to add the pointer alias
-      BooleanFormula pAssign = buildDirectSecondLevelAssignment(var,
-          removeCast(init), function, constraints, ssa);
-      assignments = bfmgr.and(pAssign, assignments);
-
-      // no need to add pointer updates:
-      // the left hand variable cannot yet be aliased
-      // because it is newly created
+      v = new StatementToFormulaVisitorPointers(function, ssa, constraints, edge);
+    } else {
+      v = new StatementToFormulaVisitor(function, ssa, constraints, edge);
     }
-
-    return assignments;
+    return assign.accept(v);
+//    Formula minit = buildTerm(init, edge, function, ssa, constraints);
+//    BooleanFormula assignments = makeAssignment(var, initType, minit, ssa);
+//
+//    if (handlePointerAliasing) {
+//      // we need to add the pointer alias
+//      BooleanFormula pAssign = buildDirectSecondLevelAssignment(var,
+//          removeCast(init), function, constraints, ssa);
+//      assignments = bfmgr.and(pAssign, assignments);
+//
+//      // no need to add pointer updates:
+//      // the left hand variable cannot yet be aliased
+//      // because it is newly created
+//    }
+//
+//    return assignments;
   }
 
 
@@ -1623,6 +1667,10 @@ public class CtoFormulaConverter {
     throw new IllegalArgumentException("Assignment between different types");
   }
 
+  private void warnToComplex(IAstNode node) {
+    log(Level.WARNING, "Ignoring pointer aliasing, because statement is too complex, please simplify: " + node.toASTString() + " (Line: " + node.getFileLocation().getStartingLineNumber() + ")");
+  }
+
   private BooleanFormula buildDirectSecondLevelAssignment(
       Variable<CType> lVarName,
       CRightHandSide pRight, String function,
@@ -1646,6 +1694,7 @@ public class CtoFormulaConverter {
     Formula lVar = makeVariable(lVarName, ssa);
 
     Variable<CType> lPtrVarName = makePointerMask(lVarName, ssa);
+    CType leftPtrType = lPtrVarName.getType();
     if (right instanceof CIdExpression ||
         (right instanceof CFieldReference && !((CFieldReference)right).isPointerDereference())) {
       // C statement like: s1 = s2; OR s1 = s2.d;
@@ -1660,8 +1709,8 @@ public class CtoFormulaConverter {
         Variable<CType> rPtrVarName = makePointerMask(rightVar, ssa);
 
         boolean leftT, rightT;
-        if ((leftT = lPtrVarName.getType() instanceof CDereferenceType) |
-            (rightT = rPtrVarName.getType() instanceof CDereferenceType)) {
+        if ((leftT = isDereferenceType(leftPtrType)) |
+            (rightT = isDereferenceType(rPtrVarName.getType()))) {
           // One of those types is no pointer so try to guess dereferenced type.
 
           if (leftT) {
@@ -1672,11 +1721,10 @@ public class CtoFormulaConverter {
             // OK left is no pointer, but right is, for example:
             // l = r; // l is unsigned int and r is *long
             // now we assign *l to the type of *r if *l was not assigned before
-            CDereferenceType leftType = (CDereferenceType)lPtrVarName.getType();
-            CType currentGuess = leftType.getGuessedType();
+            CType currentGuess = getGuessedType(leftPtrType);
             if (currentGuess == null) {
               lPtrVarName =
-                  lPtrVarName.withType(leftType.withGuess(rPtrVarName.getType()));
+                  lPtrVarName.withType(setGuessedType(leftPtrType, rPtrVarName.getType()));
             } else {
               if (machineModel.getSizeof(rPtrVarName.getType()) != machineModel.getSizeof(currentGuess)) {
                 log(Level.WARNING, "Second assignment of an variable that is no pointer with different size");
@@ -1688,7 +1736,7 @@ public class CtoFormulaConverter {
             // l = r; // l is unsigned long* and r is unsigned int
 
             // r was probably assigned with a pointer before and should have a size
-            CType currentGuess = ((CDereferenceType)rPtrVarName.getType()).getGuessedType();
+            CType currentGuess = getGuessedType(rPtrVarName.getType());
             if (currentGuess == null) {
               // TODO: This currently happens when assigning a function to a function pointer.
               // NOTE: Should we set the size of r in this case?
@@ -1715,15 +1763,15 @@ public class CtoFormulaConverter {
     } else if ((right instanceof CUnaryExpression &&
                    ((CUnaryExpression) right).getOperator() == UnaryOperator.STAR) ||
                 ((right instanceof CFieldReference &&
-                    !((CFieldReference)right).isPointerDereference()))) {
+                    ((CFieldReference)right).isPointerDereference()))) {
       // C statement like: s1 = *s2;
       // OR s1 = *(s.b)
       // OR s1 = s->b
 
-      if (lPtrVarName.getType() instanceof CDereferenceType) {
+      if (isDereferenceType(leftPtrType)) {
         // We have an assignment to a non-pointer type
-        CDereferenceType leftType = (CDereferenceType)lPtrVarName.getType();
-        if (leftType.getGuessedType() == null) {
+        CType guess = getGuessedType(leftPtrType);
+        if (guess == null) {
           // We have to guess the size of the dereferenced type here
           // but there is no good guess.
           // TODO: if right side is a **(pointer of a pointer) type use it.
@@ -1738,7 +1786,7 @@ public class CtoFormulaConverter {
       if (!(isSupportedExpression(right)) ||
           !(hasRepresentableDereference(right))) {
         // these are statements like s1 = *(s2->f)
-        log(Level.WARNING, "Ignoring 2nd level assignment, because right statement is too complex: " + right.toASTString());
+        warnToComplex(right);
         return bfmgr.makeBoolean(true);
       }
 
@@ -1793,12 +1841,12 @@ public class CtoFormulaConverter {
           Variable<CType> rVarName = scopedIfNecessary(rOperand, ssa, function);
           Formula rVar = makeVariable(rVarName, ssa);
 
-          if (lPtrVarName.getType() instanceof CDereferenceType) {
+          if (isDereferenceType(leftPtrType)) {
             // s is no pointer and if *s was not guessed jet we can use the type of x.
-            CDereferenceType leftType = (CDereferenceType)lPtrVarName.getType();
-            if (leftType.getGuessedType() == null) {
+            CType guess = getGuessedType(leftPtrType);
+            if (guess == null) {
               lPtrVarName =
-                  lPtrVarName.withType(leftType.withGuess(rOperand.getExpressionType()));
+                  lPtrVarName.withType(setGuessedType(leftPtrType, rOperand.getExpressionType()));
             }
             // TODO: Warn if sizes don't match
           }
@@ -1827,6 +1875,10 @@ public class CtoFormulaConverter {
 
   private BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
       String function, SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
+
+    if (getIndirectionLevel(exp) > supportedIndirectionLevel) {
+      warnToComplex(exp);
+    }
 
     Formula f = exp.accept(getCExpressionVisitor(edge, function, ssa, constraints));
     BooleanFormula result = fmgr.toBooleanFormula(f);
@@ -2206,6 +2258,83 @@ public class CtoFormulaConverter {
     public BooleanFormula get() {
       return constraints;
     }
+  }
+
+  private int getIndirectionLevel(CExpression c) {
+    try {
+      return c.accept(indirectionVisitor);
+    } catch (Exception e) {
+      e.printStackTrace();
+      throw new AssertionError("No idea what happened", e);
+    }
+  }
+  private final IndirectionVisitor indirectionVisitor = new IndirectionVisitor();
+  private class IndirectionVisitor implements CExpressionVisitor<Integer, Exception> {
+
+    @Override
+    public Integer visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws Exception {
+      return pIastArraySubscriptExpression
+          .getArrayExpression().accept(this) + 1;
+    }
+
+    @Override
+    public Integer visit(CBinaryExpression pIastBinaryExpression) throws Exception {
+      return
+      Math.max(
+          pIastBinaryExpression.getOperand1().accept(this),
+          pIastBinaryExpression.getOperand2().accept(this));
+    }
+
+    @Override
+    public Integer visit(CCastExpression pIastCastExpression) throws Exception {
+      return pIastCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Integer visit(CFieldReference pIastFieldReference) throws Exception {
+      return getRealFieldOwner(pIastFieldReference).accept(this);
+    }
+
+    @Override
+    public Integer visit(CIdExpression pIastIdExpression) throws Exception {
+      return 0;
+    }
+
+    @Override
+    public Integer visit(CCharLiteralExpression pIastCharLiteralExpression) throws Exception {
+      return 0;
+    }
+
+    @Override
+    public Integer visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws Exception {
+      return 0;
+    }
+
+    @Override
+    public Integer visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws Exception {
+      return 0;
+    }
+
+    @Override
+    public Integer visit(CStringLiteralExpression pIastStringLiteralExpression) throws Exception {
+      return 0;
+    }
+
+    @Override
+    public Integer visit(CTypeIdExpression pIastTypeIdExpression) throws Exception {
+      return 0;
+    }
+
+    @Override
+    public Integer visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws Exception {
+      return 0;
+    }
+
+    @Override
+    public Integer visit(CUnaryExpression pIastUnaryExpression) throws Exception {
+      return pIastUnaryExpression.getOperand().accept(this) + 1;
+    }
+
   }
 
   private class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
@@ -2920,7 +3049,7 @@ public class CtoFormulaConverter {
         }
       }
 
-      log(Level.WARNING, "Statement is too complex (should be simplified), ignoring pointer aliasing: " + assignment.toASTString());
+      warnToComplex(assignment);
       return super.visit(assignment);
     }
 
@@ -2958,18 +3087,25 @@ public class CtoFormulaConverter {
       if (!isSupportedExpression(leftSide)) {
         // TODO: *(a + 2) = b
         // NOTE: We do not support multiple levels of indirection (**t)
-        log(
-            Level.WARNING,
-            "Ignoring 2nd level of assignment, because left side is too complex: " +
-                pAssignment.toASTString());
+        warnToComplex(leftSide);
         return super.visit(pAssignment);
       }
 
-      SSAMapBuilder oldssa = new SSAMapBuilder(ssa.build());
+      //SSAMapBuilder oldssa = new SSAMapBuilder(ssa.build());
       Variable<CType> lVarName = scopedIfNecessary(leftSide.getOperand(), ssa, function);
       Variable<CType> lPtrVarName = makePointerMask(lVarName, ssa);
       Formula lVar = makeVariable(lVarName, ssa);
       Formula lPtrVar = makeVariable(lPtrVarName, ssa);
+
+      // It could be that we have to fill the structure with nondet bits, because of a cast
+      if (leftSide.getOperand() instanceof CCastExpression) {
+        CCastExpression ptrCast = (CCastExpression)leftSide.getOperand();
+
+        lPtrVar = makeExtractOrConcatNondet(
+            dereferencedType(ptrCast.getOperand().getExpressionType()),
+            dereferencedType(ptrCast.getExpressionType()),
+            lPtrVar);
+      }
 
       CRightHandSide r = pAssignment.getRightHandSide();
 
