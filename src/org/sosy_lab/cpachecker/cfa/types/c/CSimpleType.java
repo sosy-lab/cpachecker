@@ -42,7 +42,8 @@ public final class CSimpleType implements CType {
   private final boolean isLongLong;
   private boolean   isConst;
   private boolean   isVolatile;
-
+  public final static CSimpleType SimpleInteger =
+      new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
   public CSimpleType(final boolean pConst, final boolean pVolatile,
       final CBasicType pType, final boolean pIsLong, final boolean pIsShort,
       final boolean pIsSigned, final boolean pIsUnsigned,

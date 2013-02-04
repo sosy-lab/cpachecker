@@ -855,6 +855,33 @@ public class CtoFormulaConverter {
     fromType = CTypeUtils.simplifyType(fromType);
     toType = CTypeUtils.simplifyType(toType);
 
+    boolean fromCanBeHandledAsInt, toCanBeHandledAsInt;
+    boolean fromIsPointer, toIsPointer;
+    if ((fromCanBeHandledAsInt =
+          ((fromIsPointer = fromType instanceof CPointerType) ||
+           fromType instanceof CEnumType ||
+          (fromType instanceof CElaboratedType &&
+              ((CElaboratedType)fromType).getKind() == ComplexTypeKind.ENUM))) |
+        (toCanBeHandledAsInt =
+          ((toIsPointer = toType instanceof CPointerType) ||
+           toType instanceof CEnumType ||
+          (toType instanceof CElaboratedType &&
+              ((CElaboratedType)toType).getKind() == ComplexTypeKind.ENUM)))) {
+
+      // See Enums/Pointers as Integers
+      if (fromCanBeHandledAsInt) {
+        fromType = fromIsPointer ? machineModel.getPointerEquivalentSimpleType() : CSimpleType.SimpleInteger;
+      }
+      if (toCanBeHandledAsInt) {
+        toType = toIsPointer ? machineModel.getPointerEquivalentSimpleType() : CSimpleType.SimpleInteger;
+      }
+//      if (getFormulaTypeFromCType(toType) == getFormulaTypeFromCType(fromType)) {
+//        return formula;
+//      }
+    }
+
+
+
     if (fromType instanceof CSimpleType) {
       CSimpleType sfromType = (CSimpleType)fromType;
       if (toType instanceof CSimpleType) {
@@ -866,22 +893,6 @@ public class CtoFormulaConverter {
     if (fromType instanceof CPointerType ||
         toType instanceof CPointerType) {
       // Ignore casts between Pointer and right sized types
-      if (getFormulaTypeFromCType(toType) == getFormulaTypeFromCType(fromType)) {
-        return formula;
-      }
-    }
-
-    if (fromType instanceof CEnumType ||
-        toType instanceof CEnumType) {
-      // Ignore casts between Enums and right sized types
-      if (getFormulaTypeFromCType(toType) == getFormulaTypeFromCType(fromType)) {
-        return formula;
-      }
-    }
-
-    if (fromType instanceof CElaboratedType && ((CElaboratedType)fromType).getKind() == ComplexTypeKind.ENUM ||
-        toType instanceof CElaboratedType && ((CElaboratedType)toType).getKind() == ComplexTypeKind.ENUM ) {
-      // Ignore casts between Enums and right sized types
       if (getFormulaTypeFromCType(toType) == getFormulaTypeFromCType(fromType)) {
         return formula;
       }
