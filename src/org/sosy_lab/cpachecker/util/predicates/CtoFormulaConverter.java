@@ -617,6 +617,8 @@ public class CtoFormulaConverter {
       return fmgr.makeVariable(this.<T>getFormulaTypeFromCType(var.getType()), var.getName(), idx);
     }
 
+    assert handleFieldAccess : "Field Variables are only allowed with handleFieldAccess";
+
     Pair<String, Pair<Integer, Integer>> data = removeFieldVariable(var.getName());
     String structName = data.getFirst();
     Pair<Integer, Integer> msb_lsb = data.getSecond();
@@ -1884,6 +1886,7 @@ public class CtoFormulaConverter {
    * Creates a Formula which accesses the given Field
    */
   private Formula accessField(CFieldReference fExp, Formula f) {
+    assert handleFieldAccess : "Fieldaccess if only allowed with handleFieldAccess";
     // Get the underlaying structure
     Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
     return accessField(msb_Lsb, f);
@@ -1893,6 +1896,8 @@ public class CtoFormulaConverter {
 
     assert efmgr.getLength((BitvectorFormula) newField) == msb_Lsb.getFirst() + 1 - msb_Lsb.getSecond()
         : "The new formula has not the right size";
+
+    assert handleFieldAccess : "Fieldaccess if only allowed with handleFieldAccess";
 
     Pair<Formula, Formula> pre_after = getPreAfterFormulas(f, msb_Lsb);
 
@@ -1911,6 +1916,7 @@ public class CtoFormulaConverter {
    * CFieldReference.
    */
   private Formula withoutField(CFieldReference fExp, Formula f) {
+    assert handleFieldAccess : "Fieldaccess if only allowed with handleFieldAccess";
     Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
     Pair<Formula, Formula> pre_after = getPreAfterFormulas(f, msb_Lsb);
     return fmgr.makeConcat(pre_after.getFirst(), pre_after.getSecond());
