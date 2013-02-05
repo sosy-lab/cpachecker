@@ -260,6 +260,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       basePrecision = targetStatePrecision;
     }
 
+    logger.log(Level.ALL, "Old predicate map is", basePrecision);
+    logger.log(Level.ALL, "New predicates are", newPredicates);
+
     PredicatePrecision newPrecision;
     if (addPredicatesGlobally) {
       newPrecision = basePrecision.addGlobalPredicates(newPredicates.values());
@@ -268,6 +271,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
+
+    assert basePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
+    assert targetStatePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
 
     precisionUpdate.stop();
 
