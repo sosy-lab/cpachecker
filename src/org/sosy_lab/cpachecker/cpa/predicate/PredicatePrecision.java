@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
@@ -63,8 +64,8 @@ public class PredicatePrecision implements Precision {
   public PredicatePrecision(Multimap<CFANode, AbstractionPredicate> pLocalPredicates,
       Multimap<String, AbstractionPredicate> pFunctionPredicates,
       Collection<AbstractionPredicate> pGlobalPredicates) {
-    mLocalPredicates = ImmutableSetMultimap.copyOf(pLocalPredicates);
-    mFunctionPredicates = ImmutableSetMultimap.copyOf(pFunctionPredicates);
+    mLocalPredicates = ImmutableSetMultimap.<CFANode, AbstractionPredicate>builder().orderKeysBy(Ordering.natural()).putAll(pLocalPredicates).build();
+    mFunctionPredicates = ImmutableSetMultimap.<String, AbstractionPredicate>builder().orderKeysBy(Ordering.natural()).putAll(pFunctionPredicates).build();
     mGlobalPredicates = ImmutableSet.copyOf(pGlobalPredicates);
   }
 

@@ -98,7 +98,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     mCoveredBy = pCoveredBy;
     if (pCoveredBy.mCoveredByThis == null) {
       // lazy initialization because rarely needed
-      pCoveredBy.mCoveredByThis = new HashSet<>(2);
+      pCoveredBy.mCoveredByThis = new LinkedHashSet<>(2);
     }
     pCoveredBy.mCoveredByThis.add(this);
   }
