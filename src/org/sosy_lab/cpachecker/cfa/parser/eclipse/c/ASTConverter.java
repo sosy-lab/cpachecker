@@ -1046,7 +1046,12 @@ class ASTConverter {
     if (Strings.isNullOrEmpty(name)) {
       name = "__anon_type_" + anonTypeCounter++;
     }
-    return new CCompositeType(d.isConst(), d.isVolatile(), kind, list, name);
+    CCompositeType compositeType = new CCompositeType(d.isConst(), d.isVolatile(), kind, list, name);
+
+    // in cases like struct s { (struct s)* f }
+    // we need to fill in the binding from the inner "struct s" type to the outer
+    compositeType.accept(new FillInBindingVisitor(kind, name, compositeType));
+    return compositeType;
   }
 
   private CEnumType convert(IASTEnumerationSpecifier d) {

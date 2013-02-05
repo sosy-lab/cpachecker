@@ -75,8 +75,10 @@ public final class CElaboratedType implements CComplexType {
    * This method should be called only during parsing.
    */
   public void setRealType(CComplexType pRealType) {
-    checkState(realType == null);
+    checkState(getRealType() == null);
     checkNotNull(pRealType);
+    checkArgument(pRealType.getKind() == kind);
+    checkArgument(pRealType.getName().equals(name));
     realType = pRealType;
   }
 
