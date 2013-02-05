@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision.CegarPrecision;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -161,7 +163,8 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     try {
       variablesAtLocations = Files.readLines(initialPrecisionFile, Charset.defaultCharset());
     } catch (IOException e) {
-      throw new InvalidConfigurationException("error reading precision from file", e);
+      logger.logUserException(Level.WARNING, e, "Could not read predicate map from file named " + initialPrecisionFile);
+      return mapping;
     }
 
     Map<Integer, CFANode> idToCfaNode = createMappingForCFANodes(cfa);
@@ -169,9 +172,11 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
       String[] splits = variablesAtLocation.split("=");
 
       CFANode location = idToCfaNode.get(Integer.parseInt(splits[0].substring(1)));
-      String variables = splits[1].substring(1, splits[1].length() - 1);
 
-      mapping.putAll(location, Arrays.asList(variables.split(", ")));
+      if(location != null) {
+        String variables = splits[1].substring(1, splits[1].length() - 1);
+        mapping.putAll(location, Arrays.asList(variables.split(CegarPrecision.DELIMITER)));
+      }
     }
 
     return mapping;

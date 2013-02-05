@@ -197,6 +197,8 @@ public class ExplicitPrecision implements Precision {
      */
     private HashMultimap<CFANode, String> mapping = null;
 
+    public static final String DELIMITER = ", ";
+
     @Option(description = "whether or not to add newly-found variables only to the exact program location or to the whole scope of the variable.")
     private boolean useScopedInterpolation = false;
 
@@ -270,7 +272,7 @@ public class ExplicitPrecision implements Precision {
 
     @Override
     public String toString() {
-      return Joiner.on(", ").join(mapping.entries());
+      return Joiner.on(DELIMITER).join(mapping.entries());
     }
 
     /**
