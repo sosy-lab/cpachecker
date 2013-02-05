@@ -293,7 +293,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     int secoundLength = getLength(pSecound);
     FormulaType<BitvectorFormula> returnType = getFormulaType(firstLength + secoundLength);
     if (ignoreExtractConcat) {
-      return wrap(returnType, unwrap(pFirst));
+      return wrap(returnType, unwrap(pSecound));
     }
     FunctionFormulaType<RationalFormula> concatUfDecl = getConcatDecl(firstLength, secoundLength);
     return makeUf(returnType, concatUfDecl, pFirst, pSecound);
