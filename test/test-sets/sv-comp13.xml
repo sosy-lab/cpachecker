@@ -3,6 +3,7 @@
 <benchmark tool="cpachecker" timelimit="900" memlimit="15000">
   <option name="-disable-java-assertions"/>
   <option name="-heap">12000M</option>
+  <option name="-noout"/>
 
   <sourcefiles name="BitVectors">
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
