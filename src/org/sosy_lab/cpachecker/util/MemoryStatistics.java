@@ -29,7 +29,10 @@ import java.io.PrintStream;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryPoolMXBean;
+import java.lang.management.MemoryType;
 import java.lang.management.MemoryUsage;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -43,6 +46,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 
 /**
  * This class is a thread that continuously monitors memory usage.
@@ -111,9 +115,17 @@ public class MemoryStatistics extends Thread {
   private long sumNonHeap = 0;
   private long maxNonHeapAllocated = 0;
   private long sumNonHeapAllocated = 0;
+
+  private final MemoryPoolMXBean[] pools;
+  private final long[] sumHeapAllocatedPerPool;
+  private final long[] maxHeapAllocatedPerPool;
+
   private long maxProcess = 0;
   private long sumProcess = 0;
+
   private long count = 0;
+
+  private final MemoryMXBean memory;
 
   // necessary stuff to query the OperatingSystemMBean
   private final MBeanServer mbeanServer;
@@ -128,6 +140,7 @@ public class MemoryStatistics extends Thread {
     super("CPAchecker memory statistics collector");
 
     logger = pLogger;
+    memory = ManagementFactory.getMemoryMXBean();
 
     mbeanServer = ManagementFactory.getPlatformMBeanServer();
     try {
@@ -136,17 +149,27 @@ public class MemoryStatistics extends Thread {
       logger.logDebugException(e, "Accessing OperatingSystemMXBean failed");
       osMbean = null;
     }
+
+    List<MemoryPoolMXBean> poolList = new ArrayList<>(2);
+    for (MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
+      String name = pool.getName();
+      if (name.contains("Old")) {
+        poolList.add(pool);
+      }
+    }
+
+    pools = poolList.toArray(new MemoryPoolMXBean[poolList.size()]);
+    sumHeapAllocatedPerPool = new long[pools.length];
+    maxHeapAllocatedPerPool = new long[pools.length];
   }
 
   @Override
   public void run() {
-    MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
-
     while (true) { // no stop condition, call Thread#interrupt() to stop it
       count++;
 
       // get Java heap usage
-      MemoryUsage currentHeap = mxBean.getHeapMemoryUsage();
+      MemoryUsage currentHeap = memory.getHeapMemoryUsage();
       long currentHeapUsed = currentHeap.getUsed();
       maxHeap = Math.max(maxHeap, currentHeapUsed);
       sumHeap += currentHeapUsed;
@@ -156,7 +179,7 @@ public class MemoryStatistics extends Thread {
       sumHeapAllocated += currentHeapAllocated;
 
       // get Java non-heap usage
-      MemoryUsage currentNonHeap = mxBean.getNonHeapMemoryUsage();
+      MemoryUsage currentNonHeap = memory.getNonHeapMemoryUsage();
       long currentNonHeapUsed = currentNonHeap.getUsed();
       maxNonHeap = Math.max(maxNonHeap, currentNonHeapUsed);
       sumNonHeap += currentNonHeapUsed;
@@ -164,6 +187,12 @@ public class MemoryStatistics extends Thread {
       long currentNonHeapAllocated = currentNonHeap.getCommitted();
       maxNonHeapAllocated = Math.max(maxNonHeapAllocated, currentNonHeapAllocated);
       sumNonHeapAllocated += currentNonHeapAllocated;
+
+      for (int i = 0; i < pools.length; i++) {
+        long currentPoolUsage = pools[i].getUsage().getUsed();
+        maxHeapAllocatedPerPool[i] = Math.max(maxHeapAllocatedPerPool[i], currentPoolUsage);
+        sumHeapAllocatedPerPool[i] += currentPoolUsage;
+      }
 
       // get process virtual memory usage
       if (osMbean != null) {
@@ -195,10 +224,29 @@ public class MemoryStatistics extends Thread {
    */
   public void printStatistics(PrintStream out) {
     checkState(!this.isAlive());
-    out.println("Used heap memory:             " + formatMem(maxHeap) + " max (" + formatMem(sumHeap/count) + " avg)");
-    out.println("Used non-heap memory:         " + formatMem(maxNonHeap) + " max (" + formatMem(sumNonHeap/count) + " avg)");
+
+    long heapPeak = 0;
+    long nonHeapPeak = 0;
+    for (MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
+      long peak = pool.getPeakUsage().getUsed();
+      if (pool.getType() == MemoryType.HEAP) {
+        heapPeak += peak;
+      } else {
+        nonHeapPeak += peak;
+      }
+    }
+
+    out.println("Used heap memory:             " + formatMem(maxHeap) + " max (" + formatMem(sumHeap/count) + " avg, " + formatMem(heapPeak) + " peak)");
+    out.println("Used non-heap memory:         " + formatMem(maxNonHeap) + " max (" + formatMem(sumNonHeap/count) + " avg, " + formatMem(nonHeapPeak) + " peak)");
+
+    for (int i = 0; i < pools.length; i++) {
+      String name = Strings.padEnd("Used in " + pools[i].getName() + " pool:", 30, ' ');
+      out.println(name + formatMem(maxHeapAllocatedPerPool[i]) + " max (" + formatMem(sumHeapAllocatedPerPool[i]/count) + " avg, " + formatMem(pools[i].getPeakUsage().getUsed()) + " peak)");
+    }
+
     out.println("Allocated heap memory:        " + formatMem(maxHeapAllocated) + " max (" + formatMem(sumHeapAllocated/count) + " avg)");
     out.println("Allocated non-heap memory:    " + formatMem(maxNonHeapAllocated) + " max (" + formatMem(sumNonHeapAllocated/count) + " avg)");
+
     if (osMbean != null) {
       out.println("Total process virtual memory: " + formatMem(maxProcess) + " max (" + formatMem(sumProcess/count) + " avg)");
     }
