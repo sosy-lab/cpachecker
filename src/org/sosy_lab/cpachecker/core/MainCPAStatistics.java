@@ -209,6 +209,34 @@ class MainCPAStatistics implements Statistics {
       }
     }
 
+    private void printStatistics(PrintStream out) {
+      checkState(!this.isAlive());
+      out.println("Used heap memory:             " + formatMem(maxHeap) + " max (" + formatMem(sumHeap/count) + " avg)");
+      out.println("Used non-heap memory:         " + formatMem(maxNonHeap) + " max (" + formatMem(sumNonHeap/count) + " avg)");
+      out.println("Allocated heap memory:        " + formatMem(maxHeapAllocated) + " max (" + formatMem(sumHeapAllocated/count) + " avg)");
+      out.println("Allocated non-heap memory:    " + formatMem(maxNonHeapAllocated) + " max (" + formatMem(sumNonHeapAllocated/count) + " avg)");
+      if (osMbean != null) {
+        out.println("Total process virtual memory: " + formatMem(maxProcess) + " max (" + formatMem(sumProcess/count) + " avg)");
+      }
+    }
+
+    public static void printGcStatistics(PrintStream out) {
+      List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
+      Set<String> gcNames = new HashSet<>();
+      long gcTime = 0;
+      int gcCount = 0;
+      for (GarbageCollectorMXBean gcBean : gcBeans) {
+        gcTime += gcBean.getCollectionTime();
+        gcCount += gcBean.getCollectionCount();
+        gcNames.add(gcBean.getName());
+      }
+      out.println("Time for Garbage Collector:   " + Timer.formatTime(gcTime) + " (in " + gcCount + " runs)");
+      out.println("Garbage Collector(s) used:    " + Joiner.on(", ").join(gcNames));
+    }
+
+    private static String formatMem(long mem) {
+      return String.format("%,9dMB", mem >> 20);
+    }
   }
 
     @Option(name="reachedSet.export",
@@ -426,17 +454,7 @@ class MainCPAStatistics implements Statistics {
     }
 
     private void printMemoryStatistics(PrintStream out) {
-      List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
-      Set<String> gcNames = new HashSet<>();
-      long gcTime = 0;
-      int gcCount = 0;
-      for (GarbageCollectorMXBean gcBean : gcBeans) {
-        gcTime += gcBean.getCollectionTime();
-        gcCount += gcBean.getCollectionCount();
-        gcNames.add(gcBean.getName());
-      }
-      out.println("Time for Garbage Collector:   " + Timer.formatTime(gcTime) + " (in " + gcCount + " runs)");
-      out.println("Garbage Collector(s) used:    " + Joiner.on(", ").join(gcNames));
+      MemoryStatistics.printGcStatistics(out);
 
       if (memStats != null) {
         try {
@@ -445,18 +463,8 @@ class MainCPAStatistics implements Statistics {
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
         }
-        out.println("Used heap memory:             " + formatMem(memStats.maxHeap) + " max (" + formatMem(memStats.sumHeap/memStats.count) + " avg)");
-        out.println("Used non-heap memory:         " + formatMem(memStats.maxNonHeap) + " max (" + formatMem(memStats.sumNonHeap/memStats.count) + " avg)");
-        out.println("Allocated heap memory:        " + formatMem(memStats.maxHeapAllocated) + " max (" + formatMem(memStats.sumHeapAllocated/memStats.count) + " avg)");
-        out.println("Allocated non-heap memory:    " + formatMem(memStats.maxNonHeapAllocated) + " max (" + formatMem(memStats.sumNonHeapAllocated/memStats.count) + " avg)");
-        if (memStats.osMbean != null) {
-          out.println("Total process virtual memory: " + formatMem(memStats.maxProcess) + " max (" + formatMem(memStats.sumProcess/memStats.count) + " avg)");
-        }
+        memStats.printStatistics(out);
       }
-    }
-
-    private static String formatMem(long mem) {
-      return String.format("%,9dMB", mem >> 20);
     }
 
     public void setCFACreator(CFACreator pCfaCreator) {
