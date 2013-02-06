@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
@@ -428,6 +429,28 @@ class ASTConverter {
 
     } else {
       CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
+
+
+      // There is a problem with the parser-determined type for statements of the form
+      // long int i = p - q; // p and q are pointers
+      // The type of the right hand side is set to int by the parser, but this is wrong on 64bit platforms!
+      // We fix this by setting the type to long int (correct would be ptrdiff_t).
+
+      if ((op == BinaryOperator.MINUS)
+          && (leftHandSide.getExpressionType() instanceof CPointerType)
+          && (rightHandSide.getExpressionType() instanceof CPointerType)
+          && (type instanceof CSimpleType)) {
+
+        CSimpleType simpleType = (CSimpleType)type;
+        if ((simpleType.getType() == CBasicType.INT)
+            && !simpleType.isLong()
+            && !simpleType.isLongLong()) {
+
+          type = new CSimpleType(type.isConst(), type.isVolatile(), CBasicType.INT, true, false, true, false, false, false, false);
+          logger.log(Level.FINE, "Got pointer difference expression where we needed to change the type from", simpleType, "to", type);
+        }
+      }
+
       return new CBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
     }
   }
