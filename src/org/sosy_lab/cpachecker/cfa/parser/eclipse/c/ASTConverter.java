@@ -115,6 +115,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -463,7 +464,7 @@ class ASTConverter {
     return new CFieldReference(getLocation(e), typeConverter.convert(e.getExpressionType()), convert(e.getFieldName()), convertExpressionWithoutSideEffects(e.getFieldOwner()), e.isPointerDereference());
   }
 
-  private CFunctionCallExpression convert(IASTFunctionCallExpression e) {
+  private CRightHandSide convert(IASTFunctionCallExpression e) {
     IASTExpression p = e.getParameterExpression();
 
     List<CExpression> params;
@@ -485,6 +486,18 @@ class ASTConverter {
       if (d instanceof CFunctionDeclaration) {
         // it may also be a variable declaration, when a function pointer is called
         declaration = (CFunctionDeclaration)d;
+      }
+
+      if ((declaration == null)
+          && ((CIdExpression)functionName).getName().equals("__builtin_expect")
+          && params.size() == 2) {
+
+        // This is the GCC built-in function __builtin_expect(exp, c)
+        // that behaves like (exp == c).
+        // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005fexpect-3345
+
+        CSimpleType intType = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+        return new CBinaryExpression(getLocation(e), intType, params.get(0), params.get(1), BinaryOperator.EQUALS);
       }
     }
 
