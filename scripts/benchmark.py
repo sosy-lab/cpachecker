@@ -28,7 +28,6 @@ CPAchecker web page:
 from __future__ import absolute_import, unicode_literals
 
 import sys
-from apport_python_hook import CONFIG
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 from datetime import date
@@ -1193,23 +1192,30 @@ def executeBenchmarkLocaly(benchmark):
                                      config.commitMessage+'\n\n'+outputHandler.description)
         
 def executeBenchmarkInCloud(benchmark):
-      
-    numOfRunDefLines = 0
-    runDefinitions = ""
+       
+    
     toolpaths = benchmark.tool.getProgrammFiles(benchmark.executable)
-    requirements = "2000\t1"  #TODO memory numerOfCpuCores
+    requirements = "2000\t1"  # TODO memory numerOfCpuCores
     cloudRunExecutorDir = os.path.abspath(os.curdir)
+    outputDir = os.path.join(config.output_path , benchmark.name + "." + benchmark.date)
+    logging.debug("Output path: " + str(outputDir))
+    absOutputDir = os.path.abspath(outputDir)
+    if(not(os.access(absOutputDir, os.F_OK))):
+        os.makedirs(absOutputDir)                   
+    
+    runDefinitions = ""
     absSourceFiles = []
+    numOfRunDefLines = 0
     
     # iterate over run sets
     for runSet in benchmark.runSets:
         
         if STOPPED_BY_INTERRUPT: break
         
-        numOfRunDefLines += (len(runSet.runs)+1)
+        numOfRunDefLines += (len(runSet.runs) + 1)
         
-        runSetHeadLine = str(len(runSet.runs)) + "\t" +\
-                        str(benchmark.rlimits[TIMELIMIT]) + "\t" +\
+        runSetHeadLine = str(len(runSet.runs)) + "\t" + \
+                        str(benchmark.rlimits[TIMELIMIT]) + "\t" + \
                        str(benchmark.rlimits[MEMLIMIT]) + "\n"
          
         runDefinitions = runDefinitions + runSetHeadLine;
@@ -1217,31 +1223,35 @@ def executeBenchmarkInCloud(benchmark):
         # iterate over runs
         for run in runSet.runs:
                 argString = " ".join(run.args)
-                runDefinitions = runDefinitions + argString + "\t" +  run.sourcefile + "\n"
+                runDefinitions += argString + "\t" + run.sourcefile + "\n"
                 absSourceFiles.append(os.path.abspath(run.sourcefile))
     
+    #preparing cloud input
     absToolpaths = []
     for toolpath in toolpaths:
-        absToolpaths.append( os.path.abspath(toolpath))
+        absToolpaths.append(os.path.abspath(toolpath))
     
     seperatedToolpaths = "\t".join(absToolpaths)
     sourceFilesBaseDir = os.path.commonprefix(absSourceFiles)
     logging.debug("source files dir: " + sourceFilesBaseDir)
     toolPathsBaseDir = os.path.commonprefix(absToolpaths)
     logging.debug("tool paths base dir: " + toolPathsBaseDir)
-    baseDir = os.path.commonprefix([sourceFilesBaseDir,toolPathsBaseDir,cloudRunExecutorDir])
+    baseDir = os.path.commonprefix([sourceFilesBaseDir, toolPathsBaseDir, cloudRunExecutorDir])
     logging.debug("base dir: " + baseDir)
-        
-    cloudInput = seperatedToolpaths + "\n" +\
-                cloudRunExecutorDir + "\n" +\
-                baseDir + "\t" + config.output_path + "\n" +\
-                requirements + "\n" +\
-                str(numOfRunDefLines) + "\n" +\
+    
+    if(baseDir == ""):
+        sys.exit("No comman base dir found.")
+            
+    cloudInput = seperatedToolpaths + "\n" + \
+                cloudRunExecutorDir + "\n" + \
+                baseDir + "\t" + config.output_path + "\n" + \
+                requirements + "\n" + \
+                str(numOfRunDefLines) + "\n" + \
                 runDefinitions
                 
      # start cloud
     logging.debug("Starting cloud.")
-    cloud = subprocess.Popen(["java", "-jar", config.cloudPath, "benchmark", "--master", config.cloudMasterName],stdin=subprocess.PIPE)
+    cloud = subprocess.Popen(["java", "-jar", config.cloudPath, "benchmark", "--master", config.cloudMasterName], stdin=subprocess.PIPE)
     (out, err) = cloud.communicate(cloudInput)
     
     returnCode = cloud.wait()
