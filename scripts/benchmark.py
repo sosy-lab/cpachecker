@@ -431,8 +431,8 @@ class Run():
         self.cpuTime = 0
         self.wallTime = 0
         
-        tool = self.benchmark.tool
-        args = tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
+        self.tool = self.benchmark.tool
+        args = self.tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
         args = [os.path.expandvars(arg) for arg in args]
         args = [os.path.expanduser(arg) for arg in args]
         self.args = args;
@@ -469,8 +469,8 @@ class Run():
 
         logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
 
-        self.status = tool.getStatus(returncode, returnsignal, output, self._isTimeout())
-        tool.addColumnValues(output, self.columns)
+        self.status = self.tool.getStatus(returncode, returnsignal, output, self._isTimeout())
+        self.tool.addColumnValues(output, self.columns)
 
         # Tools sometimes produce a result even after a timeout.
         # This should not be counted, so we overwrite the result with TIMEOUT
@@ -1192,12 +1192,11 @@ def executeBenchmarkLocaly(benchmark):
                                      config.commitMessage+'\n\n'+outputHandler.description)
         
 def executeBenchmarkInCloud(benchmark):
-       
-    
+          
     toolpaths = benchmark.tool.getProgrammFiles(benchmark.executable)
     requirements = "2000\t1"  # TODO memory numerOfCpuCores
     cloudRunExecutorDir = os.path.abspath(os.curdir)
-    outputDir = os.path.join(config.output_path , benchmark.name + "." + benchmark.date)
+    outputDir = os.path.join(OUTPUT_PATH , benchmark.name + "." + benchmark.date)
     logging.debug("Output path: " + str(outputDir))
     absOutputDir = os.path.abspath(outputDir)
     if(not(os.access(absOutputDir, os.F_OK))):
