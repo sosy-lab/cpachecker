@@ -43,12 +43,12 @@ class Tool(benchmark.tools.template.BaseTool):
                       'error label',
                       'VERIFICATION FAILED'],
                       output):
-            status = 'UNSAFE (error label)'
+            status = 'UNSAFE'
         elif self.allInText(['Violated property:',
                       'assertion',
                       'VERIFICATION FAILED'],
                       output):
-            status = 'UNSAFE (assertion)'
+            status = 'UNSAFE'
         elif self.allInText(['Violated property:',
                       'dereference failure: forgotten memory',
                       'VERIFICATION FAILED'],
