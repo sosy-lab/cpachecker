@@ -94,4 +94,12 @@ public final class FileLocation {
     return true;
   }
 
+  @Override
+  public String toString() {
+    if (startingLine == endineLine) {
+      return "line " + startingLine;
+    } else {
+      return "lines " + startingLine + "-" + endineLine;
+    }
+  }
 }

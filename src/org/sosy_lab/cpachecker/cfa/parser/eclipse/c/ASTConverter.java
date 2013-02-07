@@ -448,7 +448,7 @@ class ASTConverter {
             && !simpleType.isLongLong()) {
 
           type = new CSimpleType(type.isConst(), type.isVolatile(), CBasicType.INT, true, false, true, false, false, false, false);
-          logger.log(Level.FINE, "Got pointer difference expression where we needed to change the type from", simpleType, "to", type);
+          logger.log(Level.FINE, "Got pointer difference expression where we needed to change the type from", simpleType, "to", type, "in expression", leftHandSide, "-", rightHandSide, "on line", fileLoc.getStartingLineNumber());
         }
       }
 
