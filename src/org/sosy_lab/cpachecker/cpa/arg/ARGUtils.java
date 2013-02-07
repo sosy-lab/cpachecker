@@ -168,7 +168,7 @@ public class ARGUtils {
    * if there is a path through the ARG from a to b which does not pass through
    * any other relevant state.
    *
-   * To get the predecessor relationship, you can use {@link Multimaps#invertFrom()}.
+   * To get the predecessor relationship, you can use {@link Multimaps#invertFrom(com.google.common.collect.Multimap, com.google.common.collect.Multimap)}.
    *
    * @param root The start of the subgraph of the ARG to project (always considered relevant).
    * @param isRelevant The predicate determining which states are in the resulting relationship.

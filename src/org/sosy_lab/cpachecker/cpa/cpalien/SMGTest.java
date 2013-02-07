@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 import java.util.HashSet;

@@ -92,6 +92,7 @@ public class BlockFormulaSlicer {
   final private PathFormulaManager pfmgr;
   final private Collection<CFAEdge> importantEdges = new HashSet<>();
 
+  @SuppressWarnings("unused")
   private static final Function<PredicateAbstractState, BooleanFormula> GET_BLOCK_FORMULA =
       new Function<PredicateAbstractState, BooleanFormula>() {
 
@@ -760,6 +761,7 @@ public class BlockFormulaSlicer {
     return true;
   }
 
+  @SuppressWarnings("unused")
   private static String printFormula(String formula) {
     StringBuilder str = new StringBuilder();
 

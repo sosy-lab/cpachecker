@@ -501,7 +501,6 @@ public class SMGTransferRelation implements TransferRelation {
     public BigInteger visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
 
       UnaryOperator unaryOperator = unaryExpression.getOperator();
-      CExpression unaryOperand = unaryExpression.getOperand();
 
       switch (unaryOperator) {
 
