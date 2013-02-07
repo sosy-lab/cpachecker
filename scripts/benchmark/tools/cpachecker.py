@@ -11,8 +11,17 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
         return Util.findExecutable('cpa.sh', 'scripts/cpa.sh')
-
-
+    
+    def getProgrammFiles(self,executable):
+        executableDir = os.path.join(os.path.dirname(executable),"../")
+        result = []
+        result.append(os.path.join(executableDir, "lib"))
+        result.append(os.path.join(executableDir, "scripts"))
+        result.append(os.path.join(executableDir, "cpachecker.jar"))
+        result.append(os.path.join(executableDir, "config"))
+           
+        return result           
+                      
     def getVersion(self, executable):
         version = ''
         try:

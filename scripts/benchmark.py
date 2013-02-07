@@ -1196,11 +1196,10 @@ def executeBenchmarkInCloud(benchmark):
       
     numOfRunDefLines = 0
     runDefinitions = ""
-    toolpaths = ["../CPA/config/","../scripts/","../cpachecker.jar","../lib"] #TODO
+    toolpaths = benchmark.tool.getProgrammFiles(benchmark.executable)
     requirements = "2000\t1"  #TODO memory numerOfCpuCores
-    basePath = os.path.abspath("../") #TODO
     cloudRunExecutorDir = os.path.abspath(os.curdir)
-
+    absSourceFiles = []
     
     # iterate over run sets
     for runSet in benchmark.runSets:
@@ -1219,14 +1218,23 @@ def executeBenchmarkInCloud(benchmark):
         for run in runSet.runs:
                 argString = " ".join(run.args)
                 runDefinitions = runDefinitions + argString + "\t" +  run.sourcefile + "\n"
+                absSourceFiles.append(os.path.abspath(run.sourcefile))
     
-    seperatedToolpaths = ""
+    absToolpaths = []
     for toolpath in toolpaths:
-        seperatedToolpaths = os.path.abspath(toolpath) + "\t"
+        absToolpaths.append( os.path.abspath(toolpath))
+    
+    seperatedToolpaths = "\t".join(absToolpaths)
+    sourceFilesBaseDir = os.path.commonprefix(absSourceFiles)
+    logging.debug("source files dir: " + sourceFilesBaseDir)
+    toolPathsBaseDir = os.path.commonprefix(absToolpaths)
+    logging.debug("tool paths base dir: " + toolPathsBaseDir)
+    baseDir = os.path.commonprefix([sourceFilesBaseDir,toolPathsBaseDir,cloudRunExecutorDir])
+    logging.debug("base dir: " + baseDir)
         
     cloudInput = seperatedToolpaths + "\n" +\
                 cloudRunExecutorDir + "\n" +\
-                basePath + "\t" + config.output_path + "\n" +\
+                baseDir + "\t" + config.output_path + "\n" +\
                 requirements + "\n" +\
                 str(numOfRunDefLines) + "\n" +\
                 runDefinitions
@@ -1235,9 +1243,6 @@ def executeBenchmarkInCloud(benchmark):
     logging.debug("Starting cloud.")
     cloud = subprocess.Popen(["java", "-jar", config.cloudPath, "benchmark", "--master", config.cloudMasterName],stdin=subprocess.PIPE)
     (out, err) = cloud.communicate(cloudInput)
-    
-    logging.debug(err)
-    logging.debug(out)
     
     returnCode = cloud.wait()
     
