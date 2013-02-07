@@ -60,7 +60,7 @@
 
         <!-- Eclipse CDT
              Used for parsing C code. -->
-        <dependency org="org.eclipse.cdt" name="core" rev="5.3.1.201109151620" conf="runtime->default; contrib->sources"/>
+        <dependency org="org.eclipse.cdt" name="core" rev="5.4.1.201209170703" conf="runtime->default; contrib->sources"/>
 
         <!-- SmtInterpol -->
         <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.0-r6308qb" conf="runtime->runtime; contrib->sources"/>

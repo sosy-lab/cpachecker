@@ -609,12 +609,6 @@ class ASTConverter {
       CBinaryExpression postExp = new CBinaryExpression(fileLoc, type, operand, postOne, postOp);
       return new CExpressionAssignmentStatement(fileLoc, operand, postExp);
 
-    case IASTUnaryExpression.op_sizeof:
-      // There is a bug in org.eclipse.cdt.internal.core.dom.parser.c.CUnaryExpression.
-      // For sizeof, it returns the operand type instead of int.
-      type = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
-
-      //$FALL-THROUGH$
     default:
       return new CUnaryExpression(fileLoc, type, operand, ASTOperatorConverter.convertUnaryOperator(e));
     }
