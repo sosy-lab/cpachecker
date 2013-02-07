@@ -1196,7 +1196,7 @@ def executeBenchmarkInCloud(benchmark):
     toolpaths = benchmark.tool.getProgrammFiles(benchmark.executable)
     requirements = "2000\t1"  # TODO memory numerOfCpuCores
     cloudRunExecutorDir = os.path.abspath(os.curdir)
-    outputDir = os.path.join(OUTPUT_PATH , benchmark.name + "." + benchmark.date)
+    outputDir = os.path.join(OUTPUT_PATH , benchmark.name + "." + benchmark.date + ".logfiles")
     logging.debug("Output path: " + str(outputDir))
     absOutputDir = os.path.abspath(outputDir)
     if(not(os.access(absOutputDir, os.F_OK))):
@@ -1214,6 +1214,7 @@ def executeBenchmarkInCloud(benchmark):
         numOfRunDefLines += (len(runSet.runs) + 1)
         
         runSetHeadLine = str(len(runSet.runs)) + "\t" + \
+                        runSet.name + "\t" + \
                         str(benchmark.rlimits[TIMELIMIT]) + "\t" + \
                        str(benchmark.rlimits[MEMLIMIT]) + "\n"
          
@@ -1243,7 +1244,7 @@ def executeBenchmarkInCloud(benchmark):
             
     cloudInput = seperatedToolpaths + "\n" + \
                 cloudRunExecutorDir + "\n" + \
-                baseDir + "\t" + config.output_path + "\n" + \
+                baseDir + "\t" + absOutputDir + "\n" + \
                 requirements + "\n" + \
                 str(numOfRunDefLines) + "\n" + \
                 runDefinitions
