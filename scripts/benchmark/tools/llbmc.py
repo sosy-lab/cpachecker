@@ -1,4 +1,4 @@
-
+import os
 import subprocess
 
 import benchmark.util as Util
@@ -23,25 +23,46 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getCmdline(self, executable, options, sourcefile):
-        return [executable] + options + [sourcefile]
+        # compile sourcefile with clang
+        self.prepSourcefile = self._prepareSourcefile(sourcefile)
+
+        return [executable] + options + [self.prepSourcefile]
+
+
+    def _prepareSourcefile(self, sourcefile):
+        clangExecutable = Util.findExecutable('clang')
+        newFilename     = sourcefile + ".o"
+
+        subprocess.Popen([clangExecutable,
+                            '-c',
+                            '-emit-llvm',
+                            '-std=gnu89',
+                            '-m32',
+                            sourcefile,
+                            '-O0',
+                            '-o',
+                            newFilename,
+                            '-w'],
+                          stdout=subprocess.PIPE).wait()
+
+        return newFilename
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
         status = 'UNKNOWN'
         
         for line in output.splitlines():
-            if 'FALSE(p_valid-deref)' in line:
-                status = 'FALSE(valid-deref)'
-            elif 'FALSE(p_valid-free)' in line:
-                status = 'FALSE(valid-free)'
-            elif 'FALSE(p_valid-memtrack)' in line:
-                status = 'FALSE(valid-memtrack)'
-            elif 'UNSAFE' in line:
+            if 'Error detected.' in line:
                 status = 'UNSAFE'
-            elif 'SAFE' in line or 'TRUE' in line:
+            elif 'No error detected.' in line:
                 status = 'SAFE'
-            elif 'Assertion' in line and 'failed' in line:
-                status = 'Assertion'
+
+        # delete tmp-files
+        try:
+          os.remove(self.prepSourcefile)
+        except OSError, e:
+            print "Could not remove file " + self.prepSourcefile + "! Maybe clang call failed"
+            pass
 
         return status
 
