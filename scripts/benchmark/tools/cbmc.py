@@ -27,6 +27,9 @@ class Tool(benchmark.tools.template.BaseTool):
     def getCmdline(self, executable, options, sourcefile):
         if ("--xml-ui" not in options):
             options = options + ["--xml-ui"]
+
+        self.options = options
+
         return [executable] + options + [sourcefile]
 
 
@@ -67,7 +70,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
                 elif status == "SUCCESS":
                     assert returncode == 0
-                    if "--no-unwinding-assertions" in options:
+                    if "--no-unwinding-assertions" in self.options:
                         status = "UNKNOWN"
                     else:
                         status = "SAFE"
