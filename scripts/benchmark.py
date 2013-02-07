@@ -28,6 +28,7 @@ CPAchecker web page:
 from __future__ import absolute_import, unicode_literals
 
 import sys
+from apport_python_hook import CONFIG
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 from datetime import date
@@ -430,7 +431,12 @@ class Run():
         self.status = ""
         self.cpuTime = 0
         self.wallTime = 0
-        self.args = ""
+        
+        tool = self.benchmark.tool
+        args = tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
+        args = [os.path.expandvars(arg) for arg in args]
+        args = [os.path.expanduser(arg) for arg in args]
+        self.args = args;
 
 
     def execute(self, numberOfThread):
@@ -441,16 +447,11 @@ class Run():
         """
         self.benchmark.outputHandler.outputBeforeRun(self)
 
-        tool = self.benchmark.tool
-        args = tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
-        args = [os.path.expandvars(arg) for arg in args]
-        args = [os.path.expanduser(arg) for arg in args]
-
         cpuIndex = numberOfThread if config.limitCores else None
 
         rlimits = self.benchmark.rlimits
 
-        (self.wallTime, self.cpuTime, returnvalue, output) = runexecutor.executeRun(args, rlimits, self.logFile, cpuIndex, config.memdata)
+        (self.wallTime, self.cpuTime, returnvalue, output) = runexecutor.executeRun(self.args, rlimits, self.logFile, cpuIndex, config.memdata)
 
         if STOPPED_BY_INTERRUPT:
             # If the run was interrupted, we ignore the result and cleanup.
@@ -1125,14 +1126,8 @@ class Worker(threading.Thread):
             currentRun = Worker.workingQueue.get_nowait()
             currentRun.execute(self.number)
             Worker.workingQueue.task_done()
-
-
-def executeBenchmark(benchmarkFile):
-    benchmark = Benchmark(benchmarkFile)
-
-    logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
-            repr(benchmarkFile), len(benchmark.runSets)))
-
+            
+def executeBenchmarkLocaly(benchmark):
     outputHandler = benchmark.outputHandler
     runSetsExecuted = 0
 
@@ -1196,6 +1191,72 @@ def executeBenchmark(benchmarkFile):
     if config.commit and not STOPPED_BY_INTERRUPT and runSetsExecuted > 0:
         Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
                                      config.commitMessage+'\n\n'+outputHandler.description)
+        
+def executeBenchmarkInCloud(benchmark):
+      
+    numOfRunDefLines = 0
+    runDefinitions = ""
+    toolpaths = ["../CPA/config/","../scripts/","../cpachecker.jar","../lib"] #TODO
+    requirements = "2000\t1"  #TODO memory numerOfCpuCores
+    basePath = os.path.abspath("../") #TODO
+    cloudRunExecutorDir = os.path.abspath(os.curdir)
+
+    
+    # iterate over run sets
+    for runSet in benchmark.runSets:
+        
+        if STOPPED_BY_INTERRUPT: break
+        
+        numOfRunDefLines += (len(runSet.runs)+1)
+        
+        runSetHeadLine = str(len(runSet.runs)) + "\t" +\
+                        str(benchmark.rlimits[TIMELIMIT]) + "\t" +\
+                       str(benchmark.rlimits[MEMLIMIT]) + "\n"
+         
+        runDefinitions = runDefinitions + runSetHeadLine;
+
+        # iterate over runs
+        for run in runSet.runs:
+                argString = " ".join(run.args)
+                runDefinitions = runDefinitions + argString + "\t" +  run.sourcefile + "\n"
+    
+    seperatedToolpaths = ""
+    for toolpath in toolpaths:
+        seperatedToolpaths = os.path.abspath(toolpath) + "\t"
+        
+    cloudInput = seperatedToolpaths + "\n" +\
+                cloudRunExecutorDir + "\n" +\
+                basePath + "\t" + config.output_path + "\n" +\
+                requirements + "\n" +\
+                str(numOfRunDefLines) + "\n" +\
+                runDefinitions
+                
+     # start cloud
+    logging.debug("Starting cloud.")
+    cloud = subprocess.Popen(["java", "-jar", config.cloudPath, "benchmark", "--master", config.cloudMasterName],stdin=subprocess.PIPE)
+    (out, err) = cloud.communicate(cloudInput)
+    
+    logging.debug(err)
+    logging.debug(out)
+    
+    returnCode = cloud.wait()
+    
+    logging.debug("Cloud return code: {0}".format(returnCode))
+
+
+
+def executeBenchmark(benchmarkFile):
+    benchmark = Benchmark(benchmarkFile)
+
+    logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
+            repr(benchmarkFile), len(benchmark.runSets)))
+    
+    if(config.cloud):
+        executeBenchmarkInCloud(benchmark)
+    else:
+        executeBenchmarkLocaly(benchmark)
+    
+   
 
 
 def main(argv=None):
@@ -1283,6 +1344,21 @@ def main(argv=None):
                       dest="commitMessage", type=str,
                       default="Results for benchmark run",
                       help="Commit message if --commit is used.")
+    
+    parser.add_argument("--cloud",
+                      dest="cloud",
+                      action="store_true",
+                      help="Use cloud.")
+
+    parser.add_argument("--cloudPath",
+                      dest="cloudPath",
+                     default="vecip.jar",
+                      help="The path to jar file of cloud client.")
+
+    parser.add_argument("--cloudMaster",
+                      dest="cloudMasterName",
+                      default="localhost",
+                      help="Use given cloud master if -cloud is used.")
 
     global config, OUTPUT_PATH
     config = parser.parse_args(argv[1:])
