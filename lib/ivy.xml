@@ -24,7 +24,10 @@
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="12.0" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava" rev="13.0.1" conf="runtime->default; contrib->sources"/>
+
+        <!-- Annotations from JSR 305 (e.g., @Nullable) -->
+        <dependency org="com.google.code.findbugs" name="jsr305" rev="1.3.9" conf="runtime->default"/>
 
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
