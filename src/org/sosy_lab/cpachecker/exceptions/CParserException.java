@@ -39,6 +39,11 @@ public class CParserException extends ParserException {
     super(pCause, Language.C);
   }
 
+
+  public CParserException(String pMsg, Throwable pCause) {
+    super(pMsg, pCause, Language.C);
+  }
+
   public CParserException(String pMsg, CFAEdge pEdge) {
     super(pMsg, pEdge, Language.C);
   }

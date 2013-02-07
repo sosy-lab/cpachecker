@@ -84,6 +84,11 @@ import com.google.common.collect.Iterables;
 @Options
 public class CFACreator {
 
+  @Option(name="parser.usePreprocessor",
+      description="For C files, run the preprocessor on them before parsing. " +
+                  "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
+  private boolean usePreprocessor = false;
+
   @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$",
       description="entry function")
   private String mainFunctionName = "main";
@@ -187,8 +192,21 @@ public class CFACreator {
     try {
 
       logger.log(Level.FINE, "Starting parsing of file");
+      ParseResult c;
 
-      ParseResult c = parser.parseFile(filename);
+      if (language == Language.C && usePreprocessor) {
+        CPreprocessor preprocessor = new CPreprocessor(config, logger);
+        String program = preprocessor.preprocess(filename);
+
+        if (program.isEmpty()) {
+          throw new CParserException("Preprocessor returned empty program");
+        }
+
+        c = parser.parseString(program);
+
+      } else {
+        c = parser.parseFile(filename);
+      }
 
       logger.log(Level.FINE, "Parser Finished");
 

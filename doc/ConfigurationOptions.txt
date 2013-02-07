@@ -617,12 +617,19 @@ cpa.predicate.enableBlockreducer = false
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.msat"
 
+# Handle field access via extract and concat instead of new variables.
+cpa.predicate.handleFieldAccess = false
+
+# Handle field aliasing formulas.
+cpa.predicate.handleFieldAliasing = false
+
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
 
-# Handle implicit and explicit casts.
-cpa.predicate.ignoreCasts = true
+# Allows to ignore Concat and Extract Calls when Bitvector theory was
+# replaced.
+cpa.predicate.ignoreExtractConcat = true
 
 # initialize all variables to 0 when they are declared
 cpa.predicate.initAllVars = false
@@ -672,6 +679,9 @@ cpa.predicate.nondetFunctions = {
 # Regexp pattern for functions that should be considered as giving a
 # non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
 cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-z]*"
+
+# Handle field aliasing formulas.
+cpa.predicate.omitNonPointerInFieldAliasing = true
 
 # export final predicate map
 cpa.predicate.predmap.export = true
@@ -798,6 +808,23 @@ cpa.uninitvars.stop = "sep"
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 
+# Specify the class code path to search for java class or interface
+# definitions
+java.classpath = ""
+
+# use the following encoding for java files
+java.encoding = "utf8"
+
+# Java path that contains the main class
+java.rootPath = ""
+
+# Specify the source code path to search for java class or interface
+# definitions
+java.sourcepath = ""
+
+# Specifies the java version of source code accepted
+java.version = JavaCore.VERSION_1_7
+
 # C or Java?
 language = C
   enum:     [C, JAVA]
@@ -805,6 +832,17 @@ language = C
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
+
+# The command line for calling the preprocessor. May contain binary name and
+# arguments, but won't be expanded by a shell. The source file name will be
+# appended to this string. The preprocessor needs to print the output to
+# stdout.
+parser.preprocessor = "cpp"
+
+# For C files, run the preprocessor on them before parsing. Note that all
+# file numbers printed by CPAchecker will refer to the pre-processed file,
+# not the original input file.
+parser.usePreprocessor = false
 
 # file in which ARG representation needed for proof checking is stored
 pcc.proofFile = "arg.obj"

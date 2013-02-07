@@ -32,6 +32,7 @@
   </sourcefiles>
   <sourcefiles name="MemorySafety">
     <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
+    <option name="-preprocess"/>
   </sourcefiles>
   <sourcefiles name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>

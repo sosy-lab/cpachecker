@@ -36,7 +36,8 @@ The following command-line arguments are allowed:
 -timelimit <TIME>	sets "cpa.conditions.global.time.wall = <TIME>"
 -32			sets "analysis.machineModel = Linux32" (this is the default)
 -64			sets "analysis.machineModel = Linux64"
--java			sets "language.java = true"
+-preprocess		sets "parser.usePreprocessor = true"
+-java			sets "language = JAVA"
 -setprop <KEY>=<VALUE>	sets any option: "KEY = VALUE"
 
 The file doc/ConfigurationOptions.txt contains an explanation
