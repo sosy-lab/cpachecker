@@ -257,7 +257,7 @@ public final class InterpolationManager {
 
     logger.log(Level.FINEST, "Building counterexample trace");
     cexAnalysisTimer.start();
-    try (InterpolatingProverEnvironment<?> prover = factory.newProverEnvironmentWithInterpolation(false)){
+    try {
 
       // Final adjustments to the list of formulas
       List<BooleanFormula> f = new ArrayList<>(pFormulas); // copy because we will change the list
