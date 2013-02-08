@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -89,6 +90,7 @@ class MainCPAStatistics implements Statistics {
     final Timer analysisTime = new Timer();
 
     private CFACreator cfaCreator;
+    private CFA cfa;
 
     public MainCPAStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
         logger = pLogger;
@@ -151,9 +153,13 @@ class MainCPAStatistics implements Statistics {
           }
         }
 
+        printCfaStatistics(out);
+
+        out.println();
+
         printTimeStatistics(out);
 
-        out.println("");
+        out.println();
 
         printMemoryStatistics(out);
     }
@@ -259,6 +265,13 @@ class MainCPAStatistics implements Statistics {
       }
     }
 
+    private void printCfaStatistics(PrintStream out) {
+      if (cfa != null) {
+        out.println("Number of program locations:  " + cfa.getAllNodes().size());
+        out.println("Number of functions:          " + cfa.getNumberOfFunctions());
+      }
+    }
+
     private void printTimeStatistics(PrintStream out) {
       out.println("Time for analysis setup:      " + creationTime);
       out.println("  Time for loading CPAs:      " + cpaCreationTime);
@@ -286,5 +299,10 @@ class MainCPAStatistics implements Statistics {
     public void setCFACreator(CFACreator pCfaCreator) {
       Preconditions.checkState(cfaCreator == null);
       cfaCreator = pCfaCreator;
+    }
+
+    public void setCFA(CFA pCfa) {
+      Preconditions.checkState(cfa == null);
+      cfa = pCfa;
     }
 }

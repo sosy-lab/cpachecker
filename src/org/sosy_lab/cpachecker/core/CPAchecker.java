@@ -234,7 +234,9 @@ public class CPAchecker {
     CFACreator cfaCreator = new CFACreator(config, logger);
     stats.setCFACreator(cfaCreator);
 
-    return cfaCreator.parseFileAndCreateCFA(filename);
+    CFA cfa = cfaCreator.parseFileAndCreateCFA(filename);
+    stats.setCFA(cfa);
+    return cfa;
   }
 
   private void printConfigurationWarnings() {
