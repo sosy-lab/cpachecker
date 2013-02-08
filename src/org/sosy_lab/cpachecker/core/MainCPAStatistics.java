@@ -89,7 +89,7 @@ class MainCPAStatistics implements Statistics {
     final Timer cpaCreationTime = new Timer();
     final Timer analysisTime = new Timer();
 
-    private CFACreator cfaCreator;
+    private Statistics cfaCreatorStatistics;
     private CFA cfa;
 
     public MainCPAStatistics(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
@@ -157,7 +157,7 @@ class MainCPAStatistics implements Statistics {
 
         out.println();
 
-        printTimeStatistics(out);
+        printTimeStatistics(out, result, reached);
 
         out.println();
 
@@ -272,11 +272,11 @@ class MainCPAStatistics implements Statistics {
       }
     }
 
-    private void printTimeStatistics(PrintStream out) {
+    private void printTimeStatistics(PrintStream out, Result result, ReachedSet reached) {
       out.println("Time for analysis setup:      " + creationTime);
       out.println("  Time for loading CPAs:      " + cpaCreationTime);
-      if (cfaCreator != null) {
-        cfaCreator.printCfaCreationStatistics(out);
+      if (cfaCreatorStatistics != null) {
+        cfaCreatorStatistics.printStatistics(out, result, reached);
       }
       out.println("Time for Analysis:            " + analysisTime);
       out.println("Total time for CPAchecker:    " + programTime);
@@ -297,8 +297,8 @@ class MainCPAStatistics implements Statistics {
     }
 
     public void setCFACreator(CFACreator pCfaCreator) {
-      Preconditions.checkState(cfaCreator == null);
-      cfaCreator = pCfaCreator;
+      Preconditions.checkState(cfaCreatorStatistics == null);
+      cfaCreatorStatistics = pCfaCreator.getStatistics();
     }
 
     public void setCFA(CFA pCfa) {

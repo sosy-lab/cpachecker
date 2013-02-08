@@ -67,6 +67,9 @@ import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -134,14 +137,40 @@ public class CFACreator {
   private final Parser parser;
   private final CFAReduction cfaReduction;
 
-  private final Timer parserInstantiationTime = new Timer();
-  private final Timer totalTime = new Timer();
-  private final Timer parsingTime;
-  private final Timer conversionTime;
-  private final Timer checkTime = new Timer();
-  private final Timer processingTime = new Timer();
-  private final Timer pruningTime = new Timer();
-  private final Timer exportTime = new Timer();
+  private static class CFACreatorStatistics implements Statistics {
+
+    private final Timer parserInstantiationTime = new Timer();
+    private final Timer totalTime = new Timer();
+    private Timer parsingTime;
+    private Timer conversionTime;
+    private final Timer checkTime = new Timer();
+    private final Timer processingTime = new Timer();
+    private final Timer pruningTime = new Timer();
+    private final Timer exportTime = new Timer();
+
+    @Override
+    public String getName() {
+      return "";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+      out.println("  Time for loading C parser:  " + parserInstantiationTime);
+      out.println("  Time for CFA construction:  " + totalTime);
+      out.println("    Time for parsing C file:  " + parsingTime);
+      out.println("    Time for AST to CFA:      " + conversionTime);
+      out.println("    Time for CFA sanity check:" + checkTime);
+      out.println("    Time for post-processing: " + processingTime);
+      if (pruningTime.getNumberOfIntervals() > 0) {
+        out.println("    Time for CFA pruning:     " + pruningTime);
+      }
+      if (exportTime.getNumberOfIntervals() > 0) {
+        out.println("    Time for CFA export:      " + exportTime);
+      }
+    }
+  }
+
+  private final CFACreatorStatistics stats = new CFACreatorStatistics();
   private final Configuration config;
 
   public CFACreator(Configuration config, LogManager logger)
@@ -151,7 +180,7 @@ public class CFACreator {
 
     this.logger = logger;
 
-    parserInstantiationTime.start();
+    stats.parserInstantiationTime.start();
 
     switch (language) {
     case JAVA:
@@ -164,8 +193,8 @@ public class CFACreator {
       throw new AssertionError();
     }
 
-    parsingTime = parser.getParseTime();
-    conversionTime = parser.getCFAConstructionTime();
+    stats.parsingTime = parser.getParseTime();
+    stats.conversionTime = parser.getCFAConstructionTime();
 
     if (removeIrrelevantForSpecification) {
       cfaReduction = new CFAReduction(config, logger);
@@ -173,7 +202,7 @@ public class CFACreator {
       cfaReduction = null;
     }
 
-    parserInstantiationTime.stop();
+    stats.parserInstantiationTime.stop();
   }
 
   /**
@@ -189,7 +218,7 @@ public class CFACreator {
   public CFA parseFileAndCreateCFA(String filename)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
-    totalTime.start();
+    stats.totalTime.start();
     try {
 
       logger.log(Level.FINE, "Starting parsing of file");
@@ -224,15 +253,15 @@ public class CFACreator {
 
       MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction, language);
 
-      checkTime.start();
+      stats.checkTime.start();
 
       // check the CFA of each function
       for (String functionName : cfa.getAllFunctionNames()) {
         assert CFACheck.check(cfa.getFunctionHead(functionName), cfa.getFunctionNodes(functionName));
       }
-      checkTime.stop();
+      stats.checkTime.stop();
 
-      processingTime.start();
+      stats.processingTime.start();
 
       // annotate CFA nodes with reverse postorder information for later use
       for (FunctionEntryNode function : cfa.getAllFunctionHeads()){
@@ -258,13 +287,13 @@ public class CFACreator {
         insertGlobalDeclarations(cfa, c.getGlobalDeclarations());
       }
 
-      processingTime.stop();
+      stats.processingTime.stop();
 
       // remove irrelevant locations
       if (cfaReduction != null) {
-        pruningTime.start();
+        stats.pruningTime.start();
         cfaReduction.removeIrrelevantForSpecification(cfa);
-        pruningTime.stop();
+        stats.pruningTime.stop();
 
         if (cfa.isEmpty()) {
           logger.log(Level.INFO, "No states which violate the specification are syntactically reachable from the function " + mainFunction.getFunctionName()
@@ -282,9 +311,9 @@ public class CFACreator {
       final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
 
       // check the super CFA starting at the main function
-      checkTime.start();
+      stats.checkTime.start();
       assert CFACheck.check(mainFunction, null);
-      checkTime.stop();
+      stats.checkTime.stop();
 
       if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
         exportCFA(immutableCFA);
@@ -295,7 +324,7 @@ public class CFACreator {
       return immutableCFA;
 
     } finally {
-      totalTime.stop();
+      stats.totalTime.stop();
     }
   }
 
@@ -485,7 +514,7 @@ public class CFACreator {
     // However, FunctionPointerCPA modifies the CFA during analysis, so this is
     // no longer safe.
 
-    exportTime.start();
+    stats.exportTime.start();
 
     // write CFA to file
     if (exportCfa) {
@@ -510,26 +539,15 @@ public class CFACreator {
       }
     }
 
-    exportTime.stop();
-  }
-
-  public void printCfaCreationStatistics(PrintStream out) {
-    out.println("  Time for loading C parser:  " + parserInstantiationTime);
-    out.println("  Time for CFA construction:  " + totalTime);
-    out.println("    Time for parsing C file:  " + parsingTime);
-    out.println("    Time for AST to CFA:      " + conversionTime);
-    out.println("    Time for CFA sanity check:" + checkTime);
-    out.println("    Time for post-processing: " + processingTime);
-    if (pruningTime.getNumberOfIntervals() > 0) {
-      out.println("    Time for CFA pruning:     " + pruningTime);
-    }
-    if (exportTime.getNumberOfIntervals() > 0) {
-      out.println("    Time for CFA export:      " + exportTime);
-    }
+    stats.exportTime.stop();
   }
 
   private static void addToCFA(CFAEdge edge) {
     edge.getPredecessor().addLeavingEdge(edge);
     edge.getSuccessor().addEnteringEdge(edge);
+  }
+
+  public CFACreatorStatistics getStatistics() {
+    return stats;
   }
 }
