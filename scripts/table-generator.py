@@ -53,15 +53,11 @@ TEMPLATE_FILE_NAME = os.path.join(os.path.dirname(__file__), 'table-generator-te
 TEMPLATE_FORMATS = ['html', 'csv']
 TEMPLATE_ENCODING = 'UTF-8'
 
-# string searched in filenames to determine correct or incorrect status.
-# use lower case!
-
-# ATTENTION: Only _unsafe allowed! NOTHING ELSE!
-# DO NOT CHANGE!
+# This string is searched in file names to determine correct or incorrect verification result.
+# Do not change this value; only '_unsafe' is allowed.
 BUG_SUBSTRING_LIST = ['_unsafe']
-# DO NOT CHANGE!
 
-# scoreValues taken from http://sv-comp.sosy-lab.org/
+# Score values taken from http://sv-comp.sosy-lab.org/
 SCORE_CORRECT_SAFE = 2
 SCORE_CORRECT_UNSAFE = 1
 SCORE_UNKNOWN = 0
