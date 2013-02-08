@@ -55,7 +55,11 @@ TEMPLATE_ENCODING = 'UTF-8'
 
 # string searched in filenames to determine correct or incorrect status.
 # use lower case!
-BUG_SUBSTRING_LIST = ['_unsafe', '.unsafe']
+
+# ATTENTION: Only _unsafe allowed! NOTHING ELSE!
+# DO NOT CHANGE!
+BUG_SUBSTRING_LIST = ['_unsafe']
+# DO NOT CHANGE!
 
 # scoreValues taken from http://sv-comp.sosy-lab.org/
 SCORE_CORRECT_SAFE = 2
