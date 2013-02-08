@@ -100,6 +100,9 @@ public class VariableClassification {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpfile = Paths.get("VariableClassification.log");
 
+  @Option(description = "Print some information about the variable classification.")
+  private boolean printStatsOnStartup = false;
+
   /** name for return-variables, it is used for function-returns. */
   public static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
 
@@ -132,6 +135,48 @@ public class VariableClassification {
     config.inject(this);
     this.cfa = cfa;
     this.logger = pLogger;
+
+    if (printStatsOnStartup) {
+      build();
+      printStats();
+    }
+
+  }
+
+  private void printStats() {
+    final Set<Partition> booleans = getBooleanPartitions();
+    final Set<Partition> intEquals = getIntEqualPartitions();
+    final Set<Partition> intAdds = getIntAddPartitions();
+
+    int numOfBooleans = getBooleanVars().size();
+
+    int numOfIntEquals = 0;
+    final Set<Partition> realIntEquals = Sets.difference(intEquals, booleans);
+    for (Partition p : realIntEquals) {
+      numOfIntEquals += p.getVars().size();
+    }
+
+    int numOfIntAdds = 0;
+    final Set<Partition> realIntAdds = Sets.difference(intAdds, Sets.union(booleans, intEquals));
+    for (Partition p : realIntAdds) {
+      numOfIntAdds += p.getVars().size();
+    }
+
+    final String prefix = "\nVC ";
+    StringBuilder str = new StringBuilder();
+    str.append("VariableClassification Statistics");
+    str.append("\n---------------------------------");
+    str.append(prefix + "number of boolean vars:  " + numOfBooleans);
+    str.append(prefix + "number of intEqual vars: " + numOfIntEquals);
+    str.append(prefix + "number of intAdd vars:   " + numOfIntAdds);
+    str.append(prefix + "number of all vars:      " + allVars.size());
+    str.append(prefix + "number of boolean partitions:  " + booleans.size());
+    str.append(prefix + "number of intEqual partitions: " + realIntEquals.size());
+    str.append(prefix + "number of intAdd partitions:   " + realIntAdds.size());
+    str.append(prefix + "number of all partitions:      " + getPartitions().size());
+    str.append("\n---------------------------------");
+
+    logger.log(Level.INFO, str.toString());
   }
 
   /** This function does the whole work:
@@ -656,7 +701,7 @@ public class VariableClassification {
 
   @Override
   public String toString() {
-    if (allVars == null) { return "VariableClassification is not build."; }
+    build();
 
     StringBuilder str = new StringBuilder();
     str.append("\nALL  " + allVars.size() + "\n    " + allVars);
