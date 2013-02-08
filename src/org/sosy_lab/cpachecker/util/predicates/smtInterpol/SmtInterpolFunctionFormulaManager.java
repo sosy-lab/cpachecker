@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
@@ -106,6 +107,15 @@ public class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaMa
     String decl = createFunctionImpl(pName, returnType, msatTypes);
 
     return new SmtInterpolFunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), decl);
+  }
+
+  @Override
+  public <T extends Formula> SmtInterpolFunctionType<T> createFunction(
+      String pName,
+      FormulaType<T> pReturnType,
+      FormulaType<?>... pArgs) {
+
+    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
 
   public String createFunctionImpl(String pName, Sort returnType, Sort[] msatTypes) {

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -51,6 +52,12 @@ public class FunctionFormulaManagerView extends AbstractBaseManagerView implemen
     return manager.createFunction(pName, pReturnType, pArgs);
   }
 
+  @Override
+  public <T extends Formula> FunctionFormulaType<T> createFunction(String pName, FormulaType<T> pReturnType,
+      FormulaType<?>... pArgs) {
+    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
+  }
+
   public <T extends Formula> T createFuncAndCall(
       String pName, int idx, FormulaType<T> pReturnType, List<Formula> pArgs) {
     String name = FormulaManagerView.makeName(pName, idx);
@@ -73,7 +80,7 @@ public class FunctionFormulaManagerView extends AbstractBaseManagerView implemen
   }
 
   @Override
-  public <T extends Formula> T createUninterpretedFunctionCall(FunctionFormulaType<T> pFuncType, List<Formula> pArgs) {
+  public <T extends Formula> T createUninterpretedFunctionCall(FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
     final FormulaManagerView viewManager = getViewManager();
     List<Formula> args =
         from(pArgs)

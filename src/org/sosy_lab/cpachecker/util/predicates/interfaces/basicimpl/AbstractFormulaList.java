@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * A generic FormulaList implementation used to minimize the code changes for legacy code.
@@ -42,10 +42,7 @@ public class AbstractFormulaList implements FormulaList {
   }
 
   public AbstractFormulaList(List<Formula> terms) {
-    for (Formula t : terms) {
-      assert t != null;
-    }
-    this.terms = Collections.unmodifiableList(new ArrayList<>(terms));
+    this.terms = ImmutableList.copyOf(terms);
   }
 
   /**

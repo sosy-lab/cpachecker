@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -110,8 +111,17 @@ public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManag
   }
 
   @Override
+  public <T extends Formula> FunctionFormulaType<T> createFunction(
+      String pName,
+      FormulaType<T> pReturnType,
+      FormulaType<?>... pArgs) {
+
+    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
+  }
+
+  @Override
   public <T extends Formula> T createUninterpretedFunctionCall(
-      FunctionFormulaType<T> pFuncType, List<Formula> pArgs) {
+      FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
     ReplaceFunctionFormulaType<T> rep = (ReplaceFunctionFormulaType<T>)pFuncType;
 
     List<Formula> newArgs =

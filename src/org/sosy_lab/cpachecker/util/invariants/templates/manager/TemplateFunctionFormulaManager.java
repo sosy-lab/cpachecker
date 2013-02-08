@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.invariants.templates.NonTemplate;
@@ -81,11 +82,20 @@ public class TemplateFunctionFormulaManager implements FunctionFormulaManager {
     return new TemplateFunctionFormulaTypeImpl<>(pName, pReturnType, pArgs);
   }
 
+  @Override
+  public <T extends Formula> FunctionFormulaType<T> createFunction(
+      String pName,
+      FormulaType<T> pReturnType,
+      FormulaType<?>... pArgs) {
+
+    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
+  }
+
   @SuppressWarnings("unchecked")
   @Override
   public <T extends Formula> T
     createUninterpretedFunctionCall(
-        FunctionFormulaType<T> pFuncType, List<Formula> pArgs) {
+        FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
     TemplateFunctionFormulaTypeImpl<T> funcType = (TemplateFunctionFormulaTypeImpl<T>) pFuncType;
     Formula F = null;
     try {

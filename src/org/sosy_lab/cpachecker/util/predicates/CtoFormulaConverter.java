@@ -1898,7 +1898,7 @@ public class CtoFormulaConverter {
 
     Pair<Formula, Formula> pre_after = getPreAfterFormulas(f, msb_Lsb);
 
-    return fmgr.<Formula>makeConcat(Arrays.<Formula>asList(pre_after.getFirst(), newField, pre_after.getSecond()));
+    return fmgr.makeConcat(ImmutableList.of(pre_after.getFirst(), newField, pre_after.getSecond()));
   }
 
   private Formula replaceField(CFieldReference fExp, Formula pLVar, Formula pRightVariable) {
@@ -2407,13 +2407,13 @@ public class CtoFormulaConverter {
               efmgr.getFormulaType(machineModel.getSizeofPtr() * machineModel.getSizeofCharInBits());
           stringUfDecl =
               ffmgr.createFunction(
-                  "__string__", pointerType, Arrays.<FormulaType<? extends Formula>>asList(FormulaType.RationalType));
+                  "__string__", pointerType, FormulaType.RationalType);
         }
 
         // generate a new string literal. We generate a new UIf
         int n = nextStringLitIndex++;
         result = ffmgr.createUninterpretedFunctionCall(
-            stringUfDecl, Arrays.asList((Formula)nfmgr.makeNumber(n)));
+            stringUfDecl, ImmutableList.of(nfmgr.makeNumber(n)));
         stringLitToFormula.put(literal, result);
       }
 
@@ -2563,7 +2563,7 @@ public class CtoFormulaConverter {
         // build the  function corresponding to this operation.
 
         return ffmgr.createFuncAndCall(
-            opname, idx, getFormulaTypeFromCType(expType), Arrays.asList( term ));
+            opname, idx, getFormulaTypeFromCType(expType), ImmutableList.of( term ));
 
       default:
         return super.visit(exp);
@@ -3521,7 +3521,7 @@ public class CtoFormulaConverter {
       // *x = 1       |     <ptr_*>::2(x) = 1
       // ...
       // &(*x) = 2    |     <ptr_&>::2(<ptr_*>::1(x)) = 2
-      return ffmgr.createFuncAndCall(opname, idx, formulaType, Arrays.asList( term ));
+      return ffmgr.createFuncAndCall(opname, idx, formulaType, ImmutableList.of(term));
     }
 
     @Override
@@ -3542,7 +3542,7 @@ public class CtoFormulaConverter {
 
         // see above for the case of &x and *x
         return ffmgr.createFuncAndCall(
-           ufname, idx, formulaType, Arrays.asList( term ));
+           ufname, idx, formulaType, ImmutableList.of(term));
       }
 
       // When handleFieldAccess is true we can handle this case already
@@ -3563,7 +3563,7 @@ public class CtoFormulaConverter {
       int idx = makeLvalIndex(Variable.create(ufname,expType), args, ssa);
 
       return ffmgr.createFuncAndCall(
-          ufname, idx, formulaType, Arrays.asList( aterm, sterm ));
+          ufname, idx, formulaType, ImmutableList.of(aterm, sterm));
     }
   }
 

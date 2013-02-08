@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
@@ -107,6 +108,15 @@ public class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManag
     Long decl = createFunctionImpl(pName, returnType, msatTypes);
 
     return new Mathsat5FunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), decl);
+  }
+
+  @Override
+  public <T extends Formula> Mathsat5FunctionType<T> createFunction(
+      String pName,
+      FormulaType<T> pReturnType,
+      FormulaType<?>... pArgs) {
+
+    return createFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
 
   public long createFunctionImpl(String pName, long returnType, long[] msatTypes) {

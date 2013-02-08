@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.isNumber;
 
-import java.util.Arrays;
-
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRationalFormulaManager;
+
+import com.google.common.collect.ImmutableList;
 
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
@@ -56,9 +56,9 @@ public class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaMa
     this.env = pCreator.getEnv();
     FormulaType<RationalFormula> formulaType = FormulaType.RationalType;
     this.functionManager = functionManager;
-    multUfDecl = functionManager.createFunction(MultUfName, formulaType, Arrays.asList((FormulaType<?>)formulaType, formulaType));
-    divUfDecl = functionManager.createFunction(DivUfName, formulaType, Arrays.asList((FormulaType<?>)formulaType, formulaType));
-    modUfDecl = functionManager.createFunction(ModUfName, formulaType, Arrays.asList((FormulaType<?>)formulaType, formulaType));
+    multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
+    divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
+    modUfDecl = functionManager.createFunction(ModUfName, formulaType, formulaType, formulaType);
 
   }
 
@@ -78,7 +78,7 @@ public class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaMa
   }
 
   private Term makeUf(FunctionFormulaType<RationalFormula> decl, Term t1, Term t2) {
-    return functionManager.createUninterpretedFunctionCallImpl(decl, java.util.Arrays.asList(t1, t2));
+    return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
   }
 
   private boolean isUf(SmtInterpolFunctionType<RationalFormula> funcDecl, Term pBits) {

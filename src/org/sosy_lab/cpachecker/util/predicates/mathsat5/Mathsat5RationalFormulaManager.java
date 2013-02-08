@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
-import java.util.Arrays;
-
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRationalFormulaManager;
+
+import com.google.common.collect.ImmutableList;
 
 
 public class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long> {
@@ -52,14 +52,14 @@ public class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManag
     this.mathsatEnv = creator.getEnv();
     this.functionManager = functionManager;
     FormulaType<RationalFormula> formulaType = getFormulaType();
-    multUfDecl = functionManager.createFunction(MultUfName, formulaType, Arrays.asList((FormulaType<?>)formulaType, formulaType));
-    divUfDecl = functionManager.createFunction(DivUfName, formulaType, Arrays.asList((FormulaType<?>)formulaType, formulaType));
-    modUfDecl = functionManager.createFunction(ModUfName, formulaType, Arrays.asList((FormulaType<?>)formulaType, formulaType));
+    multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
+    divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
+    modUfDecl = functionManager.createFunction(ModUfName, formulaType, formulaType, formulaType);
 
   }
 
   private long makeUf(FunctionFormulaType<RationalFormula> decl, long t1, long t2) {
-    return functionManager.createUninterpretedFunctionCallImpl(decl, java.util.Arrays.asList(t1, t2));
+    return functionManager.createUninterpretedFunctionCallImpl(decl, ImmutableList.of(t1, t2));
   }
 
   private boolean isUf(Mathsat5FunctionType<RationalFormula> funcDecl, Long pBits) {

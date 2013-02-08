@@ -70,14 +70,14 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     this.functionManager = rawFunctionManager;
 
     formulaType = FormulaType.RationalType;
-    bitwiseAndUfDecl = functionManager.createFunction(BitwiseAndUfName, formulaType, Arrays.<FormulaType<?>>asList(formulaType, formulaType));
-    bitwiseOrUfDecl = functionManager.createFunction(BitwiseOrUfName, formulaType, Arrays.<FormulaType<?>>asList(formulaType, formulaType));
-    bitwiseXorUfDecl = functionManager.createFunction(BitwiseXorUfName, formulaType, Arrays.<FormulaType<?>>asList((FormulaType<?>)formulaType, formulaType));
-    bitwiseNotUfDecl = functionManager.createFunction(BitwiseNotUfName, formulaType, Arrays.<FormulaType<?>>asList(formulaType));
+    bitwiseAndUfDecl = functionManager.createFunction(BitwiseAndUfName, formulaType, formulaType, formulaType);
+    bitwiseOrUfDecl = functionManager.createFunction(BitwiseOrUfName, formulaType, formulaType, formulaType);
+    bitwiseXorUfDecl = functionManager.createFunction(BitwiseXorUfName, formulaType, formulaType, formulaType);
+    bitwiseNotUfDecl = functionManager.createFunction(BitwiseNotUfName, formulaType, formulaType);
 
 
-    leftShiftUfDecl = functionManager.createFunction("_<<_", formulaType, Arrays.<FormulaType<?>>asList(formulaType, formulaType));
-    rightShiftUfDecl = functionManager.createFunction("_>>_", formulaType, Arrays.<FormulaType<?>>asList(formulaType, formulaType));
+    leftShiftUfDecl = functionManager.createFunction("_<<_", formulaType, formulaType, formulaType);
+    rightShiftUfDecl = functionManager.createFunction("_>>_", formulaType, formulaType, formulaType);
   }
 
   private BitvectorFormula makeUf(FormulaType<BitvectorFormula> realreturn, FunctionFormulaType<RationalFormula> decl, BitvectorFormula... t1) {
@@ -105,7 +105,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     Integer[] hasKey = new Integer[]{pMsb, pLsb};
     FunctionFormulaType<RationalFormula> value = extractMethods.get(hasKey);
     if (value == null){
-      value = functionManager.createFunction("_extract("+ pMsb + "," + pLsb + ")_", formulaType, Arrays.<FormulaType<?>>asList(formulaType));
+      value = functionManager.createFunction("_extract("+ pMsb + "," + pLsb + ")_", formulaType, formulaType);
       extractMethods.put(hasKey, value);
     }
     return value;
@@ -117,7 +117,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     Integer[] hasKey = new Integer[]{firstSize, secoundSize};
     FunctionFormulaType<RationalFormula> value = concatMethods.get(hasKey);
     if (value == null){
-      value = functionManager.createFunction("_concat("+ firstSize + "," + secoundSize + ")_", formulaType, Arrays.<FormulaType<?>>asList(formulaType));
+      value = functionManager.createFunction("_concat("+ firstSize + "," + secoundSize + ")_", formulaType, formulaType);
       concatMethods.put(hasKey, value);
     }
     return value;

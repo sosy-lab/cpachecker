@@ -27,16 +27,17 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * A simple straightforward implementation of FunctionFormulaType<T>
  */
 public class FunctionFormulaTypeImpl<T extends Formula> extends FunctionFormulaType<T> {
-  private FormulaType<T> returnType;
-  private List<FormulaType<?>> argumentTypes;
+  private final FormulaType<T> returnType;
+  private final List<FormulaType<?>> argumentTypes;
   public FunctionFormulaTypeImpl(FormulaType<T> returnType, FormulaType<?>... argumentTypes){
     this.returnType = returnType;
-    this.argumentTypes =
-        Collections.unmodifiableList(java.util.Arrays.asList(argumentTypes));
+    this.argumentTypes = ImmutableList.copyOf(argumentTypes);
   }
 
   public FunctionFormulaTypeImpl(FormulaType<T> returnType, List<FormulaType<?>> argumentTypes){
