@@ -272,7 +272,6 @@ public class CFACreator {
       // get loop information
       Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
 
-
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
@@ -284,6 +283,11 @@ public class CFACreator {
         // add global variables at the beginning of main
         insertGlobalDeclarations(cfa, c.getGlobalDeclarations());
       }
+
+      // get information about variables, needed for some analysis (BDDCPA),
+      // after this step the edges should not be modified,
+      // otherwise the analysis could get wrong data
+      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa, config, logger));
 
       stats.processingTime.stop();
 
@@ -305,10 +309,6 @@ public class CFACreator {
       if (useMultiEdges) {
         MultiEdgeCreator.createMultiEdges(cfa);
       }
-
-      // get information about variables, needed for some analysis (BDDCPA),
-      // after this step the CFA should not be modified
-      Optional<VariableClassification> varClassification = Optional.of(new VariableClassification(cfa, config, logger));
 
       final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(loopStructure, varClassification);
 

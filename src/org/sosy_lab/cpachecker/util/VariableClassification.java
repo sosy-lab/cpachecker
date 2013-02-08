@@ -42,6 +42,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -86,6 +87,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
@@ -111,6 +113,7 @@ public class VariableClassification {
    * but the variable is not boolean at all: "int x; if(x!=0 && x!= 1){}".
    * so we allow only 0 as boolean value, and not 1. */
   private boolean allowOneAsBooleanValue = false;
+  private Timer buildTimer = new Timer();
 
   private Multimap<String, String> allVars = null;
 
@@ -163,18 +166,19 @@ public class VariableClassification {
     }
 
     final String prefix = "\nVC ";
-    StringBuilder str = new StringBuilder();
-    str.append("VariableClassification Statistics");
-    str.append("\n---------------------------------");
-    str.append(prefix + "number of boolean vars:  " + numOfBooleans);
-    str.append(prefix + "number of intEqual vars: " + numOfIntEquals);
-    str.append(prefix + "number of intAdd vars:   " + numOfIntAdds);
-    str.append(prefix + "number of all vars:      " + allVars.size());
-    str.append(prefix + "number of boolean partitions:  " + booleans.size());
-    str.append(prefix + "number of intEqual partitions: " + realIntEquals.size());
-    str.append(prefix + "number of intAdd partitions:   " + realIntAdds.size());
-    str.append(prefix + "number of all partitions:      " + getPartitions().size());
-    str.append("\n---------------------------------");
+    StringBuilder str = new StringBuilder("VariableClassification Statistics\n");
+    Joiner.on(prefix).appendTo(str, new String[] {
+        "---------------------------------",
+        "number of boolean vars:  " + numOfBooleans,
+        "number of intEqual vars: " + numOfIntEquals,
+        "number of intAdd vars:   " + numOfIntAdds,
+        "number of all vars:      " + allVars.size(),
+        "number of boolean partitions:  " + booleans.size(),
+        "number of intEqual partitions: " + realIntEquals.size(),
+        "number of intAdd partitions:   " + realIntAdds.size(),
+        "number of all partitions:      " + getPartitions().size(),
+        "time for building classification: " + buildTimer});
+    str.append("\n---------------------------------\n");
 
     logger.log(Level.INFO, str.toString());
   }
@@ -184,6 +188,8 @@ public class VariableClassification {
    * The function runs only once, after that it does nothing. */
   private void build() {
     if (allVars == null) {
+
+      buildTimer.start();
 
       // init maps
       allVars = LinkedHashMultimap.create();
@@ -213,6 +219,8 @@ public class VariableClassification {
       for (Entry<String, String> var : allVars.entries()) {
         dependencies.addVar(var.getKey(), var.getValue());
       }
+
+      buildTimer.stop();
 
       if (dumpfile != null) { // option -noout
         try (Writer w = Files.openOutputFile(dumpfile)) {
