@@ -23,20 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.AstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
-public abstract class CADesignator implements CIADesignator {
+public abstract class CDesignator extends AstNode implements CAstNode {
 
-  private FileLocation fileLoc;
-
-  public CADesignator(FileLocation pFileLoc) {
-    fileLoc = pFileLoc;
+  public CDesignator(FileLocation pFileLoc) {
+    super(pFileLoc);
   }
 
-  @Override
-  public FileLocation getFileLocation() {
-    return fileLoc;
-  }
-
+  public abstract <R, X extends Exception> R accept(CDesignatorVisitor<R, X> pV) throws X;
 }

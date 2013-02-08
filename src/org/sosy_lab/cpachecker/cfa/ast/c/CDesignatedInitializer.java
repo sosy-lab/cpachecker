@@ -30,10 +30,10 @@ import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 public class CDesignatedInitializer extends Initializer implements CInitializer {
 
 
-  private final CIADesignator left;
+  private final CDesignator left;
   private final CInitializer right;
 
-  public CDesignatedInitializer(FileLocation pFileLocation , final CIADesignator pLeft, final CInitializer pRight) {
+  public CDesignatedInitializer(FileLocation pFileLocation , final CDesignator pLeft, final CInitializer pRight) {
     super(pFileLocation);
     left = pLeft;
     right = pRight;
@@ -44,7 +44,7 @@ public class CDesignatedInitializer extends Initializer implements CInitializer 
       return left.toASTString() + " = " + right.toASTString();
   }
 
-  public CIADesignator getLeftHandSide() {
+  public CDesignator getLeftHandSide() {
     return left;
   }
 

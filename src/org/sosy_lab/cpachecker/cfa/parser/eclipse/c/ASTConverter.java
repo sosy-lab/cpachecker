@@ -86,7 +86,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CADesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -98,6 +97,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEmptyDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -1161,15 +1161,14 @@ class ASTConverter {
     FileLocation fileLoc = cInit.getFileLocation();
 
     // make initial variable
-    CADesignator exp = new CEmptyDesignator(fileLoc);
+    CDesignator exp = new CEmptyDesignator(fileLoc);
 
     // convert all designators
     for(int i = 0; i < desInit.length; i++) {
       if(desInit[i] instanceof ICASTFieldDesignator) {
        exp = new CFieldDesignator(fileLoc,
            convert(((ICASTFieldDesignator) desInit[i]).getName()),
-           exp,
-           false);
+           exp);
 
       } else if (desInit[i] instanceof ICASTArrayDesignator) {
         exp = new CArrayDesignator(fileLoc,

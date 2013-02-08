@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
-public class CEmptyDesignator extends CADesignator{
+public class CEmptyDesignator extends CDesignator{
 
   public CEmptyDesignator(final FileLocation pFileLocation) {
      super(pFileLocation);

@@ -26,20 +26,17 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
-public class CFieldDesignator extends CADesignator {
+public class CFieldDesignator extends CDesignator {
 
   private final String         name;
-  private final CIADesignator owner;
-  private final boolean        isPointerDereference;
+  private final CDesignator owner;
 
   public CFieldDesignator(final FileLocation pFileLocation,
                             final String pName,
-                            final CIADesignator pOwner,
-                            final boolean pIsPointerDereference) {
+                            final CDesignator pOwner) {
     super(pFileLocation);
     name = pName;
     owner = pOwner;
-    isPointerDereference = pIsPointerDereference;
   }
 
 
@@ -47,18 +44,13 @@ public class CFieldDesignator extends CADesignator {
     return name;
   }
 
-  public CIADesignator getFieldOwner() {
+  public CDesignator getFieldOwner() {
     return owner;
-  }
-
-  public boolean isPointerDereference() {
-    return isPointerDereference;
   }
 
   @Override
   public String toASTString() {
-    String op = isPointerDereference ? "->" : ".";
-    return owner.toASTString() + op  + name;
+    return owner.toASTString() + "."  + name;
   }
 
   @Override
@@ -79,7 +71,6 @@ public class CFieldDesignator extends CADesignator {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + (isPointerDereference ? 1231 : 1237);
     result = prime * result + ((name == null) ? 0 : name.hashCode());
     result = prime * result + ((owner == null) ? 0 : owner.hashCode());
     return result;
@@ -95,7 +86,6 @@ public class CFieldDesignator extends CADesignator {
     if (obj == null) { return false; }
     if (!(obj instanceof CFieldDesignator)) { return false; }
     CFieldDesignator other = (CFieldDesignator) obj;
-    if (isPointerDereference != other.isPointerDereference) { return false; }
     if (name == null) {
       if (other.name != null) { return false; }
     } else if (!name.equals(other.name)) { return false; }

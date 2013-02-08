@@ -27,23 +27,23 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 
 
-public class CArrayRangeDesignator extends CADesignator{
+public class CArrayRangeDesignator extends CDesignator{
 
   private final IAExpression rangeFloor;
   private final IAExpression rangeCeiling;
-  private final CIADesignator arrayDesignator;
+  private final CDesignator arrayDesignator;
 
   public CArrayRangeDesignator(final FileLocation pFileLocation,
                           final CExpression pRangeFloor,
                           final CExpression pRangeCeiling,
-                          final CIADesignator pArrayDesignator) {
+                          final CDesignator pArrayDesignator) {
      super(pFileLocation);
      rangeFloor = pRangeFloor;
      rangeCeiling = pRangeCeiling;
      arrayDesignator = pArrayDesignator;
   }
 
-  public CIADesignator getArrayDesignator() {
+  public CDesignator getArrayDesignator() {
     return arrayDesignator;
   }
 
