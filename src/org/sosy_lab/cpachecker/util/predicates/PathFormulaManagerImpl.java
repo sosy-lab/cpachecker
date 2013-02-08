@@ -203,7 +203,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }
 
   private BooleanFormula makeNondetFlagMerger(int iSmaller, int iBigger) {
-    return makeMerger(CtoFormulaConverter.NONDET_FLAG_VARIABLE, iSmaller, iBigger, fmgr.makeNumber(getNondetType(), 0));
+    return makeMerger(CtoFormulaConverter.NONDET_FLAG_VARIABLE, iSmaller, iBigger, fmgr.makeNumber(NONDET_FORMULA_TYPE, 0));
   }
 
   private BooleanFormula makeMerger(String var, int iSmaller, int iBigger, Formula pInitialValue) {

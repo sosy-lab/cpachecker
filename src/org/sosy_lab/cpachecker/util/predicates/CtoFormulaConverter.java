@@ -199,9 +199,11 @@ public class CtoFormulaConverter {
   private static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
   private static final String OP_STAR_NAME = "__ptrStar__";
   private static final String OP_ARRAY_SUBSCRIPT = "__array__";
-  public static final String NONDET_VARIABLE = "__nondet__";
-  public static final String EXPAND_VARIABLE = "__expandVariable__";
-  public static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
+  static final String NONDET_VARIABLE = "__nondet__";
+  static final String EXPAND_VARIABLE = "__expandVariable__";
+  static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
+  private static final CType NONDET_TYPE = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+  final FormulaType<?> NONDET_FORMULA_TYPE;
 
   private static final String POINTER_VARIABLE = "__content_of__";
   static final Predicate<CharSequence> IS_POINTER_VARIABLE
@@ -283,6 +285,7 @@ public class CtoFormulaConverter {
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = logger;
     nondetFunctionsPattern = Pattern.compile(nondetFunctionsRegexp);
+    NONDET_FORMULA_TYPE = getFormulaTypeFromCType(NONDET_TYPE);
   }
 
   private void warnUnsafeVar(CExpression exp) {
@@ -1127,12 +1130,6 @@ public class CtoFormulaConverter {
     }
   }
 
-  @SuppressWarnings("unchecked")
-  protected <T extends Formula> FormulaType<T> getNondetType() {
-    int bitsPerByte = machineModel.getSizeofCharInBits();
-    return (FormulaType<T>) efmgr.getFormulaType(machineModel.getSizeofInt() * bitsPerByte);
-  }
-
 //  @Override
   public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge)
       throws CPATransferException {
@@ -1163,14 +1160,14 @@ public class CtoFormulaConverter {
         }
 
         for (int lIndex = lFlagIndex + 1; lIndex <= lNondetIndex; lIndex++) {
-          Formula nondetVar = fmgr.makeVariable(getNondetType(), NONDET_FLAG_VARIABLE, lIndex);
-          BooleanFormula lAssignment = fmgr.assignment(nondetVar, fmgr.makeNumber(getNondetType(), 1));
+          Formula nondetVar = fmgr.makeVariable(NONDET_FORMULA_TYPE, NONDET_FLAG_VARIABLE, lIndex);
+          BooleanFormula lAssignment = fmgr.assignment(nondetVar, fmgr.makeNumber(NONDET_FORMULA_TYPE, 1));
           edgeFormula = bfmgr.and(edgeFormula, lAssignment);
         }
 
         // update ssa index of nondet flag
         //setSsaIndex(ssa, Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
-        ssa.setIndex(Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
+        ssa.setIndex(Variable.create(NONDET_FLAG_VARIABLE, NONDET_TYPE), lNondetIndex);
       }
     }
 
