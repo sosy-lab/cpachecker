@@ -58,7 +58,6 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTInitializerClause;
-import org.eclipse.cdt.core.dom.ast.IASTInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTInitializerList;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTName;
@@ -78,6 +77,7 @@ import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayDesignator;
+import org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTFieldDesignator;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
@@ -144,7 +144,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
-@SuppressWarnings("deprecation") // several methods are deprecated in CDT 7 but still working
 class ASTConverter {
 
   private final LogManager logger;
@@ -345,7 +344,7 @@ class ASTConverter {
     return new CArraySubscriptExpression(getLocation(e),
         typeConverter.convert(e.getExpressionType()),
         convertExpressionWithoutSideEffects(e.getArrayExpression()),
-        convertExpressionWithoutSideEffects(e.getSubscriptExpression()));
+        convertExpressionWithoutSideEffects(toExpression(e.getArgument())));
   }
 
   /**
@@ -465,17 +464,9 @@ class ASTConverter {
   }
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
-    IASTExpression p = e.getParameterExpression();
-
-    List<CExpression> params;
-    if (p instanceof IASTExpressionList) {
-      params = convert((IASTExpressionList)p);
-
-    } else {
-      params = new ArrayList<>();
-      if (p != null) {
-        params.add(convertExpressionWithoutSideEffects(p));
-      }
+    List<CExpression> params = new ArrayList<>();
+    for (IASTInitializerClause i : e.getArguments()) {
+      params.add(convertExpressionWithoutSideEffects(toExpression(i)));
     }
 
     CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
@@ -502,14 +493,6 @@ class ASTConverter {
     }
 
     return new CFunctionCallExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), functionName, params, declaration);
-  }
-
-  private List<CExpression> convert(IASTExpressionList es) {
-    List<CExpression> result = new ArrayList<>(es.getExpressions().length);
-    for (IASTExpression expression : es.getExpressions()) {
-      result.add(convertExpressionWithoutSideEffects(expression));
-    }
-    return result;
   }
 
   private CIdExpression convert(IASTIdExpression e) {
@@ -1135,14 +1118,32 @@ class ASTConverter {
     return result;
   }
 
+  private IASTExpression toExpression(IASTInitializerClause i) {
+    if (i instanceof IASTExpression) {
+      return (IASTExpression)i;
+    }
+    throw new CFAGenerationRuntimeException("Initializer clause in unexpected location", i);
+  }
+
+  private CInitializer convert(IASTInitializerClause i, @Nullable CVariableDeclaration declaration) {
+    if (i instanceof IASTExpression) {
+      CExpression exp = convertExpressionWithoutSideEffects((IASTExpression)i);
+      return new CInitializerExpression(exp.getFileLocation(), exp);
+    } else if (i instanceof IASTInitializerList) {
+      return convert((IASTInitializerList)i, declaration);
+    } else if (i instanceof ICASTDesignatedInitializer) {
+      return convert((ICASTDesignatedInitializer)i, declaration);
+    } else {
+      throw new CFAGenerationRuntimeException("unknown initializer claus: " + i.getClass().getSimpleName(), i);
+    }
+  }
+
   private CInitializer convert(IASTInitializer i, @Nullable CVariableDeclaration declaration) {
     if (i == null) {
       return null;
 
-    } else if (i instanceof IASTInitializerExpression) {
-      return convert((IASTInitializerExpression)i);
     } else if (i instanceof IASTInitializerList) {
-      return convert((IASTInitializerList)i);
+      return convert((IASTInitializerList)i, declaration);
     } else if (i instanceof IASTEqualsInitializer) {
       return convert((IASTEqualsInitializer)i, declaration);
     } else if (i instanceof org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer) {
@@ -1155,7 +1156,7 @@ class ASTConverter {
   private CInitializer convert(org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer init, @Nullable CVariableDeclaration declaration) {
     ICASTDesignator[] desInit = init.getDesignators();
 
-    CInitializer cInit = convert(init.getOperandInitializer(), declaration);
+    CInitializer cInit = convert(init.getOperand(), declaration);
 
     FileLocation fileLoc = cInit.getFileLocation();
 
@@ -1189,24 +1190,10 @@ class ASTConverter {
     return new CDesignatedInitializer(fileLoc, exp, cInit);
   }
 
-  private CInitializerExpression convert(IASTInitializerExpression i) {
-    CAstNode initializer = convertExpressionWithSideEffects(i.getExpression());
-    if (initializer != null && initializer instanceof CAssignment){
-      preSideAssignments.add(initializer);
-      return new CInitializerExpression(getLocation(i), ((CAssignment)initializer).getLeftHandSide());
-    }
-
-    if (initializer != null && !(initializer instanceof CExpression)) {
-      throw new CFAGenerationRuntimeException("Initializer is not free of side-effects", i);
-    }
-
-    return new CInitializerExpression(getLocation(i), (CExpression)initializer);
-  }
-
-  private CInitializerList convert(IASTInitializerList iList) {
-    List<CInitializer> initializerList = new ArrayList<>(iList.getInitializers().length);
-    for (IASTInitializer i : iList.getInitializers()) {
-      CInitializer newI = convert(i, null);
+  private CInitializerList convert(IASTInitializerList iList, @Nullable CVariableDeclaration declaration) {
+    List<CInitializer> initializerList = new ArrayList<>();
+    for (IASTInitializerClause i : iList.getClauses()) {
+      CInitializer newI = convert(i, declaration);
       if (newI != null) {
         initializerList.add(newI);
       }
@@ -1258,7 +1245,7 @@ class ASTConverter {
       return new CInitializerExpression(getLocation(ic), (CExpression)initializer);
 
     } else if (ic instanceof IASTInitializerList) {
-      return convert((IASTInitializerList)ic);
+      return convert((IASTInitializerList)ic, declaration);
     } else {
       throw new CFAGenerationRuntimeException("unknown initializer: " + i.getClass().getSimpleName(), i);
     }

@@ -48,7 +48,6 @@ import org.eclipse.cdt.core.dom.ast.IQualifierType;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
 import org.eclipse.cdt.core.dom.ast.IValue;
-import org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.c.ICArrayType;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -193,10 +192,7 @@ class ASTTypeConverter {
     }
   }
 
-  @SuppressWarnings("deprecation")
   private CSimpleType conv(final IBasicType t) {
-    try {
-
       // The IBasicType has to be an ICBasicType or
       // an IBasicType of type "void" (then it is an ICPPBasicType)
       if (t instanceof org.eclipse.cdt.core.dom.ast.c.ICBasicType) {
@@ -204,30 +200,30 @@ class ASTTypeConverter {
             (org.eclipse.cdt.core.dom.ast.c.ICBasicType) t;
 
         CBasicType type;
-        switch (t.getType()) {
-        case org.eclipse.cdt.core.dom.ast.c.ICBasicType.t_Bool:
+        switch (t.getKind()) {
+        case eBoolean:
           type = CBasicType.BOOL;
           break;
-        case org.eclipse.cdt.core.dom.ast.IBasicType.t_char:
+        case eChar:
           type = CBasicType.CHAR;
           break;
-        case org.eclipse.cdt.core.dom.ast.IBasicType.t_double:
+        case eDouble:
           type = CBasicType.DOUBLE;
           break;
-        case org.eclipse.cdt.core.dom.ast.IBasicType.t_float:
+        case eFloat:
           type = CBasicType.FLOAT;
           break;
-        case org.eclipse.cdt.core.dom.ast.IBasicType.t_int:
+        case eInt:
           type = CBasicType.INT;
           break;
-        case org.eclipse.cdt.core.dom.ast.IBasicType.t_unspecified:
+        case eUnspecified:
           type = CBasicType.UNSPECIFIED;
           break;
-        case org.eclipse.cdt.core.dom.ast.IBasicType.t_void:
+        case eVoid:
           type = CBasicType.VOID;
           break;
         default:
-          throw new CFAGenerationRuntimeException("Unknown basic type " + t.getType());
+          throw new CFAGenerationRuntimeException("Unknown basic type " + t.getKind());
         }
 
         if ((c.isShort() && c.isLong())
@@ -240,7 +236,7 @@ class ASTTypeConverter {
         return new CSimpleType(false, false, type, c.isLong(), c.isShort(),
             c.isSigned(), c.isUnsigned(), c.isComplex(), c.isImaginary(), c.isLongLong());
 
-      } else if (t.getType() == org.eclipse.cdt.core.dom.ast.IBasicType.t_void) {
+      } else if (t.getKind() == org.eclipse.cdt.core.dom.ast.IBasicType.Kind.eVoid) {
 
         // the three values isComplex, isImaginary, isLongLong are initialized
         // with FALSE, because we do not know about them
@@ -250,10 +246,6 @@ class ASTTypeConverter {
       } else {
         throw new CFAGenerationRuntimeException("Unknown type " + t.toString());
       }
-
-    } catch (org.eclipse.cdt.core.dom.ast.DOMException e) {
-      throw new CFAGenerationRuntimeException(e);
-    }
   }
 
   private CPointerType conv(final IPointerType t) {
@@ -330,14 +322,10 @@ class ASTTypeConverter {
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
-  @SuppressWarnings("deprecation")
-  CType convert(final IASTSimpleDeclSpecifier d) {
-    if (!(d instanceof ICASTSimpleDeclSpecifier)) { throw new CFAGenerationRuntimeException("Unsupported type", d); }
-    ICASTSimpleDeclSpecifier dd = (ICASTSimpleDeclSpecifier) d;
-
+  CType convert(final IASTSimpleDeclSpecifier dd) {
     CBasicType type;
     switch (dd.getType()) {
-    case ICASTSimpleDeclSpecifier.t_Bool:
+    case IASTSimpleDeclSpecifier.t_bool:
       type = CBasicType.BOOL;
       break;
     case IASTSimpleDeclSpecifier.t_char:
@@ -364,17 +352,17 @@ class ASTTypeConverter {
       return convert(dd.getDeclTypeExpression().getExpressionType());
     default:
       throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType() + " "
-          + dd.getClass().getSimpleName(), d);
+          + dd.getClass().getSimpleName(), dd);
     }
 
     if ((dd.isShort() && dd.isLong())
         || (dd.isShort() && dd.isLongLong())
         || (dd.isLong() && dd.isLongLong())
         || (dd.isSigned() && dd.isUnsigned())) { throw new CFAGenerationRuntimeException(
-        "Illegal combination of type identifiers", d); }
+        "Illegal combination of type identifiers", dd); }
 
     return new CSimpleType(dd.isConst(), dd.isVolatile(), type,
-        dd.isLong(), dd.isShort(), dd.isSigned(), d.isUnsigned(),
+        dd.isLong(), dd.isShort(), dd.isSigned(), dd.isUnsigned(),
         dd.isComplex(), dd.isImaginary(), dd.isLongLong());
   }
 
