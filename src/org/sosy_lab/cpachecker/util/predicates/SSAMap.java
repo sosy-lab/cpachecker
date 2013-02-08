@@ -57,19 +57,19 @@ public class SSAMap implements Serializable {
   public static class SSAMapBuilder {
 
     private SSAMap ssa;
-    private Multiset<Variable<?>> varsBuilder = null;
-    private Multiset<Pair<Variable<?>, FormulaList>> funcsBuilder = null;
+    private Multiset<Variable> varsBuilder = null;
+    private Multiset<Pair<Variable, FormulaList>> funcsBuilder = null;
 
     protected SSAMapBuilder(SSAMap ssa) {
       this.ssa = ssa;
     }
 
-    public int getIndex(Variable<?> variable) {
+    public int getIndex(Variable variable) {
       return SSAMap.getIndex(variable, Objects.firstNonNull(varsBuilder, ssa.vars));
     }
 
-    public int getIndex(Variable<?> func, FormulaList args) {
-      return SSAMap.getIndex(Pair.<Variable<?>, FormulaList>of(func, args),
+    public int getIndex(Variable func, FormulaList args) {
+      return SSAMap.getIndex(Pair.<Variable, FormulaList>of(func, args),
                              Objects.firstNonNull(funcsBuilder, ssa.funcs));
     }
 
@@ -81,15 +81,15 @@ public class SSAMap implements Serializable {
       return getIndex(toVariable(name), args);
     }
 
-    public Variable<?> getVariable(String name){
-      for (Variable<?> v : allVariables()){
+    public Variable getVariable(String name){
+      for (Variable v : allVariables()){
         if (v.getName().equals(name)) {
           return v;
         }
       }
 
-      for (Pair<Variable<?>, FormulaList> v : allFunctions()){
-        Variable<?> first = v.getFirst();
+      for (Pair<Variable, FormulaList> v : allFunctions()){
+        Variable first = v.getFirst();
         if (first.getName().equals(name)) {
           return first;
         }
@@ -98,7 +98,7 @@ public class SSAMap implements Serializable {
       return null;
     }
 
-    public void setIndex(Variable<?> var, int idx) {
+    public void setIndex(Variable var, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
 
       if (varsBuilder == null) {
@@ -109,21 +109,21 @@ public class SSAMap implements Serializable {
       varsBuilder.setCount(var, idx);
     }
 
-    public void setIndex(Variable<?> func, FormulaList args, int idx) {
+    public void setIndex(Variable func, FormulaList args, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
 
       if (funcsBuilder == null) {
         funcsBuilder = LinkedHashMultiset.create(ssa.funcs);
       }
 
-      Pair<Variable<?>, FormulaList> key = Pair.<Variable<?>, FormulaList>of(func, args);
+      Pair<Variable, FormulaList> key = Pair.<Variable, FormulaList>of(func, args);
       Preconditions.checkArgument(idx >= funcsBuilder.count(key), "SSAMap updates need to be strictly monotone!");
       funcsBuilder.setCount(key, idx);
     }
 
 
 
-    public void deleteVariable(Variable<?> variable) {
+    public void deleteVariable(Variable variable) {
       int index = getIndex(variable);
       if (index != -1) {
 
@@ -135,12 +135,12 @@ public class SSAMap implements Serializable {
       }
     }
 
-    public Set<Pair<Variable<?>, FormulaList>> allFunctions() {
+    public Set<Pair<Variable, FormulaList>> allFunctions() {
       return Collections.unmodifiableSet(
           Objects.firstNonNull(funcsBuilder, ssa.funcs).elementSet());
     }
 
-    public Set<Variable<?>> allVariables() {
+    public Set<Variable> allVariables() {
       return Collections.unmodifiableSet(
           Objects.firstNonNull(varsBuilder, ssa.vars).elementSet());
     }
@@ -162,8 +162,8 @@ public class SSAMap implements Serializable {
   }
 
   private static final SSAMap EMPTY_SSA_MAP = new SSAMap(
-      ImmutableMultiset.<Variable<?>>of(),
-      ImmutableMultiset.<Pair<Variable<?>, FormulaList>>of());
+      ImmutableMultiset.<Variable>of(),
+      ImmutableMultiset.<Pair<Variable, FormulaList>>of());
 
   /**
    * Returns an empty immutable SSAMap.
@@ -178,21 +178,21 @@ public class SSAMap implements Serializable {
       private static final long serialVersionUID = -5638018887478723717L;
 
       @Override
-      public int getIndex(Variable<?> pVariable) {
+      public int getIndex(Variable pVariable) {
         int result = super.getIndex(pVariable);
 
         return (result < 0) ? defaultValue : result;
       }
 
       @Override
-      public int getIndex(Variable<?> pName, FormulaList pArgs) {
+      public int getIndex(Variable pName, FormulaList pArgs) {
         int result = super.getIndex(pName, pArgs);
 
         return (result < 0) ? defaultValue : result;
       }
 
       @Override
-      protected int getIndex(Pair<Variable<?>, FormulaList> pKey) {
+      protected int getIndex(Pair<Variable, FormulaList> pKey) {
         int result = super.getIndex(pKey);
 
         return (result < 0) ? defaultValue : result;
@@ -212,7 +212,7 @@ public class SSAMap implements Serializable {
     // We don't bother checking the vars set for emptiness, because this will
     // probably never be the case on a merge.
 
-    Multiset<Variable<?>> vars;
+    Multiset<Variable> vars;
     if (s1.vars == s2.vars) {
       if (s1.funcs == s2.funcs) {
         // both are absolutely identical
@@ -224,7 +224,7 @@ public class SSAMap implements Serializable {
       vars = merge(s1.vars, s2.vars);
     }
 
-    Multiset<Pair<Variable<?>, FormulaList>> funcs;
+    Multiset<Pair<Variable, FormulaList>> funcs;
     if ((s1.funcs == s2.funcs) || s2.funcs.isEmpty()) {
       funcs = s1.funcs;
     } else if (s1.funcs.isEmpty()) {
@@ -261,11 +261,11 @@ public class SSAMap implements Serializable {
    * Multiset.count(key). This is better because the Multiset internally uses
    * modifiable integers instead of the immutable Integer class.
    */
-  private final Multiset<Variable<?>> vars;
-  private final Multiset<Pair<Variable<?>, FormulaList>> funcs;
+  private final Multiset<Variable> vars;
+  private final Multiset<Pair<Variable, FormulaList>> funcs;
 
-  private SSAMap(Multiset<Variable<?>> vars,
-                 Multiset<Pair<Variable<?>, FormulaList>> funcs) {
+  private SSAMap(Multiset<Variable> vars,
+                 Multiset<Pair<Variable, FormulaList>> funcs) {
     this.vars = vars;
     this.funcs = funcs;
   }
@@ -290,19 +290,19 @@ public class SSAMap implements Serializable {
   /**
    * returns the index of the variable in the map
    */
-  public int getIndex(Variable<?> variable) {
+  public int getIndex(Variable variable) {
     return getIndex(variable, vars);
   }
 
-  public int getIndex(Variable<?> name, FormulaList args) {
-    return getIndex(Pair.<Variable<?>, FormulaList>of(name, args), funcs);
+  public int getIndex(Variable name, FormulaList args) {
+    return getIndex(Pair.<Variable, FormulaList>of(name, args), funcs);
   }
 
-  protected int getIndex(Pair<Variable<?>, FormulaList> key) {
+  protected int getIndex(Pair<Variable, FormulaList> key) {
     return getIndex(key, funcs);
   }
 
-  private static Variable<?> toVariable(String pVariable) {
+  private static Variable toVariable(String pVariable) {
     return Variable.create(pVariable, null);
   }
 
@@ -312,17 +312,17 @@ public class SSAMap implements Serializable {
 
 
   public int getIndex(String name, FormulaList args) {
-    return getIndex(Pair.<Variable<?>, FormulaList>of(toVariable(name), args), funcs);
+    return getIndex(Pair.<Variable, FormulaList>of(toVariable(name), args), funcs);
   }
 
   protected int getIndexString(Pair<String, FormulaList> key) {
-    return getIndex(Pair.<Variable<?>, FormulaList>of(toVariable(key.getFirst()), key.getSecond()), funcs);
+    return getIndex(Pair.<Variable, FormulaList>of(toVariable(key.getFirst()), key.getSecond()), funcs);
   }
-  public Set<Variable<?>> allVariables() {
+  public Set<Variable> allVariables() {
     return Collections.unmodifiableSet(vars.elementSet());
   }
 
-  public Set<Pair<Variable<?>, FormulaList>> allFunctions() {
+  public Set<Pair<Variable, FormulaList>> allFunctions() {
     return Collections.unmodifiableSet(funcs.elementSet());
   }
 

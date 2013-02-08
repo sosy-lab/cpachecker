@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class Variable<Type> {
+
+public class Variable {
   private final String name;
-  private final Type type;
+  private final CType type;
 
-  private Variable(String pName, Type pType) {
+  private Variable(String pName, CType pType) {
     super();
     name = pName;
     type = pType;
@@ -38,7 +40,7 @@ public class Variable<Type> {
     return name;
   }
 
-  public Type getType(){
+  public CType getType(){
     assert type != null;
     return type;
   }
@@ -62,7 +64,7 @@ public class Variable<Type> {
     if (getClass() != obj.getClass()) {
       return false;
     }
-    Variable<?> other = (Variable<?>) obj;
+    Variable other = (Variable) obj;
     if (name == null) {
       if (other.name != null) {
         return false;
@@ -75,22 +77,18 @@ public class Variable<Type> {
 
   @Override
   public String toString() {
-    if (type instanceof org.sosy_lab.cpachecker.cfa.types.Type) {
-      return ((org.sosy_lab.cpachecker.cfa.types.Type)type).toASTString(name);
-    } else {
-      return type + " " + name;
-    }
+    return type.toASTString(name);
   }
 
-  public Variable<Type> withName(String newName) {
+  public Variable withName(String newName) {
     return Variable.create(newName, type);
   }
 
-  public Variable<Type> withType(Type pType) {
+  public Variable withType(CType pType) {
     return Variable.create(name, pType);
   }
 
-  public static <Type> Variable<Type> create(String pName, Type pT) {
-    return new Variable<>(pName, pT);
+  public static Variable create(String pName, CType pT) {
+    return new Variable(pName, pT);
   }
 }

@@ -39,7 +39,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -139,7 +138,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     BooleanFormula mt1 = bfmgr.makeBoolean(true);
     BooleanFormula mt2 = bfmgr.makeBoolean(true);
 
-    for (Variable<?> var : result.allVariables()) {
+    for (Variable var : result.allVariables()) {
       if (var.getName().equals(CtoFormulaConverter.NONDET_VARIABLE)) {
         continue; // do not add index adjustment terms for __nondet__
       }
@@ -179,8 +178,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       }
     }
 
-    for (Pair<Variable<?>, FormulaList> f : result.allFunctions()) {
-      Variable<?> name = f.getFirst();
+    for (Pair<Variable, FormulaList> f : result.allFunctions()) {
+      Variable name = f.getFirst();
       FormulaList args = f.getSecond();
       int i1 = ssa1.getIndex(f);
       int i2 = ssa2.getIndex(f);
@@ -222,17 +221,17 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   // creates the mathsat terms
   // (var@iSmaller = var@iSmaller+1; ...; var@iSmaller = var@iBigger)
-  private BooleanFormula makeSSAMerger(Variable<?> var, int iSmaller, int iBigger) {
-    FormulaType<Formula> t = getFormulaTypeFromCType((CType) var.getType());
+  private BooleanFormula makeSSAMerger(Variable var, int iSmaller, int iBigger) {
+    FormulaType<Formula> t = getFormulaTypeFromCType(var.getType());
     return makeMerger(var.getName(), iSmaller, iBigger,
         fmgr.makeVariable(t, var.getName(), iSmaller));
   }
 
-  private BooleanFormula makeSSAMerger(Variable<?> var,
+  private BooleanFormula makeSSAMerger(Variable var,
       FormulaList args, int iSmaller, int iBigger) {
     assert iSmaller < iBigger;
 
-    FormulaType<Formula> t = getFormulaTypeFromCType((CType) var.getType());
+    FormulaType<Formula> t = getFormulaTypeFromCType(var.getType());
     Formula initialFunc = ffmgr.createFuncAndCall(var.getName(), iSmaller, t, fromList(args));
     //BooleanFormula intialFunc = fmgr.makeUIF(name, args, iSmaller);
     BooleanFormula result = bfmgr.makeBoolean(true);
