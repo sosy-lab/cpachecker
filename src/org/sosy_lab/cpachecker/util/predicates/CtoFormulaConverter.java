@@ -2352,9 +2352,9 @@ public class CtoFormulaConverter {
     @Override
     public Formula visit(CFieldReference fExp) throws UnrecognizedCCodeException {
       if (handleFieldAccess) {
-    	  CExpression fieldOwner = getRealFieldOwner(fExp);
-    	  Formula f = fieldOwner.accept(this);
-    	  return accessField(fExp, f);
+        CExpression fieldOwner = getRealFieldOwner(fExp);
+        Formula f = fieldOwner.accept(this);
+        return accessField(fExp, f);
       }
 
       CExpression fieldRef = fExp.getFieldOwner();
@@ -3442,19 +3442,19 @@ public class CtoFormulaConverter {
     @Override
     public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
       if (!handleFieldAccess) {
-    	  CExpression fieldRef = fexp.getFieldOwner();
-    	  if (fieldRef instanceof CIdExpression) {
-  	      CSimpleDeclaration decl = ((CIdExpression) fieldRef).getDeclaration();
-  	      if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal()) {
-      		  // this is the reference to a global field variable
-      		  // we don't need to scope the variable reference
-      		  String var = exprToVarName(fexp);
+        CExpression fieldRef = fexp.getFieldOwner();
+        if (fieldRef instanceof CIdExpression) {
+          CSimpleDeclaration decl = ((CIdExpression) fieldRef).getDeclaration();
+          if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal()) {
+            // this is the reference to a global field variable
+            // we don't need to scope the variable reference
+            String var = exprToVarName(fexp);
 
-      		  Variable v = Variable.create(var, fexp.getExpressionType());
-      		  return makeFreshVariable(v, ssa);
-  	      }
-    	  }
-    	  return giveUpAndJustMakeVariable(fexp);
+            Variable v = Variable.create(var, fexp.getExpressionType());
+            return makeFreshVariable(v, ssa);
+          }
+        }
+        return giveUpAndJustMakeVariable(fexp);
       }
 
       // s.a = ...
@@ -3527,22 +3527,22 @@ public class CtoFormulaConverter {
     @Override
     public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
       if (!handleFieldAccess) {
-    	  String field = fexp.getFieldName();
-    	  CExpression owner = getRealFieldOwner(fexp);
-    	  Formula term = buildTerm(owner, edge, function, ssa, constraints);
+        String field = fexp.getFieldName();
+        CExpression owner = getRealFieldOwner(fexp);
+        Formula term = buildTerm(owner, edge, function, ssa, constraints);
 
-    	  String tpname = getTypeName(owner.getExpressionType());
-    	  String ufname = ".{" + tpname + "," + field + "}";
-    	  FormulaList args = new AbstractFormulaList(term);
+        String tpname = getTypeName(owner.getExpressionType());
+        String ufname = ".{" + tpname + "," + field + "}";
+        FormulaList args = new AbstractFormulaList(term);
 
 
-    	  CType expType = fexp.getExpressionType();
-    	  FormulaType<Formula> formulaType = getFormulaTypeFromCType(expType);
-    	  int idx = makeLvalIndex(Variable.create(ufname, expType), args, ssa);
+        CType expType = fexp.getExpressionType();
+        FormulaType<Formula> formulaType = getFormulaTypeFromCType(expType);
+        int idx = makeLvalIndex(Variable.create(ufname, expType), args, ssa);
 
-    	  // see above for the case of &x and *x
-    	  return ffmgr.createFuncAndCall(
-					 ufname, idx, formulaType, Arrays.asList( term ));
+        // see above for the case of &x and *x
+        return ffmgr.createFuncAndCall(
+           ufname, idx, formulaType, Arrays.asList( term ));
       }
 
       // When handleFieldAccess is true we can handle this case already
@@ -3574,8 +3574,8 @@ public class CtoFormulaConverter {
 
     @Override
     public Formula visit(CCastExpression e) throws UnrecognizedCCodeException {
-    	Formula inner = e.getOperand().accept(this);
-    	return makeCast(e, inner);
+      Formula inner = e.getOperand().accept(this);
+      return makeCast(e, inner);
     }
 
 
@@ -3605,8 +3605,8 @@ public class CtoFormulaConverter {
           return giveUpAndJustMakeVariable(pE);
         }
       } else {
-      	// &f = ... which doesn't make much sense.
-      	log(Level.WARNING, "Strange addressof operator on the left side:" + pE.toString());
+        // &f = ... which doesn't make much sense.
+        log(Level.WARNING, "Strange addressof operator on the left side:" + pE.toString());
         return super.visit(pE);
       }
     }
