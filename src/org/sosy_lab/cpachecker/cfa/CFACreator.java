@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.findLoops;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -133,15 +134,15 @@ public class CFACreator {
   private final Parser parser;
   private final CFAReduction cfaReduction;
 
-  public final Timer parserInstantiationTime = new Timer();
-  public final Timer totalTime = new Timer();
-  public final Timer parsingTime;
-  public final Timer conversionTime;
-  public final Timer checkTime = new Timer();
-  public final Timer processingTime = new Timer();
-  public final Timer pruningTime = new Timer();
-  public final Timer exportTime = new Timer();
-  private Configuration config;
+  private final Timer parserInstantiationTime = new Timer();
+  private final Timer totalTime = new Timer();
+  private final Timer parsingTime;
+  private final Timer conversionTime;
+  private final Timer checkTime = new Timer();
+  private final Timer processingTime = new Timer();
+  private final Timer pruningTime = new Timer();
+  private final Timer exportTime = new Timer();
+  private final Configuration config;
 
   public CFACreator(Configuration config, LogManager logger)
           throws InvalidConfigurationException {
@@ -510,6 +511,21 @@ public class CFACreator {
     }
 
     exportTime.stop();
+  }
+
+  public void printCfaCreationStatistics(PrintStream out) {
+    out.println("  Time for loading C parser:  " + parserInstantiationTime);
+    out.println("  Time for CFA construction:  " + totalTime);
+    out.println("    Time for parsing C file:  " + parsingTime);
+    out.println("    Time for AST to CFA:      " + conversionTime);
+    out.println("    Time for CFA sanity check:" + checkTime);
+    out.println("    Time for post-processing: " + processingTime);
+    if (pruningTime.getNumberOfIntervals() > 0) {
+      out.println("    Time for CFA pruning:     " + pruningTime);
+    }
+    if (exportTime.getNumberOfIntervals() > 0) {
+      out.println("    Time for CFA export:      " + exportTime);
+    }
   }
 
   private static void addToCFA(CFAEdge edge) {

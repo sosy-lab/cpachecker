@@ -263,18 +263,7 @@ class MainCPAStatistics implements Statistics {
       out.println("Time for analysis setup:      " + creationTime);
       out.println("  Time for loading CPAs:      " + cpaCreationTime);
       if (cfaCreator != null) {
-        out.println("  Time for loading C parser:  " + cfaCreator.parserInstantiationTime);
-        out.println("  Time for CFA construction:  " + cfaCreator.totalTime);
-        out.println("    Time for parsing C file:  " + cfaCreator.parsingTime);
-        out.println("    Time for AST to CFA:      " + cfaCreator.conversionTime);
-        out.println("    Time for CFA sanity check:" + cfaCreator.checkTime);
-        out.println("    Time for post-processing: " + cfaCreator.processingTime);
-        if (cfaCreator.pruningTime.getNumberOfIntervals() > 0) {
-          out.println("    Time for CFA pruning:     " + cfaCreator.pruningTime);
-        }
-        if (cfaCreator.exportTime.getNumberOfIntervals() > 0) {
-          out.println("    Time for CFA export:      " + cfaCreator.exportTime);
-        }
+        cfaCreator.printCfaCreationStatistics(out);
       }
       out.println("Time for Analysis:            " + analysisTime);
       out.println("Total time for CPAchecker:    " + programTime);
