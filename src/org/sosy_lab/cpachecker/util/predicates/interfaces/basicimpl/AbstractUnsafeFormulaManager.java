@@ -59,21 +59,6 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
     Class<T> clazz = type.getInterfaceType();
     return creator.encapsulate(clazz, formulaInfo);
   }
-  @Override
-  public Formula[] getArguments(Formula pF) {
-    TFormulaInfo t = getTerm(pF);
-    List<TFormulaInfo> rawReturns = getArguments(t);
-    Formula[] returns = toFormula(rawReturns);
-    return returns;
-  }
-
-  private Formula[] toFormula(List<TFormulaInfo> rawReturns) {
-    Formula[] returns = new Formula[rawReturns.size()];
-    for (int i = 0; i < returns.length; i++) {
-      returns[i] = encapsulateUnsafe(rawReturns.get(i));
-    }
-    return returns;
-  }
 
   private List<TFormulaInfo> toFormulaInfo(Formula[] formulas) {
     List<TFormulaInfo> returns = from(Arrays.asList( formulas ))

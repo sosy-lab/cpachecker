@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+
 /**
  * This interface represents some formula traverse methods which should not be used on higher levels.
  * These Methods are hidden behind the View, but used in the view for methods like "extractAtoms".
@@ -36,14 +37,6 @@ public interface UnsafeFormulaManager {
    * @return the typed formula
    */
   <T extends Formula> T typeFormula(FormulaType<T> type, Formula f);
-
-  /**
-   * returns the arguments of the given formula.
-   *
-   * @param f
-   * @return
-   */
-  Formula[] getArguments(Formula f);
 
   /**
    * see getArguments.

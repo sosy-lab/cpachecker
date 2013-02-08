@@ -39,7 +39,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -296,39 +295,34 @@ public final class AbstractionManager {
       return atomToPredicate.get(pF).getAbstractVariable();
     }
     case NOT: {
-      Formula[] arg = unsafe.getArguments(pF);
       return getRegionCreator()
           .makeNot(
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, arg[0])));
+            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0))));
     }
     case AND: {
-      Formula[] arg = unsafe.getArguments(pF);
       return getRegionCreator()
           .makeAnd(
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, arg[0])),
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, arg[1])));
+            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0))),
+            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 1))));
     }
     case OR: {
-      Formula[] arg = unsafe.getArguments(pF);
       return getRegionCreator()
           .makeOr(
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, arg[0])),
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, arg[1])));
+            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0))),
+            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 1))));
     }
     case EQUIV: {
-      Formula[] arg = unsafe.getArguments(pF);
       return getRegionCreator()
           .makeEqual(
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, arg[0])),
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, arg[1])));
+            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0))),
+            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 1))));
     }
     case ITE: {
-      Formula[] arg = unsafe.getArguments(pF);
       return getRegionCreator()
           .makeIte(
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, arg[0])),
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, arg[1])),
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, arg[2])));
+            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0))),
+            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 1))),
+            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 2))));
     }
     default:
       return null;

@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateConstraint;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormulaList;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateNumber;
@@ -52,16 +49,6 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
   @Override
   public <T extends Formula> T typeFormula(FormulaType<T> pType, Formula pF) {
     return (T)pF;
-  }
-
-  @Override
-  public Formula[] getArguments(Formula pF) {
-    int arity = getArity(pF);
-    List<Formula> rets = new ArrayList<>(arity);
-    for (int i = 0; i < arity; i++) {
-      rets.add(getArg(pF, i));
-    }
-    return rets.toArray(new Formula[arity]);
   }
 
   @Override

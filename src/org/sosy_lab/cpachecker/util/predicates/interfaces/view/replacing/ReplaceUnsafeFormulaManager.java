@@ -56,11 +56,6 @@ public class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
   }
 
   @Override
-  public Formula[] getArguments(Formula pF) {
-    return rawUnsafeManager.getArguments(replaceManager.unwrap(pF));
-  }
-
-  @Override
   public int getArity(Formula pF) {
     return rawUnsafeManager.getArity(replaceManager.unwrap(pF));
   }
