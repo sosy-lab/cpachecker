@@ -1,6 +1,7 @@
 
 # /
 /bin
+/build.properties
 /output
 /cpachecker.jar
 /CPAchecker-*.zip

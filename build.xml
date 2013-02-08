@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
 <project basedir="." default="build" name="CPAchecker" xmlns:ivy="antlib:org.apache.ivy.ant">
+    <!-- Include a file in which all properties can be overridden.
+         This file won't get checked in and can be used to change properties
+         locally for one machine if necessary. -->
+    <property file="build.properties"/>
+
     <property name="version" value="1.2-svn"/> <!-- change here for a release -->
 
-    <!-- Enable this property (either here or via command-line to prevent ivy from running)
+    <!-- Enable this property (either via command-line or in build.properties to prevent ivy from running)
     <property name="ivy.disable" value=""/>
     -->
 
