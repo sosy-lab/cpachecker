@@ -41,6 +41,7 @@ import tempita
 
 from decimal import *
 
+import benchmark.result as result
 
 NAME_START = "results" # first part of filename of table
 
@@ -52,17 +53,6 @@ LIB_URL_OFFLINE = "lib/javascript"
 TEMPLATE_FILE_NAME = os.path.join(os.path.dirname(__file__), 'table-generator-template.{format}')
 TEMPLATE_FORMATS = ['html', 'csv']
 TEMPLATE_ENCODING = 'UTF-8'
-
-# This string is searched in file names to determine correct or incorrect verification result.
-# Do not change this value; only '_unsafe' is allowed.
-BUG_SUBSTRING_LIST = ['_unsafe']
-
-# Score values taken from http://sv-comp.sosy-lab.org/
-SCORE_CORRECT_SAFE = 2
-SCORE_CORRECT_UNSAFE = 1
-SCORE_UNKNOWN = 0
-SCORE_WRONG_UNSAFE = -4
-SCORE_WRONG_SAFE = -8
 
 
 class Util:
@@ -467,29 +457,11 @@ class RunResult:
         self.category = category
 
     @staticmethod
-    def createFromXML(sourcefileTag, listOfColumns, fileIsUnsafe, correctOnly):
+    def createFromXML(sourcefileTag, listOfColumns, correctOnly):
         '''
         This function collects the values from one run.
         Only columns that should be part of the table are collected.
         '''
-
-        def getResultCategory(status):
-            status = status.lower()
-            if status == 'safe':
-                return 'correctSafe' if not fileIsUnsafe else 'wrongSafe'
-            elif status == 'unsafe':
-                return 'wrongUnsafe' if not fileIsUnsafe else 'correctUnsafe'
-            elif status == 'unknown':
-                return 'unknown'
-            else:
-                return 'error'
-
-        def calculateScore(category):
-            return {'correctSafe':   SCORE_CORRECT_SAFE,
-                    'wrongSafe':     SCORE_WRONG_SAFE,
-                    'correctUnsafe': SCORE_CORRECT_UNSAFE,
-                    'wrongUnsafe':   SCORE_WRONG_UNSAFE,
-                    }.get(category,  SCORE_UNKNOWN)
 
         def readLogfileLines(logfileName):
             if not logfileName: return []
@@ -519,8 +491,8 @@ class RunResult:
             return None
 
         status = Util.getColumnValue(sourcefileTag, 'status', '')
-        category = getResultCategory(status)
-        score = calculateScore(category)
+        category = result.getResultCategory(sourcefileTag.get('name'), status)
+        score = result.calculateScore(category)
         logfileLines = None
 
         if status == '':
@@ -566,9 +538,6 @@ class Row:
     def addRunResult(self, runresult):
         self.results.append(runresult)
 
-    def fileIsUnsafe(self):
-        return Util.containsAny(self.fileName.lower(), BUG_SUBSTRING_LIST)
-
     def setRelativePath(self, commonPrefix, baseDir):
         """
         generate output representation of rows
@@ -596,7 +565,7 @@ def getRows(runSetResults, fileNames, correctOnly):
     for result in runSetResults:
         # get values for each file in a run set
         for fileResult, row in zip(result.filelist, rows):
-            row.addRunResult(RunResult.createFromXML(fileResult, result.columns, row.fileIsUnsafe(), correctOnly))
+            row.addRunResult(RunResult.createFromXML(fileResult, result.columns, correctOnly))
 
     return rows
 
@@ -678,9 +647,9 @@ def getTableHead(runSetResults, commonFileNamePrefix):
 
 
 def getStats(rows):
-    countUnsafe = len([row for row in rows if row.fileIsUnsafe()])
-    countSafe = len(rows) - countUnsafe
-    maxScore = SCORE_CORRECT_UNSAFE * countUnsafe + SCORE_CORRECT_SAFE * countSafe
+    countUnsafe = len([row for row in rows if result.fileIsUnsafe(row.fileName)])
+    countSafe = len([row for row in rows if result.fileIsSafe(row.fileName)])
+    maxScore = result.SCORE_CORRECT_UNSAFE * countUnsafe + result.SCORE_CORRECT_SAFE * countSafe
 
     stats = [getStatsOfRunSet(runResults) for runResults in rowsToColumns(rows)] # column-wise
     rowsForStats = list(map(Util.flatten, zip(*stats))) # row-wise
@@ -721,10 +690,10 @@ def getStatsOfRunSet(runResults):
             sum     = StatValue(len(statusList))
             correct = StatValue(countCorrectSafe + countCorrectUnsafe)
             score   = StatValue(
-                                SCORE_CORRECT_SAFE   * countCorrectSafe + \
-                                SCORE_CORRECT_UNSAFE * countCorrectUnsafe + \
-                                SCORE_WRONG_SAFE     * countWrongSafe + \
-                                SCORE_WRONG_UNSAFE   * countWrongUnsafe,
+                                result.SCORE_CORRECT_SAFE   * countCorrectSafe + \
+                                result.SCORE_CORRECT_UNSAFE * countCorrectUnsafe + \
+                                result.SCORE_WRONG_SAFE     * countWrongSafe + \
+                                result.SCORE_WRONG_UNSAFE   * countWrongUnsafe,
                                 )
             wrongSafe   = StatValue(countWrongSafe)
             wrongUnsafe = StatValue(countWrongUnsafe)
@@ -789,7 +758,7 @@ def getStatsOfNumberColumn(values, categoryList):
 
     valuesPerCategory = collections.defaultdict(list)
     for value, category in zip(valueList, categoryList):
-        if category.startswith('correct'):
+        if category and category.startswith('correct'):
             category = 'correct'
         valuesPerCategory[category] += [value]
 

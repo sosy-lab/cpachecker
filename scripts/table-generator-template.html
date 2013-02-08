@@ -20,10 +20,11 @@
   #columnTitles td:first-child { font-family: monospace; font-size: x-small; }
   tbody tr:first-child td { border-top:3px solid black}
   tfoot tr:first-child td { border-top:3px solid black}
-  .correctSafe, .correctUnsafe { text-align:center; color:green}
-  .wrongSafe, .wrongUnsafe { text-align:center; color:red; font-weight: bold; }
-  .unknown { text-align:center; color:orange; font-weight: bold; }
-  .error { text-align:center; color:magenta; font-weight: bold; }
+  .status { text-align: center; }
+  .correctSafe, .correctUnsafe { color:green}
+  .wrongSafe, .wrongUnsafe { color:red; font-weight: bold; }
+  .unknown { color:orange; font-weight: bold; }
+  .error { color:magenta; font-weight: bold; }
   .score { text-align:center; font-size:large; font-weight:bold; }
   a { color: inherit; text-decoration: none; display: block; }
   a:hover, .clickable:hover { background: lime; cursor: pointer; }
@@ -932,9 +933,9 @@ def formatOptions(str):
   {{for column, value in zip(runResult.columns, runResult.values)}}
   {{if column.title == 'status'}}
     {{if runResult.logFile}}
-    <td class="{{runResult.category}}" title="Click here to show output of tool"><a href="{{relpath(runResult.logFile, baseDir)|url}}">{{value.lower()}}</a></td>
+    <td class="status {{runResult.category}}" title="Click here to show output of tool"><a href="{{relpath(runResult.logFile, baseDir)|url}}">{{value.lower()}}</a></td>
     {{else}}
-    <td class="{{runResult.category}}">{{value.lower()}}</td>
+    <td class="status {{runResult.category}}">{{value.lower()}}</td>
     {{endif}}
   {{else}}
   <td class="{{runResult.category}}Value">{{value or '-'}}</td>

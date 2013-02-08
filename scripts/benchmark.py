@@ -50,10 +50,10 @@ import threading
 import xml.etree.ElementTree as ET
 
 import benchmark.filewriter as filewriter
+import benchmark.result as result
 import benchmark.runexecutor as runexecutor
 import benchmark.util as Util
 
-BUG_SUBSTRING_LIST = ['bug', 'unsafe']
 
 MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
@@ -64,12 +64,14 @@ COLOR_GREEN = "\033[32;1m{0}\033[m"
 COLOR_RED = "\033[31;1m{0}\033[m"
 COLOR_ORANGE = "\033[33;1m{0}\033[m"
 COLOR_MAGENTA = "\033[35;1m{0}\033[m"
+COLOR_DEFAULT = "{0}"
 COLOR_DIC = {"correctSafe": COLOR_GREEN,
              "correctUnsafe": COLOR_GREEN,
              "unknown": COLOR_ORANGE,
              "error": COLOR_MAGENTA,
              "wrongUnsafe": COLOR_RED,
-             "wrongSafe": COLOR_RED}
+             "wrongSafe": COLOR_RED,
+             None: COLOR_DEFAULT}
 
 
 # the number of digits after the decimal separator of the time column,
@@ -831,7 +833,7 @@ class OutputHandler:
         self.addValuesToRunXML(run, cpuTimeStr, wallTimeStr)
 
         # output in terminal/console
-        statusRelation = self.isCorrectResult(run.sourcefile, run.status)
+        statusRelation = result.getResultCategory(run.sourcefile, run.status)
         if USE_COLORS and sys.stdout.isatty(): # is terminal, not file
             statusStr = COLOR_DIC[statusRelation].format(run.status.ljust(8))
         else:
@@ -941,30 +943,6 @@ class OutputHandler:
                         {"title": column.title, "value": column.value}))
 
 
-    def isCorrectResult(self, filename, status):
-        '''
-        this function return a string,
-        that shows the relation between status and file.
-        '''
-        status = status.lower()
-        isSafeFile = not Util.containsAny(filename.lower(), BUG_SUBSTRING_LIST)
-
-        if status == 'safe':
-            if isSafeFile:
-                return "correctSafe"
-            else:
-                return "wrongSafe"
-        elif status == 'unsafe':
-            if isSafeFile:
-                return "wrongUnsafe"
-            else:
-                return "correctUnsafe"
-        elif status == 'unknown':
-            return 'unknown'
-        else:
-            return 'error'
-
-
     def createOutputLine(self, sourcefile, status, cpuTimeDelta, wallTimeDelta, columns, isFirstLine=False):
         """
         @param sourcefile: title of a sourcefile
@@ -1040,7 +1018,8 @@ class Statistics:
                     "correctUnsafe": 0,
                     "unknown": 0,
                     "wrongUnsafe": 0,
-                    "wrongSafe": 0}
+                    "wrongSafe": 0,
+                    None: 0}
 
 
     def addResult(self, statusRelation):
