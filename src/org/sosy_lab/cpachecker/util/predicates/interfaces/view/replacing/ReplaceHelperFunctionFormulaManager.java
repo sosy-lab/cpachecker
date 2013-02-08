@@ -138,13 +138,12 @@ public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManag
     return replaceManager.wrap(pFuncType.getReturnType(), f);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <T extends Formula> boolean isUninterpretedFunctionCall(FunctionFormulaType<T> pFuncType, T pF) {
+  public boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Formula pF) {
 
-    ReplaceFunctionFormulaType<T> rep = (ReplaceFunctionFormulaType<T>)pFuncType;
+    ReplaceFunctionFormulaType<?> rep = (ReplaceFunctionFormulaType<?>)pFuncType;
     return
-        rawFunctionFormulaManager.isUninterpretedFunctionCall((FunctionFormulaType<Formula>)rep.wrapped, replaceManager.unwrap(pF));
+        rawFunctionFormulaManager.isUninterpretedFunctionCall(rep.wrapped, replaceManager.unwrap(pF));
   }
 
 }

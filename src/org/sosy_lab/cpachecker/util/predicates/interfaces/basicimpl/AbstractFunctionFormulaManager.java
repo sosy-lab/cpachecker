@@ -85,11 +85,10 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo>
     return unsafeManager.typeFormula(retType, formulaInfo);
   }
 
-  public abstract <T extends Formula> boolean isUninterpretedFunctionCall(FunctionFormulaType<T> pFuncType, TFormulaInfo pF);
+  protected abstract boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, TFormulaInfo pF);
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <T extends Formula> boolean isUninterpretedFunctionCall(FunctionFormulaType<T> pFuncType, T pF) {
+  public boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Formula pF) {
     return isUninterpretedFunctionCall(pFuncType, getFormulaCreator().extractInfo(pF));
   }
 

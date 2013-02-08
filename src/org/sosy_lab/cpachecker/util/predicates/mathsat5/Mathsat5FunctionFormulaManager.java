@@ -126,8 +126,8 @@ public class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManag
   }
 
   @Override
-  public <T extends Formula> boolean isUninterpretedFunctionCall(FunctionFormulaType<T> pFuncType, Long pF) {
-    Mathsat5FunctionType<T> mathsatType = (Mathsat5FunctionType<T>) pFuncType;
+  protected boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Long pF) {
+    Mathsat5FunctionType<?> mathsatType = (Mathsat5FunctionType<?>) pFuncType;
     return mathsatType.getFuncDecl() == msat_term_get_decl(pF);
   }
 

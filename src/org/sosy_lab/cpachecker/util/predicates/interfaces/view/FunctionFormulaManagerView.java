@@ -95,7 +95,7 @@ public class FunctionFormulaManagerView extends AbstractBaseManagerView implemen
   }
 
   @Override
-  public <T extends Formula> boolean isUninterpretedFunctionCall(FunctionFormulaType<T> pFuncType, T pF) {
+  public boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Formula pF) {
     FormulaManagerView viewManager = getViewManager();
     return manager.isUninterpretedFunctionCall(pFuncType, viewManager.extractFromView(pF));
   }

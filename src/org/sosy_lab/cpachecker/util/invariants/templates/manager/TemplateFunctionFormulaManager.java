@@ -113,7 +113,7 @@ public class TemplateFunctionFormulaManager implements FunctionFormulaManager {
   }
 
   @Override
-  public <T extends Formula> boolean isUninterpretedFunctionCall(FunctionFormulaType<T> pFuncType, T pF) {
+  public boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Formula pF) {
 
     return pF instanceof TemplateTerm && ((TemplateTerm)pF).hasUIF();
   }

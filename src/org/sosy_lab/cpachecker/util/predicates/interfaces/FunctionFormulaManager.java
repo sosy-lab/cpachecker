@@ -51,6 +51,6 @@ public interface FunctionFormulaManager {
    * @param f
    * @return
    */
-  public <T extends Formula> boolean isUninterpretedFunctionCall(FunctionFormulaType<T> funcType, T f);
+  public boolean isUninterpretedFunctionCall(FunctionFormulaType<?> funcType, Formula f);
 
 }
