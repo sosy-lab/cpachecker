@@ -31,7 +31,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCDT7Parser;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -109,6 +109,7 @@ public interface CParser extends Parser {
    */
   public static class Factory {
 
+
     public static ParserOptions getOptions(Configuration config) throws InvalidConfigurationException {
       ParserOptions result = new ParserOptions();
       config.inject(result);
@@ -120,7 +121,7 @@ public interface CParser extends Parser {
     }
 
     public static CParser getParser(LogManager logger, ParserOptions options) {
-      return new EclipseCDT7Parser(logger, options.dialect);
+      return EclipseParsers.getCParser(logger, options.dialect);
     }
   }
 }

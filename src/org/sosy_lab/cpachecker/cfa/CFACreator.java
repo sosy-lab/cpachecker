@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -184,7 +184,7 @@ public class CFACreator {
 
     switch (language) {
     case JAVA:
-      parser = new EclipseJavaParser(logger, config);
+      parser = EclipseParsers.getJavaParser(logger, config);
       break;
     case C:
       parser = CParser.Factory.getParser(logger, CParser.Factory.getOptions(config));
