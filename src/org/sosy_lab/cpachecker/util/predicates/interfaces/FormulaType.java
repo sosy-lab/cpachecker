@@ -33,13 +33,13 @@ import java.util.Map;
 public abstract class FormulaType<T extends Formula> {
   public abstract Class<T> getInterfaceType();
   FormulaType(){}
-  public static FormulaType<RationalFormula> RationalType = new FormulaTypeImpl<>(RationalFormula.class);
-  public static FormulaType<BooleanFormula> BooleanType = new FormulaTypeImpl<>(BooleanFormula.class);
+  public static final FormulaType<RationalFormula> RationalType = new FormulaTypeImpl<>(RationalFormula.class);
+  public static final FormulaType<BooleanFormula> BooleanType = new FormulaTypeImpl<>(BooleanFormula.class);
 
   @Override
   public abstract String toString();
 
-  static class FormulaTypeImpl<T extends Formula> extends FormulaType<T> {
+  private static class FormulaTypeImpl<T extends Formula> extends FormulaType<T> {
     private Class<T> interfaceClass;
     private FormulaTypeImpl(Class<T> interfaceClass){
       this.interfaceClass = interfaceClass;

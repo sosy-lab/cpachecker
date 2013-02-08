@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 
 
 public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManager {
@@ -53,7 +54,7 @@ public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManag
     this.unwrapTypes = unwrapTypes;
   }
 
-  class ReplaceFunctionFormulaType<T extends Formula> extends FunctionFormulaType<T> {
+  private static class ReplaceFunctionFormulaType<T extends Formula> extends FunctionFormulaType<T> {
 
     private FunctionFormulaType<? extends Formula> wrapped;
     private List<FormulaType<? extends Formula>> args;
@@ -66,10 +67,6 @@ public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManag
       this.wrapped = wrapped;
       this.ret = retType;
       this.args = pArgs;
-    }
-
-    public FunctionFormulaType<? extends Formula> getWrapped(){
-      return wrapped;
     }
 
     @Override
@@ -89,12 +86,7 @@ public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManag
 
     @Override
     public String toString() {
-      String args = "";
-      for (FormulaType<? extends Formula> arg : this.args) {
-        args += arg.toString() + ",";
-      }
-
-      return "(" + ret.toString() + ") func(" + args.substring(0, args.length() - 1) + ")";
+      return "(" + ret.toString() + ") func(" + Joiner.on(',').join(args) + ")";
     }
   }
 

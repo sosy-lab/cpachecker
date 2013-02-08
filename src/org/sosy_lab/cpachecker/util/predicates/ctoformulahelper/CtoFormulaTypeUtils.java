@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 public class CtoFormulaTypeUtils {
 
-  public static CtoFormulaTypeVisitor<CType, RuntimeException> simplifyType = new CtoFormulaCTypeSimplifyVisitor();
+  private static final CtoFormulaTypeVisitor<CType, RuntimeException> simplifyType = new CtoFormulaCTypeSimplifyVisitor();
   public static class CtoFormulaCTypeSimplifyVisitor
     extends CTypeUtils.BaseCTypeSimplifyVisitor
     implements CtoFormulaTypeVisitor<CType, RuntimeException> {

@@ -286,13 +286,11 @@ public class SmtInterpolEnvironment {
   /** This function causes the SatSolver to check all the terms on the stack,
    * if their conjunction is SAT or UNSAT. */
   public LBool checkSat() {
-    LBool result = LBool.UNKNOWN;
     try {
-      result = script.checkSat();
+      return script.checkSat();
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }
-    return result;
   }
 
   /** This function returns a map,

@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -64,11 +65,6 @@ public class FunctionFormulaTypeImpl<T extends Formula> extends FunctionFormulaT
 
   @Override
   public String toString() {
-    String args = "";
-    for (FormulaType<? extends Formula> arg : this.argumentTypes) {
-      args += arg.toString() + ",";
-    }
-
-    return "(" + returnType.toString() + ") func(" + args.substring(0, args.length() - 1) + ")";
+    return "(" + returnType.toString() + ") func(" + Joiner.on(',').join(argumentTypes) + ")";
   }
 }
