@@ -892,8 +892,14 @@ class OutputHandler:
             endline = ("Run set {0}".format(runSet.index))
 
             # format time, type is changed from float to string!
-            cpuTimeStr = Util.formatNumber(cpuTime, TIME_PRECISION)
-            wallTimeStr = Util.formatNumber(wallTime, TIME_PRECISION)
+            if(cpuTime == None):
+                cpuTimeStr = str(cpuTime)
+            else:
+                cpuTimeStr = Util.formatNumber(cpuTime, TIME_PRECISION)
+            if(wallTime == None):
+                wallTimeStr = str(wallTime)
+            else:
+                wallTimeStr = Util.formatNumber(wallTime, TIME_PRECISION)
 
             lines.append(self.createOutputLine(endline, "done", cpuTimeStr,
                              wallTimeStr, []))
@@ -1192,7 +1198,9 @@ def executeBenchmarkLocaly(benchmark):
                                      config.commitMessage+'\n\n'+outputHandler.description)
         
 def executeBenchmarkInCloud(benchmark):
-          
+    
+    outputHandler = benchmark.outputHandler
+    
     toolpaths = benchmark.tool.getProgrammFiles(benchmark.executable)
     requirements = "2000\t1"  # TODO memory numerOfCpuCores
     cloudRunExecutorDir = os.path.abspath(os.curdir)
@@ -1210,6 +1218,7 @@ def executeBenchmarkInCloud(benchmark):
     for runSet in benchmark.runSets:
         
         if STOPPED_BY_INTERRUPT: break
+        outputHandler.outputBeforeRunSet(runSet)        
         
         numOfRunDefLines += (len(runSet.runs) + 1)
         
@@ -1222,6 +1231,7 @@ def executeBenchmarkInCloud(benchmark):
 
         # iterate over runs
         for run in runSet.runs:
+                outputHandler.outputBeforeRun(run)
                 argString = " ".join(run.args)
                 runDefinitions += argString + "\t" + run.sourcefile + "\n"
                 absSourceFiles.append(os.path.abspath(run.sourcefile))
@@ -1257,7 +1267,17 @@ def executeBenchmarkInCloud(benchmark):
     returnCode = cloud.wait()
     
     logging.debug("Cloud return code: {0}".format(returnCode))
-
+    
+    #hanler output after all runs are done
+    for runSet in benchmark.runSets:
+        for run in runSet.runs:
+            outputHandler.outputAfterRun(run)
+        outputHandler.outputAfterRunSet(runSet, None, None)
+        
+    outputHandler.outputAfterBenchmark()
+    if config.commit and not STOPPED_BY_INTERRUPT and runSetsExecuted > 0:
+        Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
+                                     config.commitMessage+'\n\n'+outputHandler.description)
 
 
 def executeBenchmark(benchmarkFile):
