@@ -2010,7 +2010,7 @@ public class CtoFormulaConverter {
               .toImmutableList();
   }
 
-  private static Predicate<? super Variable> liftToVariable(final Predicate<String> stringPred) {
+  private static Predicate<? super Variable> liftToVariable(final Predicate<? super String> stringPred) {
     return new Predicate<Variable>() {
       @Override
       public boolean apply(Variable pInput) {
@@ -2029,16 +2029,8 @@ public class CtoFormulaConverter {
                 public Variable apply(Variable pInput) {
                   return pInput;
                 }})
-              .filter(liftToVariable(toStringPred(IS_POINTER_VARIABLE)))
+              .filter(liftToVariable(IS_POINTER_VARIABLE))
               .toImmutableList();
-  }
-
-  private static Predicate<String> toStringPred(final Predicate<CharSequence> charSeqPred) {
-    return new Predicate<String>() {
-      @Override
-      public boolean apply(String pInput) {
-        return charSeqPred.apply(pInput);
-      }};
   }
 
   /**
