@@ -176,7 +176,6 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
    * @return (IF cond THEN f1 ELSE f2)
    */
   @Override
-  @SuppressWarnings("unchecked")
   public final <T extends Formula> T ifThenElse(BooleanFormula pBits, T f1, T f2){
     if (AbstractFormulaManager.getInterfaceHelper(f1) != AbstractFormulaManager.getInterfaceHelper(f2)){
       throw new IllegalArgumentException("f1 and f2 can't be from differen interface types!");

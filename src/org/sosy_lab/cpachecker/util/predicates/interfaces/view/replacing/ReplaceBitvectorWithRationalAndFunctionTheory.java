@@ -100,7 +100,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
   }
 
   private Map<Integer[], FunctionFormulaType<RationalFormula>> extractMethods = new Hashtable<>();
-  @SuppressWarnings("unchecked")
+
   private FunctionFormulaType<RationalFormula> getExtractDecl (int pMsb, int pLsb){
     Integer[] hasKey = new Integer[]{pMsb, pLsb};
     FunctionFormulaType<RationalFormula> value = extractMethods.get(hasKey);
@@ -112,7 +112,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
   }
 
   private Map<Integer[], FunctionFormulaType<RationalFormula>> concatMethods = new Hashtable<>();
-  @SuppressWarnings("unchecked")
+
   private FunctionFormulaType<RationalFormula> getConcatDecl(int firstSize, int secoundSize){
     Integer[] hasKey = new Integer[]{firstSize, secoundSize};
     FunctionFormulaType<RationalFormula> value = concatMethods.get(hasKey);

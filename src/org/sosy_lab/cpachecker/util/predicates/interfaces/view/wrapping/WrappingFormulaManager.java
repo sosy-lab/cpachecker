@@ -48,8 +48,7 @@ public class WrappingFormulaManager extends FormulaManagerView {
     this(DEFAULTMANAGERS, wrapped, config, pLogger);
   }
 
-  @SuppressWarnings("hiding")
-  public static LoadManagers DEFAULTMANAGERS =
+  private static LoadManagers DEFAULTMANAGERS =
     new LoadManagers() {
       @Override
       public BitvectorFormulaManagerView wrapManager(BitvectorFormulaManager pManager) {

@@ -78,7 +78,7 @@ public class FormulaManagerView implements FormulaManager {
     public FunctionFormulaManagerView wrapManager(FunctionFormulaManager pManager);
   }
 
-  public static LoadManagers DEFAULTMANAGERS =
+  private static LoadManagers DEFAULTMANAGERS =
       new LoadManagers() {
         @Override
         public BitvectorFormulaManagerView wrapManager(BitvectorFormulaManager pManager) {
@@ -132,7 +132,6 @@ public class FormulaManagerView implements FormulaManager {
     init(loadManagers, baseManager);
   }
 
-  @SuppressWarnings("unchecked")
   private void init(LoadManagers loadManagers, FormulaManager baseManager) {
     manager = baseManager;
     bitvectorFormulaManager = loadManagers.wrapManager(baseManager.getBitvectorFormulaManager());
@@ -146,7 +145,6 @@ public class FormulaManagerView implements FormulaManager {
   }
 
 
-  @SuppressWarnings("unchecked")
   public FormulaManagerView(LoadManagers loadManagers, FormulaManager baseManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
     if (replaceBitvectorWithRationalAndFunctionTheory) {

@@ -46,7 +46,6 @@ public class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaMa
   private SmtInterpolFunctionType<RationalFormula> modUfDecl;
   private SmtInterpolFunctionFormulaManager functionManager;
 
-  @SuppressWarnings("unchecked")
   public SmtInterpolRationalFormulaManager(
       SmtInterpolFormulaCreator pCreator,
       SmtInterpolFunctionFormulaManager functionManager) {

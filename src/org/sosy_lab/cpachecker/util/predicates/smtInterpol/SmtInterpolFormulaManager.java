@@ -97,7 +97,6 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
     return terms;
   }
 
-  @SuppressWarnings("unchecked")
   private <T extends Formula> T encapsulateTerm(Class<T> pClazz, Term t) {
     return creator.encapsulate(pClazz, t);
   }

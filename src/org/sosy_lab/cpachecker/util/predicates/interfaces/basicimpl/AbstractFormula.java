@@ -47,20 +47,14 @@ public class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
     this.formulaInfo = formulaInfo;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof AbstractFormula)) { return false; }
-    return formulaInfo.equals(((AbstractFormula<TFormulaInfo>) o).formulaInfo);
+    return formulaInfo.equals(((AbstractFormula<?>) o).formulaInfo);
   }
 
   public TFormulaInfo getFormulaInfo() {
     return formulaInfo;
-  }
-
-  @SuppressWarnings("unchecked")
-  public TFormulaInfo getFormulaInfo(Formula formula) {
-    return ((AbstractFormula<TFormulaInfo>)formula).getFormulaInfo();
   }
 
   @Override

@@ -41,7 +41,6 @@ public class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManag
   private Mathsat5FunctionType<RationalFormula> modUfDecl;
   private Mathsat5FunctionFormulaManager functionManager;
 
-  @SuppressWarnings("unchecked")
   public Mathsat5RationalFormulaManager(
       Mathsat5FormulaCreator pCreator,
       Mathsat5FunctionFormulaManager functionManager) {
