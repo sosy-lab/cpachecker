@@ -409,14 +409,12 @@ public class CtoFormulaConverter {
         new CFieldTrackType(fExp.getExpressionType(), pName.getType(), getRealFieldOwner(fExp).getExpressionType()));
   }
 
-  @SuppressWarnings("unchecked")
-  protected <T extends Formula> FormulaType<T> getFormulaTypeFromCType(CType type) {
+  protected FormulaType<?> getFormulaTypeFromCType(CType type) {
     int byteSize = getSizeof(type);
 
     int bitsPerByte = machineModel.getSizeofCharInBits();
     // byte to bits
-    FormulaType<T> t = (FormulaType<T>) efmgr.getFormulaType(byteSize * bitsPerByte);
-    return t;
+    return efmgr.getFormulaType(byteSize * bitsPerByte);
   }
 
   @SuppressWarnings("unused")
@@ -516,7 +514,6 @@ public class CtoFormulaConverter {
     return idx;
   }
 
-  @SuppressWarnings("unchecked")
   private void checkSsaSavedType(Variable var, SSAMapBuilder ssa) {
 
     // Check if types match
@@ -591,7 +588,7 @@ public class CtoFormulaConverter {
    * Create a formula for a given variable, which is assumed to be constant.
    * This method does not handle scoping!
    */
-  private <T extends Formula> T makeConstant(Variable var, SSAMapBuilder ssa) {
+  private Formula makeConstant(Variable var, SSAMapBuilder ssa) {
     // TODO better use variables without index (this piece of code prevents
     // SSAMapBuilder from checking for strict monotony)
     int idx = ssa.getIndex(var);
@@ -600,7 +597,7 @@ public class CtoFormulaConverter {
       setSsaIndex(ssa, var, 1); // set index so that predicates will be instantiated correctly
     }
 
-    return fmgr.makeVariable(this.<T>getFormulaTypeFromCType(var.getType()), var.getName(), 1);
+    return fmgr.makeVariable(this.getFormulaTypeFromCType(var.getType()), var.getName(), 1);
   }
 
   /**
@@ -608,8 +605,7 @@ public class CtoFormulaConverter {
    * side of an assignment.
    * This method does not handle scoping and the NON_DET_VARIABLE!
    */
-  @SuppressWarnings("unchecked")
-  private <T extends Formula> T resolveFields(Variable var, SSAMapBuilder ssa, boolean makeFreshIndex) {
+  private Formula resolveFields(Variable var, SSAMapBuilder ssa, boolean makeFreshIndex) {
     // Resolve Fields
 
     if (!IS_FIELD_VARIABLE.apply(var.getName())) {
@@ -617,7 +613,7 @@ public class CtoFormulaConverter {
 
       assert !IS_FIELD_VARIABLE.apply(var.getName())
         : "Never make variables for field! Always use the underlaying bitvector! Fieldvariable-Names are only used as intermediate step!";
-      return fmgr.makeVariable(this.<T>getFormulaTypeFromCType(var.getType()), var.getName(), idx);
+      return fmgr.makeVariable(this.getFormulaTypeFromCType(var.getType()), var.getName(), idx);
     }
 
     assert handleFieldAccess : "Field Variables are only allowed with handleFieldAccess";
@@ -631,7 +627,7 @@ public class CtoFormulaConverter {
 
     CFieldTrackType trackType = (CFieldTrackType)var.getType();
     CType staticType = trackType.getStructType();
-    T struct = resolveFields(Variable.create(structName, staticType), ssa, makeFreshIndex);
+    Formula struct = resolveFields(Variable.create(structName, staticType), ssa, makeFreshIndex);
     // At this point it is possible, because of casts, that we have a weird type
     // Because we are currently unable to create dynamic sized bitvectors
     // We can't save in content_of variables the real bitvector
@@ -647,9 +643,9 @@ public class CtoFormulaConverter {
       log(Level.WARNING, "staticType and runtimeType do not match for " + var.getName() + " so analysis could be imprecise");
     }
 
-    T realStruct = makeExtractOrConcatNondet(staticType, runtimeType, struct);
+    BitvectorFormula realStruct = makeExtractOrConcatNondet(staticType, runtimeType, struct);
 
-    return (T) accessField(msb_lsb, realStruct);
+    return accessField(msb_lsb, realStruct);
   }
 
   /**
@@ -659,7 +655,7 @@ public class CtoFormulaConverter {
    *
    * This method does not update the index of the variable.
    */
-  private  <T extends Formula> T makeVariable(Variable var, SSAMapBuilder ssa) {
+  private  Formula makeVariable(Variable var, SSAMapBuilder ssa) {
     return resolveFields(var, ssa, false);
   }
 
@@ -670,7 +666,7 @@ public class CtoFormulaConverter {
    *
    * This method does not update the index of the variable.
    */
-  private  <T extends Formula> T makeVariable(Variable var, SSAMapBuilder ssa, boolean makeFreshIndex) {
+  private Formula makeVariable(Variable var, SSAMapBuilder ssa, boolean makeFreshIndex) {
     return resolveFields(var, ssa, makeFreshIndex);
   }
 
@@ -680,7 +676,7 @@ public class CtoFormulaConverter {
    * This method does not handle scoping and the NON_DET_VARIABLE!
    * But it does handles Fields.
    */
-  private  <T extends Formula> T makeFreshVariable(Variable var, SSAMapBuilder ssa) {
+  private Formula makeFreshVariable(Variable var, SSAMapBuilder ssa) {
     return resolveFields(var, ssa, true);
   }
 
@@ -693,7 +689,6 @@ public class CtoFormulaConverter {
     Variable ptrMask = Variable.create(makePointerMaskName(pointerVar.getName(), ssa), dereferencedType(pointerVar.getType()));
     if (isDereferenceType(ptrMask.getType())) {
       // lookup in ssa map: Maybe we assigned a size to this current variable
-      @SuppressWarnings("unchecked")
       Variable savedVar = ssa.getVariable(ptrMask.getName());
       if (savedVar != null) {
         ptrMask = ptrMask.withType(savedVar.getType());
@@ -763,10 +758,10 @@ public class CtoFormulaConverter {
    * @param ssa
    * @return the new Formula (lhs = rhs)
    */
-  private <T extends Formula> BooleanFormula makeAssignment(
+  private BooleanFormula makeAssignment(
       Variable lVar, CType right, Formula rightHandSide, SSAMapBuilder ssa) {
     Formula rhs = makeCast(right, lVar.getType(), rightHandSide);
-    T lhs = makeFreshVariable(lVar, ssa);
+    Formula lhs = makeFreshVariable(lVar, ssa);
 
     return fmgr.assignment(lhs, rhs);
   }
@@ -846,15 +841,14 @@ public class CtoFormulaConverter {
    * Change the size of the given formula from fromType to toType.
    * This method extracts or concats with nondet-bits.
    */
-  @SuppressWarnings("unchecked")
-  private <T extends Formula> T makeExtractOrConcatNondet(CType pFromType, CType pToType, T pFormula) {
+  private BitvectorFormula makeExtractOrConcatNondet(CType pFromType, CType pToType, Formula pFormula) {
     assert pFormula instanceof BitvectorFormula
       : "Can't makeExtractOrConcatNondet for something other than Bitvectors";
     int sfrom = getSizeof(pFromType);
     int sto = getSizeof(pToType);
 
     int bitsPerByte = machineModel.getSizeofCharInBits();
-    return (T) changeFormulaSize(sfrom * bitsPerByte, sto * bitsPerByte, (BitvectorFormula)pFormula);
+    return changeFormulaSize(sfrom * bitsPerByte, sto * bitsPerByte, (BitvectorFormula)pFormula);
   }
 
   /**
@@ -1875,18 +1869,19 @@ public class CtoFormulaConverter {
   /**
    * Creates a Formula which accesses the given bits.
    */
-  private Formula accessField(Pair<Integer, Integer> msb_Lsb, Formula f) {
+  private BitvectorFormula accessField(Pair<Integer, Integer> msb_Lsb, BitvectorFormula f) {
     return fmgr.makeExtract(f, msb_Lsb.getFirst(), msb_Lsb.getSecond());
   }
 
   /**
    * Creates a Formula which accesses the given Field
    */
-  private Formula accessField(CFieldReference fExp, Formula f) {
+  private BitvectorFormula accessField(CFieldReference fExp, Formula f) {
     assert handleFieldAccess : "Fieldaccess if only allowed with handleFieldAccess";
+    assert f instanceof BitvectorFormula : "Fields need to be represented with bitvectors";
     // Get the underlaying structure
     Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
-    return accessField(msb_Lsb, f);
+    return accessField(msb_Lsb, (BitvectorFormula)f);
   }
 
   private Formula replaceField(Pair<Integer, Integer> msb_Lsb, Formula f, Formula newField) {
@@ -2000,12 +1995,6 @@ public class CtoFormulaConverter {
    */
   private static ImmutableList<Variable> getAllMemoryLocationsFromSsaMap(SSAMapBuilder ssa) {
     return from(ssa.allVariables())
-              .transform(new Function<Variable, Variable>() {
-                  @SuppressWarnings("unchecked")
-                  @Override
-                  public Variable apply(Variable pInput) {
-                    return pInput;
-                  }})
               .filter(liftToVariable(IS_MEMORY_ADDRESS_VARIABLE))
               .toImmutableList();
   }
@@ -2023,12 +2012,6 @@ public class CtoFormulaConverter {
    */
   private static List<Variable> getAllPointerVariablesFromSsaMap(SSAMapBuilder ssa) {
     return from(ssa.allVariables())
-              .transform(new Function<Variable, Variable>() {
-                @SuppressWarnings("unchecked")
-                @Override
-                public Variable apply(Variable pInput) {
-                  return pInput;
-                }})
               .filter(liftToVariable(IS_POINTER_VARIABLE))
               .toImmutableList();
   }
@@ -2376,19 +2359,19 @@ public class CtoFormulaConverter {
     @Override
     public Formula visit(CCharLiteralExpression cExp) throws UnrecognizedCCodeException {
       // we just take the byte value
-      FormulaType<Formula> t = getFormulaTypeFromCType(cExp.getExpressionType());
+      FormulaType<?> t = getFormulaTypeFromCType(cExp.getExpressionType());
       return fmgr.makeNumber(t, cExp.getCharacter());
     }
 
     @Override
     public Formula visit(CIntegerLiteralExpression iExp) throws UnrecognizedCCodeException {
-      FormulaType<Formula> t = getFormulaTypeFromCType(iExp.getExpressionType());
+      FormulaType<?> t = getFormulaTypeFromCType(iExp.getExpressionType());
       return fmgr.makeNumber(t, iExp.getValue().longValue());
     }
 
     @Override
     public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
-      FormulaType<Formula> t = getFormulaTypeFromCType(fExp.getExpressionType());
+      FormulaType<?> t = getFormulaTypeFromCType(fExp.getExpressionType());
       // TODO: Check if this is actually correct
       return fmgr.makeNumber(t,fExp.getValue().longValue());
     }
@@ -2754,7 +2737,7 @@ public class CtoFormulaConverter {
         }
 
         CType returnType = getReturnType(fexp);
-        FormulaType<BitvectorFormula> t = getFormulaTypeFromCType(returnType);
+        FormulaType<?> t = getFormulaTypeFromCType(returnType);
         return ffmgr.createFuncAndCall(func, t, args);
       }
     }
@@ -2837,7 +2820,7 @@ public class CtoFormulaConverter {
             log(Level.WARNING, "Memory allocation function ("+fName+") with invalid return type (" + expType +"). Missing includes or file not preprocessed?");
           }
 
-          FormulaType<Formula> t = getFormulaTypeFromCType(expType);
+          FormulaType<?> t = getFormulaTypeFromCType(expType);
 
           // for now all parameters are ignored
           List<Variable> memoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
@@ -3510,7 +3493,7 @@ public class CtoFormulaConverter {
       }
       Formula term = buildTerm(operand, edge, function, ssa, constraints);
 
-      FormulaType<Formula> formulaType = getFormulaTypeFromCType(result);
+      FormulaType<?> formulaType = getFormulaTypeFromCType(result);
       // PW make SSA index of * independent from argument
       int idx = makeFreshIndex(Variable.create(opname,result), ssa);
       //int idx = makeLvalIndex(opname, term, ssa, absoluteSSAIndices);
@@ -3537,7 +3520,7 @@ public class CtoFormulaConverter {
 
 
         CType expType = fexp.getExpressionType();
-        FormulaType<Formula> formulaType = getFormulaTypeFromCType(expType);
+        FormulaType<?> formulaType = getFormulaTypeFromCType(expType);
         int idx = makeLvalIndex(Variable.create(ufname, expType), args, ssa);
 
         // see above for the case of &x and *x
@@ -3559,7 +3542,7 @@ public class CtoFormulaConverter {
       String ufname = OP_ARRAY_SUBSCRIPT;
       FormulaList args = new AbstractFormulaList(aterm, sterm);
       CType expType = aexp.getExpressionType();
-      FormulaType<Formula> formulaType = getFormulaTypeFromCType(expType);
+      FormulaType<?> formulaType = getFormulaTypeFromCType(expType);
       int idx = makeLvalIndex(Variable.create(ufname,expType), args, ssa);
 
       return ffmgr.createFuncAndCall(

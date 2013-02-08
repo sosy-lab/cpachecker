@@ -222,7 +222,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   // creates the mathsat terms
   // (var@iSmaller = var@iSmaller+1; ...; var@iSmaller = var@iBigger)
   private BooleanFormula makeSSAMerger(Variable var, int iSmaller, int iBigger) {
-    FormulaType<Formula> t = getFormulaTypeFromCType(var.getType());
+    FormulaType<?> t = getFormulaTypeFromCType(var.getType());
     return makeMerger(var.getName(), iSmaller, iBigger,
         fmgr.makeVariable(t, var.getName(), iSmaller));
   }
@@ -231,7 +231,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       FormulaList args, int iSmaller, int iBigger) {
     assert iSmaller < iBigger;
 
-    FormulaType<Formula> t = getFormulaTypeFromCType(var.getType());
+    FormulaType<?> t = getFormulaTypeFromCType(var.getType());
     Formula initialFunc = ffmgr.createFuncAndCall(var.getName(), iSmaller, t, fromList(args));
     //BooleanFormula intialFunc = fmgr.makeUIF(name, args, iSmaller);
     BooleanFormula result = bfmgr.makeBoolean(true);
