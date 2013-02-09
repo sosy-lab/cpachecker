@@ -177,7 +177,7 @@ public class VariableClassification {
         "number of intEqual partitions: " + realIntEquals.size(),
         "number of intAdd partitions:   " + realIntAdds.size(),
         "number of all partitions:      " + getPartitions().size(),
-        "time for building classification: " + buildTimer});
+        "time for building classification: " + buildTimer });
     str.append("\n---------------------------------\n");
 
     logger.log(Level.INFO, str.toString());
@@ -424,7 +424,6 @@ public class VariableClassification {
       CRightHandSide rhs = returnStatement.getExpression();
       if (rhs instanceof CExpression) {
         String function = edge.getPredecessor().getFunctionName();
-        allVars.put(function, FUNCTION_RETURN_VARIABLE);
         handleExpression(edge, ((CExpression) rhs), FUNCTION_RETURN_VARIABLE,
             function);
       }
@@ -456,8 +455,6 @@ public class VariableClassification {
     CVariableDeclaration vdecl = (CVariableDeclaration) declaration;
     String varName = vdecl.getName();
     String function = vdecl.isGlobal() ? null : edge.getPredecessor().getFunctionName();
-
-    allVars.put(function, varName);
 
     // "connect" the edge with its partition
     HashMultimap<String, String> var = HashMultimap.create(1, 1);
@@ -494,7 +491,6 @@ public class VariableClassification {
       nonIntAddVars.put(function, varName);
     }
 
-    allVars.put(function, varName);
     dependencies.addVar(function, varName);
 
     if (rhs instanceof CExpression) {
@@ -507,7 +503,6 @@ public class VariableClassification {
 
       if (cfa.getAllFunctionNames().contains(functionName)) {
         // TODO is this case really appearing or is it always handled as "functionCallEdge"?
-        allVars.put(functionName, FUNCTION_RETURN_VARIABLE);
         dependencies.add(functionName, FUNCTION_RETURN_VARIABLE, function, varName);
 
       } else {
@@ -542,7 +537,6 @@ public class VariableClassification {
         final String function = isGlobal(id) ? null : edge.getPredecessor().getFunctionName();
         final String varName = id.getName();
 
-        allVars.put(function, varName);
         dependencies.addVar(function, varName);
         Partition partition = getPartitionForVar(function, varName);
         partition.addEdge(edge, i);
@@ -602,7 +596,6 @@ public class VariableClassification {
       CExpression lhs = call.getLeftHandSide();
       String varName = lhs.toASTString();
       String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
-      allVars.put(innerFunctionName, FUNCTION_RETURN_VARIABLE);
       dependencies.add(innerFunctionName, FUNCTION_RETURN_VARIABLE, function, varName);
 
       // f(); without assignment
@@ -1144,8 +1137,10 @@ public class VariableClassification {
       return edges;
     }
 
+    /** adds the var to the partition and also to the global set of all vars. */
     public void add(String function, String varName) {
       vars.put(function, varName);
+      allVars.put(function, varName);
       varToPartition.put(Pair.of(function, varName), this);
     }
 
@@ -1278,8 +1273,7 @@ public class VariableClassification {
       String function = entry.getKey();
       String varName = entry.getValue();
 
-      // first add th single var
-      allVars.put(function, varName);
+      // first add one single var
       addVar(function, varName);
 
       // then add all other vars, they are dependent from the first var
