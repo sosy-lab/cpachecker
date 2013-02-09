@@ -65,6 +65,7 @@ class Tool(benchmark.tools.template.BaseTool):
         def isOutOfNativeMemory(line):
             return ('std::bad_alloc'             in line # C++ out of memory exception (MathSAT)
                  or 'Cannot allocate memory'     in line
+                 or 'Native memory allocation (malloc) failed to allocate' in line # JNI
                  or line.startswith('out of memory')     # CuDD
                  )
 
