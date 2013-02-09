@@ -213,7 +213,9 @@ public class ExplicitPrecision implements Precision {
     private CegarPrecision(Configuration config, Multimap<CFANode, String> mapping) throws InvalidConfigurationException {
       config.inject(this);
 
-      this.mapping = HashMultimap.create(mapping);
+      if(Boolean.parseBoolean(config.getProperty("analysis.useRefinement"))) {
+        this.mapping = HashMultimap.create(mapping);
+      }
     }
 
     /**
