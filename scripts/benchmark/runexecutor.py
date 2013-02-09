@@ -186,13 +186,14 @@ def executeRun(args, rlimits, outputFileName, cpuIndex=None, memdata=False):
     for line in output:
         if next:
             try:
-                dumpFile = line.strip(' #')
+                dumpFile = line.strip(' #\n')
                 Util.appendFileToFile(dumpFile, outputFileName)
                 os.remove(dumpFile)
             except IOError as e:
-                logging.warn('Could not append additional segmentation fault information (%s)' % e.strerror)
+                logging.warn('Could not append additional segmentation fault information from {0} ({1})'.format(dumpFile, e.strerror))
             break
-        if line == '# An error report file with more information is saved as:':
+        if line.startswith('# An error report file with more information is saved as:'):
+            logging.debug('Going to append error report file')
             next = True
 
     return (wallTime, cpuTime, returnvalue, '\n'.join(output))
