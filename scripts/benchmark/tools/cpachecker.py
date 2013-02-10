@@ -4,6 +4,11 @@ import sys
 import string
 import os
 
+sys.dont_write_bytecode = True # prevent creation of .pyc files
+
+if __name__ == "__main__":
+    sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
+
 import benchmark.util as Util
 import benchmark.tools.template
 
@@ -23,26 +28,48 @@ class Tool(benchmark.tools.template.BaseTool):
         return result           
                       
     def getVersion(self, executable):
-        version = ''
-        try:
-            versionHelpStr = subprocess.Popen([executable, '-help'],
-                stdout=subprocess.PIPE).communicate()[0]
-            versionHelpStr = Util.decodeToString(versionHelpStr)
-            version = ' '.join(versionHelpStr.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
+        process = subprocess.Popen([executable, '-help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdout, stderr) = process.communicate()
+        if stderr:
+            sys.exit(Util.decodeToString(stderr))
+        if process.returncode:
+            sys.exit('CPAchecker returned exit code {0}'.format(process.returncode))
+        stdout = Util.decodeToString(stdout)
+        version = ' '.join(stdout.splitlines()[0].split()[1:])  # first word is 'CPAchecker'
 
-            # CPAchecker might be within a SVN reposotiry
-            # Determine the revision and add it to the version!
-            cpaShDir = os.path.dirname(os.path.realpath(executable))
-            cpacheckerDir = os.path.abspath(os.path.join(cpaShDir, os.path.pardir))
-            svnProcess = subprocess.Popen("svnversion {0}".format(cpacheckerDir), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            (stdout, stderr) = svnProcess.communicate()
-            if not (svnProcess.returncode or stderr):
-                version = version + ' ' + string.strip(stdout)
-        except IndexError:
-            logging.critical('IndexError! Have you built CPAchecker?\n') # TODO better message
-            sys.exit()
-        return Util.decodeToString(version)
+        # CPAchecker might be within a SVN repository
+        # Determine the revision and add it to the version.
+        cpaShDir = os.path.dirname(os.path.realpath(executable))
+        cpacheckerDir = os.path.join(cpaShDir, os.path.pardir)
+        svnProcess = subprocess.Popen(['svnversion', cpacheckerDir], env={'LANG': 'C'}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdout, stderr) = svnProcess.communicate()
+        stdout = Util.decodeToString(stdout).strip()
+        if not (svnProcess.returncode or stderr or (stdout == 'exported')):
+            return version + ' ' + stdout
 
+        # CPAchecker might be within a git-svn repository
+        gitProcess = subprocess.Popen(['git', 'svn', 'find-rev', 'HEAD'], env={'LANG': 'C'}, cwd=cpacheckerDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdout, stderr) = gitProcess.communicate()
+        stdout = Util.decodeToString(stdout).strip()
+        if not (gitProcess.returncode or stderr) and stdout:
+            return version + ' ' + stdout + ('M' if self._isGitRepositoryDirty(cpacheckerDir) else '') 
+        
+        # CPAchecker might be within a git repository
+        gitProcess = subprocess.Popen(['git', 'log', '-1', '--pretty=format:%h', '--abbrev-commit'], env={'LANG': 'C'}, cwd=cpacheckerDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdout, stderr) = gitProcess.communicate()
+        stdout = Util.decodeToString(stdout).strip()
+        if not (gitProcess.returncode or stderr) and stdout:
+            return version + ' ' + stdout + ('+' if self._isGitRepositoryDirty(cpacheckerDir) else '') 
+        
+        return version
+
+    def _isGitRepositoryDirty(self, dir):
+        gitProcess = subprocess.Popen(['git', 'status', '--porcelain'], env={'LANG': 'C'}, cwd=dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdout, stderr) = gitProcess.communicate()
+        if not (gitProcess.returncode or stderr):
+            return True if stdout else False  # True if stdout is non-empty
+        return None
+ 
 
     def getName(self):
         return 'CPAchecker'
@@ -147,3 +174,10 @@ class Tool(benchmark.tools.template.BaseTool):
                     else:
                         column.value = line[startPosition: endPosition].strip()
                     break
+
+
+if __name__ == "__main__":
+    tool = Tool()
+    executable = tool.getExecutable()
+    print('Executable: {0}'.format(os.path.abspath(executable)))
+    print('Version: {0}'.format(tool.getVersion(executable)))
