@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -42,8 +41,6 @@ import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentEx
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
-
-import com.google.common.collect.Iterables;
 
 public class CPAMain {
 
@@ -91,13 +88,13 @@ public class CPAMain {
     // create everything
     CPAchecker cpachecker = null;
     ShutdownHook shutdownHook = null;
-    File programFile = null;
+    String programDenotation = null;
     ProofGenerator proofGenerator = null;
     try {
       MainOptions options = new MainOptions();
       cpaConfig.inject(options);
       dumpConfiguration(options, cpaConfig, logManager);
-      programFile = getCodeFile(options);
+      programDenotation = getProgramDenotation(options);
 
       shutdownHook = new ShutdownHook(cpaConfig, logManager, outputDirectory);
       cpachecker = new CPAchecker(cpaConfig, logManager);
@@ -113,7 +110,7 @@ public class CPAMain {
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(programFile.getPath());
+    CPAcheckerResult result = cpachecker.run(programDenotation);
 
     shutdownHook.setResult(result);
 
@@ -127,9 +124,8 @@ public class CPAMain {
   private static class MainOptions {
     @Option(name="analysis.programNames",
         required=true,
-        description="C programs to analyze (currently only one file is supported)")
-    @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-    private List<File> programs;
+        description="A String, denoting the programs to be analyzed")
+    private String programs;
 
     @Option(name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
@@ -137,12 +133,8 @@ public class CPAMain {
     private File configurationOutputFile = new File("UsedConfiguration.properties");
   }
 
-  static File getCodeFile(final MainOptions options) throws InvalidConfigurationException {
-    if (options.programs.size() != 1) {
-      throw new InvalidConfigurationException("Exactly one code file has to be given.");
-    }
-
-    return Iterables.getOnlyElement(options.programs);
+  static String getProgramDenotation(final MainOptions options) throws InvalidConfigurationException {
+    return options.programs;
   }
 
   static void dumpConfiguration(MainOptions options, Configuration config,

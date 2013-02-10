@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa;
 import static org.sosy_lab.cpachecker.util.CFAUtils.findLoops;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -208,14 +209,14 @@ public class CFACreator {
   /**
    * Parse a file and create a CFA, including all post-processing etc.
    *
-   * @param filename  The file to parse.
+   * @param programDenotation  The file to parse.
    * @return A representation of the CFA.
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    * @throws InterruptedException
    */
-  public CFA parseFileAndCreateCFA(String filename)
+  public CFA parseFileAndCreateCFA(String programDenotation)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     stats.totalTime.start();
@@ -224,9 +225,13 @@ public class CFACreator {
       logger.log(Level.FINE, "Starting parsing of file");
       ParseResult c;
 
+      if(language == Language.C) {
+        checkIfValidFile(programDenotation);
+      }
+
       if (language == Language.C && usePreprocessor) {
         CPreprocessor preprocessor = new CPreprocessor(config, logger);
-        String program = preprocessor.preprocess(filename);
+        String program = preprocessor.preprocess(programDenotation);
 
         if (program.isEmpty()) {
           throw new CParserException("Preprocessor returned empty program");
@@ -235,7 +240,7 @@ public class CFACreator {
         c = parser.parseString(program);
 
       } else {
-        c = parser.parseFile(filename);
+        c = parser.parseFile(programDenotation);
       }
 
       logger.log(Level.FINE, "Parser Finished");
@@ -249,7 +254,7 @@ public class CFACreator {
         }
       }
 
-      final FunctionEntryNode mainFunction = getMainFunction(filename, c.getFunctions());
+      final FunctionEntryNode mainFunction = getMainFunction(programDenotation, c.getFunctions());
 
       MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction, language);
 
@@ -328,6 +333,25 @@ public class CFACreator {
     } finally {
       stats.totalTime.stop();
     }
+  }
+
+  private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
+    if (!denotesOneFile(fileDenotation)) {
+      throw new InvalidConfigurationException(
+        "Exactly one code file has to be given.");
+    }
+
+    File file = new File(fileDenotation);
+
+    try {
+      org.sosy_lab.common.Files.checkReadableFile(file);
+    } catch (FileNotFoundException e) {
+      throw new InvalidConfigurationException(e.getMessage());
+    }
+  }
+
+  private boolean denotesOneFile(String filePath) {
+    return !filePath.contains(",");
   }
 
   private FunctionEntryNode getMainFunction(String filename,

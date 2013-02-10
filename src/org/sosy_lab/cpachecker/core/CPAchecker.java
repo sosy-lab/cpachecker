@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Set;
@@ -147,7 +149,7 @@ public class CPAchecker {
     factory = new CoreComponentsFactory(pConfiguration, pLogManager);
   }
 
-  public CPAcheckerResult run(String filename) {
+  public CPAcheckerResult run(String programDenotation) {
 
     logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
 
@@ -165,16 +167,18 @@ public class CPAchecker {
       Algorithm algorithm;
 
       if (runCBMCasExternalTool) {
-        algorithm = new ExternalCBMCAlgorithm(filename, config, logger);
+
+        checkIfValidFile(programDenotation);
+        algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
       } else {
-        CFA cfa = parse(filename, stats);
+        CFA cfa = parse(programDenotation, stats);
         GlobalInfo.getInstance().storeCFA(cfa);
         stopIfNecessary();
 
         ConfigurableProgramAnalysis cpa = factory.createCPA(cfa, stats);
 
-        algorithm = factory.createAlgorithm(cpa, filename, cfa, stats);
+        algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
 
         if (algorithm instanceof ImpactAlgorithm) {
           ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;
@@ -226,6 +230,25 @@ public class CPAchecker {
       logger.logUserException(Level.SEVERE, e, null);
     }
     return new CPAcheckerResult(result, reached, stats);
+  }
+
+  private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
+    if (!denotesOneFile(fileDenotation)) {
+      throw new InvalidConfigurationException(
+        "Exactly one code file has to be given.");
+    }
+
+    File file = new File(fileDenotation);
+
+    try {
+      org.sosy_lab.common.Files.checkReadableFile(file);
+    } catch (FileNotFoundException e) {
+      throw new InvalidConfigurationException(e.getMessage());
+    }
+  }
+
+  private boolean denotesOneFile(String programDenotation) {
+    return !programDenotation.contains(",");
   }
 
   private CFA parse(String filename, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,

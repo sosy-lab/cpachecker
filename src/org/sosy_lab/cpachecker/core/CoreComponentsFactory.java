@@ -107,7 +107,7 @@ public class CoreComponentsFactory {
   }
 
   public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
-      final String filename, final CFA cfa, @Nullable final MainCPAStatistics stats)
+      final String programDenotation, final CFA cfa, @Nullable final MainCPAStatistics stats)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
@@ -118,7 +118,7 @@ public class CoreComponentsFactory {
       algorithm = new ProofCheckAlgorithm(cpa, config, logger);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
-      algorithm = new RestartAlgorithm(config, logger, filename, cfa);
+      algorithm = new RestartAlgorithm(config, logger, programDenotation, cfa);
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, cpa, cfa);
@@ -135,11 +135,11 @@ public class CoreComponentsFactory {
       }
 
       if (useCBMC) {
-        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, cfa, filename);
+        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, cfa, programDenotation);
       }
 
       if (useBDDCPARestriction) {
-        algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger, cfa, filename);
+        algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger, cfa, programDenotation);
       }
 
       if (useAssumptionCollector) {
