@@ -875,8 +875,10 @@ class OutputHandler:
 
         if len(runSet.blocks) > 1:
             for block in runSet.blocks:
-                filewriter.writeFile(self.getFileName(runSet.name, block.name + ".xml"),
+                blockFileName = self.getFileName(runSet.name, block.name + ".xml")
+                filewriter.writeFile(blockFileName,
                     Util.XMLtoString(self.runsToXML(runSet, block.runs, block.name)))
+                self.allCreatedFiles.append(blockFileName)
 
         self.TXTFile.append(self.runSetToTXT(runSet, True, cpuTime, wallTime))
 
