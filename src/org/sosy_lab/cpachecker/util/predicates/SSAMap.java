@@ -23,18 +23,28 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Predicates.notNull;
+
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.LinkedHashMultiset;
+import com.google.common.collect.MapDifference;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Multiset.Entry;
 
@@ -57,92 +67,124 @@ public class SSAMap implements Serializable {
   public static class SSAMapBuilder {
 
     private SSAMap ssa;
-    private Multiset<Variable> varsBuilder = null;
-    private Multiset<Pair<Variable, FormulaList>> funcsBuilder = null;
+    private Map<Object, CType> typesBuilder = null;
+    private Multiset<String> varsBuilder = null;
+    private Multiset<Pair<String, FormulaList>> funcsBuilder = null;
 
     protected SSAMapBuilder(SSAMap ssa) {
       this.ssa = ssa;
     }
 
+    @Deprecated
     public int getIndex(Variable variable) {
-      return SSAMap.getIndex(variable, Objects.firstNonNull(varsBuilder, ssa.vars));
-    }
-
-    public int getIndex(Variable func, FormulaList args) {
-      return SSAMap.getIndex(Pair.<Variable, FormulaList>of(func, args),
-                             Objects.firstNonNull(funcsBuilder, ssa.funcs));
+      return getIndex(variable.getName());
     }
 
     public int getIndex(String variable) {
-      return getIndex(toVariable(variable));
+      return SSAMap.getIndex(variable, Objects.firstNonNull(varsBuilder, ssa.vars));
+    }
+
+    @Deprecated
+    public int getIndex(Variable variable, FormulaList args) {
+      return getIndex(variable.getName(), args);
     }
 
     public int getIndex(String name, FormulaList args) {
-      return getIndex(toVariable(name), args);
+      return SSAMap.getIndex(Pair.<String, FormulaList>of(name, args),
+          Objects.firstNonNull(funcsBuilder, ssa.funcs));
     }
 
-    public Variable getVariable(String name){
-      for (Variable v : allVariables()){
-        if (v.getName().equals(name)) {
-          return v;
-        }
-      }
-
-      for (Pair<Variable, FormulaList> v : allFunctions()){
-        Variable first = v.getFirst();
-        if (first.getName().equals(name)) {
-          return first;
-        }
-      }
-
-      return null;
+    public CType getType(String name) {
+      return Objects.firstNonNull(typesBuilder, ssa.types).get(name);
     }
 
+    @Deprecated
+    public Variable getVariable(String name) {
+      CType type = Objects.firstNonNull(typesBuilder, ssa.types).get(name);
+      if (type == null) {
+        return null;
+      } else {
+        return Variable.create(name, type);
+      }
+    }
+
+    @Deprecated
     public void setIndex(Variable var, int idx) {
+      setIndex(var.getName(), var.getType(), idx);
+    }
+
+    public void setIndex(String name, CType type, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
 
       if (varsBuilder == null) {
         varsBuilder = LinkedHashMultiset.create(ssa.vars);
       }
+      Preconditions.checkArgument(idx >= varsBuilder.count(name), "SSAMap updates need to be strictly monotone!");
 
-      Preconditions.checkArgument(idx >= varsBuilder.count(var), "SSAMap updates need to be strictly monotone!");
-      varsBuilder.setCount(var, idx);
+      setType(name, type);
+      varsBuilder.setCount(name, idx);
     }
 
+    private void setType(Object key, CType type) {
+      checkNotNull(type);
+      CType oldType = Objects.firstNonNull(typesBuilder, ssa.types).get(key);
+      if (oldType != null) {
+        Preconditions.checkArgument(oldType.equals(type)
+            || type instanceof CFunctionType || oldType instanceof CFunctionType
+            , "Cannot change type of variable %s in SSAMap from %s to %s", key, oldType, type);
+      } else {
+        if (typesBuilder == null) {
+          typesBuilder = new HashMap<>(ssa.types);
+        }
+        typesBuilder.put(key, type);
+      }
+    }
+
+    @Deprecated
     public void setIndex(Variable func, FormulaList args, int idx) {
+      setIndex(func.getName(), args, func.getType(), idx);
+    }
+
+    public void setIndex(String name, FormulaList args, CType type, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
 
       if (funcsBuilder == null) {
         funcsBuilder = LinkedHashMultiset.create(ssa.funcs);
       }
-
-      Pair<Variable, FormulaList> key = Pair.<Variable, FormulaList>of(func, args);
+      Pair<String, FormulaList> key = Pair.of(name, args);
       Preconditions.checkArgument(idx >= funcsBuilder.count(key), "SSAMap updates need to be strictly monotone!");
+
+      setType(key, type);
       funcsBuilder.setCount(key, idx);
     }
 
-
-
+    @Deprecated
     public void deleteVariable(Variable variable) {
+      deleteVariable(variable.getName());
+    }
+
+    public void deleteVariable(String variable) {
       int index = getIndex(variable);
       if (index != -1) {
 
         if (varsBuilder == null) {
           varsBuilder = LinkedHashMultiset.create(ssa.vars);
         }
+        if (typesBuilder == null) {
+          typesBuilder = new HashMap<>(ssa.types);
+        }
 
         varsBuilder.remove(variable, index);
+        typesBuilder.remove(variable);
       }
     }
 
-    public Set<Pair<Variable, FormulaList>> allFunctions() {
-      return Collections.unmodifiableSet(
-          Objects.firstNonNull(funcsBuilder, ssa.funcs).elementSet());
+    public Iterable<Pair<Variable, FormulaList>> allFunctions() {
+      return SSAMap.allFunctions(Objects.firstNonNull(typesBuilder, ssa.types));
     }
 
-    public Set<Variable> allVariables() {
-      return Collections.unmodifiableSet(
-          Objects.firstNonNull(varsBuilder, ssa.vars).elementSet());
+    public Iterable<Variable> allVariables() {
+      return SSAMap.allVariables(Objects.firstNonNull(typesBuilder, ssa.types));
     }
 
     /**
@@ -154,7 +196,8 @@ public class SSAMap implements Serializable {
       }
 
       ssa = new SSAMap(Objects.firstNonNull(varsBuilder, ssa.vars),
-                       Objects.firstNonNull(funcsBuilder, ssa.funcs));
+                       Objects.firstNonNull(funcsBuilder, ssa.funcs),
+                       Objects.firstNonNull(typesBuilder, ssa.types));
       varsBuilder  = null;
       funcsBuilder = null;
       return ssa;
@@ -162,8 +205,9 @@ public class SSAMap implements Serializable {
   }
 
   private static final SSAMap EMPTY_SSA_MAP = new SSAMap(
-      ImmutableMultiset.<Variable>of(),
-      ImmutableMultiset.<Pair<Variable, FormulaList>>of());
+      ImmutableMultiset.<String>of(),
+      ImmutableMultiset.<Pair<String, FormulaList>>of(),
+      ImmutableMap.<Object, CType>of());
 
   /**
    * Returns an empty immutable SSAMap.
@@ -173,19 +217,19 @@ public class SSAMap implements Serializable {
   }
 
   public SSAMap withDefault(final int defaultValue) {
-    return new SSAMap(this.vars, this.funcs) {
+    return new SSAMap(this.vars, this.funcs, this.types) {
 
       private static final long serialVersionUID = -5638018887478723717L;
 
       @Override
-      public int getIndex(Variable pVariable) {
+      public int getIndex(String pVariable) {
         int result = super.getIndex(pVariable);
 
         return (result < 0) ? defaultValue : result;
       }
 
       @Override
-      public int getIndex(Variable pName, FormulaList pArgs) {
+      public int getIndex(String pName, FormulaList pArgs) {
         int result = super.getIndex(pName, pArgs);
 
         return (result < 0) ? defaultValue : result;
@@ -212,9 +256,9 @@ public class SSAMap implements Serializable {
     // We don't bother checking the vars set for emptiness, because this will
     // probably never be the case on a merge.
 
-    Multiset<Variable> vars;
+    Multiset<String> vars;
     if (s1.vars == s2.vars) {
-      if (s1.funcs == s2.funcs) {
+      if (s1.funcs == s2.funcs && s1.types == s2.types) {
         // both are absolutely identical
         return s1;
       }
@@ -224,7 +268,7 @@ public class SSAMap implements Serializable {
       vars = merge(s1.vars, s2.vars);
     }
 
-    Multiset<Pair<Variable, FormulaList>> funcs;
+    Multiset<Pair<String, FormulaList>> funcs;
     if ((s1.funcs == s2.funcs) || s2.funcs.isEmpty()) {
       funcs = s1.funcs;
     } else if (s1.funcs.isEmpty()) {
@@ -233,7 +277,35 @@ public class SSAMap implements Serializable {
       funcs = merge(s1.funcs, s2.funcs);
     }
 
-    return new SSAMap(vars, funcs);
+    Map<Object, CType> types;
+    if (s1.types == s2.types) {
+      types = s1.types;
+    } else {
+
+      MapDifference<Object, CType> diff = Maps.difference(s1.types, s2.types);
+      if (!diff.entriesDiffering().isEmpty()) {
+        throw new IllegalArgumentException("Cannot merge SSAMaps that contain the same variable {0} with differing types: " + diff.entriesDiffering());
+      }
+
+      if (diff.entriesOnlyOnLeft().isEmpty()) {
+        assert s2.types.size() >= s1.types.size();
+        types = s2.types;
+
+      } else if (diff.entriesOnlyOnRight().isEmpty()) {
+        assert s1.types.size() >= s2.types.size();
+        types = s1.types;
+
+      } else {
+        types = new HashMap<>(diff.entriesInCommon().size()
+                            + diff.entriesOnlyOnLeft().size()
+                            + diff.entriesOnlyOnRight().size());
+        types.putAll(diff.entriesInCommon());
+        types.putAll(diff.entriesOnlyOnLeft());
+        types.putAll(diff.entriesOnlyOnRight());
+      }
+    }
+
+    return new SSAMap(vars, funcs, types);
   }
 
   private static <T> Multiset<T> merge(Multiset<T> s1, Multiset<T> s2) {
@@ -261,13 +333,17 @@ public class SSAMap implements Serializable {
    * Multiset.count(key). This is better because the Multiset internally uses
    * modifiable integers instead of the immutable Integer class.
    */
-  private final Multiset<Variable> vars;
-  private final Multiset<Pair<Variable, FormulaList>> funcs;
+  private final Multiset<String> vars;
+  private final Multiset<Pair<String, FormulaList>> funcs;
 
-  private SSAMap(Multiset<Variable> vars,
-                 Multiset<Pair<Variable, FormulaList>> funcs) {
+  private final Map<Object, CType> types;
+
+  private SSAMap(Multiset<String> vars,
+                 Multiset<Pair<String, FormulaList>> funcs,
+                 Map<Object, CType> types) {
     this.vars = vars;
     this.funcs = funcs;
+    this.types = types;
   }
 
   /**
@@ -290,40 +366,63 @@ public class SSAMap implements Serializable {
   /**
    * returns the index of the variable in the map
    */
+  @Deprecated
   public int getIndex(Variable variable) {
-    return getIndex(variable, vars);
-  }
-
-  public int getIndex(Variable name, FormulaList args) {
-    return getIndex(Pair.<Variable, FormulaList>of(name, args), funcs);
-  }
-
-  protected int getIndex(Pair<Variable, FormulaList> key) {
-    return getIndex(key, funcs);
-  }
-
-  private static Variable toVariable(String pVariable) {
-    return Variable.create(pVariable, null);
+    return getIndex(variable.getName());
   }
 
   public int getIndex(String variable) {
-    return getIndex(toVariable(variable), vars);
+    return getIndex(variable, vars);
   }
-
 
   public int getIndex(String name, FormulaList args) {
-    return getIndex(Pair.<Variable, FormulaList>of(toVariable(name), args), funcs);
+    return getIndex(Pair.<String, FormulaList>of(name, args), funcs);
   }
 
-  protected int getIndexString(Pair<String, FormulaList> key) {
-    return getIndex(Pair.<Variable, FormulaList>of(toVariable(key.getFirst()), key.getSecond()), funcs);
-  }
-  public Set<Variable> allVariables() {
-    return Collections.unmodifiableSet(vars.elementSet());
+  protected int getIndex(Pair<Variable, FormulaList> key) {
+    return getIndex(key.getFirst().getName(), key.getSecond());
   }
 
-  public Set<Pair<Variable, FormulaList>> allFunctions() {
-    return Collections.unmodifiableSet(funcs.elementSet());
+  public Iterable<Variable> allVariables() {
+    return allVariables(types);
+  }
+
+  static Iterable<Variable> allVariables(final Map<Object, CType> types) {
+    return FluentIterable.from(types.entrySet())
+        .transform(
+            new Function<Map.Entry<Object, CType>, Variable>() {
+              @Override
+              public Variable apply(Map.Entry<Object, CType> pInput) {
+                if (pInput.getKey() instanceof String) {
+                  return Variable.create((String)pInput.getKey(), pInput.getValue());
+                } else {
+                  return null;
+                }
+              }
+            })
+        .filter(notNull());
+  }
+
+  public Iterable<Pair<Variable, FormulaList>> allFunctions() {
+    return allFunctions(types);
+  }
+
+  static Iterable<Pair<Variable, FormulaList>> allFunctions(final Map<Object, CType> types) {
+    return FluentIterable.from(types.entrySet())
+        .transform(
+            new Function<Map.Entry<Object, CType>, Pair<Variable, FormulaList>>() {
+              @Override
+              public Pair<Variable, FormulaList> apply(Map.Entry<Object, CType> pInput) {
+                if (pInput.getKey() instanceof Pair<?, ?>) {
+                  @SuppressWarnings("unchecked")
+                  Pair<String, FormulaList> input = (Pair<String, FormulaList>)pInput.getKey();
+                  return Pair.of(Variable.create(input.getFirst(), pInput.getValue()), input.getSecond());
+                } else {
+                  return null;
+                }
+              }
+            })
+        .filter(notNull());
   }
 
   private static final Joiner joiner = Joiner.on(" ");
