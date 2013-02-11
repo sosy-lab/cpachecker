@@ -37,16 +37,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 
-public class IndirectionVisitor implements CExpressionVisitor<Integer, Exception> {
+public class IndirectionVisitor implements CExpressionVisitor<Integer, RuntimeException> {
 
   @Override
-  public Integer visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws Exception {
+  public Integer visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
     return pIastArraySubscriptExpression
         .getArrayExpression().accept(this) + 1;
   }
 
   @Override
-  public Integer visit(CBinaryExpression pIastBinaryExpression) throws Exception {
+  public Integer visit(CBinaryExpression pIastBinaryExpression) {
     return
     Math.max(
         pIastBinaryExpression.getOperand1().accept(this),
@@ -54,52 +54,52 @@ public class IndirectionVisitor implements CExpressionVisitor<Integer, Exception
   }
 
   @Override
-  public Integer visit(CCastExpression pIastCastExpression) throws Exception {
+  public Integer visit(CCastExpression pIastCastExpression) {
     return pIastCastExpression.getOperand().accept(this);
   }
 
   @Override
-  public Integer visit(CFieldReference pIastFieldReference) throws Exception {
+  public Integer visit(CFieldReference pIastFieldReference) {
     return CtoFormulaTypeUtils.getRealFieldOwner(pIastFieldReference).accept(this);
   }
 
   @Override
-  public Integer visit(CIdExpression pIastIdExpression) throws Exception {
+  public Integer visit(CIdExpression pIastIdExpression) {
     return 0;
   }
 
   @Override
-  public Integer visit(CCharLiteralExpression pIastCharLiteralExpression) throws Exception {
+  public Integer visit(CCharLiteralExpression pIastCharLiteralExpression) {
     return 0;
   }
 
   @Override
-  public Integer visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws Exception {
+  public Integer visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
     return 0;
   }
 
   @Override
-  public Integer visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws Exception {
+  public Integer visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
     return 0;
   }
 
   @Override
-  public Integer visit(CStringLiteralExpression pIastStringLiteralExpression) throws Exception {
+  public Integer visit(CStringLiteralExpression pIastStringLiteralExpression) {
     return 0;
   }
 
   @Override
-  public Integer visit(CTypeIdExpression pIastTypeIdExpression) throws Exception {
+  public Integer visit(CTypeIdExpression pIastTypeIdExpression) {
     return 0;
   }
 
   @Override
-  public Integer visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws Exception {
+  public Integer visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) {
     return 0;
   }
 
   @Override
-  public Integer visit(CUnaryExpression pIastUnaryExpression) throws Exception {
+  public Integer visit(CUnaryExpression pIastUnaryExpression) {
     return pIastUnaryExpression.getOperand().accept(this) + 1;
   }
 

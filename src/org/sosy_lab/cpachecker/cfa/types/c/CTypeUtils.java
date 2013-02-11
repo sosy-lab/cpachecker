@@ -103,7 +103,7 @@ public class CTypeUtils {
     return t1.accept(simplifyType);
   }
 
-  public static class BaseCTypeEqualsVisitor implements CTypeVisitor<Boolean, Exception> {
+  public static class BaseCTypeEqualsVisitor implements CTypeVisitor<Boolean, RuntimeException> {
     final Object obj;
     List<String> stack = new LinkedList<>();
     public BaseCTypeEqualsVisitor(Object other) {
@@ -133,15 +133,10 @@ public class CTypeUtils {
     }
 
     protected boolean compareTypes(CType t1, CType t2) {
-      try {
-        return simplifyType(t1).accept(this.workCopy(t2, stack));
-      } catch (Exception e) {
-        e.printStackTrace();
-        return false;
-      }
+      return simplifyType(t1).accept(this.workCopy(t2, stack));
     }
     @Override
-    public Boolean visit(CArrayType pThis) throws Exception {
+    public Boolean visit(CArrayType pThis) {
       if (this == obj) {
         return true;
       }
@@ -152,14 +147,14 @@ public class CTypeUtils {
       return equalsArrayType(pThis, other);
     }
 
-    private boolean equalsArrayType(CArrayType pThis, CArrayType other) throws Exception {
+    private boolean equalsArrayType(CArrayType pThis, CArrayType other) {
       return
           Objects.equals(pThis.getLength(), other.getLength()) &&
           compareTypes(pThis.getType(), other.getType());
     }
 
     @Override
-    public Boolean visit(CCompositeType pThis) throws Exception {
+    public Boolean visit(CCompositeType pThis) {
 
       if (this == obj) {
         return true;
@@ -171,7 +166,7 @@ public class CTypeUtils {
       return equalsCompositeType(pThis, other);
     }
 
-    private Boolean equalsCompositeType(CCompositeType pThis, CCompositeType other) throws Exception {
+    private Boolean equalsCompositeType(CCompositeType pThis, CCompositeType other) {
 
       if (stack.contains(pThis.getName())) {
         // prevent stackoverflow, we have to use strings because CType.equals would call us again
@@ -194,26 +189,21 @@ public class CTypeUtils {
     }
 
 
-    private boolean compareMembers(List<CCompositeTypeMemberDeclaration> l1, List<CCompositeTypeMemberDeclaration> l2) throws Exception {
+    private boolean compareMembers(List<CCompositeTypeMemberDeclaration> l1, List<CCompositeTypeMemberDeclaration> l2) {
       return compareLists(l1, l2, new Function<Pair<CCompositeTypeMemberDeclaration,CCompositeTypeMemberDeclaration>, Boolean>() {
         @Override
         public Boolean apply(Pair<CCompositeTypeMemberDeclaration,CCompositeTypeMemberDeclaration> pair) {
-          try {
-            CCompositeTypeMemberDeclaration m1 = pair.getFirst();
-            CCompositeTypeMemberDeclaration m2 = pair.getSecond();
-            return
-                  m2.getName().equals(m1.getName()) &&
-                  compareTypes(m2.getType(), m1.getType());
-          } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-          }
+          CCompositeTypeMemberDeclaration m1 = pair.getFirst();
+          CCompositeTypeMemberDeclaration m2 = pair.getSecond();
+          return
+                m2.getName().equals(m1.getName()) &&
+                compareTypes(m2.getType(), m1.getType());
         }
       });
     }
 
     @Override
-    public Boolean visit(CElaboratedType pThis) throws Exception {
+    public Boolean visit(CElaboratedType pThis) {
       if (this == obj) {
         return true;
       }
@@ -231,7 +221,7 @@ public class CTypeUtils {
     }
 
     @Override
-    public Boolean visit(CEnumType pThis) throws Exception {
+    public Boolean visit(CEnumType pThis) {
 
       if (this == obj) {
         return true;
@@ -250,7 +240,7 @@ public class CTypeUtils {
     }
 
     @Override
-    public Boolean visit(CFunctionType pThis) throws Exception {
+    public Boolean visit(CFunctionType pThis) {
 
       if (this == obj) {
         return true;
@@ -262,7 +252,7 @@ public class CTypeUtils {
       return equalsPointerType(pThis, other);
     }
 
-    private Boolean equalsPointerType(CFunctionType pThis, CFunctionType other) throws Exception {
+    private Boolean equalsPointerType(CFunctionType pThis, CFunctionType other) {
       return
           Objects.equals(pThis.getName(), other.getName()) &&
           compareTypes(pThis.getParameters(), other.getParameters()) &&
@@ -270,16 +260,11 @@ public class CTypeUtils {
           pThis.takesVarArgs() == other.takesVarArgs();
     }
 
-    private boolean compareTypes(List<CType> l1, List<CType> l2) throws Exception {
+    private boolean compareTypes(List<CType> l1, List<CType> l2) {
       return compareLists(l1, l2, new Function<Pair<CType,CType>, Boolean>() {
         @Override
         public Boolean apply(Pair<CType,CType> pair) {
-          try {
-            return pair.getFirst().accept(BaseCTypeEqualsVisitor.this.copyWith(pair.getSecond()));
-          } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-          }
+          return pair.getFirst().accept(BaseCTypeEqualsVisitor.this.copyWith(pair.getSecond()));
         }
       });
     }
@@ -299,7 +284,7 @@ public class CTypeUtils {
     }
 
     @Override
-    public Boolean visit(CPointerType pThis) throws Exception {
+    public Boolean visit(CPointerType pThis) {
 
       if (this == obj) {
         return true;
@@ -311,13 +296,13 @@ public class CTypeUtils {
       return equalsPointerType(pThis, other);
     }
 
-    private Boolean equalsPointerType(CPointerType pThis, CPointerType other) throws Exception {
+    private Boolean equalsPointerType(CPointerType pThis, CPointerType other) {
       return
           compareTypes(pThis.getType(), other.getType());
     }
 
     @Override
-    public Boolean visit(CProblemType pThis) throws Exception {
+    public Boolean visit(CProblemType pThis) {
 
       if (this == obj) {
         return true;
@@ -335,7 +320,7 @@ public class CTypeUtils {
     }
 
     @Override
-    public Boolean visit(CSimpleType pThis) throws Exception {
+    public Boolean visit(CSimpleType pThis) {
 
       if (this == obj) {
         return true;
@@ -363,7 +348,7 @@ public class CTypeUtils {
     }
 
     @Override
-    public Boolean visit(CTypedefType pThis) throws Exception {
+    public Boolean visit(CTypedefType pThis) {
       if (this == obj) {
         return true;
       }
@@ -372,7 +357,7 @@ public class CTypeUtils {
     }
 
     @Override
-    public Boolean visit(CNamedType pThis) throws Exception {
+    public Boolean visit(CNamedType pThis) {
 
       if (this == obj) {
         return true;
@@ -390,7 +375,7 @@ public class CTypeUtils {
     }
 
     @Override
-    public Boolean visit(CDummyType pThis) throws Exception {
+    public Boolean visit(CDummyType pThis) {
 
       if (this == obj) {
         return true;
@@ -422,11 +407,6 @@ public class CTypeUtils {
     }
 
     BaseCTypeEqualsVisitor visitor = new BaseCTypeEqualsVisitor(simplifyType(t2));
-    try {
-      return simplifyType(t1).accept(visitor);
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw new IllegalArgumentException("Should not happen", e);
-    }
+    return simplifyType(t1).accept(visitor);
   }
 }

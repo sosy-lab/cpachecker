@@ -78,7 +78,7 @@ public class CtoFormulaTypeUtils {
 
   public static class CtoFormulaCTypeEqualsVisitor
     extends CTypeUtils.BaseCTypeEqualsVisitor
-    implements CtoFormulaTypeVisitor<Boolean, Exception> {
+    implements CtoFormulaTypeVisitor<Boolean, RuntimeException> {
     public CtoFormulaCTypeEqualsVisitor(Object other) {
       super(other);
     }
@@ -103,7 +103,7 @@ public class CtoFormulaTypeUtils {
     }
 
     @Override
-    public Boolean visit(CDereferenceType pThis) throws Exception {
+    public Boolean visit(CDereferenceType pThis) {
 
       if (this == getObj()) {
         return true;
@@ -115,7 +115,7 @@ public class CtoFormulaTypeUtils {
       return equalsDereferenceType(pThis, other);
     }
 
-    private Boolean equalsDereferenceType(CDereferenceType pThis, CDereferenceType other) throws Exception {
+    private Boolean equalsDereferenceType(CDereferenceType pThis, CDereferenceType other) {
       return
           compareTypes(pThis.getType(), other.getType());
     }
@@ -136,12 +136,7 @@ public class CtoFormulaTypeUtils {
     }
 
     CtoFormulaCTypeEqualsVisitor visitor = new CtoFormulaCTypeEqualsVisitor(simplifyType(t2));
-    try {
-      return simplifyType(t1).accept(visitor);
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw new IllegalArgumentException("Should not happen", e);
-    }
+    return simplifyType(t1).accept(visitor);
   }
 
   public static CType dereferencedType(CType t) {
@@ -265,12 +260,7 @@ public class CtoFormulaTypeUtils {
   private static final IndirectionVisitor indirectionVisitor = new IndirectionVisitor();
 
   public static int getIndirectionLevel(CExpression c) {
-    try {
-      return c.accept(indirectionVisitor);
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw new AssertionError("No idea what happened", e);
-    }
+    return c.accept(indirectionVisitor);
   }
 
   private static final RepresentabilityCTypeVisitor representabilityCTypeVisitor
