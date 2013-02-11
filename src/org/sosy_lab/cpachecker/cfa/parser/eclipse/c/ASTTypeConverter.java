@@ -157,7 +157,13 @@ class ASTTypeConverter {
       IType[] parameters = ft.getParameterTypes();
       List<CType> newParameters = Lists.newArrayListWithExpectedSize(parameters.length);
       for (IType p : parameters) {
-        newParameters.add(convert(p));
+        if (p instanceof IBasicType && ((IBasicType)p).getKind() == IBasicType.Kind.eVoid) {
+          // there may be a function declaration f(void), which is equal to f()
+          // we don't want this dummy parameter "void"
+          assert parameters.length == 1;
+        } else {
+          newParameters.add(convert(p));
+        }
       }
 
       // TODO varargs
