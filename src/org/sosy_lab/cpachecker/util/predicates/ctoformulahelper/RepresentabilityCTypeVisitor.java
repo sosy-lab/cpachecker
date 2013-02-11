@@ -25,17 +25,16 @@ package org.sosy_lab.cpachecker.util.predicates.ctoformulahelper;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 
 class RepresentabilityCTypeVisitor implements CtoFormulaTypeVisitor<Boolean, RuntimeException> {
 
@@ -76,12 +75,7 @@ class RepresentabilityCTypeVisitor implements CtoFormulaTypeVisitor<Boolean, Run
   }
 
   @Override
-  public Boolean visit(CFunctionPointerType pFunctionPointerType) {
-    return true;
-  }
-
-  @Override
-  public Boolean visit(CFunctionType pFunctionType) {
+  public Boolean visit(CFunctionType pFunctionPointerType) {
     return false;
   }
 

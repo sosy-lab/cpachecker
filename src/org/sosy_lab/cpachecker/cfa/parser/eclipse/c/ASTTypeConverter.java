@@ -59,8 +59,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -161,7 +161,7 @@ class ASTTypeConverter {
       }
 
       // TODO varargs
-      return new CFunctionPointerType(false, false, convert(ft.getReturnType()), newParameters, false);
+      return new CFunctionType(false, false, convert(ft.getReturnType()), newParameters, false);
 
     } else if (t instanceof ICArrayType) {
       return conv((ICArrayType)t);
@@ -296,13 +296,13 @@ class ASTTypeConverter {
       return new CElaboratedType(isConst, isVolatile, ((CElaboratedType) i).getKind(), ((CElaboratedType) i).getName(), ((CElaboratedType) i).getRealType());
     } else if (i instanceof CEnumType) {
       return new CEnumType(isConst, isVolatile, ((CEnumType) i).getEnumerators(), ((CEnumType) i).getName());
-    } else if (i instanceof CFunctionPointerType) {
-      CFunctionPointerType p = (CFunctionPointerType) i;
-      return new CFunctionPointerType(isConst, isVolatile, p.getReturnType(), p.getParameters(), p.takesVarArgs());
     } else if (i instanceof CFunctionType) {
+      CFunctionType p = (CFunctionType) i;
+      return new CFunctionType(isConst, isVolatile, p.getReturnType(), p.getParameters(), p.takesVarArgs());
+    } else if (i instanceof CFunctionTypeWithNames) {
       // TODO what does it mean that a function is qualified with const or volatile?
-      CFunctionType f = (CFunctionType) i;
-      return new CFunctionType(isConst, isVolatile, f.getReturnType(), f.getParameters(), f.takesVarArgs());
+      CFunctionTypeWithNames f = (CFunctionTypeWithNames) i;
+      return new CFunctionTypeWithNames(isConst, isVolatile, f.getReturnType(), f.getParameterDeclarations(), f.takesVarArgs());
     } else if (i instanceof CPointerType) {
       return new CPointerType(isConst, isVolatile, ((CPointerType) i).getType());
     } else if (i instanceof CSimpleType) {

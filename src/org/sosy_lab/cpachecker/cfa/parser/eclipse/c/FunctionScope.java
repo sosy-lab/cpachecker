@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -154,7 +154,7 @@ class FunctionScope implements Scope {
         || declaration instanceof CEnumerator
         || declaration instanceof CParameterDeclaration
         : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
-    assert  !(declaration.getType() instanceof CFunctionType);
+    assert  !(declaration.getType() instanceof CFunctionTypeWithNames);
 
     String name = declaration.getOrigName();
     assert name != null;

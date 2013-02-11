@@ -247,7 +247,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     scope.enterMethod(fdef);
 
-    final List<JParameterDeclaration> parameters = fdef.getType().getParameters();
+    final List<JParameterDeclaration> parameters = fdef.getParameters();
     final List<String> parameterNames = new ArrayList<>(parameters.size());
 
     for (JParameterDeclaration param : parameters) {

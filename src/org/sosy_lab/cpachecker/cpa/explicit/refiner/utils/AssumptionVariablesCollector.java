@@ -232,7 +232,7 @@ import com.google.common.collect.Multimap;
       String functionName = functionCallEdge.getSuccessor().getFunctionDefinition().getName();
 
       int i = 0;
-      for (CParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionDefinition().getType().getParameters()) {
+      for (CParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionDefinition().getParameters()) {
         String parameterName = functionName + "::" + parameter.getName();
 
         // collect the formal parameter, and make the argument a depending variable

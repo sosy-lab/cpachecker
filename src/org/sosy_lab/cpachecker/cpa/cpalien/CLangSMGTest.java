@@ -32,13 +32,16 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
+import com.google.common.collect.ImmutableList;
 
 public class CLangSMGTest {
 
   private CFunctionType functionType = mock(CFunctionType.class);
-  private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo");
+  private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
   private CLangStackFrame sf =  new CLangStackFrame(functionDeclaration);
   private LogManager logger = mock(LogManager.class);
 

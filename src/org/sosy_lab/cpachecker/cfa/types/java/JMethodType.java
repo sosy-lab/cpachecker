@@ -28,17 +28,35 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
+import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+
 
 public class JMethodType extends AFunctionType implements JType {
 
+  private final List<JParameterDeclaration> parameters;
+
   public JMethodType(JType pReturnType, List<JParameterDeclaration> pParameters, boolean pTakesVarArgs) {
-    super(pReturnType, pParameters, pTakesVarArgs);
+    super(pReturnType,
+        FluentIterable.from(pParameters).transform(new Function<JParameterDeclaration, JType>() {
+          @Override
+          public JType apply(JParameterDeclaration pInput) {
+            return pInput.getType();
+          }
+        }).toImmutableList(),
+        pTakesVarArgs);
+
+    parameters = ImmutableList.copyOf(pParameters);
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<JParameterDeclaration> getParameters() {
-    return (List<JParameterDeclaration>) super.getParameters();
+  public List<JType> getParameters() {
+    return (List<JType>) super.getParameters();
   }
 
+  public List<JParameterDeclaration> getParameterDeclarations() {
+    return parameters;
+  }
 }

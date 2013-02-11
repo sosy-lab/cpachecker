@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Objects;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 
 import com.google.common.base.Function;
@@ -62,11 +61,6 @@ public class CTypeUtils {
     @Override
     public CType visit(CEnumType pEnumType) {
       return pEnumType;
-    }
-
-    @Override
-    public CType visit(CFunctionPointerType pFunctionPointerType) {
-      return pFunctionPointerType;
     }
 
     @Override
@@ -256,7 +250,7 @@ public class CTypeUtils {
     }
 
     @Override
-    public Boolean visit(CFunctionPointerType pThis) throws Exception {
+    public Boolean visit(CFunctionType pThis) throws Exception {
 
       if (this == obj) {
         return true;
@@ -264,11 +258,11 @@ public class CTypeUtils {
       if (pThis.getClass() != obj.getClass()) {
         return false;
       }
-      CFunctionPointerType other = (CFunctionPointerType) obj;
-      return equalsFunctionPointerType(pThis, other);
+      CFunctionType other = (CFunctionType) obj;
+      return equalsPointerType(pThis, other);
     }
 
-    private Boolean equalsFunctionPointerType(CFunctionPointerType pThis, CFunctionPointerType other) throws Exception {
+    private Boolean equalsPointerType(CFunctionType pThis, CFunctionType other) throws Exception {
       return
           Objects.equals(pThis.getName(), other.getName()) &&
           compareTypes(pThis.getParameters(), other.getParameters()) &&
@@ -290,28 +284,6 @@ public class CTypeUtils {
       });
     }
 
-
-    @Override
-    public Boolean visit(CFunctionType pThis) throws Exception {
-
-      if (this == obj) {
-        return true;
-      }
-      if (pThis.getClass() != obj.getClass()) {
-        return false;
-      }
-      CFunctionType other = (CFunctionType) obj;
-      return equalsFunctionType(pThis, other);
-    }
-
-    private Boolean equalsFunctionType(CFunctionType pThis, CFunctionType other) throws Exception {
-      return
-          Objects.equals(pThis.getName(), other.getName()) &&
-          compareParamDecl(pThis.getParameters(), other.getParameters()) &&
-          compareTypes(pThis.getReturnType(), other.getReturnType()) &&
-          pThis.takesVarArgs() == other.takesVarArgs();
-    }
-
     private <T> boolean compareLists(List<T> l1, List<T> l2, Function<Pair<T,T>,Boolean> compare) {
       Iterator<T> it1 = l2.iterator(), it2 = l1.iterator();
       for (; it1.hasNext() && it2.hasNext();) {
@@ -324,20 +296,6 @@ public class CTypeUtils {
       }
 
       return !it1.hasNext() && !it2.hasNext();
-    }
-
-    private boolean compareParamDecl(List<CParameterDeclaration> l1, List<CParameterDeclaration> l2) throws Exception {
-      return compareLists(l1, l2, new Function<Pair<CParameterDeclaration,CParameterDeclaration>, Boolean>() {
-        @Override
-        public Boolean apply(Pair<CParameterDeclaration,CParameterDeclaration> pair) {
-          try {
-            return pair.getFirst().getType().accept(BaseCTypeEqualsVisitor.this.copyWith(pair.getSecond().getType()));
-          } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-          }
-        }
-      });
     }
 
     @Override

@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -38,13 +40,20 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 public final class CFunctionDeclaration extends AFunctionDeclaration implements CDeclaration {
 
   public CFunctionDeclaration(FileLocation pFileLocation,
-      CFunctionType pType, String pName) {
-    super(pFileLocation, pType, checkNotNull(pName));
+      CFunctionType pType, String pName,
+      List<CParameterDeclaration> parameters) {
+    super(pFileLocation, pType, checkNotNull(pName), parameters);
   }
 
   @Override
   public CFunctionType getType() {
     return (CFunctionType) super.getType();
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public List<CParameterDeclaration> getParameters() {
+    return (List<CParameterDeclaration>)super.getParameters();
   }
 
   @Override

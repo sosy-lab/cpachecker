@@ -23,64 +23,46 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterables.transform;
-
 import java.util.List;
+
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 
-public class CFunctionPointerType implements CType {
+/**
+ * This is a subclass of {@link CFunctionType} that is necessary during AST
+ * creation. The difference is that it also stores the names of parameters,
+ * not only their types.
+ * It should not be used outside the cfa package.
+ */
+public final class CFunctionTypeWithNames extends CFunctionType implements CType {
 
-  private boolean   isConst;
-  private boolean   isVolatile;
-  private final CType returnType;
-  private String name = null;
-  private final List<CType> parameters;
-  private final boolean takesVarArgs;
+  private final List<CParameterDeclaration> parameters;
 
-  public CFunctionPointerType(
+  public CFunctionTypeWithNames(
       boolean pConst,
       boolean pVolatile,
       CType pReturnType,
-      List<CType> pParameters,
+      List<CParameterDeclaration> pParameters,
       boolean pTakesVarArgs) {
 
+    super(pConst, pVolatile, pReturnType,
+        FluentIterable.from(pParameters).transform(new Function<CParameterDeclaration, CType>() {
+          @Override
+          public CType apply(CParameterDeclaration pInput) {
+            return pInput.getType();
+          }
+        }).toImmutableList(),
+        pTakesVarArgs);
 
-    isConst = pConst;
-    isVolatile = pVolatile;
-
-    returnType = pReturnType;
     parameters = ImmutableList.copyOf(pParameters);
-    takesVarArgs = pTakesVarArgs;
   }
 
-  public CType getReturnType() {
-    return returnType;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String pName) {
-    checkState(name == null);
-    name = pName;
-  }
-
-  public List<CType> getParameters() {
+  public List<CParameterDeclaration> getParameterDeclarations() {
     return parameters;
-  }
-
-  public boolean takesVarArgs() {
-    return takesVarArgs;
-  }
-
-  @Override
-  public String toString() {
-    return this.getName();
   }
 
   @Override
@@ -94,7 +76,7 @@ public class CFunctionPointerType implements CType {
       lASTString.append("volatile ");
     }
 
-    lASTString.append(returnType.toASTString(""));
+    lASTString.append(getReturnType().toASTString(""));
     lASTString.append(" ");
 
     if (pDeclarator.startsWith("*")) {
@@ -107,14 +89,9 @@ public class CFunctionPointerType implements CType {
     }
 
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, transform(parameters, new Function<CType, String>() {
-                                                      @Override
-                                                      public String apply(CType pInput) {
-                                                        return pInput.toASTString("");
-                                                      }
-                                                    }));
-    if (takesVarArgs) {
-      if (!parameters.isEmpty()) {
+    Joiner.on(", ").appendTo(lASTString, getParameters());
+    if (takesVarArgs()) {
+      if (!getParameters().isEmpty()) {
         lASTString.append(", ");
       }
       lASTString.append("...");
@@ -122,16 +99,6 @@ public class CFunctionPointerType implements CType {
     lASTString.append(")");
 
     return lASTString.toString();
-  }
-
-  @Override
-  public boolean isConst() {
-    return isConst;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return isVolatile;
   }
 
   @Override

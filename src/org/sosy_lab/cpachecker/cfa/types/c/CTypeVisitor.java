@@ -28,7 +28,6 @@ public interface CTypeVisitor<R, X extends Exception> {
   R visit(CCompositeType pCompositeType) throws X;
   R visit(CElaboratedType pElaboratedType) throws X;
   R visit(CEnumType pEnumType) throws X;
-  R visit(CFunctionPointerType pFunctionPointerType) throws X;
   R visit(CFunctionType pFunctionType) throws X;
   R visit(CPointerType pPointerType) throws X;
   R visit(CProblemType pProblemType) throws X;

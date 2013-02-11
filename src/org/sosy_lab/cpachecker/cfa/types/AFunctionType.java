@@ -24,12 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.types;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterables.transform;
 
 import java.util.List;
-
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AstNode;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -39,12 +35,12 @@ public class AFunctionType implements IAFunctionType {
 
   private final Type returnType;
   private String name = null;
-  private final List<? extends AParameterDeclaration> parameters;
+  private final List<? extends Type> parameters;
   private final boolean takesVarArgs;
 
   public AFunctionType(
       Type pReturnType,
-      List<? extends AParameterDeclaration> pParameters,
+      List<? extends Type> pParameters,
       boolean pTakesVarArgs) {
 
     returnType = pReturnType;
@@ -68,7 +64,7 @@ public class AFunctionType implements IAFunctionType {
   }
 
   @Override
-  public List<? extends AParameterDeclaration> getParameters() {
+  public List<? extends Type> getParameters() {
     return parameters;
   }
 
@@ -88,7 +84,7 @@ public class AFunctionType implements IAFunctionType {
 
 
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, transform(parameters, AstNode.TO_AST_STRING));
+    Joiner.on(", ").appendTo(lASTString, parameters);
     if (takesVarArgs) {
       if (!parameters.isEmpty()) {
         lASTString.append(", ");

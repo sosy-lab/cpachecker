@@ -133,7 +133,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -667,7 +667,7 @@ class ASTConverter {
 
     Triple<CType, IASTInitializer, String> declarator = convert(f.getDeclarator(), specifier.getSecond());
 
-    if (!(declarator.getFirst() instanceof CFunctionType)) {
+    if (!(declarator.getFirst() instanceof CFunctionTypeWithNames)) {
       throw new CFAGenerationRuntimeException("Unsupported nested declarator for function definition", f);
     }
     if (declarator.getSecond() != null) {
@@ -677,13 +677,13 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Missing name for function definition", f);
     }
 
-    CFunctionType declSpec = (CFunctionType)declarator.getFirst();
+    CFunctionTypeWithNames declSpec = (CFunctionTypeWithNames)declarator.getFirst();
     String name = declarator.getThird();
 
 
     FileLocation fileLoc = getLocation(f);
 
-    return new CFunctionDeclaration(fileLoc, declSpec, name);
+    return new CFunctionDeclaration(fileLoc, declSpec, name, declSpec.getParameterDeclarations());
   }
 
   public List<CDeclaration> convert(final IASTSimpleDeclaration d) {
@@ -752,14 +752,15 @@ class ASTConverter {
         return new CTypeDefDeclaration(fileLoc, isGlobal, type, name);
       }
 
-      if (type instanceof CFunctionType) {
+      if (type instanceof CFunctionTypeWithNames) {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Function definition with initializer", d);
         }
         if (!isGlobal) {
           throw new CFAGenerationRuntimeException("Non-global function definition", d);
         }
-        return new CFunctionDeclaration(fileLoc, (CFunctionType)type, name);
+        CFunctionTypeWithNames functionType = (CFunctionTypeWithNames)type;
+        return new CFunctionDeclaration(fileLoc, functionType, name, functionType.getParameterDeclarations());
       }
 
       // now it should be a regular variable declaration
@@ -986,7 +987,7 @@ class ASTConverter {
     List<CParameterDeclaration> paramsList = convert(sd.getParameters());
 
     // TODO constant and volatile
-    CFunctionType fType = new CFunctionType(false, false, returnType, paramsList, sd.takesVarArgs());
+    CFunctionTypeWithNames fType = new CFunctionTypeWithNames(false, false, returnType, paramsList, sd.takesVarArgs());
     CType type = fType;
 
     String name;
@@ -1278,8 +1279,8 @@ class ASTConverter {
     }
 
     CType type = declarator.getFirst();
-    if (type instanceof CFunctionType) {
-      CFunctionType functionType = (CFunctionType) type;
+    if (type instanceof CFunctionTypeWithNames) {
+      CFunctionTypeWithNames functionType = (CFunctionTypeWithNames) type;
       type = new CPointerType(false, false, functionType);
     }
 

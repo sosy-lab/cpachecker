@@ -102,7 +102,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -129,7 +129,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -782,6 +781,11 @@ public class CtoFormulaConverter {
     fromType = simplifyType(fromType);
     toType = simplifyType(toType);
 
+    if (fromType instanceof CFunctionType) {
+      // references to functions can be seen as function pointers
+      fromType = new CPointerType(false, false, fromType);
+    }
+
     boolean fromCanBeHandledAsInt, toCanBeHandledAsInt;
     boolean fromIsPointer, toIsPointer;
     if ((fromCanBeHandledAsInt =
@@ -1379,8 +1383,8 @@ public class CtoFormulaConverter {
       if (functionNameExpression instanceof CUnaryExpression) {
         CUnaryExpression funNameExp = (CUnaryExpression)functionNameExpression;
         CType expressionType = funNameExp.getExpressionType();
-        if (expressionType instanceof CFunctionPointerType) {
-          CFunctionPointerType funcPtrType = (CFunctionPointerType)expressionType;
+        if (expressionType instanceof CFunctionType) {
+          CFunctionType funcPtrType = (CFunctionType)expressionType;
           retType = funcPtrType.getReturnType();
         }
       }
@@ -1653,7 +1657,7 @@ public class CtoFormulaConverter {
             // l = r; // l is unsigned long* and r is unsigned int
 
             // r was probably assigned with a pointer before and should have a size
-            if (!(right.getExpressionType() instanceof CFunctionPointerType)) {
+            if (!(right.getExpressionType() instanceof CFunctionType)) {
               // ignore function pointer assignments
               CType currentGuess = getGuessedType(rPtrVarName.getType());
               if (currentGuess == null) {
@@ -2705,13 +2709,7 @@ public class CtoFormulaConverter {
           return makeFreshVariable(Variable.create(func,expType), ssa); // BUG when expType = void
         }
 
-        List<CType> paramTypes =
-          from (declaration.getType().getParameters())
-            .transform(new Function<CParameterDeclaration, CType>() {
-              @Override
-              public CType apply(CParameterDeclaration pInput) {
-                return pInput.getType();
-              }}).toImmutableList();
+        List<CType> paramTypes = declaration.getType().getParameters();
         func += "{" + paramTypes.size() + "}"; // add #arguments to function name to cope with varargs functions
 
         List<Formula> args = new ArrayList<>(pexps.size());

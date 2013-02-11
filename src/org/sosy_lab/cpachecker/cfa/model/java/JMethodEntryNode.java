@@ -47,6 +47,6 @@ public class JMethodEntryNode extends FunctionEntryNode {
 
   @Override
   public List<JParameterDeclaration> getFunctionParameters() {
-    return ((JMethodDeclaration)functionDefinition).getType().getParameters();
+    return getFunctionDefinition().getParameters();
   }
 }

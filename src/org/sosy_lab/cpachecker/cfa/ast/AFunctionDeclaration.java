@@ -23,19 +23,31 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+
+import com.google.common.collect.ImmutableList;
 
 
 public abstract class AFunctionDeclaration extends ADeclaration {
 
+  private final List<AParameterDeclaration> parameters;
 
-  public AFunctionDeclaration(FileLocation pFileLocation, IAFunctionType pType, String pName) {
+  public AFunctionDeclaration(FileLocation pFileLocation, IAFunctionType pType, String pName,
+      List<? extends AParameterDeclaration> pParameters) {
     super(pFileLocation, true, pType, pName , pName);
+
+    parameters = ImmutableList.copyOf(pParameters);
   }
 
   @Override
   public IAFunctionType getType() {
     return  (IAFunctionType) super.getType();
+  }
+
+  public List<? extends AParameterDeclaration> getParameters() {
+    return parameters;
   }
 
   @Override

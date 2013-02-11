@@ -25,15 +25,13 @@ package org.sosy_lab.cpachecker.cfa.types;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-
 
 public interface IAFunctionType extends Type{
   public Type getReturnType();
 
   public String getName() ;
 
-  public List<? extends AParameterDeclaration> getParameters() ;
+  public List<? extends Type> getParameters() ;
 
   public boolean takesVarArgs() ;
 }

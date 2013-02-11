@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
@@ -126,7 +126,7 @@ class GlobalScope implements Scope {
     assert declaration instanceof CVariableDeclaration
         || declaration instanceof CEnumerator
         : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
-    assert  !(declaration.getType() instanceof CFunctionType);
+    assert  !(declaration.getType() instanceof CFunctionTypeWithNames);
 
     String name = declaration.getOrigName();
     assert name != null;

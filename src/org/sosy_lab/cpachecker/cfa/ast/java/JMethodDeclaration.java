@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
@@ -56,7 +58,7 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
 
   public JMethodDeclaration(FileLocation pFileLocation, JMethodType pType, String pName , VisibilityModifier pVisibility  ,final boolean pIsFinal
       ,final boolean pIsAbstract, final boolean pIsStatic,final boolean pIsNative,final boolean pIsSynchronized,final boolean pIsStrictfp, JClassOrInterfaceType pDeclaringClass ) {
-    super(pFileLocation, pType, pName);
+    super(pFileLocation, pType, pName, pType.getParameterDeclarations());
     visibility = pVisibility;
     isFinal = pIsFinal;
     isAbstract = pIsAbstract;
@@ -78,6 +80,10 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
     return (JMethodType) super.getType();
   }
 
+  @Override
+  public List<JParameterDeclaration> getParameters() {
+    return getType().getParameterDeclarations();
+  }
 
   @Override
   public String toASTString() {

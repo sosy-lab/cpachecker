@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -263,15 +262,10 @@ public enum MachineModel {
     }
 
     @Override
-    public Integer visit(CFunctionPointerType pFunctionPointerType) throws IllegalArgumentException {
-      // TODO: This has to be checked
-      return model.getSizeofPtr();
-    }
-
-    @Override
     public Integer visit(CFunctionType pFunctionType) throws IllegalArgumentException {
-      // TODO: This has to be checked
-      return pFunctionType.getReturnType().accept(this);
+      // A function does not really have a size,
+      // but references to functions can be used as pointers.
+      return model.getSizeofPtr();
     }
 
     @Override

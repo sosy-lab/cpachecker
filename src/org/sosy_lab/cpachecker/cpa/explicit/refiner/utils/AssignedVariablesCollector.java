@@ -132,7 +132,7 @@ public class AssignedVariablesCollector {
       }
 
       String functionName = functionCallEdge.getSuccessor().getFunctionDefinition().getName();
-      for (CParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionDefinition().getType().getParameters()) {
+      for (CParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionDefinition().getParameters()) {
         String parameterName = scoped(parameter.getName(), functionName);
 
         // collect the formal parameter, and make the argument a depending variable

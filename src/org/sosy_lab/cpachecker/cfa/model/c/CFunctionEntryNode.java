@@ -49,6 +49,6 @@ public class CFunctionEntryNode extends FunctionEntryNode {
 
   @Override
   public List<CParameterDeclaration> getFunctionParameters() {
-    return ((CFunctionDeclaration)functionDefinition).getType().getParameters();
+    return getFunctionDefinition().getParameters();
   }
 }

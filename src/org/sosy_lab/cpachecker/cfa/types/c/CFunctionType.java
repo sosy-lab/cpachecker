@@ -23,34 +23,32 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.transform;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 
 public class CFunctionType extends AFunctionType implements CType {
 
   private boolean   isConst;
   private boolean   isVolatile;
+  private String name = null;
 
   public CFunctionType(
       boolean pConst,
       boolean pVolatile,
       CType pReturnType,
-      List<CParameterDeclaration> pParameters,
+      List<CType> pParameters,
       boolean pTakesVarArgs) {
-
-    super(pReturnType, ImmutableList.copyOf(pParameters), pTakesVarArgs );
+    super(pReturnType, pParameters, pTakesVarArgs);
 
     isConst = pConst;
     isVolatile = pVolatile;
-
   }
 
   @Override
@@ -59,19 +57,25 @@ public class CFunctionType extends AFunctionType implements CType {
   }
 
   @Override
+  public String getName() {
+    return name;
+  }
+
+  @Override
   public void setName(String pName) {
-    super.setName(pName);
+    checkState(name == null);
+    name = pName;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<CParameterDeclaration> getParameters() {
-    return (List<CParameterDeclaration>) super.getParameters();
+  public List<CType> getParameters() {
+    return (List<CType>) super.getParameters();
   }
 
   @Override
   public String toString() {
-    return getName();
+    return this.getName();
   }
 
   @Override
@@ -98,7 +102,12 @@ public class CFunctionType extends AFunctionType implements CType {
     }
 
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, transform(getParameters(), TO_AST_STRING));
+    Joiner.on(", ").appendTo(lASTString, transform(getParameters(), new Function<CType, String>() {
+                                                      @Override
+                                                      public String apply(CType pInput) {
+                                                        return pInput.toASTString("");
+                                                      }
+                                                    }));
     if (takesVarArgs()) {
       if (!getParameters().isEmpty()) {
         lASTString.append(", ");

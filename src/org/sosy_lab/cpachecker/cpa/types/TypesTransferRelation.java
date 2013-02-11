@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -100,7 +101,7 @@ public class TypesTransferRelation implements TransferRelation {
         // function
 
         CFunctionDeclaration funcDef = funcDefNode.getFunctionDefinition();
-        handleFunctionDeclaration(successor, funcCallEdge, funcDef.getType());
+        handleFunctionDeclaration(successor, funcCallEdge, funcDef.getType(), funcDef.getParameters());
       }
       break;
 
@@ -115,7 +116,7 @@ public class TypesTransferRelation implements TransferRelation {
           && (cfaEdge.getPredecessor() instanceof FunctionEntryNode)) {
         //since by this point all global variables have been processed, we can now process the entry function
         CFunctionDeclaration funcDef = functionEntryNode.getFunctionDefinition();
-        handleFunctionDeclaration(successor, null, funcDef.getType());
+        handleFunctionDeclaration(successor, null, funcDef.getType(), funcDef.getParameters());
 
         entryFunctionProcessed = true;
       }
@@ -135,7 +136,7 @@ public class TypesTransferRelation implements TransferRelation {
     CType specifier = declarationEdge.getDeclaration().getType();
 
     if (decl instanceof CFunctionDeclaration) {
-      handleFunctionDeclaration(element, declarationEdge, (CFunctionType)specifier);
+      handleFunctionDeclaration(element, declarationEdge, (CFunctionType)specifier, ((CFunctionDeclaration) decl).getParameters());
 
     } else {
       Type type = getType(element, declarationEdge, specifier);
@@ -157,10 +158,11 @@ public class TypesTransferRelation implements TransferRelation {
 
   private void handleFunctionDeclaration(TypesState element,
                                         CFAEdge cfaEdge,
-                                        CFunctionType funcDeclSpecifier)
+                                        CFunctionType funcDeclSpecifier,
+                                        List<CParameterDeclaration> parameters)
                                         throws UnrecognizedCCodeException {
 
-    FunctionType function = getType(element, cfaEdge, funcDeclSpecifier);
+    FunctionType function = getType(element, cfaEdge, funcDeclSpecifier, parameters);
 
     if (cfaEdge != null && cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       assert function.getName().equals(cfaEdge.getSuccessor().getFunctionName());
@@ -385,14 +387,15 @@ public class TypesTransferRelation implements TransferRelation {
     return type;
   }
 
-  private FunctionType getType(TypesState element, CFAEdge cfaEdge, CFunctionType funcDeclSpecifier)
+  private FunctionType getType(TypesState element, CFAEdge cfaEdge, CFunctionType funcDeclSpecifier,
+                      List<CParameterDeclaration> parameters)
                       throws UnrecognizedCCodeException {
 
     Type returnType = getType(element, cfaEdge, funcDeclSpecifier.getReturnType());
 
     FunctionType function = new FunctionType(funcDeclSpecifier.getName(), returnType, funcDeclSpecifier.takesVarArgs());
 
-    for (CSimpleDeclaration parameter : funcDeclSpecifier.getParameters()) {
+    for (CSimpleDeclaration parameter : parameters) {
 
       Type parameterType = getType(element, cfaEdge, parameter.getType());
 

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -32,12 +31,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
@@ -88,16 +87,10 @@ class FillInBindingVisitor implements CTypeVisitor<Void, RuntimeException> {
   }
 
   @Override
-  public Void visit(CFunctionPointerType pFunctionPointerType) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
   public Void visit(CFunctionType pFunctionType) {
     pFunctionType.getReturnType().accept(this);
-    for (CParameterDeclaration parameter : pFunctionType.getParameters()) {
-      parameter.getType().accept(this);
+    for (CType parameter : pFunctionType.getParameters()) {
+      parameter.accept(this);
     }
     return null;
   }
