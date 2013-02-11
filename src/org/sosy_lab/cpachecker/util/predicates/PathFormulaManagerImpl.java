@@ -138,15 +138,15 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     BooleanFormula mt1 = bfmgr.makeBoolean(true);
     BooleanFormula mt2 = bfmgr.makeBoolean(true);
 
-    for (Variable var : result.allVariables()) {
+    for (Variable var : result.allVariablesWithTypes()) {
       if (var.getName().equals(CtoFormulaConverter.NONDET_VARIABLE)) {
         continue; // do not add index adjustment terms for __nondet__
       }
       if (var.getName().startsWith(CtoFormulaConverter.EXPAND_VARIABLE)) {
         continue; // do not add index adjustment terms for exand variables
       }
-      int i1 = ssa1.getIndex(var);
-      int i2 = ssa2.getIndex(var);
+      int i1 = ssa1.getIndex(var.getName());
+      int i2 = ssa2.getIndex(var.getName());
 
       if (i1 > i2 && i1 > 1) {
         // i2:smaller, i1:bigger
@@ -181,8 +181,8 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     for (Pair<Variable, FormulaList> f : result.allFunctions()) {
       Variable name = f.getFirst();
       FormulaList args = f.getSecond();
-      int i1 = ssa1.getIndex(f);
-      int i2 = ssa2.getIndex(f);
+      int i1 = ssa1.getIndex(name.getName(), args);
+      int i2 = ssa2.getIndex(name.getName(), args);
 
       if (i1 > i2 && i1 > 1) {
         // i2:smaller, i1:bigger

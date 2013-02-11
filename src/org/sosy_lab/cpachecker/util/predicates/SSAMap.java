@@ -27,8 +27,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -75,18 +77,8 @@ public class SSAMap implements Serializable {
       this.ssa = ssa;
     }
 
-    @Deprecated
-    public int getIndex(Variable variable) {
-      return getIndex(variable.getName());
-    }
-
     public int getIndex(String variable) {
       return SSAMap.getIndex(variable, Objects.firstNonNull(varsBuilder, ssa.vars));
-    }
-
-    @Deprecated
-    public int getIndex(Variable variable, FormulaList args) {
-      return getIndex(variable.getName(), args);
     }
 
     public int getIndex(String name, FormulaList args) {
@@ -96,21 +88,6 @@ public class SSAMap implements Serializable {
 
     public CType getType(String name) {
       return Objects.firstNonNull(typesBuilder, ssa.types).get(name);
-    }
-
-    @Deprecated
-    public Variable getVariable(String name) {
-      CType type = Objects.firstNonNull(typesBuilder, ssa.types).get(name);
-      if (type == null) {
-        return null;
-      } else {
-        return Variable.create(name, type);
-      }
-    }
-
-    @Deprecated
-    public void setIndex(Variable var, int idx) {
-      setIndex(var.getName(), var.getType(), idx);
     }
 
     public void setIndex(String name, CType type, int idx) {
@@ -140,11 +117,6 @@ public class SSAMap implements Serializable {
       }
     }
 
-    @Deprecated
-    public void setIndex(Variable func, FormulaList args, int idx) {
-      setIndex(func.getName(), args, func.getType(), idx);
-    }
-
     public void setIndex(String name, FormulaList args, CType type, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
 
@@ -156,11 +128,6 @@ public class SSAMap implements Serializable {
 
       setType(key, type);
       funcsBuilder.setCount(key, idx);
-    }
-
-    @Deprecated
-    public void deleteVariable(Variable variable) {
-      deleteVariable(variable.getName());
     }
 
     public void deleteVariable(String variable) {
@@ -231,13 +198,6 @@ public class SSAMap implements Serializable {
       @Override
       public int getIndex(String pName, FormulaList pArgs) {
         int result = super.getIndex(pName, pArgs);
-
-        return (result < 0) ? defaultValue : result;
-      }
-
-      @Override
-      protected int getIndex(Pair<Variable, FormulaList> pKey) {
-        int result = super.getIndex(pKey);
 
         return (result < 0) ? defaultValue : result;
       }
@@ -366,11 +326,6 @@ public class SSAMap implements Serializable {
   /**
    * returns the index of the variable in the map
    */
-  @Deprecated
-  public int getIndex(Variable variable) {
-    return getIndex(variable.getName());
-  }
-
   public int getIndex(String variable) {
     return getIndex(variable, vars);
   }
@@ -379,11 +334,11 @@ public class SSAMap implements Serializable {
     return getIndex(Pair.<String, FormulaList>of(name, args), funcs);
   }
 
-  protected int getIndex(Pair<Variable, FormulaList> key) {
-    return getIndex(key.getFirst().getName(), key.getSecond());
+  public Set<String> allVariables() {
+    return Collections.unmodifiableSet(vars.elementSet());
   }
 
-  public Iterable<Variable> allVariables() {
+  public Iterable<Variable> allVariablesWithTypes() {
     return allVariables(types);
   }
 

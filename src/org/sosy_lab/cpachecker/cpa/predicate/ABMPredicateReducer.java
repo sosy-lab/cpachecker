@@ -133,11 +133,11 @@ public class ABMPredicateReducer implements Reducer {
       //there still should be at least _some_ index for each variable of the abstraction formula.
       SSAMapBuilder builder = oldSSA.builder();
       SSAMap rootSSA = rootState.getPathFormula().getSsa();
-      for (Variable var : rootSSA.allVariables()) {
+      for (Variable var : rootSSA.allVariablesWithTypes()) {
         //if we do not have the index in the reduced map..
-        if (oldSSA.getIndex(var) == -1) {
+        if (oldSSA.getIndex(var.getName()) == -1) {
           //add an index (with the value of rootSSA)
-          builder.setIndex(var, rootSSA.getIndex(var));
+          builder.setIndex(var.getName(), var.getType(), rootSSA.getIndex(var.getName()));
         }
       }
       SSAMap newSSA = builder.build();
@@ -391,11 +391,11 @@ public class ABMPredicateReducer implements Reducer {
     //there still should be at least _some_ index for each variable of the abstraction formula.
     SSAMapBuilder builder = oldSSA.builder();
     SSAMap rootSSA = rootState.getPathFormula().getSsa();
-    for (Variable var : rootSSA.allVariables()) {
+    for (Variable var : rootSSA.allVariablesWithTypes()) {
       //if we do not have the index in the reduced map..
-      if (oldSSA.getIndex(var) == -1) {
+      if (oldSSA.getIndex(var.getName()) == -1) {
         //add an index (with the value of rootSSA)
-        builder.setIndex(var, rootSSA.getIndex(var));
+        builder.setIndex(var.getName(), var.getType(), rootSSA.getIndex(var.getName()));
       }
     }
     SSAMap newSSA = builder.build();
