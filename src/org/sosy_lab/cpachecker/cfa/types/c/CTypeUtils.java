@@ -265,7 +265,7 @@ public class CTypeUtils {
       return compareLists(l1, l2, new Function<Pair<CType,CType>, Boolean>() {
         @Override
         public Boolean apply(Pair<CType,CType> pair) {
-          return pair.getFirst().accept(BaseCTypeEqualsVisitor.this.copyWith(pair.getSecond()));
+          return compareTypes(pair.getFirst(), pair.getSecond());
         }
       });
     }
