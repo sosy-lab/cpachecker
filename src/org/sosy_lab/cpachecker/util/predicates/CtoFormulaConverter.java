@@ -1985,9 +1985,8 @@ public class CtoFormulaConverter {
     }
 
     // check if it has been used as a pointer before
-    List<Variable> ptrVarNames = getAllPointerVariablesFromSsaMap(ssa);
     String expPtrVarName = makePointerMaskName(var.getName(), ssa);
-    return ptrVarNames.contains(Variable.create(expPtrVarName, null));
+    return ssa.getType(expPtrVarName) != null;
   }
 
   /**
