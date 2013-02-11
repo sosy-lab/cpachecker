@@ -245,16 +245,17 @@ public class CTypeUtils {
       if (this == obj) {
         return true;
       }
-      if (pThis.getClass() != obj.getClass()) {
+      if (!(obj instanceof CFunctionType)) {
         return false;
       }
       CFunctionType other = (CFunctionType) obj;
-      return equalsPointerType(pThis, other);
+      return equalsFunctionType(pThis, other);
     }
 
-    private Boolean equalsPointerType(CFunctionType pThis, CFunctionType other) {
+    private Boolean equalsFunctionType(CFunctionType pThis, CFunctionType other) {
       return
-          Objects.equals(pThis.getName(), other.getName()) &&
+          // Do not compare name, it is irrelevant in the C type system.
+          //Objects.equals(pThis.getName(), other.getName()) &&
           compareTypes(pThis.getParameters(), other.getParameters()) &&
           compareTypes(pThis.getReturnType(), other.getReturnType()) &&
           pThis.takesVarArgs() == other.takesVarArgs();
