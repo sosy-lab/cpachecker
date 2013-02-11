@@ -1,7 +1,5 @@
 bitvectors/*_unsafe.i
 bitvectors/*_safe.i
-bitvectors/*.unsafe.i
-bitvectors/*.safe.i
 pointer_aliasing/*_unsafe.i
 pointer_aliasing/*_safe.i
 arrays/*_unsafe.i
