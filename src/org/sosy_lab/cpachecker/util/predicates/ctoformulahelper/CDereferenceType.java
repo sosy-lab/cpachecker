@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.ctoformulahelper;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 /**
  * We use this type to be able to track the type of aliases
@@ -101,16 +100,6 @@ public final class CDereferenceType extends CtoFormulaCType {
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
         + decl;
-  }
-
-  @Override
-  public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    return CTypeUtils.equals(this, obj);
   }
 
   @Override

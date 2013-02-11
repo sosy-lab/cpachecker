@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.ctoformulahelper;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 
 /**
@@ -67,16 +66,6 @@ public class CFieldDereferenceTrackType extends CtoFormulaCType {
   @Override
   public String toString() {
     return fieldPtrType.toString();
-  }
-
-  @Override
-  public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    return CTypeUtils.equals(fieldPtrType, obj);
   }
 
   @Override

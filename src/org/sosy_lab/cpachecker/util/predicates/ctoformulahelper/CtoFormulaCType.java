@@ -39,6 +39,16 @@ public abstract class CtoFormulaCType implements CType {
   public abstract boolean isVolatile();
 
   @Override
+  public int hashCode() {
+    throw new UnsupportedOperationException("Do not use hashCode of CType");
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return CtoFormulaTypeUtils.equals(this, obj);
+  }
+
+  @Override
   public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
     if (pVisitor instanceof CtoFormulaTypeVisitor<?,?>) {
       return accept((CtoFormulaTypeVisitor<R, X>)pVisitor);
@@ -48,7 +58,4 @@ public abstract class CtoFormulaCType implements CType {
   }
 
   public abstract <R, X extends Exception> R accept(CtoFormulaTypeVisitor<R, X> pVisitor) throws X;
-
-
-
 }

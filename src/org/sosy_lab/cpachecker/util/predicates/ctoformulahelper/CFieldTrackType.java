@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.ctoformulahelper;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 /**
  * We use this type to be able to track the type of structs
@@ -73,16 +72,6 @@ public class CFieldTrackType extends CtoFormulaCType {
   @Override
   public String toString() {
     return fieldType.toString();
-  }
-
-  @Override
-  public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    return CTypeUtils.equals(fieldType, obj);
   }
 
   @Override
