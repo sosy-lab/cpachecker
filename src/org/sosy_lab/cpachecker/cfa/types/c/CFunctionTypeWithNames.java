@@ -89,7 +89,7 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
     }
 
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, getParameters());
+    Joiner.on(", ").appendTo(lASTString, getParameterDeclarations());
     if (takesVarArgs()) {
       if (!getParameters().isEmpty()) {
         lASTString.append(", ");
