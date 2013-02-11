@@ -266,7 +266,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
     // remove re-added parent of errorState to prevent computing
     // the same error state over and over
-    Set<ARGState> parents = errorState.getParents();
+    Collection<ARGState> parents = errorState.getParents();
     assert parents.size() == 1 : "error state that was merged";
 
     ARGState parent = Iterables.getOnlyElement(parents);

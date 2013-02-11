@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.ArrayList;
@@ -81,8 +82,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 
 
 public class BlockFormulaSlicer {
@@ -270,8 +269,7 @@ public class BlockFormulaSlicer {
   private Multimap<String, String> handleEdgesForState(ARGState current,
       Map<ARGState, Multimap<String, String>> s2v, Set<ARGState> subpath) {
 
-    SetView<ARGState> usedChildren = Sets.intersection(current.getChildren(), subpath);
-
+    List<ARGState> usedChildren = from(current.getChildren()).filter(in(subpath)).toImmutableList();
     assert usedChildren.size() > 0 : "no child for " + current.getStateId();
 
     // there can be several children --> collect their vars and join them

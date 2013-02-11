@@ -27,6 +27,8 @@ import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
@@ -45,8 +47,13 @@ import com.google.common.primitives.Ints;
 public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState> {
 
   private static final long serialVersionUID = 2608287648397165040L;
-  private final Set<ARGState> children;
-  private final Set<ARGState> parents; // more than one parent if joining elements
+
+  // We use a List here although we would like to have a Set
+  // because ArrayList is much more memory efficient than e.g. LinkedHashSet.
+  // Also these collections are small and so a slow contains() method won't hurt.
+  // To enforce set semantics, do not add elements except through addparent()!
+  private final Collection<ARGState> children = new ArrayList<>(1);
+  private final Collection<ARGState> parents = new ArrayList<>(1);
 
   private ARGState mCoveredBy = null;
   private Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
@@ -66,29 +73,42 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   public ARGState(AbstractState pWrappedState, ARGState pParentElement) {
     super(pWrappedState);
     stateId = ++nextArgStateId;
-    parents = new LinkedHashSet<>(1); // TODO Is HashSet enough? It would be more memory-efficient.
     if (pParentElement != null){
       addParent(pParentElement);
     }
-    children = new LinkedHashSet<>(1);
   }
 
   // parent & child relations
 
-  public Set<ARGState> getParents(){
-    return parents;
+  /**
+   * Get the parent elements of this state.
+   * @return A unmodifiable collection of ARGStates without duplicates.
+   */
+  public Collection<ARGState> getParents(){
+    return Collections.unmodifiableCollection(parents);
   }
 
   public void addParent(ARGState pOtherParent){
+    checkNotNull(pOtherParent);
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    if (parents.add(pOtherParent)){
+
+    // Manually enforce set semantics.
+    if (!parents.contains(pOtherParent)) {
+      assert !pOtherParent.children.contains(this);
+      parents.add(pOtherParent);
       pOtherParent.children.add(this);
+    } else {
+      assert pOtherParent.children.contains(this);
     }
   }
 
-  public Set<ARGState> getChildren() {
+  /**
+   * Get the child elements of this state.
+   * @return An unmodifiable collection of ARGStates without duplicates.
+   */
+  public Collection<ARGState> getChildren() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    return children;
+    return Collections.unmodifiableCollection(children);
   }
 
   public CFAEdge getEdgeToChild(ARGState pChild) {

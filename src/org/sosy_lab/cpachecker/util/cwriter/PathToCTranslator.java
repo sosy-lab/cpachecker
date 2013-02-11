@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import static com.google.common.base.Predicates.in;
+import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
@@ -59,7 +61,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 public class PathToCTranslator {
 
@@ -187,7 +188,7 @@ public class PathToCTranslator {
 
     // how many parents does the child have?
     // ignore parents not on the error path
-    int noOfParents = Sets.intersection(childElement.getParents(), elementsOnPath).size();
+    int noOfParents = from(childElement.getParents()).filter(in(elementsOnPath)).size();
     assert noOfParents >= 1;
 
     // handle merging if necessary
@@ -238,7 +239,7 @@ public class PathToCTranslator {
       Set<ARGState> elementsOnPath) {
     // find the next elements to add to the waitlist
 
-    Set<ARGState> relevantChildrenOfElement = Sets.intersection(currentElement.getChildren(), elementsOnPath).immutableCopy();
+    List<ARGState> relevantChildrenOfElement = from(currentElement.getChildren()).filter(in(elementsOnPath)).toImmutableList();
 
     // if there is only one child on the path
     if (relevantChildrenOfElement.size() == 1) {

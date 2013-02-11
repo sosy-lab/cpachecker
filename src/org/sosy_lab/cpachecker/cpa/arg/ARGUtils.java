@@ -131,16 +131,16 @@ public class ARGUtils {
   }
 
 
-  static final Function<ARGState, Set<ARGState>> CHILDREN_OF_STATE = new Function<ARGState, Set<ARGState>>() {
+  static final Function<ARGState, Collection<ARGState>> CHILDREN_OF_STATE = new Function<ARGState, Collection<ARGState>>() {
         @Override
-        public Set<ARGState> apply(ARGState pInput) {
+        public Collection<ARGState> apply(ARGState pInput) {
           return pInput.getChildren();
         }
       };
 
-  static final Function<ARGState, Set<ARGState>> PARENTS_OF_STATE = new Function<ARGState, Set<ARGState>>() {
+  static final Function<ARGState, Collection<ARGState>> PARENTS_OF_STATE = new Function<ARGState, Collection<ARGState>>() {
         @Override
-        public Set<ARGState> apply(ARGState pInput) {
+        public Collection<ARGState> apply(ARGState pInput) {
           return pInput.getParents();
         }
       };
@@ -235,7 +235,7 @@ public class ARGUtils {
     ARGPath result = new ARGPath();
     ARGState currentElement = root;
     while (!currentElement.isTarget()) {
-      Set<ARGState> children = currentElement.getChildren();
+      Collection<ARGState> children = currentElement.getChildren();
 
       ARGState child;
       CFAEdge edge;
