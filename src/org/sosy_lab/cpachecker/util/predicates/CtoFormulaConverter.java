@@ -131,7 +131,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaMa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -194,6 +193,15 @@ public class CtoFormulaConverter {
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
       = ImmutableMap.of("pthread_create", "threads");
 
+  private static Predicate<String> startsWith(final String pPrefix) {
+    return new Predicate<String>() {
+        @Override
+        public boolean apply(String pVariable) {
+          return pVariable.startsWith(pPrefix);
+        }
+      };
+  }
+
   //names for special variables needed to deal with functions
   private static final String VAR_RETURN_NAME = "__retval__";
   private static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
@@ -206,21 +214,14 @@ public class CtoFormulaConverter {
   final FormulaType<?> NONDET_FORMULA_TYPE;
 
   private static final String POINTER_VARIABLE = "__content_of__";
-  static final Predicate<CharSequence> IS_POINTER_VARIABLE
-    = Predicates.containsPattern("^\\Q" + POINTER_VARIABLE + "\\E.*\\Q__end\\E");
+  static final Predicate<String> IS_POINTER_VARIABLE = startsWith(POINTER_VARIABLE);
 
   private static final String FIELD_VARIABLE = "__field_of__";
-  static final Predicate<CharSequence> IS_FIELD_VARIABLE
-    = Predicates.containsPattern("^\\Q" + FIELD_VARIABLE + "\\E.*\\Q__end\\E");
+  static final Predicate<String> IS_FIELD_VARIABLE = startsWith(FIELD_VARIABLE);
 
   /** The prefix used for variables representing memory locations. */
   private static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "__address_of__";
-  private static final Predicate<String> IS_MEMORY_ADDRESS_VARIABLE = new Predicate<String>() {
-      @Override
-      public boolean apply(String pVariable) {
-        return pVariable.startsWith(MEMORY_ADDRESS_VARIABLE_PREFIX);
-      }
-    };
+  private static final Predicate<String> IS_MEMORY_ADDRESS_VARIABLE = startsWith(MEMORY_ADDRESS_VARIABLE_PREFIX);
 
   /**
    * The prefix used for memory locations derived from malloc calls.
