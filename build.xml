@@ -53,7 +53,7 @@
     </target>
     <target depends="clean" name="cleanall"/>
 
-    <property name="ivy.version" value="2.2.0"/> <!-- Change version number here to use a newer version of Ivy. -->
+    <property name="ivy.useVersion" value="2.2.0"/> <!-- Change version number here to use a newer version of Ivy. -->
     <property name="ivy.repo.url" value="http://www.sosy-lab.org/ivy"/>
     <property name="ivy.jar.dir" value="${ivy.lib.dir}/build"/>
     <property name="ivy.jar.file" value="ivy.jar"/>
@@ -64,7 +64,7 @@
     <target name="bootstrap-ivy" unless="ivy.jar.present">
         <mkdir dir="${ivy.jar.dir}"/>
         <echo message="Downloading ivy..."/>
-    <get src="${ivy.repo.url}/org.apache.ivy/ivy/ivy-${ivy.version}.jar" dest="${ivy.jar.dir}/${ivy.jar.file}" usetimestamp="true"/>
+    <get src="${ivy.repo.url}/org.apache.ivy/ivy/ivy-${ivy.useVersion}.jar" dest="${ivy.jar.dir}/${ivy.jar.file}" usetimestamp="true"/>
     </target>
 
     <!-- Load the Ivy plugin for Ant so the Ivy tasks are available. -->
