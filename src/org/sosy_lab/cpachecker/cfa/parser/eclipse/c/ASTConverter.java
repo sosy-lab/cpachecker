@@ -134,6 +134,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -264,7 +265,7 @@ class ASTConverter {
         || type instanceof CProblemType) { // necessary for parsing "x++" in automata
       constantType = expressionType;
     } else if (type instanceof CPointerType) {
-      constantType = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+      constantType = CNumericTypes.INT;
     } else {
       throw new CFAGenerationRuntimeException("Prefix operator used for wrong type " + expressionType, expression);
     }
@@ -487,8 +488,7 @@ class ASTConverter {
         // that behaves like (exp == c).
         // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005fexpect-3345
 
-        CSimpleType intType = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
-        return new CBinaryExpression(getLocation(e), intType, params.get(0), params.get(1), BinaryOperator.EQUALS);
+        return new CBinaryExpression(getLocation(e), CNumericTypes.INT, params.get(0), params.get(1), BinaryOperator.EQUALS);
       }
     }
 

@@ -32,8 +32,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
@@ -148,7 +148,7 @@ public class CtoFormulaTypeUtils {
     CType simple = CtoFormulaTypeUtils.simplifyType(t);
     if (simple instanceof CPointerType) {
       CType inner = ((CPointerType)simple).getType();
-      if (areEqual(inner, CSimpleType.Void)) {
+      if (areEqual(inner, CNumericTypes.VOID)) {
         // Enable guessing for void*
         return new CDereferenceType(false, false, t, null);
       }

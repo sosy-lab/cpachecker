@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cfa.types;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -115,13 +115,13 @@ public enum MachineModel {
     sizeofPtr = pSizeOfPtr;
 
     if (sizeofPtr == sizeofInt) {
-      ptrEquivalent = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+      ptrEquivalent = CNumericTypes.INT;
     } else if (sizeofPtr == sizeofLongInt) {
-      ptrEquivalent = new CSimpleType(false, false, CBasicType.INT, true, false, false, false, false, false, false);
+      ptrEquivalent = CNumericTypes.LONG_INT;
     } else if (sizeofPtr == sizeofLongLongInt) {
-      ptrEquivalent = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, true);
+      ptrEquivalent = CNumericTypes.LONG_LONG_INT;
     } else if (sizeofPtr == sizeofShort) {
-      ptrEquivalent = new CSimpleType(false, false, CBasicType.INT, false, true, false, false, false, false, false);
+      ptrEquivalent = CNumericTypes.SHORT_INT;
     } else {
       throw new AssertionError("No ptr-Equivalent found");
     }

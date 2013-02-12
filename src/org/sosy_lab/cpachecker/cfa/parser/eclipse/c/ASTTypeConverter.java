@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -275,8 +276,7 @@ class ASTTypeConverter {
     CExpression length = null;
     IValue v = t.getSize();
     if (v != null && v.numericalValue() != null) {
-      CSimpleType intType = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
-      length = new CIntegerLiteralExpression(null, intType, BigInteger.valueOf(v.numericalValue()));
+      length = new CIntegerLiteralExpression(null, CNumericTypes.INT, BigInteger.valueOf(v.numericalValue()));
     } else {
       // TODO handle cases like int[x] by converting t.getArraySizeExpression()
     }

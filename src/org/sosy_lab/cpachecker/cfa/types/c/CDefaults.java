@@ -37,11 +37,9 @@ public class CDefaults {
 
   private CDefaults() { }
 
-  private static CSimpleType INT_TYPE = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
-
   public static CLiteralExpression forType(CType type, FileLocation fileLoc) {
     if (type instanceof CPointerType) {
-      return new CIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
+      return new CIntegerLiteralExpression(fileLoc, CNumericTypes.SIGNED_INT, BigInteger.ZERO);
 
     } else if (type instanceof CSimpleType) {
       CBasicType basicType = ((CSimpleType)type).getType();
@@ -65,11 +63,11 @@ public class CDefaults {
 
     } else if (type instanceof CEnumType) {
       // enum declaration: enum e { ... } var;
-      return new CIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
+      return new CIntegerLiteralExpression(fileLoc, CNumericTypes.SIGNED_INT, BigInteger.ZERO);
 
     } else if (type instanceof CElaboratedType && ((CElaboratedType)type).getKind() == ComplexTypeKind.ENUM) {
       // enum declaration: enum e var;
-      return new CIntegerLiteralExpression(fileLoc, INT_TYPE, BigInteger.ZERO);
+      return new CIntegerLiteralExpression(fileLoc, CNumericTypes.SIGNED_INT, BigInteger.ZERO);
 
     } else {
       // TODO create initializer for arrays, structs, enums

@@ -103,6 +103,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -201,7 +202,7 @@ public class CtoFormulaConverter {
   static final String NONDET_VARIABLE = "__nondet__";
   static final String EXPAND_VARIABLE = "__expandVariable__";
   static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
-  private static final CType NONDET_TYPE = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+  private static final CType NONDET_TYPE = CNumericTypes.INT;
   final FormulaType<?> NONDET_FORMULA_TYPE;
 
   private static final String POINTER_VARIABLE = "__content_of__";
@@ -547,7 +548,7 @@ public class CtoFormulaConverter {
       if (guess == null) {
         // This should not happen when guessing aliasing types would always work
         log(Level.FINE, "No Type-Guess for " + name);
-        CType oneByte = new CSimpleType(false, false, CBasicType.CHAR, false, false, false, false, false, false, false);
+        CType oneByte = CNumericTypes.CHAR;
         type = setGuessedType(type, oneByte);
       }
     }
@@ -805,10 +806,10 @@ public class CtoFormulaConverter {
 
       // See Enums/Pointers as Integers
       if (fromCanBeHandledAsInt) {
-        fromType = fromIsPointer ? machineModel.getPointerEquivalentSimpleType() : CSimpleType.SimpleInteger;
+        fromType = fromIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
       }
       if (toCanBeHandledAsInt) {
-        toType = toIsPointer ? machineModel.getPointerEquivalentSimpleType() : CSimpleType.SimpleInteger;
+        toType = toIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
       }
     }
 
@@ -1043,7 +1044,7 @@ public class CtoFormulaConverter {
       // otherwise, it is converted to an unsigned int.
       CSimpleType s = (CSimpleType) t;
       if (machineModel.getSizeof(s) < machineModel.getSizeofInt()) {
-        return new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+        return CNumericTypes.INT;
       }
     }
     return t;
