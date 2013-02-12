@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.ctoformulahelper;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -102,11 +101,6 @@ class RepresentabilityCTypeVisitor implements CtoFormulaTypeVisitor<Boolean, Run
   @Override
   public Boolean visit(CNamedType pCNamedType) {
     // If the type was representable, the name would be already resolved
-    return false;
-  }
-
-  @Override
-  public Boolean visit(CDummyType pCDummyType) {
     return false;
   }
 

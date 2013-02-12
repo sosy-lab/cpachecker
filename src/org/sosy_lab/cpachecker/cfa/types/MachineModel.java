@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CDummyType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -291,11 +290,6 @@ public enum MachineModel {
     @Override
     public Integer visit(CNamedType pCNamedType) throws IllegalArgumentException {
       throw new IllegalArgumentException("Unknown C-Type: " + pCNamedType.getClass().toString());
-    }
-
-    @Override
-    public Integer visit(CDummyType pCDummyType) throws IllegalArgumentException {
-      throw new IllegalArgumentException("Unknown C-Type: " + pCDummyType.getClass().toString());
     }
   }
 

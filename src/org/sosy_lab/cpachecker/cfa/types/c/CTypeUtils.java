@@ -92,11 +92,6 @@ public class CTypeUtils {
     public CType visit(CNamedType pCNamedType) {
       throw new IllegalArgumentException();
     }
-
-    @Override
-    public CType visit(CDummyType pCDummyType) {
-      throw new IllegalArgumentException();
-    }
   }
 
   public static CType simplifyType(CType t1) {
@@ -373,23 +368,6 @@ public class CTypeUtils {
     private Boolean equalsNamedType(CNamedType pThis, CNamedType other) {
       return
           Objects.equals(pThis.getName(), other.getName());
-    }
-
-    @Override
-    public Boolean visit(CDummyType pThis) {
-
-      if (this == obj) {
-        return true;
-      }
-      if (pThis.getClass() != obj.getClass()) {
-        return false;
-      }
-      CDummyType other = (CDummyType) obj;
-      return equalsDummyType(pThis, other);
-    }
-
-    private Boolean equalsDummyType(CDummyType pThis, CDummyType other) {
-      return true;
     }
   }
 
