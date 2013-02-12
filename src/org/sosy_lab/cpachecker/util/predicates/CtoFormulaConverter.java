@@ -1350,7 +1350,7 @@ public class CtoFormulaConverter {
       String retVarName = scoped(VAR_RETURN_NAME, function);
 
       CFunctionCallExpression funcCallExp = exp.getRightHandSide();
-      CType retType = getReturnType(funcCallExp);
+      CType retType = getReturnType(funcCallExp, ce);
 
       Formula retVar = makeVariable(retVarName, retType, ssa);
       CExpression e = exp.getLeftHandSide();
@@ -1375,26 +1375,22 @@ public class CtoFormulaConverter {
     }
   }
 
-  private CType getReturnType(CFunctionCallExpression funcCallExp) {
+  private CType getReturnType(CFunctionCallExpression funcCallExp, CFAEdge edge) throws UnrecognizedCCodeException {
     // NOTE: When funCallExp.getExpressionType() does always return the return type of the function we don't
     // need this function. However I'm not sure because there can be implicit casts. Just to be safe.
-    CType retType = null;
+    CType retType;
     CFunctionDeclaration funcDecl = funcCallExp.getDeclaration();
     if (funcDecl == null) {
       // Check if we have a function pointer here.
       CExpression functionNameExpression = funcCallExp.getFunctionNameExpression();
-      if (functionNameExpression instanceof CUnaryExpression) {
-        CUnaryExpression funNameExp = (CUnaryExpression)functionNameExpression;
-        CType expressionType = funNameExp.getExpressionType();
-        if (expressionType instanceof CFunctionType) {
-          CFunctionType funcPtrType = (CFunctionType)expressionType;
-          retType = funcPtrType.getReturnType();
-        }
+      CType expressionType = simplifyType(functionNameExpression.getExpressionType());
+      if (expressionType instanceof CFunctionType) {
+        CFunctionType funcPtrType = (CFunctionType)expressionType;
+        retType = funcPtrType.getReturnType();
+      } else {
+        throw new UnrecognizedCCodeException("Cannot handle function pointer call with unknown type " + expressionType, edge, funcCallExp);
       }
-      if (retType == null) {
-        log(Level.SEVERE, "No function declaration was given for " + funcCallExp.toASTString());
-        throw new IllegalArgumentException("Can't add cast because the function declaration is missing! (" + funcCallExp.toASTString() + ")");
-      }
+      assert retType != null;
     } else {
       retType = funcDecl.getType().getReturnType();
     }
@@ -2733,7 +2729,7 @@ public class CtoFormulaConverter {
           return makeFreshVariable(func, expType, ssa);
         }
 
-        CType returnType = getReturnType(fexp);
+        CType returnType = getReturnType(fexp, edge);
         FormulaType<?> t = getFormulaTypeFromCType(returnType);
         return ffmgr.createFuncAndCall(func, t, args);
       }
