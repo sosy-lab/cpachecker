@@ -1039,6 +1039,7 @@ public class CtoFormulaConverter {
   }
 
   private CType getPromotedCType(CType t) {
+    t = simplifyType(t);
     if (t instanceof CSimpleType) {
       // Integer types smaller than int are promoted when an operation is performed on them.
       // If all values of the original type can be represented as an int, the value of the smaller type is converted to an int;
