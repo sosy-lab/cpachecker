@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -113,11 +112,6 @@ class FillInBindingVisitor implements CTypeVisitor<Void, RuntimeException> {
   @Override
   public Void visit(CTypedefType pTypedefType) {
     pTypedefType.getRealType().accept(this);
-    return null;
-  }
-
-  @Override
-  public Void visit(CNamedType pCNamedType) {
     return null;
   }
 }

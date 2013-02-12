@@ -87,11 +87,6 @@ public class CTypeUtils {
     public CType visit(CTypedefType pTypedefType) {
       return pTypedefType.getRealType().accept(this);
     }
-
-    @Override
-    public CType visit(CNamedType pCNamedType) {
-      throw new IllegalArgumentException();
-    }
   }
 
   public static CType simplifyType(CType t1) {
@@ -350,24 +345,6 @@ public class CTypeUtils {
       }
 
       return pThis.getRealType().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CNamedType pThis) {
-
-      if (this == obj) {
-        return true;
-      }
-      if (pThis.getClass() != obj.getClass()) {
-        return false;
-      }
-      CNamedType other = (CNamedType) obj;
-      return equalsNamedType(pThis, other);
-    }
-
-    private Boolean equalsNamedType(CNamedType pThis, CNamedType other) {
-      return
-          Objects.equals(pThis.getName(), other.getName());
     }
   }
 

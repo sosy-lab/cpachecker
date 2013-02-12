@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNamedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -96,12 +95,6 @@ class RepresentabilityCTypeVisitor implements CtoFormulaTypeVisitor<Boolean, Run
   @Override
   public Boolean visit(CTypedefType pTypedefType) {
     return pTypedefType.getRealType().accept(this);
-  }
-
-  @Override
-  public Boolean visit(CNamedType pCNamedType) {
-    // If the type was representable, the name would be already resolved
-    return false;
   }
 
   @Override
