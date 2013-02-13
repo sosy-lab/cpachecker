@@ -1577,10 +1577,12 @@ public class CtoFormulaConverter {
   }
 
   private void warnToComplex(IAstNode node) {
-    if (handleFieldAccess) {
-      log(Level.WARNING, "Ignoring pointer aliasing, because statement is too complex, please simplify: " + node.toASTString() + " (Line: " + node.getFileLocation().getStartingLineNumber() + ")");
-    } else {
-      log(Level.WARNING, "Ignoring pointer aliasing, because statement is too complex, please simplify or enable handleFieldAccess and handleFieldAliasing: " + node.toASTString() + " (Line: " + node.getFileLocation().getStartingLineNumber() + ")");
+    if (logger.wouldBeLogged(Level.FINEST)) {
+      if (handleFieldAccess) {
+        log(Level.FINEST, "Ignoring pointer aliasing, because statement is too complex, please simplify: " + node.toASTString() + " (Line: " + node.getFileLocation().getStartingLineNumber() + ")");
+      } else {
+        log(Level.FINEST, "Ignoring pointer aliasing, because statement is too complex, please simplify or enable handleFieldAccess and handleFieldAliasing: " + node.toASTString() + " (Line: " + node.getFileLocation().getStartingLineNumber() + ")");
+      }
     }
   }
 
@@ -1596,7 +1598,7 @@ public class CtoFormulaConverter {
 
     if (!(pRight instanceof CExpression)) {
       // The right side is something strange
-      log(Level.WARNING, "Not a CExpression on the right side, ignoring aliasing: " + pRight.toASTString());
+      log(Level.FINEST, "Not a CExpression on the right side, ignoring aliasing: " + pRight.toASTString());
       return bfmgr.makeBoolean(true);
     }
 
@@ -1662,7 +1664,7 @@ public class CtoFormulaConverter {
               if (currentGuess == null) {
                 // TODO: This currently happens when assigning a function to a function pointer.
                 // NOTE: Should we set the size of r in this case?
-                log(Level.WARNING, "Pointer " + lVarName.getName() + " is assigned the value of variable " +
+                log(Level.FINEST, "Pointer " + lVarName.getName() + " is assigned the value of variable " +
                     right.toASTString() + " which contains a non-pointer value in line " +
                     right.getFileLocation().getStartingLineNumber());
               } else {
