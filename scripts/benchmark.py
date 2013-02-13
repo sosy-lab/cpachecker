@@ -1201,7 +1201,6 @@ def executeBenchmarkInCloud(benchmark):
     for runSet in benchmark.runSets:
         
         if STOPPED_BY_INTERRUPT: break
-        outputHandler.outputBeforeRunSet(runSet)        
         
         numOfRunDefLines += (len(runSet.runs) + 1)
         
@@ -1214,7 +1213,6 @@ def executeBenchmarkInCloud(benchmark):
 
         # iterate over runs
         for run in runSet.runs:
-                outputHandler.outputBeforeRun(run)
                 argString = " ".join(run.args)
                 runDefinitions += argString + "\t" + run.sourcefile + "\n"
                 absSourceFiles.append(os.path.abspath(run.sourcefile))
@@ -1253,7 +1251,9 @@ def executeBenchmarkInCloud(benchmark):
     
     #hanler output after all runs are done
     for runSet in benchmark.runSets:
+        outputHandler.outputBeforeRunSet(runSet)     
         for run in runSet.runs:
+            outputHandler.outputBeforeRun(run)
             outputHandler.outputAfterRun(run)
         outputHandler.outputAfterRunSet(runSet, None, None)
         
