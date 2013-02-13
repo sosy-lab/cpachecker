@@ -8,7 +8,8 @@ def main(argv=None):
         argv = sys.argv
 
     if(len(argv) >= 5):
-        args = argv[1]
+        argStr = argv[1]
+        args = argStr.split(" ");
         memlimit = int(argv[2])
         timelimit = int(argv[3])
         outputFileName = argv[4]
@@ -25,7 +26,7 @@ def main(argv=None):
         print returnvalue
         print output
 
-        result = args + "\n"
+        result = argStr + "\n"
         result = result + "Walltime: " + str(wallTime) + "\n"
         result = result +  "CpuTime: " + str(wallTime) + "\n"
         result = result + "Returnvalue: " + str(returnvalue) + "\n"
