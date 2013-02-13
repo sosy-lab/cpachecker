@@ -339,11 +339,11 @@ public class PathToCTranslator {
       functionStack.pop();
 
     } else {
-      currentFunction.write(processSimpleEdge(edge));
+      currentFunction.write(processSimpleEdge(edge, currentFunction.getCurrentBlock()));
     }
   }
 
-  private String processSimpleEdge(CFAEdge pCFAEdge) {
+  private String processSimpleEdge(CFAEdge pCFAEdge, BasicBlock currentBlock) {
 
     switch (pCFAEdge.getEdgeType()) {
 
@@ -366,14 +366,21 @@ public class PathToCTranslator {
         return "";
       }
 
-      return lDeclarationEdge.getCode();
+      // avoid having the same declaration edge twice in one basic block
+      if(currentBlock.hasDeclaration(lDeclarationEdge)) {
+        return "";
+      }
+      else {
+        currentBlock.addDeclaration(lDeclarationEdge);
+        return lDeclarationEdge.getCode();
+      }
     }
 
     case MultiEdge: {
       StringBuilder sb = new StringBuilder();
 
       for (CFAEdge edge : (MultiEdge)pCFAEdge) {
-        sb.append(processSimpleEdge(edge));
+        sb.append(processSimpleEdge(edge, currentBlock));
       }
       return sb.toString();
     }
