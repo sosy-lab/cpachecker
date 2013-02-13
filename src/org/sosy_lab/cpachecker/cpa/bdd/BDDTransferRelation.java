@@ -792,8 +792,10 @@ public class BDDTransferRelation implements TransferRelation {
    * (one for each value and one for the whole rest).
    * For N+1 different values we need at least log_2(N+1) bits in the representation. */
   private int partitionToBitsize(Partition partition) {
-    assert partition != null;
-    if (varClass.getBooleanPartitions().contains(partition)) {
+    if (partition == null) {
+      // we know nothing about the partition, so do not track it with BDDCPA
+      return 0;
+    } else if (varClass.getBooleanPartitions().contains(partition)) {
       return 1;
     } else if (compressIntEqual && varClass.getIntEqualPartitions().contains(partition)) {
       return (int) Math.ceil(Math.log(partition.getValues().size() + 1) / Math.log(2));
