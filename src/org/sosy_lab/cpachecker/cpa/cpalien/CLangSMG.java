@@ -117,18 +117,11 @@ public class CLangSMG extends SMG {
    * @param pObject
    *
    * Adds an object to the heap.
-   *
-   * TODO: Test adding an object
-   * TODO: Test adding an object already present
-   * TODO: Test consistency after both cases above
-   *
-   * TODO: Consistency check: same object on heap and global
-   * TODO: Test for this consistency check
-   *
-   * TODO: Consistency check: same object on heap and stack
-   * TODO: Test for this consistency check
    */
   public void addHeapObject(SMGObject pObject) {
+    if (this.heap_objects.contains(pObject)){
+      throw new IllegalArgumentException("Heap object already in the SMG: [" + pObject + "]");
+    }
     this.heap_objects.add(pObject);
     super.addObject(pObject);
   }
@@ -137,18 +130,14 @@ public class CLangSMG extends SMG {
    * @param pObject
    *
    * Adds a global object
-   *
-   * TODO: Test adding an object
-   * TODO: Test adding an object twice
-   * TODO: Test consistency after both cases above
-   *
-   * TODO: Consistency check: same object on global and stack
-   * TODO: Test for this consistency check
-   *
-   * TODO: Consistency check: different objects with same label (invalid C)
-   * TODO: Test for this consistency check
    */
   public void addGlobalObject(SMGObject pObject) {
+    if (this.global_objects.values().contains(pObject)){
+      throw new IllegalArgumentException("Global object already in the SMG: [" + pObject + "]");
+    }
+    if (this.global_objects.containsKey(pObject.getLabel())){
+      throw new IllegalArgumentException("Global object with label [" + pObject.getLabel() + "] already in the SMG");
+    }
     this.global_objects.put(pObject.getLabel(), pObject);
     super.addObject(pObject);
   }
@@ -162,13 +151,7 @@ public class CLangSMG extends SMG {
    * TODO: Scope visibility vs. stack frame issues: handle cases where a variable is visible
    * but is is allowed to override (inner blocks)
    *
-   *
    * TODO: Shall we need an extension for putting objects to upper frames?
-   * TODO: Test adding an object: successful
-   * TODO: Test adding an object twice to the same stack frame: exc
-   *
-   * TODO: Consistency check (deny): same object in different stack frames
-   * TODO: Test for this consistency check
    *
    * TODO: Consistency check (allow): different objects with same label inside a frame
    * TODO: Test for this consistency check
@@ -179,7 +162,7 @@ public class CLangSMG extends SMG {
    * TODO: Consistency check (allow): different objects with same label as global object
    * TODO: Test for this consistency check
    */
-  public void addStackObject(SMGObject pObject) throws IllegalAccessException {
+  public void addStackObject(SMGObject pObject) {
     super.addObject(pObject);
     stack_objects.peek().addStackVariable(pObject.getLabel(), pObject);
   }
@@ -518,6 +501,33 @@ class CLangSMGConsistencyVerifier{
     return true;
   }
 
+  static private boolean verifyGlobalNamespace(LogManager pLogger, CLangSMG smg){
+    for (String label: smg.getGlobalObjects().keySet()){
+      if (smg.getGlobalObjects().get(label).getLabel() != label){
+        pLogger.log(Level.SEVERE,  "CLangSMG inconsistent: label [" + label + "] points to an object with label [" + smg.getGlobalObjects().get(label).getLabel() + "]");
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  static private boolean verifyStackNamespaces(LogManager pLogger, CLangSMG smg){
+    HashSet<SMGObject> stack_objects = new HashSet<>();
+
+    for (CLangStackFrame frame : smg.getStackFrames()){
+      for (SMGObject object : frame.getVariables().values()){
+        if (stack_objects.contains(object)){
+          pLogger.log(Level.SEVERE, "CLangSMG inconsistent: object [" + object + "] present multiple times in the stack");
+          return false;
+        }
+        stack_objects.add(object);
+      }
+    }
+
+    return true;
+  }
+
   static public boolean verifyCLangSMG(LogManager pLogger, CLangSMG smg){
     boolean toReturn = true;
     pLogger.log(Level.FINEST, "Starting constistency check of a CLangSMG");
@@ -542,6 +552,14 @@ class CLangSMGConsistencyVerifier{
         verifyNullObject(pLogger, smg),
         pLogger,
         "Checking CLangSMG consistency: null object invariants hold");
+    toReturn = toReturn && verifyCLangSMGProperty(
+        verifyGlobalNamespace(pLogger, smg),
+        pLogger,
+        "Checking CLangSMG consistency: global namespace problem");
+    toReturn = toReturn && verifyCLangSMGProperty(
+        verifyStackNamespaces(pLogger, smg),
+        pLogger,
+        "Checking CLangSMG consistency: stack namespace");
 
     pLogger.log(Level.FINEST, "Ending consistency check of a CLangSMG");
 

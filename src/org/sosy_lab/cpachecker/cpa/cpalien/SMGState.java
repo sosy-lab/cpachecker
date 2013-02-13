@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import java.util.logging.Level;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -48,12 +46,7 @@ public class SMGState implements AbstractQueryableState {
   }
 
   void addStackObject(SMGObject obj){
-    try {
-      heap.addStackObject(obj);
-    } catch (IllegalAccessException e) {
-      logger.log(Level.SEVERE, e.getMessage());
-      e.printStackTrace();
-    }
+    heap.addStackObject(obj);
   }
 
   public void addValue(int pValue) {
