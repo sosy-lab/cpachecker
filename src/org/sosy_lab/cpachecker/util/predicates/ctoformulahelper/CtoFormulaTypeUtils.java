@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.ctoformulahelper;
 
-import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -95,11 +93,6 @@ public class CtoFormulaTypeUtils {
       }
 
       return new CtoFormulaCTypeEqualsVisitor(other);
-    }
-
-    @Override
-    protected CtoFormulaCTypeEqualsVisitor workCopy(Object other, List<String> stack) {
-      return (CtoFormulaCTypeEqualsVisitor) super.workCopy(other, stack);
     }
 
     @Override

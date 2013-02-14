@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigInteger;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -137,7 +138,7 @@ class ASTTypeConverter {
       // otherwise they would not point to the correct struct
       // TODO: volatile and const cannot be checked here until no, so both is set
       //       to false
-      CCompositeType compType = new CCompositeType(false, false, kind, new LinkedList<CCompositeTypeMemberDeclaration>(), name);
+      CCompositeType compType = new CCompositeType(false, false, kind, ImmutableList.<CCompositeTypeMemberDeclaration>of(), name);
 
       // We need to cache compType before converting the type of its fields!
       // Otherwise we run into an infinite recursion if the type of one field
@@ -264,7 +265,7 @@ class ASTTypeConverter {
   }
 
   private List<CCompositeTypeMemberDeclaration> conv(IField[] pFields) {
-    List<CCompositeTypeMemberDeclaration> list = new LinkedList<>();
+    List<CCompositeTypeMemberDeclaration> list = new ArrayList<>(pFields.length);
 
     for(int i = 0; i < pFields.length; i++) {
       list.add(new CCompositeTypeMemberDeclaration(convert(pFields[i].getType()), pFields[i].getName()));

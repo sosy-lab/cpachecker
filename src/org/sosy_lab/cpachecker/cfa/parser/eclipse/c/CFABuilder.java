@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
@@ -68,7 +67,7 @@ import com.google.common.collect.TreeMultimap;
 class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
-  private final Queue<IASTFunctionDefinition> functionDeclarations = new LinkedList<>();
+  private final List<IASTFunctionDefinition> functionDeclarations = new ArrayList<>();
   private final Map<String, FunctionEntryNode> cfas = new HashMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 

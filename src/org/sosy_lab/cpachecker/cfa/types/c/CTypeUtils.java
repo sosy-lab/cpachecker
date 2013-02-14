@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
@@ -95,7 +96,8 @@ public class CTypeUtils {
 
   public static class BaseCTypeEqualsVisitor implements CTypeVisitor<Boolean, RuntimeException> {
     final Object obj;
-    List<String> stack = new LinkedList<>();
+    private Deque<String> stack = new ArrayDeque<>(3);
+
     public BaseCTypeEqualsVisitor(Object other) {
       this.obj = other;
     }
@@ -108,7 +110,7 @@ public class CTypeUtils {
       return CTypeUtils.simplifyType(t1);
     }
 
-    public BaseCTypeEqualsVisitor copyWith(Object other) {
+    protected BaseCTypeEqualsVisitor copyWith(Object other) {
       if (other instanceof CType) {
         other = simplifyType((CType)other);
       }
@@ -116,7 +118,7 @@ public class CTypeUtils {
       return new BaseCTypeEqualsVisitor(other);
     }
 
-    protected BaseCTypeEqualsVisitor workCopy(Object other, List<String> stack) {
+    private BaseCTypeEqualsVisitor workCopy(Object other, Deque<String> stack) {
       BaseCTypeEqualsVisitor copy = copyWith(other);
       copy.stack = stack;
       return copy;
