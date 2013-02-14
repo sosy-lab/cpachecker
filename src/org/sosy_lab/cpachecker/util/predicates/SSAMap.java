@@ -29,12 +29,16 @@ import static com.google.common.base.Predicates.notNull;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
 import com.google.common.base.Function;
@@ -70,15 +74,16 @@ public class SSAMap implements Serializable {
 
     private SSAMap ssa;
     private Map<Object, CType> typesBuilder = null;
-    private Multiset<String> varsBuilder = null;
+    private PersistentSortedMap<String, Integer> vars;
     private Multiset<Pair<String, FormulaList>> funcsBuilder = null;
 
     protected SSAMapBuilder(SSAMap ssa) {
       this.ssa = ssa;
+      this.vars = ssa.vars;
     }
 
     public int getIndex(String variable) {
-      return SSAMap.getIndex(variable, Objects.firstNonNull(varsBuilder, ssa.vars));
+      return SSAMap.getIndex(variable, vars);
     }
 
     public int getIndex(String name, FormulaList args) {
@@ -92,14 +97,13 @@ public class SSAMap implements Serializable {
 
     public void setIndex(String name, CType type, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation!");
-
-      if (varsBuilder == null) {
-        varsBuilder = LinkedHashMultiset.create(ssa.vars);
-      }
-      Preconditions.checkArgument(idx >= varsBuilder.count(name), "SSAMap updates need to be strictly monotone!");
+      int oldIdx = getIndex(name);
+      Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone!");
 
       setType(name, type);
-      varsBuilder.setCount(name, idx);
+      if (idx > oldIdx) {
+        vars = vars.putAndCopy(name, idx);
+      }
     }
 
     private void setType(Object key, CType type) {
@@ -133,15 +137,11 @@ public class SSAMap implements Serializable {
     public void deleteVariable(String variable) {
       int index = getIndex(variable);
       if (index != -1) {
-
-        if (varsBuilder == null) {
-          varsBuilder = LinkedHashMultiset.create(ssa.vars);
-        }
         if (typesBuilder == null) {
           typesBuilder = new HashMap<>(ssa.types);
         }
 
-        varsBuilder.remove(variable, index);
+        vars = vars.removeAndCopy(variable);
         typesBuilder.remove(variable);
       }
     }
@@ -158,21 +158,20 @@ public class SSAMap implements Serializable {
      * Returns an immutable SSAMap with all the changes made to the builder.
      */
     public SSAMap build() {
-      if (varsBuilder == null && funcsBuilder == null) {
+      if (vars == ssa.vars && funcsBuilder == null) {
         return ssa;
       }
 
-      ssa = new SSAMap(Objects.firstNonNull(varsBuilder, ssa.vars),
+      ssa = new SSAMap(vars,
                        Objects.firstNonNull(funcsBuilder, ssa.funcs),
                        Objects.firstNonNull(typesBuilder, ssa.types));
-      varsBuilder  = null;
       funcsBuilder = null;
       return ssa;
     }
   }
 
   private static final SSAMap EMPTY_SSA_MAP = new SSAMap(
-      ImmutableMultiset.<String>of(),
+      PathCopyingPersistentTreeMap.<String, Integer>of(),
       ImmutableMultiset.<Pair<String, FormulaList>>of(),
       ImmutableMap.<Object, CType>of());
 
@@ -216,7 +215,7 @@ public class SSAMap implements Serializable {
     // We don't bother checking the vars set for emptiness, because this will
     // probably never be the case on a merge.
 
-    Multiset<String> vars;
+    PersistentSortedMap<String, Integer> vars;
     if (s1.vars == s2.vars) {
       if (s1.funcs == s2.funcs && s1.types == s2.types) {
         // both are absolutely identical
@@ -268,6 +267,76 @@ public class SSAMap implements Serializable {
     return new SSAMap(vars, funcs, types);
   }
 
+  private static <K extends Comparable<? super K>> PersistentSortedMap<K, Integer> merge(PersistentSortedMap<K, Integer> s1, PersistentSortedMap<K, Integer> s2) {
+    if (s1.size() < s2.size()) {
+      return merge(s2, s1);
+    }
+
+    // s1 is the bigger one, so we use it as the base.
+    PersistentSortedMap<K, Integer> result = s1;
+
+    Iterator<Map.Entry<K, Integer>> it1 = s1.entrySet().iterator();
+    Iterator<Map.Entry<K, Integer>> it2 = s2.entrySet().iterator();
+
+    Map.Entry<K, Integer> e1 = null;
+    Map.Entry<K, Integer> e2 = null;
+
+    // This loop iterates synchronously through both sets
+    // by trying to keep the keys equal.
+    // If one iterator fails behind, the other is not forwarded until the first catches up.
+    // The advantage of this is it is in O(n log(n))
+    // (n iterations, log(n) per update).
+    while (it1.hasNext() && it2.hasNext()) {
+      if (e1 == null) {
+        e1 = it1.next();
+      }
+      if (e2 == null) {
+        e2 = it2.next();
+      }
+
+      int comp = e1.getKey().compareTo(e2.getKey());
+
+      if (comp < 0) {
+        // e1 < e2
+
+        // forward e1 until e2 catches up
+        e1 = null;
+
+      } else if (comp > 0) {
+        // e1 > e2
+
+        // e2 is not in map
+        assert !result.containsKey(e2.getKey());
+        result = result.putAndCopy(e2.getKey(), e2.getValue());
+
+        // forward e2 until e1 catches up
+        e2 = null;
+
+      } else {
+        // e1 == e2
+
+        if (!e1.getValue().equals(e2.getValue())) {
+          result = result.putAndCopy(e1.getKey(), Math.max(e1.getValue(), e2.getValue()));
+        }
+
+        // forward both iterators
+        e1 = null;
+        e2 = null;
+      }
+    }
+
+    // Now copy the rest of the mappings from s2.
+    // For s1 this is not necessary.
+    while (it2.hasNext()) {
+      e2 = it2.next();
+      result = result.putAndCopy(e2.getKey(), e2.getValue());
+    }
+
+    assert result.size() >= Math.max(s1.size(), s2.size());
+
+    return result;
+  }
+
   private static <T> Multiset<T> merge(Multiset<T> s1, Multiset<T> s2) {
     Multiset<T> result = LinkedHashMultiset.create(Math.max(s1.elementSet().size(), s2.elementSet().size()));
     for (Entry<T> entry : s1.entrySet()) {
@@ -293,12 +362,12 @@ public class SSAMap implements Serializable {
    * Multiset.count(key). This is better because the Multiset internally uses
    * modifiable integers instead of the immutable Integer class.
    */
-  private final Multiset<String> vars;
+  private final PersistentSortedMap<String, Integer> vars;
   private final Multiset<Pair<String, FormulaList>> funcs;
 
   private final Map<Object, CType> types;
 
-  private SSAMap(Multiset<String> vars,
+  private SSAMap(PersistentSortedMap<String, Integer> vars,
                  Multiset<Pair<String, FormulaList>> funcs,
                  Map<Object, CType> types) {
     this.vars = vars;
@@ -323,6 +392,16 @@ public class SSAMap implements Serializable {
     }
   }
 
+  private static <T> int getIndex(T key, PersistentMap<T, Integer> map) {
+    Integer i = map.get(key);
+    if (i != null) {
+      return i;
+    } else {
+      // no index found, return -1
+      return -1;
+    }
+  }
+
   /**
    * returns the index of the variable in the map
    */
@@ -335,7 +414,7 @@ public class SSAMap implements Serializable {
   }
 
   public Set<String> allVariables() {
-    return Collections.unmodifiableSet(vars.elementSet());
+    return Collections.unmodifiableSet(vars.keySet());
   }
 
   public Iterable<Variable> allVariablesWithTypes() {
