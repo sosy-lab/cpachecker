@@ -272,6 +272,6 @@ public class MemoryStatistics extends Thread {
   }
 
   private static String formatMem(long mem) {
-    return String.format("%,9dMB", mem >> 20);
+    return String.format("%9dMB", mem >> 20);
   }
 }
