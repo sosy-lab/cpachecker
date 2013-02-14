@@ -27,12 +27,17 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -45,6 +50,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.LinkedHashMultiset;
@@ -213,10 +219,12 @@ public class SSAMap implements Serializable {
   }
 
   /**
-   * Returns an unmodifiable SSAMap that contains all indices from two SSAMaps.
+   * Creates an unmodifiable SSAMap that contains all indices from two SSAMaps.
    * If there are conflicting indices, the maximum of both is used.
+   * Further returns a list with all variables for which different indices
+   * were found, together with the two conflicting indices.
    */
-  public static SSAMap merge(SSAMap s1, SSAMap s2) {
+  public static Pair<SSAMap, List<Triple<String, Integer, Integer>>> merge(SSAMap s1, SSAMap s2) {
     // This method uses some optimizations to avoid work when parts of both SSAMaps
     // are equal. These checks use == instead of equals() because it is much faster
     // and we create sets lazily (so when they are not identical, they are
@@ -225,15 +233,18 @@ public class SSAMap implements Serializable {
     // probably never be the case on a merge.
 
     PersistentSortedMap<String, Integer> vars;
+    List<Triple<String, Integer, Integer>> differences;
     if (s1.vars == s2.vars) {
+      differences = ImmutableList.of();
       if (s1.funcs == s2.funcs && s1.types == s2.types) {
         // both are absolutely identical
-        return s1;
+        return Pair.of(s1, differences);
       }
       vars = s1.vars;
 
     } else {
-      vars = merge(s1.vars, s2.vars, MAXIMUM_ON_CONFLICT);
+      differences = new ArrayList<>();
+      vars = merge(s1.vars, s2.vars, MAXIMUM_ON_CONFLICT, differences);
     }
 
     Multiset<Pair<String, FormulaList>> funcs;
@@ -252,7 +263,7 @@ public class SSAMap implements Serializable {
     } else {
       @SuppressWarnings("unchecked")
       ConflictHandler<Object, CType> exceptionOnConflict = (ConflictHandler<Object, CType>)EXCEPTION_ON_CONFLICT;
-      varTypes = merge(s1.varTypes, s2.varTypes, exceptionOnConflict);
+      varTypes = merge(s1.varTypes, s2.varTypes, exceptionOnConflict, null);
     }
 
     Map<Pair<String, FormulaList>, CType> funcTypes;
@@ -283,16 +294,25 @@ public class SSAMap implements Serializable {
       }
     }
 
-    return new SSAMap(vars, funcs, varTypes, funcTypes);
+    return Pair.of(new SSAMap(vars, funcs, varTypes, funcTypes), differences);
   }
 
+  /**
+   * Merge two PersistentSortedMaps.
+   * The result has all key-value pairs where the key is only in one of the map,
+   * those which are identical in both map,
+   * and for those keys that have a different value in both maps a handler is called,
+   * and the result is put in the resulting map.
+   * @param s1 The first map.
+   * @param s2 The second map.
+   * @param conflictHandler The handler that is called for a key with two different values.
+   * @param collectDifferences Null or a modifiable list into which keys with different values are put.
+   * @return
+   */
   private static <K extends Comparable<? super K>, V> PersistentSortedMap<K, V> merge(
       PersistentSortedMap<K, V> s1, PersistentSortedMap<K, V> s2,
-      ConflictHandler<? super K, V> conflictHandler) {
-
-    if (s1.size() < s2.size()) {
-      return merge(s2, s1, conflictHandler);
-    }
+      ConflictHandler<? super K, V> conflictHandler,
+      @Nullable List<Triple<K, V, V>> collectDifferences) {
 
     // s1 is the bigger one, so we use it as the base.
     PersistentSortedMap<K, V> result = s1;
@@ -337,9 +357,17 @@ public class SSAMap implements Serializable {
       } else {
         // e1 == e2
 
-        if (!e1.getValue().equals(e2.getValue())) {
-          V newValue = conflictHandler.resolveConflict(e1.getKey(), e1.getValue(), e2.getValue());
-          result = result.putAndCopy(e1.getKey(), newValue);
+        K key = e1.getKey();
+        V value1 = e1.getValue();
+        V value2 = e2.getValue();
+
+        if (!value1.equals(value2)) {
+          V newValue = conflictHandler.resolveConflict(key, value1, value2);
+          result = result.putAndCopy(key, newValue);
+
+          if (collectDifferences != null) {
+            collectDifferences.add(Triple.of(key, value1, value2));
+          }
         }
 
         // forward both iterators
@@ -455,6 +483,10 @@ public class SSAMap implements Serializable {
 
   public int getIndex(String name, FormulaList args) {
     return getIndex(Pair.<String, FormulaList>of(name, args), funcs);
+  }
+
+  public CType getType(String name) {
+    return varTypes.get(name);
   }
 
   public SortedSet<String> allVariables() {

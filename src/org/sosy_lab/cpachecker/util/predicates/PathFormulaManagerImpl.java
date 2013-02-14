@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -135,20 +136,17 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
    */
   private Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> mergeSSAMaps(
       SSAMap ssa1, SSAMap ssa2) {
-    SSAMap result = SSAMap.merge(ssa1, ssa2);
+    Pair<SSAMap, List<Triple<String, Integer, Integer>>> result = SSAMap.merge(ssa1, ssa2);
+    SSAMap resultSSA = result.getFirst();
+    List<Triple<String, Integer, Integer>> varDifferences = result.getSecond();
+
     BooleanFormula mt1 = bfmgr.makeBoolean(true);
     BooleanFormula mt2 = bfmgr.makeBoolean(true);
 
-    for (Map.Entry<String, CType> var : result.allVariablesWithTypes()) {
-      String name = var.getKey();
-      if (name.equals(CtoFormulaConverter.NONDET_VARIABLE)) {
-        continue; // do not add index adjustment terms for __nondet__
-      }
-      if (name.startsWith(CtoFormulaConverter.EXPAND_VARIABLE)) {
-        continue; // do not add index adjustment terms for exand variables
-      }
-      int i1 = ssa1.getIndex(name);
-      int i2 = ssa2.getIndex(name);
+    for (Triple<String, Integer, Integer> difference : varDifferences) {
+      String name = difference.getFirst();
+      int i1 = difference.getSecond();
+      int i2 = difference.getThird();
 
       if (i1 > i2 && i1 > 1) {
         // i2:smaller, i1:bigger
@@ -159,12 +157,13 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
           t = makeNondetFlagMerger(Math.max(i2, 1), i1);
         }
         else {
-          t = makeSSAMerger(name, var.getValue(), Math.max(i2, 1), i1);
+          t = makeSSAMerger(name, resultSSA.getType(name), Math.max(i2, 1), i1);
         }
 
         mt2 = bfmgr.and(mt2, t);
 
-      } else if (i1 < i2 && i2 > 1) {
+      } else if (i2 > 1) {
+        assert i1 < i2;
         // i1:smaller, i2:bigger
         // => need correction term for i1
         BooleanFormula t;
@@ -173,14 +172,14 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
           t = makeNondetFlagMerger(Math.max(i1, 1), i2);
         }
         else {
-          t = makeSSAMerger(name, var.getValue(), Math.max(i1, 1), i2);
+          t = makeSSAMerger(name, resultSSA.getType(name), Math.max(i1, 1), i2);
         }
 
         mt1 = bfmgr.and(mt1, t);
       }
     }
 
-    for (Pair<Variable, FormulaList> f : result.allFunctions()) {
+    for (Pair<Variable, FormulaList> f : resultSSA.allFunctions()) {
       Variable name = f.getFirst();
       FormulaList args = f.getSecond();
       int i1 = ssa1.getIndex(name.getName(), args);
@@ -200,7 +199,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       }
     }
 
-    return Pair.of(Pair.of(mt1, mt2), result);
+    return Pair.of(Pair.of(mt1, mt2), resultSSA);
   }
 
   private BooleanFormula makeNondetFlagMerger(int iSmaller, int iBigger) {
@@ -211,9 +210,10 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     assert iSmaller < iBigger;
 
     BooleanFormula lResult = bfmgr.makeBoolean(true);
+    FormulaType<Formula> type = fmgr.getFormulaType(pInitialValue);
 
     for (int i = iSmaller+1; i <= iBigger; ++i) {
-      Formula currentVar = fmgr.makeVariable(fmgr.getFormulaType(pInitialValue), var, i);
+      Formula currentVar = fmgr.makeVariable(type, var, i);
       BooleanFormula e = fmgr.makeEqual(currentVar, pInitialValue);
       lResult = bfmgr.and(lResult, e);
     }
