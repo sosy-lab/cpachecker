@@ -440,6 +440,32 @@ class Run():
         self.args = args;
 
 
+
+    def afterExecution(self, returnvalue, output):
+        
+        rlimits = self.benchmark.rlimits
+        
+        # calculation: returnvalue == (returncode * 256) + returnsignal
+        # highest bit of returnsignal shows only whether a core file was produced, we clear it
+        returnsignal = returnvalue & 0x7F
+        returncode = returnvalue >> 8
+        logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
+        self.status = self.tool.getStatus(returncode, returnsignal, output, self._isTimeout())
+        self.tool.addColumnValues(output, self.columns)
+       
+        # Tools sometimes produce a result even after a timeout.
+        # This should not be counted, so we overwrite the result with TIMEOUT
+        # here. if this is the case.
+        # However, we don't want to forget more specific results like SEGFAULT,
+        # so we do this only if the result is a "normal" one like SAFE.
+        if not self.status in ['SAFE', 'UNSAFE', 'UNKNOWN']:
+            if TIMELIMIT in rlimits:
+                timeLimit = rlimits[TIMELIMIT] + 20
+                if self.wallTime > timeLimit or self.cpuTime > timeLimit:
+                    self.status = "TIMEOUT"
+                    
+        self.benchmark.outputHandler.outputAfterRun(self)
+
     def execute(self, numberOfThread):
         """
         This function executes the tool with a sourcefile with options.
@@ -464,28 +490,7 @@ class Run():
                 pass
             return
 
-        # calculation: returnvalue == (returncode * 256) + returnsignal
-        # highest bit of returnsignal shows only whether a core file was produced, we clear it
-        returnsignal = returnvalue & 0x7F
-        returncode = returnvalue >> 8
-
-        logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
-
-        self.status = self.tool.getStatus(returncode, returnsignal, output, self._isTimeout())
-        self.tool.addColumnValues(output, self.columns)
-
-        # Tools sometimes produce a result even after a timeout.
-        # This should not be counted, so we overwrite the result with TIMEOUT
-        # here. if this is the case.
-        # However, we don't want to forget more specific results like SEGFAULT,
-        # so we do this only if the result is a "normal" one like SAFE.
-        if not self.status in ['SAFE', 'UNSAFE', 'UNKNOWN']:
-            if TIMELIMIT in rlimits:
-                timeLimit = rlimits[TIMELIMIT] + 20
-                if self.wallTime > timeLimit or self.cpuTime > timeLimit:
-                    self.status = "TIMEOUT"
-
-        self.benchmark.outputHandler.outputAfterRun(self)
+        self.afterExecution(returnvalue, output)
 
     def _isTimeout(self):
         ''' try to find out whether the tool terminated because of a timeout '''
@@ -1174,10 +1179,25 @@ def executeBenchmarkLocaly(benchmark):
             outputHandler.outputAfterRunSet(runSet, usedCpuTime, usedWallTime)
 
     outputHandler.outputAfterBenchmark()
-    if config.commit and not STOPPED_BY_INTERRUPT and runSetsExecuted > 0:
-        Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
-                                     config.commitMessage+'\n\n'+outputHandler.description)
-        
+
+def parseCloudResultFile(filePath):
+    try:
+        file = open(filePath)
+            
+        command = file.readline()
+        wallTime = float(file.readline().split(":")[-1])
+        cpuTime = float(file.readline().split(":")[-1])
+        returnValue = int(file.readline().split(":")[-1])
+    
+        output = "".join(file.readlines())
+     
+        file.close
+        return (wallTime, cpuTime, returnValue, output)
+    
+    except IOError:
+        logging.warning("Result file not found: " + filePath)
+        return (0,0,1,"")
+ 
 def executeBenchmarkInCloud(benchmark):
     
     outputHandler = benchmark.outputHandler
@@ -1209,7 +1229,7 @@ def executeBenchmarkInCloud(benchmark):
                         str(benchmark.rlimits[TIMELIMIT]) + "\t" + \
                        str(benchmark.rlimits[MEMLIMIT]) + "\n"
          
-        runDefinitions = runDefinitions + runSetHeadLine;
+        runDefinitions += runSetHeadLine;
 
         # iterate over runs
         for run in runSet.runs:
@@ -1221,7 +1241,6 @@ def executeBenchmarkInCloud(benchmark):
     absToolpaths = []
     for toolpath in toolpaths:
         absToolpaths.append(os.path.abspath(toolpath))
-    
     seperatedToolpaths = "\t".join(absToolpaths)
     sourceFilesBaseDir = os.path.commonprefix(absSourceFiles)
     logging.debug("source files dir: " + sourceFilesBaseDir)
@@ -1240,28 +1259,27 @@ def executeBenchmarkInCloud(benchmark):
                 str(numOfRunDefLines) + "\n" + \
                 runDefinitions
                 
-     # start cloud
+     # start cloud and wait for exit
     logging.debug("Starting cloud.")
     cloud = subprocess.Popen(["java", "-jar", config.cloudPath, "benchmark", "--master", config.cloudMasterName], stdin=subprocess.PIPE)
     (out, err) = cloud.communicate(cloudInput)
-    
     returnCode = cloud.wait()
-    
     logging.debug("Cloud return code: {0}".format(returnCode))
     
-    #hanler output after all runs are done
+    #write results in runs and
+    #handle output after all runs are done
     for runSet in benchmark.runSets:
         outputHandler.outputBeforeRunSet(runSet)     
         for run in runSet.runs:
             outputHandler.outputBeforeRun(run)
-            outputHandler.outputAfterRun(run)
+            (notUsed,sourceFileName) = os.path.split(run.sourcefile)
+            file = os.path.join(outputDir, runSet.name + "." + sourceFileName + ".log")
+            (run.wallTime, run.cpuTime, returnValue, output) = parseCloudResultFile(file)
+            run.afterExecution(returnValue, output)
         outputHandler.outputAfterRunSet(runSet, None, None)
         
     outputHandler.outputAfterBenchmark()
-    if config.commit and not STOPPED_BY_INTERRUPT and runSetsExecuted > 0:
-        Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
-                                     config.commitMessage+'\n\n'+outputHandler.description)
-
+    
 
 def executeBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
@@ -1274,6 +1292,10 @@ def executeBenchmark(benchmarkFile):
     else:
         executeBenchmarkLocaly(benchmark)
     
+    if config.commit and not STOPPED_BY_INTERRUPT and runSetsExecuted > 0:
+        Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
+                                     config.commitMessage+'\n\n'+outputHandler.description)
+
    
 
 
