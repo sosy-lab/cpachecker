@@ -27,18 +27,17 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
 
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
+import java.util.SortedSet;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 
 import com.google.common.base.Function;
@@ -154,8 +153,12 @@ public class SSAMap implements Serializable {
       return SSAMap.allFunctions(Objects.firstNonNull(funcTypesBuilder, ssa.types));
     }
 
-    public Iterable<Variable> allVariables() {
-      return SSAMap.allVariables(varTypes);
+    public SortedSet<String> allVariables() {
+      return varTypes.keySet();
+    }
+
+    public SortedSet<Map.Entry<String, CType>> allVariablesWithTypes() {
+      return varTypes.entrySet();
     }
 
     /**
@@ -454,24 +457,12 @@ public class SSAMap implements Serializable {
     return getIndex(Pair.<String, FormulaList>of(name, args), funcs);
   }
 
-  public Set<String> allVariables() {
-    return Collections.unmodifiableSet(vars.keySet());
+  public SortedSet<String> allVariables() {
+    return vars.keySet();
   }
 
-  public Iterable<Variable> allVariablesWithTypes() {
-    return allVariables(varTypes);
-  }
-
-  static Iterable<Variable> allVariables(final Map<String, CType> types) {
-    return FluentIterable.from(types.entrySet())
-        .transform(
-            new Function<Map.Entry<String, CType>, Variable>() {
-              @Override
-              public Variable apply(Map.Entry<String, CType> pInput) {
-                return Variable.create(pInput.getKey(), pInput.getValue());
-              }
-            })
-        .filter(notNull());
+  public SortedSet<Map.Entry<String, CType>> allVariablesWithTypes() {
+    return varTypes.entrySet();
   }
 
   public Iterable<Pair<Variable, FormulaList>> allFunctions() {

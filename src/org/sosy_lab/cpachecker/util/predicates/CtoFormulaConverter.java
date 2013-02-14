@@ -134,6 +134,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * Class containing all the code that converts C code into a formula.
@@ -742,8 +743,8 @@ public class CtoFormulaConverter {
 
 
 
-  private static Variable removePointerMaskVariable(Variable pointerVar) {
-    return Variable.create(removePointerMask(pointerVar.getName()), makePointerType(pointerVar.getType()));
+  private static Variable removePointerMaskVariable(String pointerVar, CType type) {
+    return Variable.create(removePointerMask(pointerVar), makePointerType(type));
   }
 
   /**Returns the concatenation of MEMORY_ADDRESS_VARIABLE_PREFIX and varName */
@@ -1724,14 +1725,13 @@ public class CtoFormulaConverter {
       // r is the right hand side variable, l is the left hand side variable
       // ∀p ∈ maybePointer: (p = *r) ⇒ (l = p ∧ *l = *p)
       // Note: l = *r holds because of current statement
-      List<Variable> ptrVars = getAllPointerVariablesFromSsaMap(ssa);
-      for (Variable ptrVarName : ptrVars) {
-        Variable varName = removePointerMaskVariable(ptrVarName);
+      for (final Map.Entry<String, CType> ptrVarName : getAllPointerVariablesFromSsaMap(ssa)) {
+        Variable varName = removePointerMaskVariable(ptrVarName.getKey(), ptrVarName.getValue());
 
         if (!varName.equals(lVarName)) {
 
           Formula var = makeVariable(varName, ssa);
-          Formula ptrVar = makeVariable(ptrVarName, ssa);
+          Formula ptrVar = makeVariable(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
 
           // p = *r. p is a pointer but *r can be anything
           BooleanFormula ptr = makeNondetAssignment(rPtrVar, var);
@@ -1997,27 +1997,23 @@ public class CtoFormulaConverter {
    * Stored memory locations are prefixed with
    * {@link #MEMORY_ADDRESS_VARIABLE_PREFIX}.
    */
-  private static ImmutableList<Variable> getAllMemoryLocationsFromSsaMap(SSAMapBuilder ssa) {
-    return from(ssa.allVariables())
-              .filter(liftToVariable(IS_MEMORY_ADDRESS_VARIABLE))
-              .toImmutableList();
+  private static Set<Map.Entry<String, CType>> getAllMemoryLocationsFromSsaMap(SSAMapBuilder ssa) {
+    return Sets.filter(ssa.allVariablesWithTypes(), liftToVariable(IS_MEMORY_ADDRESS_VARIABLE));
   }
 
-  private static Predicate<? super Variable> liftToVariable(final Predicate<? super String> stringPred) {
-    return new Predicate<Variable>() {
+  private static Predicate<Map.Entry<String, CType>> liftToVariable(final Predicate<? super String> stringPred) {
+    return new Predicate<Map.Entry<String, CType>>() {
       @Override
-      public boolean apply(Variable pInput) {
-        return stringPred.apply(pInput.getName());
+      public boolean apply(Map.Entry<String, CType> pInput) {
+        return stringPred.apply(pInput.getKey());
       }};
   }
 
   /**
    * Returns a list of all pointer variables stored in the SSAMap.
    */
-  private static List<Variable> getAllPointerVariablesFromSsaMap(SSAMapBuilder ssa) {
-    return from(ssa.allVariables())
-              .filter(liftToVariable(IS_POINTER_VARIABLE))
-              .toImmutableList();
+  private static Set<Map.Entry<String, CType>> getAllPointerVariablesFromSsaMap(SSAMapBuilder ssa) {
+    return Sets.filter(ssa.allVariablesWithTypes(), liftToVariable(IS_POINTER_VARIABLE));
   }
 
   /**
@@ -2033,9 +2029,7 @@ public class CtoFormulaConverter {
 
     String newVar = removePointerMask(newPVar);
 
-    List<Variable> pointerVariables = getAllPointerVariablesFromSsaMap(ssa);
-    for (Variable ptrVar : pointerVariables) {
-      String ptrVarName = ptrVar.getName();
+    for (String ptrVarName : from(ssa.allVariables()).filter(IS_POINTER_VARIABLE)) {
       String oldVar = removePointerMask(ptrVarName);
       if (!ptrVarName.equals(newPVar) && oldVar.equals(newVar)) {
         ssa.deleteVariable(ptrVarName);
@@ -2620,12 +2614,12 @@ public class CtoFormulaConverter {
 
       // a variable address is always initialized, not 0 and cannot change
       if (ssa.getIndex(addressVariable.getName()) == VARIABLE_UNSET) {
-        List<Variable> oldMemoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
+        Iterable<Map.Entry<String, CType>> oldMemoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
         Formula newMemoryLocation = makeConstant(addressVariable, ssa);
 
         // a variable address that is unknown is different from all previously known addresses
-        for (Variable memoryLocation : oldMemoryLocations) {
-          Formula oldMemoryLocation = makeConstant( memoryLocation, ssa);
+        for (Map.Entry<String, CType> memoryLocation : oldMemoryLocations) {
+          Formula oldMemoryLocation = makeConstant(memoryLocation.getKey(), memoryLocation.getValue(), ssa);
           BooleanFormula addressInequality = bfmgr.not(fmgr.makeEqual(newMemoryLocation, oldMemoryLocation));
 
           constraints.addConstraint(addressInequality);
@@ -2819,7 +2813,7 @@ public class CtoFormulaConverter {
           FormulaType<?> t = getFormulaTypeFromCType(expType);
 
           // for now all parameters are ignored
-          List<Variable> memoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
+          Set<Map.Entry<String, CType>> memoryLocations = getAllMemoryLocationsFromSsaMap(ssa);
 
           String mallocVarName = makeFreshMallocVariableName(expType);
           Formula mallocVar = makeConstant(mallocVarName, expType, ssa);
@@ -2828,8 +2822,8 @@ public class CtoFormulaConverter {
           // either the result is 0 or it is different from all other memory locations
           // (m != 0) => for all memory locations n: m != n
           BooleanFormula ineq = bfmgr.makeBoolean(true);
-          for (Variable ml : memoryLocations) {
-            Formula n = makeConstant(ml, ssa);
+          for (Map.Entry<String, CType> ml : memoryLocations) {
+            Formula n = makeConstant(ml.getKey(), ml.getValue(), ssa);
 
             BooleanFormula notEqual = bfmgr.not(fmgr.makeEqual(n, mallocVar));
             ineq = bfmgr.and(notEqual, ineq);
@@ -2974,18 +2968,18 @@ public class CtoFormulaConverter {
       // every variable aliased to the left hand side,
       // has its pointer set to the right hand side,
       // for all other pointer variables, the index is updated
-      List<Variable> ptrVarNames = getAllPointerVariablesFromSsaMap(ssa);
-      for (Variable ptrVarName : ptrVarNames) {
-        Variable varName = removePointerMaskVariable(ptrVarName);
+      Set<Map.Entry<String, CType>> ptrVarNames = getAllPointerVariablesFromSsaMap(ssa);
+      for (Map.Entry<String, CType> ptrVarName : ptrVarNames) {
+        Variable varName = removePointerMaskVariable(ptrVarName.getKey(), ptrVarName.getValue());
 
         if (!varName.equals(lVarName) && !varName.equals(rVarName)) {
           Formula var = makeVariable(varName, ssa);
 
-          Formula oldPtrVar = makeVariable(ptrVarName, ssa);
-          makeFreshIndex(ptrVarName.getName(), ptrVarName.getType(), ssa);
-          Formula newPtrVar = makeVariable(ptrVarName, ssa);
+          Formula oldPtrVar = makeVariable(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
+          makeFreshIndex(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
+          Formula newPtrVar = makeVariable(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
           BooleanFormula condition;
-          if (isDereferenceType(ptrVarName.getType())) {
+          if (isDereferenceType(ptrVarName.getValue())) {
             // Variable from a aliasing formula, they are always to small, so fill up with nondet bits to make a pointer.
             condition = makeNondetAssignment(var, lVar);
           } else {
@@ -3007,10 +3001,10 @@ public class CtoFormulaConverter {
       // if the left variable is an alias for an address,
       // then the left side is (deep) equal to the right side
       // otherwise update the variables
-      List<Variable> memAddresses = getAllMemoryLocationsFromSsaMap(ssa);
+      Set<Map.Entry<String, CType>> memAddresses = getAllMemoryLocationsFromSsaMap(ssa);
       if (doDeepUpdate) {
-        for (Variable memAddress : memAddresses) {
-          Variable varName = getVariableFromMemoryAddress(memAddress);
+        for (Map.Entry<String, CType> memAddress : memAddresses) {
+          Variable varName = getVariableFromMemoryAddress(memAddress.getKey(), memAddress.getValue());
           //String varName = getVariableNameFromMemoryAddress(memAddress.getName());
 
           if (!varName.equals(lVarName) && hasRepresentableDereference(varName)) {
@@ -3019,7 +3013,7 @@ public class CtoFormulaConverter {
             // p = &p;
             // *p = &a;
 
-            Formula memAddressVar = makeVariable(memAddress, ssa);
+            Formula memAddressVar = makeVariable(memAddress.getKey(), memAddress.getValue(), ssa);
 
             // *m_old
             Formula oldVar = makeVariable(varName, ssa);
@@ -3095,8 +3089,8 @@ public class CtoFormulaConverter {
               Formula content_of_g_s =
                   changeFormulaSize(0, fieldMaskSize, efmgr.makeBitvector(0, 0));
 
-              for (Variable inner_ptrVarName : ptrVarNames) {
-                Variable inner_varName = removePointerMaskVariable(inner_ptrVarName);
+              for (Map.Entry<String, CType> inner_ptrVarName : ptrVarNames) {
+                Variable inner_varName = removePointerMaskVariable(inner_ptrVarName.getKey(), inner_ptrVarName.getValue());
                 if (inner_varName.equals(lVarName) || inner_varName.equals(rVarName)) {
                   continue;
                 }
@@ -3104,7 +3098,7 @@ public class CtoFormulaConverter {
                 Formula k = makeVariable(inner_varName, ssa);
                 BooleanFormula cond = makeNondetAssignment(k, g_s);
 
-                Formula found = makeVariable(inner_ptrVarName, ssa);
+                Formula found = makeVariable(inner_ptrVarName.getKey(), inner_ptrVarName.getValue(), ssa);
                 found = changeFormulaSize(efmgr.getLength((BitvectorFormula) found), fieldMaskSize, (BitvectorFormula) found);
 
                 content_of_g_s = bfmgr.ifThenElse(cond, found, content_of_g_s);
@@ -3118,8 +3112,8 @@ public class CtoFormulaConverter {
         }
 
 
-        for (Variable memAddress : memAddresses) {
-          Variable varName = getVariableFromMemoryAddress(memAddress);
+        for (Map.Entry<String, CType> memAddress : memAddresses) {
+          Variable varName = getVariableFromMemoryAddress(memAddress.getKey(), memAddress.getValue());
 
           if (varName.equals(lVarName) || !hasRepresentableDereference(varName)) {
             continue;
@@ -3134,7 +3128,7 @@ public class CtoFormulaConverter {
           removeOldPointerVariablesFromSsaMap(newPtrVarName.getName(), ssa);
 
           // m_new
-          Formula memAddressVar = makeVariable(memAddress, ssa);
+          Formula memAddressVar = makeVariable(memAddress.getKey(), memAddress.getValue(), ssa);
 
           assert fmgr.getFormulaType(lVar) == fmgr.getFormulaType(memAddressVar)
               : "Make sure all memory variables are pointers! (Did you forget to process your file with cil first or are you missing some includes?)";
@@ -3210,10 +3204,10 @@ public class CtoFormulaConverter {
 
 
 
-    private Variable getVariableFromMemoryAddress(Variable pMemAddress) {
+    private Variable getVariableFromMemoryAddress(String pMemAddress, CType type) {
       return Variable.create(
-          getVariableNameFromMemoryAddress(pMemAddress.getName()),
-          dereferencedType(pMemAddress.getType()));
+          getVariableNameFromMemoryAddress(pMemAddress),
+          dereferencedType(type));
     }
 
     /** A direct assignment changes the value of the variable on the left side. */
@@ -3325,16 +3319,15 @@ public class CtoFormulaConverter {
         // if a pointer is aliased to the assigned variable,
         // update that pointer to reflect the new aliasing,
         // otherwise only update the index
-        List<Variable> ptrVarNames = getAllPointerVariablesFromSsaMap(ssa);
-        for (Variable ptrVarName : ptrVarNames) {
-          Variable varName = removePointerMaskVariable(ptrVarName);
+        for (Map.Entry<String, CType> ptrVarName : getAllPointerVariablesFromSsaMap(ssa)) {
+          Variable varName = removePointerMaskVariable(ptrVarName.getKey(), ptrVarName.getValue());
           if (!varName.equals(leftVarName)) {
             Formula var = makeVariable(varName, ssa);
-            Formula oldPtrVar = makeVariable(ptrVarName, ssa);
-            makeFreshIndex(ptrVarName.getName(), ptrVarName.getType(), ssa);
-            Formula newPtrVar = makeVariable(ptrVarName, ssa);
+            Formula oldPtrVar = makeVariable(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
+            makeFreshIndex(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
+            Formula newPtrVar = makeVariable(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
             BooleanFormula condition;
-            if (isDereferenceType(ptrVarName.getType())) {
+            if (isDereferenceType(ptrVarName.getValue())) {
               condition = makeNondetAssignment(var, leftMemLocation);
             } else {
               assert fmgr.getFormulaType(var) == fmgr.getFormulaType(leftMemLocation)
@@ -3355,9 +3348,8 @@ public class CtoFormulaConverter {
     /** Returns whether the address of a given variable has been used before. */
     private boolean isKnownMemoryLocation(Variable varName) {
       assert varName.getName() != null;
-      List<Variable> memLocations = getAllMemoryLocationsFromSsaMap(ssa);
       Variable memVarName = makeMemoryLocationVariable(varName);
-      return memLocations.contains(memVarName);
+      return ssa.allVariables().contains(memVarName.getName());
     }
 
     /** Returns a new variable name for every malloc call.

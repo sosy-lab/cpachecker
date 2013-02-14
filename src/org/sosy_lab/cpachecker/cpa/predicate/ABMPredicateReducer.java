@@ -34,6 +34,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -43,7 +44,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -133,11 +133,11 @@ public class ABMPredicateReducer implements Reducer {
       //there still should be at least _some_ index for each variable of the abstraction formula.
       SSAMapBuilder builder = oldSSA.builder();
       SSAMap rootSSA = rootState.getPathFormula().getSsa();
-      for (Variable var : rootSSA.allVariablesWithTypes()) {
+      for (Map.Entry<String, CType> var : rootSSA.allVariablesWithTypes()) {
         //if we do not have the index in the reduced map..
-        if (oldSSA.getIndex(var.getName()) == -1) {
+        if (oldSSA.getIndex(var.getKey()) == -1) {
           //add an index (with the value of rootSSA)
-          builder.setIndex(var.getName(), var.getType(), rootSSA.getIndex(var.getName()));
+          builder.setIndex(var.getKey(), var.getValue(), rootSSA.getIndex(var.getKey()));
         }
       }
       SSAMap newSSA = builder.build();
@@ -391,11 +391,11 @@ public class ABMPredicateReducer implements Reducer {
     //there still should be at least _some_ index for each variable of the abstraction formula.
     SSAMapBuilder builder = oldSSA.builder();
     SSAMap rootSSA = rootState.getPathFormula().getSsa();
-    for (Variable var : rootSSA.allVariablesWithTypes()) {
+    for (Map.Entry<String, CType> var : rootSSA.allVariablesWithTypes()) {
       //if we do not have the index in the reduced map..
-      if (oldSSA.getIndex(var.getName()) == -1) {
+      if (oldSSA.getIndex(var.getKey()) == -1) {
         //add an index (with the value of rootSSA)
-        builder.setIndex(var.getName(), var.getType(), rootSSA.getIndex(var.getName()));
+        builder.setIndex(var.getKey(), var.getValue(), rootSSA.getIndex(var.getKey()));
       }
     }
     SSAMap newSSA = builder.build();

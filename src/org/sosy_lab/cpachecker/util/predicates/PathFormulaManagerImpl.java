@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -138,26 +139,27 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     BooleanFormula mt1 = bfmgr.makeBoolean(true);
     BooleanFormula mt2 = bfmgr.makeBoolean(true);
 
-    for (Variable var : result.allVariablesWithTypes()) {
-      if (var.getName().equals(CtoFormulaConverter.NONDET_VARIABLE)) {
+    for (Map.Entry<String, CType> var : result.allVariablesWithTypes()) {
+      String name = var.getKey();
+      if (name.equals(CtoFormulaConverter.NONDET_VARIABLE)) {
         continue; // do not add index adjustment terms for __nondet__
       }
-      if (var.getName().startsWith(CtoFormulaConverter.EXPAND_VARIABLE)) {
+      if (name.startsWith(CtoFormulaConverter.EXPAND_VARIABLE)) {
         continue; // do not add index adjustment terms for exand variables
       }
-      int i1 = ssa1.getIndex(var.getName());
-      int i2 = ssa2.getIndex(var.getName());
+      int i1 = ssa1.getIndex(name);
+      int i2 = ssa2.getIndex(name);
 
       if (i1 > i2 && i1 > 1) {
         // i2:smaller, i1:bigger
         // => need correction term for i2
         BooleanFormula t;
 
-        if (useNondetFlags && var.getName().equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+        if (useNondetFlags && name.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
           t = makeNondetFlagMerger(Math.max(i2, 1), i1);
         }
         else {
-          t = makeSSAMerger(var, Math.max(i2, 1), i1);
+          t = makeSSAMerger(name, var.getValue(), Math.max(i2, 1), i1);
         }
 
         mt2 = bfmgr.and(mt2, t);
@@ -167,11 +169,11 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         // => need correction term for i1
         BooleanFormula t;
 
-        if (useNondetFlags && var.getName().equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+        if (useNondetFlags && name.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
           t = makeNondetFlagMerger(Math.max(i1, 1), i2);
         }
         else {
-          t = makeSSAMerger(var, Math.max(i1, 1), i2);
+          t = makeSSAMerger(name, var.getValue(), Math.max(i1, 1), i2);
         }
 
         mt1 = bfmgr.and(mt1, t);
@@ -221,10 +223,10 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
   // creates the mathsat terms
   // (var@iSmaller = var@iSmaller+1; ...; var@iSmaller = var@iBigger)
-  private BooleanFormula makeSSAMerger(Variable var, int iSmaller, int iBigger) {
-    FormulaType<?> t = getFormulaTypeFromCType(var.getType());
-    return makeMerger(var.getName(), iSmaller, iBigger,
-        fmgr.makeVariable(t, var.getName(), iSmaller));
+  private BooleanFormula makeSSAMerger(String name, CType type, int iSmaller, int iBigger) {
+    FormulaType<?> t = getFormulaTypeFromCType(type);
+    return makeMerger(name, iSmaller, iBigger,
+        fmgr.makeVariable(t, name, iSmaller));
   }
 
   private BooleanFormula makeSSAMerger(Variable var,
