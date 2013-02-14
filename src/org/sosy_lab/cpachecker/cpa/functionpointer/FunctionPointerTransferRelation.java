@@ -277,7 +277,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
         nameExp = unaryExp.getOperand();
 
       } else {
-        throw new UnrecognizedCCodeException("unknown function call expression", pCfaEdge, nameExp);
+        throw new UnrecognizedCCodeException("unknown function call expression with operator " + unaryExp.getOperator().getOperator(), pCfaEdge, nameExp);
       }
     }
 
@@ -294,8 +294,11 @@ class FunctionPointerTransferRelation implements TransferRelation {
     } else if (nameExp instanceof CArraySubscriptExpression) {
       // TODO This is a function pointer call (*a[i])()
       return null;
-    }  else {
-      throw new UnrecognizedCCodeException("unknown function call expression", pCfaEdge, nameExp);
+    } else if (nameExp instanceof CUnaryExpression && ((CUnaryExpression)nameExp).getOperator() == UnaryOperator.STAR) {
+      // TODO double dereference (**f)()
+      return null;
+    } else {
+      throw new UnrecognizedCCodeException("unknown function call expression of type " + nameExp.getClass().getSimpleName(), pCfaEdge, nameExp);
     }
   }
 
