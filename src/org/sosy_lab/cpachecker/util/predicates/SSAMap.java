@@ -73,13 +73,15 @@ public class SSAMap implements Serializable {
   public static class SSAMapBuilder {
 
     private SSAMap ssa;
-    private Map<Object, CType> typesBuilder = null;
     private PersistentSortedMap<String, Integer> vars;
+    private PersistentSortedMap<String, CType> varTypes;
     private Multiset<Pair<String, FormulaList>> funcsBuilder = null;
+    private Map<Pair<String, FormulaList>, CType> funcTypesBuilder = null;
 
     protected SSAMapBuilder(SSAMap ssa) {
       this.ssa = ssa;
       this.vars = ssa.vars;
+      this.varTypes = ssa.varTypes;
     }
 
     public int getIndex(String variable) {
@@ -92,7 +94,7 @@ public class SSAMap implements Serializable {
     }
 
     public CType getType(String name) {
-      return Objects.firstNonNull(typesBuilder, ssa.types).get(name);
+      return varTypes.get(name);
     }
 
     public void setIndex(String name, CType type, int idx) {
@@ -100,24 +102,18 @@ public class SSAMap implements Serializable {
       int oldIdx = getIndex(name);
       Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone!");
 
-      setType(name, type);
-      if (idx > oldIdx) {
-        vars = vars.putAndCopy(name, idx);
-      }
-    }
-
-    private void setType(Object key, CType type) {
       checkNotNull(type);
-      CType oldType = Objects.firstNonNull(typesBuilder, ssa.types).get(key);
+      CType oldType = varTypes.get(name);
       if (oldType != null) {
         Preconditions.checkArgument(oldType.equals(type)
             || type instanceof CFunctionType || oldType instanceof CFunctionType
-            , "Cannot change type of variable %s in SSAMap from %s to %s", key, oldType, type);
+            , "Cannot change type of variable %s in SSAMap from %s to %s", name, oldType, type);
       } else {
-        if (typesBuilder == null) {
-          typesBuilder = new HashMap<>(ssa.types);
-        }
-        typesBuilder.put(key, type);
+        varTypes = varTypes.putAndCopy(name, type);
+      }
+
+      if (idx > oldIdx) {
+        vars = vars.putAndCopy(name, idx);
       }
     }
 
@@ -130,28 +126,36 @@ public class SSAMap implements Serializable {
       Pair<String, FormulaList> key = Pair.of(name, args);
       Preconditions.checkArgument(idx >= funcsBuilder.count(key), "SSAMap updates need to be strictly monotone!");
 
-      setType(key, type);
+      checkNotNull(type);
+      CType oldType = Objects.firstNonNull(funcTypesBuilder, ssa.types).get(key);
+      if (oldType != null) {
+        Preconditions.checkArgument(oldType.equals(type)
+            || type instanceof CFunctionType || oldType instanceof CFunctionType
+            , "Cannot change type of variable %s in SSAMap from %s to %s", key, oldType, type);
+      } else {
+        if (funcTypesBuilder == null) {
+          funcTypesBuilder = new HashMap<>(ssa.types);
+        }
+        funcTypesBuilder.put(key, type);
+      }
+
       funcsBuilder.setCount(key, idx);
     }
 
     public void deleteVariable(String variable) {
       int index = getIndex(variable);
       if (index != -1) {
-        if (typesBuilder == null) {
-          typesBuilder = new HashMap<>(ssa.types);
-        }
-
         vars = vars.removeAndCopy(variable);
-        typesBuilder.remove(variable);
+        varTypes = varTypes.removeAndCopy(variable);
       }
     }
 
     public Iterable<Pair<Variable, FormulaList>> allFunctions() {
-      return SSAMap.allFunctions(Objects.firstNonNull(typesBuilder, ssa.types));
+      return SSAMap.allFunctions(Objects.firstNonNull(funcTypesBuilder, ssa.types));
     }
 
     public Iterable<Variable> allVariables() {
-      return SSAMap.allVariables(Objects.firstNonNull(typesBuilder, ssa.types));
+      return SSAMap.allVariables(varTypes);
     }
 
     /**
@@ -164,7 +168,8 @@ public class SSAMap implements Serializable {
 
       ssa = new SSAMap(vars,
                        Objects.firstNonNull(funcsBuilder, ssa.funcs),
-                       Objects.firstNonNull(typesBuilder, ssa.types));
+                       varTypes,
+                       Objects.firstNonNull(funcTypesBuilder, ssa.types));
       funcsBuilder = null;
       return ssa;
     }
@@ -173,7 +178,8 @@ public class SSAMap implements Serializable {
   private static final SSAMap EMPTY_SSA_MAP = new SSAMap(
       PathCopyingPersistentTreeMap.<String, Integer>of(),
       ImmutableMultiset.<Pair<String, FormulaList>>of(),
-      ImmutableMap.<Object, CType>of());
+      PathCopyingPersistentTreeMap.<String, CType>of(),
+      ImmutableMap.<Pair<String, FormulaList>, CType>of());
 
   /**
    * Returns an empty immutable SSAMap.
@@ -183,7 +189,7 @@ public class SSAMap implements Serializable {
   }
 
   public SSAMap withDefault(final int defaultValue) {
-    return new SSAMap(this.vars, this.funcs, this.types) {
+    return new SSAMap(this.vars, this.funcs, this.varTypes, this.types) {
 
       private static final long serialVersionUID = -5638018887478723717L;
 
@@ -224,7 +230,7 @@ public class SSAMap implements Serializable {
       vars = s1.vars;
 
     } else {
-      vars = merge(s1.vars, s2.vars);
+      vars = merge(s1.vars, s2.vars, MAXIMUM_ON_CONFLICT);
     }
 
     Multiset<Pair<String, FormulaList>> funcs;
@@ -236,50 +242,63 @@ public class SSAMap implements Serializable {
       funcs = merge(s1.funcs, s2.funcs);
     }
 
-    Map<Object, CType> types;
+    PersistentSortedMap<String, CType> varTypes;
+    if (s1.varTypes == s2.varTypes) {
+      varTypes = s1.varTypes;
+
+    } else {
+      @SuppressWarnings("unchecked")
+      ConflictHandler<Object, CType> exceptionOnConflict = (ConflictHandler<Object, CType>)EXCEPTION_ON_CONFLICT;
+      varTypes = merge(s1.varTypes, s2.varTypes, exceptionOnConflict);
+    }
+
+    Map<Pair<String, FormulaList>, CType> funcTypes;
     if (s1.types == s2.types) {
-      types = s1.types;
+      funcTypes = s1.types;
     } else {
 
-      MapDifference<Object, CType> diff = Maps.difference(s1.types, s2.types);
+      MapDifference<Pair<String, FormulaList>, CType> diff = Maps.difference(s1.types, s2.types);
       if (!diff.entriesDiffering().isEmpty()) {
         throw new IllegalArgumentException("Cannot merge SSAMaps that contain the same variable {0} with differing types: " + diff.entriesDiffering());
       }
 
       if (diff.entriesOnlyOnLeft().isEmpty()) {
         assert s2.types.size() >= s1.types.size();
-        types = s2.types;
+        funcTypes = s2.types;
 
       } else if (diff.entriesOnlyOnRight().isEmpty()) {
         assert s1.types.size() >= s2.types.size();
-        types = s1.types;
+        funcTypes = s1.types;
 
       } else {
-        types = new HashMap<>(diff.entriesInCommon().size()
+        funcTypes = new HashMap<>(diff.entriesInCommon().size()
                             + diff.entriesOnlyOnLeft().size()
                             + diff.entriesOnlyOnRight().size());
-        types.putAll(diff.entriesInCommon());
-        types.putAll(diff.entriesOnlyOnLeft());
-        types.putAll(diff.entriesOnlyOnRight());
+        funcTypes.putAll(diff.entriesInCommon());
+        funcTypes.putAll(diff.entriesOnlyOnLeft());
+        funcTypes.putAll(diff.entriesOnlyOnRight());
       }
     }
 
-    return new SSAMap(vars, funcs, types);
+    return new SSAMap(vars, funcs, varTypes, funcTypes);
   }
 
-  private static <K extends Comparable<? super K>> PersistentSortedMap<K, Integer> merge(PersistentSortedMap<K, Integer> s1, PersistentSortedMap<K, Integer> s2) {
+  private static <K extends Comparable<? super K>, V> PersistentSortedMap<K, V> merge(
+      PersistentSortedMap<K, V> s1, PersistentSortedMap<K, V> s2,
+      ConflictHandler<? super K, V> conflictHandler) {
+
     if (s1.size() < s2.size()) {
-      return merge(s2, s1);
+      return merge(s2, s1, conflictHandler);
     }
 
     // s1 is the bigger one, so we use it as the base.
-    PersistentSortedMap<K, Integer> result = s1;
+    PersistentSortedMap<K, V> result = s1;
 
-    Iterator<Map.Entry<K, Integer>> it1 = s1.entrySet().iterator();
-    Iterator<Map.Entry<K, Integer>> it2 = s2.entrySet().iterator();
+    Iterator<Map.Entry<K, V>> it1 = s1.entrySet().iterator();
+    Iterator<Map.Entry<K, V>> it2 = s2.entrySet().iterator();
 
-    Map.Entry<K, Integer> e1 = null;
-    Map.Entry<K, Integer> e2 = null;
+    Map.Entry<K, V> e1 = null;
+    Map.Entry<K, V> e2 = null;
 
     // This loop iterates synchronously through both sets
     // by trying to keep the keys equal.
@@ -316,7 +335,8 @@ public class SSAMap implements Serializable {
         // e1 == e2
 
         if (!e1.getValue().equals(e2.getValue())) {
-          result = result.putAndCopy(e1.getKey(), Math.max(e1.getValue(), e2.getValue()));
+          V newValue = conflictHandler.resolveConflict(e1.getKey(), e1.getValue(), e2.getValue());
+          result = result.putAndCopy(e1.getKey(), newValue);
         }
 
         // forward both iterators
@@ -336,6 +356,24 @@ public class SSAMap implements Serializable {
 
     return result;
   }
+
+  private static interface ConflictHandler<K, V> {
+    V resolveConflict(K key, V value1, V value2);
+  }
+
+  private static final ConflictHandler<Object, ?> EXCEPTION_ON_CONFLICT = new ConflictHandler<Object, Object>() {
+    @Override
+    public Void resolveConflict(Object key, Object value1, Object value2) {
+      throw new IllegalArgumentException("Conflicting value when merging maps for key " + key + ": " + value1 + " and " + value2);
+    }
+  };
+
+  private static final ConflictHandler<Object, Integer> MAXIMUM_ON_CONFLICT = new ConflictHandler<Object, Integer>() {
+    @Override
+    public Integer resolveConflict(Object key, Integer value1, Integer value2) {
+      return Math.max(value1, value2);
+    }
+  };
 
   private static <T> Multiset<T> merge(Multiset<T> s1, Multiset<T> s2) {
     Multiset<T> result = LinkedHashMultiset.create(Math.max(s1.elementSet().size(), s2.elementSet().size()));
@@ -365,13 +403,16 @@ public class SSAMap implements Serializable {
   private final PersistentSortedMap<String, Integer> vars;
   private final Multiset<Pair<String, FormulaList>> funcs;
 
-  private final Map<Object, CType> types;
+  private final PersistentSortedMap<String, CType> varTypes;
+  private final Map<Pair<String, FormulaList>, CType> types;
 
   private SSAMap(PersistentSortedMap<String, Integer> vars,
                  Multiset<Pair<String, FormulaList>> funcs,
-                 Map<Object, CType> types) {
+                 PersistentSortedMap<String, CType> varTypes,
+                 Map<Pair<String, FormulaList>, CType> types) {
     this.vars = vars;
     this.funcs = funcs;
+    this.varTypes = varTypes;
     this.types = types;
   }
 
@@ -418,20 +459,16 @@ public class SSAMap implements Serializable {
   }
 
   public Iterable<Variable> allVariablesWithTypes() {
-    return allVariables(types);
+    return allVariables(varTypes);
   }
 
-  static Iterable<Variable> allVariables(final Map<Object, CType> types) {
+  static Iterable<Variable> allVariables(final Map<String, CType> types) {
     return FluentIterable.from(types.entrySet())
         .transform(
-            new Function<Map.Entry<Object, CType>, Variable>() {
+            new Function<Map.Entry<String, CType>, Variable>() {
               @Override
-              public Variable apply(Map.Entry<Object, CType> pInput) {
-                if (pInput.getKey() instanceof String) {
-                  return Variable.create((String)pInput.getKey(), pInput.getValue());
-                } else {
-                  return null;
-                }
+              public Variable apply(Map.Entry<String, CType> pInput) {
+                return Variable.create(pInput.getKey(), pInput.getValue());
               }
             })
         .filter(notNull());
@@ -441,19 +478,13 @@ public class SSAMap implements Serializable {
     return allFunctions(types);
   }
 
-  static Iterable<Pair<Variable, FormulaList>> allFunctions(final Map<Object, CType> types) {
+  static Iterable<Pair<Variable, FormulaList>> allFunctions(final Map<Pair<String, FormulaList>, CType> types) {
     return FluentIterable.from(types.entrySet())
         .transform(
-            new Function<Map.Entry<Object, CType>, Pair<Variable, FormulaList>>() {
+            new Function<Map.Entry<Pair<String, FormulaList>, CType>, Pair<Variable, FormulaList>>() {
               @Override
-              public Pair<Variable, FormulaList> apply(Map.Entry<Object, CType> pInput) {
-                if (pInput.getKey() instanceof Pair<?, ?>) {
-                  @SuppressWarnings("unchecked")
-                  Pair<String, FormulaList> input = (Pair<String, FormulaList>)pInput.getKey();
-                  return Pair.of(Variable.create(input.getFirst(), pInput.getValue()), input.getSecond());
-                } else {
-                  return null;
-                }
+              public Pair<Variable, FormulaList> apply(Map.Entry<Pair<String, FormulaList>, CType> pInput) {
+                return Pair.of(Variable.create(pInput.getKey().getFirst(), pInput.getValue()), pInput.getKey().getSecond());
               }
             })
         .filter(notNull());
