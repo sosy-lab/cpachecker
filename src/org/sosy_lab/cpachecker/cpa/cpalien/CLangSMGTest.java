@@ -34,6 +34,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -46,6 +47,7 @@ public class CLangSMGTest {
   private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
   private CLangStackFrame sf =  new CLangStackFrame(functionDeclaration);
   private LogManager logger = mock(LogManager.class);
+  private CIdExpression id_expression = new CIdExpression(null, null, "label", null);
 
   @Test
   public void CLangStackFrameConstructorTest() {
@@ -227,7 +229,7 @@ public class CLangSMGTest {
   }
 
   @Test
-  public void CLangSMGaddStackObjectTest() throws IllegalAccessException{
+  public void CLangSMGaddStackObjectTest(){
     CLangSMG smg = new CLangSMG();
     SMGObject obj1 = new SMGObject(8, "label");
     SMGObject diffobj1 = new SMGObject(8, "difflabel");
@@ -251,7 +253,7 @@ public class CLangSMGTest {
   }
 
   @Test(expected=IllegalArgumentException.class)
-  public void CLangSMGaddStackObjectTwiceTest() throws IllegalAccessException{
+  public void CLangSMGaddStackObjectTwiceTest(){
     CLangSMG smg = new CLangSMG();
     SMGObject obj1 = new SMGObject(8, "label");
 
@@ -262,7 +264,95 @@ public class CLangSMGTest {
   }
 
   @Test
-  public void ConsistencyViolationDisjunctnessTest() throws IllegalAccessException{
+  public void CLangSMGgetObjectForVisibleVariableTest(){
+    CLangSMG smg = new CLangSMG();
+    SMGObject obj1 = new SMGObject(8, "label");
+    SMGObject obj2 = new SMGObject(16, "label");
+    SMGObject obj3 = new SMGObject(32, "label");
+
+    Assert.assertNull(smg.getObjectForVisibleVariable(id_expression));
+    smg.addGlobalObject(obj3);
+    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression), obj3);
+
+    smg.addStackFrame(sf.getFunctionDeclaration());
+    smg.addStackObject(obj1);
+    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression), obj1);
+
+    smg.addStackFrame(sf.getFunctionDeclaration());
+    smg.addStackObject(obj2);
+    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression), obj2);
+    Assert.assertNotEquals(smg.getObjectForVisibleVariable(id_expression), obj1);
+
+    smg.addStackFrame(sf.getFunctionDeclaration());
+    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression), obj3);
+    Assert.assertNotEquals(smg.getObjectForVisibleVariable(id_expression), obj2);
+  }
+
+  @Test
+  public void CLangSMGgetStackFramesTest(){
+    CLangSMG smg = new CLangSMG();
+    Assert.assertEquals(smg.getStackFrames().size(), 0);
+
+    smg.addStackFrame(sf.getFunctionDeclaration());
+    smg.addStackObject(new SMGObject(8, "frame1_1"));
+    smg.addStackObject(new SMGObject(8, "frame1_2"));
+    smg.addStackObject(new SMGObject(8, "frame1_3"));
+    Assert.assertEquals(smg.getStackFrames().size(), 1);
+    Assert.assertEquals(smg.getStackFrames().peek().getVariables().size(), 3);
+
+    smg.addStackFrame(sf.getFunctionDeclaration());
+    smg.addStackObject(new SMGObject(8, "frame2_1"));
+    smg.addStackObject(new SMGObject(8, "frame2_2"));
+    Assert.assertEquals(smg.getStackFrames().size(), 2);
+    Assert.assertEquals(smg.getStackFrames().peek().getVariables().size(), 2);
+
+    smg.addStackFrame(sf.getFunctionDeclaration());
+    smg.addStackObject(new SMGObject(8, "frame3_1"));
+    Assert.assertEquals(smg.getStackFrames().size(), 3);
+    Assert.assertEquals(smg.getStackFrames().peek().getVariables().size(), 1);
+
+    smg.addStackFrame(sf.getFunctionDeclaration());
+    Assert.assertEquals(smg.getStackFrames().size(), 4);
+    Assert.assertEquals(smg.getStackFrames().peek().getVariables().size(), 0);
+  }
+
+  @Test
+  public void CLangSMGgetHeapObjectsTest(){
+    CLangSMG smg = new CLangSMG();
+    Assert.assertEquals(smg.getHeapObjects().size(), 1);
+
+    smg.addHeapObject(new SMGObject(8, "heap1"));
+    Assert.assertEquals(smg.getHeapObjects().size(), 2);
+
+    smg.addHeapObject(new SMGObject(8, "heap2"));
+    smg.addHeapObject(new SMGObject(8, "heap3"));
+    Assert.assertEquals(smg.getHeapObjects().size(), 4);
+  }
+
+  @Test
+  public void CLangSMGgetGlobalObjectsTest(){
+    CLangSMG smg = new CLangSMG();
+    Assert.assertEquals(smg.getGlobalObjects().size(), 0);
+
+    smg.addGlobalObject(new SMGObject(8, "heap1"));
+    Assert.assertEquals(smg.getGlobalObjects().size(), 1);
+
+    smg.addGlobalObject(new SMGObject(8, "heap2"));
+    smg.addGlobalObject(new SMGObject(8, "heap3"));
+    Assert.assertEquals(smg.getGlobalObjects().size(), 3);
+  }
+
+  @Test
+  public void CLangSMGmemoryLeaksTest(){
+    CLangSMG smg = new CLangSMG();
+
+    Assert.assertFalse(smg.hasMemoryLeaks());
+    smg.setMemoryLeak();
+    Assert.assertTrue(smg.hasMemoryLeaks());
+  }
+
+  @Test
+  public void ConsistencyViolationDisjunctnessTest(){
     CLangSMG smg = new CLangSMG();
     SMGObject obj = new SMGObject(8, "label");
 
@@ -290,7 +380,7 @@ public class CLangSMGTest {
   }
 
   @Test
-  public void ConsistencyViolationUnionTest() throws IllegalAccessException{
+  public void ConsistencyViolationUnionTest(){
     CLangSMG smg = new CLangSMG();
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
     SMGObject stack_obj = new SMGObject(8, "stack_variable");
@@ -311,7 +401,7 @@ public class CLangSMGTest {
   }
 
   @Test
-  public void ConsistencyViolationNullTest() throws IllegalAccessException{
+  public void ConsistencyViolationNullTest(){
     SMGObject fake_null = new SMGObject();
 
     CLangSMG smg = new CLangSMG();
@@ -337,16 +427,50 @@ public class CLangSMGTest {
     Assert.assertFalse(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
   }
 
+  /**
+   * Identical object in different frames is inconsistent
+   */
   @Test
-  public void ConsistencyViolationStackNamespaceTest() throws IllegalAccessException{
+  public void ConsistencyViolationStackNamespaceTest1(){
     CLangSMG smg = new CLangSMG();
-    SMGObject obj = new SMGObject(8, "label");
+    SMGObject obj1 = new SMGObject(8, "label");
 
     smg.addStackFrame(sf.getFunctionDeclaration());
-    smg.addStackObject(obj);
+    smg.addStackObject(obj1);
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
     smg.addStackFrame(sf.getFunctionDeclaration());
-    smg.addStackObject(obj);
+    smg.addStackObject(obj1);
     Assert.assertFalse(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+  }
+
+  /**
+   * Two objects with same label (variable name) in different frames are not inconsistent
+   */
+  @Test
+  public void ConsistencyViolationStackNamespaceTest2(){
+    CLangSMG smg = new CLangSMG();
+    SMGObject obj1 = new SMGObject(8, "label");
+    SMGObject obj2 = new SMGObject(16, "label");
+
+    smg.addStackFrame(sf.getFunctionDeclaration());
+    smg.addStackObject(obj1);
+    smg.addStackFrame(sf.getFunctionDeclaration());
+    smg.addStackObject(obj2);
+    Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
+  }
+
+  /**
+   * Two objects with same label (variable name) on stack and global namespace are not inconsistent
+   */
+  @Test
+  public void ConsistencyViolationStackNamespaceTest3(){
+    CLangSMG smg = new CLangSMG();
+    SMGObject obj1 = new SMGObject(8, "label");
+    SMGObject obj2 = new SMGObject(16, "label");
+
+    smg.addGlobalObject(obj1);
+    smg.addStackFrame(sf.getFunctionDeclaration());
+    smg.addStackObject(obj2);
+    Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
   }
 }

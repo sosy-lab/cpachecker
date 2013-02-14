@@ -43,7 +43,8 @@ import com.google.common.collect.Sets;
  *  - separation of global, heap and stack objects
  *  - null object and value
  *
- * TODO: Implement configurable consistency checking on various places:
+ * TODO: [RUNTIME-CONSISTENCY-CHECKS]
+ *       Implement configurable consistency checking on various places:
  *  - none
  *  - on interesting places
  *  - on every operation (=debug)
@@ -54,7 +55,7 @@ public class CLangSMG extends SMG {
    *  - local variables
    *  - parameters
    *
-   * TODO: Perhaps it could be wrapped in a class?
+   * TODO: [STACK-FRAME-STRUCTURE] Perhaps it could be wrapped in a class?
    */
   final private ArrayDeque<CLangStackFrame> stack_objects = new ArrayDeque<>();
 
@@ -148,19 +149,12 @@ public class CLangSMG extends SMG {
    *
    * Adds an object to the current stack frame
    *
-   * TODO: Scope visibility vs. stack frame issues: handle cases where a variable is visible
+   * TODO: [SCOPES] Scope visibility vs. stack frame issues: handle cases where a variable is visible
    * but is is allowed to override (inner blocks)
+   * TODO: Consistency check (allow): different objects with same label inside a frame, but in different block
+   * TODO: Test for this consistency check
    *
    * TODO: Shall we need an extension for putting objects to upper frames?
-   *
-   * TODO: Consistency check (allow): different objects with same label inside a frame
-   * TODO: Test for this consistency check
-   *
-   * TODO: Consistency check (allow): different objects with same label across frames
-   * TODO: Test for this consistency check
-   *
-   * TODO: Consistency check (allow): different objects with same label as global object
-   * TODO: Test for this consistency check
    */
   public void addStackObject(SMGObject pObject) {
     super.addObject(pObject);
@@ -181,17 +175,14 @@ public class CLangSMG extends SMG {
    * the current scope: it needs to be visible either in the current frame, or it
    * is a global variable.
    *
-   * TODO: Test for getting visible local object
-   * TODO: Test for getting visible local object hiding other local object
-   * TODO: Test for getting visible local object hiding global object
-   * TODO: Test for getting visible local object with invisible object on stack
-   * TODO: Test for getting visible global object
-   * TODO: Test for getting visible global object with invisible object on stack
+   * TODO: [SCOPES] Test for getting visible local object hiding other local object
    */
   public SMGObject getObjectForVisibleVariable(CIdExpression pVariableName) {
     // Look in the local frame
-    if (stack_objects.peek().containsVariable(pVariableName.getName())){
-      return stack_objects.peek().getVariable(pVariableName.getName());
+    if (stack_objects.size() != 0){
+      if (stack_objects.peek().containsVariable(pVariableName.getName())){
+        return stack_objects.peek().getVariable(pVariableName.getName());
+      }
     }
     if (global_objects.containsKey(pVariableName.getName())){
       return global_objects.get(pVariableName.getName());
@@ -203,10 +194,6 @@ public class CLangSMG extends SMG {
    * @param pFunctionDeclaration
    *
    * Add a new stack frame for the passed function
-   *
-   * TODO: Test for stack frame addition
-   *  - hides current objects
-   *  - does not hide global objects
    */
   public void addStackFrame(CFunctionDeclaration pFunctionDeclaration) {
     CLangStackFrame newFrame = new CLangStackFrame(pFunctionDeclaration);
@@ -217,12 +204,10 @@ public class CLangSMG extends SMG {
    * @return
    *
    * Returns the (modifiable) stack of frames containing objects.
-   *
-   * TODO: Test
    */
   public ArrayDeque<CLangStackFrame> getStackFrames() {
-    //TODO: This still allows modification, as queues do not have
-    // the appropriate unmodifiable method. There is probably some good
+    //TODO: [FRAMES-STACK-STRUCTURE] This still allows modification, as queues
+    // do not have the appropriate unmodifiable method. There is probably some good
     // way how to provide a read-only view for iteration, but I do not know it
     return stack_objects;
   }
@@ -231,8 +216,6 @@ public class CLangSMG extends SMG {
    * @return
    *
    * Returns an unmodifiable set of objects on the heap.
-   *
-   * TODO: Test
    */
   public Set<SMGObject> getHeapObjects() {
     return Collections.unmodifiableSet(heap_objects);
@@ -241,9 +224,7 @@ public class CLangSMG extends SMG {
   /**
    * @return
    *
-   * Returns an unmodifiable map from variable names to global objects
-   *
-   * TODO: Test
+   * Returns an unmodifiable map from variable names to global objects.
    */
   public Map<String, SMGObject> getGlobalObjects() {
     return Collections.unmodifiableMap(global_objects);
@@ -254,21 +235,17 @@ public class CLangSMG extends SMG {
    *
    * Returns true if the SMG is a successor over the edge causing some memory
    * to be leaked. Returns false otherwise.
-   *
-   * TODO: Test
    */
   public boolean hasMemoryLeaks() {
-    // TODO: There needs to be a proper graph algorithm in the future
-    //       Right now, we can discover memory leaks only after unassigned
-    //       malloc call result, so we know that immediately.
+    // TODO: [MEMLEAK DETECTION] There needs to be a proper graph algorithm
+    //       in the future. Right now, we can discover memory leaks only
+    //       after unassigned malloc call result, so we know that immediately.
     return has_leaks;
   }
 
   /**
    * Sets a flag indicating this SMG is a successor over the edge causing a
    * memory leak.
-   *
-   * TODO: Test
    */
   public void setMemoryLeak() {
     has_leaks = true;
@@ -296,7 +273,7 @@ final class CLangStackFrame{
    *
    * @param pFunctionDeclaration Function for which the frame is created
    *
-   * TODO: Create objects for function parameters
+   * TODO: [PARAMETERS] Create objects for function parameters
    */
   public CLangStackFrame(CFunctionDeclaration pFunctionDeclaration){
     stack_function = pFunctionDeclaration;
@@ -353,8 +330,6 @@ final class CLangStackFrame{
 
   /**
    * @return Declaration of a function corresponding to the frame
-   *
-   * TODO: Test
    */
   public CFunctionDeclaration getFunctionDeclaration() {
     return stack_function;
