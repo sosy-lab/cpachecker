@@ -1179,6 +1179,7 @@ def executeBenchmarkLocaly(benchmark):
             outputHandler.outputAfterRunSet(runSet, usedCpuTime, usedWallTime)
 
     outputHandler.outputAfterBenchmark()
+    return runSetsExecuted
 
 def parseCloudResultFile(filePath):
     try:
@@ -1201,7 +1202,7 @@ def parseCloudResultFile(filePath):
 def executeBenchmarkInCloud(benchmark):
     
     outputHandler = benchmark.outputHandler
-    
+
     absWorkingDir = os.path.abspath(os.curdir)
     logging.debug("Working dir: " + absWorkingDir)
     toolpaths = benchmark.tool.getProgrammFiles(benchmark.executable)
@@ -1279,7 +1280,8 @@ def executeBenchmarkInCloud(benchmark):
         outputHandler.outputAfterRunSet(runSet, None, None)
         
     outputHandler.outputAfterBenchmark()
-    
+    return len(benchmark.runSets)
+
 
 def executeBenchmark(benchmarkFile):
     benchmark = Benchmark(benchmarkFile)
@@ -1288,9 +1290,9 @@ def executeBenchmark(benchmarkFile):
             repr(benchmarkFile), len(benchmark.runSets)))
     
     if(config.cloud):
-        executeBenchmarkInCloud(benchmark)
+        runSetsExecuted = executeBenchmarkInCloud(benchmark)
     else:
-        executeBenchmarkLocaly(benchmark)
+        runSetsExecuted = executeBenchmarkLocaly(benchmark)
     
     if config.commit and not STOPPED_BY_INTERRUPT and runSetsExecuted > 0:
         Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
