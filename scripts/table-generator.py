@@ -104,6 +104,22 @@ class Util:
 
 
     @staticmethod
+    def splitNumberAndUnit(s):
+        """
+        Split a string into two parts: a number prefix and an arbitrary suffix.
+        Splitting is done from the end, so the split is where the last digit
+        in the string is (that means the prefix may include non-digit characters,
+        if they are followed by at least one digit).
+        """
+        if not s:
+            return (s, '')
+        pos = len(s)
+        while pos and not s[pos-1].isdigit():
+            pos -= 1
+        return (s[:pos], s[pos:])
+
+
+    @staticmethod
     def formatNumber(value, numberOfDigits):
         """
         If the value is a number (or number plus one char),
@@ -113,26 +129,21 @@ class Util:
 
         If the value is no number, it is returned unchanged.
         """
-        lastChar = ""
-        # if the number ends with "s" or another letter, remove it
-        if (not value.isdigit()) and value[-2:-1].isdigit():
-            lastChar = value[-1]
-            value = value[:-1]
+        # if the number ends with "s" or another unit, remove it
+        value, suffix = Util.splitNumberAndUnit((value or '').strip())
         try:
             floatValue = float(value)
             value = "{value:.{width}f}".format(width=numberOfDigits, value=floatValue)
         except ValueError: # if value is no float, don't format it
             pass
-        return value + lastChar
+        return value + suffix
 
 
     @staticmethod
     def toDecimal(s):
-        # remove whitespaces and trailing 's' (e.g., in '1.23s')
-        s = (s or '').lstrip(' \t').rstrip('s \t')
-        if not s or s == '-':
-            return Decimal()
-        return Decimal(s)
+        # remove whitespaces and trailing units (e.g., in '1.23s')
+        s, _ = Util.splitNumberAndUnit((s or '').strip())
+        return Decimal(s) if s else Decimal()
 
 
     @staticmethod
