@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="240" memlimit="4000">
+<benchmark tool="cpachecker" timelimit="240" memlimit="5000">
 
   <rundefinition>
     <sourcefiles>
