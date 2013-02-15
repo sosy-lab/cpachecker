@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -44,9 +45,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 class ASTLiteralConverter {
 
   private final ASTTypeConverter typeConverter;
+  private final MachineModel machine;
 
-  ASTLiteralConverter(ASTTypeConverter pTypeConverter) {
+  ASTLiteralConverter(ASTTypeConverter pTypeConverter, MachineModel pMachineModel) {
     typeConverter = pTypeConverter;
+    machine = pMachineModel;
   }
 
   private static void check(boolean assertion, String msg, IASTNode astNode) throws CFAGenerationRuntimeException {
@@ -177,24 +180,31 @@ class ASTLiteralConverter {
     return result;
   }
 
-  static BigInteger parseIntegerLiteral(String s, final IASTNode e) {
+  BigInteger parseIntegerLiteral(String s, final IASTNode e) {
+    return parseIntegerLiteral(s, e, machine);
+  }
+
+  static BigInteger parseIntegerLiteral(String s, final IASTNode e, MachineModel machine) {
     // this might have some modifiers attached (e.g. 0ULL), we have to get rid of them
     int last = s.length() - 1;
-    int bits = 32;
+    int bytes = machine.getSizeofInt();
     boolean signed = true;
 
     if (s.charAt(last) == 'L' || s.charAt(last) == 'l') {
       last--;
-      // one 'L' is equal to no 'L' (TODO this assumes a 32bit machine)
+      // one 'L' is a long int
+      bytes = machine.getSizeofLongInt();
     }
     if (s.charAt(last) == 'L' || s.charAt(last) == 'l') {
       last--;
-      bits = 64; // two 'L' are a long long
+      // two 'L' are a long long int
+      bytes = machine.getSizeofLongLongInt();
     }
     if (s.charAt(last) == 'U' || s.charAt(last) == 'u') {
       last--;
       signed = false;
     }
+    int bits = bytes * machine.getSizeofCharInBits();
 
     s = s.substring(0, last + 1);
     BigInteger result;

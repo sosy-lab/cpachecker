@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -81,14 +82,16 @@ class CFABuilder extends ASTVisitor {
   private final GlobalScope scope = new GlobalScope();
   private final ASTConverter astCreator;
 
+  private final MachineModel machine;
   private final LogManager logger;
   private final CheckBindingVisitor checkBinding;
 
   private boolean encounteredAsm = false;
 
-  public CFABuilder(LogManager pLogger) {
+  public CFABuilder(LogManager pLogger, MachineModel pMachine) {
     logger = pLogger;
-    astCreator = new ASTConverter(scope, logger);
+    machine = pMachine;
+    astCreator = new ASTConverter(scope, logger, pMachine);
     checkBinding = new CheckBindingVisitor(pLogger);
 
     shouldVisitDeclarations = true;
@@ -239,7 +242,7 @@ class CFABuilder extends ASTVisitor {
 
     for (IASTFunctionDefinition declaration : functionDeclarations) {
       FunctionScope localScope = new FunctionScope(functions, types, globalVars);
-      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, localScope);
+      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, localScope, machine);
 
       declaration.accept(functionBuilder);
 

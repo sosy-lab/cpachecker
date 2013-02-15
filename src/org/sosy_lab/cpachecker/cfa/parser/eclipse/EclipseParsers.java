@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.Dialect;
 import org.sosy_lab.cpachecker.cfa.Parser;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 /**
  * We load the parser in its own class loader, so both all Eclipse objects
@@ -80,7 +81,7 @@ public class EclipseParsers {
     return classLoader;
   }
 
-  public static CParser getCParser(LogManager logger, CParser.Dialect dialect) {
+  public static CParser getCParser(LogManager logger, CParser.Dialect dialect, MachineModel machine) {
 
     try {
       Constructor<? extends CParser> parserConstructor = loadedCParser.get();
@@ -90,11 +91,11 @@ public class EclipseParsers {
 
         @SuppressWarnings("unchecked")
         Class<? extends CParser> parserClass = (Class<? extends CParser>) classLoader.loadClass(C_PARSER_CLASS);
-        parserConstructor = parserClass.getConstructor(new Class<?>[]{ LogManager.class, Dialect.class });
+        parserConstructor = parserClass.getConstructor(new Class<?>[]{ LogManager.class, Dialect.class, MachineModel.class });
         loadedCParser = new WeakReference<Constructor<? extends CParser>>(parserConstructor);
       }
 
-      return parserConstructor.newInstance(logger, dialect);
+      return parserConstructor.newInstance(logger, dialect, machine);
     } catch (ReflectiveOperationException e) {
       throw new Classes.UnexpectedCheckedException("Failed to create Eclipse CDT parser", e);
     }

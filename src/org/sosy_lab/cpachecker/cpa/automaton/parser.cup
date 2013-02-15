@@ -42,6 +42,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 parser code {:
   private LogManager logger;
@@ -82,8 +83,8 @@ parser code {:
   /**
   * Parses a Specification File and returns the Automata found in the file.
   */
-  public static List<Automaton> parseAutomatonFile(File pInputFile, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-    CParser cparser = CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(config));
+  public static List<Automaton> parseAutomatonFile(File pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
+    CParser cparser = CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(config), pMachine);
 
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
     FileInputStream input = null;

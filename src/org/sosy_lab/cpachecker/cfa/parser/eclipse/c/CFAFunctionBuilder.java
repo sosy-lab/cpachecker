@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -152,11 +153,11 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private boolean encounteredAsm = false;
 
-  public CFAFunctionBuilder(LogManager pLogger, FunctionScope pScope) {
+  public CFAFunctionBuilder(LogManager pLogger, FunctionScope pScope, MachineModel pMachine) {
 
     logger = pLogger;
     scope = pScope;
-    astCreator = new ASTConverter(pScope, pLogger);
+    astCreator = new ASTConverter(pScope, pLogger, pMachine);
     checkBinding = new CheckBindingVisitor(pLogger);
 
     shouldVisitDeclarations = true;
@@ -914,7 +915,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           IASTLiteralExpression literalExpression = (IASTLiteralExpression) cond;
           if (literalExpression.getKind() == IASTLiteralExpression.lk_integer_constant) {
               String s = String.valueOf(literalExpression.getValue());
-              BigInteger i = ASTLiteralConverter.parseIntegerLiteral(s, cond);
+              BigInteger i = astCreator.parseIntegerLiteral(s, cond);
               if (i.equals(BigInteger.ZERO)) {
                 return CONDITION.ALWAYS_FALSE;
               } else {

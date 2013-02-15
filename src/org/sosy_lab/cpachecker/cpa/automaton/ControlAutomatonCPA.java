@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -103,7 +104,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final PrecisionAdjustment precisionAdjustment;
   private final Statistics stats = new AutomatonStatistics(this);
 
-  protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration config, LogManager logger)
+  protected ControlAutomatonCPA(@Optional Automaton pAutomaton, Configuration config, LogManager logger, CFA cfa)
       throws InvalidConfigurationException {
 
     config.inject(this, ControlAutomatonCPA.class);
@@ -118,7 +119,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
 
     } else {
-      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger);
+      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, logger, cfa.getMachineModel());
       if (lst.isEmpty()) {
         throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.getAbsolutePath());
       } else if (lst.size() > 1) {

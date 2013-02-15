@@ -96,7 +96,7 @@ public class CPABuilder {
       cpas = new ArrayList<>();
 
       for (File specFile : specificationFiles) {
-        List<Automaton> automata = AutomatonParser.parseAutomatonFile(specFile, config, logger);
+        List<Automaton> automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel());
 
         for (Automaton automaton : automata) {
           String cpaAlias = automaton.getName();
@@ -107,6 +107,7 @@ public class CPABuilder {
           CPAFactory factory = ControlAutomatonCPA.factory();
           factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
           factory.setLogger(logger);
+          factory.set(cfa, CFA.class);
           factory.set(automaton, Automaton.class);
           cpas.add(factory.createInstance());
           logger.log(Level.FINER, "Loaded Automaton\"" + automaton.getName() + "\"");

@@ -31,6 +31,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 public class RedlogInterface {
 
@@ -43,7 +44,7 @@ public class RedlogInterface {
 
   public RedlogInterface(LogManager pLogger) {
     logger = pLogger;
-    parser = CParser.Factory.getParser(logger, CParser.Factory.getDefaultOptions());
+    parser = CParser.Factory.getParser(logger, CParser.Factory.getDefaultOptions(), MachineModel.LINUX32);
   }
 
   /**

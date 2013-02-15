@@ -28,6 +28,7 @@ import org.eclipse.cdt.core.parser.FileContent;
 import org.eclipse.cdt.core.parser.IncludeFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 /**
@@ -35,8 +36,8 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
  */
 public class EclipseCDT7Parser extends AbstractEclipseCParser<FileContent> {
 
-  public EclipseCDT7Parser(LogManager pLogger, Dialect dialect) {
-    super(pLogger, dialect);
+  public EclipseCDT7Parser(LogManager pLogger, Dialect dialect, MachineModel pMachine) {
+    super(pLogger, dialect, pMachine);
   }
 
   @Override

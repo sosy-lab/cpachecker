@@ -124,6 +124,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -161,11 +162,11 @@ class ASTConverter {
   // this list is for ternary operators, &&, etc.
   private final List<Pair<IASTExpression, CIdExpression>> conditionalExpressions = new ArrayList<>();
 
-  public ASTConverter(Scope pScope, LogManager pLogger) {
+  public ASTConverter(Scope pScope, LogManager pLogger, MachineModel pMachineModel) {
     scope = pScope;
     logger = pLogger;
     typeConverter = new ASTTypeConverter(scope);
-    literalConverter = new ASTLiteralConverter(typeConverter);
+    literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
   }
 
   public List<CAstNode> getAndResetPreSideAssignments() {
@@ -196,6 +197,10 @@ class ASTConverter {
 
   private void addConditionalExpression(IASTExpression e, CIdExpression tempVar) {
     conditionalExpressions.add(Pair.of(checkNotNull(e), checkNotNull(tempVar)));
+  }
+
+  BigInteger parseIntegerLiteral(String s, final IASTNode e) {
+    return literalConverter.parseIntegerLiteral(s, e);
   }
 
   public CExpression convertExpressionWithoutSideEffects(

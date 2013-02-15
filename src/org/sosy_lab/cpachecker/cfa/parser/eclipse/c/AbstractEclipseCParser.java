@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 import com.google.common.collect.ImmutableMap;
@@ -60,13 +61,15 @@ abstract class AbstractEclipseCParser<T> implements CParser {
 
   protected final IParserLogService parserLog = ParserFactory.createDefaultLogService();
 
+  private final MachineModel machine;
   private final LogManager logger;
 
   private final Timer parseTimer = new Timer();
   private final Timer cfaTimer = new Timer();
 
-  protected AbstractEclipseCParser(LogManager pLogger, Dialect dialect) {
+  protected AbstractEclipseCParser(LogManager pLogger, Dialect dialect, MachineModel pMachine) {
     logger = pLogger;
+    machine = pMachine;
 
     switch (dialect) {
     case C99:
@@ -121,7 +124,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
       throw new CParserException("Not exactly one statement in function body: " + body);
     }
 
-    return new ASTConverter(new FunctionScope(), logger).convert(statements[0]);
+    return new ASTConverter(new FunctionScope(), logger, machine).convert(statements[0]);
   }
 
   protected static final int PARSER_OPTIONS =
@@ -148,7 +151,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
   private ParseResult buildCFA(IASTTranslationUnit ast) throws CParserException {
     cfaTimer.start();
     try {
-      CFABuilder builder = new CFABuilder(logger);
+      CFABuilder builder = new CFABuilder(logger, machine);
       try {
         ast.accept(builder);
       } catch (CFAGenerationRuntimeException e) {
