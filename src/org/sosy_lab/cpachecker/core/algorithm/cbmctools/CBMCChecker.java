@@ -29,6 +29,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -56,6 +58,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Counterexample checker that creates a C program for the counterexample
@@ -134,8 +138,23 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     CBMCExecutor cbmc;
     int exitCode;
     try {
-      String cbmcArgs[] = {"cbmc", "--function", mainFunctionName + "_0", getParamForMachineModel(), cFile.toAbsolutePath().toString()};
-      cbmc = new CBMCExecutor(logger, cbmcArgs);
+      List<String> cbmcArgs = new ArrayList<>();
+      cbmcArgs.add("cbmc");
+      cbmcArgs.addAll(getParamForMachineModel());
+
+      // Our paths are loop-free, but there might be hidden loops in stdlib functions like memcpy.
+      // CBMC would sometimes endlessly unroll them, so its better to break the loops.
+      cbmcArgs.add("--unwind");
+      cbmcArgs.add("3");
+      cbmcArgs.add("--partial-loops");
+      cbmcArgs.add("--no-unwinding-assertions");
+
+      cbmcArgs.add("--function");
+      cbmcArgs.add(mainFunctionName + "_0");
+
+      cbmcArgs.add(cFile.toAbsolutePath().toString());
+
+      cbmc = new CBMCExecutor(logger, cbmcArgs.toArray(new String[cbmcArgs.size()]));
       exitCode = cbmc.join(timelimit);
 
     } catch (IOException e) {
@@ -156,12 +175,15 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     return cbmc.getResult();
   }
 
-  private String getParamForMachineModel() {
+  private List<String> getParamForMachineModel() {
     switch (machineModel) {
     case LINUX32:
-      return "--32";
+      // The second parameter was recommended by Michael Tautschnig because
+      // --32 doesn't force everything we assume (e.g., endianess).
+      return ImmutableList.of("--32", "--i386-linux");
     case LINUX64:
-      return "--64";
+      // Unfortunately there is no similar switch for --64
+      return ImmutableList.of("--64");
     default:
       throw new AssertionError("Unknown machine model value " + machineModel);
     }
