@@ -111,7 +111,7 @@ public class EclipseParsers {
 
         @SuppressWarnings("unchecked")
         Class<? extends CParser> parserClass = (Class<? extends CParser>) classLoader.loadClass(JAVA_PARSER_CLASS);
-        parserConstructor = parserClass.getConstructor(new Class<?>[]{ LogManager.class, Dialect.class });
+        parserConstructor = parserClass.getConstructor(new Class<?>[]{ LogManager.class, Configuration.class });
         loadedJavaParser = new WeakReference<Constructor<? extends Parser>>(parserConstructor);
       }
 
