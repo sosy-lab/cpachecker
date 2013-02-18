@@ -1273,7 +1273,11 @@ def executeBenchmarkInCloud(benchmark):
                 
      # start cloud and wait for exit
     logging.debug("Starting cloud.")
-    cloud = subprocess.Popen(["java", "-jar", config.cloudPath, "benchmark", "--master", config.cloudMasterName], stdin=subprocess.PIPE)
+    if(config.debug):
+        logLevel =  "ALL"
+    else:
+        logLevel = "FINE"
+    cloud = subprocess.Popen(["java", "-jar", config.cloudPath, "benchmark", "--master", config.cloudMasterName, "--loglevel", logLevel], stdin=subprocess.PIPE)
     (out, err) = cloud.communicate(cloudInput)
     returnCode = cloud.wait()
     logging.debug("Cloud return code: {0}".format(returnCode))
