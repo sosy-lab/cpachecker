@@ -38,7 +38,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -70,9 +69,6 @@ import com.google.common.collect.Lists;
 
 @Options(prefix="cpa.predicate.refinement")
 public class InvariantRefiner extends AbstractARGBasedRefiner {
-
-  @Option(description="split arithmetic equalities when extracting predicates from interpolants")
-  private boolean splitItpAtoms = false;
 
   private final PredicateAbstractionRefinementStrategy predicateRefinementStrategy;
   private final PredicateCPA predicateCpa;

@@ -126,6 +126,8 @@ public class FormulaManagerView implements FormulaManager {
   @Option(description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced.")
   private boolean ignoreExtractConcat = true;
 
+  // TODO move option solver.useIntegers here to replace Bitvectors with LIA and EUF generically
+
   private LogManager logger;
 
   public FormulaManagerView(LoadManagers loadManagers, FormulaManager baseManager) {

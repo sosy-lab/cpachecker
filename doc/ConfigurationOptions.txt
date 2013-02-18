@@ -69,7 +69,7 @@ analysis.interprocedural = true
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64]
 
-# C programs to analyze (currently only one file is supported)
+# A String, denoting the programs to be analyzed
 analysis.programNames = no default value
 
 # which reached set implementation to use?
@@ -251,6 +251,9 @@ cfa.useMultiEdges = false
 
 # Dump variable classification to a file.
 cfa.variableClassification.logfile = "VariableClassification.log"
+
+# Print some information about the variable classification.
+cfa.variableClassification.printStatsOnStartup = false
 
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
@@ -643,16 +646,13 @@ cpa.predicate.invariants.file = "invariants.txt"
 # use uninterpreted functions for *, & and array access
 cpa.predicate.lvalsAsUIFs = false
 
-# List of further options which will be passed to Mathsat. Format is
-# 'key1=value1,key2=value2'
+# List of further options which will be passed to Mathsat in addition to the
+# default options. Format is 'key1=value1,key2=value2'
 cpa.predicate.mathsat5.furtherOptions = ""
 
 # Export solver queries in Smtlib format into a file (for Mathsat5).
 cpa.predicate.mathsat5.logAllQueries = false
 cpa.predicate.mathsat5.logfile = "mathsat5.%d.smt2"
-
-# Use UIFs (recommended because its more precise)
-cpa.predicate.mathsat5.useUIFs = true
 
 # list of functions that provide new memory on the heap. This is only used,
 # when handling of pointers is enabled.
@@ -745,7 +745,6 @@ cpa.predicate.refinement.sliceBlockFormulas = false
 
 # split each arithmetic equality into two inequalities when extracting
 # predicates from interpolants
-# split arithmetic equalities when extracting predicates from interpolants
 cpa.predicate.refinement.splitItpAtoms = false
 
 # time limit for refinement (use milliseconds or specify a unit; 0 for
@@ -770,10 +769,6 @@ cpa.predicate.smtinterpol.logfile = "smtinterpol.smt2"
 # Whether to use MathSAT 5 or SmtInterpol as SMT solver
 cpa.predicate.solver = MATHSAT5
   allowed values: [MATHSAT5, SMTINTERPOL]
-
-# Encode program variables as bitvectors of a fixed size,instead of using
-# REALS. Not all solvers might support this.
-cpa.predicate.solver.useBitvectors = false
 
 # Encode program variables as INTEGER variables, instead of using REALs. Not
 # all solvers might support this.

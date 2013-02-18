@@ -25,10 +25,16 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.io.File;
 import java.util.Map;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
@@ -38,20 +44,55 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRati
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.FormulaCreator;
 
+import com.google.common.base.Splitter;
+import com.google.common.base.Splitter.MapSplitter;
+import com.google.common.collect.ImmutableMap;
 
-
+@Options(prefix="cpa.predicate.mathsat5")
 public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
 
-  private Mathsat5FormulaCreator formulaCreator;
-  private long mathsatEnv;
-  private Mathsat5Settings settings;
+  @Options(prefix="cpa.predicate.mathsat5")
+  private static class Mathsat5Settings {
 
-  protected Mathsat5FormulaManager(
+    @Option(description = "List of further options which will be passed to Mathsat in addition to the default options. "
+        + "Format is 'key1=value1,key2=value2'")
+    private String furtherOptions = "";
+
+    @Option(description = "Export solver queries in Smtlib format into a file (for Mathsat5).")
+    private boolean logAllQueries = false;
+
+    @Option(description = "Export solver queries in Smtlib format into a file (for Mathsat5).")
+    @FileOption(Type.OUTPUT_FILE)
+    private File logfile = new File("mathsat5.%d.smt2");
+
+    private final ImmutableMap<String,String> furtherOptionsMap ;
+
+    private Mathsat5Settings(Configuration config) throws InvalidConfigurationException{
+      config.inject(this);
+
+      MapSplitter optionSplitter = Splitter.on(',').trimResults().omitEmptyStrings()
+                      .withKeyValueSeparator(Splitter.on('=').limit(2).trimResults());
+
+      try {
+        furtherOptionsMap = ImmutableMap.copyOf(optionSplitter.split(furtherOptions));
+      } catch (IllegalArgumentException e) {
+        throw new InvalidConfigurationException("Invalid Mathsat option in \"" + furtherOptions + "\": " + e.getMessage(), e);
+      }
+    }
+  }
+
+  private final Mathsat5FormulaCreator formulaCreator;
+  private final long mathsatEnv;
+  private final Mathsat5Settings settings;
+  private int logfileCounter = 0;
+
+  private Mathsat5FormulaManager(
       AbstractUnsafeFormulaManager<Long> unsafeManager,
       AbstractFunctionFormulaManager<Long> pFunctionManager,
       AbstractBooleanFormulaManager<Long> pBooleanManager,
       AbstractRationalFormulaManager<Long> pNumericManager,
       AbstractBitvectorFormulaManager<Long> pBitpreciseManager, Mathsat5Settings pSettings) {
+
     super(unsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);
     FormulaCreator<Long> creator = getFormulaCreator();
     if (!(creator instanceof Mathsat5FormulaCreator)) {
@@ -68,8 +109,9 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     return ((Mathsat5Formula)pT).getTerm();
   }
 
-  public static Mathsat5FormulaManager create(LogManager logger, Mathsat5Settings settings) throws InvalidConfigurationException{
+  public static Mathsat5FormulaManager create(LogManager logger, Configuration config) throws InvalidConfigurationException{
     // Init Msat
+    Mathsat5Settings settings = new Mathsat5Settings(config);
 
     long msatConf = msat_create_config();
     msat_set_option_checked(msatConf, "theory.la.split_rat_eq", "false");
@@ -121,7 +163,6 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     return msat_get_version();
   }
 
-  int logfileCounter = 0;
   long createEnvironment(long cfg, boolean shared, boolean ghostFilter) {
     long env;
 
