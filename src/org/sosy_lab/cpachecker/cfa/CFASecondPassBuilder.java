@@ -112,7 +112,7 @@ public class CFASecondPassBuilder {
         continue;
       }
 
-      for (CFAEdge edge : leavingEdges(node)) {
+      for (CFAEdge edge : leavingEdges(node).toImmutableList()) {
         if (edge instanceof AStatementEdge) {
           AStatementEdge statement = (AStatementEdge)edge;
           IAStatement expr = statement.getStatement();
