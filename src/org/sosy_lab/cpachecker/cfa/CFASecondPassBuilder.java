@@ -65,8 +65,8 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  */
 public class CFASecondPassBuilder {
 
-  private final MutableCFA cfa;
-  private final Language language;
+  protected final MutableCFA cfa;
+  protected final Language language;
 
   /**
    * Class constructor.
@@ -115,10 +115,7 @@ public class CFASecondPassBuilder {
           AStatementEdge statement = (AStatementEdge)edge;
           IAStatement expr = statement.getStatement();
 
-          // if statement is of the form x = call(a,b); or call(a,b);
-          if (shouldCreateCallEdges(expr)) {
-            createCallAndReturnEdges(statement, (AFunctionCall)expr);
-          }
+          buildCallEdges(expr, statement);
         }
 
         // if successor node is not on a different CFA, add it to the worklist
@@ -130,7 +127,14 @@ public class CFASecondPassBuilder {
     }
   }
 
-  private boolean shouldCreateCallEdges(IAStatement s) {
+  protected void buildCallEdges(IAStatement expr, AStatementEdge statement) throws ParserException {
+    // if statement is of the form x = call(a,b); or call(a,b);
+    if (shouldCreateCallEdges(expr)) {
+      createCallAndReturnEdges(statement, (AFunctionCall)expr);
+    }
+  }
+
+  protected boolean shouldCreateCallEdges(IAStatement s) {
     if (!(s instanceof AFunctionCall)) {
       return false;
     }

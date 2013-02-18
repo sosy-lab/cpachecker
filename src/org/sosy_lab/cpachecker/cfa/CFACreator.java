@@ -106,6 +106,13 @@ public class CFACreator {
       description="run interprocedural analysis")
   private boolean interprocedural = true;
 
+  @Option(name="analysis.completeEdges",
+      description="create all potential function call edges" 
+          + " (e.g. for function pointer analysis)" 
+          + " and add summary call statement edges"
+          + " (e.g. for bounded recursion analysis)")
+  private boolean completeEdges = false;
+  
   @Option(name="analysis.useGlobalVars",
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
@@ -280,8 +287,14 @@ public class CFACreator {
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
-        CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language);
-        spbuilder.insertCallEdgesRecursively();
+        if(completeEdges) {
+          logger.log(Level.FINE, "Complete edges option is on.");
+          CFASecondPassBuilderComplete spbuilder = new CFASecondPassBuilderComplete(cfa, language, config);
+          spbuilder.insertCallEdgesRecursively();         
+        } else {
+          CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language);
+          spbuilder.insertCallEdgesRecursively();
+        }
       }
 
       if (useGlobalVars){
