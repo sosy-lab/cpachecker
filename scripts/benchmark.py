@@ -1260,10 +1260,10 @@ def executeBenchmarkInCloud(benchmark):
     logging.debug("tool paths base dir: " + toolPathsBaseDir)
     baseDir = os.path.commonprefix([sourceFilesBaseDir, toolPathsBaseDir, cloudRunExecutorDir])
     logging.debug("base dir: " + baseDir)
-    
+
     if(baseDir == ""):
-        sys.exit("No comman base dir found.")
-            
+        sys.exit("No common base dir found.")
+
     cloudInput = seperatedToolpaths + "\n" + \
                 cloudRunExecutorDir + "\n" + \
                 baseDir + "\t" + absOutputDir + "\t" + absWorkingDir +"\n" + \
