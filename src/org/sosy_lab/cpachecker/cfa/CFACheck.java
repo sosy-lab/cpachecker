@@ -36,6 +36,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Function;
@@ -108,11 +110,18 @@ public class CFACheck {
       case 2:
         CFAEdge edge1 = pNode.getLeavingEdge(0);
         CFAEdge edge2 = pNode.getLeavingEdge(1);
-        assert (edge1 instanceof AssumeEdge) && (edge2 instanceof AssumeEdge) : "Branching without conditions at node " + DEBUG_FORMAT.apply(pNode);  // TODO Ask for permission
+        //relax this assumption for summary edges
+        if(edge1 instanceof CFunctionSummaryStatementEdge) {
+          assert edge2 instanceof CFunctionCallEdge : "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node " + DEBUG_FORMAT.apply(pNode);
+        } else if(edge2 instanceof CFunctionSummaryStatementEdge) {
+          assert edge1 instanceof CFunctionCallEdge : "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node " + DEBUG_FORMAT.apply(pNode);
+        } else {
+          assert (edge1 instanceof AssumeEdge) && (edge2 instanceof AssumeEdge) : "Branching without conditions at node " + DEBUG_FORMAT.apply(pNode);  // TODO Ask for permission
 
-        AssumeEdge ae1 = (AssumeEdge)edge1;
-        AssumeEdge ae2 = (AssumeEdge)edge2;
-        assert ae1.getTruthAssumption() != ae2.getTruthAssumption() : "Inconsistent branching at node " + DEBUG_FORMAT.apply(pNode);
+          AssumeEdge ae1 = (AssumeEdge)edge1;
+          AssumeEdge ae2 = (AssumeEdge)edge2;
+          assert ae1.getTruthAssumption() != ae2.getTruthAssumption() : "Inconsistent branching at node " + DEBUG_FORMAT.apply(pNode);
+        }
         break;
 
       default:
