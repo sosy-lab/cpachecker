@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import com.google.common.base.Preconditions;
 
@@ -82,7 +81,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
   @Override
   public void push(BooleanFormula f) {
     Preconditions.checkNotNull(env);
-    final Term t = AbstractFormulaManager.<Term>getTerm(f);
+    final Term t = mgr.getTerm(f);
     assertedTerms.add(t);
     env.push(1);
     env.assertTerm(t);
@@ -114,7 +113,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
     Term[] importantTerms = new Term[formulas.size()];
     int i = 0;
     for (BooleanFormula impF : formulas) {
-      importantTerms[i++] = AbstractFormulaManager.<Term>getTerm(impF);
+      importantTerms[i++] = mgr.getTerm(impF);
     }
 
     solveTime.start();

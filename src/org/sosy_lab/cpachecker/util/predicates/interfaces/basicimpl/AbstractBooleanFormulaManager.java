@@ -34,7 +34,7 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
   implements
     BooleanFormulaManager {
 
-  public AbstractBooleanFormulaManager(
+  protected AbstractBooleanFormulaManager(
       FormulaCreator<TFormulaInfo> pCreator) {
     super(pCreator);
   }

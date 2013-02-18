@@ -35,7 +35,7 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
     BitvectorFormulaManager {
 
 
-  public AbstractBitvectorFormulaManager(
+  protected AbstractBitvectorFormulaManager(
       FormulaCreator<TFormulaInfo> pCreator
       ) {
     super(pCreator);

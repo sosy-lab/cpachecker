@@ -38,17 +38,17 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
  */
 public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaManager {
 
-  private AbstractBooleanFormulaManager<TFormulaInfo> booleanManager;
+  private final AbstractBooleanFormulaManager<TFormulaInfo> booleanManager;
 
-  private AbstractRationalFormulaManager<TFormulaInfo> rationalManager;
+  private final AbstractRationalFormulaManager<TFormulaInfo> rationalManager;
 
-  private AbstractBitvectorFormulaManager<TFormulaInfo> bitvectorManager;
+  private final AbstractBitvectorFormulaManager<TFormulaInfo> bitvectorManager;
 
-  private AbstractFunctionFormulaManager<TFormulaInfo> functionManager;
+  private final AbstractFunctionFormulaManager<TFormulaInfo> functionManager;
 
-  private FormulaCreator<TFormulaInfo> formulaCreator;
+  private final FormulaCreator<TFormulaInfo> formulaCreator;
 
-  private AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager;
+  private final AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager;
 
   /**
    * Builds a solver from the given theory implementations
@@ -58,7 +58,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
    * @param rationalManager the rational theory
    * @param bitvectorManager the bitvector theory
    */
-  public AbstractFormulaManager(
+  protected AbstractFormulaManager(
       AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager,
       AbstractFunctionFormulaManager<TFormulaInfo> functionManager,
       AbstractBooleanFormulaManager<TFormulaInfo> booleanManager,
@@ -148,7 +148,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
   }
 
   @SuppressWarnings("unchecked")
-  public static <TFormulaInfo> TFormulaInfo getTerm(Formula f) {
+  protected TFormulaInfo getTerm(Formula f) {
     return ((AbstractFormula<TFormulaInfo>)f).getFormulaInfo();
   }
 

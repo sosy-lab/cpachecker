@@ -46,16 +46,16 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
     TType fromSize(int size);
   }
 
-  private TType boolType;
-  private CreateBitType<TType> bittype;
-  private TType numberType;
-  private TEnv mathsatEnv;
+  private final TType boolType;
+  private final CreateBitType<TType> bittype;
+  private final TType numberType;
+  private final TEnv mathsatEnv;
 
-  public TEnv getEnv(){
+  public TEnv getEnv() {
     return mathsatEnv;
   }
 
-  public AbstractFormulaCreator(
+  protected AbstractFormulaCreator(
       TEnv mathsatEnv,
       TType boolType,
       TType numberType,
@@ -106,5 +106,5 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
     return numberType;
   }
 
-  public abstract TFormulaInfo makeVariable(TType type, String varName) ;
+  protected abstract TFormulaInfo makeVariable(TType type, String varName) ;
 }

@@ -36,12 +36,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
  * A Formula represented as a TFormulaInfo object.
  * @param <TFormulaInfo> the solver specific type.
  */
-public class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
+class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
 
   private static final long serialVersionUID = 7662624283533815801L;
-  private TFormulaInfo formulaInfo;
 
-  public AbstractFormula(TFormulaInfo formulaInfo) {
+  private final TFormulaInfo formulaInfo;
+
+  protected AbstractFormula(TFormulaInfo formulaInfo) {
     assert formulaInfo != null;
 
     this.formulaInfo = formulaInfo;
@@ -53,7 +54,7 @@ public class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
     return formulaInfo.equals(((AbstractFormula<?>) o).formulaInfo);
   }
 
-  public TFormulaInfo getFormulaInfo() {
+  TFormulaInfo getFormulaInfo() {
     return formulaInfo;
   }
 

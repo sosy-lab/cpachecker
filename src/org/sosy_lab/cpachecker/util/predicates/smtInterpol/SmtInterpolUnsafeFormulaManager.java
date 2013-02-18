@@ -27,8 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
@@ -62,11 +60,6 @@ public class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManage
   @SuppressWarnings("unused")
   private static String convertQuotes(String s) {
     return s.replace("|", "\"");
-  }
-
-  @Override
-  public Formula encapsulateUnsafe(Term pL) {
-    return new AbstractFormula<>(pL);
   }
 
   @Override

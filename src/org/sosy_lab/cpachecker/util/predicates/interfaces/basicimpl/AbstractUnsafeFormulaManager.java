@@ -38,7 +38,7 @@ import com.google.common.base.Function;
 
 public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends AbstractBaseFormulaManager<TFormulaInfo> implements UnsafeFormulaManager {
 
-  public AbstractUnsafeFormulaManager(FormulaCreator<TFormulaInfo> creator){
+  protected AbstractUnsafeFormulaManager(FormulaCreator<TFormulaInfo> creator){
     super(creator);
   }
 
@@ -53,7 +53,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
     return typeFormula(type, formulaInfo);
   }
 
-  public <T extends Formula> T typeFormula(FormulaType<T> type, TFormulaInfo formulaInfo) {
+  protected <T extends Formula> T typeFormula(FormulaType<T> type, TFormulaInfo formulaInfo) {
     FormulaCreator<TFormulaInfo> creator = getFormulaCreator();
     Class<T> clazz = type.getInterfaceType();
     return creator.encapsulate(clazz, formulaInfo);
@@ -69,9 +69,11 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
     return returns;
   }
 
-  public abstract Formula encapsulateUnsafe(TFormulaInfo pL);
+  protected Formula encapsulateUnsafe(TFormulaInfo pL) {
+    return new AbstractFormula<>(pL);
+  }
 
-  public List<TFormulaInfo> getArguments(TFormulaInfo pT){
+  protected List<TFormulaInfo> getArguments(TFormulaInfo pT){
     int arity = getArity(pT);
     List<TFormulaInfo> rets = new ArrayList<>(arity);
     for (int i = 0; i < arity; i++) {
@@ -86,14 +88,14 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
     return isAtom(t);
   }
 
-  public abstract boolean isAtom(TFormulaInfo pT) ;
+  protected abstract boolean isAtom(TFormulaInfo pT) ;
 
   @Override
   public int getArity(Formula pF) {
     TFormulaInfo t = getTerm(pF);
     return getArity(t);
   }
-  public abstract int getArity(TFormulaInfo pT) ;
+  protected abstract int getArity(TFormulaInfo pT) ;
 
   @Override
   public Formula getArg(Formula pF, int pN) {
@@ -101,7 +103,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
     return encapsulateUnsafe(getArg(t, pN));
   }
 
-  public abstract TFormulaInfo getArg(TFormulaInfo pT, int n);
+  protected abstract TFormulaInfo getArg(TFormulaInfo pT, int n);
 
   @Override
   public boolean isVariable(Formula pF) {
@@ -109,7 +111,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
     return isVariable(t);
   }
 
-  public abstract boolean isVariable(TFormulaInfo pT);
+  protected abstract boolean isVariable(TFormulaInfo pT);
 
   @Override
   public boolean isNumber(Formula pF) {
@@ -117,7 +119,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
     return isNumber(t);
   }
 
-  public abstract boolean isNumber(TFormulaInfo pT);
+  protected abstract boolean isNumber(TFormulaInfo pT);
 
   @Override
   public boolean isUF(Formula pF) {
@@ -125,7 +127,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
     return isVariable(t);
   }
 
-  public abstract boolean isUF(TFormulaInfo pT);
+  protected abstract boolean isUF(TFormulaInfo pT);
 
   @Override
   public String getName(Formula pF) {
@@ -134,14 +136,14 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
     return getName(t);
   }
 
-  public abstract String getName(TFormulaInfo pT);
+  protected abstract String getName(TFormulaInfo pT);
 
   @Override
   public Formula replaceArgsAndName(Formula f, String newName, Formula[] args){
     return encapsulateUnsafe(replaceArgsAndName(getTerm(f), newName, toFormulaInfo(args)));
   }
 
-  public TFormulaInfo replaceArgsAndName(TFormulaInfo pTerm, String pNewName, List<TFormulaInfo> newArgs){
+  protected TFormulaInfo replaceArgsAndName(TFormulaInfo pTerm, String pNewName, List<TFormulaInfo> newArgs){
     TFormulaInfo withNewArgs = replaceArgs(pTerm, newArgs);
     return replaceName(withNewArgs, pNewName);
   }
@@ -151,12 +153,12 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
     return encapsulateUnsafe(replaceArgs(getTerm(pF), toFormulaInfo(pArgs)));
   }
 
-  public abstract TFormulaInfo replaceArgs(TFormulaInfo pT, List<TFormulaInfo> newArgs);
+  protected abstract TFormulaInfo replaceArgs(TFormulaInfo pT, List<TFormulaInfo> newArgs);
 
   @Override
   public Formula replaceName(Formula pF, String pNewName) {
     return encapsulateUnsafe(replaceName(getTerm(pF), pNewName));
   }
 
-  public abstract TFormulaInfo replaceName(TFormulaInfo pT, String newName);
+  protected abstract TFormulaInfo replaceName(TFormulaInfo pT, String newName);
 }

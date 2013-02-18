@@ -28,15 +28,16 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
  * A BaseFormulaManager because all Abstract*FormulaManager-Classes wrap a FormulaCreator-instance.
  * @param <TFormulaInfo> the solver specific type.
  */
-public abstract class AbstractBaseFormulaManager<TFormulaInfo> {
+abstract class AbstractBaseFormulaManager<TFormulaInfo> {
 
-  private FormulaCreator<TFormulaInfo> formulaCreator;
-  public AbstractBaseFormulaManager(
+  private final FormulaCreator<TFormulaInfo> formulaCreator;
+
+  AbstractBaseFormulaManager(
       FormulaCreator<TFormulaInfo> formulaCreator){
     this.formulaCreator = formulaCreator;
   }
 
-  FormulaCreator<TFormulaInfo> getFormulaCreator(){
+  final FormulaCreator<TFormulaInfo> getFormulaCreator(){
     return formulaCreator;
   }
 }

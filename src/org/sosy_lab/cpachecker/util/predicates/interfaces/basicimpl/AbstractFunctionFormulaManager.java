@@ -43,9 +43,9 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo>
     extends AbstractBaseFormulaManager<TFormulaInfo>
     implements FunctionFormulaManager {
 
-  private AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager;
+  private final AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager;
 
-  public AbstractFunctionFormulaManager(
+  protected AbstractFunctionFormulaManager(
       FormulaCreator<TFormulaInfo> pCreator,
       AbstractUnsafeFormulaManager<TFormulaInfo> unsafeManager) {
     super(pCreator);

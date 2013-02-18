@@ -42,7 +42,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
    *
    * @param signedNumericManager
    */
-  public AbstractRationalFormulaManager(
+  protected AbstractRationalFormulaManager(
       FormulaCreator<TFormulaInfo> pCreator) {
     super(pCreator);
   }

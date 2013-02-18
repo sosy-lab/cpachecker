@@ -33,7 +33,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import com.google.common.base.Preconditions;
 
@@ -64,7 +63,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
     public Term push(BooleanFormula f) {
       Preconditions.checkNotNull(env);
 
-      Term t = AbstractFormulaManager.getTerm(f);
+      Term t = mgr.getTerm(f);
       //Term t = ((SmtInterpolFormula)f).getTerm();
 
       String termName = prefix + counter++;

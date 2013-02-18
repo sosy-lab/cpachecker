@@ -134,4 +134,9 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
     return env;
   }
 
+  @Override
+  protected Term getTerm(Formula pF) {
+    // for visibility
+    return super.getTerm(pF);
+  }
 }
