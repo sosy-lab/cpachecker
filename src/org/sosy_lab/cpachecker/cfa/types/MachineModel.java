@@ -225,10 +225,31 @@ public enum MachineModel {
 
     @Override
     public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
+
+      switch(pCompositeType.getKind()) {
+        case STRUCT: return handleSizeOfStruct(pCompositeType);
+        case UNION:  return handleSizeOfUnion(pCompositeType);
+        case ENUM: // There is no such kind of Composit Type.
+        default: throw new AssertionError();
+      }
+    }
+
+    private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
       int size = 0;
       // TODO: Take possible padding into account
       for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
         size += decl.getType().accept(this);
+      }
+      return size;
+    }
+
+    private Integer handleSizeOfUnion(CCompositeType pCompositeType) {
+      int size = 0;
+      int sizeOfType = 0;
+      // TODO: Take possible padding into account
+      for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
+        sizeOfType += decl.getType().accept(this);
+        size = Math.max(size, sizeOfType);
       }
       return size;
     }
