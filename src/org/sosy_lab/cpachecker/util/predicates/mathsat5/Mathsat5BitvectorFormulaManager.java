@@ -30,13 +30,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitv
 /**
  * Mathsat Bitvector Theory, build out of Bitvector*Operations.
  */
-public class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long> {
+class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long> {
 
-  private long mathsatEnv;
-  private Mathsat5FormulaCreator creator;
-  protected long getMathsatEnv(){
-    return mathsatEnv;
-  }
+  private final long mathsatEnv;
+  private final Mathsat5FormulaCreator creator;
+
   protected Mathsat5BitvectorFormulaManager(
       Mathsat5FormulaCreator creator
       ) {
@@ -99,30 +97,24 @@ public class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaMan
     return msat_make_bv_lshl(mathsatEnv, number, toShift);
   }
 
-
-  private long getMsatEnv() {
-    return getMathsatEnv();
-  }
-
   @Override
   public Long not(Long pBits) {
-    return msat_make_bv_not(getMsatEnv(), pBits);
+    return msat_make_bv_not(mathsatEnv, pBits);
   }
-
 
   @Override
   public Long and(Long pBits1, Long pBits2) {
-    return msat_make_bv_and(getMsatEnv(), pBits1, pBits2);
+    return msat_make_bv_and(mathsatEnv, pBits1, pBits2);
   }
 
   @Override
   public Long or(Long pBits1, Long pBits2) {
-    return msat_make_bv_or(getMsatEnv(), pBits1, pBits2);
+    return msat_make_bv_or(mathsatEnv, pBits1, pBits2);
   }
 
   @Override
   public Long xor(Long pBits1, Long pBits2) {
-    return msat_make_bv_xor(getMsatEnv(), pBits1, pBits2);
+    return msat_make_bv_xor(mathsatEnv, pBits1, pBits2);
   }
 
   @Override
@@ -147,62 +139,62 @@ public class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaMan
 
   @Override
   public Long negate(Long pNumber) {
-    return msat_make_bv_neg(getMsatEnv(), pNumber);
+    return msat_make_bv_neg(mathsatEnv, pNumber);
   }
 
   @Override
   public Long add(Long pNumber1, Long pNumber2) {
-    return msat_make_bv_plus(getMsatEnv(), pNumber1,  pNumber2);
+    return msat_make_bv_plus(mathsatEnv, pNumber1,  pNumber2);
   }
 
   @Override
   public Long subtract(Long pNumber1, Long pNumber2) {
-    return msat_make_bv_minus(getMsatEnv(), pNumber1,  pNumber2);
+    return msat_make_bv_minus(mathsatEnv, pNumber1,  pNumber2);
   }
 
   @Override
   public Long divide(Long pNumber1, Long pNumber2, boolean signed) {
     if (signed){
-      return msat_make_bv_sdiv(getMsatEnv(), pNumber1, pNumber2);
+      return msat_make_bv_sdiv(mathsatEnv, pNumber1, pNumber2);
     }else{
-      return msat_make_bv_udiv(getMsatEnv(), pNumber1, pNumber2);
+      return msat_make_bv_udiv(mathsatEnv, pNumber1, pNumber2);
     }
   }
 
   @Override
   public Long modulo(Long pNumber1, Long pNumber2, boolean signed) {
     if (signed){
-      return msat_make_bv_srem(getMsatEnv(), pNumber1, pNumber2);
+      return msat_make_bv_srem(mathsatEnv, pNumber1, pNumber2);
     }else {
-      return msat_make_bv_urem(getMsatEnv(), pNumber1, pNumber2);
+      return msat_make_bv_urem(mathsatEnv, pNumber1, pNumber2);
     }
   }
 
   @Override
   public Long multiply(Long pNumber1, Long pNumber2) {
-    return msat_make_bv_times(getMsatEnv(), pNumber1, pNumber2);
+    return msat_make_bv_times(mathsatEnv, pNumber1, pNumber2);
   }
 
   @Override
   public Long equal(Long pNumber1, Long pNumber2) {
-    return msat_make_equal(getMsatEnv(), pNumber1, pNumber2);
+    return msat_make_equal(mathsatEnv, pNumber1, pNumber2);
   }
 
   @Override
   public Long lessThan(Long pNumber1, Long pNumber2, boolean signed) {
     if (signed){
-      return msat_make_bv_slt(getMsatEnv(), pNumber1, pNumber2);
+      return msat_make_bv_slt(mathsatEnv, pNumber1, pNumber2);
     }else {
-      return msat_make_bv_ult(getMsatEnv(), pNumber1, pNumber2);
+      return msat_make_bv_ult(mathsatEnv, pNumber1, pNumber2);
     }
   }
 
   @Override
   public Long lessOrEquals(Long pNumber1, Long pNumber2, boolean signed) {
     if (signed){
-      return msat_make_bv_sleq(getMsatEnv(), pNumber1, pNumber2);
+      return msat_make_bv_sleq(mathsatEnv, pNumber1, pNumber2);
     }else {
-      return msat_make_bv_uleq(getMsatEnv(), pNumber1, pNumber2);
+      return msat_make_bv_uleq(mathsatEnv, pNumber1, pNumber2);
     }
   }
 

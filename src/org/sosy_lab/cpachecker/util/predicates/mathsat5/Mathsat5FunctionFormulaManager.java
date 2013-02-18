@@ -40,10 +40,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunc
 import com.google.common.base.Function;
 import com.google.common.primitives.Longs;
 
-public class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long> {
+class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long> {
 
-  private long mathsatEnv;
-  private Mathsat5FormulaCreator creator;
+  private final long mathsatEnv;
+  private final Mathsat5FormulaCreator creator;
 
   public Mathsat5FunctionFormulaManager(
       Mathsat5FormulaCreator pCreator,

@@ -104,8 +104,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
   }
 
 
-  @SuppressWarnings("unchecked")
-  public static Long getTerm(Formula pT) {
+  static long getMsatTerm(Formula pT) {
     return ((Mathsat5Formula)pT).getTerm();
   }
 

@@ -28,9 +28,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 
+class Mathsat5Formula implements Formula {
 
-public class Mathsat5Formula implements Formula {
-  public long msatTerm;
+  private final long msatTerm;
+
   public Mathsat5Formula(long term){
     this.msatTerm = term;
   }
@@ -51,7 +52,7 @@ public class Mathsat5Formula implements Formula {
     return (int) msatTerm;
   }
 
-  public long getTerm() {
+  long getTerm() {
     return msatTerm;
   }
 }

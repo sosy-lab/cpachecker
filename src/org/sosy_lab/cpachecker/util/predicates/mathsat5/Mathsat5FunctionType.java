@@ -29,10 +29,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
 
+class Mathsat5FunctionType<T extends Formula> extends FunctionFormulaTypeImpl<T> {
 
-public class Mathsat5FunctionType<T extends Formula> extends FunctionFormulaTypeImpl<T> {
-
-  private long funcDecl;
+  private final long funcDecl;
 
   public Mathsat5FunctionType(FormulaType<T> pReturnType, List<FormulaType<?>> pArgumentTypes, long funcDecl) {
     super(pReturnType, pArgumentTypes);

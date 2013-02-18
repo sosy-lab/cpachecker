@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
 
 
-public class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long>{
+class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long>{
 
   public Mathsat5FormulaCreator(
       final Long msatEnv) {
@@ -55,7 +55,7 @@ public class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, L
 
   @Override
   public <T extends Formula> Long extractInfo(T pT) {
-    return Mathsat5FormulaManager.getTerm(pT);
+    return Mathsat5FormulaManager.getMsatTerm(pT);
   }
 
   public Formula encapsulateUnsafe(Long pTerm){

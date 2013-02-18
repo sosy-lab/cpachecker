@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager.getMsatTerm;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import java.util.ArrayDeque;
@@ -84,11 +85,7 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
   public void push(BooleanFormula f) {
     Preconditions.checkState(curEnv != 0);
     msat_push_backtrack_point(curEnv);
-    msat_assert_formula(curEnv, getTerm(f));
-  }
-
-  private Long getTerm(BooleanFormula pF) {
-    return Mathsat5FormulaManager.getTerm(pF);
+    msat_assert_formula(curEnv, getMsatTerm(f));
   }
 
   @Override
@@ -114,7 +111,7 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
     int i = 0;
     for (BooleanFormula impF : important) {
 
-      imp[i++] = getTerm(impF);
+      imp[i++] = getMsatTerm(impF);
 
     }
 

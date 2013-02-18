@@ -34,12 +34,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRati
 import com.google.common.collect.ImmutableList;
 
 
-public class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long> {
+class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long> {
 
-  private Mathsat5FunctionType<RationalFormula> multUfDecl;
-  private Mathsat5FunctionType<RationalFormula> divUfDecl;
-  private Mathsat5FunctionType<RationalFormula> modUfDecl;
-  private Mathsat5FunctionFormulaManager functionManager;
+  private final Mathsat5FunctionType<RationalFormula> multUfDecl;
+  private final Mathsat5FunctionType<RationalFormula> divUfDecl;
+  private final Mathsat5FunctionType<RationalFormula> modUfDecl;
+  private final Mathsat5FunctionFormulaManager functionManager;
 
   public Mathsat5RationalFormulaManager(
       Mathsat5FormulaCreator pCreator,

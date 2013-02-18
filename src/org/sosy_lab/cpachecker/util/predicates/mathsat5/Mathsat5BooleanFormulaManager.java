@@ -27,11 +27,11 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
+class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager<Long> {
 
-public class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager<Long> {
+  private final Mathsat5FormulaCreator creator;
+  private final long mathsatEnv;
 
-  private Mathsat5FormulaCreator creator;
-  private long mathsatEnv;
   protected Mathsat5BooleanFormulaManager(
       Mathsat5FormulaCreator pCreator) {
     super(pCreator);

@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.ModelI
 
 import com.google.common.collect.ImmutableMap;
 
-public class Mathsat5Model {
+class Mathsat5Model {
 
   private static TermType toMathsatType(long e, long mType) {
 
