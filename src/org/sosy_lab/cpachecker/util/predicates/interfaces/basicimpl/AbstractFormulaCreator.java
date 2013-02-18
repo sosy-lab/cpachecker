@@ -72,7 +72,7 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
 
   @SuppressWarnings("unchecked")
   @Override
-  public <T extends Formula> TFormulaInfo extractInfo(T pT) {
+  public TFormulaInfo extractInfo(Formula pT) {
     return ((AbstractFormula<TFormulaInfo>)pT).getFormulaInfo();
   }
 

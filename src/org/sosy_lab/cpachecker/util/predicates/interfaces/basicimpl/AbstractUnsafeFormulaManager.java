@@ -53,7 +53,6 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
     return typeFormula(type, formulaInfo);
   }
 
-  @SuppressWarnings("unchecked")
   public <T extends Formula> T typeFormula(FormulaType<T> type, TFormulaInfo formulaInfo) {
     FormulaCreator<TFormulaInfo> creator = getFormulaCreator();
     Class<T> clazz = type.getInterfaceType();

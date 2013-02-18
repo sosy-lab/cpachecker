@@ -54,7 +54,7 @@ class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long>{
   }
 
   @Override
-  public <T extends Formula> Long extractInfo(T pT) {
+  public Long extractInfo(Formula pT) {
     return Mathsat5FormulaManager.getMsatTerm(pT);
   }
 

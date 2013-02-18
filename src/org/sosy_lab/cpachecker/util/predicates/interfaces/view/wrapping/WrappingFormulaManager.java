@@ -69,10 +69,4 @@ public class WrappingFormulaManager extends FormulaManagerView {
         return new WrappingFunctionFormulaManagerView(pManager);
       }
     };
-//
-//    @Override
-//    @SuppressWarnings("unchecked")
-//    public <T extends Formula> T extractFromView(T formula) {
-//      return ((FormulaView<T>)formula).getWrapped();
-//    }
 }

@@ -33,5 +33,5 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 public interface FormulaCreator<TFormulaInfo> {
   public <T extends Formula> T encapsulate(Class<T> clazz, TFormulaInfo pTerm);
 
-  public <T extends Formula> TFormulaInfo extractInfo(T t);
+  public TFormulaInfo extractInfo(Formula t);
 }

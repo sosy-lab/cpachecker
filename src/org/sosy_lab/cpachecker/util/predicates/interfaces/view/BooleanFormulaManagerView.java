@@ -119,7 +119,6 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     return manager.isFalse(extractFromView(pFormula));
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public <T extends Formula> T ifThenElse(BooleanFormula pCond, T pF1, T pF2) {
     FormulaManagerView viewManager = getViewManager();

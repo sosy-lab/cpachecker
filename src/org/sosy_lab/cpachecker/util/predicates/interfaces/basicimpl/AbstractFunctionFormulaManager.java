@@ -61,7 +61,6 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo>
   protected abstract <TFormula extends Formula> TFormulaInfo
     createUninterpretedFunctionCallImpl(FunctionFormulaType<TFormula> pFuncType, List<TFormulaInfo> pArgs);
 
-  @SuppressWarnings("unchecked")
   @Override
   public final <T extends Formula> T createUninterpretedFunctionCall(FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
     FormulaType<T> retType = pFuncType.getReturnType();

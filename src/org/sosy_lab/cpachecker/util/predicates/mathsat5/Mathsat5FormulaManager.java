@@ -140,7 +140,6 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
         rationalTheory, bitvectorTheory, settings);
   }
 
-  @SuppressWarnings("unchecked")
   public <T extends Formula> T encapsulateTerm(Class<T> pClazz, long t) {
     return formulaCreator.encapsulate(pClazz, t);
   }
