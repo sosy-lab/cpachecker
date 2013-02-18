@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import java.lang.reflect.Array;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -108,7 +107,7 @@ public class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManage
 
   @Override
   public Term replaceArgs(Term pT, List<Term> newArgs) {
-    return SmtInterpolUtil.replaceArgs(env, pT, newArgs.toArray((Term[]) Array.newInstance(Term.class, newArgs.size())));
+    return SmtInterpolUtil.replaceArgs(env, pT, newArgs.toArray(new Term[newArgs.size()]));
   }
 
   @Override

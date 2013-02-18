@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -34,6 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaTypeImpl;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  * This class simplifies the implementation of the FunctionFormulaManager by converting the types to the solver specific type.
@@ -53,11 +52,6 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo>
     this.unsafeManager = unsafeManager;
   }
 
-  @SuppressWarnings("unchecked")
-  protected <T extends AbstractUnsafeFormulaManager<TFormulaInfo>> T getUnsafeManager(){
-    return (T)unsafeManager;
-  }
-
   @Override
   public <T extends Formula> FunctionFormulaType<T> createFunction(String pName, FormulaType<T> pReturnType,
       List<FormulaType<?>> pArgs) {
@@ -71,16 +65,16 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo>
   @Override
   public final <T extends Formula> T createUninterpretedFunctionCall(FunctionFormulaType<T> pFuncType, List<? extends Formula> pArgs) {
     FormulaType<T> retType = pFuncType.getReturnType();
-    List<TFormulaInfo> list =
-      from(pArgs)
-        .transform(new Function<Formula, TFormulaInfo>() {
+    List<TFormulaInfo> list = Lists.transform(pArgs,
+        new Function<Formula, TFormulaInfo>() {
           @SuppressWarnings("unchecked")
           @Override
           public TFormulaInfo apply(Formula pArg0) {
             return
                 getFormulaCreator().extractInfo(pArg0);
-          }})
-        .toImmutableList();
+          }
+        });
+
     TFormulaInfo formulaInfo = createUninterpretedFunctionCallImpl(pFuncType, list);
     return unsafeManager.typeFormula(retType, formulaInfo);
   }

@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
-import static com.google.common.collect.FluentIterable.from;
-
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.List;
 
@@ -38,6 +35,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
@@ -45,8 +43,9 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 public class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<Term> {
 
-  private SmtInterpolFormulaCreator creator;
-  private SmtInterpolEnvironment env;
+  private final SmtInterpolFormulaCreator creator;
+  private final SmtInterpolUnsafeFormulaManager unsafeManager;
+  private final SmtInterpolEnvironment env;
 
   public SmtInterpolFunctionFormulaManager(
       SmtInterpolFormulaCreator creator,
@@ -54,16 +53,16 @@ public class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaMa
     super(creator, unsafeManager);
     this.creator = creator;
     this.env = creator.getEnv();
+    this.unsafeManager = unsafeManager;
   }
 
   @Override
   public <TFormula extends Formula> Term createUninterpretedFunctionCallImpl(FunctionFormulaType<TFormula> pFuncType,
       List<Term> pArgs) {
     SmtInterpolFunctionType<TFormula> interpolType = (SmtInterpolFunctionType<TFormula>) pFuncType;
-    Term[] args = pArgs.toArray((Term[])Array.newInstance(Term.class, pArgs.size()));
+    Term[] args = pArgs.toArray(new Term[pArgs.size()]);
     String funcDecl = interpolType.getFuncDecl();
-    return
-        this.<SmtInterpolUnsafeFormulaManager>getUnsafeManager().createUIFCallImpl(funcDecl, args);
+    return unsafeManager.createUIFCallImpl(funcDecl, args);
   }
 
   public Sort toSmtInterpolType (FormulaType<?> formulaType){
@@ -92,21 +91,19 @@ public class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaMa
       = super.createFunction(pName, pReturnType, pArgs);
 
 
-    List<Sort> types =
-      from(pArgs)
-      .transform(new Function<FormulaType<?>,Sort>(){
-
+    List<Sort> types = Lists.transform(pArgs,
+      new Function<FormulaType<?>,Sort>(){
         @Override
         public Sort apply(FormulaType<?> pArg0) {
           return toSmtInterpolType(pArg0);
-        }})
-        .toImmutableList();
-    Sort[] msatTypes = types.toArray((Sort[])Array.newInstance(Sort.class, types.size()));
+        }
+      });
+    Sort[] msatTypes = types.toArray(new Sort[types.size()]);
 
     Sort returnType = toSmtInterpolType(pReturnType);
-    String decl = createFunctionImpl(pName, returnType, msatTypes);
+    env.declareFun(pName, msatTypes, returnType);
 
-    return new SmtInterpolFunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), decl);
+    return new SmtInterpolFunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), pName);
   }
 
   @Override
@@ -118,14 +115,9 @@ public class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaMa
     return createFunction(pName, pReturnType, Arrays.asList(pArgs));
   }
 
-  public String createFunctionImpl(String pName, Sort returnType, Sort[] msatTypes) {
-    env.declareFun(pName, msatTypes, returnType);
-    return pName;
-  }
-
   @Override
   protected boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Term f) {
-    boolean isUf = getUnsafeManager().isUF(f);
+    boolean isUf = unsafeManager.isUF(f);
     if (!isUf) return false;
 
     // TODO check if exactly the given func
