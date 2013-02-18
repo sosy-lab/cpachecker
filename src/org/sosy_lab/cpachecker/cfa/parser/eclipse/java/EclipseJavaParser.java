@@ -69,10 +69,6 @@ public class EclipseJavaParser implements Parser {
       description="Specifies the java version of source code accepted")
   private String version = JavaCore.VERSION_1_7;
 
-  @Option(name ="java.rootPath",
-      description="Java path that contains the main class")
-  private String javaRootPath = "";
-
   @Option(name ="java.sourcepath",
       description="Specify the source code path to " +
           "search for java class or interface definitions")
@@ -96,8 +92,6 @@ public class EclipseJavaParser implements Parser {
   private static final boolean IGNORE_METHOD_BODY = true;
   private static final boolean PARSE_METHOD_BODY = false;
   private static final String JAVA_SOURCE_FILE_REGEX = ".*.java";
-  private static final int JAVA_ROOT_PATH = 0;
-  private static final int  LENGTH_OF_SUFFIX = 5;
 
   public EclipseJavaParser(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
 
@@ -105,53 +99,43 @@ public class EclipseJavaParser implements Parser {
 
     logger = pLogger;
 
-    javaClassPaths = getJavaPaths(javaClasspath, javaRootPath);
+    javaClassPaths = getJavaPaths(javaClasspath);
 
     if (javaSourcepath.isEmpty()) {
       javaSourcePaths = javaClassPaths;
     } else {
-      javaSourcePaths = getJavaPaths(javaSourcepath, javaRootPath);
+      javaSourcePaths = getJavaPaths(javaSourcepath);
+    }
+
+    if (javaSourcePaths.length == 0) {
+      throw new InvalidConfigurationException("No valid Paths could be found.");
     }
   }
 
-  private String[] getJavaPaths(String javaPath, String javaRootPath) {
+  private String[] getJavaPaths(String javaPath) {
 
-    if (javaPath.isEmpty()) {
-      String[] result = { javaRootPath };
-      return result;
-    } else {
-      String sourcepath = javaRootPath + File.pathSeparator + javaPath;
-      String[] paths = sourcepath.split(File.pathSeparator);
+
+
+      String[] paths = javaPath.split(File.pathSeparator);
       String[] result;
 
-      if (existsNonExistingPath(paths)) {
-        result = deleteNonExistingPaths(paths);
-      } else {
-        result = paths;
-      }
+      result = deleteNonValidPaths(paths);
 
       return result;
-    }
   }
 
-  private boolean existsNonExistingPath(String[] paths) {
-
-    for (String path : paths) {
-      if (!new File(path).exists()) { return true; }
-    }
-    return false;
-  }
-
-  private String[] deleteNonExistingPaths(String[] pSourcepaths) {
+  private String[] deleteNonValidPaths(String[] pSourcepaths) {
 
     LinkedList<String> resultList = new LinkedList<>();
 
     for (String path : pSourcepaths) {
       File directory = new File(path);
-      if (directory.exists()) {
-        resultList.add(path);
+      if (!directory.exists()) {
+        logger.log(Level.WARNING, "Path " + directory + " could not be found.");
+      } else if(!directory.canRead()) {
+        logger.log(Level.WARNING, "Path " + directory + " can not be read.");
       } else {
-        logger.log(Level.WARNING, "Path " + directory + "could not be found.");
+        resultList.add(directory.getAbsolutePath());
       }
     }
 
@@ -176,18 +160,23 @@ public class EclipseJavaParser implements Parser {
    * @throws ParserException If parser or CFA builder cannot handle the  code.
    */
   @Override
-  public ParseResult parseFile(String fileName) throws JParserException {
-    File mainClassFile = getMainClassFile(fileName);
-    Scope scope = prepareScope(fileName);
+  public ParseResult parseFile(String mainClassName) throws JParserException {
+    File mainClassFile = getMainClassFile(mainClassName);
+    Scope scope = prepareScope(mainClassName);
     return buildCFA(parse(mainClassFile), scope);
   }
 
-  private File getMainClassFile(String fileName)  {
-    File file = new File(fileName);
-    return file;
+  private File getMainClassFile(String mainClassName) throws JParserException  {
+
+     File mainClass = searchForClassFile(mainClassName);
+     if(mainClass == null) {
+       throw new JParserException("Could not find main class in the specified paths");
+     }
+
+     return mainClass;
   }
 
-  private Scope prepareScope(String FileName) throws JParserException {
+  private Scope prepareScope(String mainClassName) throws JParserException {
 
     List<Pair<CompilationUnit,String>> astsOfFoundFiles = getASTsOfProgram();
 
@@ -195,16 +184,7 @@ public class EclipseJavaParser implements Parser {
     Map<String, JClassOrInterfaceType> types
                             = getTypeHieachie(astsOfFoundFiles, typeOfFiles);
 
-    String mainClassName = getMainClassName(FileName);
-
     return new Scope(mainClassName, types, typeOfFiles);
-  }
-
-  private String getMainClassName(String pFileName) {
-
-    int pathLength = javaSourcePaths[JAVA_ROOT_PATH].length();
-
-    return pFileName.substring(pathLength, pFileName.length() - LENGTH_OF_SUFFIX).replace(File.separatorChar, '.');
   }
 
   private Map<String, JClassOrInterfaceType> getTypeHieachie(List<Pair<CompilationUnit,
@@ -400,7 +380,7 @@ public class EclipseJavaParser implements Parser {
     String classFilePathPart = nextClassToBeParsed.replace('.', File.separatorChar) + ".java";
 
     for (String sourcePath : javaSourcePaths) {
-      File file = new File(sourcePath + classFilePathPart);
+      File file = new File(sourcePath + File.separatorChar + classFilePathPart);
 
       if (file.exists()) {
         return file;
