@@ -1179,7 +1179,11 @@ def executeBenchmarkLocaly(benchmark):
             outputHandler.outputAfterRunSet(runSet, usedCpuTime, usedWallTime)
 
     outputHandler.outputAfterBenchmark()
-    return runSetsExecuted
+
+    if config.commit and not STOPPED_BY_INTERRUPT and runSetsExecuted > 0:
+        Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
+                                     config.commitMessage+'\n\n'+outputHandler.description)
+
 
 def parseCloudResultFile(filePath):
     try:
@@ -1280,7 +1284,6 @@ def executeBenchmarkInCloud(benchmark):
         outputHandler.outputAfterRunSet(runSet, None, None)
         
     outputHandler.outputAfterBenchmark()
-    return len(benchmark.runSets)
 
 
 def executeBenchmark(benchmarkFile):
@@ -1290,15 +1293,9 @@ def executeBenchmark(benchmarkFile):
             repr(benchmarkFile), len(benchmark.runSets)))
     
     if(config.cloud):
-        runSetsExecuted = executeBenchmarkInCloud(benchmark)
+        executeBenchmarkInCloud(benchmark)
     else:
-        runSetsExecuted = executeBenchmarkLocaly(benchmark)
-    
-    if config.commit and not STOPPED_BY_INTERRUPT and runSetsExecuted > 0:
-        Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
-                                     config.commitMessage+'\n\n'+outputHandler.description)
-
-   
+        executeBenchmarkLocaly(benchmark)
 
 
 def main(argv=None):
