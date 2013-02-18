@@ -72,6 +72,7 @@ COLOR_DIC = {"correctSafe": COLOR_GREEN,
              "wrongUnsafe": COLOR_RED,
              "wrongSafe": COLOR_RED,
              None: COLOR_DEFAULT}
+TERMINAL_TITLE = "\033kBenchmark {0}\033"
 
 
 # the number of digits after the decimal separator of the time column,
@@ -277,6 +278,7 @@ class RunSet:
             # there is exactly one source-file set to run, append its name to run-set name
             names.append(self.blocks[0].realName)
         self.name = '.'.join(filter(None, names))
+        self.fullName = self.benchmark.name + (("." + self.name) if self.name else "")
 
 
     def shouldBeExecuted(self):
@@ -711,10 +713,12 @@ class OutputHandler:
         self.maxLengthOfFileName = max(20, self.maxLengthOfFileName - len(self.commonPrefix))
 
         # write run set name to terminal
-        Util.printOut("\nexecuting run set" + \
-            (" '" + runSet.name + "'" if runSet.name else "") + \
-            ("     (1 file)" if numberOfFiles == 1
-                        else "     ({0} files)".format(numberOfFiles)))
+        numberOfFiles = ("     (1 file)" if numberOfFiles == 1
+                        else "     ({0} files)".format(numberOfFiles))
+        Util.printOut("\nexecuting run set"
+            + (" '" + runSet.name + "'" if runSet.name else "")
+            + numberOfFiles
+            + (TERMINAL_TITLE.format(runSet.fullName) if USE_COLORS and sys.stdout.isatty() else ""))
 
         # write information about the run set into TXTFile
         self.writeRunSetInfoToLog(runSet)
@@ -798,7 +802,9 @@ class OutputHandler:
 
             timeStr = time.strftime("%H:%M:%S", time.localtime()) + "   "
             if self.benchmark.numOfThreads == 1:
-                Util.printOut(timeStr + self.formatSourceFileName(run.sourcefile), '')
+                progressIndicator = " ({0}/{1})".format(self.runSet.runs.index(run), len(self.runSet.runs))
+                Util.printOut(TERMINAL_TITLE.format(self.runSet.fullName + progressIndicator)
+                              + timeStr + self.formatSourceFileName(run.sourcefile), '')
             else:
                 Util.printOut(timeStr + "starting   " + self.formatSourceFileName(run.sourcefile))
         finally:
