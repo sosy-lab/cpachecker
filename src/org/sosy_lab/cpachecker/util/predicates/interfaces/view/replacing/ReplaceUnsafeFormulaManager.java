@@ -33,14 +33,14 @@ import com.google.common.base.Function;
 public class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
 
 
-  private Function<FormulaType<? extends Formula>, FormulaType<? extends Formula>> unwrapTypes;
+  private Function<FormulaType<?>, FormulaType<?>> unwrapTypes;
   private UnsafeFormulaManager rawUnsafeManager;
   private ReplacingFormulaManager replaceManager;
 
   public ReplaceUnsafeFormulaManager(
       ReplacingFormulaManager pReplacingFormulaManager,
       UnsafeFormulaManager pUnsafeFormulaManager,
-      Function<FormulaType<? extends Formula>,FormulaType<? extends Formula>> unwrapTypes) {
+      Function<FormulaType<?>,FormulaType<?>> unwrapTypes) {
     this.replaceManager = pReplacingFormulaManager;
     this.rawUnsafeManager = pUnsafeFormulaManager;
     this.unwrapTypes = unwrapTypes;
@@ -48,7 +48,7 @@ public class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
 
   @Override
   public <T extends Formula> T typeFormula(FormulaType<T> pType, Formula pF) {
-    FormulaType<? extends Formula> unwrapped = unwrapTypes.apply(pType);
+    FormulaType<?> unwrapped = unwrapTypes.apply(pType);
     return
        replaceManager.wrap(
            pType,

@@ -40,14 +40,14 @@ import com.google.common.base.Joiner;
 public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManager {
 
 
-  private Function<FormulaType<? extends Formula>, FormulaType<? extends Formula>> unwrapTypes;
+  private Function<FormulaType<?>, FormulaType<?>> unwrapTypes;
   private FunctionFormulaManager rawFunctionFormulaManager;
   private ReplacingFormulaManager replaceManager;
 
   public ReplaceHelperFunctionFormulaManager(
       ReplacingFormulaManager replaceFormulaManager,
       FunctionFormulaManager pFunctionFormulaManager,
-      Function<FormulaType<? extends Formula>,FormulaType<? extends Formula>> unwrapTypes
+      Function<FormulaType<?>,FormulaType<?>> unwrapTypes
       ) {
     this.replaceManager = replaceFormulaManager;
     this.rawFunctionFormulaManager = pFunctionFormulaManager;
@@ -56,14 +56,14 @@ public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManag
 
   private static class ReplaceFunctionFormulaType<T extends Formula> extends FunctionFormulaType<T> {
 
-    private FunctionFormulaType<? extends Formula> wrapped;
-    private List<FormulaType<? extends Formula>> args;
+    private FunctionFormulaType<?> wrapped;
+    private List<FormulaType<?>> args;
     private FormulaType<T> ret;
 
     public ReplaceFunctionFormulaType(
-        FunctionFormulaType<? extends Formula> wrapped,
+        FunctionFormulaType<?> wrapped,
         FormulaType<T> retType,
-        List<FormulaType<? extends Formula>> pArgs){
+        List<FormulaType<?>> pArgs){
       this.wrapped = wrapped;
       this.ret = retType;
       this.args = pArgs;
@@ -92,9 +92,9 @@ public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManag
 
   @Override
   public <T extends Formula> FunctionFormulaType<T> createFunction(String pName, FormulaType<T> pReturnType,
-      List<FormulaType<? extends Formula>> pArgs) {
+      List<FormulaType<?>> pArgs) {
 
-    List<FormulaType<? extends Formula>> newArgs =
+    List<FormulaType<?>> newArgs =
         from(pArgs).transform(unwrapTypes).toImmutableList();
     FormulaType<?> ret = unwrapTypes.apply(pReturnType);
     FunctionFormulaType<?> funcType = rawFunctionFormulaManager.createFunction(pName, ret, newArgs);

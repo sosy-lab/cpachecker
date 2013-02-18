@@ -48,7 +48,7 @@ public class FunctionFormulaManagerView extends AbstractBaseManagerView implemen
   public <T extends Formula> FunctionFormulaType<T> createFunction(
       String pName,
       FormulaType<T> pReturnType,
-      List<FormulaType<? extends Formula>> pArgs) {
+      List<FormulaType<?>> pArgs) {
     return manager.createFunction(pName, pReturnType, pArgs);
   }
 
@@ -66,11 +66,11 @@ public class FunctionFormulaManagerView extends AbstractBaseManagerView implemen
   public <T extends Formula> T createFuncAndCall(String name, FormulaType<T> pReturnType, List<Formula> pArgs) {
     final FormulaManagerView viewManager = getViewManager();
 
-    List<FormulaType<? extends Formula>> argTypes = from(pArgs).
+    List<FormulaType<?>> argTypes = from(pArgs).
       transform(
-          new Function<Formula, FormulaType<? extends Formula>>() {
+          new Function<Formula, FormulaType<?>>() {
             @Override
-            public FormulaType<? extends Formula> apply(Formula pArg0) {
+            public FormulaType<?> apply(Formula pArg0) {
               return viewManager.getFormulaType(pArg0);
             }}).toImmutableList();
 

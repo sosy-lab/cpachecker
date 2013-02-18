@@ -57,11 +57,11 @@ public class ReplacingFormulaManager implements FormulaManager {
     this.rawFormulaManager = rawFormulaManager;
 
     // Setup replacement environment
-    Function<FormulaType<? extends Formula>,FormulaType<? extends Formula>>
+    Function<FormulaType<?>,FormulaType<?>>
     unwrapTypes = new
-        Function<FormulaType<? extends Formula>,FormulaType<? extends Formula>>() {
+        Function<FormulaType<?>,FormulaType<?>>() {
           @Override
-          public FormulaType<? extends Formula> apply(FormulaType<? extends Formula> pArg0) {
+          public FormulaType<?> apply(FormulaType<?> pArg0) {
             Class<? extends Formula> clazz = pArg0.getInterfaceType();
             if (clazz == BitvectorFormula.class){
               if (replaceBitvectorWithRationalAndFunctions){

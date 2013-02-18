@@ -60,7 +60,7 @@ public abstract class AbstractFunctionFormulaManager<TFormulaInfo>
 
   @Override
   public <T extends Formula> FunctionFormulaType<T> createFunction(String pName, FormulaType<T> pReturnType,
-      List<FormulaType<? extends Formula>> pArgs) {
+      List<FormulaType<?>> pArgs) {
     return new FunctionFormulaTypeImpl<>(pReturnType, pArgs);
   }
 

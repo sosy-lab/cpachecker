@@ -66,7 +66,7 @@ public class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaMa
         this.<SmtInterpolUnsafeFormulaManager>getUnsafeManager().createUIFCallImpl(funcDecl, args);
   }
 
-  public Sort toSmtInterpolType (org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType<? extends Formula> formulaType){
+  public Sort toSmtInterpolType (FormulaType<?> formulaType){
     Class<?> clazz = formulaType.getInterfaceType();
     Sort t;
     if (clazz==BooleanFormula.class) {
@@ -87,17 +87,17 @@ public class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaMa
     createFunction(
         String pName,
         FormulaType<T> pReturnType,
-        List<FormulaType<? extends Formula>> pArgs) {
-    org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType<T> formulaType
+        List<FormulaType<?>> pArgs) {
+    FunctionFormulaType<T> formulaType
       = super.createFunction(pName, pReturnType, pArgs);
 
 
     List<Sort> types =
       from(pArgs)
-      .transform(new Function<FormulaType<? extends Formula>,Sort>(){
+      .transform(new Function<FormulaType<?>,Sort>(){
 
         @Override
-        public Sort apply(FormulaType<? extends Formula> pArg0) {
+        public Sort apply(FormulaType<?> pArg0) {
           return toSmtInterpolType(pArg0);
         }})
         .toImmutableList();

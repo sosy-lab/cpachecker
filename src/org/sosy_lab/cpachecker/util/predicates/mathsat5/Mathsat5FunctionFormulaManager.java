@@ -67,7 +67,7 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
     return createUIFCallImpl(funcDecl, args);
   }
 
-  public long toMathsatType (org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType<? extends Formula> formulaType){
+  public long toMathsatType (FormulaType<?> formulaType){
     Class<?> clazz = formulaType.getInterfaceType();
     long t;
     if (clazz==BooleanFormula.class) {
@@ -88,17 +88,17 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
     createFunction(
         String pName,
         FormulaType<T> pReturnType,
-        List<FormulaType<? extends Formula>> pArgs) {
-    org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType<T> formulaType
+        List<FormulaType<?>> pArgs) {
+    FunctionFormulaType<T> formulaType
       = super.createFunction(pName, pReturnType, pArgs);
 
 
     List<Long> types =
       from(pArgs)
-      .transform(new Function<FormulaType<? extends Formula>,Long>(){
+      .transform(new Function<FormulaType<?>,Long>(){
 
         @Override
-        public Long apply(FormulaType<? extends Formula> pArg0) {
+        public Long apply(FormulaType<?> pArg0) {
           return toMathsatType(pArg0);
         }})
         .toImmutableList();
