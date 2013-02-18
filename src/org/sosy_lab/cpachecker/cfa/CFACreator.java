@@ -287,14 +287,14 @@ public class CFACreator {
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
+        CFASecondPassBuilder spbuilder;
         if(completeEdges) {
           logger.log(Level.FINE, "Complete edges option is on.");
-          CFASecondPassBuilderComplete spbuilder = new CFASecondPassBuilderComplete(cfa, language, config);
-          spbuilder.insertCallEdgesRecursively();         
+          spbuilder = new CFASecondPassBuilderComplete(cfa, language, config, logger);
         } else {
-          CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language);
-          spbuilder.insertCallEdgesRecursively();
+          spbuilder = new CFASecondPassBuilder(cfa, language, logger);
         }
+        spbuilder.insertCallEdgesRecursively();
       }
 
       if (useGlobalVars){

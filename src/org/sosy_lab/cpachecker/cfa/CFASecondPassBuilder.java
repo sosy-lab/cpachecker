@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
@@ -67,14 +68,15 @@ public class CFASecondPassBuilder {
 
   protected final MutableCFA cfa;
   protected final Language language;
-
+  protected final LogManager logger;
   /**
    * Class constructor.
    * @param map List of all CFA's in the program.
    */
-  public CFASecondPassBuilder(MutableCFA pCfa,  Language pLanguage) {
+  public CFASecondPassBuilder(MutableCFA pCfa,  Language pLanguage, LogManager pLogger) {
     cfa = pCfa;
     language = pLanguage;
+    logger = pLogger;
   }
 
   /**
@@ -114,7 +116,6 @@ public class CFASecondPassBuilder {
         if (edge instanceof AStatementEdge) {
           AStatementEdge statement = (AStatementEdge)edge;
           IAStatement expr = statement.getStatement();
-
           buildCallEdges(expr, statement);
         }
 
@@ -134,7 +135,7 @@ public class CFASecondPassBuilder {
     }
   }
 
-  protected boolean shouldCreateCallEdges(IAStatement s) {
+  private boolean shouldCreateCallEdges(IAStatement s) {
     if (!(s instanceof AFunctionCall)) {
       return false;
     }
