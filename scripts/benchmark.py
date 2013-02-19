@@ -476,11 +476,9 @@ class Run():
         """
         self.benchmark.outputHandler.outputBeforeRun(self)
 
-        cpuIndex = numberOfThread if config.limitCores else None
-
         rlimits = self.benchmark.rlimits
 
-        (self.wallTime, self.cpuTime, returnvalue, output) = runexecutor.executeRun(self.args, rlimits, self.logFile, cpuIndex)
+        (self.wallTime, self.cpuTime, returnvalue, output) = runexecutor.executeRun(self.args, rlimits, self.logFile, numberOfThread, config.limitCores)
 
         if STOPPED_BY_INTERRUPT:
             # If the run was interrupted, we ignore the result and cleanup.
@@ -1378,8 +1376,9 @@ def main(argv=None):
                       metavar=("a","b"))
 
     parser.add_argument("-c", "--limitCores", dest="limitCores",
-                      action="store_true",
-                      help="Limit each run of the tool to a single CPU core.")
+                      type=int, default=None,
+                      metavar="N",
+                      help="Limit each run of the tool to N CPU cores.")
 
     parser.add_argument("--commit", dest="commit",
                       action="store_true",
@@ -1433,7 +1432,7 @@ def main(argv=None):
         pass # this does not work on Windows
 
     # do this after logger has been configured
-    runexecutor.init()
+    runexecutor.init(config.limitCores)
 
     for arg in config.files:
         if STOPPED_BY_INTERRUPT: break

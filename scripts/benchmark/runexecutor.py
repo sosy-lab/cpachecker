@@ -38,13 +38,17 @@ import benchmark.util as Util
 MEMLIMIT = "memlimit"
 TIMELIMIT = "timelimit"
 CPUACCT = 'cpuacct'
+CPUSET = 'cpuset'
 
 _BYTE_FACTOR = 1024 # byte in kilobyte
 
 _SUB_PROCESSES = set()
 _SUB_PROCESSES_LOCK = threading.Lock()
 
-def init():
+# The list of available CPU cores
+_cpus = []
+
+def init(limitCpuCores=None):
     """
     This function initializes the module.
     Please call it before any calls to executeRun(),
@@ -53,14 +57,41 @@ def init():
     """
     _initCgroup(CPUACCT)
 
-def executeRun(args, rlimits, outputFileName, cpuIndex=None):
+    if limitCpuCores:
+        _initCgroup(CPUSET)
+
+        cgroupCpuset = _cgroups[CPUSET]
+        if not cgroupCpuset:
+            sys.exit("No cpuset cgroup hierarchy found, cannot limit CPU cores.")
+
+        # Read available cpus:
+        global _cpus
+        with open(os.path.join(cgroupCpuset, 'cpuset.cpus')) as cpuset:
+            cpuStr = cpuset.read()
+        for cpu in cpuStr.split(','):
+            cpu = cpu.split('-')
+            if len(cpu) == 1:
+                _cpus.append(int(cpu[0]))
+            elif len(cpu) == 2:
+                start, end = cpu
+                _cpus.extend(xrange(int(start), int(end)+1))
+            else:
+                sys.exit("Could not read available cpu cores from kernel, failed to parse {0}.".format(cpuStr))
+
+        logging.debug("List of available CPU cores is {0}.".format(_cpus))
+        if limitCpuCores > len(_cpus):
+            sys.exit("Cannot execute runs on {0} CPU cores, only {1} are available.".format(limitCpuCores, len(_cpus)))
+
+
+def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
     """
     This function executes a given command with resource limits,
     and writes the output to a file.
     @param args: the command line to run
     @param rlimits: the resource limits
     @param outputFileName: the file where the output should be written to
-    @param cpuIndex: None or the number of a cpu core to use
+    @param myCpuIndex: None or the number of the first CPU core to use
+    @param myCpuCount: None or the number of CPU cores to use
     @return: a tuple with wallTime, cpuTime, returnvalue, and process output
     """
     def preSubprocess():
@@ -73,12 +104,27 @@ def executeRun(args, rlimits, outputFileName, cpuIndex=None):
             resource.setrlimit(resource.RLIMIT_AS, (memlimit, memlimit))
 
         # put us into the cgroup
-        _addTaskToCgroup(cgroup, os.getpid())
+        pid = os.getpid()
+        _addTaskToCgroup(cgroup, pid)
+        _addTaskToCgroup(cgroupCpuset, pid)
 
-    if cpuIndex is not None:
-        # use only one cpu for one subprocess
-        import multiprocessing
-        args = ['taskset', '-c', str(cpuIndex % multiprocessing.cpu_count())] + args
+    # Setup cpuset cgroup if necessary to limit the CPU cores to be used.
+    cgroupCpuset = None
+    if myCpuCount is not None and myCpuIndex is not None:
+        cgroupCpuset = _createCgroup(CPUSET)
+        if not _cpus or not cgroupCpuset:
+            logging.warning("Cannot limit number of CPU cores because cgroups are not available.")
+
+        totalCpuCount = len(_cpus)
+        myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
+        myCpusEnd   = (myCpusStart + myCpuCount-1) % totalCpuCount
+        with open(os.path.join(cgroupCpuset, 'cpuset.cpus'), 'w') as cpuset:
+            cpuset.write(','.join(map(str, xrange(myCpusStart, myCpusEnd+1))))
+
+        with open(os.path.join(cgroupCpuset, 'cpuset.cpus')) as cpuset:
+            myCpus = cpuset.read().strip()
+        logging.debug('Executing {0} with cpu cores {1} in cgroup {2}.'.format(args, myCpus, cgroupCpuset))
+
 
     outputFile = open(outputFileName, 'w') # override existing file
     outputFile.write(' '.join(args) + '\n\n\n' + '-'*80 + '\n\n\n')
@@ -135,6 +181,7 @@ def executeRun(args, rlimits, outputFileName, cpuIndex=None):
 
         # kill all remaining processes if some managed to survive
         _killAllTasksInCgroup(cgroup)
+        _killAllTasksInCgroup(cgroupCpuset)
 
     assert pid == p.pid
 
@@ -163,6 +210,7 @@ def executeRun(args, rlimits, outputFileName, cpuIndex=None):
 
         _removeCgroup(cgroup)
 
+    _removeCgroup(cgroupCpuset)
     logging.debug('Run exited with code {0}, walltime={1}, cputime={2}, cgroup-cputime={3}'.format(returnvalue, wallTime, cpuTime, cpuTime2))
 
     # Usually cpuTime2 seems to be 0.01s greater than cpuTime.
