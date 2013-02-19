@@ -52,7 +52,7 @@ def init():
     """
     _initCgroup()
 
-def executeRun(args, rlimits, outputFileName, cpuIndex=None, memdata=False):
+def executeRun(args, rlimits, outputFileName, cpuIndex=None):
     """
     This function executes a given command with resource limits,
     and writes the output to a file.
@@ -60,7 +60,6 @@ def executeRun(args, rlimits, outputFileName, cpuIndex=None, memdata=False):
     @param rlimits: the resource limits
     @param outputFileName: the file where the output should be written to
     @param cpuIndex: None or the number of a cpu core to use
-    @param memdata: whether RLIMIT_DATA should be used instead of RLIMIT_AS for memory limit
     @return: a tuple with wallTime, cpuTime, returnvalue, and process output
     """
     def preSubprocess():
@@ -69,9 +68,8 @@ def executeRun(args, rlimits, outputFileName, cpuIndex=None, memdata=False):
         if TIMELIMIT in rlimits:
             resource.setrlimit(resource.RLIMIT_CPU, (rlimits[TIMELIMIT], rlimits[TIMELIMIT]))
         if MEMLIMIT in rlimits:
-            memresource = resource.RLIMIT_DATA if memdata else resource.RLIMIT_AS
             memlimit = rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR # MB to Byte
-            resource.setrlimit(memresource, (memlimit, memlimit))
+            resource.setrlimit(resource.RLIMIT_AS, (memlimit, memlimit))
 
         # put us into the cgroup
         _addTaskToCgroup(cgroup, os.getpid())

@@ -480,7 +480,7 @@ class Run():
 
         rlimits = self.benchmark.rlimits
 
-        (self.wallTime, self.cpuTime, returnvalue, output) = runexecutor.executeRun(self.args, rlimits, self.logFile, cpuIndex, config.memdata)
+        (self.wallTime, self.cpuTime, returnvalue, output) = runexecutor.executeRun(self.args, rlimits, self.logFile, cpuIndex)
 
         if STOPPED_BY_INTERRUPT:
             # If the run was interrupted, we ignore the result and cleanup.
@@ -1376,10 +1376,6 @@ def main(argv=None):
                             "with i being the index of the run definition in the benchmark definition file " +
                             "(starting with 1).",
                       metavar=("a","b"))
-
-    parser.add_argument("-D", "--memdata", dest="memdata",
-                      action="store_true",
-                      help="When limiting memory usage, restrict only the data segments instead of the virtual address space.")
 
     parser.add_argument("-c", "--limitCores", dest="limitCores",
                       action="store_true",
