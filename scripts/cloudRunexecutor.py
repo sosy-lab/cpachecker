@@ -19,7 +19,7 @@ def main(argv=None):
         print rlimits
         print outputFileName
         
-        (wallTime, cpuTime, returnvalue, output) = runexecutor.executeRun(args, rlimits, outputFileName);
+        (wallTime, cpuTime, memUsage, returnvalue, output) = runexecutor.executeRun(args, rlimits, outputFileName);
 
         print wallTime
         print cpuTime

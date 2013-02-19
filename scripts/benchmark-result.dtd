@@ -26,7 +26,8 @@
 
 <!-- element time is deprecated -->
 <!ATTLIST time cputime CDATA #REQUIRED
-               walltime CDATA #REQUIRED>
+               walltime CDATA #REQUIRED
+               memUsage CDATA #IMPLIED>
 
 
 <!-- not used: -->

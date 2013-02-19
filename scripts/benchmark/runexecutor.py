@@ -39,6 +39,7 @@ MEMLIMIT = "memlimit"
 TIMELIMIT = "timelimit"
 CPUACCT = 'cpuacct'
 CPUSET = 'cpuset'
+MEMORY = 'memory'
 
 _BYTE_FACTOR = 1024 # byte in kilobyte
 
@@ -58,6 +59,10 @@ def init(limitCpuCores=None):
     _initCgroup(CPUACCT)
     if not _cgroups[CPUACCT]:
         logging.warning('Without cpuacct cgroups, cputime measurement might miss time consumed by subprocesses.')
+
+    _initCgroup(MEMORY)
+    if not _cgroups[MEMORY]:
+        logging.warning('Cannot measure memory consumption without memory cgroups.')
 
     if limitCpuCores:
         _initCgroup(CPUSET)
@@ -93,7 +98,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
     @param outputFileName: the file where the output should be written to
     @param myCpuIndex: None or the number of the first CPU core to use
     @param myCpuCount: None or the number of CPU cores to use
-    @return: a tuple with wallTime, cpuTime, returnvalue, and process output
+    @return: a tuple with wallTime in seconds, cpuTime in seconds, memory usage in bytes, returnvalue, and process output
     """
     def preSubprocess():
         os.setpgrp() # make subprocess to group-leader
@@ -108,6 +113,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
         pid = os.getpid()
         _addTaskToCgroup(cgroupCpuacct, pid)
         _addTaskToCgroup(cgroupCpuset, pid)
+        _addTaskToCgroup(cgroupMemory, pid)
 
     # Setup cpuset cgroup if necessary to limit the CPU cores to be used.
     cgroupCpuset = None
@@ -133,6 +139,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
 
     # create cgroup
     cgroupCpuacct = _createCgroup(CPUACCT)
+    cgroupMemory  = _createCgroup(MEMORY)
 
     logging.debug("Executing {0} in cgroup {1}.".format(args, cgroupCpuacct))
 
@@ -183,6 +190,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
         # kill all remaining processes if some managed to survive
         _killAllTasksInCgroup(cgroupCpuacct)
         _killAllTasksInCgroup(cgroupCpuset)
+        _killAllTasksInCgroup(cgroupMemory)
 
     assert pid == p.pid
 
@@ -210,8 +218,16 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
 
         _removeCgroup(cgroupCpuacct)
 
+    memUsage = None
+    if cgroupMemory:
+        # This measurement reads the maximum number of bytes of RAM+Swap the process used.
+        # For more details, c.f. the kernel documentation:
+        # https://www.kernel.org/doc/Documentation/cgroups/memory.txt
+        memUsage = _readFile(cgroupMemory, 'memory.memsw.max_usage_in_bytes')
+        _removeCgroup(cgroupMemory)
+
     _removeCgroup(cgroupCpuset)
-    logging.debug('Run exited with code {0}, walltime={1}, cputime={2}, cgroup-cputime={3}'.format(returnvalue, wallTime, cpuTime, cpuTime2))
+    logging.debug('Run exited with code {0}, walltime={1}, cputime={2}, cgroup-cputime={3}, memory={4}'.format(returnvalue, wallTime, cpuTime, cpuTime2, memUsage))
 
     # Usually cpuTime2 seems to be 0.01s greater than cpuTime.
     # Furthermore, cpuTime might miss some subprocesses,
@@ -243,7 +259,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
             logging.debug('Going to append error report file')
             next = True
 
-    return (wallTime, cpuTime, returnvalue, '\n'.join(output))
+    return (wallTime, cpuTime, memUsage, returnvalue, '\n'.join(output))
 
 def killAllProcesses():
     try:

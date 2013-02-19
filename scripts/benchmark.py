@@ -478,7 +478,7 @@ class Run():
 
         rlimits = self.benchmark.rlimits
 
-        (self.wallTime, self.cpuTime, returnvalue, output) = runexecutor.executeRun(self.args, rlimits, self.logFile, numberOfThread, config.limitCores)
+        (self.wallTime, self.cpuTime, self.memUsage, returnvalue, output) = runexecutor.executeRun(self.args, rlimits, self.logFile, numberOfThread, config.limitCores)
 
         if STOPPED_BY_INTERRUPT:
             # If the run was interrupted, we ignore the result and cleanup.
@@ -949,6 +949,8 @@ class OutputHandler:
         runElem.append(ET.Element("column", {"title": "status", "value": run.status}))
         runElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeStr}))
         runElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeStr}))
+        if run.memUsage is not None:
+            runElem.append(ET.Element("column", {"title": "memUsage", "value": run.memUsage}))
 
         for column in run.columns:
             runElem.append(ET.Element("column",
