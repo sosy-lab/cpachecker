@@ -109,20 +109,25 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
             memlimit = rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR # MB to Byte
             resource.setrlimit(resource.RLIMIT_AS, (memlimit, memlimit))
 
-        # put us into the cgroup
+        # put us into the cgroup(s)
         pid = os.getpid()
-        _addTaskToCgroup(cgroupCpuacct, pid)
-        _addTaskToCgroup(cgroupCpuset, pid)
-        _addTaskToCgroup(cgroupMemory, pid)
+        for cgroup in cgroups.itervalues():
+            _addTaskToCgroup(cgroup, pid)
+
+    # Setup cgroups, need a single call to _createCgroup() for all subsystems
+    subsystems = [CPUACCT, MEMORY]
+    if myCpuCount is not None and myCpuIndex is not None:
+        subsystems.append(CPUSET)
+    cgroups = _createCgroup(*subsystems)
+
+    logging.debug("Executing {0} in cgroups {1}.".format(args, cgroups.values()))
 
     # Setup cpuset cgroup if necessary to limit the CPU cores to be used.
-    cgroupCpuset = None
     if myCpuCount is not None and myCpuIndex is not None:
-        cgroupCpuset = _createCgroup(CPUSET)
-        if not _cpus or not cgroupCpuset:
+        if not _cpus or CPUSET not in cgroups:
             logging.warning("Cannot limit number of CPU cores because cgroups are not available.")
-            cgroupCpuset = None
         else:
+            cgroupCpuset = cgroups[CPUSET]
             totalCpuCount = len(_cpus)
             myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
             myCpusEnd   = (myCpusStart + myCpuCount-1) % totalCpuCount
@@ -130,18 +135,11 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
             _writeFile(myCpus, cgroupCpuset, 'cpuset.cpus')
 
             myCpus = _readFile(cgroupCpuset, 'cpuset.cpus')
-            logging.debug('Executing {0} with cpu cores {1} in cgroup {2}.'.format(args, myCpus, cgroupCpuset))
-
+            logging.debug('Executing {0} with cpu cores {1}.'.format(args, myCpus))
 
     outputFile = open(outputFileName, 'w') # override existing file
     outputFile.write(' '.join(args) + '\n\n\n' + '-'*80 + '\n\n\n')
     outputFile.flush()
-
-    # create cgroup
-    cgroupCpuacct = _createCgroup(CPUACCT)
-    cgroupMemory  = _createCgroup(MEMORY)
-
-    logging.debug("Executing {0} in cgroup {1}.".format(args, cgroupCpuacct))
 
     registeredSubprocess = False
     timer = None
@@ -188,9 +186,8 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
         outputFile.close() # normally subprocess closes file, we do this again
 
         # kill all remaining processes if some managed to survive
-        _killAllTasksInCgroup(cgroupCpuacct)
-        _killAllTasksInCgroup(cgroupCpuset)
-        _killAllTasksInCgroup(cgroupMemory)
+        for cgroup in cgroups.itervalues():
+            _killAllTasksInCgroup(cgroup)
 
     assert pid == p.pid
 
@@ -199,13 +196,14 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
     cpuTime = (ru_child.ru_utime + ru_child.ru_stime)
     cpuTime2 = None
 
-    if cgroupCpuacct:
+    if CPUACCT in cgroups:
         # We want to read the value from the cgroup.
         # The documentation warns about outdated values.
         # So we read twice with 0.1s time difference,
         # and continue reading as long as the values differ.
         # This has never happened except when interrupting the script with Ctrl+C,
         # but just try to be on the safe side here.
+        cgroupCpuacct = cgroups[CPUACCT]
         def readCpuTime():
             return float(_readFile(cgroupCpuacct, 'cpuacct.usage'))/1000000000 # nano-seconds to seconds
         tmp = readCpuTime()
@@ -216,24 +214,24 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
             tmp = readCpuTime()
         cpuTime2 = tmp
 
-        _removeCgroup(cgroupCpuacct)
-
     memUsage = None
-    if cgroupMemory:
+    if MEMORY in cgroups:
         # This measurement reads the maximum number of bytes of RAM+Swap the process used.
         # For more details, c.f. the kernel documentation:
         # https://www.kernel.org/doc/Documentation/cgroups/memory.txt
-        memUsage = _readFile(cgroupMemory, 'memory.memsw.max_usage_in_bytes')
-        _removeCgroup(cgroupMemory)
+        memUsage = _readFile(cgroups[MEMORY], 'memory.memsw.max_usage_in_bytes')
 
-    _removeCgroup(cgroupCpuset)
+    for cgroup in set(cgroups.itervalues()):
+        # Need the set here to delete each cgroup only once.
+        _removeCgroup(cgroup)
+
     logging.debug('Run exited with code {0}, walltime={1}, cputime={2}, cgroup-cputime={3}, memory={4}'.format(returnvalue, wallTime, cpuTime, cpuTime2, memUsage))
 
     # Usually cpuTime2 seems to be 0.01s greater than cpuTime.
     # Furthermore, cpuTime might miss some subprocesses,
     # therefore we expect cpuTime2 to be always greater (and more correct).
     # However, sometimes cpuTime is a little bit bigger than cpuTime2.
-    if cgroupCpuacct:
+    if cpuTime2 is not None:
         if (cpuTime*0.999) > cpuTime2:
             logging.warning('Cputime measured by wait was {0}, cputime measured by cgroup was only {1}, perhaps measurement is flawed.'.format(cpuTime, cpuTime2))
         else:
@@ -303,25 +301,42 @@ def _findCgroupMount(subsystem=None):
 
 _cgroups = {}
 
-def _createCgroup(subsystem):
-    _initCgroup(subsystem)
+def _createCgroup(*subsystems):
+    """
+    Try to create a cgroup for each of the given subsystems.
+    If multiple subsystems are available in the same hierarchy,
+    a common cgroup for theses subsystems is used.
+    @param subsystems: a list of cgroup subsystems
+    @return a map from subsystem to cgroup for each subsystem where it was possible to create a cgroup
+    """
+    createdCgroupsPerSubsystem = {}
+    createdCgroupsPerParent = {}
+    for subsystem in subsystems:
+        _initCgroup(subsystem)
 
-    parentCgroup = _cgroups.get(subsystem)
-    if not parentCgroup:
-        return None
+        parentCgroup = _cgroups.get(subsystem)
+        if not parentCgroup:
+            # subsystem not enabled
+            continue
+        if parentCgroup in createdCgroupsPerParent:
+            # reuse already created cgroup
+            createdCgroupsPerSubsystem[subsystem] = createdCgroupsPerParent[parentCgroup]
+            continue
 
-    cgroup = tempfile.mkdtemp(prefix='benchmark_', dir=parentCgroup)
+        cgroup = tempfile.mkdtemp(prefix='benchmark_', dir=parentCgroup)
+        createdCgroupsPerSubsystem[subsystem] = cgroup
+        createdCgroupsPerParent[parentCgroup] = cgroup
 
-    # add allowed cpus and memory to cgroup if necessary
-    # (otherwise we can't add any tasks)
-    try:
-        shutil.copyfile(os.path.join(parentCgroup, 'cpuset.cpus'), os.path.join(cgroup, 'cpuset.cpus'))
-        shutil.copyfile(os.path.join(parentCgroup, 'cpuset.mems'), os.path.join(cgroup, 'cpuset.mems'))
-    except IOError:
-        # expected to fail if cpuset subsystem is not enabled in this hierarchy
-        pass
+        # add allowed cpus and memory to cgroup if necessary
+        # (otherwise we can't add any tasks)
+        try:
+            shutil.copyfile(os.path.join(parentCgroup, 'cpuset.cpus'), os.path.join(cgroup, 'cpuset.cpus'))
+            shutil.copyfile(os.path.join(parentCgroup, 'cpuset.mems'), os.path.join(cgroup, 'cpuset.mems'))
+        except IOError:
+            # expected to fail if cpuset subsystem is not enabled in this hierarchy
+            pass
 
-    return cgroup
+    return createdCgroupsPerSubsystem
 
 def _findOwnCgroup(subsystem):
     """
@@ -383,7 +398,7 @@ Please enable it with "sudo mount -t cgroup none /sys/fs/cgroup".'''
         _cgroups[subsystem] = cgroup
 
         try:
-            testCgroup = _createCgroup(subsystem)
+            testCgroup = _createCgroup(subsystem)[subsystem]
             _removeCgroup(testCgroup)
 
             logging.debug('Found {0} subsystem for cgroups mounted at {1}'.format(subsystem, cgroup))
