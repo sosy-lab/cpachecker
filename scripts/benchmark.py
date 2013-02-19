@@ -799,13 +799,13 @@ class OutputHandler:
             OutputHandler.printLock.acquire()
 
             timeStr = time.strftime("%H:%M:%S", time.localtime()) + "   "
+            progressIndicator = " ({0}/{1})".format(self.runSet.runs.index(run), len(self.runSet.runs))
+            terminalTitle = TERMINAL_TITLE.format(self.runSet.fullName + progressIndicator) if USE_COLORS and sys.stdout.isatty() else ""
             if self.benchmark.numOfThreads == 1:
-                progressIndicator = " ({0}/{1})".format(self.runSet.runs.index(run), len(self.runSet.runs))
-                terminalTitle = TERMINAL_TITLE.format(self.runSet.fullName + progressIndicator) if USE_COLORS and sys.stdout.isatty() else ""
                 Util.printOut(terminalTitle
                               + timeStr + self.formatSourceFileName(run.sourcefile), '')
             else:
-                Util.printOut(timeStr + "starting   " + self.formatSourceFileName(run.sourcefile))
+                Util.printOut(terminalTitle + timeStr + "starting   " + self.formatSourceFileName(run.sourcefile))
         finally:
             OutputHandler.printLock.release()
 
