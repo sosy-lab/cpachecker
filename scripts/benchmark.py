@@ -1240,12 +1240,15 @@ def executeBenchmarkInCloud(benchmark):
                        str(benchmark.rlimits[MEMLIMIT]) + "\n"
          
         runDefinitions += runSetHeadLine;
-
+        
         # iterate over runs
         for run in runSet.runs:
                 argString = " ".join(run.args)
                 runDefinitions += argString + "\t" + run.sourcefile + "\n"
                 absSourceFiles.append(os.path.abspath(run.sourcefile))
+    
+    if(len(absSourceFiles)==0):
+        sys.exit("No source files given.")                              
     
     #preparing cloud input
     absToolpaths = []
@@ -1274,7 +1277,7 @@ def executeBenchmarkInCloud(benchmark):
     if(config.debug):
         logLevel =  "ALL"
     else:
-        logLevel = "FINE"
+        logLevel = "INFO"
     cloud = subprocess.Popen(["java", "-jar", config.cloudPath, "benchmark", "--master", config.cloudMasterName, "--loglevel", logLevel], stdin=subprocess.PIPE)
     (out, err) = cloud.communicate(cloudInput)
     returnCode = cloud.wait()
@@ -1432,7 +1435,8 @@ def main(argv=None):
         pass # this does not work on Windows
 
     # do this after logger has been configured
-    runexecutor.init(config.limitCores)
+    if(not config.cloud):
+        runexecutor.init(config.limitCores)
 
     for arg in config.files:
         if STOPPED_BY_INTERRUPT: break
