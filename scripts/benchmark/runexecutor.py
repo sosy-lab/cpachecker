@@ -114,16 +114,17 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
         cgroupCpuset = _createCgroup(CPUSET)
         if not _cpus or not cgroupCpuset:
             logging.warning("Cannot limit number of CPU cores because cgroups are not available.")
+            cgroupCpuset = None
+        else:
+            totalCpuCount = len(_cpus)
+            myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
+            myCpusEnd   = (myCpusStart + myCpuCount-1) % totalCpuCount
+            with open(os.path.join(cgroupCpuset, 'cpuset.cpus'), 'w') as cpuset:
+                cpuset.write(','.join(map(str, xrange(myCpusStart, myCpusEnd+1))))
 
-        totalCpuCount = len(_cpus)
-        myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
-        myCpusEnd   = (myCpusStart + myCpuCount-1) % totalCpuCount
-        with open(os.path.join(cgroupCpuset, 'cpuset.cpus'), 'w') as cpuset:
-            cpuset.write(','.join(map(str, xrange(myCpusStart, myCpusEnd+1))))
-
-        with open(os.path.join(cgroupCpuset, 'cpuset.cpus')) as cpuset:
-            myCpus = cpuset.read().strip()
-        logging.debug('Executing {0} with cpu cores {1} in cgroup {2}.'.format(args, myCpus, cgroupCpuset))
+            with open(os.path.join(cgroupCpuset, 'cpuset.cpus')) as cpuset:
+                myCpus = cpuset.read().strip()
+            logging.debug('Executing {0} with cpu cores {1} in cgroup {2}.'.format(args, myCpus, cgroupCpuset))
 
 
     outputFile = open(outputFileName, 'w') # override existing file
