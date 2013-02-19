@@ -66,8 +66,7 @@ def init(limitCpuCores=None):
 
         # Read available cpus:
         global _cpus
-        with open(os.path.join(cgroupCpuset, 'cpuset.cpus')) as cpuset:
-            cpuStr = cpuset.read()
+        cpuStr = _readFile(cgroupCpuset, 'cpuset.cpus')
         for cpu in cpuStr.split(','):
             cpu = cpu.split('-')
             if len(cpu) == 1:
@@ -105,7 +104,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
 
         # put us into the cgroup
         pid = os.getpid()
-        _addTaskToCgroup(cgroup, pid)
+        _addTaskToCgroup(cgroupCpuacct, pid)
         _addTaskToCgroup(cgroupCpuset, pid)
 
     # Setup cpuset cgroup if necessary to limit the CPU cores to be used.
@@ -119,11 +118,10 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
             totalCpuCount = len(_cpus)
             myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
             myCpusEnd   = (myCpusStart + myCpuCount-1) % totalCpuCount
-            with open(os.path.join(cgroupCpuset, 'cpuset.cpus'), 'w') as cpuset:
-                cpuset.write(','.join(map(str, xrange(myCpusStart, myCpusEnd+1))))
+            myCpus = ','.join(map(str, xrange(myCpusStart, myCpusEnd+1)))
+            _writeFile(myCpus, cgroupCpuset, 'cpuset.cpus')
 
-            with open(os.path.join(cgroupCpuset, 'cpuset.cpus')) as cpuset:
-                myCpus = cpuset.read().strip()
+            myCpus = _readFile(cgroupCpuset, 'cpuset.cpus')
             logging.debug('Executing {0} with cpu cores {1} in cgroup {2}.'.format(args, myCpus, cgroupCpuset))
 
 
@@ -132,9 +130,9 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
     outputFile.flush()
 
     # create cgroup
-    cgroup = _createCgroup(CPUACCT)
+    cgroupCpuacct = _createCgroup(CPUACCT)
 
-    logging.debug("Executing {0} in cgroup {1}.".format(args, cgroup))
+    logging.debug("Executing {0} in cgroup {1}.".format(args, cgroupCpuacct))
 
     registeredSubprocess = False
     timer = None
@@ -181,7 +179,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
         outputFile.close() # normally subprocess closes file, we do this again
 
         # kill all remaining processes if some managed to survive
-        _killAllTasksInCgroup(cgroup)
+        _killAllTasksInCgroup(cgroupCpuacct)
         _killAllTasksInCgroup(cgroupCpuset)
 
     assert pid == p.pid
@@ -191,7 +189,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
     cpuTime = (ru_child.ru_utime + ru_child.ru_stime)
     cpuTime2 = None
 
-    if cgroup:
+    if cgroupCpuacct:
         # We want to read the value from the cgroup.
         # The documentation warns about outdated values.
         # So we read twice with 0.1s time difference,
@@ -199,8 +197,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
         # This has never happened except when interrupting the script with Ctrl+C,
         # but just try to be on the safe side here.
         def readCpuTime():
-            with open(os.path.join(cgroup, 'cpuacct.usage')) as cpuusage:
-                return float(cpuusage.read())/1000000000 # nano-seconds to seconds
+            return float(_readFile(cgroupCpuacct, 'cpuacct.usage'))/1000000000 # nano-seconds to seconds
         tmp = readCpuTime()
         tmp2 = None
         while tmp != tmp2:
@@ -209,7 +206,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
             tmp = readCpuTime()
         cpuTime2 = tmp
 
-        _removeCgroup(cgroup)
+        _removeCgroup(cgroupCpuacct)
 
     _removeCgroup(cgroupCpuset)
     logging.debug('Run exited with code {0}, walltime={1}, cputime={2}, cgroup-cputime={3}'.format(returnvalue, wallTime, cpuTime, cpuTime2))
@@ -218,7 +215,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
     # Furthermore, cpuTime might miss some subprocesses,
     # therefore we expect cpuTime2 to be always greater (and more correct).
     # However, sometimes cpuTime is a little bit bigger than cpuTime2.
-    if cgroup:
+    if cgroupCpuacct:
         if (cpuTime*0.999) > cpuTime2:
             logging.warning('Cputime measured by wait was {0}, cputime measured by cgroup was only {1}, perhaps measurement is flawed.'.format(cpuTime, cpuTime2))
         else:
@@ -254,6 +251,13 @@ def killAllProcesses():
     finally:
         _SUB_PROCESSES_LOCK.release()
 
+def _readFile(*path):
+    with open(os.path.join(*path)) as f:
+        return f.read().strip()
+
+def _writeFile(value, *path):
+    with open(os.path.join(*path), 'w') as f:
+        return f.write(value)
 
 def _killSubprocess(process):
     '''
