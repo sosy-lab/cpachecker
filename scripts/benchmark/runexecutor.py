@@ -56,6 +56,8 @@ def init(limitCpuCores=None):
     (e.g., for better error message handling).
     """
     _initCgroup(CPUACCT)
+    if not _cgroups[CPUACCT]:
+        logging.warning('Without cpuacct cgroups, cputime measurement might miss time consumed by subprocesses.')
 
     if limitCpuCores:
         _initCgroup(CPUSET)
@@ -354,8 +356,7 @@ def _initCgroup(subsystem):
         if not cgroup:
             logging.warning(
 '''Cgroup subsystem {0} not enabled.
-Please enable it with "sudo mount -t cgroup none /sys/fs/cgroup",
-otherwise cputime measurement might miss time consumed by subprocesses.'''
+Please enable it with "sudo mount -t cgroup none /sys/fs/cgroup".'''
                 .format(subsystem)
                 )
             _cgroups[subsystem] = None
@@ -373,7 +374,6 @@ otherwise cputime measurement might miss time consumed by subprocesses.'''
         except OSError as e:
             logging.warning(
 '''Cannot use cgroup hierarchy mounted at {0}, reason: {1}
-If permissions are wrong, please run "sudo chmod o+wt \'{0}\'".
-Without cgroups, cputime measurement might miss time consumed by subprocesses.'''
+If permissions are wrong, please run "sudo chmod o+wt \'{0}\'".'''
                 .format(cgroup, e.strerror))
             _cgroups[subsystem] = None
