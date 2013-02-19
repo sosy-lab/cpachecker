@@ -181,7 +181,7 @@ class Benchmark:
         # get number of threads, default value is 1
         self.numOfThreads = int(rootTag.get("threads")) if ("threads" in keys) else 1
         if config.numOfThreads != None:
-            self.numOfThreads = int(config.numOfThreads)
+            self.numOfThreads = config.numOfThreads
         if self.numOfThreads < 1:
             logging.error("At least ONE thread must be given!")
             sys.exit()
@@ -1364,7 +1364,7 @@ def main(argv=None):
                       metavar="MB")
 
     parser.add_argument("-N", "--numOfThreads",
-                      dest="numOfThreads", default=None,
+                      dest="numOfThreads", default=None, type=int,
                       help="Run n benchmarks in parallel",
                       metavar="n")
 
