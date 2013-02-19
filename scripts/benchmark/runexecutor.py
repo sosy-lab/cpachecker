@@ -37,6 +37,7 @@ import benchmark.util as Util
 
 MEMLIMIT = "memlimit"
 TIMELIMIT = "timelimit"
+CPUACCT = 'cpuacct'
 
 _BYTE_FACTOR = 1024 # byte in kilobyte
 
@@ -47,10 +48,10 @@ def init():
     """
     This function initializes the module.
     Please call it before any calls to executeRun(),
-    if you want to separate initialization from actuall run execution
+    if you want to separate initialization from actual run execution
     (e.g., for better error message handling).
     """
-    _initCgroup()
+    _initCgroup(CPUACCT)
 
 def executeRun(args, rlimits, outputFileName, cpuIndex=None):
     """
@@ -84,7 +85,7 @@ def executeRun(args, rlimits, outputFileName, cpuIndex=None):
     outputFile.flush()
 
     # create cgroup
-    cgroup = _createCgroup()
+    cgroup = _createCgroup(CPUACCT)
 
     logging.debug("Executing {0} in cgroup {1}.".format(args, cgroup))
 
@@ -229,21 +230,22 @@ def _findCgroupMount(subsystem=None):
                     return mountpoint
     return None
 
-_cgroupCpuacct = None
-_cgroupCpuacctInit = False
+_cgroups = {}
 
-def _createCgroup():
-    _initCgroup()
-    if not _cgroupCpuacct:
+def _createCgroup(subsystem):
+    _initCgroup(subsystem)
+
+    parentCgroup = _cgroups.get(subsystem)
+    if not parentCgroup:
         return None
 
-    cgroup = tempfile.mkdtemp(prefix='benchmark_', dir=_cgroupCpuacct)
+    cgroup = tempfile.mkdtemp(prefix='benchmark_', dir=parentCgroup)
 
     # add allowed cpus and memory to cgroup if necessary
     # (otherwise we can't add any tasks)
     try:
-        shutil.copyfile(os.path.join(_cgroupCpuacct, 'cpuset.cpus'), os.path.join(cgroup, 'cpuset.cpus'))
-        shutil.copyfile(os.path.join(_cgroupCpuacct, 'cpuset.mems'), os.path.join(cgroup, 'cpuset.mems'))
+        shutil.copyfile(os.path.join(parentCgroup, 'cpuset.cpus'), os.path.join(cgroup, 'cpuset.cpus'))
+        shutil.copyfile(os.path.join(parentCgroup, 'cpuset.mems'), os.path.join(cgroup, 'cpuset.mems'))
     except IOError:
         # expected to fail if cpuset subsystem is not enabled in this hierarchy
         pass
@@ -292,33 +294,33 @@ def _removeCgroup(cgroup):
             # somethings this fails because the cgroup is still busy, we try again once
             os.rmdir(cgroup)
 
-def _initCgroup():
-    global _cgroupCpuacctInit, _cgroupCpuacct
-    if not _cgroupCpuacctInit:
-        _cgroupCpuacctInit = True
-        subsystem = 'cpuacct'
-        _cgroupCpuacct = _findCgroupMount(subsystem)
+def _initCgroup(subsystem):
+    if not subsystem in _cgroups:
+        cgroup = _findCgroupMount(subsystem)
 
-        if not _cgroupCpuacct:
+        if not cgroup:
             logging.warning(
-'''Cgroup subsystem cpuacct not enabled.
-Please enable it with "sudo mount -t cgroup -ocpuacct none /sys/fs/cgroup",
+'''Cgroup subsystem {0} not enabled.
+Please enable it with "sudo mount -t cgroup none /sys/fs/cgroup",
 otherwise cputime measurement might miss time consumed by subprocesses.'''
+                .format(subsystem)
                 )
+            _cgroups[subsystem] = None
             return
 
         # find our own cgroup, we want to put processes in a child group of it
-        _cgroupCpuacct = os.path.join(_cgroupCpuacct, _findOwnCgroup(subsystem)[1:])
+        cgroup = os.path.join(cgroup, _findOwnCgroup(subsystem)[1:])
+        _cgroups[subsystem] = cgroup
 
         try:
-            testCgroup = _createCgroup()
+            testCgroup = _createCgroup(subsystem)
             _removeCgroup(testCgroup)
 
-            logging.debug('Found cpuacct subsystem for cgroups mounted at {0}'.format(_cgroupCpuacct))
+            logging.debug('Found {0} subsystem for cgroups mounted at {1}'.format(subsystem, cgroup))
         except OSError as e:
             logging.warning(
 '''Cannot use cgroup hierarchy mounted at {0}, reason: {1}
 If permissions are wrong, please run "sudo chmod o+wt \'{0}\'".
 Without cgroups, cputime measurement might miss time consumed by subprocesses.'''
-                .format(_cgroupCpuacct, e.strerror, _cgroupCpuacct))
-            _cgroupCpuacct = None
+                .format(cgroup, e.strerror))
+            _cgroups[subsystem] = None
