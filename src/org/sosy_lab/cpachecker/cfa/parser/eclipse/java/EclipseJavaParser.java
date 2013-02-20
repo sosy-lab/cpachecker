@@ -114,8 +114,6 @@ public class EclipseJavaParser implements Parser {
 
   private String[] getJavaPaths(String javaPath) {
 
-
-
       String[] paths = javaPath.split(File.pathSeparator);
       String[] result;
 
@@ -156,7 +154,6 @@ public class EclipseJavaParser implements Parser {
    *
    * @param fileName  The Main Class File of the program to parse.
    * @return The CFA.
-   * @throws IOExceptio
    * @throws ParserException If parser or CFA builder cannot handle the  code.
    */
   @Override

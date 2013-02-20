@@ -151,8 +151,6 @@ public class ASTConverter {
 
   private static final int NO_LINE = 0;
 
-  private static final String DEFAULT_MAIN_FUNCTION = "main";
-
   private static final int FIRST = 0;
 
   private static final int SECOND = 1;
@@ -429,17 +427,7 @@ public class ASTConverter {
    */
   public String getFullyQualifiedMethodName(IMethodBinding binding) {
 
-    StringBuilder name;
-
-    //TODO Just Change main function in Parser
-    if(binding.getName().equals(DEFAULT_MAIN_FUNCTION)
-        && scope.getfullyQualifiedMainClassName().equals(
-                                                  scope.getCurrentClassName())){
-
-      name = new StringBuilder(binding.getName());
-
-    } else {
-      name = new StringBuilder((getFullyQualifiedClassOrInterfaceName(
+    StringBuilder name = new StringBuilder((getFullyQualifiedClassOrInterfaceName(
           binding.getDeclaringClass()) + "_" + binding.getName()));
 
       String[] typeNames = getTypeNames(binding.getParameterTypes());
@@ -449,7 +437,7 @@ public class ASTConverter {
       }
 
       Joiner.on("_").appendTo( name , typeNames);
-    }
+
 
     return name.toString();
   }
