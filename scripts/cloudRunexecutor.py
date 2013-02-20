@@ -28,9 +28,9 @@ def main(argv=None):
 
         result = argStr + "\n"
         result = result + "Walltime: " + str(wallTime) + "\n"
-        result = result +  "CpuTime: " + str(wallTime) + "\n"
-        result = result + "Returnvalue: " + str(returnvalue) + "\n"
-        result = result + "\n"        
+        result = result +  "CpuTime: " + str(cpuTime) + "\n"
+        result = result +  "MemoryUsage: " + str(memUsage) + "\n"
+        result = result + "Returnvalue: " + str(returnvalue) + "\n"   
         result = result + "Output:\n" + output
 
         print result

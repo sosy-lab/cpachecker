@@ -434,6 +434,7 @@ class Run():
         self.status = ""
         self.cpuTime = 0
         self.wallTime = 0
+        self.memUsage = None
         
         self.tool = self.benchmark.tool
         args = self.tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
@@ -1199,12 +1200,13 @@ def parseCloudResultFile(filePath):
         command = file.readline()
         wallTime = float(file.readline().split(":")[-1])
         cpuTime = float(file.readline().split(":")[-1])
+        memUsage = file.readline().split(":")[-1]
         returnValue = int(file.readline().split(":")[-1])
     
         output = "".join(file.readlines())
      
         file.close
-        return (wallTime, cpuTime, returnValue, output)
+        return (wallTime, cpuTime, memUsage, returnValue, output)
     
     except IOError:
         logging.warning("Result file not found: " + filePath)
@@ -1293,7 +1295,7 @@ def executeBenchmarkInCloud(benchmark):
             outputHandler.outputBeforeRun(run)
             (notUsed,sourceFileName) = os.path.split(run.sourcefile)
             file = os.path.join(outputDir, runSet.name + "." + sourceFileName + ".log")
-            (run.wallTime, run.cpuTime, returnValue, output) = parseCloudResultFile(file)
+            (run.wallTime, run.cpuTime, run.memUsage, returnValue, output) = parseCloudResultFile(file)
             run.afterExecution(returnValue, output)
         outputHandler.outputAfterRunSet(runSet, None, None)
         
