@@ -1294,7 +1294,10 @@ def executeBenchmarkInCloud(benchmark):
         for run in runSet.runs:
             outputHandler.outputBeforeRun(run)
             (notUsed,sourceFileName) = os.path.split(run.sourcefile)
-            file = os.path.join(outputDir, runSet.name + "." + sourceFileName + ".log")
+            if(runSet.name == ""):
+                file = os.path.join(outputDir, sourceFileName + ".log")
+            else:
+                file = os.path.join(outputDir, runSet.name + "." + sourceFileName + ".log")
             (run.wallTime, run.cpuTime, run.memUsage, returnValue, output) = parseCloudResultFile(file)
             run.afterExecution(returnValue, output)
         outputHandler.outputAfterRunSet(runSet, None, None)
