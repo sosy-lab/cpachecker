@@ -45,6 +45,7 @@ import os
 import re
 import resource
 import signal
+import string
 import subprocess
 import threading
 import xml.etree.ElementTree as ET
@@ -551,6 +552,17 @@ class OutputHandler:
         self.XMLFileNames = []
 
 
+
+    def storeSystemInfo(self, opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname):
+        osElem = ET.Element("os", {"name":opSystem})
+        cpuElem = ET.Element("cpu", {"model":cpuModel, "cores":numberOfCores, "frequency":maxFrequency})
+        ramElem = ET.Element("ram", {"size":memory})
+        systemInfo = ET.Element("systeminfo", {"hostname":hostname})
+        systemInfo.append(osElem)
+        systemInfo.append(cpuElem)
+        systemInfo.append(ramElem)
+        self.XMLHeader.append(systemInfo)
+
     def storeHeaderInXML(self, version, memlimit, timelimit, opSystem,
                          cpuModel, numberOfCores, maxFrequency, memory, hostname):
 
@@ -562,18 +574,10 @@ class OutputHandler:
             self.XMLHeader.set(MEMLIMIT, memlimit)
         if timelimit is not None:
             self.XMLHeader.set(TIMELIMIT, timelimit)
-
-        # store systemInfo in XML
-        osElem = ET.Element("os", {"name": opSystem})
-        cpuElem = ET.Element("cpu",
-            {"model": cpuModel, "cores": numberOfCores, "frequency" : maxFrequency})
-        ramElem = ET.Element("ram", {"size": memory})
-
-        systemInfo = ET.Element("systeminfo", {"hostname": hostname})
-        systemInfo.append(osElem)
-        systemInfo.append(cpuElem)
-        systemInfo.append(ramElem)
-        self.XMLHeader.append(systemInfo)
+            
+        if(not config.cloud):
+            # store systemInfo in XML
+            self.storeSystemInfo(opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname)
 
         # store columnTitles in XML
         columntitlesElem = ET.Element("columns")
@@ -1194,23 +1198,57 @@ def executeBenchmarkLocaly(benchmark):
 
 
 def parseCloudResultFile(filePath):
+    
+    wallTime = 0
+    cpuTime = 0
+    memUsage = 0
+    returnValue = 1
+    output = ""
+    
     try:
         file = open(filePath)
             
         command = file.readline()
         wallTime = float(file.readline().split(":")[-1])
         cpuTime = float(file.readline().split(":")[-1])
-        memUsage = file.readline().split(":")[-1]
+        try:
+            memUsage = float(file.readline().split(":")[-1])
+        except ValueError:
+            memUsage = None
         returnValue = int(file.readline().split(":")[-1])
     
         output = "".join(file.readlines())
      
         file.close
-        return (wallTime, cpuTime, memUsage, returnValue, output)
-    
+            
     except IOError:
         logging.warning("Result file not found: " + filePath)
-        return (0,0,1,"")
+    
+    return (wallTime, cpuTime, memUsage, returnValue, output)
+
+def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
+
+    try:
+        file = open(filePath)
+        
+        complete = False
+        while(not complete):
+            firstLine = file.readline()
+            if(not firstLine == "\n"):
+               name = string.replace(firstLine.split("=")[-1],"\n","")
+               osName = string.replace(file.readline().split("=")[-1],"\n","")
+               memory = string.replace(file.readline().split("=")[-1],"\n","")
+               cpuName = string.replace(file.readline().split("=")[-1],"\n","")
+               frequency = string.replace(file.readline().split("=")[-1],"\n","")
+               cores = string.replace(file.readline().split("=")[-1],"\n","")
+               
+               outputHandler.storeSystemInfo(osName, cpuName, cores, frequency, memory, name)
+            
+            else:
+                complete = True
+        file.close
+    except IOError:
+        logging.warning("Host information file not found: " + filePath)    
  
 def executeBenchmarkInCloud(benchmark):
     
@@ -1286,6 +1324,10 @@ def executeBenchmarkInCloud(benchmark):
     (out, err) = cloud.communicate(cloudInput)
     returnCode = cloud.wait()
     logging.debug("Cloud return code: {0}".format(returnCode))
+    
+    #Write worker host informations in xml
+    filePath = os.path.join(outputDir, "hostInformations.txt")
+    parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
     
     #write results in runs and
     #handle output after all runs are done
