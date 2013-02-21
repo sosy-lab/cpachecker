@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChecker;
@@ -144,8 +143,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
         }
 
         // remove variables from the interpolant that belong to the scope of the returning function
-        if(currentEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
-          currentInterpolant = clearInterpolant(currentInterpolant, currentEdge.getSuccessor().getFunctionName());
+        // this is done one iteration after returning from the function, as the special FUNCTION_RETURN_VAR is needed that long
+        if(i > 0 && errorPath.get(i - 1).getSecond().getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
+          currentInterpolant = clearInterpolant(currentInterpolant, errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
         }
 
         // add the current interpolant to the precision
@@ -167,23 +167,22 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   }
 
   /**
+   * This method removes variables from the interpolant that belong to the scope of the given function.
    *
-   * @param currentInterpolant
-   * @param functionName
-   * @return
+   * @param currentInterpolant the current interpolant
+   * @param functionName the name of the function for which to remove variables
+   * @return the current interpolant with the respective variables removed
    */
   private Map<String, Long> clearInterpolant(Map<String, Long> currentInterpolant, String functionName) {
     List<String> toDrop = new ArrayList<>();
 
     for(String variableName : currentInterpolant.keySet()) {
-      if(variableName.startsWith(functionName + "::") && !variableName.contains(ExplicitTransferRelation.FUNCTION_RETURN_VAR)) {
+      if(variableName.startsWith(functionName + "::")) {
         toDrop.add(variableName);
       }
     }
 
-    for(String variableName : toDrop) {
-      currentInterpolant.remove(variableName);
-    }
+    currentInterpolant.keySet().remove(toDrop);
 
     return currentInterpolant;
   }
