@@ -388,9 +388,12 @@ $(document).ready(function() {
 <!-- ################## Possibility to select displayed rows by pressing f ################## -->
 
 <style type="text/css">
-  #rowFilterButtons { float:left; }
-  #rowFilterSelector { height:300px; }
-  #button-filter-start { }
+  button:hover { cursor: pointer; }
+  #rowFilterSelector   { position:absolute; top:20px; right:140px; width:100px; height:300px; }
+  #button-filter-reset { position:absolute; top:20px; right:20px; width:100px; height:30px; }
+  #button-filter-all   { position:absolute; top:60px; right:20px; width:100px; height:30px; }
+  #button-filter-none  { position:absolute; top:100px; right:20px; width:100px; height:30px; }
+  #button-filter-start { position:absolute; top:140px; right:20px; width:100px; height:30px; }
 </style>
 
 <script type="text/javascript">
@@ -421,16 +424,17 @@ function createRowFilterButtons() {
     .appendTo($("#contentPane"));
 
   $('<button>').text('reset filter').attr('id', 'button-filter-reset')
-    .click(function(){ 
+        .attr('title', 'Click here to restore the complete table')
+        .click(function(){ 
                 var dataRows = $('#dataTable > tbody')[0].rows;
                 for (var i = 0; i < dataRows.length; i++) {
                     $(dataRows[i]).show();
                 }
                 // delete outdated elements and selections
-                $('#rowFilterSelector, #button-filter-start').remove();
+                removeFilterButtons();
                 $('#rowFilterButtons input').each(function(_, elem) {elem.checked=false;})
             })
-    .appendTo($("#contentPane"));
+        .appendTo($("#contentPane"));
 
   showContentPane();
 }
@@ -458,7 +462,7 @@ function fillRowFilterField(columnIndex) {
     } );
 
     // delete old elements
-    $('#rowFilterSelector, #button-filter-start').remove();
+    removeFilterButtons();
 
     // create new selection field with options
     var rowFilter = $('<select>').attr('id', 'rowFilterSelector')
@@ -467,7 +471,19 @@ function fillRowFilterField(columnIndex) {
         rowFilter.append(new Option(option, option));
     });
 
+    $('<button>').text('select all').attr('id', 'button-filter-all')
+        .attr('title', 'Click here to select all values')
+        .click(function(){ $('#rowFilterSelector option').attr('selected',true); })
+        .appendTo($('#contentPane'));
+
+    $('<button>').text('select none').attr('id', 'button-filter-none')
+        .attr('title', 'Click here to deselect all values')
+        .click(function(){ $('#rowFilterSelector option').attr('selected',false); })
+        .appendTo($('#contentPane'));
+
     $('<button>').text('apply filter').attr('id', 'button-filter-start')
+        .attr('title', 'Click here to filter all matching rows in the table. ' +
+                       'If you select multiple values, a row is shown, if any value matches')
         .click(function(){ 
                         hideRows(rowFilter.val() || [], columnIndex); 
                         // clean and hide contentPane
@@ -475,6 +491,10 @@ function fillRowFilterField(columnIndex) {
                         $('#contentPane').hide().empty();
                     })
         .appendTo($('#contentPane'));
+}
+
+function removeFilterButtons() {
+    $('#rowFilterSelector, #button-filter-all, #button-filter-none, #button-filter-start').remove();
 }
 
 /* this function hides all rows, 
@@ -485,7 +505,6 @@ function hideRows(values, columnIndex) {
     var dataRows = $('#dataTable > tbody')[0].rows;
     for (var i = 0; i < dataRows.length; i++) {
         var row = dataRows[i];
-
         var isVisible = false;
 
         // show all matching rows
