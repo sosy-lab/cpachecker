@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.MemoryStatistics;
 
 import com.google.common.base.Joiner;
@@ -267,8 +268,13 @@ class MainCPAStatistics implements Statistics {
 
     private void printCfaStatistics(PrintStream out) {
       if (cfa != null) {
+        int loops = from(cfa.getAllNodes())
+                        .filter(CFAUtils.IS_LOOP_NODE)
+                        .size();
+
         out.println("Number of program locations:  " + cfa.getAllNodes().size());
         out.println("Number of functions:          " + cfa.getNumberOfFunctions());
+        out.println("Number of loops:              " + loops);
       }
     }
 
