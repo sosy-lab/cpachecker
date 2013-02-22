@@ -391,6 +391,8 @@ public class CFAUtils {
     // The set edges[i][j].nodes contains all nodes that were eliminated and merged into this edge.
     final Edge[][] edges =  new Edge[size][size];
 
+    List<Loop> loops = new ArrayList<>();
+
     // FIRST step: initialize arrays
     for (CFANode n : nodes) {
       int i = n.getNodeNumber() - min;
@@ -402,11 +404,15 @@ public class CFAUtils {
         CFANode succ = edge.getSuccessor();
         int j = succ.getNodeNumber() - min;
         edges[i][j] = new Edge();
+
+        if (i == j) {
+          // self-edge
+          handleLoop(succ, i, edges, loops);
+        }
       }
     }
 
     // SECOND step: simplify graph and identify loops
-    List<Loop> loops = new ArrayList<>();
     boolean changed;
     do {
       // first try without the "reverse merge" strategy
