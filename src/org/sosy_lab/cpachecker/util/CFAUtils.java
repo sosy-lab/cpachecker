@@ -426,6 +426,20 @@ public class CFAUtils {
         changed = identifyLoops(true, nodes, min, nodesArray, edges, loops);
       }
 
+      if (!changed && !nodes.isEmpty()) {
+        // This is a very complex loop structure.
+        // We just pick a node randomly and merge it into others.
+        // This is imprecise, but not wrong.
+
+        CFANode currentNode = nodes.last();
+        final int current = currentNode.getNodeNumber() - min;
+        // Now merge current into all its successors
+
+        mergeNodeIntoSuccessors(currentNode, current, nodesArray, edges, loops);
+        nodes.remove(currentNode);
+        changed = true;
+      }
+
     } while (changed && !nodes.isEmpty()); // stop if nothing has changed or nodes is empty
 
 
@@ -602,6 +616,42 @@ public class CFAUtils {
         targetEdge.add(fromNode);
         edges[from][j] = null;
       }
+    }
+  }
+
+  private static void mergeNodeIntoSuccessors(CFANode currentNode, final int current,
+      final CFANode[] nodesArray, final Edge[][] edges, List<Loop> loops) {
+    List<Integer> predecessors = new ArrayList<>();
+    List<Integer> successors = new ArrayList<>();
+    for (int i = 0; i < edges.length; i++) {
+      if (edges[i][current] != null) {
+        predecessors.add(i);
+      }
+      if (edges[current][i] != null) {
+        successors.add(i);
+      }
+    }
+
+    for (int successor : successors) {
+      for (int predecessor : predecessors) {
+        // create edge (pred, succ) from (pred, current) and (current, succ)
+        Edge targetEdge = getEdge(predecessor, successor, edges);
+        targetEdge.add(edges[predecessor][current]);
+        targetEdge.add(edges[current][successor]);
+        targetEdge.add(currentNode);
+
+      }
+      if (edges[successor][successor] != null) {
+        CFANode succ = nodesArray[successor];
+        handleLoop(succ, successor, edges, loops);
+      }
+    }
+
+    for (int predecessor : predecessors) {
+      edges[predecessor][current] = null;
+    }
+    for (int successor : successors) {
+      edges[current][successor] = null;
     }
   }
 
