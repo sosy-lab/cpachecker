@@ -1199,9 +1199,9 @@ def executeBenchmarkLocaly(benchmark):
 
 def parseCloudResultFile(filePath):
     
-    wallTime = 0
-    cpuTime = 0
-    memUsage = 0
+    wallTime = 0.0
+    cpuTime = 0.0
+    memUsage = None
     returnValue = 1
     output = ""
     
@@ -1212,7 +1212,7 @@ def parseCloudResultFile(filePath):
         wallTime = float(file.readline().split(":")[-1])
         cpuTime = float(file.readline().split(":")[-1])
         try:
-            memUsage = float(file.readline().split(":")[-1])
+            memUsage = str(float(file.readline().split(":")[-1]));
         except ValueError:
             memUsage = None
         returnValue = int(file.readline().split(":")[-1])
@@ -1323,7 +1323,8 @@ def executeBenchmarkInCloud(benchmark):
     cloud = subprocess.Popen(["java", "-jar", config.cloudPath, "benchmark", "--master", config.cloudMasterName, "--loglevel", logLevel], stdin=subprocess.PIPE)
     (out, err) = cloud.communicate(cloudInput)
     returnCode = cloud.wait()
-    logging.debug("Cloud return code: {0}".format(returnCode))
+    if(not returnCode == 0):
+        logging.warn("Cloud return code: {0}".format(returnCode))
     
     #Write worker host informations in xml
     filePath = os.path.join(outputDir, "hostInformation.txt")
