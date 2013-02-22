@@ -44,11 +44,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.GraphUtils;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
@@ -177,42 +177,7 @@ public class ARGUtils {
       final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction,
       Predicate<? super ARGState> isRelevant) {
 
-    isRelevant = Predicates.or(Predicates.equalTo(root),
-                               isRelevant);
-
-    SetMultimap<ARGState, ARGState> successors = HashMultimap.create();
-
-    // Our state is a stack of pairs of todo items.
-    // The first item of each pair is a relevant state,
-    // for which we are looking for relevant successor states.
-    // The second item is a state,
-    // whose children should be handled next.
-    Deque<Pair<ARGState, ARGState>> todo = new ArrayDeque<>();
-    Set<ARGState> visited = new HashSet<>();
-    todo.push(Pair.of(root, root));
-
-    while (!todo.isEmpty()) {
-      final Pair<ARGState, ARGState> currentPair = todo.pop();
-      final ARGState currentPredecessor = currentPair.getFirst();
-      final ARGState currentState = currentPair.getSecond();
-
-      if (!visited.add(currentState)) {
-        continue;
-      }
-
-      for (ARGState child : successorFunction.apply(currentState)) {
-        if (isRelevant.apply(child)) {
-          successors.put(currentPredecessor, child);
-
-          todo.push(Pair.of(child, child));
-
-        } else {
-          todo.push(Pair.of(currentPredecessor, child));
-        }
-      }
-    }
-
-    return successors;
+    return GraphUtils.projectARG(root, successorFunction, isRelevant);
   }
 
   /**
