@@ -488,8 +488,6 @@ public class CFAUtils {
   private static boolean identifyLoops(boolean reverseMerge, SortedSet<CFANode> nodes, final int offset,
       final CFANode[] nodesArray, final Edge[][] edges, List<Loop> loops) {
 
-    final int size = edges.length;
-
     boolean changed = false;
 
       // merge nodes with their neighbors, if possible
@@ -531,17 +529,7 @@ public class CFAUtils {
           changed = true;
 
           // copy all outgoing edges (current,j) to (predecessor,j)
-          for (int j = 0; j < size; j++) {
-            if (edges[current][j] != null) {
-              // combine three edges (predecessor,current) (current,j) and (predecessor,j)
-              // into a single edge (predecessor,j)
-              Edge targetEdge = getEdge(predecessor, j, edges);
-              targetEdge.add(edges[predecessor][current]);
-              targetEdge.add(edges[current][j]);
-              targetEdge.add(currentNode);
-              edges[current][j] = null;
-            }
-          }
+          moveOutgoingEdges(currentNode, current, predecessor, edges);
 
           // delete from graph
           edges[predecessor][current] = null;
@@ -559,17 +547,7 @@ public class CFAUtils {
           changed = true;
 
           // copy all incoming edges (j,current) to (j,successor)
-          for (int j = 0; j < size; j++) {
-            if (edges[j][current] != null) {
-              // combine three edges (j,current) (current,successor) and (j,successor)
-              // into a single edge (j,successor)
-              Edge targetEdge = getEdge(j, successor, edges);
-              targetEdge.add(edges[j][current]);
-              targetEdge.add(edges[current][successor]);
-              targetEdge.add(currentNode);
-              edges[j][current] = null;
-            }
-          }
+          moveIncomingEdges(currentNode, current, successor, edges);
 
           // delete from graph
           edges[current][successor] = null;
@@ -584,6 +562,47 @@ public class CFAUtils {
       }
 
       return changed;
+  }
+
+  private static void moveIncomingEdges(final CFANode fromNode, final int from, final int to,
+      final Edge[][] edges) {
+    Edge edgeFromTo = edges[from][to];
+
+    for (int j = 0; j < edges.length; j++) {
+      if (edges[j][from] != null) {
+        // combine three edges (j,current) (current,successor) and (j,successor)
+        // into a single edge (j,successor)
+        Edge targetEdge = getEdge(j, to, edges);
+        targetEdge.add(edges[j][from]);
+        if (edgeFromTo != null) {
+          targetEdge.add(edgeFromTo);
+        }
+        targetEdge.add(fromNode);
+        edges[j][from] = null;
+      }
+    }
+  }
+
+  /**
+   * Copy all outgoing edges of "from" to "to", and delete them from "from" afterwards.
+   */
+  private static void moveOutgoingEdges(final CFANode fromNode, final int from, final int to,
+      final Edge[][] edges) {
+    Edge edgeToFrom = edges[to][from];
+
+    for (int j = 0; j < edges.length; j++) {
+      if (edges[from][j] != null) {
+        // combine three edges (predecessor,current) (current,j) and (predecessor,j)
+        // into a single edge (predecessor,j)
+        Edge targetEdge = getEdge(to, j, edges);
+        targetEdge.add(edges[from][j]);
+        if (edgeToFrom != null) {
+          targetEdge.add(edgeToFrom);
+        }
+        targetEdge.add(fromNode);
+        edges[from][j] = null;
+      }
+    }
   }
 
   // get edge from edges array, ensuring that it is added if it does not exist yet
