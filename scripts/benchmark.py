@@ -1326,7 +1326,7 @@ def executeBenchmarkInCloud(benchmark):
     logging.debug("Cloud return code: {0}".format(returnCode))
     
     #Write worker host informations in xml
-    filePath = os.path.join(outputDir, "hostInformations.txt")
+    filePath = os.path.join(outputDir, "hostInformation.txt")
     parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
     
     #write results in runs and
