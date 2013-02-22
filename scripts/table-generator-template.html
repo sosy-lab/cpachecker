@@ -425,6 +425,9 @@ function createRowFilterButtons() {
                 for (var i = 0; i < dataRows.length; i++) {
                     $(dataRows[i]).show();
                 }
+                // delete outdated elements and selections
+                $('#rowFilterSelector, #button-filter-start').remove();
+                $('#rowFilterButtons input').each(function(_, elem) {elem.checked=false;})
             })
     .appendTo($("#contentPane"));
 
@@ -439,13 +442,12 @@ function fillRowFilterField(columnIndex) {
     if (columnName == 'status') {
         options = options.concat(['correct', 'wrong', 'unknown']);        
     }
-    var dataRows = $('#dataTable > tbody')[0].rows;
-    for (var i = 0; i < dataRows.length; i++) {
-      currentValue = dataRows[i].cells[columnIndex].textContent;
-      if (jQuery.inArray(currentValue, options) === -1) {
-        options.push(currentValue);
-      }
-    }
+    $('#dataTable > tbody > tr').filter(':visible').each(function(_, row) {
+        currentValue = row.cells[columnIndex].textContent;
+        if (jQuery.inArray(currentValue, options) === -1) {
+            options.push(currentValue);
+        }
+    });
 
     // sort options, in most cases we have numbers
     options.sort( function(a, b) {
@@ -455,15 +457,14 @@ function fillRowFilterField(columnIndex) {
     } );
 
     // delete old elements
-    $("#rowFilterSelector").remove();
-    $("#button-filter-start").remove();
+    $('#rowFilterSelector, #button-filter-start').remove();
 
     // create new selection field with options
-    var rowFilter = $('<select>').attr('multiple', 'multiple').attr('id', 'rowFilterSelector');
-    for (var i = 0; i < options.length; i++) {
-        rowFilter.append(new Option(options[i], options[i]));
-    }
-    rowFilter.appendTo($("#contentPane"));
+    var rowFilter = $('<select>').attr('id', 'rowFilterSelector')
+        .attr('multiple', 'multiple').appendTo($('#contentPane'));
+    $.each(options, function(_, option) {
+        rowFilter.append(new Option(option, option));
+    });
 
     $('<button>').text('apply filter').attr('id', 'button-filter-start')
         .click(function(){ 
@@ -472,7 +473,7 @@ function fillRowFilterField(columnIndex) {
                         $('#contentPaneBackground').hide();
                         $('#contentPane').hide().empty();
                     })
-        .appendTo($("#contentPane"));
+        .appendTo($('#contentPane'));
 }
 
 /* this function hides all rows, 
