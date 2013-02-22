@@ -131,7 +131,8 @@ function getNameOfTest(column) {
   var test = columnsToTest[column-1];
   return test.tool + ' '
        + (test.date ? test.date + ' ' : '')
-       + test.name;
+       + test.name
+       + (test.benchmarkname ? '.' + test.benchmarkname : '');
 }
 
 $(document).ready(function() {
