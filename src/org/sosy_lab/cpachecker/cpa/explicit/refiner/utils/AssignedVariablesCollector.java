@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -67,6 +68,8 @@ public class AssignedVariablesCollector {
   private Set<String> globalVariables = new HashSet<>();
 
   private CFAEdge successorEdge = null;
+
+  private MultiEdge overrideEdge = null;
 
   public AssignedVariablesCollector() {}
 
@@ -98,7 +101,7 @@ public class AssignedVariablesCollector {
           globalVariables.add(declaration.getName());
         }
 
-        collectedVariables.put(edge, scoped(declaration.getName(), currentFunction));
+        collectedVariables.put(pickEdge(edge), scoped(declaration.getName(), currentFunction));
       }
       break;
 
@@ -112,7 +115,7 @@ public class AssignedVariablesCollector {
       if (statementEdge.getStatement() instanceof CAssignment) {
         CAssignment assignment = (CAssignment)statementEdge.getStatement();
         String assignedVariable = assignment.getLeftHandSide().toASTString();
-        collectedVariables.put(edge, scoped(assignedVariable, currentFunction));
+        collectedVariables.put(pickEdge(edge), scoped(assignedVariable, currentFunction));
       }
       break;
 
@@ -125,9 +128,9 @@ public class AssignedVariablesCollector {
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), currentFunction);
 
         // track it also at return site, not only at call site
-        collectedVariables.put(functionCallEdge.getSummaryEdge(), assignedVariable);
+        collectedVariables.put(pickEdge(functionCallEdge.getSummaryEdge()), assignedVariable);
 
-        collectedVariables.put(edge, assignedVariable);
+        collectedVariables.put(pickEdge(edge), assignedVariable);
         collectVariables(functionCallEdge, funcAssign.getRightHandSide(), collectedVariables);
       }
 
@@ -136,7 +139,7 @@ public class AssignedVariablesCollector {
         String parameterName = scoped(parameter.getName(), functionName);
 
         // collect the formal parameter, and make the argument a depending variable
-        collectedVariables.put(functionCallEdge, parameterName);
+        collectedVariables.put(pickEdge(functionCallEdge), parameterName);
       }
 
       break;
@@ -151,7 +154,7 @@ public class AssignedVariablesCollector {
         CFunctionCallAssignmentStatement funcAssign = (CFunctionCallAssignmentStatement)functionCallOfReturnSite;
         String assignedVariable = scoped(funcAssign.getLeftHandSide().toASTString(), successorEdge.getSuccessor().getFunctionName());
 
-        collectedVariables.put(summaryEdge, assignedVariable);
+        collectedVariables.put(pickEdge(summaryEdge), assignedVariable);
         collectVariables(returnStatementEdge, returnStatementEdge.getExpression(), collectedVariables);
         collectVariables(returnStatementEdge, new CIdExpression(returnStatementEdge.getExpression().getFileLocation(),
             null,
@@ -159,7 +162,22 @@ public class AssignedVariablesCollector {
             null), collectedVariables);
       }
       break;
+
+    case MultiEdge:
+      MultiEdge multiEdge = (MultiEdge)edge;
+
+      overrideEdge = multiEdge;
+      for(CFAEdge singleEdge : multiEdge.getEdges()) {
+        collectVariables(singleEdge, collectedVariables);
+      }
+      overrideEdge = null;
+
+      break;
     }
+  }
+
+  private CFAEdge pickEdge(CFAEdge edge) {
+    return overrideEdge != null ? overrideEdge : edge;
   }
 
   /**
@@ -178,7 +196,7 @@ public class AssignedVariablesCollector {
   }
 
   private void collectVariables(CFAEdge edge, CRightHandSide rightHandSide, Multimap<CFAEdge, String> collectedVariables) {
-    rightHandSide.accept(new CollectVariablesVisitor(edge, collectedVariables));
+    rightHandSide.accept(new CollectVariablesVisitor(overrideEdge != null ? overrideEdge : edge, collectedVariables));
   }
 
   private class CollectVariablesVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>

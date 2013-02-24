@@ -28,6 +28,7 @@ import static com.google.common.collect.Iterables.skip;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -107,7 +108,7 @@ public class ExplicitInterpolator {
       ARGPath errorPath,
       int offset,
       String currentVariable,
-      Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
+      Map<String, Long> inputInterpolant, Set<String> multiDrop) throws CPAException, InterruptedException {
     try {
       ExplicitState successor     = new ExplicitState(new HashMap<>(inputInterpolant));
       ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
@@ -137,11 +138,17 @@ public class ExplicitInterpolator {
           }
 
           isFeasible = false;
+          //System.out.println("\t\t\tinfeasable at " + pathElement.getSecond());
           return Pair.of(currentVariable, null);
         }
 
         // remove the value of the current variable from the successor
         if(interpolant == null) {
+
+          for(String var : multiDrop) {
+            successor.forget(var);
+          }
+
           if(successor.contains(currentVariable)) {
             currentVariableValue = successor.getValueFor(currentVariable);
           }
