@@ -370,4 +370,19 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   Map<String, Long> getConstantsMap() {
     return constantsMap;
   }
+
+  public Set<String> getDifference(ExplicitState other) {
+    Set<String> difference = new HashSet<>();
+
+    for(String variableName : other.getTrackedVariableNames()) {
+      if(!contains(variableName)) {
+        difference.add(variableName);
+      }
+      else if(!getValueFor(variableName).equals(other.getValueFor(variableName))) {
+        difference.add(variableName);
+      }
+    }
+
+    return difference;
+  }
 }

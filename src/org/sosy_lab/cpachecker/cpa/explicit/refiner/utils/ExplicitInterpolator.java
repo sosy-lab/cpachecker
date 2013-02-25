@@ -27,6 +27,7 @@ import static com.google.common.collect.Iterables.skip;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -68,7 +69,7 @@ public class ExplicitInterpolator {
   /**
    * boolean flag telling whether the current path is feasible
    */
-  private boolean isFeasible = false;
+  private boolean isFeasible = true;
 
   /**
    * boolean flag telling whether any previous path was feasible
@@ -99,22 +100,21 @@ public class ExplicitInterpolator {
    *
    * @param errorPath the path to check
    * @param offset offset of the state at where to start the current interpolation
-   * @param currentVariable the variable on which the interpolation is performed on
    * @param inputInterpolant the input interpolant
    * @throws CPAException
    * @throws InterruptedException
    */
-  public Pair<String, Long> deriveInterpolant(
+  public Set<Pair<String, Long>> deriveInterpolant(
       ARGPath errorPath,
       int offset,
-      String currentVariable,
-      Map<String, Long> inputInterpolant, Set<String> multiDrop) throws CPAException, InterruptedException {
+      Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
     try {
-      ExplicitState successor     = new ExplicitState(new HashMap<>(inputInterpolant));
+      ExplicitState initialState  = new ExplicitState(new HashMap<>(inputInterpolant));
       ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
 
-      Long currentVariableValue       = null;
-      Pair<String, Long> interpolant  = null;
+      Long currentVariableValue             = null;
+      Pair<String, Long> currentInterpolant = null;
+      Set<Pair<String, Long>> interpolant   = new HashSet<>();
 
       Pair<ARGState, CFAEdge> interpolationState = errorPath.get(offset);
 
@@ -123,41 +123,67 @@ public class ExplicitInterpolator {
         cancelInterpolation = true;
       }
 
-      for(Pair<ARGState, CFAEdge> pathElement : skip(errorPath, offset)) {
-        Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
-            successor,
-            precision,
-            pathElement.getSecond());
+      // consume subsequent edge
+      Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
+          initialState,
+          precision,
+          errorPath.get(offset).getSecond());
+      ExplicitState initialSuccessor = extractSuccessorState(successors);
 
-        successor = extractSuccessorState(successors);
-
-        // there is no successor and the current path element is not an error state => error path is spurious
-        if(successor == null && !pathElement.getFirst().isTarget()) {
-          if(conflictingElement == null || conflictingElement.getFirst().isOlderThan(pathElement.getFirst())) {
-            conflictingElement = pathElement;
-          }
-
-          isFeasible = false;
-          //System.out.println("\t\t\tinfeasable at " + pathElement.getSecond());
-          return Pair.of(currentVariable, null);
-        }
-
-        // remove the value of the current variable from the successor
-        if(interpolant == null) {
-
-          for(String var : multiDrop) {
-            successor.forget(var);
-          }
-
-          if(successor.contains(currentVariable)) {
-            currentVariableValue = successor.getValueFor(currentVariable);
-          }
-
-          interpolant = Pair.of(currentVariable, currentVariableValue);
-
-          successor.forget(currentVariable);
-        }
+      if(initialSuccessor == null) {
+        return null;
       }
+
+      // for each variable in the difference: remove the variable from the abstract assignment and check the path
+      // TODO: also do this the other way round, remove all first, than re-add one by one
+      Set<String> irrelevantVariables = new HashSet<>();
+      for(String currentVar : initialState.getDifference(initialSuccessor)) {
+        // start off with the successor of the initial state
+        ExplicitState successor = initialSuccessor.clone();
+
+        if(successor.contains(currentVar)) {
+          currentVariableValue = successor.getValueFor(currentVar);
+        }
+
+        currentInterpolant = Pair.of(currentVar, currentVariableValue);
+
+        // remove the value of the current variable and the already-found-irrelevant variables from the successor
+        successor.forget(currentVar);
+        for(String irrelevantVar : irrelevantVariables) {
+          successor.forget(irrelevantVar);
+        }
+
+        // simulate the remaining path
+        for(Pair<ARGState, CFAEdge> pathElement : skip(errorPath, offset + 1)) {
+          successors = transfer.getAbstractSuccessors(
+              successor,
+              precision,
+              pathElement.getSecond());
+
+          successor = extractSuccessorState(successors);
+
+          // there is no successor and the current path element is not an error state => error path is spurious
+          if(successor == null && !pathElement.getFirst().isTarget()) {
+            if(conflictingElement == null || conflictingElement.getFirst().isOlderThan(pathElement.getFirst())) {
+              conflictingElement = pathElement;
+            }
+
+            isFeasible = false;
+            //System.out.println("\t\t\tinfeasable at " + pathElement.getSecond());
+            //return Pair.of(currentVariable, null);
+            currentInterpolant = Pair.of(currentVar, null);
+            irrelevantVariables.add(currentVar);
+            break;
+          }
+        }
+
+        if(isFeasible) {
+          wasFeasible = true;
+        }
+
+        interpolant.add(currentInterpolant);
+      }
+
 
       // signal callee to cancel any further interpolation runs
       if(cancelInterpolation) {

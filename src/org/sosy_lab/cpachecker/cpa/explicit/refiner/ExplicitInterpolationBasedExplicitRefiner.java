@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,7 +47,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
-import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.AssignedVariablesCollector;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -95,12 +92,6 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     if(!isPathFeasable(errorPath)) {
       numberOfRefinements++;
 
-      Multimap<CFAEdge, String> referencedVariableMapping = determineReferencedVariableMapping(errorPath);
-
-      for(CFAEdge edge: referencedVariableMapping.keySet()){
-        //System.out.println("mapping from " + edge.getEdgeType() + " to " + referencedVariableMapping.get(edge));
-      }
-
       ExplicitInterpolator interpolator     = new ExplicitInterpolator();
       Map<String, Long> currentInterpolant  = new HashMap<>();
 
@@ -112,50 +103,34 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
           currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
         }
 
-        Collection<String> referencedVariablesAtEdge = referencedVariableMapping.get(currentEdge);
-        //System.out.println("current edge: " + currentEdge);
-        //System.out.println("\tvariables at current edge: " + referencedVariablesAtEdge);
+        //System.out.println("\n\ncurrent edge: " + currentEdge);
 
-        Set<String> multiDrop = new HashSet<>();
         // do interpolation
-        if(!referencedVariablesAtEdge.isEmpty()) {
-          Map<String, Long> inputInterpolant = new HashMap<>(currentInterpolant);
+        Map<String, Long> inputInterpolant = new HashMap<>(currentInterpolant);
+        try {
+          numberOfInterpolations++;
+          //System.out.println("\t\tinput interpolant: " + inputInterpolant);
+          Set<Pair<String, Long>> interpolant = interpolator.deriveInterpolant(errorPath, i, inputInterpolant);
 
-          // check for each variable, if ignoring it makes the error path feasible
-          for(String currentVariable : referencedVariablesAtEdge) {
-            numberOfInterpolations++;
-            try {
-              //System.out.println("\t\tinput interpolant: " + inputInterpolant);
-              //System.out.println("\t\tcurrentVariable: " + currentVariable);
-              Pair<String, Long> element = interpolator.deriveInterpolant(errorPath, i, currentVariable, inputInterpolant, multiDrop);
+          //System.out.println("\t\t ----> feasible: " + (interpolator.isFeasible() ? "YES" : "NO"));
+          //System.out.println("\t\t ----> element: " + element);
 
-              //System.out.println("\t\t ----> feasible: " + (interpolator.isFeasible() ? "YES" : "NO"));
-              //System.out.println("\t\t ----> element: " + element);
-
-              // early stop once we are past the first statement that made a path feasible for the first time
-              if(element == null) {
-                timerInterpolation.stop();
-                return increment;
-              }
-
-              // skip here, as interpolation on assume edges messes things up
-              // basically, assume edges do assigning, too, however, in a different direction, as the current variable is the assignee
-              if(currentEdge.getEdgeType() == CFAEdgeType.AssumeEdge && inputInterpolant.containsKey(currentVariable)) {
-                continue;
-              }
-
-              if(element.getSecond() == null) {
-                currentInterpolant.remove(element.getFirst());
-                multiDrop.add(currentVariable);
-              }
-              else {
-                currentInterpolant.put(element.getFirst(), element.getSecond());
-              }
+          // early stop once we are past the first statement that made a path feasible for the first time
+          if(interpolant == null) {
+            timerInterpolation.stop();
+            return increment;
+          }
+          for(Pair<String, Long> element : interpolant) {
+            if(element.getSecond() == null) {
+              currentInterpolant.remove(element.getFirst());
             }
-            catch (InterruptedException e) {
-              throw new CPAException("Explicit-Interpolation failed: ", e);
+            else {
+              currentInterpolant.put(element.getFirst(), element.getSecond());
             }
           }
+        }
+        catch (InterruptedException e) {
+          throw new CPAException("Explicit-Interpolation failed: ", e);
         }
 
         // remove variables from the interpolant that belong to the scope of the returning function
@@ -170,7 +145,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
             increment.put(currentEdge.getSuccessor(), variableName);
 
             if(firstInterpolationPoint == null) {
-              firstInterpolationPoint = errorPath.get(Math.max(0, i - 1)).getFirst();
+              firstInterpolationPoint = errorPath.get(Math.max(1, i - 1)).getFirst();
               numberOfSuccessfulRefinements++;
             }
           }
@@ -227,18 +202,6 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     else {
       return firstInterpolationPoint;
     }
-  }
-
-  /**
-   * This method determines the mapping where to do an explicit interpolation for which variables.
-   *
-   * @param currentErrorPath the current error path to check
-   * @return the mapping where to do an explicit interpolation for which variables
-   */
-  private Multimap<CFAEdge, String> determineReferencedVariableMapping(ARGPath currentErrorPath) {
-    AssignedVariablesCollector collector = new AssignedVariablesCollector();
-
-    return collector.collectVars(currentErrorPath);
   }
 
   /**
