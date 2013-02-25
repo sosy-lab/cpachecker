@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.sosy_lab.common.LogManager;
@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -79,7 +78,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  *  it creates calls to each potential function matching some criteria (defined by functionPointerCalls)
  * 2. Summary call statement edges (option summaryEdges).
  *  If functionPointerCalls is on it creates summary edges for each potential regular call
- * @author Vadim Mutilin
  *
  */
 @Options
@@ -96,7 +94,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
   private enum FunctionSet {
     ALL, //all defined functions considered (Warning: some CPAs require at least EQ_PARAM_SIZES)
     EQ_PARAM_SIZES //all functions with matching number of parameters considered
-  };
+  }
 
   private FunctionSet functionSet = FunctionSet.EQ_PARAM_SIZES;
 
@@ -131,11 +129,11 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
           CFANode thenNode = newCFANode(start.getLineNumber(), start.getFunctionName());
           elseNode = newCFANode(start.getLineNumber(), start.getFunctionName());
           CIdExpression func = new CIdExpression(nameExp.getFileLocation(),
-              (CType)nameExp.getExpressionType(),
+              nameExp.getExpressionType(),
               fNode.getFunctionName(),
               (CSimpleDeclaration)fNode.getFunctionDefinition());
           CUnaryExpression amper = new CUnaryExpression(nameExp.getFileLocation(),
-              (CType)nameExp.getExpressionType(), func, CUnaryExpression.UnaryOperator.AMPER);
+              nameExp.getExpressionType(), func, CUnaryExpression.UnaryOperator.AMPER);
           CBinaryExpression condition = new CBinaryExpression(f.getFileLocation(),
               CNumericTypes.INT, nameExp, amper, BinaryOperator.EQUALS);
 
@@ -362,7 +360,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
     } else {
       //if(functionSet == FunctionSet.EQ_PARAM_SIZES)
       Collection<FunctionEntryNode> col = cfa.getAllFunctionHeads();
-      Collection<FunctionEntryNode> res = new LinkedList<FunctionEntryNode>();
+      Collection<FunctionEntryNode> res = new ArrayList<>();
       for(FunctionEntryNode f : col) {
         if(checkParamSizes(expr.getFunctionCallExpression(), f)) {
           res.add(f);
