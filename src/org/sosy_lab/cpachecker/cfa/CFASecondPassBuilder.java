@@ -140,6 +140,10 @@ public class CFASecondPassBuilder {
       return false;
     }
     AFunctionCallExpression f = ((AFunctionCall)s).getFunctionCallExpression();
+    return isRegularCall(f);
+  }
+
+  protected final boolean isRegularCall(AFunctionCallExpression f) {
     if (f.getDeclaration() == null) {
       // There might be a function pointer shadowing a function,
       // so we need to check this explicitly here.
@@ -182,14 +186,10 @@ public class CFASecondPassBuilder {
     FunctionExitNode fExitNode = fDefNode.getExitNode();
 
     //get the parameter expression
-    List<? extends IAExpression> parameters = functionCallExpression.getParameterExpressions();
-
     // check if the number of function parameters are right
-    IAFunctionType functionType = (fDefNode).getFunctionDefinition().getType();
-    int declaredParameters = functionType.getParameters().size();
-    int actualParameters = parameters.size();
-
-    if (!functionType.takesVarArgs() && (declaredParameters != actualParameters)) {
+    if (!checkParamSizes(functionCallExpression, fDefNode)) {
+      int declaredParameters = fDefNode.getFunctionDefinition().getType().getParameters().size();
+      int actualParameters = functionCallExpression.getParameterExpressions().size();
 
       switch (language) {
       case JAVA:
@@ -238,7 +238,6 @@ public class CFASecondPassBuilder {
     fDefNode.addEnteringEdge(callEdge);
 
 
-
     if (fExitNode.getNumEnteringEdges() == 0) {
       // exit node of called functions is not reachable, i.e. this function never returns
       // no need to add return edges, instead we can remove the part after this function call
@@ -258,5 +257,19 @@ public class CFASecondPassBuilder {
       fExitNode.addLeavingEdge(returnEdge);
       successorNode.addEnteringEdge(returnEdge);
     }
+  }
+
+
+  protected final boolean checkParamSizes(AFunctionCallExpression functionCallExpression,
+      FunctionEntryNode fDefNode) {
+    //get the parameter expression
+    List<? extends IAExpression> parameters = functionCallExpression.getParameterExpressions();
+
+    // check if the number of function parameters are right
+    IAFunctionType functionType = fDefNode.getFunctionDefinition().getType();
+    int declaredParameters = functionType.getParameters().size();
+    int actualParameters = parameters.size();
+
+    return (functionType.takesVarArgs() && declaredParameters <= actualParameters) || (declaredParameters == actualParameters);
   }
 }

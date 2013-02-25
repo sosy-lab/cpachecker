@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -34,7 +33,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -64,7 +62,6 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -254,16 +251,6 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
     return nextNode;
   }
 
-  private boolean isRegularCall(AFunctionCallExpression f) {
-    if (f.getDeclaration() == null) {
-      // There might be a function pointer shadowing a function,
-      // so we need to check this explicitly here.
-      return false;
-    }
-    String name = f.getFunctionNameExpression().toASTString();
-    return cfa.getAllFunctionNames().contains(name);
-  }
-
   private FunctionSummaryEdge createSpecialSummaryEdge(int lineNumber, String pRawStatement,
       CFANode predecessorNode, CFANode successorNode, AFunctionCall functionCall) {
     FunctionSummaryEdge calltoReturnEdge = null;
@@ -368,19 +355,6 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
       }
       return res;
     }
-  }
-
-  private boolean checkParamSizes(AFunctionCallExpression functionCallExpression,
-      FunctionEntryNode fDefNode) {
-    //get the parameter expression
-    List<? extends IAExpression> parameters = functionCallExpression.getParameterExpressions();
-
-    // check if the number of function parameters are right
-    IAFunctionType functionType = fDefNode.getFunctionDefinition().getType();
-    int declaredParameters = functionType.getParameters().size();
-    int actualParameters = parameters.size();
-
-    return (functionType.takesVarArgs() && declaredParameters <= actualParameters) || (declaredParameters == actualParameters);
   }
 
 }
