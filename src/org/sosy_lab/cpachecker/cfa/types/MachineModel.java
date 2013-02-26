@@ -228,6 +228,7 @@ public enum MachineModel {
     @Override
     public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
       // TODO: This has to be checked (Example: Char pathbuf[1 + 1];)
+      // TODO: Take possible padding into account
 
       CExpression arrayLength = pArrayType.getLength();
 
@@ -277,7 +278,7 @@ public enum MachineModel {
       int sizeOfType = 0;
       // TODO: Take possible padding into account
       for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
-        sizeOfType += decl.getType().accept(this);
+        sizeOfType = decl.getType().accept(this);
         size = Math.max(size, sizeOfType);
       }
       return size;
