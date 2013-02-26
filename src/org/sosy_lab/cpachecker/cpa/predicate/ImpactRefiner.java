@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegion;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -46,9 +47,6 @@ public abstract class ImpactRefiner implements Refiner {
     }
 
     Region initialRegion = predicateCpa.getInitialState(null).getAbstractionFormula().asRegion();
-    if (!(initialRegion instanceof SymbolicRegionManager.SymbolicRegion)) {
-      throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " works only with a PredicateCPA configured to store abstractions as formulas (cpa.predicate.abstraction.type=FORMULA)");
-    }
 
     Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
@@ -64,11 +62,23 @@ public abstract class ImpactRefiner implements Refiner {
         config,
         logger);
 
-    RefinementStrategy strategy = new ImpactRefinementStrategy(
-        config,
-        logger,
-        fmgr,
-        solver);
+    RefinementStrategy strategy;
+    if (initialRegion instanceof SymbolicRegionManager.SymbolicRegion) {
+      strategy = new ImpactRefinementStrategy(
+          config,
+          logger,
+          fmgr,
+          solver);
+    } else if (initialRegion instanceof BDDRegion) {
+      strategy = new ImpactAbstractionRefinementStrategy(
+          config,
+          logger,
+          fmgr,
+          predicateCpa.getAbstractionManager(),
+          predicateCpa.getPredicateManager());
+    } else {
+      throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " cannot be used with configured abstraction representation.");
+    }
 
     return new PredicateCPARefiner(
         config,

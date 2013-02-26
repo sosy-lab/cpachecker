@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -500,6 +502,20 @@ public class PredicateAbstractionManager {
 
     return new AbstractionFormula(fmgr, amgr.getRegionCreator().makeTrue(), bfmgr.makeBoolean(true), bfmgr.makeBoolean(true),
         pPreviousBlockFormula);
+  }
+
+  /**
+   * Conjuncts two abstractions.
+   * Both need to have the same block formula.
+   */
+  public AbstractionFormula makeAnd(AbstractionFormula a1, AbstractionFormula a2) {
+    checkArgument(a1.getBlockFormula().equals(a2.getBlockFormula()));
+
+    Region region = amgr.getRegionCreator().makeAnd(a1.asRegion(), a2.asRegion());
+    BooleanFormula formula = fmgr.makeAnd(a1.asFormula(), a2.asFormula());
+    BooleanFormula instantiatedFormula = fmgr.makeAnd(a1.asInstantiatedFormula(), a2.asInstantiatedFormula());
+
+    return new AbstractionFormula(fmgr, region, formula, instantiatedFormula, a1.getBlockFormula());
   }
 
   private AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula) {

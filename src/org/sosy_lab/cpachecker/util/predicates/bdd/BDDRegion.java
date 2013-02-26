@@ -30,11 +30,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 /**
  * Regions represented using BDDs
  */
-class BDDRegion implements Region {
+public class BDDRegion implements Region {
 
     private final BDD bddRepr;
 
-    public BDDRegion(BDD pBDD) {
+    BDDRegion(BDD pBDD) {
         bddRepr = pBDD;
     }
 
