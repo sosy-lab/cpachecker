@@ -139,10 +139,6 @@ public class SMGTest {
 
     smg.setValidity(obj2, false);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
-    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
-    Assert.assertFalse(smg.isObjectValid(smg.getNullObject()));
-    Assert.assertFalse(smg.isObjectValid(obj1));
-    Assert.assertFalse(smg.isObjectValid(obj2));
     Assert.assertFalse(smg_copy.isObjectValid(smg_copy.getNullObject()));
     Assert.assertTrue(smg_copy.isObjectValid(obj1));
     Assert.assertTrue(smg_copy.isObjectValid(obj2));
@@ -152,6 +148,14 @@ public class SMGTest {
   public void ConsistencyViolationValidNullTest(){
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
     smg.setValidity(smg.getNullObject(), true);
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+  }
+
+  @Test
+  public void ConsistencyViolationInvalidRegionHasValue(){
+    smg.setValidity(obj1, false);
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+    smg.setValidity(obj2, false);
     Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
   }
 

@@ -224,6 +224,19 @@ class SMGConsistencyVerifier{
     return true;
   }
 
+  static private boolean verifyInvalidRegionsHaveNoHVEdges(LogManager pLogger, SMG smg){
+    for (SMGObject obj : smg.getObjects()){
+      if (smg.isObjectValid(obj))
+        continue;
+      if (smg.getValuesForObject(obj).size() > 0){
+        pLogger.log(Level.SEVERE, "SMG inconsistent: invalid object has a HVEdge");
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   static public boolean verifySMG(LogManager pLogger, SMG smg){
     boolean toReturn = true;
     pLogger.log(Level.FINEST, "Starting constistency check of a SMG");
@@ -232,6 +245,10 @@ class SMGConsistencyVerifier{
         verifyNullObject(pLogger, smg),
         pLogger,
         "Checking SMG consistency: null object invariants hold");
+    toReturn = toReturn && verifySMGProperty(
+        verifyInvalidRegionsHaveNoHVEdges(pLogger, smg),
+        pLogger,
+        "Checking SMG consistency: invalid regions have no outgoing edges");
 
     pLogger.log(Level.FINEST, "Ending consistency check of a SMG");
 
