@@ -134,12 +134,12 @@ class PredicateCPAStatistics implements Statistics {
         }
       }
 
-      Set<AbstractionPredicate> allPredicates = Sets.newHashSet(globalPredicates);
-      allPredicates.addAll(localPredicates.values());
-      allPredicates.addAll(functionPredicates.values());
-
       // check if/where to dump the predicate map
       if (exportPredmap && predmapFile != null) {
+        Set<AbstractionPredicate> allPredicates = Sets.newHashSet(globalPredicates);
+        allPredicates.addAll(localPredicates.values());
+        allPredicates.addAll(functionPredicates.values());
+
         try (Writer w = Files.openOutputFile(predmapFile)) {
           PredicateMapWriter writer = new PredicateMapWriter(cpa);
           writer.writePredicateMap(localPredicates, functionPredicates, globalPredicates, allPredicates, w);
@@ -157,7 +157,8 @@ class PredicateCPAStatistics implements Statistics {
       int totPredsUsed = localPredicates.size();
       int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
 
-      int allDistinctPreds = allPredicates.size();
+      AbstractionManager absmgr = cpa.getAbstractionManager();
+      int allDistinctPreds = absmgr.getNumberOfPredicates();
 
       if (result == Result.SAFE && exportInvariants && invariantsFile != null) {
         exportInvariants(reached);

@@ -79,6 +79,7 @@ class ImpactAbstractionRefinementStrategy extends RefinementStrategy {
       out.println("  Coverage checks:                    " + coverTime);
       out.println("  ARG update:                         " + argUpdate);
       out.println();
+      out.println("Number of abstractions during refinements:  " + abstraction.getNumberOfIntervals());
       ImpactAbstractionRefinementStrategy.this.printStatistics(out);
     }
   }

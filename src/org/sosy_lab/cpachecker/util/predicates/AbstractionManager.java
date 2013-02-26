@@ -121,6 +121,10 @@ public final class AbstractionManager {
     new AbstractionPredicatesMBean(); // don't store it, we wouldn't know when to unregister anyway
   }
 
+  public int getNumberOfPredicates() {
+    return numberOfPredicates;
+  }
+
   /**
    * creates a Predicate from the Boolean symbolic variable (var) and
    * the atom that defines it
