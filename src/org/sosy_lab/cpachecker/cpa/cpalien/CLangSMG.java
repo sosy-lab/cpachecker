@@ -35,6 +35,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 import com.google.common.collect.Sets;
 
@@ -80,8 +81,8 @@ public class CLangSMG extends SMG {
    * Newly constructed CLangSMG contains a single nullObject with an address
    * pointing to it, and is empty otherwise.
    */
-  public CLangSMG() {
-    super();
+  public CLangSMG(MachineModel pMachineModel) {
+    super(pMachineModel);
     this.heap_objects.add(this.getNullObject());
   }
 

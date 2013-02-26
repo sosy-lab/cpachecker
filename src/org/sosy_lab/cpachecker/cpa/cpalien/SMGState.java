@@ -35,8 +35,8 @@ public class SMGState implements AbstractQueryableState {
   private final CLangSMG heap;
   private final LogManager logger;
 
-  public SMGState(LogManager pLogger){
-    heap = new CLangSMG();
+  public SMGState(LogManager pLogger, MachineModel pMachineModel){
+    heap = new CLangSMG(pMachineModel);
     logger = pLogger;
   }
 

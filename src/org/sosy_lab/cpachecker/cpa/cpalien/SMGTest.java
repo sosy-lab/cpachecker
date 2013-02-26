@@ -31,6 +31,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
@@ -48,9 +49,13 @@ public class SMGTest {
   SMGEdgeHasValue hv2has2at0 = new SMGEdgeHasValue(mock(CType.class), 0, obj2, val2);
   SMGEdgeHasValue hv2has1at4 = new SMGEdgeHasValue(mock(CType.class), 4, obj2, val1);
 
+  private static SMG getNewSMG64(){
+    return new SMG(MachineModel.LINUX64);
+  }
+
   @Before
   public void setUp(){
-    smg = new SMG();
+    smg = getNewSMG64();
 
     smg.addObject(obj1);
     smg.addObject(obj2);
@@ -66,7 +71,7 @@ public class SMGTest {
 
   @Test
   public void SMGConstructorTest(){
-    SMG smg = new SMG();
+    SMG smg = getNewSMG64();
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
     SMGObject nullObject = smg.getNullObject();
     int nullAddress = smg.getNullValue();

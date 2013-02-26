@@ -30,14 +30,16 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 public class SMG {
   final private HashSet<SMGObject> objects = new HashSet<>();
   final private HashSet<Integer> values = new HashSet<>();
   final private HashSet<SMGEdgeHasValue> hv_edges = new HashSet<>();
   final private HashSet<SMGEdgePointsTo> pt_edges = new HashSet<>();
-
   final private HashMap<SMGObject, Boolean> object_validity = new HashMap<>();
+
+  final private MachineModel machine_model;
 
   /**
    * A special object representing NULL
@@ -48,7 +50,7 @@ public class SMG {
    */
   final private static int nullAddress = 0;
 
-  public SMG(){
+  public SMG(MachineModel pMachineModel){
     SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
 
     addObject(nullObject);
@@ -56,6 +58,8 @@ public class SMG {
 
     addValue(nullAddress);
     addPointsToEdge(nullPointer);
+
+    machine_model = pMachineModel;
   }
 
   public SMG(SMG pHeap) {
@@ -64,6 +68,8 @@ public class SMG {
     hv_edges.addAll(pHeap.hv_edges);
     pt_edges.addAll(pHeap.pt_edges);
     object_validity.putAll(pHeap.object_validity);
+
+    machine_model = pHeap.machine_model;
   }
 
   final public SMGObject getNullObject(){
@@ -176,6 +182,10 @@ public class SMG {
     else{
       throw new IllegalArgumentException("Object [" + obj + "] not in SMG");
     }
+  }
+
+  public MachineModel getMachineModel() {
+    return machine_model;
   }
 }
 

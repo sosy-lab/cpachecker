@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class SMGEdgeHasValue {
@@ -57,5 +58,9 @@ public class SMGEdgeHasValue {
 
   public CType getType() {
     return type;
+  }
+
+  public int getSizeInBytes(MachineModel pMachineModel) {
+    return pMachineModel.getSizeof(type);
   }
 }
