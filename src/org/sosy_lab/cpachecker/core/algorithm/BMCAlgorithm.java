@@ -638,6 +638,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     private final LogManager logger;
     private final Algorithm invariantAlgorithm;
+    private final ConfigurableProgramAnalysis invariantCPAs;
     private final ReachedSet reached;
 
     private CFANode initialLocation = null;
@@ -659,15 +660,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
           throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
         }
 
-        ConfigurableProgramAnalysis invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory).buildCPAs(cfa);
+        invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory).buildCPAs(cfa);
         invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger, invariantConfig);
-
         reached = new ReachedSetFactory(invariantConfig, logger).create();
-        reached.add(invariantCPAs.getInitialState(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
 
       } else {
         // invariant generation is disabled
         invariantAlgorithm = null;
+        invariantCPAs = null;
         reached = new ReachedSetFactory(config, logger).create(); // create reached set that will stay empty
       }
     }
@@ -676,10 +676,12 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       checkState(initialLocation == null);
       initialLocation = pInitialLocation;
 
-      if (!reached.hasWaitingState()) {
+      if (invariantCPAs == null) {
         // invariant generation disabled
         return;
       }
+
+      reached.add(invariantCPAs.getInitialState(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
 
       if (parallelInvariantGeneration) {
 
