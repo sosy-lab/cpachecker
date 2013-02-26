@@ -90,5 +90,4 @@ public class SMGTest {
 
     //TODO: Filter by types
   }
-
 }

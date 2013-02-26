@@ -70,15 +70,6 @@ public class CLangSMG extends SMG {
   final private HashMap<String, SMGObject> global_objects = new HashMap<>();
 
   /**
-   * A special object representing NULL
-   */
-  final private SMGObject nullObject = new SMGObject();
-  /**
-   * An adress of the special object representing null
-   */
-  final private int nullAddress = 0;
-
-  /**
    * A flag signifying the edge leading to this state caused memory to be leaked
    */
   private boolean has_leaks = false;
@@ -90,11 +81,7 @@ public class CLangSMG extends SMG {
    * pointing to it, and is empty otherwise.
    */
   public CLangSMG() {
-    SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
-
-    addHeapObject(nullObject);
-    addValue(nullAddress);
-    addPointsToEdge(nullPointer);
+    addHeapObject(this.getNullObject());
   }
 
   /**
@@ -422,7 +409,7 @@ class CLangSMGConsistencyVerifier{
     return toReturn;
   }
 
-  static private boolean verifyNullObject(LogManager pLogger, CLangSMG smg){
+  static private boolean verifyNullObjectCLangProperties(LogManager pLogger, CLangSMG smg){
     for (SMGObject obj: smg.getGlobalObjects().values()){
       if(! obj.notNull()){
         pLogger.log(Level.SEVERE, "CLangSMG inconsistent: null object in global object set [" + obj + "]");
@@ -457,22 +444,6 @@ class CLangSMGConsistencyVerifier{
       return false;
     }
 
-    Integer null_value = null;
-    for(Integer value: smg.getValues()){
-      if (smg.getObjectPointedBy(value) == firstNull){
-        null_value = value;
-      }
-    }
-    if (null_value == null){
-      pLogger.log(Level.SEVERE, "CLangSMG inconsistent: no value pointing to null object");
-      return false;
-    }
-
-    if (! smg.getValuesForObject(firstNull).isEmpty()){
-      pLogger.log(Level.SEVERE, "CLangSMG inconsistent: null object has some value");
-      return false;
-    }
-
     return true;
   }
 
@@ -504,7 +475,8 @@ class CLangSMGConsistencyVerifier{
   }
 
   static public boolean verifyCLangSMG(LogManager pLogger, CLangSMG smg){
-    boolean toReturn = true;
+    boolean toReturn = SMGConsistencyVerifier.verifySMG(pLogger, smg);
+
     pLogger.log(Level.FINEST, "Starting constistency check of a CLangSMG");
 
     toReturn = toReturn && verifyCLangSMGProperty(
@@ -524,7 +496,7 @@ class CLangSMGConsistencyVerifier{
         pLogger,
         "Checking CLangSMG consistency: global, stack and heap object union contains all objects in SMG");
     toReturn = toReturn && verifyCLangSMGProperty(
-        verifyNullObject(pLogger, smg),
+        verifyNullObjectCLangProperties(pLogger, smg),
         pLogger,
         "Checking CLangSMG consistency: null object invariants hold");
     toReturn = toReturn && verifyCLangSMGProperty(
