@@ -81,6 +81,11 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     }
   }
 
+  // TODO This is ugly.
+  // We need this as a workaround until we can have separate solver environments
+  // in every CPA and copy formulas between them.
+  private static Mathsat5FormulaManager instance = null;
+
   private final Mathsat5FormulaCreator formulaCreator;
   private final long mathsatEnv;
   private final Mathsat5Settings settings;
@@ -108,7 +113,11 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     return ((Mathsat5Formula)pT).getTerm();
   }
 
-  public static Mathsat5FormulaManager create(LogManager logger, Configuration config) throws InvalidConfigurationException{
+  public static synchronized Mathsat5FormulaManager create(LogManager logger, Configuration config) throws InvalidConfigurationException{
+    if (instance != null) {
+      return instance;
+    }
+
     // Init Msat
     Mathsat5Settings settings = new Mathsat5Settings(config);
 
@@ -135,9 +144,10 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     Mathsat5RationalFormulaManager rationalTheory = Mathsat5RationalFormulaManager.create(creator, functionTheory);
     Mathsat5BitvectorFormulaManager bitvectorTheory  = Mathsat5BitvectorFormulaManager.create(creator);
 
-    return new Mathsat5FormulaManager(
+    instance = new Mathsat5FormulaManager(
         unsafeManager, functionTheory, booleanTheory,
         rationalTheory, bitvectorTheory, settings);
+    return instance;
   }
 
   public <T extends Formula> T encapsulateTerm(Class<T> pClazz, long t) {
