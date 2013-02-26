@@ -205,6 +205,11 @@ class SMGConsistencyVerifier{
       return false;
     }
 
+    if (smg.isObjectValid(smg.getNullObject())){
+      pLogger.log(Level.SEVERE, "SMG inconsistent: null object is not invalid");
+      return false;
+    }
+
     return true;
   }
 

@@ -81,7 +81,8 @@ public class CLangSMG extends SMG {
    * pointing to it, and is empty otherwise.
    */
   public CLangSMG() {
-    addHeapObject(this.getNullObject());
+    super();
+    this.heap_objects.add(this.getNullObject());
   }
 
   /**

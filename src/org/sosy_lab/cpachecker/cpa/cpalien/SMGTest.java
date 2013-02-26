@@ -148,6 +148,13 @@ public class SMGTest {
     Assert.assertTrue(smg_copy.isObjectValid(obj2));
   }
 
+  @Test
+  public void ConsistencyViolationValidNullTest(){
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+    smg.setValidity(smg.getNullObject(), true);
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+  }
+
   @Test(expected=IllegalArgumentException.class)
   public void isObjectValidBadCallTest(){
     smg.isObjectValid(new SMGObject(24, "wee"));
