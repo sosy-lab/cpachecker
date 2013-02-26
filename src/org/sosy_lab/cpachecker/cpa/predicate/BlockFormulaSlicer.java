@@ -98,7 +98,7 @@ public class BlockFormulaSlicer {
         @Override
         public BooleanFormula apply(PredicateAbstractState e) {
           assert e.isAbstractionState();
-          return e.getAbstractionFormula().getBlockFormula();
+          return e.getAbstractionFormula().getBlockFormula().getFormula();
         }
       };
 

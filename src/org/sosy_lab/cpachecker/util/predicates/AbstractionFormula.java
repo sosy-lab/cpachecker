@@ -55,7 +55,7 @@ public class AbstractionFormula implements Serializable {
    * The formula of the block directly before this abstraction.
    * (This formula was used to create this abstraction).
    */
-  private final BooleanFormula blockFormula;
+  private final PathFormula blockFormula;
 
   private static int nextId = 0;
   private final int id = nextId++;
@@ -64,7 +64,7 @@ public class AbstractionFormula implements Serializable {
   public AbstractionFormula(
       FormulaManager mgr,
       Region pRegion, BooleanFormula pFormula,
-      BooleanFormula pInstantiatedFormula, BooleanFormula pBlockFormula) {
+      BooleanFormula pInstantiatedFormula, PathFormula pBlockFormula) {
     this.mgr = mgr.getBooleanFormulaManager();
     this.region = pRegion;
     this.formula = pFormula;
@@ -98,7 +98,7 @@ public class AbstractionFormula implements Serializable {
     return instantiatedFormula;
   }
 
-  public BooleanFormula getBlockFormula() {
+  public PathFormula getBlockFormula() {
     return blockFormula;
   }
 

@@ -82,6 +82,7 @@ public class PredicateAbstractionManager {
   private final LogManager logger;
   private final FormulaManagerView fmgr;
   private final AbstractionManager amgr;
+  private final PathFormulaManager pfmgr;
   private final Solver solver;
 
   @Option(name = "abstraction.cartesian",
@@ -109,6 +110,7 @@ public class PredicateAbstractionManager {
   public PredicateAbstractionManager(
       AbstractionManager pAmgr,
       FormulaManagerView pFmgr,
+      PathFormulaManager pPfmgr,
       Solver pSolver,
       Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
@@ -120,6 +122,7 @@ public class PredicateAbstractionManager {
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     amgr = pAmgr;
+    pfmgr = pPfmgr;
     solver = pSolver;
 
     if (useCache) {
@@ -148,7 +151,7 @@ public class PredicateAbstractionManager {
     if (predicates.isEmpty()) {
       logger.log(Level.FINEST, "Abstraction", stats.numCallsAbstraction, "with empty precision is true");
       stats.numSymbolicAbstractions++;
-      return makeTrueAbstractionFormula(pathFormula.getFormula());
+      return makeTrueAbstractionFormula(pathFormula);
     }
 
     logger.log(Level.FINEST, "Computing abstraction", stats.numCallsAbstraction, "with", predicates.size(), "predicates");
@@ -173,7 +176,7 @@ public class PredicateAbstractionManager {
         BooleanFormula stateFormula = result.asFormula();
         BooleanFormula instantiatedFormula = fmgr.instantiate(stateFormula, pathFormula.getSsa());
 
-        result = new AbstractionFormula(fmgr, result.asRegion(), stateFormula, instantiatedFormula, pathFormula.getFormula());
+        result = new AbstractionFormula(fmgr, result.asRegion(), stateFormula, instantiatedFormula, pathFormula);
         logger.log(Level.FINEST, "Abstraction", stats.numCallsAbstraction, "was cached");
         logger.log(Level.ALL, "Abstraction result is", result);
         stats.numCallsAbstractionCached++;
@@ -188,7 +191,7 @@ public class PredicateAbstractionManager {
       abs = buildBooleanAbstraction(f, pathFormula.getSsa(), predicates);
     }
 
-    AbstractionFormula result = makeAbstractionFormula(abs, pathFormula.getSsa(), pathFormula.getFormula());
+    AbstractionFormula result = makeAbstractionFormula(abs, pathFormula.getSsa(), pathFormula);
 
     if (useCache) {
       abstractionCache.put(absKey, result);
@@ -490,16 +493,16 @@ public class PredicateAbstractionManager {
     return solver.isUnsat(f);
   }
 
-  public AbstractionFormula makeTrueAbstractionFormula(BooleanFormula pPreviousBlockFormula) {
+  public AbstractionFormula makeTrueAbstractionFormula(PathFormula pPreviousBlockFormula) {
     if (pPreviousBlockFormula == null) {
-      pPreviousBlockFormula = bfmgr.makeBoolean(true);
+      pPreviousBlockFormula = pfmgr.makeEmptyPathFormula();
     }
 
     return new AbstractionFormula(fmgr, amgr.getRegionCreator().makeTrue(), bfmgr.makeBoolean(true), bfmgr.makeBoolean(true),
         pPreviousBlockFormula);
   }
 
-  private AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, BooleanFormula blockFormula) {
+  private AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula) {
     BooleanFormula symbolicAbs = amgr.toConcrete(abs);
     BooleanFormula instantiatedSymbolicAbs = fmgr.instantiate(symbolicAbs, ssaMap);
 
@@ -549,7 +552,7 @@ public class PredicateAbstractionManager {
    * @return A new abstraction similar to the old one with some more predicates.
    */
   public AbstractionFormula expand(Region reducedAbstraction, Region sourceAbstraction,
-      Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA, BooleanFormula blockFormula) {
+      Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA, PathFormula blockFormula) {
     RegionCreator rmgr = amgr.getRegionCreator();
 
     for (AbstractionPredicate predicate : relevantPredicates) {

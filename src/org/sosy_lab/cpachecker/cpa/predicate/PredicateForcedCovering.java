@@ -206,7 +206,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
           formulas.add(getPredicateState(commonParent).getAbstractionFormula().asInstantiatedFormula());
 
           for (AbstractState pathElement : path) {
-            formulas.add(getPredicateState(pathElement).getAbstractionFormula().getBlockFormula());
+            formulas.add(getPredicateState(pathElement).getAbstractionFormula().getBlockFormula().getFormula());
           }
 
           SSAMap ssaMap = getPredicateState(argElement).getPathFormula().getSsa().withDefault(1);

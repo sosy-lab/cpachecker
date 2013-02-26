@@ -282,7 +282,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
       assert succ.getChildren().isEmpty() == targets.contains(succ);
       assert succ.mayCover();
 
-      BooleanFormula blockFormula = extractStateByType(succ, PredicateAbstractState.class).getAbstractionFormula().getBlockFormula();
+      BooleanFormula blockFormula = extractStateByType(succ, PredicateAbstractState.class).getAbstractionFormula().getBlockFormula().getFormula();
       itpStack.add(itpProver.push(blockFormula));
       try {
         satCheckTime.start();
