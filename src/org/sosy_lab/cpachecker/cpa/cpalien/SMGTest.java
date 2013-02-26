@@ -176,6 +176,13 @@ public class SMGTest {
   }
 
   @Test
+  public void getNullObjectTest(){
+    SMGObject nullObject = smg.getNullObject();
+    Assert.assertFalse(smg.isObjectValid(nullObject));
+    Assert.assertEquals(nullObject.getSizeInBytes(), 0);
+  }
+
+  @Test
   public void getValuesTest(){
     HashSet<Integer> set = new HashSet<>();
     set.add(val1);

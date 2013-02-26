@@ -195,6 +195,12 @@ class SMGConsistencyVerifier{
         null_value = value;
       }
     }
+
+    if (smg.getObjectPointedBy(smg.getNullValue()) != smg.getNullObject()){
+      pLogger.log(Level.SEVERE, "SMG inconsistent: null value not pointing to null object");
+      return false;
+    }
+
     if (null_value == null){
       pLogger.log(Level.SEVERE, "SMG inconsistent: no value pointing to null object");
       return false;
@@ -207,6 +213,11 @@ class SMGConsistencyVerifier{
 
     if (smg.isObjectValid(smg.getNullObject())){
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object is not invalid");
+      return false;
+    }
+
+    if (smg.getNullObject().getSizeInBytes() != 0){
+      pLogger.log(Level.SEVERE, "SMG inconsistent: null object does not have zero size");
       return false;
     }
 
