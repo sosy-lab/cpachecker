@@ -109,19 +109,9 @@ public class CLangSMGTest {
   public void CLangSMGConstructorTest(){
     CLangSMG smg = new CLangSMG();
 
-    Assert.assertEquals(1, smg.getObjects().size());
-    Assert.assertEquals(1, smg.getValues().size());
     Assert.assertEquals(0, smg.getStackFrames().size());
     Assert.assertEquals(1, smg.getHeapObjects().size());
     Assert.assertEquals(0, smg.getGlobalObjects().size());
-
-    SMGObject object = smg.getObjects().iterator().next();
-    Integer value = smg.getValues().iterator().next();
-
-    Assert.assertFalse(object.notNull());
-    SMGObject target_object = smg.getObjectPointedBy(value);
-
-    Assert.assertEquals(object, target_object);
 
     SMGObject obj1 = new SMGObject(8, "obj1");
     SMGObject obj2 = new SMGObject(8, "obj2");
@@ -145,8 +135,6 @@ public class CLangSMGTest {
     CLangSMG smg_copy = new CLangSMG(smg);
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg_copy));
 
-    Assert.assertEquals(3, smg_copy.getObjects().size());
-    Assert.assertEquals(3, smg_copy.getValues().size());
     Assert.assertEquals(0, smg_copy.getStackFrames().size());
     Assert.assertEquals(2, smg_copy.getHeapObjects().size());
     Assert.assertEquals(1, smg_copy.getGlobalObjects().size());

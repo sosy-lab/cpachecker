@@ -49,6 +49,7 @@ public class SMG {
     nullObject = new SMGObject();
     SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
 
+    addObject(nullObject);
     addValue(nullAddress);
     addPointsToEdge(nullPointer);
   }
@@ -66,15 +67,22 @@ public class SMG {
     return nullObject;
   }
 
+  final public int getNullValue(){
+    return nullAddress;
+  }
+
   final public void addObject(SMGObject pObj) {
     this.objects.add(pObj);
   }
+
   final public void addValue(int pValue) {
     this.values.add(Integer.valueOf(pValue));
   }
+
   final public void addPointsToEdge(SMGEdgePointsTo pEdge){
     this.pt_edges.add(pEdge);
   }
+
   final public void addHasValueEdge(SMGEdgeHasValue pNewEdge) {
     this.hv_edges.add(pNewEdge);
   }
@@ -125,7 +133,7 @@ public class SMG {
     return null;
   }
 
-  private HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, Integer pOffset){
+  final private HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, Integer pOffset){
     HashSet<SMGEdgeHasValue> toReturn = new HashSet<>();
     for (SMGEdgeHasValue edge: hv_edges){
       if (edge.getObject() == pObject && (pOffset == null || edge.getOffset() == pOffset)){
@@ -136,11 +144,13 @@ public class SMG {
     return toReturn;
   }
 
-  public HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject) {
+  //TODO: Test
+  final public HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject) {
     return getValuesForObject(pObject, null);
   }
 
-  public HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, int pOffset) {
+  //TODO: Test
+  final public HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, int pOffset) {
     return getValuesForObject(pObject, Integer.valueOf(pOffset));
   }
 }

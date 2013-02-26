@@ -30,10 +30,13 @@ import java.util.HashSet;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
 public class SMGTest {
+  private LogManager logger = mock(LogManager.class);
+
   private SMG smg;
   SMGObject obj1 = new SMGObject(8, "object-1");
   SMGObject obj2 = new SMGObject(8, "object-2");
@@ -62,23 +65,103 @@ public class SMGTest {
   }
 
   @Test
-  public void testGetObjects() {
-    HashSet<SMGObject> set = new HashSet<>();
-    set.add(obj1);
-    set.add(obj2);
+  public void SMGConstructorTest(){
+    SMG smg = new SMG();
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+    SMGObject nullObject = smg.getNullObject();
+    int nullAddress = smg.getNullValue();
 
-    Assert.assertTrue(smg.getObjects().containsAll(set));
-    Assert.assertTrue(set.containsAll(smg.getObjects()));
+
+    Assert.assertNotNull(nullObject);
+    Assert.assertFalse(nullObject.notNull());
+    Assert.assertEquals(1, smg.getObjects().size());
+    Assert.assertTrue(smg.getObjects().contains(nullObject));
+
+    Assert.assertEquals(1, smg.getValues().size());
+    Assert.assertTrue(smg.getValues().contains(Integer.valueOf(nullAddress)));
+
+    Assert.assertEquals(1, smg.getPTEdges().size());
+    SMGObject target_object = smg.getObjectPointedBy(nullAddress);
+    Assert.assertEquals(nullObject, target_object);
+
+    Assert.assertEquals(0, smg.getHVEdges().size());
+
+    //copy constructor
+    SMG smg_copy = new SMG(smg);
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
+
+    SMGObject third_object = new SMGObject(16, "object-3");
+    Integer third_value = Integer.valueOf(3);
+    smg_copy.addObject(third_object);
+    smg_copy.addValue(third_value.intValue());
+    smg_copy.addHasValueEdge(new SMGEdgeHasValue(mock(CType.class), 0, third_object,  third_value));
+    smg_copy.addPointsToEdge(new SMGEdgePointsTo(third_value, third_object, 0));
+
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
+    Assert.assertEquals(1, smg.getObjects().size());
+    Assert.assertEquals(2, smg_copy.getObjects().size());
+    Assert.assertTrue(smg_copy.getObjects().contains(third_object));
+
+    Assert.assertEquals(1, smg.getValues().size());
+    Assert.assertEquals(2, smg_copy.getValues().size());
+    Assert.assertTrue(smg_copy.getValues().contains(third_value));
+
+    Assert.assertEquals(1, smg.getPTEdges().size());
+    Assert.assertEquals(2, smg_copy.getPTEdges().size());
+    SMGObject target_object_for_third = smg_copy.getObjectPointedBy(third_value);
+    Assert.assertEquals(third_object, target_object_for_third);
+
+    Assert.assertEquals(0, smg.getHVEdges().size());
+    Assert.assertEquals(1, smg_copy.getHVEdges().size());
   }
 
   @Test
-  public void testGetObjectPointedBy(){
+  public void getObjectsTest() {
+    HashSet<SMGObject> set = new HashSet<>();
+    set.add(obj1);
+    set.add(obj2);
+    set.add(smg.getNullObject());
+
+    Assert.assertTrue(smg.getObjects().containsAll(set));
+  }
+
+  @Test
+  public void getValuesTest(){
+    HashSet<Integer> set = new HashSet<>();
+    set.add(val1);
+    set.add(val2);
+    set.add(smg.getNullValue());
+
+    Assert.assertTrue(smg.getValues().containsAll(set));
+  }
+
+  @Test
+  public void getHVEdgesTest(){
+    HashSet<SMGEdgeHasValue> set = new HashSet<>();
+    set.add(hv2has1at4);
+    set.add(hv2has1at4);
+
+    Assert.assertTrue(smg.getHVEdges().containsAll(set));
+  }
+
+  @Test
+  public void getPTEdgesTest(){
+    HashSet<SMGEdgePointsTo> set = new HashSet<>();
+    set.add(pt1to1);
+
+    Assert.assertTrue(smg.getPTEdges().containsAll(set));
+  }
+
+  @Test
+  public void getObjectPointedByTest(){
     Assert.assertEquals(obj1, smg.getObjectPointedBy(val1));
     Assert.assertNull(smg.getObjectPointedBy(val2));
   }
 
   @Test
-  public void getGetValuesForObject(){
+  public void getValuesForObjectTest(){
     Assert.assertEquals(smg.getValuesForObject(obj1).size(), 0);
     Assert.assertEquals(smg.getValuesForObject(obj2).size(), 2);
 
