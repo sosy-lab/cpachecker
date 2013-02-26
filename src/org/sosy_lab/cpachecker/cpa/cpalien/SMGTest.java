@@ -118,6 +118,47 @@ public class SMGTest {
   }
 
   @Test
+  public void validityTest(){
+    Assert.assertFalse(smg.isObjectValid(smg.getNullObject()));
+    Assert.assertTrue(smg.isObjectValid(obj1));
+    Assert.assertTrue(smg.isObjectValid(obj2));
+
+    SMG smg_copy = new SMG(smg);
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+
+    smg.setValidity(obj1, false);
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+    Assert.assertFalse(smg.isObjectValid(smg.getNullObject()));
+    Assert.assertFalse(smg.isObjectValid(obj1));
+    Assert.assertTrue(smg.isObjectValid(obj2));
+    Assert.assertFalse(smg_copy.isObjectValid(smg_copy.getNullObject()));
+    Assert.assertTrue(smg_copy.isObjectValid(obj1));
+    Assert.assertTrue(smg_copy.isObjectValid(obj2));
+
+    smg.setValidity(obj2, false);
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+    Assert.assertFalse(smg.isObjectValid(smg.getNullObject()));
+    Assert.assertFalse(smg.isObjectValid(obj1));
+    Assert.assertFalse(smg.isObjectValid(obj2));
+    Assert.assertFalse(smg_copy.isObjectValid(smg_copy.getNullObject()));
+    Assert.assertTrue(smg_copy.isObjectValid(obj1));
+    Assert.assertTrue(smg_copy.isObjectValid(obj2));
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void isObjectValidBadCallTest(){
+    smg.isObjectValid(new SMGObject(24, "wee"));
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void setValidityBadCallTest(){
+    smg.setValidity(new SMGObject(24, "wee"), true);
+  }
+
+  @Test
   public void getObjectsTest() {
     HashSet<SMGObject> set = new HashSet<>();
     set.add(obj1);

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -36,31 +37,33 @@ public class SMG {
   final private HashSet<SMGEdgeHasValue> hv_edges = new HashSet<>();
   final private HashSet<SMGEdgePointsTo> pt_edges = new HashSet<>();
 
+  final private HashMap<SMGObject, Boolean> object_validity = new HashMap<>();
+
   /**
    * A special object representing NULL
    */
-  final private SMGObject nullObject;
+  final private static SMGObject nullObject = new SMGObject();
   /**
    * An address of the special object representing null
    */
-  final private int nullAddress = 0;
+  final private static int nullAddress = 0;
 
   public SMG(){
-    nullObject = new SMGObject();
     SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
 
     addObject(nullObject);
+    object_validity.put(nullObject, false);
+
     addValue(nullAddress);
     addPointsToEdge(nullPointer);
   }
 
   public SMG(SMG pHeap) {
-    nullObject = pHeap.nullObject;
-
     objects.addAll(pHeap.objects);
     values.addAll(pHeap.values);
     hv_edges.addAll(pHeap.hv_edges);
     pt_edges.addAll(pHeap.pt_edges);
+    object_validity.putAll(pHeap.object_validity);
   }
 
   final public SMGObject getNullObject(){
@@ -72,7 +75,12 @@ public class SMG {
   }
 
   final public void addObject(SMGObject pObj) {
+    addObject(pObj, true);
+  }
+
+  final public void addObject(SMGObject pObj, boolean validity) {
     this.objects.add(pObj);
+    this.object_validity.put(pObj, validity);
   }
 
   final public void addValue(int pValue) {
@@ -144,14 +152,30 @@ public class SMG {
     return toReturn;
   }
 
-  //TODO: Test
   final public HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject) {
     return getValuesForObject(pObject, null);
   }
 
-  //TODO: Test
   final public HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, int pOffset) {
     return getValuesForObject(pObject, Integer.valueOf(pOffset));
+  }
+
+  public void setValidity(SMGObject obj, boolean value){
+    if (this.objects.contains(obj)){
+      this.object_validity.put(obj, value);
+    }
+    else{
+      throw new IllegalArgumentException("Object [" + obj + "] not in SMG");
+    }
+  }
+
+  public boolean isObjectValid(SMGObject obj){
+    if (this.objects.contains(obj)){
+      return object_validity.get(obj).booleanValue();
+    }
+    else{
+      throw new IllegalArgumentException("Object [" + obj + "] not in SMG");
+    }
   }
 }
 
