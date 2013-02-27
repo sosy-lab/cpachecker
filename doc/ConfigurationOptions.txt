@@ -53,6 +53,11 @@ rootDirectory = "."
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
+# create all potential function call edges (e.g. for function pointer
+# analysis) and add summary call statement edges (e.g. for bounded recursion
+# analysis)
+analysis.completeEdges = false
+
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
 
@@ -61,6 +66,9 @@ analysis.entryFunction = "main"
 
 # use CBMC as an external tool from CPAchecker
 analysis.externalCBMC = false
+
+# create all potential function pointer call edges
+analysis.functionPointerCalls = true
 
 # run interprocedural analysis
 analysis.interprocedural = true
@@ -85,6 +93,9 @@ analysis.restartAfterUnknown = false
 
 # stop after the first error has been found
 analysis.stopAfterError = true
+
+# create summary call statement edges
+analysis.summaryEdges = true
 
 # which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
@@ -809,9 +820,6 @@ java.classpath = ""
 
 # use the following encoding for java files
 java.encoding = "utf8"
-
-# Java path that contains the main class
-java.rootPath = ""
 
 # Specify the source code path to search for java class or interface
 # definitions
