@@ -230,6 +230,7 @@ public enum MachineModel {
       // TODO: This has to be checked (Example: Char pathbuf[1 + 1];)
       // TODO: Take possible padding into account
 
+      /*
       CExpression arrayLength = pArrayType.getLength();
 
       Integer length = null;
@@ -246,7 +247,7 @@ public enum MachineModel {
           return length * sizeOfType;
         }
       }
-
+     */
 
       // We do not support arrays with variable length, so treat them as pointer.
       return model.getSizeofPtr();
@@ -400,7 +401,7 @@ public enum MachineModel {
             return lVal ^ rVal;
 
           default:
-            throw new AssertionError();
+            return null;
           }
         }
 
@@ -439,7 +440,7 @@ public enum MachineModel {
             break;
 
           default:
-            throw new AssertionError();
+            return null;
           }
 
           // return 1 if expression holds, 0 otherwise
