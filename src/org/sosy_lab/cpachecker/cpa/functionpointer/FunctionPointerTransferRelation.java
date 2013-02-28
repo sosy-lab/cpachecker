@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -60,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -69,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -101,6 +104,10 @@ class FunctionPointerTransferRelation implements TransferRelation {
   private final CFA functions;
   private final LogManager logger;
 
+  @Option(name="immutableCFA",
+      description="do not change CFA, just check equality expressions with function pointers in assume edges")
+  private boolean immutableCFA = false;
+  
   FunctionPointerTransferRelation(TransferRelation pWrappedTransfer, CFA pCfa, LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     wrappedTransfer = pWrappedTransfer;
@@ -145,6 +152,84 @@ class FunctionPointerTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
     CFAEdge cfaEdge;
 
+    if(!immutableCFA) {
+      cfaEdge = createCallEdgeIfNecessary(oldState, pCfaEdge);
+    } else {
+      cfaEdge = pCfaEdge;
+      //check assumptions about function pointers, like p == &h, where p is a function pointer, h  is a function 
+      if(!shouldGoByEdge(oldState, cfaEdge)) {
+        //should not go by the edge
+        return;//results is a empty set
+      }
+    }
+    // now handle the edge, whether it is real or not
+    Collection<? extends AbstractState> newWrappedStates = wrappedTransfer.getAbstractSuccessors(oldState.getWrappedState(), pPrecision, cfaEdge);
+
+    for (AbstractState newWrappedState : newWrappedStates) {
+      FunctionPointerState.Builder newState = oldState.createBuilderWithNewWrappedState(newWrappedState);
+
+      newState = handleEdge(newState, cfaEdge);
+
+      if (newState != null) {
+        results.add(newState.build());
+      }
+    }
+    if(!immutableCFA) {
+      cleanUpEdge(pCfaEdge);
+    }
+  }
+
+  private boolean shouldGoByEdge(FunctionPointerState oldState, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+    if(cfaEdge.getEdgeType()==CFAEdgeType.AssumeEdge) {
+      CAssumeEdge a = (CAssumeEdge)cfaEdge;
+      CExpression exp = a.getExpression();
+      String functionName = cfaEdge.getPredecessor().getFunctionName();
+      if(exp instanceof CBinaryExpression) {
+        CBinaryExpression e = (CBinaryExpression)exp;
+        BinaryOperator op = e.getOperator();
+        if(op == BinaryOperator.EQUALS) {
+          FunctionPointerState.Builder newState = oldState.createBuilderWithNewWrappedState(oldState.getWrappedState());
+          FunctionPointerTarget v1 = getValue(e.getOperand1(), newState, functionName);
+          FunctionPointerTarget v2 = getValue(e.getOperand2(), newState, functionName);
+          logger.log(Level.ALL, "Operand1 value is " + v1);
+          logger.log(Level.ALL, "Operand2 value is " + v2);
+          if(v1!=null && v2!=null
+              && v1 instanceof NamedFunctionTarget
+              && v2 instanceof NamedFunctionTarget) {
+            boolean eq = v1.equals(v2);
+            if(eq != a.getTruthAssumption()) {
+              logger.log(Level.FINE, "Should not go by the edge " + a);
+              return false;//should not go by this edge
+            } else {
+              logger.log(Level.FINE, "Should go by the edge " + a);
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  private void cleanUpEdge(CFAEdge pCfaEdge) {
+    if (pCfaEdge instanceof FunctionPointerReturnEdge) {
+      // We are returning from a function that was called via a function pointer
+      // Remove all fake edges we have created.
+
+      FunctionPointerReturnEdge returnEdge = (FunctionPointerReturnEdge)pCfaEdge;
+
+      // The call edge and the return edge are never removed from the CFA,
+      // because we might need them for refinement.
+      // CallstackCPA should force taking the right return edge.
+
+      CFACreationUtils.removeSummaryEdgeFromNodes(returnEdge.getSummaryEdge());
+    }
+  }
+
+  private CFAEdge createCallEdgeIfNecessary(FunctionPointerState oldState,
+      CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
+    CFAEdge cfaEdge;
+    
     // first, check if this is a function pointer call
     String functionCallVariable = getFunctionPointerCall(pCfaEdge);
     if (functionCallVariable != null) {
@@ -227,31 +312,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       calltoReturnEdge.getSuccessor().addEnteringSummaryEdge(calltoReturnEdge);
     }
 
-    // now handle the edge, whether it is real or not
-    Collection<? extends AbstractState> newWrappedStates = wrappedTransfer.getAbstractSuccessors(oldState.getWrappedState(), pPrecision, cfaEdge);
-
-    for (AbstractState newWrappedState : newWrappedStates) {
-      FunctionPointerState.Builder newState = oldState.createBuilderWithNewWrappedState(newWrappedState);
-
-      newState = handleEdge(newState, cfaEdge);
-
-      if (newState != null) {
-        results.add(newState.build());
-      }
-    }
-
-    if (pCfaEdge instanceof FunctionPointerReturnEdge) {
-      // We are returning from a function that was called via a function pointer
-      // Remove all fake edges we have created.
-
-      FunctionPointerReturnEdge returnEdge = (FunctionPointerReturnEdge)pCfaEdge;
-
-      // The call edge and the return edge are never removed from the CFA,
-      // because we might need them for refinement.
-      // CallstackCPA should force taking the right return edge.
-
-      CFACreationUtils.removeSummaryEdgeFromNodes(returnEdge.getSummaryEdge());
-    }
+    return cfaEdge;
   }
 
   private String getFunctionPointerCall(CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
