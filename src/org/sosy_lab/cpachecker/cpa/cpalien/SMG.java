@@ -247,6 +247,28 @@ class SMGConsistencyVerifier{
     return true;
   }
 
+  static private boolean checkSingleFieldConsistency(LogManager pLogger, SMGObject pObject, SMG smg){
+    for (SMGEdgeHasValue hvEdge : smg.getValuesForObject(pObject)){
+      if ((hvEdge.getOffset() + hvEdge.getSizeInBytes(smg.getMachineModel())) > pObject.getSizeInBytes()){
+        pLogger.log(Level.SEVERE, "SMG inconistent: field exceedes boundary of the object");
+        pLogger.log(Level.SEVERE, "Object: ", pObject);
+        pLogger.log(Level.SEVERE, "Field: ", hvEdge);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  static private boolean verifyFieldConsistency(LogManager pLogger, SMG smg){
+    for (SMGObject obj : smg.getObjects()){
+      if (! checkSingleFieldConsistency(pLogger, obj, smg)){
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   static public boolean verifySMG(LogManager pLogger, SMG smg){
     boolean toReturn = true;
     pLogger.log(Level.FINEST, "Starting constistency check of a SMG");
@@ -259,6 +281,10 @@ class SMGConsistencyVerifier{
         verifyInvalidRegionsHaveNoHVEdges(pLogger, smg),
         pLogger,
         "Checking SMG consistency: invalid regions have no outgoing edges");
+    toReturn = toReturn && verifySMGProperty(
+        verifyFieldConsistency(pLogger, smg),
+        pLogger,
+        "Checking SMG consistency: field consistency");
 
     pLogger.log(Level.FINEST, "Ending consistency check of a SMG");
 

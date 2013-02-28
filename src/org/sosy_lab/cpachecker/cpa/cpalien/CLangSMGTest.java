@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import static org.mockito.Mockito.mock;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Mockito.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +32,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -39,11 +41,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 
 import com.google.common.collect.ImmutableList;
 
 public class CLangSMGTest {
 
+  CType mockType = mock(CType.class);
   private CFunctionType functionType = mock(CFunctionType.class);
   private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
   private CLangStackFrame sf =  new CLangStackFrame(functionDeclaration);
@@ -54,6 +58,12 @@ public class CLangSMGTest {
 
   private static CLangSMG getNewCLangSMG64(){
     return new CLangSMG(MachineModel.LINUX64);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Before
+  public void setUp(){
+    when(mockType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
   }
 
   @Test
@@ -127,7 +137,7 @@ public class CLangSMGTest {
     Integer val2 = Integer.valueOf(2);
 
     SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, 0);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mock(CType.class), 0, obj2, val2.intValue());
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, obj2, val2.intValue());
 
     smg.addValue(val1.intValue());
     smg.addValue(val2.intValue());

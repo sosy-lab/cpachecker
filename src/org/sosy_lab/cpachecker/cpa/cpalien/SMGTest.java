@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import static org.mockito.Mockito.mock;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Mockito.*;
 
 import java.util.HashSet;
 
@@ -33,12 +34,15 @@ import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 
 
 public class SMGTest {
   private LogManager logger = mock(LogManager.class);
 
   private SMG smg;
+  CType mockType = mock(CType.class);
+
   SMGObject obj1 = new SMGObject(8, "object-1");
   SMGObject obj2 = new SMGObject(8, "object-2");
 
@@ -46,13 +50,20 @@ public class SMGTest {
   Integer val2 = Integer.valueOf(2);
 
   SMGEdgePointsTo pt1to1 = new SMGEdgePointsTo(val1, obj1, 0);
-  SMGEdgeHasValue hv2has2at0 = new SMGEdgeHasValue(mock(CType.class), 0, obj2, val2);
-  SMGEdgeHasValue hv2has1at4 = new SMGEdgeHasValue(mock(CType.class), 4, obj2, val1);
+  SMGEdgeHasValue hv2has2at0 = new SMGEdgeHasValue(mockType, 0, obj2, val2);
+  SMGEdgeHasValue hv2has1at4 = new SMGEdgeHasValue(mockType, 4, obj2, val1);
+
+  // obj1 = xxxxxxxx
+  // obj2 = yyyyzzzz
+  // val1 -> obj1
+  // yyyy has value 2
+  // zzzz has value 1
 
   private static SMG getNewSMG64(){
     return new SMG(MachineModel.LINUX64);
   }
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp(){
     smg = getNewSMG64();
@@ -67,6 +78,8 @@ public class SMGTest {
 
     smg.addHasValueEdge(hv2has2at0);
     smg.addHasValueEdge(hv2has1at4);
+
+    when(mockType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
   }
 
   @Test
@@ -100,7 +113,7 @@ public class SMGTest {
     Integer third_value = Integer.valueOf(3);
     smg_copy.addObject(third_object);
     smg_copy.addValue(third_value.intValue());
-    smg_copy.addHasValueEdge(new SMGEdgeHasValue(mock(CType.class), 0, third_object,  third_value));
+    smg_copy.addHasValueEdge(new SMGEdgeHasValue(mockType, 0, third_object,  third_value));
     smg_copy.addPointsToEdge(new SMGEdgePointsTo(third_value, third_object, 0));
 
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
@@ -162,6 +175,33 @@ public class SMGTest {
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
     smg.setValidity(obj2, false);
     Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+  }
+
+  @Test
+  public void ConsistencyViolationFieldConsistency(){
+    SMG smg1 = getNewSMG64();
+    SMG smg2 = getNewSMG64();
+
+    SMGObject object_2b = new SMGObject(2, "object_2b");
+    SMGObject object_4b = new SMGObject(4, "object_4b");
+    Integer random_value = Integer.valueOf(6);
+
+    smg1.addObject(object_2b);
+    smg2.addObject(object_4b);
+    smg1.addValue(random_value);
+    smg2.addValue(random_value);
+
+    // Read 4 bytes (sizeof(mockType)) on offset 0 of 2b object -> out of bounds
+    SMGEdgeHasValue invalidHV1 = new SMGEdgeHasValue(mockType, 0, object_2b, random_value);
+
+    // Read 4 bytes (sizeof(mockType)) on offset 8 of 4b object -> out of bounds
+    SMGEdgeHasValue invalidHV2 = new SMGEdgeHasValue(mockType, 8, object_4b, random_value);
+
+    smg1.addHasValueEdge(invalidHV1);
+    smg2.addHasValueEdge(invalidHV2);
+
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg2));
   }
 
   @Test(expected=IllegalArgumentException.class)
