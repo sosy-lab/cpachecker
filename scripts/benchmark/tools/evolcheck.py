@@ -61,6 +61,10 @@ class Tool(benchmark.tools.template.BaseTool):
                 verificationFailedFound = True
             elif 'ASSERTION(S) HOLD(S)' in line:
                 assertionHoldsFound = True
+            elif 'The program models are identical' in line:
+                status = 'SAME'            
+            elif 'Assertion(s) hold trivially.' in line:
+                status = 'SAFE'
 
         if status is None:
             if verificationSuccessfulFound and not verificationFailedFound:
