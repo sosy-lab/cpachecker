@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -607,12 +608,25 @@ class FunctionPointerTransferRelation implements TransferRelation {
     @Override
     public FunctionPointerTarget visit(CUnaryExpression pE) {
       if ((pE.getOperator() == UnaryOperator.AMPER) && (pE.getOperand() instanceof CIdExpression)) {
-        CIdExpression operand = (CIdExpression)pE.getOperand();
-        return new NamedFunctionTarget(operand.getName());
-
-      } else {
-        return visitDefault(pE);
+        return extractFunctionId((CIdExpression)pE.getOperand());
+      } else if ((pE.getOperator() == UnaryOperator.STAR) && (pE.getOperand() instanceof CIdExpression)) {
+        return extractFunctionId((CIdExpression)pE.getOperand());
       }
+      return visitDefault(pE);
+    }
+
+    private FunctionPointerTarget extractFunctionId(CIdExpression operand) {
+      if( (operand.getDeclaration()!=null && operand.getDeclaration().getType() instanceof CFunctionType) 
+        || (operand.getExpressionType() instanceof CFunctionType)) {
+        return new NamedFunctionTarget(operand.getName());
+      }
+      if(operand.getExpressionType() instanceof CPointerType) {
+        CPointerType t = (CPointerType)operand.getExpressionType();
+        if(t.getType() instanceof CFunctionType) {
+          return state.getTarget(scopedIfNecessary(operand, function));
+        }
+      }          
+      return visitDefault(operand);
     }
 
     @Override
