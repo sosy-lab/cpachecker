@@ -140,15 +140,27 @@ public class CFASecondPassBuilder {
       return false;
     }
     AFunctionCallExpression f = ((AFunctionCall)s).getFunctionCallExpression();
-    return isRegularCall(f);
+    if(!isRegularCall(f)) {
+      return false;
+    }
+    return isDefined(f);
   }
 
-  protected final boolean isRegularCall(AFunctionCallExpression f) {
+  public static boolean isRegularCall(AFunctionCallExpression f) {
     if (f.getDeclaration() == null) {
       // There might be a function pointer shadowing a function,
       // so we need to check this explicitly here.
+      String name = f.getFunctionNameExpression().toASTString();
+      if(name.startsWith("__builtin_")) {
+        //logger.log(Level.INFO, "Ignoring builtin function " + name);
+        return true;
+      }
       return false;
     }
+    return true;
+  }
+
+  protected boolean isDefined(AFunctionCallExpression f) {
     String name = f.getFunctionNameExpression().toASTString();
     return cfa.getAllFunctionNames().contains(name);
   }
@@ -187,7 +199,7 @@ public class CFASecondPassBuilder {
 
     //get the parameter expression
     // check if the number of function parameters are right
-    if (!checkParamSizes(functionCallExpression, fDefNode)) {
+    if (!checkParamSizes(functionCallExpression, fDefNode.getFunctionDefinition().getType())) {
       int declaredParameters = fDefNode.getFunctionDefinition().getType().getParameters().size();
       int actualParameters = functionCallExpression.getParameterExpressions().size();
 
@@ -259,14 +271,14 @@ public class CFASecondPassBuilder {
     }
   }
 
-
+  public void collectDataRecursively() {}
+  
   protected final boolean checkParamSizes(AFunctionCallExpression functionCallExpression,
-      FunctionEntryNode fDefNode) {
+      IAFunctionType functionType) {
     //get the parameter expression
     List<? extends IAExpression> parameters = functionCallExpression.getParameterExpressions();
 
     // check if the number of function parameters are right
-    IAFunctionType functionType = fDefNode.getFunctionDefinition().getType();
     int declaredParameters = functionType.getParameters().size();
     int actualParameters = parameters.size();
 
