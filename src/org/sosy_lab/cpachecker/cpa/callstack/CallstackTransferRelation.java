@@ -27,6 +27,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -50,6 +52,10 @@ public class CallstackTransferRelation implements TransferRelation {
   @Option(name="skipRecursion", description = "Skip recursion." +
       " Treat function call as a statement (the same as for functions without bodies)")
   private boolean skipRecursion = false;
+  
+  public CallstackTransferRelation(Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+  }
   
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
