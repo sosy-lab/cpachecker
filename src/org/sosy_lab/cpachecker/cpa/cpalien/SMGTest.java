@@ -204,6 +204,46 @@ public class SMGTest {
     Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg2));
   }
 
+  @Test
+  public void ConsistencyViolationHVConsistency(){
+    SMG smg = getNewSMG64();
+
+    SMGObject object_8b = new SMGObject(8, "object_8b");
+    SMGObject object_16b = new SMGObject(10, "object_10b");
+
+    Integer first_value = Integer.valueOf(6);
+    Integer second_value = Integer.valueOf(8);
+
+    // 1, 3, 4 are consistent (different offsets or object)
+    // 2 is inconsistent with 1 (same object and offset, different value)
+    SMGEdgeHasValue hv_edge1 = new SMGEdgeHasValue(mockType, 0, object_8b, first_value);
+    SMGEdgeHasValue hv_edge2 = new SMGEdgeHasValue(mockType, 0, object_8b, second_value);
+    SMGEdgeHasValue hv_edge3 = new SMGEdgeHasValue(mockType, 4, object_8b, second_value);
+    SMGEdgeHasValue hv_edge4 = new SMGEdgeHasValue(mockType, 0, object_16b, second_value);
+
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+
+    smg.addHasValueEdge(hv_edge1);
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+    smg.addObject(object_8b);
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+    smg.addValue(first_value);
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+
+    smg.addHasValueEdge(hv_edge3);
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+    smg.addValue(second_value);
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+
+    smg.addHasValueEdge(hv_edge4);
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+    smg.addObject(object_16b);
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+
+    smg.addHasValueEdge(hv_edge2);
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+  }
+
   @Test(expected=IllegalArgumentException.class)
   public void isObjectValidBadCallTest(){
     smg.isObjectValid(new SMGObject(24, "wee"));

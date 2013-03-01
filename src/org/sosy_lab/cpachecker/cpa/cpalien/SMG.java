@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -269,6 +270,37 @@ class SMGConsistencyVerifier{
     return true;
   }
 
+  static private boolean verifyHVConsistency(LogManager pLogger, SMG smg){
+    ArrayList<SMGEdgeHasValue> to_verify = new ArrayList<>();
+    to_verify.addAll(smg.getHVEdges());
+
+    while (to_verify.size() > 0){
+      SMGEdgeHasValue edge = to_verify.get(0);
+      to_verify.remove(0);
+      if (!smg.getObjects().contains(edge.getObject())){
+        pLogger.log(Level.SEVERE, "SMG inconsistent: Has Value Edge from a nonexistent object");
+        pLogger.log(Level.SEVERE, "Edge :", edge);
+        return false;
+      }
+
+      if (! smg.getValues().contains(edge.getValue())){
+        pLogger.log(Level.SEVERE, "SMG inconsistent: Has Value Edge to a nonexistent value");
+        pLogger.log(Level.SEVERE, "Edge :", edge);
+        return false;
+      }
+
+      for (SMGEdgeHasValue other_edge : to_verify){
+        if (! edge.isConsistentWith(other_edge)){
+          pLogger.log(Level.SEVERE, "SMG inconsistent: inconsistent Has Value edges");
+          pLogger.log(Level.SEVERE, "First edge:  ", edge);
+          pLogger.log(Level.SEVERE, "Second edge: ", other_edge);
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   static public boolean verifySMG(LogManager pLogger, SMG smg){
     boolean toReturn = true;
     pLogger.log(Level.FINEST, "Starting constistency check of a SMG");
@@ -285,6 +317,10 @@ class SMGConsistencyVerifier{
         verifyFieldConsistency(pLogger, smg),
         pLogger,
         "field consistency");
+    toReturn = toReturn && verifySMGProperty(
+        verifyHVConsistency(pLogger, smg),
+        pLogger,
+        "Has Value edge consistency");
 
     pLogger.log(Level.FINEST, "Ending consistency check of a SMG");
 

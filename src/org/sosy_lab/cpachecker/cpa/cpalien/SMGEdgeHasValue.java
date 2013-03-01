@@ -63,4 +63,14 @@ public class SMGEdgeHasValue {
   public int getSizeInBytes(MachineModel pMachineModel) {
     return pMachineModel.getSizeof(type);
   }
+
+  public boolean isConsistentWith(SMGEdgeHasValue other){
+    if ((this.object == other.object) &&
+        (this.offset == other.offset) &&
+        (this.type == other.type)){
+      return (this.value == other.value);
+    }
+
+    return true;
+  }
 }
