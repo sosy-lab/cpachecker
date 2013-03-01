@@ -48,4 +48,21 @@ public class SMGEdgePointsTo {
   public int getOffset() {
     return offset;
   }
+  public boolean isConsistentWith(SMGEdgePointsTo other){
+    /*
+     * different value- > different place
+     * same value -> same place
+     */
+    if (this.value != other.value){
+      if (this.offset == other.offset && this.object == other.object){
+        return false;
+      }
+    }
+    else
+      if (this.offset != other.offset || this.object != other.object){
+        return false;
+      }
+
+    return true;
+  }
 }

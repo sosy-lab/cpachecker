@@ -244,6 +244,52 @@ public class SMGTest {
     Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
   }
 
+  @Test
+  public void ConsistencyViolationPTConsistency(){
+    SMG smg = getNewSMG64();
+
+    SMGObject object_8b = new SMGObject(8, "object_8b");
+    SMGObject object_16b = new SMGObject(10, "object_10b");
+
+    Integer first_value = Integer.valueOf(6);
+    Integer second_value = Integer.valueOf(8);
+    Integer third_value = Integer.valueOf(10);
+
+    SMGEdgePointsTo edge1 = new SMGEdgePointsTo(first_value, object_8b, 0);
+    SMGEdgePointsTo edge2 = new SMGEdgePointsTo(third_value, object_8b, 4);
+    SMGEdgePointsTo edge3 = new SMGEdgePointsTo(second_value, object_16b, 0);
+    SMGEdgePointsTo edge4 = new SMGEdgePointsTo(first_value, object_16b, 0);
+
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+
+    smg.addPointsToEdge(edge1);
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+
+    smg.addValue(first_value);
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+
+    smg.addObject(object_8b);
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+
+    smg.addPointsToEdge(edge2);
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+
+    smg.addValue(third_value);
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+
+    smg.addPointsToEdge(edge3);
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+
+    smg.addObject(object_16b);
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+
+    smg.addValue(second_value);
+    Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
+
+    smg.addPointsToEdge(edge4);
+    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
+  }
+
   @Test(expected=IllegalArgumentException.class)
   public void isObjectValidBadCallTest(){
     smg.isObjectValid(new SMGObject(24, "wee"));
