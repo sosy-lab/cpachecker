@@ -270,12 +270,12 @@ class SMGConsistencyVerifier{
     return true;
   }
 
-  static private boolean verifyHVConsistency(LogManager pLogger, SMG smg){
-    ArrayList<SMGEdgeHasValue> to_verify = new ArrayList<>();
-    to_verify.addAll(smg.getHVEdges());
+  static private boolean verifyEdgeConsistency(LogManager pLogger, SMG smg, Set<? extends SMGEdge> edges){
+    ArrayList<SMGEdge> to_verify = new ArrayList<>();
+    to_verify.addAll(edges);
 
     while (to_verify.size() > 0){
-      SMGEdgeHasValue edge = to_verify.get(0);
+      SMGEdge edge = to_verify.get(0);
       to_verify.remove(0);
       if (!smg.getObjects().contains(edge.getObject())){
         pLogger.log(Level.SEVERE, "SMG inconsistent: Has Value Edge from a nonexistent object");
@@ -289,7 +289,7 @@ class SMGConsistencyVerifier{
         return false;
       }
 
-      for (SMGEdgeHasValue other_edge : to_verify){
+      for (SMGEdge other_edge : to_verify){
         if (! edge.isConsistentWith(other_edge)){
           pLogger.log(Level.SEVERE, "SMG inconsistent: inconsistent Has Value edges");
           pLogger.log(Level.SEVERE, "First edge:  ", edge);
@@ -298,38 +298,6 @@ class SMGConsistencyVerifier{
         }
       }
     }
-    return true;
-  }
-
-  static private boolean verifyPTConsistency(LogManager pLogger, SMG smg){
-    ArrayList<SMGEdgePointsTo> to_verify = new ArrayList<>();
-    to_verify.addAll(smg.getPTEdges());
-
-    while (to_verify.size() > 0){
-      SMGEdgePointsTo edge = to_verify.get(0);
-      to_verify.remove(0);
-
-      if (!smg.getValues().contains(edge.getValue())){
-        pLogger.log(Level.SEVERE, "SMG inconsistent: Points To edge from a nonexistent value");
-        pLogger.log(Level.SEVERE, "Edge : ", edge);
-        return false;
-      }
-      if (!smg.getObjects().contains(edge.getObject())){
-        pLogger.log(Level.SEVERE, "SMG inconsistent: Points To edge to a nonexistent object");
-        pLogger.log(Level.SEVERE, "Edge : ", edge);
-        return false;
-      }
-
-      for (SMGEdgePointsTo other_edge : to_verify){
-        if (! edge.isConsistentWith(other_edge)){
-          pLogger.log(Level.SEVERE, "SMG inconsistent: inconsistent Points To edges");
-          pLogger.log(Level.SEVERE, "First edge:  ", edge);
-          pLogger.log(Level.SEVERE, "Second edge: ", other_edge);
-          return false;
-        }
-      }
-    }
-
     return true;
   }
 
@@ -350,11 +318,11 @@ class SMGConsistencyVerifier{
         pLogger,
         "field consistency");
     toReturn = toReturn && verifySMGProperty(
-        verifyHVConsistency(pLogger, smg),
+        verifyEdgeConsistency(pLogger, smg, smg.getHVEdges()),
         pLogger,
         "Has Value edge consistency");
     toReturn = toReturn && verifySMGProperty(
-        verifyPTConsistency(pLogger, smg),
+        verifyEdgeConsistency(pLogger, smg, smg.getPTEdges()),
         pLogger,
         "Points To edge consistency");
 

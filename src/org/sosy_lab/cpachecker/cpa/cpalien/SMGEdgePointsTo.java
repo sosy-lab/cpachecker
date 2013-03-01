@@ -24,42 +24,39 @@
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
 
-public class SMGEdgePointsTo {
-  final private int value;
-  final private SMGObject object;
+public class SMGEdgePointsTo extends SMGEdge {
   final private int offset;
+  //TODO: Implement target specifier later
 
   public SMGEdgePointsTo(int pValue, SMGObject pObject, int pOffset) {
-    value = pValue;
-    object = pObject;
+    super(pValue, pObject);
     offset = pOffset;
   }
   @Override
   public String toString() {
     return value + "->" + object.getLabel() + "+" + offset + 'b';
   }
-  //TODO: Implement target specifier later
-  public int getValue() {
-    return value;
-  }
-  public SMGObject getObject() {
-    return object;
-  }
+
   public int getOffset() {
     return offset;
   }
-  public boolean isConsistentWith(SMGEdgePointsTo other){
+
+  @Override
+  public boolean isConsistentWith(SMGEdge other){
     /*
      * different value- > different place
      * same value -> same place
      */
+    if (! (other instanceof SMGEdgePointsTo))
+      return false;
+
     if (this.value != other.value){
-      if (this.offset == other.offset && this.object == other.object){
+      if (this.offset == ((SMGEdgePointsTo)other).offset && this.object == other.object){
         return false;
       }
     }
     else
-      if (this.offset != other.offset || this.object != other.object){
+      if (this.offset != ((SMGEdgePointsTo)other).offset || this.object != other.object){
         return false;
       }
 

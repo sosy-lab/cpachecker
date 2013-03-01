@@ -26,30 +26,19 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class SMGEdgeHasValue {
+public class SMGEdgeHasValue extends SMGEdge {
   final private CType type;
   final private int offset;
-  final private SMGObject object;
-  final private int value;
-
-  public int getValue() {
-    return value;
-  }
 
   public SMGEdgeHasValue(CType pType, int pOffset, SMGObject pObject, int pValue) {
+    super(pValue, pObject);
     type = pType;
     offset = pOffset;
-    object = pObject;
-    value = pValue;
   }
 
   @Override
   public String toString() {
     return "sizeof(" + type.toASTString("foo") + ")b @ " + object.getLabel() + "+" + offset + "b has value " + value;
-  }
-
-  public SMGObject getObject() {
-    return object;
   }
 
   public int getOffset() {
@@ -64,10 +53,14 @@ public class SMGEdgeHasValue {
     return pMachineModel.getSizeof(type);
   }
 
-  public boolean isConsistentWith(SMGEdgeHasValue other){
+  @Override
+  public boolean isConsistentWith(SMGEdge other){
+    if (! (other instanceof SMGEdgeHasValue))
+      return false;
+
     if ((this.object == other.object) &&
-        (this.offset == other.offset) &&
-        (this.type == other.type)){
+        (this.offset == ((SMGEdgeHasValue)other).offset) &&
+        (this.type == ((SMGEdgeHasValue)other).type)){
       return (this.value == other.value);
     }
 
