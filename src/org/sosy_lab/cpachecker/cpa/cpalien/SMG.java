@@ -193,7 +193,7 @@ class SMGConsistencyVerifier{
   private SMGConsistencyVerifier() {} /* utility class */
 
   static private boolean verifySMGProperty(boolean result, LogManager pLogger, String message){
-    pLogger.log(Level.FINEST, message, ":", result);
+    pLogger.log(Level.FINEST, "Checking SMG consistency: ", message, ":", result);
     return result;
   }
 
@@ -276,15 +276,15 @@ class SMGConsistencyVerifier{
     toReturn = toReturn && verifySMGProperty(
         verifyNullObject(pLogger, smg),
         pLogger,
-        "Checking SMG consistency: null object invariants hold");
+        "null object invariants hold");
     toReturn = toReturn && verifySMGProperty(
         verifyInvalidRegionsHaveNoHVEdges(pLogger, smg),
         pLogger,
-        "Checking SMG consistency: invalid regions have no outgoing edges");
+        "invalid regions have no outgoing edges");
     toReturn = toReturn && verifySMGProperty(
         verifyFieldConsistency(pLogger, smg),
         pLogger,
-        "Checking SMG consistency: field consistency");
+        "field consistency");
 
     pLogger.log(Level.FINEST, "Ending consistency check of a SMG");
 
