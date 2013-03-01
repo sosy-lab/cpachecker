@@ -57,6 +57,18 @@ public class SMGState implements AbstractQueryableState {
     return heap.getObjectForVisibleVariable(pVariableName);
   }
 
+  /**
+   * Get memory of variable with the given Name. This method is used for
+   * the temporary function return variable.
+   *
+   * @param variableName
+   * @return
+   */
+  public SMGObject getObjectForVisibleVariable(String variableName) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
   public void addHVEdge(SMGEdgeHasValue pNewEdge) {
     heap.addHasValueEdge(pNewEdge);
   }
@@ -172,6 +184,14 @@ public class SMGState implements AbstractQueryableState {
 
   }
 
+  public void addGlobalObject(SMGObject newObject) {
+    heap.addGlobalObject(newObject);
+  }
+
+  public boolean isGlobal(CIdExpression variable) {
+    return  heap.getGlobalObjects().containsValue(heap.getObjectForVisibleVariable(variable));
+  }
+
   public void addHeapObject(SMGObject pNewObject) {
     heap.addHeapObject(pNewObject);
   }
@@ -182,5 +202,204 @@ public class SMGState implements AbstractQueryableState {
 
   public void setMemLeak() {
     heap.setMemoryLeak();
+  }
+
+ public void insertNewHasValueEdge(SMGEdgeHasValue pNewEdge) {
+   heap.addHasValueEdge(pNewEdge);
+   performConsistencyCheck();
+ }
+
+ public boolean containsValue(int value) {
+   return heap.getValues().contains(value);
+ }
+
+  /**
+   * Get address of the given memory with the given offset.
+   *
+   * @param memory get address belonging to this memory.
+   * @param offset get address with this offset relative to the beginning of the memory.
+   * @return Address of the given field, or null, if such an address
+   * does not yet exist in the SMG.
+   */
+  public Integer getAddress(SMGObject memory, Integer offset) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+
+  /**
+   * Get the SMGObject representing the Memory the given address points to.
+   *
+   * @param address the address belonging to the memory to be returned.
+   * @return SMGObject representing the Memory this address points to, or null,
+   * if the memory this address belongs to is unkown.
+   */
+  public SMGObject getMemoryOfAddress(Integer address) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  /**
+   * Adds a new Address represented by a symbolic value and an offset
+   * to the SMG. The address points to the given object. Additionally,
+   * adds the necessary points-to edge to the given object representing Memory
+   * with the given offset.
+   *
+   * @param object An existing object in the SMG this address points to.
+   * @param offset the offset specifying the byte of memory this address points to.
+   * @param address the symbolic Value representing the address.
+   * @return
+   */
+  public Integer addAddress(SMGObject object, Integer offset, Integer address) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  /**
+   * This method simulates a free invocation. It checks,
+   * whether the call is valid, and invalidates the
+   * Memory the given address points to.
+   * The address (address, offset, smgObject) is the argument
+   * of the free invocation. It does not need to be part of the SMG.
+   *
+   * @param address The symbolic Value of the address.
+   * @param offset The offset of the address relative to the beginning of smgObject.
+   * @param smgObject The memory the given Address belongs to.
+   */
+  public void free(Integer address, Integer offset, SMGObject smgObject) {
+    // TODO Auto-generated method stub
+  }
+
+  /**
+   * Set the two given symbolic values to be not equal.
+   *
+   * @param value1 the first symbolic value.
+   * @param value2 the second symbolic value.
+   */
+  public void setUnequal(int value1, int value2) {
+    // TODO Auto-generated method stub
+  }
+
+  /**
+   * Determine, whether the two given symbolic values are not equal.
+   * If this method does not return true, the relation of these
+   * symbolic values is unknown.
+   *
+   * @param value1 first symbolic value to be checked
+   * @param value2 second symbolic value to be checked
+   * @return true, if the symbolic values are known to be not equal, false, if it is unknown.
+   */
+  public boolean isUnequal(int value1, int value2) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  /**
+   * Get the offset of this address.
+   *
+   * @param address An address pointing to an object in the SMG.
+   * @return the offset of the given address or null, if the given value is
+   *   not an address or the object its pointing to is unknown.
+   *
+   */
+  public Integer getOffset(Integer address) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  /**
+   * Drop the stack frame representing the stack of
+   * the function with the given name
+   *
+   * @param functionName
+   */
+  public void dropStackFrame(String functionName) {
+    // TODO Auto-generated method stub
+  }
+
+  /**
+   * Creates a new SMGObject representing Memory.
+   *
+   * @param size the size in Bytes of the newly created SMGObject.
+   * @param label a label representing this SMGObject as a String.
+   * @return A newly created SMGObject representing Memory.
+   */
+  public SMGObject createObject(int size, String label) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  /**
+   * Assigns the given symbolic value an explicit value.
+   *
+   * @param symbolicValue the symbolic value to be assigned.
+   * @param explicitValue the explicit value which will be assigned to the given symbolic value.
+   */
+  public void assignExplicitValue(Integer symbolicValue, Integer explicitValue) {
+    // TODO Auto-generated method stub
+  }
+
+  /**
+   * Return true, if the explicit value of the given symbolic value is known
+   *
+   * @param symbolicValue Search for the explicit value of the given symbolic value.
+   * @return true if the explicit value of the given symbolic one is known, else false.
+   */
+  public boolean isExplicitValueKnown(Integer symbolicValue) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  /**
+   * Return the explicit value assigned to the given symbolic value,
+   * or null, if the symbolic value was not assigned a explicit value.
+   *
+   * @param symbolicValue get the explicit value assigned to this symbolic value.
+   * @return the explicit value assigned to the given symbolic value, or null.
+   */
+  public Integer getExplicitValue(Integer symbolicValue) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  /**
+   * Returns true, if the given explicit value is assigned to
+   * a symbolic value.
+   *
+   * @param explicitValue the explicit Value to be searched for an assignment,
+   *
+   * @return true if the given explicit value is assigned to
+   * a symbolic value, else false.
+   */
+  public boolean isSymbolicValueKnown(int explicitValue) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  /**
+   * Return the symbolic value assigned to a explicit value,
+   * or null, if the explicit value was not assigned  one.
+   *
+   * @param explicitValue get the symbolic value assigned to this explicit value.
+   * @return the symbolic value assigned to the given explicit value, or null.
+   */
+  public Integer getSymbolicValue(int explicitValue) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  /**
+   *  Signals an invalid free call.
+   */
+  public void setInvalidFree() {
+    // TODO Auto-generated method stub
+  }
+
+  /**
+   * Signals a dereference of a pointer or array
+   *  which could not be resolved.
+   */
+  public void setUnkownDereference() {
+    // TODO Auto-generated method stub
   }
 }
