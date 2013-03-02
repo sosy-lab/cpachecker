@@ -199,7 +199,7 @@ public class SMGTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("Malloc argument not found." , cfaEdge, functionCall);
       }
 
-      Integer value = evaluateExplicitValue(currentState, sizeExpr);
+      Integer value = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
 
       if (value == null) {
         throw new UnrecognizedCCodeException("Not able to compute allocation size", cfaEdge);
@@ -247,7 +247,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       Address bufferAddress = evaluateAddress(currentState, cfaEdge, bufferExpr);
 
-      Integer count = evaluateExplicitValue(currentState, countExpr);
+      Integer count = evaluateExplicitValue(currentState, cfaEdge, countExpr);
 
       if (bufferAddress == null || count == null) {
         return null;
@@ -285,8 +285,8 @@ public class SMGTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("Calloc size argument not found.", cfaEdge, functionCall);
       }
 
-      Integer num = evaluateExplicitValue(currentState, numExpr);
-      Integer size = evaluateExplicitValue(currentState, sizeExpr);
+      Integer num = evaluateExplicitValue(currentState, cfaEdge, numExpr);
+      Integer size = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
 
       if (num == null || size == null) {
         return null;
@@ -755,7 +755,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     Integer offset = arrayMemoryAndOffset.getSecond();
 
-    Integer subscriptValue = evaluateExplicitValue(smgState, exp.getSubscriptExpression());
+    Integer subscriptValue = evaluateExplicitValue(smgState, cfaEdge, exp.getSubscriptExpression());
 
     if (subscriptValue == null) {
       return null;
@@ -904,6 +904,7 @@ public class SMGTransferRelation implements TransferRelation {
       }
     }
 
+
     // If Assignment contained malloc, handle possible fail with
     // alternate State
     if(possibleMallocFail) {
@@ -927,9 +928,9 @@ public class SMGTransferRelation implements TransferRelation {
     return newState;
   }
 
-  private Integer evaluateExplicitValue( SMGState smgState, CRightHandSide rValue) throws UnrecognizedCCodeException {
+  private Integer evaluateExplicitValue( SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue) throws UnrecognizedCCodeException {
 
-    ExplicitValueVisitor visitor = new ExplicitValueVisitor(smgState);
+    ExplicitValueVisitor visitor = new ExplicitValueVisitor(smgState, cfaEdge);
 
     BigInteger value = rValue.accept(visitor);
 
@@ -981,7 +982,28 @@ public class SMGTransferRelation implements TransferRelation {
       throws UnrecognizedCCodeException {
 
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(cfaEdge, newState);
-    return rValue.accept(visitor);
+
+    Integer symbolicValue = rValue.accept(visitor);
+
+    if (!newState.isExplicitValueKnown(symbolicValue)) {
+      Integer explicitValue = evaluateExplicitValue(newState, cfaEdge, rValue);
+
+      if (explicitValue != null) {
+
+        if (symbolicValue == null) {
+
+          if (newState.isSymbolicValueKnown(explicitValue)) {
+            symbolicValue = newState.getSymbolicValue(explicitValue);
+          } else {
+            symbolicValue = SMGValueFactory.getNewValue();
+          }
+        }
+
+        newState.assignExplicitValue(symbolicValue, explicitValue);
+      }
+    }
+
+    return symbolicValue;
   }
 
   private Integer evaluateAssumptionValue(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue)
@@ -1324,7 +1346,7 @@ public class SMGTransferRelation implements TransferRelation {
       case MINUS: {
 
         Integer addressValue = address.accept(this);
-        Integer pointerOffsetValue = pointerOffset.accept(new ExplicitValueVisitor(smgState)).intValue();
+        Integer pointerOffsetValue = pointerOffset.accept(new ExplicitValueVisitor(smgState, cfaEdge)).intValue();
 
         if (addressValue == null || pointerOffsetValue == null) {
           return null;
@@ -1516,7 +1538,7 @@ public class SMGTransferRelation implements TransferRelation {
       case MINUS: {
 
         SMGObject arrayMemory = address.accept(this);
-        Integer expresionOffsetValue = pointerOffset.accept(new ExplicitValueVisitor(smgState)).intValue();
+        Integer expresionOffsetValue = pointerOffset.accept(new ExplicitValueVisitor(smgState, cfaEdge)).intValue();
 
         if (arrayMemory == null || expresionOffsetValue == null) { return null; }
 
@@ -1558,7 +1580,7 @@ public class SMGTransferRelation implements TransferRelation {
       SMGObject arrayMemory = exp.getArrayExpression().accept(this);
 
       offset =
-          offset + exp.getSubscriptExpression().accept(new ExplicitValueVisitor(smgState)).intValue()
+          offset + exp.getSubscriptExpression().accept(new ExplicitValueVisitor(smgState, cfaEdge)).intValue()
               * machineModel.getSizeof(getRealExpressionType(exp));
 
       return arrayMemory;
@@ -1984,9 +2006,11 @@ public class SMGTransferRelation implements TransferRelation {
       implements CRightHandSideVisitor<BigInteger, UnrecognizedCCodeException> {
 
     private final SMGState smgState;
+    private final CFAEdge  cfaEdge;
 
-    public ExplicitValueVisitor(SMGState pSmgState) {
+    public ExplicitValueVisitor(SMGState pSmgState, CFAEdge pCfaEdge) {
       smgState = pSmgState;
+      cfaEdge = pCfaEdge;
     }
 
     @Override
@@ -2115,24 +2139,30 @@ public class SMGTransferRelation implements TransferRelation {
       } else if (decl instanceof CVariableDeclaration
           || decl instanceof CParameterDeclaration) {
 
-        SMGObject variableObject = smgState.getObjectForVisibleVariable(idExpression);
-
-        if (variableObject == null) {
-          return null;
-        }
-
-        Integer value = smgState.readValue(variableObject, 0, getRealExpressionType(idExpression));
-
-        if (value == 0) {
-          return BigInteger.ZERO;
-        }
-
-        if(smgState.isExplicitValueKnown(value)) {
-          return BigInteger.valueOf(smgState.getExplicitValue(value));
-        }
+        return getExplicitValueFromSymbolicValue(idExpression);
       }
 
       return null;
+    }
+
+    private BigInteger getExplicitValueFromSymbolicValue(CExpression exp) throws UnrecognizedCCodeException {
+
+      CType expType = getRealExpressionType(exp);
+
+      if(expType instanceof CPointerType || expType instanceof CArrayType ) {
+        // We do not have explicit Values for these.
+        return null;
+      }
+
+      ExpressionValueVisitor visitor = new ExpressionValueVisitor(cfaEdge, smgState);
+
+      Integer symbolicValue = exp.accept(visitor);
+
+      if(smgState.isExplicitValueKnown(symbolicValue)) {
+        return BigInteger.valueOf(smgState.getExplicitValue(symbolicValue));
+      } else {
+        return null;
+      }
     }
 
     @Override
@@ -2163,8 +2193,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       case STAR:
         // valid expression, but we don't have explicit values for symbolic Values.
-        // TODO When we do have them, impement this Operator
-        return null;
+        return getExplicitValueFromSymbolicValue(unaryExpression);
 
       case SIZEOF:
         return BigInteger.valueOf(machineModel.getSizeof(getRealExpressionType(unaryOperand)));
@@ -2173,6 +2202,22 @@ public class SMGTransferRelation implements TransferRelation {
         // TODO handle unimplemented operators
         return null;
       }
+    }
+
+    @Override
+    public BigInteger visit(CArraySubscriptExpression exp) throws UnrecognizedCCodeException {
+      return getExplicitValueFromSymbolicValue(exp);
+    }
+
+    @Override
+    public BigInteger visit(CCharLiteralExpression exp) throws UnrecognizedCCodeException {
+      // TODO Check if correct
+      return BigInteger.valueOf(exp.getValue());
+    }
+
+    @Override
+    public BigInteger visit(CFieldReference exp) throws UnrecognizedCCodeException {
+      return getExplicitValueFromSymbolicValue(exp);
     }
 
     @Override
