@@ -914,7 +914,7 @@ public class SMGTransferRelation implements TransferRelation {
       mallocFailState = otherState;
     }
 
-    if (!newState.isExplicitValueKnown(symbolicValue)) {
+    if (!newState.isExplicitValueKnown(value)) {
       // If the lParam String of the assignment is known,
       // search for the explicit Value
       if (lParam != null) {
