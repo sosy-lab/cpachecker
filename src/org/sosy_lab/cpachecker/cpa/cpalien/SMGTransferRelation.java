@@ -1290,8 +1290,6 @@ public class SMGTransferRelation implements TransferRelation {
         return null;
       }
 
-      smgState.addAddress(object, offset, address);
-
       return address;
     }
 
@@ -1491,9 +1489,11 @@ public class SMGTransferRelation implements TransferRelation {
       case STAR:
         if (unaryOperandIsPointer) {
           PointerAddressVisitor visitor = new PointerAddressVisitor(cfaEdge, smgState);
-          Integer adress = unaryOperand.accept(visitor);
+
+          unaryOperand.accept(visitor);
+
           offset = visitor.offset;
-          return smgState.getMemoryOfAddress(adress);
+          return visitor.object;
         } else {
           throw new UnrecognizedCCodeException("Misinterpreted the expression type of " + unaryExpression + " as array type", cfaEdge, unaryExpression);
         }
