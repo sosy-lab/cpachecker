@@ -420,14 +420,14 @@ public class SMGTransferRelation implements TransferRelation {
   private SMGState handleExitFromFunction(SMGState smgState,
       CReturnStatementEdge returnEdge) throws UnrecognizedCCodeException {
 
-    logger.log(Level.FINEST, "Handling return Statement: ",
-        returnEdge.getExpression().toASTString());
-
     CExpression returnExp = returnEdge.getExpression();
 
     if (returnExp == null) {
       returnExp = CNumericTypes.ZERO; // this is the default in C
     }
+
+    logger.log(Level.FINEST, "Handling return Statement: ",
+        returnExp.toASTString());
 
     CType expType = getRealExpressionType(returnExp);
 
