@@ -423,7 +423,6 @@ public class SMGTransferRelation implements TransferRelation {
     logger.log(Level.FINEST, "Handling return Statement: ",
         returnEdge.getExpression().toASTString());
 
-
     CExpression returnExp = returnEdge.getExpression();
 
     if (returnExp == null) {
@@ -437,6 +436,8 @@ public class SMGTransferRelation implements TransferRelation {
         machineModel.getSizeof(expType), FUNCTION_RETURN_VAR);
 
     smgState.addStackObject(tmpFieldMemory);
+
+    tmpFieldMemory = smgState.getObjectForVisibleVariable(FUNCTION_RETURN_VAR);
 
     return handleAssignmentToField(smgState, returnEdge, tmpFieldMemory, 0, expType, returnExp);
   }
@@ -1038,9 +1039,8 @@ public class SMGTransferRelation implements TransferRelation {
       CType cType = getRealExpressionType(cVarDecl);
 
       SMGObject newObject = smgState.createObject(machineModel.getSizeof(cType), varName);
+
       CInitializer newInitializer = cVarDecl.getInitializer();
-
-
 
       if (cVarDecl.isGlobal()) {
         logger.log(Level.FINEST, "Handling variable declaration: adding '", newObject, "' to global objects");
@@ -1052,8 +1052,13 @@ public class SMGTransferRelation implements TransferRelation {
         }
 
       } else {
+
         logger.log(Level.FINEST, "Handling variable declaration: adding '", newObject, "' to current stack");
         newState.addStackObject(newObject);
+
+        //Check whether variable was already declared, for example in loops
+        // TODO explicitly check this
+        newObject = newState.getObjectForVisibleVariable(newObject.getLabel());
       }
 
       if (newInitializer != null) {
