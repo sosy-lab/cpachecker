@@ -1041,9 +1041,15 @@ public class SMGTransferRelation implements TransferRelation {
       CInitializer newInitializer = cVarDecl.getInitializer();
 
 
+
       if (cVarDecl.isGlobal()) {
         logger.log(Level.FINEST, "Handling variable declaration: adding '", newObject, "' to global objects");
         newState.addGlobalObject(newObject);
+
+        if (newInitializer == null) {
+          // global variables without initializer are set to 0 in C
+          newState.writeValue(newObject, 0, cType, 0, machineModel);
+        }
 
       } else {
         logger.log(Level.FINEST, "Handling variable declaration: adding '", newObject, "' to current stack");
