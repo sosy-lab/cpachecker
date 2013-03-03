@@ -1205,6 +1205,18 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
+    public Integer visit(CIntegerLiteralExpression exp) throws UnrecognizedCCodeException {
+      Integer value = super.visit(exp);
+
+      if(value != null && value == 0) {
+        object = smgState.getMemoryOfAddress(0);
+        offset = 0;
+      }
+
+      return value;
+    }
+
+    @Override
     public Integer visit(CIdExpression idExpression) throws UnrecognizedCCodeException {
 
       Integer address = super.visit(idExpression);
