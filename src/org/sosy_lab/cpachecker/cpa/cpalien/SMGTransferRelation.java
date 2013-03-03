@@ -1281,13 +1281,18 @@ public class SMGTransferRelation implements TransferRelation {
 
       SMGObject memoryOfField = getMemoryOfField(smgState, cfaEdge, lValue);
       Field field = getField(getRealExpressionType(lValue.getFieldOwner()), lValue.getFieldName());
-      Integer address = SMGValueFactory.getNewValue();
 
       offset = field.getOffset();
       object = memoryOfField;
 
       if(offset == null || object == null) {
         return null;
+      }
+
+      Integer address = smgState.getAddress(object, offset);
+
+      if (address == null) {
+        address = SMGValueFactory.getNewValue();
       }
 
       return address;
