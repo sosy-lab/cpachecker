@@ -499,7 +499,7 @@ public class CFACreator {
     addToCFA(be);
 
     // create a series of GlobalDeclarationEdges, one for each declaration
-    for (Pair< ? extends IADeclaration, String> p : globalVars) {
+    for (Pair<? extends IADeclaration, String> p : globalVars) {
       IADeclaration d = p.getFirst();
       String rawSignature = p.getSecond();
       assert d.isGlobal();

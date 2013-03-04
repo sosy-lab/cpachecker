@@ -35,7 +35,7 @@ public class LinearInequality {
   // Represents a matrix inequality Ax v b, where the relation v is a
   // mixture of strict and lax inequalities, LT and LEQ.
 
-  private Vector< List<Coeff> > rows = new Vector<>();
+  private Vector<List<Coeff>> rows = new Vector<>();
   private Vector<InfixReln> relns = new Vector<>();
   private Vector<Coeff> rhs = new Vector<>();
   private final VariableManager vmgr;

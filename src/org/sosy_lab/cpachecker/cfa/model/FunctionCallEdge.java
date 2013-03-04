@@ -66,7 +66,7 @@ public class FunctionCallEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public Optional< ? extends IAStatement> getRawAST() {
+  public Optional<? extends IAStatement> getRawAST() {
     return Optional.of(functionCall.asStatement());
   }
 

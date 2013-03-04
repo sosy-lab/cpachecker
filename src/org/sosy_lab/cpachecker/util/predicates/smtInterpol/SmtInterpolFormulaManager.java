@@ -117,7 +117,7 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
     return env.getVersion();
   }
 
-  protected <T extends Formula > T encapsulate(Class<T> pClazz, Term t) {
+  protected <T extends Formula> T encapsulate(Class<T> pClazz, Term t) {
     return encapsulateTerm(pClazz, t);
   }
 

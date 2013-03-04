@@ -49,7 +49,7 @@ public class AStatementEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public Optional< ? extends IAStatement> getRawAST() {
+  public Optional<? extends IAStatement> getRawAST() {
     return Optional.of(statement);
   }
 

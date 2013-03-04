@@ -323,7 +323,7 @@ public class DynamicBindingCreator {
   private void createOnlyReferencedMethodInvocationBinding(AStatementEdge edge, List<Pair<FunctionEntryNode, JClassOrInterfaceType>> subMethods) {
 
     FunctionEntryNode onlyFunction = null;
-    Map<JClassOrInterfaceType, FunctionEntryNode > map = new HashMap<>();
+    Map<JClassOrInterfaceType, FunctionEntryNode> map = new HashMap<>();
     AFunctionCall oldFunctionCall = ((AFunctionCall)edge.getStatement());
     JReferencedMethodInvocationExpression oldFunctionCallExpression =
         (JReferencedMethodInvocationExpression) oldFunctionCall.getFunctionCallExpression();

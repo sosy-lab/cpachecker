@@ -55,7 +55,7 @@ import com.google.common.collect.Lists;
 class Scope {
 
   // Stores all found class and reference types
-  private final Map< String, JClassOrInterfaceType> types;
+  private final Map<String, JClassOrInterfaceType> types;
 
   // Track the name of the files which the types were extracted from
   // Key: TypeName Object: fileName
@@ -464,7 +464,7 @@ class Scope {
     return currentClassName;
   }
 
-  public Map< String, JClassOrInterfaceType> getTypeHierachie() {
+  public Map<String, JClassOrInterfaceType> getTypeHierachie() {
     return types;
   }
 

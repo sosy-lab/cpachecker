@@ -57,7 +57,7 @@ public class TypeHierachyCreator extends ASTVisitor {
   private final LogManager logger;
 
 
-  private final Map< String, JClassOrInterfaceType> types;
+  private final Map<String, JClassOrInterfaceType> types;
   private final Map<String, String> typeOfFiles;
   private  String fileOfCU;
 

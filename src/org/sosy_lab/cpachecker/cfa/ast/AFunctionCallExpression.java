@@ -36,7 +36,7 @@ import com.google.common.collect.ImmutableList;
 public abstract class AFunctionCallExpression extends ARightHandSide {
 
   private final IAExpression functionName;
-  private final List< ? extends IAExpression> parameters;
+  private final List<? extends IAExpression> parameters;
   private final IASimpleDeclaration declaration;
 
 
