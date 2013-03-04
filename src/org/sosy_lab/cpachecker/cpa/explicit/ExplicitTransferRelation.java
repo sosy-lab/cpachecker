@@ -1031,12 +1031,12 @@ public class ExplicitTransferRelation implements TransferRelation
       case NOT:
         value = ((JExpression)(unaryOperand)).accept(this);
 
-        if(value == null)
+        if(value == null) {
           return null;
-
-        // if the value is 0, return 1, if it is anything other than 0, return 0
-        else
+        } else {
+          // if the value is 0, return 1, if it is anything other than 0, return 0
           return (value == 0L) ? 1L : 0L;
+        }
 
       case COMPLEMENT:
         value = ((JExpression)unaryOperand).accept(this);

@@ -141,8 +141,9 @@ public class CallstackTransferRelation implements TransferRelation {
     while (e != null) {
       if (e.getCurrentFunction().equals(functionName)) {
         counter++;
-        if(counter > depth)
+        if(counter > depth) {
           return true;
+        }
       }
       e = e.getPreviousState();
     }
@@ -169,8 +170,9 @@ public class CallstackTransferRelation implements TransferRelation {
       return true;
     }
     FunctionCallEdge callEdge = findCallEdge(sumEdge, functionName);
-    if(callEdge==null)
+    if(callEdge==null) {
       return true;
+    }
     return !shouldGoByFunctionCall(element, callEdge);
   }
 
@@ -180,8 +182,9 @@ public class CallstackTransferRelation implements TransferRelation {
       CFAEdge edge = predNode.getLeavingEdge(i);
       if(edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
         String fcallname = edge.getSuccessor().getFunctionName();
-        if(functionName.equals(fcallname))
+        if(functionName.equals(fcallname)) {
           return (FunctionCallEdge)edge;
+        }
       }
     }
     return null;

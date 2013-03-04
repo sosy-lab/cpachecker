@@ -139,12 +139,15 @@ public final class CCompositeType implements CComplexType {
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj)
+      if (this == obj) {
         return true;
-      if (obj == null)
+      }
+      if (obj == null) {
         return false;
-      if (getClass() != obj.getClass())
+      }
+      if (getClass() != obj.getClass()) {
         return false;
+      }
       CCompositeTypeMemberDeclaration other = (CCompositeTypeMemberDeclaration) obj;
       return
           Objects.equals(name, other.name) &&

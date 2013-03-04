@@ -47,8 +47,9 @@ public class SMGEdgePointsTo extends SMGEdge {
      * different value- > different place
      * same value -> same place
      */
-    if (! (other instanceof SMGEdgePointsTo))
+    if (! (other instanceof SMGEdgePointsTo)) {
       return false;
+    }
 
     if (this.value != other.value){
       if (this.offset == ((SMGEdgePointsTo)other).offset && this.object == other.object){

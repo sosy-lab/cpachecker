@@ -119,7 +119,9 @@ public class CtoFormulaTypeUtils {
       return t1 == other;
     }
 
-    if (!(other instanceof CType)) return false;
+    if (!(other instanceof CType)) {
+      return false;
+    }
     return areEqual(t1, (CType)other);
   }
 

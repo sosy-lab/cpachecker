@@ -118,7 +118,9 @@ public class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaMa
   @Override
   protected boolean isUninterpretedFunctionCall(FunctionFormulaType<?> pFuncType, Term f) {
     boolean isUf = unsafeManager.isUF(f);
-    if (!isUf) return false;
+    if (!isUf) {
+      return false;
+    }
 
     // TODO check if exactly the given func
     return isUf;

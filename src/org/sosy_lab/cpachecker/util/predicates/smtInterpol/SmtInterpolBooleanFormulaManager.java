@@ -143,7 +143,9 @@ public class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaMana
   @Override
   public boolean isXor(Term pBits) {
     boolean isNot = SmtInterpolUtil.isNot(pBits);
-    if (!isNot) return false;
+    if (!isNot) {
+      return false;
+    }
     Term arg = SmtInterpolUtil.getArg(pBits, 0);
     return SmtInterpolUtil.isEqual(arg);
   }

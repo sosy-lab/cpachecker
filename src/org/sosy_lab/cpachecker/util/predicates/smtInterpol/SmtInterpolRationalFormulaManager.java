@@ -92,7 +92,9 @@ public class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaMa
   @Override
   public boolean isNegate(Term pNumber) {
     boolean mult = isMultiply(pNumber);
-    if (!mult) return false;
+    if (!mult) {
+      return false;
+    }
     Term arg = SmtInterpolUtil.getArg(pNumber, 0);
     if(SmtInterpolUtil.isNumber(arg)){
       // TODO: BUG: possible bug

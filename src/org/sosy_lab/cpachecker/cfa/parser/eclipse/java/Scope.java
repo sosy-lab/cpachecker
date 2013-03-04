@@ -413,8 +413,9 @@ class Scope {
     } else {
       // If top Class already added, it is unnecessary to search for subTypes
       // unless its the main Class
-      if (!fullyQualifiedMainClassName.equals(className))
+      if (!fullyQualifiedMainClassName.equals(className)) {
         return;
+      }
     }
 
     //Sub Classes need to be parsed for dynamic Binding

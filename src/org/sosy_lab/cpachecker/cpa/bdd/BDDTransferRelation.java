@@ -764,7 +764,9 @@ public class BDDTransferRelation implements TransferRelation {
 
   /** This function returns a region without a variable. */
   private Region removePredicate(final Region region, @Nullable final Region... existing) {
-    if (existing == null) return region;
+    if (existing == null) {
+      return region;
+    }
     return rmgr.makeExists(region, existing);
   }
 

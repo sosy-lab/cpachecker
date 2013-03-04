@@ -121,8 +121,9 @@ public class DynamicBindingCreator {
     for(String functionName : cfAs.keySet()){
       assert allParsedMethodDeclaration.containsKey(functionName);
       // Constructors and default Constructors can't be overriden
-      if(  !(allParsedMethodDeclaration.get(functionName) == null  || allParsedMethodDeclaration.get(functionName).isConstructor())  )
-     trackOverridenMethods(allParsedMethodDeclaration.get(functionName), cfAs.get(functionName));
+      if(  !(allParsedMethodDeclaration.get(functionName) == null  || allParsedMethodDeclaration.get(functionName).isConstructor())  ) {
+        trackOverridenMethods(allParsedMethodDeclaration.get(functionName), cfAs.get(functionName));
+      }
     }
   }
 
@@ -145,8 +146,9 @@ public class DynamicBindingCreator {
 
 
     for(String methodName : workMap.keySet()) {
-      if(  !(allParsedMethodDeclaration.get(methodName) == null  || allParsedMethodDeclaration.get(methodName).isConstructor())  )
-      completeBindingsOfMethod( allParsedMethodDeclaration.get(methodName) , methodName);
+      if(  !(allParsedMethodDeclaration.get(methodName) == null  || allParsedMethodDeclaration.get(methodName).isConstructor())  ) {
+        completeBindingsOfMethod( allParsedMethodDeclaration.get(methodName) , methodName);
+      }
     }
   }
 

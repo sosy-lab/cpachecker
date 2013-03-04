@@ -462,8 +462,9 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
   private boolean checkParamSizesAndTypes(
       AFunctionCallExpression functionCallExpression, IAFunctionType functionType) {
 
-    if(!checkParamSizes(functionCallExpression, functionType))
+    if(!checkParamSizes(functionCallExpression, functionType)) {
       return false;
+    }
 
     // check if the number of function parameters are right
     int declaredParameters = functionType.getParameters().size();

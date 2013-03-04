@@ -69,7 +69,9 @@ public class BDDPrecision implements Precision {
   }
 
   public boolean isDisabled() {
-    if (forceTrackingPattern != null) return false;
+    if (forceTrackingPattern != null) {
+      return false;
+    }
 
     if (!varClass.isPresent()) { return true; }
 

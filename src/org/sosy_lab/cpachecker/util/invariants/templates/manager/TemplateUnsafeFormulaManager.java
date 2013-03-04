@@ -68,10 +68,18 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
       TemplateTerm tt = (TemplateTerm)pF;
 
       int args = 0;
-      if (tt.hasUIF()) args++;
-      if (tt.hasCoefficient()) args++;
-      if (tt.hasParameter()) args++;
-      if (tt.hasVariable()) args++;
+      if (tt.hasUIF()) {
+        args++;
+      }
+      if (tt.hasCoefficient()) {
+        args++;
+      }
+      if (tt.hasParameter()) {
+        args++;
+      }
+      if (tt.hasVariable()) {
+        args++;
+      }
       if (args == 0 || args > 1){
         return args;
       }
@@ -104,10 +112,18 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
       TemplateTerm tt = (TemplateTerm)pF;
 
       int args = 0;
-      if (tt.hasUIF()) args++;
-      if (tt.hasCoefficient()) args++;
-      if (tt.hasParameter()) args++;
-      if (tt.hasVariable()) args++;
+      if (tt.hasUIF()) {
+        args++;
+      }
+      if (tt.hasCoefficient()) {
+        args++;
+      }
+      if (tt.hasParameter()) {
+        args++;
+      }
+      if (tt.hasVariable()) {
+        args++;
+      }
       Formula[] formulas = new Formula[args];
       int i = 0;
 

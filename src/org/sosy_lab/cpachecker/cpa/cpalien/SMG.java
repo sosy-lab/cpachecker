@@ -237,8 +237,9 @@ class SMGConsistencyVerifier{
 
   static private boolean verifyInvalidRegionsHaveNoHVEdges(LogManager pLogger, SMG smg){
     for (SMGObject obj : smg.getObjects()){
-      if (smg.isObjectValid(obj))
+      if (smg.isObjectValid(obj)) {
         continue;
+      }
       if (smg.getValuesForObject(obj).size() > 0){
         pLogger.log(Level.SEVERE, "SMG inconsistent: invalid object has a HVEdge");
         return false;

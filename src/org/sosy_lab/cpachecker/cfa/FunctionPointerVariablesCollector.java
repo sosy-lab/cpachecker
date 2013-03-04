@@ -122,8 +122,9 @@ public class FunctionPointerVariablesCollector {
       break;
     case ReturnStatementEdge:
       CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
-      if(returnEdge.getExpression()!=null)
+      if(returnEdge.getExpression()!=null) {
         collectVars(returnEdge.getExpression(), pCollectedVars);
+      }
       break;
     case StatementEdge:
       CStatementEdge statementEdge = (CStatementEdge)edge;

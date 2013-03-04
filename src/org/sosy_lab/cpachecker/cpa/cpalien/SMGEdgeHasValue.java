@@ -55,8 +55,9 @@ public class SMGEdgeHasValue extends SMGEdge {
 
   @Override
   public boolean isConsistentWith(SMGEdge other){
-    if (! (other instanceof SMGEdgeHasValue))
+    if (! (other instanceof SMGEdgeHasValue)) {
       return false;
+    }
 
     if ((this.object == other.object) &&
         (this.offset == ((SMGEdgeHasValue)other).offset) &&

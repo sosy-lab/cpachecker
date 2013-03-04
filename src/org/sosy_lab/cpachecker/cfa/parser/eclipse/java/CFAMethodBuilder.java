@@ -174,8 +174,9 @@ class CFAMethodBuilder extends ASTVisitor {
   public void preVisit(ASTNode problem) {
 
     if(ASTNode.RECOVERED == problem.getFlags()
-        || ASTNode.MALFORMED  == problem.getFlags() )
-    throw new CFAGenerationRuntimeException("Parse Error", problem);
+        || ASTNode.MALFORMED  == problem.getFlags() ) {
+      throw new CFAGenerationRuntimeException("Parse Error", problem);
+    }
   }
 
   /*

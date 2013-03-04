@@ -355,7 +355,9 @@ public class CTypeUtils {
       return t1 == other;
     }
 
-    if (!(other instanceof CType)) return false;
+    if (!(other instanceof CType)) {
+      return false;
+    }
     return equals(t1, (CType)other);
   }
 

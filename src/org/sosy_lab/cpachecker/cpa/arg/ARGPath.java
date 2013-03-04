@@ -65,7 +65,9 @@ public class ARGPath extends LinkedList<Pair<ARGState, CFAEdge>> implements Appe
       Map<String, Object> elem = new HashMap<>();
       ARGState argelem = pair.getFirst();
       CFAEdge edge = pair.getSecond();
-      if (edge == null) continue; // in this case we do not need the edge
+      if (edge == null) {
+        continue; // in this case we do not need the edge
+      }
       elem.put("argelem", argelem.getStateId());
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());
