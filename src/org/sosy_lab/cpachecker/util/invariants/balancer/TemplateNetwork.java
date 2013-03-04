@@ -75,7 +75,7 @@ public class TemplateNetwork {
     return tmap.getTemplate(n);
   }
 
-  public boolean evaluate(Map<String,Rational> vals) {
+  public boolean evaluate(Map<String, Rational> vals) {
     boolean ans = tmap.evaluate(vals);
     return ans;
   }

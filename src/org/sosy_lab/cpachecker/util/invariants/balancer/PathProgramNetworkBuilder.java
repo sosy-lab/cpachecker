@@ -124,7 +124,7 @@ public class PathProgramNetworkBuilder implements NetworkBuilder {
       l2 = new Location(node);
 
       // Build transition.
-      tran = new Transition(tmap,l1,transitionFormula,l2);
+      tran = new Transition(tmap, l1, transitionFormula, l2);
       trans.add(tran);
     }
     return new TemplateNetwork(tmap, trans);

@@ -102,7 +102,7 @@ public class Farkas {
         }
         // add J terms:
         for (int j = 0; j < J; j++) {
-          a = prem.getCoeff(j,i).toString();
+          a = prem.getCoeff(j, i).toString();
           // Add the term iff it is NOT a 0 prefixed with any number
           // of minus signs.
           if (!a.matches("-*0")) {
@@ -123,7 +123,7 @@ public class Farkas {
           s += "0";
         }
         // state the equation:
-        b = concl.getCoeff(k,i).toString();
+        b = concl.getCoeff(k, i).toString();
         s += " = "+b;
         // At least one statement has now been made. So:
         begun_statements = true;
@@ -272,7 +272,7 @@ public class Farkas {
         }
         // add J terms:
         for (int j = 0; j < J; j++) {
-          a = prem.getCoeff(j,i).toString();
+          a = prem.getCoeff(j, i).toString();
           // Add the term iff it is NOT a 0 prefixed with any number
           // of minus signs.
           if (!a.matches("-*0")) {
@@ -293,7 +293,7 @@ public class Farkas {
           s += "0";
         }
         // state the equation:
-        b = concl.getCoeff(k,i).toString();
+        b = concl.getCoeff(k, i).toString();
         s += " = "+b;
         // At least one statement has now been made. So:
         begun_statements = true;
@@ -445,7 +445,7 @@ public class Farkas {
         }
         // add J terms:
         for (int j = 0; j < J; j++) {
-          a = prem.getCoeff(j,i).toString();
+          a = prem.getCoeff(j, i).toString();
           if (!a.matches("-*0")) {
             // add, as needed:
             if (begun_terms) {
@@ -464,7 +464,7 @@ public class Farkas {
           s += "0";
         }
         // state the equation:
-        b = concl.getCoeff(k,i).toString();
+        b = concl.getCoeff(k, i).toString();
         s += " = "+b;
         // At least one statement has now been made. So:
         begun_statements = true;

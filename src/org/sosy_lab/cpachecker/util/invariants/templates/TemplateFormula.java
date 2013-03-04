@@ -60,7 +60,7 @@ public class TemplateFormula implements Formula, Template {
    * @return true if every parameter in this formula was assigned a
    * value by the passed map; false otherwise.
    */
-  public boolean evaluate(Map<String,Rational> map) { return true; }
+  public boolean evaluate(Map<String, Rational> map) { return true; }
 
   public void unevaluate() {}
 
@@ -72,10 +72,10 @@ public class TemplateFormula implements Formula, Template {
    * occurring in a given formula.
    * @param indices
    */
-  public void postindex(Map<String,Integer> indices) {}
+  public void postindex(Map<String, Integer> indices) {}
 
   public void postindex(TemplateFormula f) {
-    Map<String,Integer> indices = f.getMaxIndices();
+    Map<String, Integer> indices = f.getMaxIndices();
     postindex(indices);
   }
 
@@ -83,10 +83,10 @@ public class TemplateFormula implements Formula, Template {
    * Give each variable the index 1 if its name is in the
    * domain of the given map; give it no index otherwise.
    */
-  public void preindex(Map<String,Integer> indices) {}
+  public void preindex(Map<String, Integer> indices) {}
 
   public void preindex(TemplateFormula f) {
-    Map<String,Integer> indices = f.getMaxIndices();
+    Map<String, Integer> indices = f.getMaxIndices();
     preindex(indices);
   }
 
@@ -193,13 +193,13 @@ public class TemplateFormula implements Formula, Template {
    * values that would be returned by the getName and getIndex methods
    * of the TemplateVariable class, i.e. precisely its S and I fields.
    */
-  public HashMap<String,Integer> getMaxIndices() {
-    HashMap<String,Integer> map = new HashMap<>();
+  public HashMap<String, Integer> getMaxIndices() {
+    HashMap<String, Integer> map = new HashMap<>();
     map = getMaxIndices(map);
     return map;
   }
 
-  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
+  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     return map;
   }
 

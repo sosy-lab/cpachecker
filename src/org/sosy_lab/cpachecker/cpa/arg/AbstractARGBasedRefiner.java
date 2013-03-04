@@ -69,7 +69,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
   private static final Function<Pair<ARGState, CFAEdge>, String> pathToFunctionCalls
         = new Function<Pair<ARGState, CFAEdge>, String>() {
     @Override
-    public String apply(Pair<ARGState,CFAEdge> arg) {
+    public String apply(Pair<ARGState, CFAEdge> arg) {
 
       if (arg.getSecond() instanceof CFunctionCallEdge) {
         CFunctionCallEdge funcEdge = (CFunctionCallEdge)arg.getSecond();

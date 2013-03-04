@@ -182,9 +182,9 @@ public class CTypeUtils {
 
 
     private boolean compareMembers(List<CCompositeTypeMemberDeclaration> l1, List<CCompositeTypeMemberDeclaration> l2) {
-      return compareLists(l1, l2, new Function<Pair<CCompositeTypeMemberDeclaration,CCompositeTypeMemberDeclaration>, Boolean>() {
+      return compareLists(l1, l2, new Function<Pair<CCompositeTypeMemberDeclaration, CCompositeTypeMemberDeclaration>, Boolean>() {
         @Override
-        public Boolean apply(Pair<CCompositeTypeMemberDeclaration,CCompositeTypeMemberDeclaration> pair) {
+        public Boolean apply(Pair<CCompositeTypeMemberDeclaration, CCompositeTypeMemberDeclaration> pair) {
           CCompositeTypeMemberDeclaration m1 = pair.getFirst();
           CCompositeTypeMemberDeclaration m2 = pair.getSecond();
           return
@@ -254,15 +254,15 @@ public class CTypeUtils {
     }
 
     private boolean compareTypes(List<CType> l1, List<CType> l2) {
-      return compareLists(l1, l2, new Function<Pair<CType,CType>, Boolean>() {
+      return compareLists(l1, l2, new Function<Pair<CType, CType>, Boolean>() {
         @Override
-        public Boolean apply(Pair<CType,CType> pair) {
+        public Boolean apply(Pair<CType, CType> pair) {
           return compareTypes(pair.getFirst(), pair.getSecond());
         }
       });
     }
 
-    private <T> boolean compareLists(List<T> l1, List<T> l2, Function<Pair<T,T>,Boolean> compare) {
+    private <T> boolean compareLists(List<T> l1, List<T> l2, Function<Pair<T, T>, Boolean> compare) {
       Iterator<T> it1 = l2.iterator(), it2 = l1.iterator();
       for (; it1.hasNext() && it2.hasNext();) {
         T item1 = it1.next();

@@ -295,7 +295,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
   }
 
   @Override
-  public boolean evaluate(Map<String,Rational> map) {
+  public boolean evaluate(Map<String, Rational> map) {
     boolean ans = true;
     TemplateBoolean tc;
     for (int i = 0; i < getNumConjuncts(); i++) {
@@ -315,7 +315,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
   }
 
   @Override
-  public void postindex(Map<String,Integer> indices) {
+  public void postindex(Map<String, Integer> indices) {
     TemplateBoolean tc;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tc = getConjunct(i);
@@ -324,7 +324,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
   }
 
   @Override
-  public void preindex(Map<String,Integer> indices) {
+  public void preindex(Map<String, Integer> indices) {
     TemplateBoolean tc;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tc = getConjunct(i);
@@ -397,7 +397,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
   }
 
   @Override
-  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
+  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     TemplateBoolean tc;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tc = getConjunct(i);

@@ -90,7 +90,7 @@ public class SubsetGenerator {
 
   public static void main(String[] args) {
     // Test:
-    SubsetGenerator SG = new SubsetGenerator(5,3);
+    SubsetGenerator SG = new SubsetGenerator(5, 3);
     HashSet<Integer> S;
     while (SG.hasMore()) {
       S = SG.getNext();

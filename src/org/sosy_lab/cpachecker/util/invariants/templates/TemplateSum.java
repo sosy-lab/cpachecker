@@ -128,7 +128,7 @@ public class TemplateSum extends TemplateNumericValue {
     return s;
   }
 
-  public Polynomial makePolynomial(Map<String,Variable> paramVars) {
+  public Polynomial makePolynomial(Map<String, Variable> paramVars) {
     List<Term> tlist = new Vector<>(terms.size());
     for (TemplateTerm t : terms) {
       Term u = t.makeRationalFunctionTerm(paramVars);
@@ -159,7 +159,7 @@ public class TemplateSum extends TemplateNumericValue {
   }
 
   @Override
-  public boolean evaluate(Map<String,Rational> map) {
+  public boolean evaluate(Map<String, Rational> map) {
     boolean ans = true;
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {
@@ -180,7 +180,7 @@ public class TemplateSum extends TemplateNumericValue {
   }
 
   @Override
-  public void postindex(Map<String,Integer> indices) {
+  public void postindex(Map<String, Integer> indices) {
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {
       T = getTerm(i);
@@ -189,7 +189,7 @@ public class TemplateSum extends TemplateNumericValue {
   }
 
   @Override
-  public void preindex(Map<String,Integer> indices) {
+  public void preindex(Map<String, Integer> indices) {
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {
       T = getTerm(i);
@@ -297,7 +297,7 @@ public class TemplateSum extends TemplateNumericValue {
   }
 
   @Override
-  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
+  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {
       T = getTerm(i);
@@ -418,7 +418,7 @@ public class TemplateSum extends TemplateNumericValue {
     this.terms = newTerms;
   }
 
-  private HashMap<String,TemplateSum> collectWRTVars() {
+  private HashMap<String, TemplateSum> collectWRTVars() {
     // "Collect With Respect to Variables"
     // Return a HashMap that has variable names as keys and
     // TemplateSums as values.
@@ -428,7 +428,7 @@ public class TemplateSum extends TemplateNumericValue {
     // sum to a new TemplateSum containing all and only those
     // terms in this TemplateSum that have that variable.
 
-    HashMap<String,TemplateSum> map = new HashMap<>();
+    HashMap<String, TemplateSum> map = new HashMap<>();
     TemplateTerm T;
     TemplateVariable V;
     String var;
@@ -471,8 +471,8 @@ public class TemplateSum extends TemplateNumericValue {
       }
       c.add(u);
     }
-    TemplateSum s = new TemplateSum(getFormulaType(),c);
-    Coeff co = new Coeff(s,vwm);
+    TemplateSum s = new TemplateSum(getFormulaType(), c);
+    Coeff co = new Coeff(s, vwm);
     return co;
   }
 
@@ -489,7 +489,7 @@ public class TemplateSum extends TemplateNumericValue {
    */
   public Vector<Coeff> getCoeffsWithParams(VariableWriteMode vwm,
                        VariableManager vmgr) {
-    HashMap<String,TemplateSum> vmap = collectWRTVars();
+    HashMap<String, TemplateSum> vmap = collectWRTVars();
     Vector<Coeff> coeffs = new Vector<>();
     Iterator<GeneralVariable> I = vmgr.iterator();
     GeneralVariable V;
@@ -522,7 +522,7 @@ public class TemplateSum extends TemplateNumericValue {
         V.add(T);
       }
     }
-    return new TemplateSum(getFormulaType(),V);
+    return new TemplateSum(getFormulaType(), V);
   }
 
   public TemplateSum getNonConstantPart() {
@@ -534,7 +534,7 @@ public class TemplateSum extends TemplateNumericValue {
         V.add(T);
       }
     }
-    return new TemplateSum(getFormulaType(),V);
+    return new TemplateSum(getFormulaType(), V);
   }
 
   public Vector<TemplateTerm> getTerms() {
@@ -584,7 +584,7 @@ public class TemplateSum extends TemplateNumericValue {
   public static TemplateSum subtract(TemplateSum s1, TemplateSum s2) {
     // Returns s1 minus s2.
     s2.negate();
-    return new TemplateSum(s1,s2);
+    return new TemplateSum(s1, s2);
   }
 
   public static TemplateSum multiply(TemplateSum s1, TemplateSum s2) {
@@ -596,11 +596,11 @@ public class TemplateSum extends TemplateNumericValue {
       for (int j = 0; j < terms2.size(); j++) {
         T1 = terms1.get(i);
         T2 = terms2.get(j);
-        T3 = TemplateTerm.multiply(T1,T2);
+        T3 = TemplateTerm.multiply(T1, T2);
         terms3.add(T3);
       }
     }
-    return new TemplateSum(s1.getFormulaType(),terms3);
+    return new TemplateSum(s1.getFormulaType(), terms3);
   }
 
   public static TemplateSum divide(TemplateSum s1, TemplateSum s2) {
@@ -624,7 +624,7 @@ public class TemplateSum extends TemplateNumericValue {
       q = term.divideBy(n);
       c.add(q);
     }
-    return new TemplateSum(s1.getFormulaType(),c);
+    return new TemplateSum(s1.getFormulaType(), c);
   }
 
   void writeAsForm(boolean b) {

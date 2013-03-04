@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
 public class AugmentationColumn extends UsableColumn {
 
   private final int colNum = -1;
-  private Map<Integer,AssumptionSet> asets;
+  private Map<Integer, AssumptionSet> asets;
   private Set<Integer> requests;
   final int height = Integer.MIN_VALUE;
 

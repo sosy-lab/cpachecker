@@ -39,7 +39,7 @@ public class Substitution implements Comparable<Substitution> {
   public Substitution copy() {
     Variable u = var.copy();
     Polynomial q = rhs.copy();
-    return new Substitution(u,q);
+    return new Substitution(u, q);
   }
 
   @Override

@@ -127,7 +127,7 @@ public class TemplateNegation extends TemplateBoolean {
   }
 
   @Override
-  public boolean evaluate(Map<String,Rational> map) {
+  public boolean evaluate(Map<String, Rational> map) {
     boolean ans = arg.evaluate(map);
     return ans;
   }
@@ -138,12 +138,12 @@ public class TemplateNegation extends TemplateBoolean {
   }
 
   @Override
-  public void postindex(Map<String,Integer> indices) {
+  public void postindex(Map<String, Integer> indices) {
     arg.postindex(indices);
   }
 
   @Override
-  public void preindex(Map<String,Integer> indices) {
+  public void preindex(Map<String, Integer> indices) {
     arg.preindex(indices);
   }
 
@@ -182,7 +182,7 @@ public class TemplateNegation extends TemplateBoolean {
   }
 
   @Override
-  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
+  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     map = arg.getMaxIndices(map);
     return map;
   }

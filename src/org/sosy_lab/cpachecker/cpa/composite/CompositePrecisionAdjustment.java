@@ -106,7 +106,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       AbstractState oldElement = comp.get(i);
       Precision oldPrecision = prec.get(i);
-      Triple<AbstractState,Precision, Action> out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
+      Triple<AbstractState, Precision, Action> out = precisionAdjustment.prec(oldElement, oldPrecision, slice);
       AbstractState newElement = out.getFirst();
       Precision newPrecision = out.getSecond();
       if (out.getThird() == Action.BREAK) {

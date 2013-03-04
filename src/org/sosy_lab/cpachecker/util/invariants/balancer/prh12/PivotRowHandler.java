@@ -282,12 +282,12 @@ public class PivotRowHandler {
       if (FAar01(r)) {
         // If every augmentation entry in row r is of code 0 or 1, then we need not worry about
         // row r at all.
-        logger.log(Level.ALL,"Discarding row",r,": all augmentation entries nonnegative constants.");
+        logger.log(Level.ALL, "Discarding row",r,": all augmentation entries nonnegative constants.");
         discard.add(r);
       } else if (EXpr3AU(r)) {
         // If row r has a post-pivot entry that is of code 3 and in an absolutely unblocked column,
         // then again we do not need to worry about row r at all.
-        logger.log(Level.ALL,"Discarding row",r,": contains a negative constant in an absolutely unblocked column.");
+        logger.log(Level.ALL, "Discarding row",r,": contains a negative constant in an absolutely unblocked column.");
         discard.add(r);
       } else if (FApr01(r)) {
         // Suppose all post-pivot entries are of code 0 or 1.
@@ -307,7 +307,7 @@ public class PivotRowHandler {
           logger.log(Level.ALL, "Discarding row",r,", and adding assumptions:",
               "all post-pivot entries are nonnegative constants, but no augmentation entries are negative",
               "constants. Therefore we add assumptions that all variable augmentation entries in row",
-              r,"be nonnegative. Assumptions added:","\n"+nonneg.toString());
+              r, "be nonnegative. Assumptions added:","\n"+nonneg.toString());
         }
       }
     }
@@ -325,13 +325,13 @@ public class PivotRowHandler {
         // So if there are any 1's or 2's among the postpivots, then we might still need to use one of
         // them during the third pass. So we rule this row out right now only if in addition there
         // are no 1's or 2's among the postpivots.
-        logger.log(Level.ALL,"Discarding row",r,": all augmentation entries nonnegative constants,",
+        logger.log(Level.ALL, "Discarding row",r,": all augmentation entries nonnegative constants,",
             "and all postpivots are nonpositive constants.");
         discard.add(r);
       } else if (EXpr3AU(r)) {
         // If row r has a post-pivot entry that is of code 3 and in an absolutely unblocked column,
         // then again we do not need to worry about row r at all.
-        logger.log(Level.ALL,"Discarding row",r,": contains a negative constant in an absolutely unblocked column.");
+        logger.log(Level.ALL, "Discarding row",r,": contains a negative constant in an absolutely unblocked column.");
         discard.add(r);
       } else if (FApr01(r)) {
         // Suppose all post-pivot entries are of code 0 or 1.
@@ -355,7 +355,7 @@ public class PivotRowHandler {
           logger.log(Level.ALL, "Discarding row",r,", and adding assumptions:",
               "all post-pivot entries are nonnegative constants, but no augmentation entries are negative",
               "constants. Therefore we add assumptions that all variable augmentation entries in row",
-              r,"be nonnegative. Assumptions added:","\n"+nonneg.toString());
+              r, "be nonnegative. Assumptions added:","\n"+nonneg.toString());
           amgr.addNecessaryAssumptions(nonneg);
         }
         */
@@ -363,7 +363,7 @@ public class PivotRowHandler {
     }
     discardRows(discard);
     if (remainingRows.size() > 0) {
-      logger.log(Level.ALL,"The rows still remaining to be processed are:\n",remainingRows);
+      logger.log(Level.ALL, "The rows still remaining to be processed are:\n",remainingRows);
     }
   }
 
@@ -389,12 +389,12 @@ public class PivotRowHandler {
     Set<AssumptionSet> asetset = new HashSet<>();
     // Build option table.
     OptionTable optionTable = buildOptionTable();
-    logger.log(Level.ALL,"Built option table:","\n"+optionTable.toString());
+    logger.log(Level.ALL, "Built option table:","\n"+optionTable.toString());
     // First step: for those rows that only have a single option, take those "options".
     AssumptionSet soleOpAset = optionTable.takeSoleOptions();
     // Next ... TODO
     if (optionTable.getRemainingRows().size() > 0) {
-      logger.log(Level.FINEST,"Not all rows satisfied on second pass! Unsatisfied rows:",remainingRows);
+      logger.log(Level.FINEST, "Not all rows satisfied on second pass! Unsatisfied rows:",remainingRows);
     }
     // For now we return just the soleOpAset, to see test our progress.
     asetset.add(soleOpAset);
@@ -414,11 +414,11 @@ public class PivotRowHandler {
     // as necessary assumptions.
     AssumptionSet aset = opman.getSoleOptionRowsAssumptions();
     if (aset.size() > 0) {
-      logger.log(Level.ALL,"Some of the remaining rows have just a single option.",
+      logger.log(Level.ALL, "Some of the remaining rows have just a single option.",
           "Taking those options yields the new assumptions:\n",aset);
       amgr.addNecessaryAssumptions(aset);
     } else {
-      logger.log(Level.ALL,"There were no remaining pivot rows having just a single option.");
+      logger.log(Level.ALL, "There were no remaining pivot rows having just a single option.");
     }
   }
 
@@ -433,24 +433,24 @@ public class PivotRowHandler {
 
     AssumptionSet aset = opman.nextTry();
     while (aset != null) {
-      logger.log(Level.ALL,"Trying to satisfy remaining pivot rows with set:\n",aset);
+      logger.log(Level.ALL, "Trying to satisfy remaining pivot rows with set:\n",aset);
       // Get a copy of the current assumption set.
       AssumptionSet curr = new AssumptionSet(amgr.getCurrentAssumptionSet());
-      logger.log(Level.ALL,"Current set is:\n",curr);
+      logger.log(Level.ALL, "Current set is:\n",curr);
       boolean consistent = curr.addAll(aset);
-      logger.log(Level.ALL,"Combined set is:\n",curr);
+      logger.log(Level.ALL, "Combined set is:\n",curr);
       // Is the next try from opman consistent with the current assumption set?
       if (!consistent) {
         // If not, go to the next try.
-        logger.log(Level.ALL,"This set was inconsistent.");
+        logger.log(Level.ALL, "This set was inconsistent.");
       } else {
         // It is consistent. So now we ask Redlog whether it can find parameter values.
-        logger.log(Level.ALL,"The set is at least not immediately contradictory.",
+        logger.log(Level.ALL, "The set is at least not immediately contradictory.",
             "We ask Redlog if it is satisfiable.");
-        Map<String,Rational> map = balancer.tryAssumptionSet(curr);
+        Map<String, Rational> map = balancer.tryAssumptionSet(curr);
         if (map != null || balancer.redlogSaidTrue()) {
           // Success!
-          logger.log(Level.ALL,"The set is satisfiable!");
+          logger.log(Level.ALL, "The set is satisfiable!");
           successful = true;
           // FIXME: Instead of the next line, we should be adding these assumptions as
           // possibly unnecessary. We cannot yet do that, because AssumptionManager is not
@@ -465,7 +465,7 @@ public class PivotRowHandler {
     }
     if (!successful) {
       // There was no way to satisfy the pivot rows and get parameter values, so we have to backtrack.
-      logger.log(Level.ALL,"There was no way to satisfy the remaining rows.");
+      logger.log(Level.ALL, "There was no way to satisfy the remaining rows.");
       throw new BadAssumptionsException();
     }
     // If we were successful, then we just return. The successful assumption set is in amgr.
@@ -476,7 +476,7 @@ public class PivotRowHandler {
     opman = new OptionManager(logger);
     // Add the usable columns.
     for (Integer c : CU) {
-      UsableColumn u = new UsableColumn(mat,c,logger);
+      UsableColumn u = new UsableColumn(mat, c, logger);
       opman.addUsableColumn(u, c);
     }
     // Create the augmentation column.
@@ -496,7 +496,7 @@ public class PivotRowHandler {
     // Tell each one which are its usable columns.
     for (Integer r : remainingRows) {
       // Create and add.
-      PivotRow pr = new PivotRow(r,logger);
+      PivotRow pr = new PivotRow(r, logger);
       opman.addPivotRow(pr);
       // Assign usable columns.
       for (Integer c : CU) {
@@ -524,7 +524,7 @@ public class PivotRowHandler {
       // Now assess the augmentation entries.
       table[i][augStart] = (EXar3(i) ? 5 : 4);
     }
-    return new OptionTable(this,mat,table,remainingRows,CU,logger);
+    return new OptionTable(this, mat, table, remainingRows, CU, logger);
   }
 
   //-----------------------------------------------------------------

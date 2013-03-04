@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
 
 public class TemplateMap {
 
-  private HashMap<Location,Template> map;
+  private HashMap<Location, Template> map;
 
   public TemplateMap() {
     map = new HashMap<>();
@@ -89,7 +89,7 @@ public class TemplateMap {
     return pur;
   }
 
-  public boolean evaluate(Map<String,Rational> vals) {
+  public boolean evaluate(Map<String, Rational> vals) {
     boolean ans = true;
     for (Template t : map.values()) {
       ans &= t.evaluate(vals);

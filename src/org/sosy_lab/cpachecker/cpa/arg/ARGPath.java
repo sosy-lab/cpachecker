@@ -60,7 +60,7 @@ public class ARGPath extends LinkedList<Pair<ARGState, CFAEdge>> implements Appe
   }
 
   public void toJSON(Appendable sb) throws IOException {
-    List<Map<?,?>> path = new ArrayList<>(this.size());
+    List<Map<?, ?>> path = new ArrayList<>(this.size());
     for (Pair<ARGState, CFAEdge> pair : this) {
       Map<String, Object> elem = new HashMap<>();
       ARGState argelem = pair.getFirst();

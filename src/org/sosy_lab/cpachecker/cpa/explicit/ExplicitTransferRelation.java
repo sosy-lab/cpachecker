@@ -1589,7 +1589,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       String qualifierScope = getObjectScope(rttState, methodName, qualifier);
 
       String scopedFieldName =
-          getRTTScopedVariableName(qualifier.getDeclaration(), methodName,qualifierScope);
+          getRTTScopedVariableName(qualifier.getDeclaration(), methodName, qualifierScope);
 
       if (rttState.contains(scopedFieldName)) {
         return rttState.getUniqueObjectFor(scopedFieldName);

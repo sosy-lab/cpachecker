@@ -58,7 +58,7 @@ public class UIFAxiomSet {
     // First get the set of all variables appearing in F
     Set<String> allVars = new HashSet<>();
     for (int i = 0; i < F.length; i++) {
-      allVars.addAll(getAllPurificationVariablesAsStrings(F[i],VariableWriteMode.PLAIN));
+      allVars.addAll(getAllPurificationVariablesAsStrings(F[i], VariableWriteMode.PLAIN));
     }
 
     // go through the value that 'name' maps to, searching for those
@@ -94,7 +94,7 @@ public class UIFAxiomSet {
         TemplateUIF U1 = UIFs.get(i);
         for (int j = i+1; j < m; j++) {
           TemplateUIF U2 = UIFs.get(j);
-          UIFAxiom A = new UIFAxiom(U1,U2);
+          UIFAxiom A = new UIFAxiom(U1, U2);
           axioms.add(A);
         }
       }
@@ -106,7 +106,7 @@ public class UIFAxiomSet {
     if (N > 0) {
       k = 1;
       // declare a subset generator for subsets of order k out of N
-      SG = new SubsetGenerator(N,k);
+      SG = new SubsetGenerator(N, k);
       // we also need a permutation generator for k
       PG = new PermutationGenerator(k);
       // and we must initialize the first subset
@@ -169,7 +169,7 @@ public class UIFAxiomSet {
           //so we should increment k and make new SG
           k++;
           assert (k <= N);
-          SG = new SubsetGenerator(N,k);
+          SG = new SubsetGenerator(N, k);
         }
         HashSet<Integer> index_subset = SG.getNext();
 

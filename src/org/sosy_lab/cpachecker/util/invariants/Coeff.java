@@ -49,10 +49,10 @@ public class Coeff {
     this.vwm = vwm;
   }
 
-  public RationalFunction makeRationalFunction(Map<String,Variable> paramVars) {
+  public RationalFunction makeRationalFunction(Map<String, Variable> paramVars) {
     Polynomial num = value.makePolynomial(paramVars);
     Polynomial denom = new Polynomial(1);
-    RationalFunction f = new RationalFunction(num,denom);
+    RationalFunction f = new RationalFunction(num, denom);
     f.simplify();
     return f;
   }

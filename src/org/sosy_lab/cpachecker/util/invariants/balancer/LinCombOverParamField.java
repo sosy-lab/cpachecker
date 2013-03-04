@@ -113,7 +113,7 @@ public class LinCombOverParamField {
       RationalFunction g = lc.getCoeff(i);
       g = RationalFunction.multiply(fk, g);
       if (i != k) {
-        g = RationalFunction.add(g,this.getCoeff(i));
+        g = RationalFunction.add(g, this.getCoeff(i));
       }
       result.setCoeff(i, g);
     }

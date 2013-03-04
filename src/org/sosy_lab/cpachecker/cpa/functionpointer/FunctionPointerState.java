@@ -136,7 +136,7 @@ class FunctionPointerState extends AbstractSingleWrapperState  {
   static class Builder {
 
     private final AbstractState wrappedState;
-    private PersistentSortedMap<String,FunctionPointerTarget> values;
+    private PersistentSortedMap<String, FunctionPointerTarget> values;
 
     private Builder(PersistentSortedMap<String, FunctionPointerTarget> pOldValues, AbstractState pWrappedState) {
       values = pOldValues;
@@ -170,7 +170,7 @@ class FunctionPointerState extends AbstractSingleWrapperState  {
   }
 
   // This map should never contain UnknownTargets.
-  private final PersistentSortedMap<String,FunctionPointerTarget> pointerVariableValues;
+  private final PersistentSortedMap<String, FunctionPointerTarget> pointerVariableValues;
 
   private FunctionPointerState(AbstractState pWrappedState) {
     super(pWrappedState);

@@ -91,9 +91,9 @@ public interface BooleanFormulaManager {
    * @param f2 a Formula
    * @return (f1 | f2)
    */
-  public BooleanFormula or(BooleanFormula bits1,BooleanFormula bits2);
+  public BooleanFormula or(BooleanFormula bits1, BooleanFormula bits2);
 
-  public BooleanFormula xor(BooleanFormula bits1,BooleanFormula bits2);
+  public BooleanFormula xor(BooleanFormula bits1, BooleanFormula bits2);
 
 
   public boolean isNot(BooleanFormula bits);

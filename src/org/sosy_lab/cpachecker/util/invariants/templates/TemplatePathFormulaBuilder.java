@@ -80,7 +80,7 @@ public class TemplatePathFormulaBuilder {
     try {
       pf = pfmgr.makeEmptyPathFormula();
       for (int i = 0; i < E.length; i++) {
-        pf = pfmgr.makeAnd(pf,E[i]);
+        pf = pfmgr.makeAnd(pf, E[i]);
       }
     } catch (Exception e) {
       System.err.println(e.getMessage());

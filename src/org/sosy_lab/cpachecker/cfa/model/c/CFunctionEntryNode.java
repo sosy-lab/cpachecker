@@ -37,7 +37,7 @@ public class CFunctionEntryNode extends FunctionEntryNode {
       final FunctionExitNode pExitNode,
       final List<String> pParameterNames) {
 
-    super(pLineNumber, pFunctionDefinition.getName(), pExitNode, pFunctionDefinition,pParameterNames);
+    super(pLineNumber, pFunctionDefinition.getName(), pExitNode, pFunctionDefinition, pParameterNames);
   }
 
   @Override

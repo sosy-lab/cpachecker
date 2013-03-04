@@ -96,9 +96,9 @@ public interface BitvectorFormulaManager {
    * @param f2 a Formula
    * @return (f1 | f2)
    */
-  public BitvectorFormula or(BitvectorFormula bits1,BitvectorFormula bits2);
+  public BitvectorFormula or(BitvectorFormula bits1, BitvectorFormula bits2);
 
-  public BitvectorFormula xor(BitvectorFormula bits1,BitvectorFormula bits2);
+  public BitvectorFormula xor(BitvectorFormula bits1, BitvectorFormula bits2);
 
   public boolean isNot(BitvectorFormula bits);
   public boolean isAnd(BitvectorFormula bits);
@@ -108,9 +108,9 @@ public interface BitvectorFormulaManager {
   /**
    * Returns a term representing the (arithmetic if signed is true) right shift of number by toShift.
    */
-  public BitvectorFormula shiftRight(BitvectorFormula number,BitvectorFormula toShift, boolean signed);
+  public BitvectorFormula shiftRight(BitvectorFormula number, BitvectorFormula toShift, boolean signed);
 
-  public BitvectorFormula shiftLeft(BitvectorFormula number,BitvectorFormula toShift);
+  public BitvectorFormula shiftLeft(BitvectorFormula number, BitvectorFormula toShift);
 
   public BitvectorFormula concat(BitvectorFormula number, BitvectorFormula append);
   public BitvectorFormula extract(BitvectorFormula number, int msb, int lsb);

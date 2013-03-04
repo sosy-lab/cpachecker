@@ -321,7 +321,7 @@ public class ASTConverter {
 
       // Declaration was created from Binding, update Method Type.
       if (decl.getType() == null) {
-        updateType(decl,md);
+        updateType(decl, md);
       }
 
       return scope.lookupMethod(methodName);

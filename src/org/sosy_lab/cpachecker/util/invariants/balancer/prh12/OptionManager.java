@@ -37,7 +37,7 @@ public class OptionManager {
 
   @SuppressWarnings("unused")
   private LogManager logger;
-  private Map<Integer,UsableColumn> cols;
+  private Map<Integer, UsableColumn> cols;
   private List<PivotRow> rows;
   private boolean initialized;
 
@@ -101,7 +101,7 @@ public class OptionManager {
     AssumptionSet aset = new AssumptionSet();
     for (UsableColumn u : cols.values()) {
       AssumptionSet a = u.getRequestedAssumptions();
-      logger.log(Level.ALL,"Column",u.getColNum(),"produced assumption set",a);
+      logger.log(Level.ALL, "Column",u.getColNum(),"produced assumption set",a);
       aset.addAll(a);
     }
     return aset;

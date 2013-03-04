@@ -131,7 +131,7 @@ public class CPASelfCheck {
     CParser parser = CParser.Factory.getParser(logManager, CParser.Factory.getDefaultOptions(), MachineModel.LINUX32);
     ParseResult cfas = parser.parseString(code);
     MutableCFA cfa = new MutableCFA(MachineModel.LINUX32, cfas.getFunctions(), cfas.getCFANodes(), cfas.getFunctions().get("main"), Language.C);
-    return cfa.makeImmutableCFA(Optional.<ImmutableMultimap<String,Loop>>absent(),
+    return cfa.makeImmutableCFA(Optional.<ImmutableMultimap<String, Loop>>absent(),
         Optional.<VariableClassification>absent());
   }
 
@@ -159,7 +159,7 @@ public class CPASelfCheck {
     AbstractDomain d = pCpaInst.getAbstractDomain();
     AbstractState initial = pCpaInst.getInitialState(pMain);
 
-    return ensure(d.isLessOrEqual(initial, d.join(initial,initial)),
+    return ensure(d.isLessOrEqual(initial, d.join(initial, initial)),
         "Join of same elements is unsound!");
   }
 
@@ -170,7 +170,7 @@ public class CPASelfCheck {
     AbstractState initial = pCpaInst.getInitialState(pMain);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
 
-    return ensure(d.isLessOrEqual(initial, merge.merge(initial,initial,initialPrec)),
+    return ensure(d.isLessOrEqual(initial, merge.merge(initial, initial, initialPrec)),
         "Merging same elements was unsound!");
   }
 

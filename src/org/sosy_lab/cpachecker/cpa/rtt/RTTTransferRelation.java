@@ -409,7 +409,7 @@ public class RTTTransferRelation implements TransferRelation {
       String qualifierScope = getObjectScope(rttState, methodName, qualifier);
 
       String scopedFieldName =
-          getScopedVariableName(qualifier.getDeclaration().getName(), methodName,qualifierScope);
+          getScopedVariableName(qualifier.getDeclaration().getName(), methodName, qualifierScope);
 
       if (rttState.contains(scopedFieldName)) {
         return rttState.getUniqueObjectFor(scopedFieldName);

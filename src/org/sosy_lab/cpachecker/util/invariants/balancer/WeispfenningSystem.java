@@ -71,7 +71,7 @@ public class WeispfenningSystem {
     // So we add on n-1 rows, representing the statement that each variable
     // be nonnegative.
     for (int i = 0; i < n-1; i++) {
-      rows.add(new LinCombOverParamField(n,i));
+      rows.add(new LinCombOverParamField(n, i));
     }
     // So first m rows represent equations, and last n-1 represent inequalities.
     numEqns = m;
@@ -101,7 +101,7 @@ public class WeispfenningSystem {
     }
     int nE = i < numEqns ? numEqns - 1 : numEqns;
     int nI = i < numEqns ? numIneqs : numIneqs - 1;
-    WeispfenningSystem w = new WeispfenningSystem(newRows,nE,nI);
+    WeispfenningSystem w = new WeispfenningSystem(newRows, nE, nI);
     w.aset = this.aset.copy();
     return w;
   }
@@ -116,7 +116,7 @@ public class WeispfenningSystem {
     }
     int nE = i < numEqns ? numEqns - 1 : numEqns;
     int nI = i < numEqns ? numIneqs : numIneqs - 1;
-    WeispfenningSystem w = new WeispfenningSystem(newRows,nE,nI);
+    WeispfenningSystem w = new WeispfenningSystem(newRows, nE, nI);
     w.aset = this.aset.copy();
     return w;
   }
@@ -173,7 +173,7 @@ public class WeispfenningSystem {
       r = r.copy();
       newRows.add(r);
     }
-    WeispfenningSystem w = new WeispfenningSystem(newRows,numEqns,numIneqs);
+    WeispfenningSystem w = new WeispfenningSystem(newRows, numEqns, numIneqs);
     w.aset = this.aset.copy();
     return w;
   }

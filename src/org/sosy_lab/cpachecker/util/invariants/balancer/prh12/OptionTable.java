@@ -123,31 +123,31 @@ public class OptionTable {
         AssumptionSet as;
         switch (code) {
         case 2:
-          as = change2to7(i0,j0);
+          as = change2to7(i0, j0);
           aset.addAll(as);
           discard.add(i0);
-          logger.log(Level.ALL,"Dicarding row",i0,"and adding assumptions",
+          logger.log(Level.ALL, "Dicarding row",i0,"and adding assumptions",
               as.toString()+". Row has only this option in option table.");
           break;
         case 3:
-          as = change3to9(i0,j0);
+          as = change3to9(i0, j0);
           aset.addAll(as);
           discard.add(i0);
-          logger.log(Level.ALL,"Dicarding row",i0,"and adding assumptions",
+          logger.log(Level.ALL, "Dicarding row",i0,"and adding assumptions",
               as.toString()+". Row has only this option in option table.");
           break;
         case 4:
           as = change4to8(i0);
           aset.addAll(as);
           discard.add(i0);
-          logger.log(Level.ALL,"Dicarding row",i0,"and adding assumptions",
+          logger.log(Level.ALL, "Dicarding row",i0,"and adding assumptions",
               as.toString()+". Row has only this option in option table.");
           break;
         case 6:
-          as = change6to7(i0,j0);
+          as = change6to7(i0, j0);
           aset.addAll(as);
           discard.add(i0);
-          logger.log(Level.ALL,"Dicarding row",i0,"and adding assumptions",
+          logger.log(Level.ALL, "Dicarding row",i0,"and adding assumptions",
               as.toString()+". Row has only this option in option table.");
           break;
         }

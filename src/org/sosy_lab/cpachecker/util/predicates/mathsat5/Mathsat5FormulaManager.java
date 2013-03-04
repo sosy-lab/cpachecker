@@ -65,7 +65,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     @FileOption(Type.OUTPUT_FILE)
     private File logfile = new File("mathsat5.%d.smt2");
 
-    private final ImmutableMap<String,String> furtherOptionsMap ;
+    private final ImmutableMap<String, String> furtherOptionsMap ;
 
     private Mathsat5Settings(Configuration config) throws InvalidConfigurationException{
       config.inject(this);

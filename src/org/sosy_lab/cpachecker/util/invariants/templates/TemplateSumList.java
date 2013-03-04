@@ -90,7 +90,7 @@ public class TemplateSumList extends TemplateFormulaList {
     }
   }
 
-  public boolean evaluate(Map<String,Rational> map) {
+  public boolean evaluate(Map<String, Rational> map) {
     boolean ans = true;
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
@@ -108,7 +108,7 @@ public class TemplateSumList extends TemplateFormulaList {
     }
   }
 
-  public void postindex(Map<String,Integer> indices) {
+  public void postindex(Map<String, Integer> indices) {
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
         sums[i].postindex(indices);
@@ -116,7 +116,7 @@ public class TemplateSumList extends TemplateFormulaList {
     }
   }
 
-  public void preindex(Map<String,Integer> indices) {
+  public void preindex(Map<String, Integer> indices) {
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
         sums[i].preindex(indices);
@@ -180,7 +180,7 @@ public class TemplateSumList extends TemplateFormulaList {
     return params;
   }
 
-  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
+  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
         map = sums[i].getMaxIndices(map);

@@ -304,7 +304,7 @@ public class SMGTransferRelation implements TransferRelation {
       //TODO Create mock types
       CSimpleType charType = new CSimpleType(false, false, CBasicType.CHAR,
           false, false, false, false, false, false, false);
-      CType newType = new CArrayType(false, false,charType,
+      CType newType = new CArrayType(false, false, charType,
           new CIntegerLiteralExpression(null, null, BigInteger.valueOf(size.intValue())));
 
       currentState.writeValue(newObject, 0, newType, 0, machineModel);

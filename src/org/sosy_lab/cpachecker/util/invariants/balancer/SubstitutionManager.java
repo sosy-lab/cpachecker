@@ -126,7 +126,7 @@ public class SubstitutionManager {
     if (!hasNext()) {
       return null;
     }
-    logger.log(Level.ALL,"Substitutions:\n", subList);
+    logger.log(Level.ALL, "Substitutions:\n", subList);
     Substitution s = subList.get(0);
     // Now we apply s to the remaining substitutions.
     Set<Substitution> toRemove = new HashSet<>();

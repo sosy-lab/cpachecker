@@ -275,7 +275,7 @@ public class TemplateDisjunction extends TemplateBoolean {
   }
 
   @Override
-  public boolean evaluate(Map<String,Rational> map) {
+  public boolean evaluate(Map<String, Rational> map) {
     boolean ans = true;
     TemplateBoolean tb;
     for (int i = 0; i < getNumDisjuncts(); i++) {
@@ -295,7 +295,7 @@ public class TemplateDisjunction extends TemplateBoolean {
   }
 
   @Override
-  public void postindex(Map<String,Integer> indices) {
+  public void postindex(Map<String, Integer> indices) {
     TemplateBoolean tb;
     for (int i = 0; i < getNumDisjuncts(); i++) {
       tb = getDisjunct(i);
@@ -304,7 +304,7 @@ public class TemplateDisjunction extends TemplateBoolean {
   }
 
   @Override
-  public void preindex(Map<String,Integer> indices) {
+  public void preindex(Map<String, Integer> indices) {
     TemplateBoolean tb;
     for (int i = 0; i < getNumDisjuncts(); i++) {
       tb = getDisjunct(i);
@@ -377,7 +377,7 @@ public class TemplateDisjunction extends TemplateBoolean {
   }
 
   @Override
-  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
+  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     TemplateBoolean tc;
     for (int i = 0; i < getNumDisjuncts(); i++) {
       tc = getDisjunct(i);

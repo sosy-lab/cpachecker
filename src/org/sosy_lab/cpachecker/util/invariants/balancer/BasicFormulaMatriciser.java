@@ -97,7 +97,7 @@ public class BasicFormulaMatriciser extends FormulaMatriciser {
       // in addition to the column itself, we adjoin its negation.
       if (reln == InfixReln.EQUAL) {
         coeffs = negative(coeffs);
-        rfs = makeRationalFunctions(coeffs,paramVars);
+        rfs = makeRationalFunctions(coeffs, paramVars);
         cols.add(new Matrix(rfs));
       }
     }

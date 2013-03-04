@@ -53,15 +53,15 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
 
   @Override
   public BooleanFormula and(BooleanFormula pBits1, BooleanFormula pBits2) {
-    return wrapInView(manager.and(extractFromView(pBits1),extractFromView(pBits2)));
+    return wrapInView(manager.and(extractFromView(pBits1), extractFromView(pBits2)));
   }
   @Override
   public BooleanFormula or(BooleanFormula pBits1, BooleanFormula pBits2) {
-    return wrapInView(manager.or(extractFromView(pBits1),extractFromView(pBits2)));
+    return wrapInView(manager.or(extractFromView(pBits1), extractFromView(pBits2)));
   }
   @Override
   public BooleanFormula xor(BooleanFormula pBits1, BooleanFormula pBits2) {
-    return wrapInView(manager.xor(extractFromView(pBits1),extractFromView(pBits2)));
+    return wrapInView(manager.xor(extractFromView(pBits1), extractFromView(pBits2)));
   }
 
   @Override

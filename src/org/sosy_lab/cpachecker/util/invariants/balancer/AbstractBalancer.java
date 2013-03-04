@@ -60,7 +60,7 @@ public abstract class AbstractBalancer implements Balancer {
   FormulaMatriciser formMat = new BasicFormulaMatriciser();
 
   TemplateNetwork tnet;
-  Map<String,Variable> paramVars = null;
+  Map<String, Variable> paramVars = null;
   List<Matrix> matrices;
 
   final Timer redlog = new Timer();
@@ -91,23 +91,23 @@ public abstract class AbstractBalancer implements Balancer {
    * Diagnostic method, purely for logging.
    */
   void logMatrices() {
-    logger.log(Level.ALL,"Matrices:");
+    logger.log(Level.ALL, "Matrices:");
     for (Matrix m : matrices) {
-      logger.log(Level.ALL,"\n"+m.toString());
+      logger.log(Level.ALL, "\n"+m.toString());
     }
   }
 
-  Map<String,Variable> makeParamVars() {
+  Map<String, Variable> makeParamVars() {
     Set<String> params = tnet.writeAllParameters(VariableWriteMode.REDLOG);
-    Map<String,Variable> paramVars = new HashMap<>();
+    Map<String, Variable> paramVars = new HashMap<>();
     for (String p : params) {
       Variable v = new Variable(p);
-      paramVars.put(p,v);
+      paramVars.put(p, v);
     }
     return paramVars;
   }
 
-  void fillInZeros(Map<String,Rational> map, Set<String> params) {
+  void fillInZeros(Map<String, Rational> map, Set<String> params) {
     Set<String> dom = map.keySet();
     Rational r = Rational.makeZero();
     for (String p : params) {
@@ -122,9 +122,9 @@ public abstract class AbstractBalancer implements Balancer {
    * If it succeeds, then we return a map, mapping parameter names to rationals.
    * Else we return null.
    */
-  public HashMap<String,Rational> tryAssumptionSet(AssumptionSet aset) {
+  public HashMap<String, Rational> tryAssumptionSet(AssumptionSet aset) {
     logger.log(Level.ALL, "Asking Redlog to find values for the parameters, assuming:\n",aset);
-    HashMap<String,Rational> map = null;
+    HashMap<String, Rational> map = null;
 
     // If set is empty, then there are no conditions on the parameters.
     if (aset.size() == 0) {
@@ -149,7 +149,7 @@ public abstract class AbstractBalancer implements Balancer {
   }
 
   public boolean isSatisfiable(AssumptionSet aset) {
-    Map<String,Rational> map = tryAssumptionSet(aset);
+    Map<String, Rational> map = tryAssumptionSet(aset);
     return map != null || redlogReturnedTrue;
   }
 
@@ -159,8 +159,8 @@ public abstract class AbstractBalancer implements Balancer {
    * @param params The parameters for which to find values.
    * @return A map from parameter names to satisfying Rationals, if any are found; null otherwise.
    */
-  private HashMap<String,Rational> getParameterValuesFromRedlog(String phi, Set<String> params) {
-    HashMap<String,Rational> map = null;
+  private HashMap<String, Rational> getParameterValuesFromRedlog(String phi, Set<String> params) {
+    HashMap<String, Rational> map = null;
     redlogReturnedTrue = false;
     try {
       EliminationAnswer EA = RLI.rlqea(phi);
@@ -197,7 +197,7 @@ public abstract class AbstractBalancer implements Balancer {
     logger.log(Level.ALL, "\nInitial template:\n", t1, "\nPath formula:\n", p, "\nFinal template:\n", t2);
 
     // Index the templates so they match up with the path formula.
-    Map<String,Integer> indices = p.getMaxIndices();
+    Map<String, Integer> indices = p.getMaxIndices();
     t1.preindex(indices);
     t2.postindex(indices);
     logger.log(Level.ALL, "\nPreindexed initial template:\n", t1, "\nPostindexed final template:\n", t2);
@@ -229,10 +229,10 @@ public abstract class AbstractBalancer implements Balancer {
     int n = amap.size();
     int m = pur.size();
     //TODO review FormulaType.NumericType
-    TemplateVariableManager vmgr = new TemplateVariableManager(FormulaType.RationalType, n,m);
+    TemplateVariableManager vmgr = new TemplateVariableManager(FormulaType.RationalType, n, m);
     logger.log(Level.ALL, "Variable manager:\n", vmgr);
 
-    List<Matrix> matrices = consec(antD,t2,vmgr);
+    List<Matrix> matrices = consec(antD, t2, vmgr);
 
     // Restore templates and path formula.
     // They may be involved in other transitions, or we may restart the entire process
@@ -276,7 +276,7 @@ public abstract class AbstractBalancer implements Balancer {
   private List<Matrix> consec(TemplateDisjunction ant, TemplateFormula t2,
       VariableManager vmgr) {
     Vector<UIFAxiom> U = new Vector<>();
-    return consec(ant,t2,U,vmgr);
+    return consec(ant, t2, U, vmgr);
   }
 
   private List<Matrix> consec(TemplateDisjunction ant, TemplateFormula t2,
@@ -320,14 +320,14 @@ public abstract class AbstractBalancer implements Balancer {
         UIFAxiom A = U.get(i);
         concl = (Matrix) formMat.buildMatrix(A.getAntecedent(), vmgr, paramVars, prependTrue);
         logger.log(Level.ALL, "UIFAxiom:\n",A);
-        logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
+        logger.log(Level.ALL, "Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
             "\nConclusions:","\n"+concl.toString());
         matrices.add(Matrix.augment(prem, concl));
         prem = prem.concat(formMat.buildMatrix(A.getConsequent(), vmgr, paramVars, prependTrue));
       }
       concl = Q;
       //logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
-      logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
+      logger.log(Level.ALL, "Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
           "\nConclusions:","\n"+concl.toString());
       matrices.add(Matrix.augment(prem, concl));
     }

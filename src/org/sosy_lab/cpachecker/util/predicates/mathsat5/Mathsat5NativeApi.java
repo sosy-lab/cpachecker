@@ -227,7 +227,7 @@ class Mathsat5NativeApi {
   public static native boolean msat_term_is_and(long e, long t);
   public static native boolean msat_term_is_or(long e, long t);
   public static native boolean msat_term_is_not(long e, long t);
-  public static native boolean msat_term_is_iff(long e,long t);
+  public static native boolean msat_term_is_iff(long e, long t);
   public static native boolean msat_term_is_term_ite(long e, long t);
   public static native boolean msat_term_is_constant(long e, long t);
   public static native boolean msat_term_is_uf(long e, long t);

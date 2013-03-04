@@ -35,13 +35,13 @@ public class Monomial {
   // Whether or to write monomials like p1(p2^3) or like p1*(p2^3):
   private final boolean writeStars = true;
 
-  private Map<Variable,Integer> vars = new HashMap<>();
+  private Map<Variable, Integer> vars = new HashMap<>();
 
   public Monomial() {
     vars = new HashMap<>();
   }
 
-  public Monomial(Map<Variable,Integer> v) {
+  public Monomial(Map<Variable, Integer> v) {
     vars = v;
   }
 
@@ -51,7 +51,7 @@ public class Monomial {
   }
 
   public Monomial copy() {
-    Map<Variable,Integer> v = new HashMap<>();
+    Map<Variable, Integer> v = new HashMap<>();
     for (Variable x : vars.keySet()) {
       Variable xp = new Variable(x.getName());
       Integer pow = new Integer(vars.get(x).intValue());
@@ -97,9 +97,9 @@ public class Monomial {
    * Create the result of dividing m by n.
    */
   public static Monomial divide(Monomial m, Monomial n) {
-    Map<Variable,Integer> a = m.vars;
-    Map<Variable,Integer> b = n.vars;
-    Map<Variable,Integer> d = new HashMap<>();
+    Map<Variable, Integer> a = m.vars;
+    Map<Variable, Integer> b = n.vars;
+    Map<Variable, Integer> d = new HashMap<>();
     // First copy a.
     for (Variable v : a.keySet()) {
       d.put(v, a.get(v));
@@ -140,14 +140,14 @@ public class Monomial {
       int L = N/2;
       Monomial a = gcd(mlist.subList(0, L));
       Monomial b = gcd(mlist.subList(L, N));
-      Monomial d = gcd(a,b);
+      Monomial d = gcd(a, b);
       return d;
     }
     // If exactly 2:
     else {
-      Map<Variable,Integer> a = mlist.get(0).vars;
-      Map<Variable,Integer> b = mlist.get(1).vars;
-      Map<Variable,Integer> d = new HashMap<>();
+      Map<Variable, Integer> a = mlist.get(0).vars;
+      Map<Variable, Integer> b = mlist.get(1).vars;
+      Map<Variable, Integer> d = new HashMap<>();
       for (Variable v : a.keySet()) {
         if (b.containsKey(v)) {
           Integer ea = a.get(v);
@@ -236,11 +236,11 @@ public class Monomial {
     return null;
   }
 
-  public void setMonomial(Map<Variable,Integer> m) {
+  public void setMonomial(Map<Variable, Integer> m) {
     vars = m;
   }
 
-  public Map<Variable,Integer> getMonomial() {
+  public Map<Variable, Integer> getMonomial() {
     return vars;
   }
 

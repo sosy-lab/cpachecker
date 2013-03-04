@@ -36,7 +36,7 @@ public class ParameterManager {
 
   private final EAPair EAP;
   private String[] params = {};
-  private HashMap<String,ParameterAssignment> PAmap = null;
+  private HashMap<String, ParameterAssignment> PAmap = null;
 
   public ParameterManager(EAPair EAP) {
     this.EAP = EAP;
@@ -74,18 +74,18 @@ public class ParameterManager {
     return PAmap.get(param);
   }
 
-  public HashMap<String,Rational> getRationalValueMap() {
+  public HashMap<String, Rational> getRationalValueMap() {
     // Returns a mapping from parameter names to (constant)
     // rational values, where those parameters that did not get a
     // constant will map to null.
-    HashMap<String,Rational> map = new HashMap<>();
+    HashMap<String, Rational> map = new HashMap<>();
     if (PAmap != null) {
       Rational R;
       String a;
       for (int i = 0; i < params.length; i++) {
         a = params[i];
         R = PAmap.get(a).getValue();
-        map.put(a,R);
+        map.put(a, R);
       }
     }
     return map;
@@ -154,8 +154,8 @@ public class ParameterManager {
       a = ID.getName().toString();
       if (waitlist.contains(a)) {
         RHS = eqn.getRightHandSide();
-        PA = new ParameterAssignment(a,RHS);
-        PAmap.put(a,PA);
+        PA = new ParameterAssignment(a, RHS);
+        PAmap.put(a, PA);
         waitlist.remove(a);
       }
     }
@@ -170,7 +170,7 @@ public class ParameterManager {
     while (it.hasNext()) {
       p = it.next();
       dummyPA = new ParameterAssignment(p);
-      PAmap.put(p,dummyPA);
+      PAmap.put(p, dummyPA);
     }
   }
 

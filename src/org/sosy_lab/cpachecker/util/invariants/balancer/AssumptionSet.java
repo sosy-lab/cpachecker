@@ -120,12 +120,12 @@ public class AssumptionSet implements Iterable<Assumption> {
    * return value is only meant to serve as an "early warning" that the set contains a contradiction.
    */
   public boolean add(Assumption a) {
-    Assumption b,c;
+    Assumption b, c;
     for (int i = 0; i < aset.size(); i++) {
       b = aset.get(i);
       c = a.strengthen(b);
       if (c != null) {
-        aset.set(i,c);
+        aset.set(i, c);
         return c.getAssumptionType() != AssumptionType.FALSE;
       }
     }
@@ -139,7 +139,7 @@ public class AssumptionSet implements Iterable<Assumption> {
   public boolean add(Assumption a, boolean writeArgs) {
     System.out.println("Set was:"+this.toString());
     System.out.println("Adding:"+a.toString());
-    Assumption b,c;
+    Assumption b, c;
     for (int i = 0; i < aset.size(); i++) {
       b = aset.get(i);
       System.out.println("Strengthening"+b+"by"+a);

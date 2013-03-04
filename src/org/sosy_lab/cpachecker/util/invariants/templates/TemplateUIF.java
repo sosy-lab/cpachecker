@@ -74,13 +74,13 @@ public class TemplateUIF extends TemplateNumericValue {
     /*
     TemplateUIF u = null;
     if (index == null) {
-      u = new TemplateUIF(name,args.copy());
+      u = new TemplateUIF(name, args.copy());
     } else {
-      u = new TemplateUIF(name,args.copy(),index.intValue());
+      u = new TemplateUIF(name, args.copy(), index.intValue());
     }
     */
 
-    TemplateUIF u = new TemplateUIF(new String(name),pNewType, args.copy());
+    TemplateUIF u = new TemplateUIF(new String(name), pNewType, args.copy());
     if (index != null) {
       u.index = new Integer(index);
     }
@@ -111,7 +111,7 @@ public class TemplateUIF extends TemplateNumericValue {
   }
 
   @Override
-  public boolean evaluate(Map<String,Rational> map) {
+  public boolean evaluate(Map<String, Rational> map) {
     boolean ans = true;
     if (args!=null) {
       ans &= args.evaluate(map);
@@ -127,14 +127,14 @@ public class TemplateUIF extends TemplateNumericValue {
   }
 
   @Override
-  public void postindex(Map<String,Integer> indices) {
+  public void postindex(Map<String, Integer> indices) {
     if (args!=null) {
       args.postindex(indices);
     }
   }
 
   @Override
-  public void preindex(Map<String,Integer> indices) {
+  public void preindex(Map<String, Integer> indices) {
     if (args!=null) {
       args.preindex(indices);
     }
@@ -199,7 +199,7 @@ public class TemplateUIF extends TemplateNumericValue {
   }
 
   @Override
-  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
+  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     if (args!=null) {
       map = args.getMaxIndices(map);
     }

@@ -38,7 +38,7 @@ public class CReturnStatementEdge extends AReturnStatementEdge {
   public CReturnStatementEdge(String pRawStatement, CReturnStatement pRawAST,
       int pLineNumber, CFANode pPredecessor, FunctionExitNode pSuccessor) {
 
-    super(pRawStatement, pRawAST,pLineNumber, pPredecessor, pSuccessor);
+    super(pRawStatement, pRawAST, pLineNumber, pPredecessor, pSuccessor);
 
   }
 

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-public abstract class DefaultJExpressionVisitor<R,X extends Exception> implements JExpressionVisitor<R, X> {
+public abstract class DefaultJExpressionVisitor<R, X extends Exception> implements JExpressionVisitor<R, X> {
 
   protected abstract R visitDefault(JExpression e);
 

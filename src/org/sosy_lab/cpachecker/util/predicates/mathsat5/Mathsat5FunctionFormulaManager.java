@@ -95,7 +95,7 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
 
     List<Long> types =
       from(pArgs)
-      .transform(new Function<FormulaType<?>,Long>() {
+      .transform(new Function<FormulaType<?>, Long>() {
 
         @Override
         public Long apply(FormulaType<?> pArg0) {

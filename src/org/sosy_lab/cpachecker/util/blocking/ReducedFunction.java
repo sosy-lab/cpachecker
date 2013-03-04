@@ -36,7 +36,7 @@ import com.google.common.collect.Table;
 
 
 public class ReducedFunction {
-  private final Table<ReducedNode,ReducedNode,Set<ReducedEdge>> cfaEdges;
+  private final Table<ReducedNode, ReducedNode, Set<ReducedEdge>> cfaEdges;
   private final Multiset<ReducedNode> activeNodes;
   private final ReducedNode entryNode;
   private final ReducedNode exitNode;

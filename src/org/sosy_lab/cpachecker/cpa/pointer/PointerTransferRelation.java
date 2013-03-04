@@ -1528,7 +1528,7 @@ public class PointerTransferRelation implements TransferRelation {
   @SuppressWarnings("unused")
   private void handleStructDeclaration(PointerState element,
                                        TypesState typeElem, Type.CompositeType structType,
-                                       String varName,String recursiveVarName) {
+                                       String varName, String recursiveVarName) {
 
     Set<String> members = structType.getMembers();
 

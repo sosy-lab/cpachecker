@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
 
 public class ColumnChoiceFrame {
 
-  private Map<PivotRow2,UsableColumn> choices;
+  private Map<PivotRow2, UsableColumn> choices;
   private List<PivotRow2> rows;
   private int ptr;
   private int limit;
@@ -46,11 +46,11 @@ public class ColumnChoiceFrame {
     for (int i = 0; i < r.size(); i++) {
       ct.add(c);
     }
-    construct(r,ct);
+    construct(r, ct);
   }
 
   public ColumnChoiceFrame(List<PivotRow2> r, List<ChallengeType> c) {
-    construct(r,c);
+    construct(r, c);
   }
 
   private void construct(List<PivotRow2> r, List<ChallengeType> c) {
@@ -90,7 +90,7 @@ public class ColumnChoiceFrame {
     return ptr < limit;
   }
 
-  private void setChoices(Map<PivotRow2,UsableColumn> cm) {
+  private void setChoices(Map<PivotRow2, UsableColumn> cm) {
     choices = cm;
   }
 
@@ -138,7 +138,7 @@ public class ColumnChoiceFrame {
       uc = pr.getFreeOption(ptr);
     }
     // Add it to the choices map for the next frame.
-    Map<PivotRow2,UsableColumn> nextChoices = new HashMap<>(choices);
+    Map<PivotRow2, UsableColumn> nextChoices = new HashMap<>(choices);
     nextChoices.put(pr, uc);
     // Prepare the row list for the next frame.
     // Start by simply copying the present row list into a deque...
@@ -178,7 +178,7 @@ public class ColumnChoiceFrame {
         }
       }
       // Now add the challenged rows at the front of the queue.
-      nextRows.addAll(0,challenged);
+      nextRows.addAll(0, challenged);
       // And add as many free column challenge types to the front of the ctypes queue.
       nextCtypes.addAll(0, Collections.nCopies(challenged.size(), ChallengeType.FREECOLUMN));
     }

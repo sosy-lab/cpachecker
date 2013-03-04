@@ -50,7 +50,7 @@ public abstract class CtoFormulaCType implements CType {
 
   @Override
   public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
-    if (pVisitor instanceof CtoFormulaTypeVisitor<?,?>) {
+    if (pVisitor instanceof CtoFormulaTypeVisitor<?, ?>) {
       return accept((CtoFormulaTypeVisitor<R, X>)pVisitor);
     }
 

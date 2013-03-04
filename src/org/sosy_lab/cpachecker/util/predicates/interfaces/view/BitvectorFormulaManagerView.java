@@ -91,43 +91,43 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
 
   @Override
   public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
-    return wrapInView(manager.add(extractFromView(pNumber1),extractFromView(pNumbe2)));
+    return wrapInView(manager.add(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
   public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
-    return wrapInView(manager.subtract(extractFromView(pNumber1),extractFromView(pNumbe2)));
+    return wrapInView(manager.subtract(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
   public BitvectorFormula divide(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
-    return wrapInView(manager.divide(extractFromView(pNumber1),extractFromView(pNumbe2),signed));
+    return wrapInView(manager.divide(extractFromView(pNumber1), extractFromView(pNumbe2), signed));
   }
   @Override
   public BitvectorFormula modulo(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
-    return wrapInView(manager.modulo(extractFromView(pNumber1),extractFromView(pNumbe2),signed));
+    return wrapInView(manager.modulo(extractFromView(pNumber1), extractFromView(pNumbe2), signed));
   }
   @Override
   public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
-    return wrapInView(manager.multiply(extractFromView(pNumber1),extractFromView(pNumbe2)));
+    return wrapInView(manager.multiply(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
   public BooleanFormula equal(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
-    return wrapInView(manager.equal(extractFromView(pNumber1),extractFromView(pNumbe2)));
+    return wrapInView(manager.equal(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
   public BooleanFormula greaterThan(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
-    return wrapInView(manager.greaterThan(extractFromView(pNumber1),extractFromView(pNumbe2),signed));
+    return wrapInView(manager.greaterThan(extractFromView(pNumber1), extractFromView(pNumbe2), signed));
   }
   @Override
   public BooleanFormula greaterOrEquals(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
-    return wrapInView(manager.greaterOrEquals(extractFromView(pNumber1),extractFromView(pNumbe2),signed));
+    return wrapInView(manager.greaterOrEquals(extractFromView(pNumber1), extractFromView(pNumbe2), signed));
   }
   @Override
   public BooleanFormula lessThan(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
-    return wrapInView(manager.lessThan(extractFromView(pNumber1),extractFromView(pNumbe2),signed));
+    return wrapInView(manager.lessThan(extractFromView(pNumber1), extractFromView(pNumbe2), signed));
   }
   @Override
   public BooleanFormula lessOrEquals(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
-    return wrapInView(manager.lessOrEquals(extractFromView(pNumber1),extractFromView(pNumbe2),signed));
+    return wrapInView(manager.lessOrEquals(extractFromView(pNumber1), extractFromView(pNumbe2), signed));
   }
 
   @Override
@@ -147,12 +147,12 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
 
   @Override
   public boolean isDivide(BitvectorFormula pNumber, boolean signed) {
-    return manager.isDivide(extractFromView(pNumber),signed);
+    return manager.isDivide(extractFromView(pNumber), signed);
   }
 
   @Override
   public boolean isModulo(BitvectorFormula pNumber, boolean signed) {
-    return manager.isModulo(extractFromView(pNumber),signed);
+    return manager.isModulo(extractFromView(pNumber), signed);
   }
 
   @Override
@@ -167,23 +167,23 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
 
   @Override
   public boolean isGreaterThan(BooleanFormula pNumber, boolean signed) {
-    return manager.isGreaterThan(extractFromView(pNumber),signed);
+    return manager.isGreaterThan(extractFromView(pNumber), signed);
   }
 
 
   @Override
   public boolean isGreaterOrEquals(BooleanFormula pNumber, boolean signed) {
-    return manager.isGreaterOrEquals(extractFromView(pNumber),signed);
+    return manager.isGreaterOrEquals(extractFromView(pNumber), signed);
   }
 
   @Override
   public boolean isLessThan(BooleanFormula pNumber, boolean signed) {
-    return manager.isLessThan(extractFromView(pNumber),signed);
+    return manager.isLessThan(extractFromView(pNumber), signed);
   }
 
   @Override
   public boolean isLessOrEquals(BooleanFormula pNumber, boolean signed) {
-    return manager.isLessOrEquals(extractFromView(pNumber),signed);
+    return manager.isLessOrEquals(extractFromView(pNumber), signed);
   }
 
 
@@ -193,15 +193,15 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
   }
   @Override
   public BitvectorFormula and(BitvectorFormula pBits1, BitvectorFormula pBits2) {
-    return wrapInView(manager.and(extractFromView(pBits1),extractFromView(pBits2)));
+    return wrapInView(manager.and(extractFromView(pBits1), extractFromView(pBits2)));
   }
   @Override
   public BitvectorFormula or(BitvectorFormula pBits1, BitvectorFormula pBits2) {
-    return wrapInView(manager.or(extractFromView(pBits1),extractFromView(pBits2)));
+    return wrapInView(manager.or(extractFromView(pBits1), extractFromView(pBits2)));
   }
   @Override
   public BitvectorFormula xor(BitvectorFormula pBits1, BitvectorFormula pBits2) {
-    return wrapInView(manager.xor(extractFromView(pBits1),extractFromView(pBits2)));
+    return wrapInView(manager.xor(extractFromView(pBits1), extractFromView(pBits2)));
   }
 
   @Override
@@ -249,15 +249,15 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
    */
   @Override
   public BitvectorFormula shiftRight(BitvectorFormula pNumber, BitvectorFormula pToShift, boolean signed) {
-    return wrapInView(manager.shiftRight(extractFromView(pNumber),extractFromView(pToShift),signed));
+    return wrapInView(manager.shiftRight(extractFromView(pNumber), extractFromView(pToShift), signed));
   }
   @Override
   public BitvectorFormula shiftLeft(BitvectorFormula pNumber, BitvectorFormula pToShift) {
-    return wrapInView(manager.shiftLeft(extractFromView(pNumber),extractFromView(pToShift)));
+    return wrapInView(manager.shiftLeft(extractFromView(pNumber), extractFromView(pToShift)));
   }
   @Override
   public BitvectorFormula concat(BitvectorFormula pNumber, BitvectorFormula pAppend) {
-    return wrapInView(manager.concat(extractFromView(pNumber),extractFromView(pAppend)));
+    return wrapInView(manager.concat(extractFromView(pNumber), extractFromView(pAppend)));
   }
   @Override
   public BitvectorFormula extract(BitvectorFormula pNumber, int pMsb, int pLsb) {

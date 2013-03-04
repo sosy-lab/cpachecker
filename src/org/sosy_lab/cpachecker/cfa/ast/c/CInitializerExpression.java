@@ -33,7 +33,7 @@ public final class CInitializerExpression extends AInitializerExpression impleme
 
   public CInitializerExpression(final FileLocation pFileLocation,
                                    final CExpression pExpression) {
-    super(pFileLocation,pExpression);
+    super(pFileLocation, pExpression);
 
   }
 

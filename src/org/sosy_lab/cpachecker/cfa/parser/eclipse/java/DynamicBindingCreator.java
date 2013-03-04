@@ -191,22 +191,22 @@ public class DynamicBindingCreator {
       Set<JClassType> directSubClasses = methodDeclaringType.getDirectSubClasses();
 
     for (JClassType subClass : directSubClasses) {
-      copmleteBindingsForClassType(subClass, methodName,methodName);
+      copmleteBindingsForClassType(subClass, methodName, methodName);
     }
   }
 
   private void copmleteBindingsForClassType(JClassType classType, String methodNametoBeRegistered,
       String methodNameToRegister) {
 
-      String nextMethodNameToRegister = updateBinding(classType, methodNametoBeRegistered,methodNameToRegister);
+      String nextMethodNameToRegister = updateBinding(classType, methodNametoBeRegistered, methodNameToRegister);
 
       Set<JClassType> directSubClasses = classType.getDirectSubClasses();
       for (JClassType subClass : directSubClasses) {
-        copmleteBindingsForClassType(subClass, methodNametoBeRegistered,nextMethodNameToRegister);
+        copmleteBindingsForClassType(subClass, methodNametoBeRegistered, nextMethodNameToRegister);
       }
   }
 
-  private String updateBinding(JClassType classType,  String methodNametoBeRegistered,String methodNameToRegister) {
+  private String updateBinding(JClassType classType,  String methodNametoBeRegistered, String methodNameToRegister) {
 
       List<Pair<FunctionEntryNode, JClassOrInterfaceType>> subMethodBindings = subMethodsOfMethod.get(methodNameToRegister);
       String nextMethodNameToRegister = methodNameToRegister;
@@ -473,7 +473,7 @@ public class DynamicBindingCreator {
   private void createConditionEdges(CFANode prevNode, CFANode successfulNode,
       CFANode unsuccessfulNode, JClassOrInterfaceType classTypeOfNewMethodInvocation, JMethodInvocationExpression methodInvocation, FileLocation fileloc) {
 
-        final JExpression exp = astCreator.convertClassRunTimeCompileTimeAccord(fileloc,methodInvocation, classTypeOfNewMethodInvocation);
+        final JExpression exp = astCreator.convertClassRunTimeCompileTimeAccord(fileloc, methodInvocation, classTypeOfNewMethodInvocation);
 
         String rawSignature = exp.toASTString();
 
@@ -505,7 +505,7 @@ public class DynamicBindingCreator {
     // That way, even if the method is not overridden, it is tracked
     // with an empty list
     if (!subMethodsOfMethod.containsKey(entryNode.getFunctionDefinition().getName())) {
-      subMethodsOfMethod.put(entryNode.getFunctionDefinition().getName(), new LinkedList<Pair<FunctionEntryNode,JClassOrInterfaceType>>());
+      subMethodsOfMethod.put(entryNode.getFunctionDefinition().getName(), new LinkedList<Pair<FunctionEntryNode, JClassOrInterfaceType>>());
     }
 
     Pair<FunctionEntryNode, JClassOrInterfaceType> toBeRegistered = getPairToBeRegistered(declaration, entryNode);
@@ -553,7 +553,7 @@ public class DynamicBindingCreator {
 
    // If Method not yet parsed, it needs to be added
    if (!subMethodsOfMethod.containsKey(overridenMethodName)) {
-     subMethodsOfMethod.put(overridenMethodName, new LinkedList<Pair<FunctionEntryNode,JClassOrInterfaceType>>());
+     subMethodsOfMethod.put(overridenMethodName, new LinkedList<Pair<FunctionEntryNode, JClassOrInterfaceType>>());
    }
      subMethodsOfMethod.get(overridenMethodName).add(toBeRegistered);
   }

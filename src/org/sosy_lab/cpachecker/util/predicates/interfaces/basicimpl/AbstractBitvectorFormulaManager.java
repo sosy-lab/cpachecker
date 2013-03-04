@@ -164,7 +164,7 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
-    return wrapBool(greaterThan(param1, param2,signed));
+    return wrapBool(greaterThan(param1, param2, signed));
   }
 
   protected abstract TFormulaInfo greaterThan(TFormulaInfo pParam1, TFormulaInfo pParam2, boolean signed) ;
@@ -178,7 +178,7 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
-    return wrapBool(greaterOrEquals(param1, param2,signed));
+    return wrapBool(greaterOrEquals(param1, param2, signed));
   }
 
   protected abstract TFormulaInfo greaterOrEquals(TFormulaInfo pParam1, TFormulaInfo pParam2, boolean signed) ;
@@ -268,28 +268,28 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
   @Override
   public boolean isGreaterThan(BooleanFormula pNumber, boolean signed) {
     TFormulaInfo param = extractInfo(pNumber);
-    return isGreaterThan(param,signed);
+    return isGreaterThan(param, signed);
   }
   protected abstract boolean isGreaterThan(TFormulaInfo pParam, boolean signed) ;
 
   @Override
   public boolean isGreaterOrEquals(BooleanFormula pNumber, boolean signed) {
     TFormulaInfo param = extractInfo(pNumber);
-    return isGreaterOrEquals(param,signed);
+    return isGreaterOrEquals(param, signed);
   }
   protected abstract boolean isGreaterOrEquals(TFormulaInfo pParam, boolean signed) ;
 
   @Override
   public boolean isLessThan(BooleanFormula pNumber, boolean signed) {
     TFormulaInfo param = extractInfo(pNumber);
-    return isLessThan(param,signed);
+    return isLessThan(param, signed);
   }
   protected abstract boolean isLessThan(TFormulaInfo pParam, boolean signed) ;
 
   @Override
   public boolean isLessOrEquals(BooleanFormula pNumber, boolean signed) {
     TFormulaInfo param = extractInfo(pNumber);
-    return isLessOrEquals(param,signed);
+    return isLessOrEquals(param, signed);
   }
   protected abstract boolean isLessOrEquals(TFormulaInfo pParam, boolean signed) ;
 
@@ -393,7 +393,7 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
   protected abstract TFormulaInfo shiftRight(TFormulaInfo pNumber, TFormulaInfo toShift, boolean signed);
 
   @Override
-  public BitvectorFormula shiftLeft(BitvectorFormula pNumber,BitvectorFormula toShift) {
+  public BitvectorFormula shiftLeft(BitvectorFormula pNumber, BitvectorFormula toShift) {
     TFormulaInfo param1 = extractInfo(pNumber);
     TFormulaInfo param2 = extractInfo(toShift);
 

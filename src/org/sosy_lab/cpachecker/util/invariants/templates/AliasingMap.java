@@ -33,7 +33,7 @@ public class AliasingMap {
   private final String prefix;
 
   private final AtomicInteger nextIndex = new AtomicInteger(0);
-  private final HashMap<Pair<String,Integer>,Integer> map;
+  private final HashMap<Pair<String, Integer>, Integer> map;
 
   /**
    * @param prefix the letter you want all new variables to start with, e.g. "v"
@@ -55,7 +55,7 @@ public class AliasingMap {
   public void alias(TemplateVariable x) {
     String s = x.getName();
     Integer i = x.getIndex();
-    Pair<String,Integer> p =  Pair.<String,Integer>of(s,i);
+    Pair<String, Integer> p =  Pair.<String, Integer>of(s, i);
     Integer j;
     if (map.containsKey(p)) {
       j = map.get(p);

@@ -175,7 +175,7 @@ public class EclipseJavaParser implements Parser {
 
   private Scope prepareScope(String mainClassName) throws JParserException {
 
-    List<Pair<CompilationUnit,String>> astsOfFoundFiles = getASTsOfProgram();
+    List<Pair<CompilationUnit, String>> astsOfFoundFiles = getASTsOfProgram();
 
     Map<String, String> typeOfFiles = new HashMap<>();
     Map<String, JClassOrInterfaceType> types

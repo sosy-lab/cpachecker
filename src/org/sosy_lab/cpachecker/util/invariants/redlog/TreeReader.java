@@ -42,7 +42,7 @@ public class TreeReader {
   }
 
   public static String read(CAstNode N) {
-    return padread(N,"");
+    return padread(N, "");
   }
 
   private static String padread(CAstNode N, String pad) {
@@ -143,21 +143,21 @@ public class TreeReader {
       Rational a = TreeReader.evaluate(BE.getOperand1(), S);
       Rational b = TreeReader.evaluate(BE.getOperand2(), S);
       try {
-        r = a.operate(op,b);
+        r = a.operate(op, b);
       } catch (Exception e) {}
     } else if (cn.endsWith("UnaryExpression")) {
       // We assume the operator is "MINUS".
       CUnaryExpression U = (CUnaryExpression) N;
       Rational a = TreeReader.evaluate(U.getOperand(), S);
       try {
-        r = a.times(new Rational(-1,1));
+        r = a.times(new Rational(-1, 1));
       } catch (Exception e) {}
     } else if (cn.endsWith("IntegerLiteralExpression")) {
       AIntegerLiteralExpression I = (AIntegerLiteralExpression) N;
       BigInteger n = I.getValue();
       int m = n.intValue();
       try {
-        r = new Rational(m,1);
+        r = new Rational(m, 1);
       } catch (Exception e) {}
     } else if (cn.endsWith("IdExpression")) {
       CIdExpression ID = (CIdExpression) N;

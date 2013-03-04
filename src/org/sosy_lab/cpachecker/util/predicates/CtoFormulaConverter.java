@@ -403,7 +403,7 @@ public class CtoFormulaConverter {
   }
 
   private Variable makeFieldVariable(Variable pName, CFieldReference fExp, SSAMapBuilder ssa) {
-    Pair<Integer,Integer> msb_lsb = getFieldOffsetMsbLsb(fExp);
+    Pair<Integer, Integer> msb_lsb = getFieldOffsetMsbLsb(fExp);
     // NOTE: ALWAYS use pName.getType(),
     // because pName.getType() could be an instance of CFieldTrackType
     return Variable.create(
@@ -715,7 +715,7 @@ public class CtoFormulaConverter {
   }
 
   /** Takes a (scoped) struct variable name and returns the field variable name. */
-  static String makeFieldVariableName(String scopedId, Pair<Integer,Integer> msb_lsb, SSAMapBuilder ssa) {
+  static String makeFieldVariableName(String scopedId, Pair<Integer, Integer> msb_lsb, SSAMapBuilder ssa) {
     return FIELD_VARIABLE + scopedId +
           "__in__" + String.format("[%d:%d]", msb_lsb.getFirst(), msb_lsb.getSecond()) +
           "__at__" + ssa.getIndex(scopedId) +
@@ -2369,7 +2369,7 @@ public class CtoFormulaConverter {
     public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
       FormulaType<?> t = getFormulaTypeFromCType(fExp.getExpressionType());
       // TODO: Check if this is actually correct
-      return fmgr.makeNumber(t,fExp.getValue().longValue());
+      return fmgr.makeNumber(t, fExp.getValue().longValue());
     }
 
     private FunctionFormulaType<BitvectorFormula> stringUfDecl;

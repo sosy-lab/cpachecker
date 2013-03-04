@@ -158,7 +158,7 @@ public class GraphUtil {
   public static Vector<CFANode> dfs(CFANode start, CFANode target, boolean reverse, boolean interprocedural) {
     Vector<CFANode> path = new Vector<>();
     Set<CFANode> seen = new HashSet<>();
-    HashMap<CFANode,CFANode> links = new HashMap<>();
+    HashMap<CFANode, CFANode> links = new HashMap<>();
     Deque<CFANode> toProcess = new ArrayDeque<>();
     toProcess.push(start);
     CFANode n;

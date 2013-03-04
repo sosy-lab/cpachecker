@@ -201,7 +201,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
 
     // Get all distinct UIF names occurring at the top level in the loop formula,
     // and their arities.
-    Map<String,Integer> uifNA = getTopLevelUIFnamesAndArities(loopFormula);
+    Map<String, Integer> uifNA = getTopLevelUIFnamesAndArities(loopFormula);
 
     // Declare the list of terms for the template.
     List<TemplateTerm> templateTerms = new Vector<>();
@@ -262,9 +262,9 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     return terms;
   }
 
-  private Map<String,Integer> getTopLevelUIFnamesAndArities(TemplateFormula f) {
+  private Map<String, Integer> getTopLevelUIFnamesAndArities(TemplateFormula f) {
     Set<TemplateUIF> topLevelUIFs = f.getAllTopLevelUIFs();
-    HashMap<String,Integer> map = new HashMap<>();
+    HashMap<String, Integer> map = new HashMap<>();
     String name;
     Integer arity;
     for (TemplateUIF u : topLevelUIFs) {
@@ -336,7 +336,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     TemplateBoolean temp = disjuncts.get(0);
     Set<TemplateVariable> tllhsp = temp.getTopLevelLHSParameters();
     TemplateFormula nzpc = makeBasicParamClause(tllhsp);
-    Template t = new Template(temp,nzpc);
+    Template t = new Template(temp, nzpc);
     return t;
   }
 
@@ -398,7 +398,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     Vector<TemplateBoolean> conjuncts = new Vector<>();
     TemplateConstraint c;
     for (TemplateVariable p : params) {
-      c = new TemplateConstraint(p,InfixReln.EQUAL);
+      c = new TemplateConstraint(p, InfixReln.EQUAL);
       conjuncts.add(c);
     }
     TemplateConjunction conj = new TemplateConjunction(conjuncts);

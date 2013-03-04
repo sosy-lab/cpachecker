@@ -313,7 +313,7 @@ public class BDDRegionManager implements RegionManager {
   @Override
   public Region makeIte(Region pF1, Region pF2, Region pF3) {
     cleanupReferences();
-    return wrap(unwrap(pF1).ite(unwrap(pF2),unwrap(pF3)));
+    return wrap(unwrap(pF1).ite(unwrap(pF2), unwrap(pF3)));
   }
 
   @Override

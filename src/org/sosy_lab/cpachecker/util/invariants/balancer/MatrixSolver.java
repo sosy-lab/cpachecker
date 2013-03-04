@@ -68,23 +68,23 @@ public class MatrixSolver {
     while (true) {
       // Make a copy of the matrix.
       Matrix mat = matrix.copy();
-      logger.log(Level.ALL,"Basic matrix is:","\n"+mat.toString());
+      logger.log(Level.ALL, "Basic matrix is:","\n"+mat.toString());
       // First apply any substitutions available in the passed assumption set 'init'.
-      zeroSubs(mat,init);
+      zeroSubs(mat, init);
       // Make substitutions based on zero assumptions.
-      zeroSubs(mat,zeros);
-      logger.log(Level.ALL,"Using assumptions",zeros.toString()+",", "get matrix:","\n"+mat.toString());
+      zeroSubs(mat, zeros);
+      logger.log(Level.ALL, "Using assumptions",zeros.toString()+",", "get matrix:","\n"+mat.toString());
       // Put in reduced row-echelon form, obtaining the set of quantities that were
       // assumed to be nonzero during the process, and the set of quantities that must
       // be zero (because they are at the end of an almost zero row), in order for the
       // matrix to have a solution.
       rrefnonzeros = mat.putInRREF(logger);
-      logger.log(Level.ALL,"RREF:","\n"+mat.toString());
-      logger.log(Level.ALL,"Assumptions made during RREF process:","\n"+rrefnonzeros.toString());
+      logger.log(Level.ALL, "RREF:","\n"+mat.toString());
+      logger.log(Level.ALL, "Assumptions made during RREF process:","\n"+rrefnonzeros.toString());
       azrZeros = mat.getAlmostZeroRowAssumptions();
-      logger.log(Level.ALL,"Assumptions from almost-zero rows:","\n"+azrZeros.toString());
+      logger.log(Level.ALL, "Assumptions from almost-zero rows:","\n"+azrZeros.toString());
       // Create a PivotRowHandler.
-      PivotRowHandler prh = new PivotRowHandler(mat,logger);
+      PivotRowHandler prh = new PivotRowHandler(mat, logger);
       // Try to handle the pivot rows.
       try {
         // We try to get assumptions on the pivot rows which, together with all other assumptions,
@@ -99,7 +99,7 @@ public class MatrixSolver {
           // this must be either because the template can work but we made a nonzero assumption
           // which prevents it from working, or else because the template simply can't work at all.
           // We attempt to revise our nonzero assumptions, and try again.
-          logger.log(Level.ALL,"Nonzero assumptions were:","\n"+rrefnonzeros.toString());
+          logger.log(Level.ALL, "Nonzero assumptions were:","\n"+rrefnonzeros.toString());
           zeroPolyMan.extend(rrefnonzeros);
           logger.log(Level.ALL, zeroPolyMan);
           zeros = zeroPolyMan.next();
@@ -109,7 +109,7 @@ public class MatrixSolver {
             // on this template altogether.
             throw new MatrixSolvingFailedException(Reason.BadTemplate);
           }
-          logger.log(Level.ALL,"We therefore try again, assuming:","\n"+zeros.toString());
+          logger.log(Level.ALL, "We therefore try again, assuming:","\n"+zeros.toString());
         } else {
           // ...
           // Can the pivot row handler fail for any other reason?
@@ -214,7 +214,7 @@ public class MatrixSolver {
         List<Polynomial> polys = stack.get(i);
         Integer ptr = pointers.get(i);
         Polynomial p = polys.get(ptr);
-        aset.add(new Assumption(p,AssumptionType.ZERO));
+        aset.add(new Assumption(p, AssumptionType.ZERO));
       }
       return aset;
     }

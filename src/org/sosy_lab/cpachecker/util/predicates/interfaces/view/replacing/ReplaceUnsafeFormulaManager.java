@@ -40,7 +40,7 @@ public class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
   public ReplaceUnsafeFormulaManager(
       ReplacingFormulaManager pReplacingFormulaManager,
       UnsafeFormulaManager pUnsafeFormulaManager,
-      Function<FormulaType<?>,FormulaType<?>> unwrapTypes) {
+      Function<FormulaType<?>, FormulaType<?>> unwrapTypes) {
     this.replaceManager = pReplacingFormulaManager;
     this.rawUnsafeManager = pUnsafeFormulaManager;
     this.unwrapTypes = unwrapTypes;

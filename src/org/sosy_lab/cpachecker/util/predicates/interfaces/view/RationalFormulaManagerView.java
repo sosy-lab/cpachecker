@@ -52,43 +52,43 @@ public class RationalFormulaManagerView extends BaseManagerView<RationalFormula>
 
   @Override
   public RationalFormula add(RationalFormula pNumber1, RationalFormula pNumbe2) {
-    return wrapInView(manager.add(extractFromView(pNumber1),extractFromView(pNumbe2)));
+    return wrapInView(manager.add(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
   public RationalFormula subtract(RationalFormula pNumber1, RationalFormula pNumbe2) {
-    return wrapInView(manager.subtract(extractFromView(pNumber1),extractFromView(pNumbe2)));
+    return wrapInView(manager.subtract(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
   public RationalFormula divide(RationalFormula pNumber1, RationalFormula pNumbe2) {
-    return wrapInView(manager.divide(extractFromView(pNumber1),extractFromView(pNumbe2)));
+    return wrapInView(manager.divide(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
   public RationalFormula modulo(RationalFormula pNumber1, RationalFormula pNumbe2) {
-    return wrapInView(manager.modulo(extractFromView(pNumber1),extractFromView(pNumbe2)));
+    return wrapInView(manager.modulo(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
   public RationalFormula multiply(RationalFormula pNumber1, RationalFormula pNumbe2) {
-    return wrapInView(manager.multiply(extractFromView(pNumber1),extractFromView(pNumbe2)));
+    return wrapInView(manager.multiply(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
   public BooleanFormula equal(RationalFormula pNumber1, RationalFormula pNumbe2) {
-    return wrapInView(manager.equal(extractFromView(pNumber1),extractFromView(pNumbe2)));
+    return wrapInView(manager.equal(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
   public BooleanFormula greaterThan(RationalFormula pNumber1, RationalFormula pNumbe2) {
-    return wrapInView(manager.greaterThan(extractFromView(pNumber1),extractFromView(pNumbe2)));
+    return wrapInView(manager.greaterThan(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
   public BooleanFormula greaterOrEquals(RationalFormula pNumber1, RationalFormula pNumbe2) {
-    return wrapInView(manager.greaterOrEquals(extractFromView(pNumber1),extractFromView(pNumbe2)));
+    return wrapInView(manager.greaterOrEquals(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
   public BooleanFormula lessThan(RationalFormula pNumber1, RationalFormula pNumbe2) {
-    return wrapInView(manager.lessThan(extractFromView(pNumber1),extractFromView(pNumbe2)));
+    return wrapInView(manager.lessThan(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
   @Override
   public BooleanFormula lessOrEquals(RationalFormula pNumber1, RationalFormula pNumbe2) {
-    return wrapInView(manager.lessOrEquals(extractFromView(pNumber1),extractFromView(pNumbe2)));
+    return wrapInView(manager.lessOrEquals(extractFromView(pNumber1), extractFromView(pNumbe2)));
   }
 
 

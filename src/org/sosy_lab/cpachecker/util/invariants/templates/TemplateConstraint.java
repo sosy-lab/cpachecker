@@ -62,7 +62,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   }
 
   public TemplateConstraint(TemplateSum s1, InfixReln R, TemplateSum s2) {
-    construct(s1,R,s2);
+    construct(s1, R, s2);
   }
 
   /*
@@ -85,8 +85,8 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
     TemplateSum C2 = s2.getConstantPart();
     TemplateSum V2 = s2.getNonConstantPart();
 
-    LHS = TemplateSum.subtract(V1,V2);
-    RHS = TemplateSum.subtract(C2,C1);
+    LHS = TemplateSum.subtract(V1, V2);
+    RHS = TemplateSum.subtract(C2, C1);
   }
 
 //------------------------------------------------------------------
@@ -161,7 +161,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   }
 
   @Override
-  public boolean evaluate(Map<String,Rational> map) {
+  public boolean evaluate(Map<String, Rational> map) {
     boolean ans = true;
     ans &= LHS.evaluate(map);
     ans &= RHS.evaluate(map);
@@ -175,13 +175,13 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   }
 
   @Override
-  public void postindex(Map<String,Integer> indices) {
+  public void postindex(Map<String, Integer> indices) {
     LHS.postindex(indices);
     RHS.postindex(indices);
   }
 
   @Override
-  public void preindex(Map<String,Integer> indices) {
+  public void preindex(Map<String, Integer> indices) {
     LHS.preindex(indices);
     RHS.preindex(indices);
   }
@@ -232,7 +232,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   }
 
   @Override
-  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
+  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     map = LHS.getMaxIndices(map);
     map = RHS.getMaxIndices(map);
     return map;

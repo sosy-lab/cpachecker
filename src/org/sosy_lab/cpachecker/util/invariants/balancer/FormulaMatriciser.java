@@ -35,9 +35,9 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 
 public abstract class FormulaMatriciser {
 
-  public abstract MatrixI buildMatrix(TemplateFormula t, VariableManager vmgr, Map<String,Variable> paramVars, boolean prependTrue);
+  public abstract MatrixI buildMatrix(TemplateFormula t, VariableManager vmgr, Map<String, Variable> paramVars, boolean prependTrue);
 
-  protected static List<RationalFunction> makeRationalFunctions(List<Coeff> clist, Map<String,Variable> paramVars) {
+  protected static List<RationalFunction> makeRationalFunctions(List<Coeff> clist, Map<String, Variable> paramVars) {
     List<RationalFunction> rfs = new Vector<>(clist.size());
     for (Coeff c : clist) {
       rfs.add(c.makeRationalFunction(paramVars));

@@ -38,7 +38,7 @@ public class JReturnStatementEdge extends AReturnStatementEdge {
   public JReturnStatementEdge(String pRawStatement, JReturnStatement pRawAST,
       int pLineNumber, CFANode pPredecessor, FunctionExitNode pSuccessor) {
 
-    super(pRawStatement, pRawAST,pLineNumber, pPredecessor, pSuccessor);
+    super(pRawStatement, pRawAST, pLineNumber, pPredecessor, pSuccessor);
 
   }
 

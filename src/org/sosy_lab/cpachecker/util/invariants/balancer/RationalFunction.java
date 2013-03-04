@@ -42,7 +42,7 @@ public class RationalFunction {
   }
 
   public RationalFunction(int n) {
-    makeConstant(new Rational(n,1));
+    makeConstant(new Rational(n, 1));
   }
 
   public RationalFunction(String x) {
@@ -103,7 +103,7 @@ public class RationalFunction {
     Polynomial a = Polynomial.add(n1d2, n2d1);
     // Compute denominator b = d1*d2.
     Polynomial b = Polynomial.multiply(d1, d2);
-    RationalFunction f = new RationalFunction(a,b);
+    RationalFunction f = new RationalFunction(a, b);
     f.simplify();
     return f;
   }
@@ -120,7 +120,7 @@ public class RationalFunction {
     Polynomial a = Polynomial.subtract(n1d2, n2d1);
     // Compute denominator b = d1*d2.
     Polynomial b = Polynomial.multiply(d1, d2);
-    RationalFunction f = new RationalFunction(a,b);
+    RationalFunction f = new RationalFunction(a, b);
     f.simplify();
     return f;
   }
@@ -135,7 +135,7 @@ public class RationalFunction {
     Polynomial a = Polynomial.multiply(n1, n2);
     // Compute denominator b = d1*d2.
     Polynomial b = Polynomial.multiply(d1, d2);
-    RationalFunction f = new RationalFunction(a,b);
+    RationalFunction f = new RationalFunction(a, b);
     f.simplify();
     return f;
   }
@@ -150,18 +150,18 @@ public class RationalFunction {
     Polynomial a = Polynomial.multiply(n1, d2);
     // Compute denominator b = d1*n2.
     Polynomial b = Polynomial.multiply(d1, n2);
-    RationalFunction f = new RationalFunction(a,b);
+    RationalFunction f = new RationalFunction(a, b);
     f.simplify();
     return f;
   }
 
   public static RationalFunction makeReciprocal(RationalFunction f) {
-    return new RationalFunction(f.denom,f.num);
+    return new RationalFunction(f.denom, f.num);
   }
 
   public static RationalFunction makeNegative(RationalFunction f) {
     Polynomial negnum = Polynomial.makeNegative(f.num);
-    return new RationalFunction(negnum,f.denom);
+    return new RationalFunction(negnum, f.denom);
   }
 
   /*
@@ -170,7 +170,7 @@ public class RationalFunction {
   public static RationalFunction applySubstitution(Substitution subs, RationalFunction f) {
     Polynomial n = Polynomial.applySubstitution(subs, f.num);
     Polynomial d = Polynomial.applySubstitution(subs, f.denom);
-    RationalFunction g = new RationalFunction(n,d);
+    RationalFunction g = new RationalFunction(n, d);
     g.simplify();
     return g;
   }
@@ -198,13 +198,13 @@ public class RationalFunction {
   public boolean isRationalConstantMultipleOf(RationalFunction that) {
     Polynomial p = this.num.cancelRationalContent();
     Polynomial q = this.denom.cancelRationalContent();
-    RationalFunction a = new RationalFunction(p,q);
+    RationalFunction a = new RationalFunction(p, q);
     Polynomial r = that.num.cancelRationalContent();
     Polynomial s = that.denom.cancelRationalContent();
-    RationalFunction b = new RationalFunction(r,s);
-    if (subtract(a,b).isZero()) {
+    RationalFunction b = new RationalFunction(r, s);
+    if (subtract(a, b).isZero()) {
       return true;
-    } else if (add(a,b).isZero()) {
+    } else if (add(a, b).isZero()) {
       return true;
     } else {
       return false;
@@ -289,7 +289,7 @@ public class RationalFunction {
     // Cancel common monomial content of num and denom.
     Monomial mn = num.getMonomialContent();
     Monomial md = denom.getMonomialContent();
-    Monomial mc = Monomial.gcd(mn,md);
+    Monomial mc = Monomial.gcd(mn, md);
     if (!mc.isConstant()) {
       num.factorOut(mc);
       denom.factorOut(mc);
@@ -303,10 +303,10 @@ public class RationalFunction {
     if (cn >= 2 && cd >= 2) {
       Integer c = Polynomial.gcd(cnI, cdI);
       if (c.intValue() > 1) {
-        Rational d = new Rational(1,c);
+        Rational d = new Rational(1, c);
         Polynomial p = new Polynomial(d);
-        num = Polynomial.multiply(p,num);
-        denom = Polynomial.multiply(p,denom);
+        num = Polynomial.multiply(p, num);
+        denom = Polynomial.multiply(p, denom);
       }
     }
 
@@ -314,7 +314,7 @@ public class RationalFunction {
     if (denom.isConstant() && !denom.isUnity()) {
       Rational c = denom.getConstant();
       Polynomial cinv = new Polynomial(c.makeReciprocal());
-      num = Polynomial.multiply(cinv,num);
+      num = Polynomial.multiply(cinv, num);
       denom = new Polynomial(1);
     }
 

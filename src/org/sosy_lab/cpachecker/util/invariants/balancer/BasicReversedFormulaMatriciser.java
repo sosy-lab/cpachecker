@@ -116,7 +116,7 @@ public class BasicReversedFormulaMatriciser extends FormulaMatriciser {
       // in addition to the column itself, we adjoin its negation.
       if (reln == InfixReln.EQUAL) {
         coeffList = negative(coeffList);
-        rfs = makeRationalFunctions(coeffList,paramVars);
+        rfs = makeRationalFunctions(coeffList, paramVars);
         cols.add(new Matrix(rfs));
       }
     }

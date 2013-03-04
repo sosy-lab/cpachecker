@@ -136,7 +136,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
   // Data structures for label , continue , break
   private final Map<String, CLabelNode> labelMap = new HashMap<>();
-  private final Map<String, List<Pair<CFANode,ContinueStatement>>> registeredContinues = new HashMap<>();
+  private final Map<String, List<Pair<CFANode, ContinueStatement>>> registeredContinues = new HashMap<>();
 
   // Data structures for handling method declarations
   private JMethodEntryNode cfa = null;
@@ -2424,7 +2424,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
 
 
-     List<Pair<CFANode,ContinueStatement>> prevNodeList = registeredContinues.get(
+     List<Pair<CFANode, ContinueStatement>> prevNodeList = registeredContinues.get(
                continueStatement.getLabel().getIdentifier());
 
      if (prevNodeList == null) {

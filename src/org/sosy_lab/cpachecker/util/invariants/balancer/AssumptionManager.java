@@ -65,14 +65,14 @@ public class AssumptionManager {
     AssumptionRelation rel = matchAgainst(a);
     switch (rel) {
     case CONTRADICTS:
-      logger.log(Level.ALL,"Tried to add contradictory assumption!",a);
+      logger.log(Level.ALL, "Tried to add contradictory assumption!",a);
       throw new BadAssumptionsException();
     case WEAKENS:
     case ISSAMEAS:
-      logger.log(Level.ALL,"Assumption",a,"already implied by existing set. We leave the set unchanged.");
+      logger.log(Level.ALL, "Assumption",a,"already implied by existing set. We leave the set unchanged.");
       return;
     default:
-      logger.log(Level.ALL,"Adding new possibly unnecessary assumption, ",a);
+      logger.log(Level.ALL, "Adding new possibly unnecessary assumption, ",a);
       // In this case we must create a new stack frame, and then apply any substitutions resulting from a.
       // The assumption stack will automatically create a FRESH COPY of everything we send it.
       stack.addNewFrame(currentAssumptionSet, allCurrentMatrices(), a);
@@ -106,16 +106,16 @@ public class AssumptionManager {
   public void addNecessaryAssumptions(AssumptionSet na) throws BadAssumptionsException {
     // Add the assumptions to the current assumption set, and check whether this
     // gave rise to an immediate contradiction.
-    logger.log(Level.ALL,"Adding necessary assumptions:",na);
+    logger.log(Level.ALL, "Adding necessary assumptions:",na);
     boolean consistent = currentAssumptionSet.addAll(na);
     if (!consistent) {
       // Then there is a contradiction, so we throw an exception.
-      logger.log(Level.ALL,"There was a contradiction!");
+      logger.log(Level.ALL, "There was a contradiction!");
       throw new BadAssumptionsException();
     } else {
       // Then there was no immediate contradiction. So we proceed to apply these assumptions
       // as substitutions to both the current matrix, and also all matrices yet to be processed.
-      logger.log(Level.ALL,"There was no immediate contradiction.",
+      logger.log(Level.ALL, "There was no immediate contradiction.",
           "Assumption set is now:\n",currentAssumptionSet,
           "\nWe now apply substitutions if possible.");
       zeroSubsCurrent(na);
@@ -157,7 +157,7 @@ public class AssumptionManager {
       // Get the assumption that is to be applied to these data.
       // This is the alternative to the assumption that we made the last time we were at this juncture.
       Assumption a = f.getAssumption();
-      logger.log(Level.ALL,"We now apply assumption",a,"whose negation we applied last time we were at this juncture.");
+      logger.log(Level.ALL, "We now apply assumption",a,"whose negation we applied last time we were at this juncture.");
       // Now, if a is going to cause a contradition when added, this is something we really should
       // have realized last time we were at this juncture. Had we realized it then, then we would not
       // have added ~a as a possibly unnecessary assumption, but instead as a necessary one.

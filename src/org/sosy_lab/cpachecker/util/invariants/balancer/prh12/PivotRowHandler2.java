@@ -135,7 +135,7 @@ public class PivotRowHandler2 {
         }
       }
     }
-    logger.log(Level.ALL,"Wrote code table:","\n"+printCodes());
+    logger.log(Level.ALL, "Wrote code table:","\n"+printCodes());
   }
 
   private void computeUnblockedColumns() {
@@ -181,13 +181,13 @@ public class PivotRowHandler2 {
         // If every augmentation entry in row r is of code 0, 1, or 10,
         // and if every postpivot entry in row r is of code 0, 3, or 30,
         // then row r can be discarded.
-        logger.log(Level.ALL,"Discarding row",r,": all augmentation entries nonnegative,",
+        logger.log(Level.ALL, "Discarding row",r,": all augmentation entries nonnegative,",
             "and all postpivots nonpositive.");
         rowDiscard.add(r);
       } else if (EXpr3AU(r)) {
         // If row r has a post-pivot entry that is of code 3 and in an absolutely unblocked column,
         // then again we do not need to worry about row r at all.
-        logger.log(Level.ALL,"Discarding row",r,": contains a negative constant in an absolutely unblocked column.");
+        logger.log(Level.ALL, "Discarding row",r,": contains a negative constant in an absolutely unblocked column.");
         rowDiscard.add(r);
       } else if (FApr0110(r)) {
         // Suppose all post-pivot entries are of code 0, 1, or 10.
@@ -215,7 +215,7 @@ public class PivotRowHandler2 {
           logger.log(Level.ALL, "Discarding row",r,": all post-pivots are nonnegative.",
               "We assume all augmentation entries are nonnegative:\n",nonneg);
           if (poscols.size() > 0) {
-            logger.log(Level.ALL,"We also discard all postpivot columns having positive entry in this row:\n",
+            logger.log(Level.ALL, "We also discard all postpivot columns having positive entry in this row:\n",
                 poscols);
           }
           amgr.addNecessaryAssumptions(nonneg);
@@ -230,7 +230,7 @@ public class PivotRowHandler2 {
     // If there are any rows left...
     if (remainingRows.size() > 0) {
       // ...say what they are...
-      logger.log(Level.ALL,"The rows still remaining to be processed are:\n",remainingRows);
+      logger.log(Level.ALL, "The rows still remaining to be processed are:\n",remainingRows);
       // ...and determine which ones are challenged by their augmentation columns.
       // (while the rest are only potentially challenged, by a potentially positive
       //  post pivot entry).
@@ -350,7 +350,7 @@ public class PivotRowHandler2 {
     AssumptionSet aset = new AssumptionSet();
     for (int j = augStart; j < n; j++) {
       int c = codes[r][j];
-      RationalFunction f = mat.getEntry(r,j);
+      RationalFunction f = mat.getEntry(r, j);
       if (c == 2) {
         aset.add(new Assumption(f, AssumptionType.NONNEGATIVE));
       } else if (c == 30) {
@@ -428,10 +428,10 @@ public class PivotRowHandler2 {
           cstack.pop();
         } else {
           // If it is at least not obviously inconsistent, then ask Redlog whether it is satisfiable.
-          Map<String,Rational> map = mBalancer.tryAssumptionSet(curr);
+          Map<String, Rational> map = mBalancer.tryAssumptionSet(curr);
           if (map != null || mBalancer.redlogSaidTrue()) {
             // Success!
-            logger.log(Level.ALL,"The set is satisfiable!");
+            logger.log(Level.ALL, "The set is satisfiable!");
             successful = true;
             amgr.setCurrentAssumptionSet(curr);
             amgr.zeroSubsCurrent(aset);
@@ -443,7 +443,7 @@ public class PivotRowHandler2 {
 
     if (!successful) {
       // There was no way to satisfy the pivot rows and get parameter values, so we have to backtrack.
-      logger.log(Level.ALL,"There was no way to satisfy the remaining rows.");
+      logger.log(Level.ALL, "There was no way to satisfy the remaining rows.");
       throw new BadAssumptionsException();
     }
     // If we were successful, then we just return. The successful assumption set is in amgr.
@@ -455,7 +455,7 @@ public class PivotRowHandler2 {
     opman = new OptionManager2(this, logger);
     // Add the usable columns.
     for (Integer c : availableCols) {
-      UsableColumn u = new UsableColumn(mat,c,logger);
+      UsableColumn u = new UsableColumn(mat, c, logger);
       opman.addUsableColumn(u, c);
     }
     // Create the augmentation column.
@@ -475,7 +475,7 @@ public class PivotRowHandler2 {
     // Tell each one which are its usable columns.
     for (Integer r : remainingRows) {
       // Create and add.
-      PivotRow2 pr = new PivotRow2(r,logger);
+      PivotRow2 pr = new PivotRow2(r, logger);
       opman.addPivotRow(pr);
       // Assign usable columns.
       for (Integer c : availableCols) {

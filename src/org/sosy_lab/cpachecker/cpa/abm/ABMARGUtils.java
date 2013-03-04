@@ -79,7 +79,7 @@ class ABMARGUtils {
         CFAEdge edge = getEdgeToChild(currentElement, child);
         if (edge == null) {
           //this is a summary edge
-          Pair<Block,ReachedSet> pair = cpa.getTransferRelation().getCachedReachedSet(currentElement, reachedSet.getPrecision(currentElement));
+          Pair<Block, ReachedSet> pair = cpa.getTransferRelation().getCachedReachedSet(currentElement, reachedSet.getPrecision(currentElement));
           gatherReachedSets(cpa, pair.getFirst(), pair.getSecond(), blockToReachedSet);
         }
         if (!worklist.contains(child)) {

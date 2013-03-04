@@ -47,12 +47,12 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
     build(name, index);
   }
 
-  public TemplateVariable(FormulaType<?> type,String name) {
+  public TemplateVariable(FormulaType<?> type, String name) {
     super(type);
     build(name, null);
   }
 
-  public TemplateVariable(FormulaType<?> type,String name, Integer index) {
+  public TemplateVariable(FormulaType<?> type, String name, Integer index) {
     super(type);
     build(name, index);
   }
@@ -68,17 +68,17 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
    * @param vn
    * @return
    */
-  public static TemplateVariable parse(FormulaType<?> type,String vn) {
+  public static TemplateVariable parse(FormulaType<?> type, String vn) {
     TemplateVariable V;
     int i = vn.lastIndexOf("@");
     if (i < 0) {
       V = new TemplateVariable(type, vn);
     } else {
-      String s = vn.substring(0,i);
+      String s = vn.substring(0, i);
       String ind = vn.substring(i+1);
       Integer I = new Integer(ind);
       int j = I.intValue();
-      V = new TemplateVariable(type, s,j);
+      V = new TemplateVariable(type, s, j);
     }
     return V;
   }
@@ -102,7 +102,7 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
   }
 
   @Override
-  public void postindex(Map<String,Integer> indices) {
+  public void postindex(Map<String, Integer> indices) {
     if (name!=null && indices.containsKey(name)) {
       index = indices.get(name);
     } else {
@@ -111,7 +111,7 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
   }
 
   @Override
-  public void preindex(Map<String,Integer> indices) {
+  public void preindex(Map<String, Integer> indices) {
     if (name!=null && indices.containsKey(name)) {
       index = new Integer(1);
     } else {
@@ -129,15 +129,15 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
   }
 
   @Override
-  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
+  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     if (name!=null && index!=null) {
       if (map.containsKey(name)) {
         Integer J = map.get(name);
         if (index.compareTo(J) > 0) {
-          map.put(name,index);
+          map.put(name, index);
         }
       } else {
-        map.put(name,index);
+        map.put(name, index);
       }
     }
     return map;
@@ -184,7 +184,7 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
     if (index == null) {
       v = new TemplateVariable(pNewType, new String(name));
     } else {
-      v = new TemplateVariable(pNewType,new String(name), new Integer(index));
+      v = new TemplateVariable(pNewType, new String(name), new Integer(index));
     }
     return v;
   }

@@ -45,7 +45,7 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
       CStorageClass pCStorageClass, CType pType, String pName, String pOrigName,
       CInitializer pInitializer) {
 
-    super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), pOrigName,pInitializer);
+    super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), pOrigName, pInitializer);
     cStorageClass = pCStorageClass;
 
     checkArgument(!(cStorageClass == CStorageClass.EXTERN && getInitializer() != null), "Extern declarations cannot have an initializer");

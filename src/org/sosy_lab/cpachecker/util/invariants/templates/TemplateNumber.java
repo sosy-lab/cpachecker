@@ -34,17 +34,17 @@ public class TemplateNumber extends TemplateNumericValue {
 
   public TemplateNumber(FormulaType<?> type, int n) {
     super(type);
-    rat = new Rational(n,1);
+    rat = new Rational(n, 1);
   }
 
   /*
    * Here we enforce the rule that our numbers are rationals, not floats.
    */
-  public TemplateNumber(FormulaType<?> type,String s) {
+  public TemplateNumber(FormulaType<?> type, String s) {
     super(type);
     try {
       Integer i = new Integer(s);
-      rat = new Rational(i,1);
+      rat = new Rational(i, 1);
     } catch (Exception e) {
       System.err.println("Attempted to use float "+s+".\nOnly rational coefficients are allowed.");
       System.exit(1);
@@ -55,7 +55,7 @@ public class TemplateNumber extends TemplateNumericValue {
     return rat;
   }
 
-  public TemplateNumber(FormulaType<?> type,Rational r) {
+  public TemplateNumber(FormulaType<?> type, Rational r) {
     super(type);
     rat = r;
   }
@@ -87,7 +87,7 @@ public class TemplateNumber extends TemplateNumericValue {
 
   public static TemplateNumber add(TemplateNumber n1, TemplateNumber n2) {
     Rational r = n1.rat.plus(n2.rat);
-    return new TemplateNumber(n1.getFormulaType(),r);
+    return new TemplateNumber(n1.getFormulaType(), r);
   }
 
   public TemplateNumber divideBy(TemplateNumber n) {

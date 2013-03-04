@@ -92,7 +92,7 @@ public class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaMa
 
 
     List<Sort> types = Lists.transform(pArgs,
-      new Function<FormulaType<?>,Sort>() {
+      new Function<FormulaType<?>, Sort>() {
         @Override
         public Sort apply(FormulaType<?> pArg0) {
           return toSmtInterpolType(pArg0);

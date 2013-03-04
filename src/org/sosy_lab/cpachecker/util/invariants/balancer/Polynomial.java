@@ -51,7 +51,7 @@ public class Polynomial {
   }
 
   public Polynomial(int n) {
-    makeConstant(new Rational(n,1));
+    makeConstant(new Rational(n, 1));
   }
 
   public Polynomial(Rational r) {
@@ -79,8 +79,8 @@ public class Polynomial {
   }
 
   public boolean equals(Polynomial that) {
-    Map<String,Rational> m1 = this.getMonomToCoeffMap();
-    Map<String,Rational> m2 = that.getMonomToCoeffMap();
+    Map<String, Rational> m1 = this.getMonomToCoeffMap();
+    Map<String, Rational> m2 = that.getMonomToCoeffMap();
     boolean answer = true;
     for (String s : m1.keySet()) {
       if (!m2.containsKey(s)) {
@@ -98,9 +98,9 @@ public class Polynomial {
     return answer;
   }
 
-  public Map<String,Rational> getMonomToCoeffMap() {
+  public Map<String, Rational> getMonomToCoeffMap() {
     collect();
-    Map<String,Rational> map = new HashMap<>();
+    Map<String, Rational> map = new HashMap<>();
     for (Term t : terms) {
       String m = t.getMonomial().toString(true);
       Rational c = t.getCoeff();
@@ -197,7 +197,7 @@ public class Polynomial {
         if (e == 1) {
           p = g;
         } else {
-          p = Polynomial.power(g,e);
+          p = Polynomial.power(g, e);
         }
         // Multiply, and add the result to h.
         p = Polynomial.multiply(p, q);
@@ -219,7 +219,7 @@ public class Polynomial {
   public static List<Term> collect(List<Term> tlist) {
     // Make a map from monomial strings, written alphabetically,
     // to a Term whose coeff is the cumulative coefficient for that monomial.
-    Map<String,Term> gatheredTerms = new HashMap<>();
+    Map<String, Term> gatheredTerms = new HashMap<>();
     boolean sortAlpha = true;
     for (Term t : tlist) {
       String monom = t.getMonomial().toString(sortAlpha);
@@ -410,7 +410,7 @@ public class Polynomial {
     Polynomial lTimesThis = multiply(new Polynomial(l), this);
     int g = lTimesThis.getIntegerContent();
     // Return the rational content g/l.
-    Rational c = new Rational(g,l);
+    Rational c = new Rational(g, l);
     return c;
   }
 
@@ -438,9 +438,9 @@ public class Polynomial {
     Rational b = that.getRationalContent();
     Polynomial p = this.cancelRationalContent();
     Polynomial q = that.cancelRationalContent();
-    if (subtract(p,q).isZero()) {
+    if (subtract(p, q).isZero()) {
       return a.div(b);
-    } else if (add(p,q).isZero()) {
+    } else if (add(p, q).isZero()) {
       return a.div(b).makeNegative();
     } else {
       return null;
@@ -450,9 +450,9 @@ public class Polynomial {
   public boolean isRationalConstantMultipleOf(Polynomial that) {
     Polynomial p = this.cancelRationalContent();
     Polynomial q = that.cancelRationalContent();
-    if (subtract(p,q).isZero()) {
+    if (subtract(p, q).isZero()) {
       return true;
-    } else if (add(p,q).isZero()) {
+    } else if (add(p, q).isZero()) {
       return true;
     } else {
       return false;
@@ -517,7 +517,7 @@ public class Polynomial {
     List<Term> results = new Vector<>(terms.size());
     for (Term t : terms) {
       if (m.divides(t)) {
-        Term u = Term.divide(t,m);
+        Term u = Term.divide(t, m);
         results.add(u);
       } else {
         success = false;
@@ -577,14 +577,14 @@ public class Polynomial {
       int L = N/2;
       Integer a = gcd(mlist.subList(0, L));
       Integer b = gcd(mlist.subList(L, N));
-      Integer d = gcd(a,b);
+      Integer d = gcd(a, b);
       return d;
     }
     // If exactly 2:
     else {
       Integer a = mlist.get(0);
       Integer b = mlist.get(1);
-      return euclideanAlgorithm(a,b);
+      return euclideanAlgorithm(a, b);
     }
   }
 
@@ -628,7 +628,7 @@ public class Polynomial {
     Polynomial rhs = new Polynomial(others);
     // Now multiply it by the negative reciprocal of lin's coeff.
     Rational c = lin.getCoeff().makeNegative().makeReciprocal();
-    rhs = Polynomial.multiply(new Polynomial(c),rhs);
+    rhs = Polynomial.multiply(new Polynomial(c), rhs);
     // Grab lin's variable.
     Variable v = lin.getLinearVariable();
     // Return the result.

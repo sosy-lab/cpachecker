@@ -339,7 +339,7 @@ class OctTransferRelation implements TransferRelation{
   }
 
   private AbstractState propagateBooleanExpression(OctState pElement,
-      BinaryOperator opType,CExpression op1,
+      BinaryOperator opType, CExpression op1,
       CExpression op2, String functionName, boolean truthValue, CFAEdge edge)
   throws UnrecognizedCCodeException {
 

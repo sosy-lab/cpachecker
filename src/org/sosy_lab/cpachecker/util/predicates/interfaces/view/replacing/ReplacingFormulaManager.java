@@ -57,9 +57,9 @@ public class ReplacingFormulaManager implements FormulaManager {
     this.rawFormulaManager = rawFormulaManager;
 
     // Setup replacement environment
-    Function<FormulaType<?>,FormulaType<?>>
+    Function<FormulaType<?>, FormulaType<?>>
     unwrapTypes = new
-        Function<FormulaType<?>,FormulaType<?>>() {
+        Function<FormulaType<?>, FormulaType<?>>() {
           @Override
           public FormulaType<?> apply(FormulaType<?> pArg0) {
             Class<? extends Formula> clazz = pArg0.getInterfaceType();
@@ -133,8 +133,8 @@ public class ReplacingFormulaManager implements FormulaManager {
 
   @SuppressWarnings("unchecked")
   public <T extends Formula> T unwrap(Formula f) {
-    if (f instanceof WrappingFormula<?,?>) {
-      return ((WrappingFormula<T,?>)f).getWrapped();
+    if (f instanceof WrappingFormula<?, ?>) {
+      return ((WrappingFormula<T, ?>)f).getWrapped();
     } else {
       return (T) f;
     }
@@ -169,8 +169,8 @@ public class ReplacingFormulaManager implements FormulaManager {
   @Override
   public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
     FormulaType<?> t;
-    if (pFormula instanceof WrappingFormula<?,?>) {
-      WrappingFormula<?, ?> castFormula = (WrappingFormula<?,?>)pFormula;
+    if (pFormula instanceof WrappingFormula<?, ?>) {
+      WrappingFormula<?, ?> castFormula = (WrappingFormula<?, ?>)pFormula;
       t = castFormula.getType();
     } else {
       t = rawFormulaManager.getFormulaType(pFormula);
@@ -192,7 +192,7 @@ public class ReplacingFormulaManager implements FormulaManager {
 
   @Override
   public <T extends Formula> Class<T> getInterface(T pInstance) {
-    if (pInstance instanceof WrappingFormula<?,?>) {
+    if (pInstance instanceof WrappingFormula<?, ?>) {
       return AbstractFormulaManager.getInterfaceHelper(pInstance);
     } else {
       return rawFormulaManager.getInterface(pInstance);
@@ -201,7 +201,7 @@ public class ReplacingFormulaManager implements FormulaManager {
 
   @Override
   public String dumpFormula(Formula pT) {
-    if (pT instanceof WrappingFormula<?,?>) {
+    if (pT instanceof WrappingFormula<?, ?>) {
       pT = unwrap(pT);
     }
 

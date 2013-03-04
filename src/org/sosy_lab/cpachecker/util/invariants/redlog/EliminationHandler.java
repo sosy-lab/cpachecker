@@ -37,7 +37,7 @@ public class EliminationHandler {
     this.EA = EA;
   }
 
-  public HashMap<String,Rational> getParameterValues(Collection<String> params) {
+  public HashMap<String, Rational> getParameterValues(Collection<String> params) {
     // Pass the list of parameters for which you want values.  We
     // look for values in the EliminationAnswer that was passed to
     // the constructor.  If we find an EAPair in which every
@@ -49,7 +49,7 @@ public class EliminationHandler {
     // that Redlog returns when it does not return constants), but
     // for now this has not been implemented.
 
-    HashMap<String,Rational> map = null;
+    HashMap<String, Rational> map = null;
 
     // Get iterator over the EAPairs in EA.
     Iterator<EAPair> eapairIterator = EA.iterator();

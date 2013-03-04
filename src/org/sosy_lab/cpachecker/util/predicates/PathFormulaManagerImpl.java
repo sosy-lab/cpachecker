@@ -100,7 +100,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
     SSAMap ssa1 = pF1.getSsa();
     SSAMap ssa2 = pF2.getSsa();
 
-    Pair<Pair<BooleanFormula, BooleanFormula>,SSAMap> pm = mergeSSAMaps(ssa2, ssa1);
+    Pair<Pair<BooleanFormula, BooleanFormula>, SSAMap> pm = mergeSSAMaps(ssa2, ssa1);
 
     // do not swap these two lines, that makes a huge difference in performance!
     BooleanFormula newFormula2 = bfmgr.and(formula2, pm.getFirst().getFirst());

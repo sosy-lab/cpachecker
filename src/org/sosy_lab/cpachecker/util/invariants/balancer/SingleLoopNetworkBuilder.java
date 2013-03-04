@@ -126,7 +126,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     loopFormulaHead = loopFormulas.get(1);
     loopFormulaTail = loopFormulas.get(2);
 
-    Pair<PathFormula,PathFormula> exitHeadAndTail = buildExitFormulaHeadAndTail(cePath, loopHead);
+    Pair<PathFormula, PathFormula> exitHeadAndTail = buildExitFormulaHeadAndTail(cePath, loopHead);
     exitFormulaHead = exitHeadAndTail.getFirst();
     exitFormulaTail = exitHeadAndTail.getSecond();
     exitFormula = buildExitFormula(cePath, loopHead);
@@ -203,7 +203,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     logger.log(Level.ALL, "Loop:\n",loop);
     Vector<CFANode> loopNodes = new Vector<>(loop.getLoopNodes());
     Vector<CFAEdge> loopEdges = GraphUtil.makeEdgeLoop(loopNodes, logger);
-    logger.log(Level.ALL,"Sequence of edges in loop:\n",loopEdges);
+    logger.log(Level.ALL, "Sequence of edges in loop:\n",loopEdges);
     // head:
     Vector<CFAEdge> loopHead = new Vector<>(1);
     loopHead.add(loopEdges.get(0));
@@ -248,7 +248,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     return exitFormula;
   }
 
-  private Pair<PathFormula,PathFormula> buildExitFormulaHeadAndTail(ARGPath pPath, CFANode loopHead) {
+  private Pair<PathFormula, PathFormula> buildExitFormulaHeadAndTail(ARGPath pPath, CFANode loopHead) {
     // Like buildExitFormula method, only returns the formula for the exit path in two parts:
     // the "head", being the first edge, and the "tail", being the remainder of the path.
     CFAEdge headEdge = null;
@@ -274,7 +274,7 @@ public class SingleLoopNetworkBuilder implements NetworkBuilder {
     // build path formula for these edges
     PathFormula headFormula = tpfb.buildPathFormula(headEdge);
     PathFormula tailFormula = tpfb.buildPathFormula(tailEdges);
-    Pair<PathFormula,PathFormula> exitFormulae = Pair.<PathFormula,PathFormula>of(headFormula,tailFormula);
+    Pair<PathFormula, PathFormula> exitFormulae = Pair.<PathFormula, PathFormula>of(headFormula, tailFormula);
     return exitFormulae;
   }
 

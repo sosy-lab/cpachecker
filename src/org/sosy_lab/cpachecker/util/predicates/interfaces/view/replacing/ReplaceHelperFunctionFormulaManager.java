@@ -47,7 +47,7 @@ public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManag
   public ReplaceHelperFunctionFormulaManager(
       ReplacingFormulaManager replaceFormulaManager,
       FunctionFormulaManager pFunctionFormulaManager,
-      Function<FormulaType<?>,FormulaType<?>> unwrapTypes
+      Function<FormulaType<?>, FormulaType<?>> unwrapTypes
       ) {
     this.replaceManager = replaceFormulaManager;
     this.rawFunctionFormulaManager = pFunctionFormulaManager;

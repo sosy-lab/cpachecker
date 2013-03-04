@@ -105,7 +105,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   @Override
-  public boolean evaluate(Map<String,Rational> map) {
+  public boolean evaluate(Map<String, Rational> map) {
     boolean ans = true;
     if (hasParameter()) {
       ans = false;
@@ -122,7 +122,7 @@ public class TemplateTerm extends TemplateSum {
           setCoefficient(P);
         } else {
           TemplateNumber Q = getCoefficient();
-          TemplateNumber M = TemplateNumber.multiply(Q,P);
+          TemplateNumber M = TemplateNumber.multiply(Q, P);
           setCoefficient(M);
         }
         ans = true;
@@ -146,7 +146,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   @Override
-  public void postindex(Map<String,Integer> indices) {
+  public void postindex(Map<String, Integer> indices) {
     if (hasVariable()) {
       var.postindex(indices);
     } else if (hasUIF()) {
@@ -156,7 +156,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   @Override
-  public void preindex(Map<String,Integer> indices) {
+  public void preindex(Map<String, Integer> indices) {
     if (hasVariable()) {
       var.preindex(indices);
     } else if (hasUIF()) {
@@ -249,7 +249,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   @Override
-  public HashMap<String,Integer> getMaxIndices(HashMap<String,Integer> map) {
+  public HashMap<String, Integer> getMaxIndices(HashMap<String, Integer> map) {
     if (hasVariable()) {
       map = var.getMaxIndices(map);
     }
@@ -261,7 +261,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   public int getMaxIndex() {
-    HashMap<String,Integer> map = getMaxIndices(new HashMap<String,Integer>());
+    HashMap<String, Integer> map = getMaxIndices(new HashMap<String, Integer>());
     int n = 0;
     for (Integer I : map.values()) {
       if (I.intValue() > n) {
@@ -294,7 +294,7 @@ public class TemplateTerm extends TemplateSum {
     }
   }
 
-  public Term makeRationalFunctionTerm(Map<String,Variable> paramVars) {
+  public Term makeRationalFunctionTerm(Map<String, Variable> paramVars) {
     Term t = new Term();
     Rational c = Rational.makeUnity();
     if (hasCoefficient()) {
@@ -632,7 +632,7 @@ public class TemplateTerm extends TemplateSum {
     }
 
     if (hc1 && hc2) {
-      TemplateNumber N = TemplateNumber.multiply(c1,c2);
+      TemplateNumber N = TemplateNumber.multiply(c1, c2);
       T.setCoefficient(N);
     }
 

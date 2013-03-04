@@ -37,19 +37,19 @@ public class Purification {
   private AtomicInteger nextUsableIndex = new AtomicInteger(0);
 
   // map from UIF signature to fresh variable:
-  private HashMap<String,TemplateTerm> defs = new HashMap<>();
+  private HashMap<String, TemplateTerm> defs = new HashMap<>();
 
   // map from fresh variable subscript to a UIF that the fresh variable stands for:
-  private HashMap<Integer,TemplateUIF> UIFByIndex = new HashMap<>();
+  private HashMap<Integer, TemplateUIF> UIFByIndex = new HashMap<>();
 
   // map from fresh variable string to a UIF that the fresh variable stands for:
-  private HashMap<String,TemplateUIF> UIFByVarString = new HashMap<>();
+  private HashMap<String, TemplateUIF> UIFByVarString = new HashMap<>();
 
   // map from fresh variable string to TemplateTerm representing it:
-  private HashMap<String,TemplateTerm> TTByVarString = new HashMap<>();
+  private HashMap<String, TemplateTerm> TTByVarString = new HashMap<>();
 
   // map from function name to the set of indices of fresh variables for UIFs with this function
-  private HashMap<String,Set<String>> varsByFunctionName = new HashMap<>();
+  private HashMap<String, Set<String>> varsByFunctionName = new HashMap<>();
 
   public Purification() {
     prefix = "u";
@@ -121,7 +121,7 @@ public class Purification {
     Integer I = A.getVariableIndex();
     UIFByIndex.put(I, F);
     String ui = A.toString(VariableWriteMode.PLAIN);
-    partitionByName(ui,F);
+    partitionByName(ui, F);
     UIFByVarString.put(ui, F);
     TTByVarString.put(ui, A);
   }

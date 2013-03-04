@@ -66,7 +66,7 @@ public class BasicBalancer implements Balancer {
 
   // end options.
 
-  private Map<String,Variable> paramVars = null;
+  private Map<String, Variable> paramVars = null;
 
   private LogManager logger;
   private final RedlogInterface RLI;
@@ -126,7 +126,7 @@ public class BasicBalancer implements Balancer {
       tnet.setAssumptions(aset);
     }
 
-    HashMap<String,Rational> map = null;
+    HashMap<String, Rational> map = null;
     boolean succeed = false;
 
     // If set is empty, then there are no conditions on the parameters.
@@ -148,7 +148,7 @@ public class BasicBalancer implements Balancer {
       logger.log(Level.FINEST, "Redlog could not find values for all parameters.");
     } else {
       // Set parameters to zero for which Redlog specified no value.
-      fillInZeros(map,params);
+      fillInZeros(map, params);
       // Now evaluate the tnet.
       succeed = tnet.evaluate(map);
       if (!succeed) {
@@ -161,11 +161,11 @@ public class BasicBalancer implements Balancer {
 
   }
 
-  private Map<String,Variable> makeParamVars(Set<String> params) {
-    Map<String,Variable> paramVars = new HashMap<>();
+  private Map<String, Variable> makeParamVars(Set<String> params) {
+    Map<String, Variable> paramVars = new HashMap<>();
     for (String p : params) {
       Variable v = new Variable(p);
-      paramVars.put(p,v);
+      paramVars.put(p, v);
     }
     return paramVars;
   }
@@ -223,7 +223,7 @@ public class BasicBalancer implements Balancer {
     // Attempt quantifier elimination, and determination of values for all parameters.
     boolean succeed = false;
     redlog.start();
-    HashMap<String,Rational> map = getParameterValuesFromRedlog(Phi, params);
+    HashMap<String, Rational> map = getParameterValuesFromRedlog(Phi, params);
     redlog.stop();
     logger.log(Level.ALL, "Redlog took", redlog.getSumTime(), "milliseconds.");
 
@@ -231,7 +231,7 @@ public class BasicBalancer implements Balancer {
       logger.log(Level.FINEST, "Redlog could not find values for all parameters.");
     } else {
       // Set parameters to zero for which Redlog specified no value.
-      fillInZeros(map,params);
+      fillInZeros(map, params);
       // Now evaluate the tnet.
       succeed = tnet.evaluate(map);
       if (!succeed) {
@@ -266,7 +266,7 @@ public class BasicBalancer implements Balancer {
     logger.log(Level.ALL, "\nInitial template:\n", t1, "\nPath formula:\n", p, "\nFinal template:\n", t2);
 
     // Index the templates so they match up with the path formula.
-    Map<String,Integer> indices = p.getMaxIndices();
+    Map<String, Integer> indices = p.getMaxIndices();
     t1.preindex(indices);
     t2.postindex(indices);
     logger.log(Level.ALL, "\nPreindexed initial template:\n", t1, "\nPostindexed final template:\n", t2);
@@ -296,45 +296,45 @@ public class BasicBalancer implements Balancer {
     int m = pur.size();
 
     // TODO: Review FormulaType.NumericType
-    TemplateVariableManager vmgr = new TemplateVariableManager(FormulaType.RationalType, n,m);
+    TemplateVariableManager vmgr = new TemplateVariableManager(FormulaType.RationalType, n, m);
     logger.log(Level.ALL, "Variable manager:\n", vmgr);
 
     // Find a formula, using the desired strategy.
     switch (strategy) {
     case DONOTUSEAXIOMS:
       if (useRREF) {
-        findSingleTransitionRREFassumptionsWithoutUIFAxioms(t,antD,t2,vmgr,tnet);
+        findSingleTransitionRREFassumptionsWithoutUIFAxioms(t, antD, t2, vmgr, tnet);
       } else {
-        findSingleTransitionFormulaWithoutUIFAxioms(t,antD,t2,vmgr);
+        findSingleTransitionFormulaWithoutUIFAxioms(t, antD, t2, vmgr);
       }
       break;
     case USEAXIOMS:
       if (m >= 2) {
-        findSingleTransitionFormulaWithUIFAxioms(t,antD,t2,vmgr,pur);
+        findSingleTransitionFormulaWithUIFAxioms(t, antD, t2, vmgr, pur);
         // TODO: reimplement this:
         /*
         if (useRREF) {
-          findSingleTransitionRREFassumptionsWithUIFAxioms(t,antD,t2,vmgr,pur);
+          findSingleTransitionRREFassumptionsWithUIFAxioms(t, antD, t2, vmgr, pur);
         } else {
-          findSingleTransitionFormulaWithUIFAxioms(t,antD,t2,vmgr,pur);
+          findSingleTransitionFormulaWithUIFAxioms(t, antD, t2, vmgr, pur);
         }
         */
       } else {
         // FIXME: Really, we should just quit at this point. But we need to
         // refactor, and reorganize the loop control!
         if (useRREF) {
-          findSingleTransitionRREFassumptionsWithoutUIFAxioms(t,antD,t2,vmgr,tnet);
+          findSingleTransitionRREFassumptionsWithoutUIFAxioms(t, antD, t2, vmgr, tnet);
         } else {
-          findSingleTransitionFormulaWithoutUIFAxioms(t,antD,t2,vmgr);
+          findSingleTransitionFormulaWithoutUIFAxioms(t, antD, t2, vmgr);
         }
       }
       break;
     }
 
     /*
-    findSingleTransitionFormulaWithoutUIFAxioms(t,antD,t2,vmgr);
+    findSingleTransitionFormulaWithoutUIFAxioms(t, antD, t2, vmgr);
     if (m > 0 && !t.hasEliminationFormula()) {
-      findSingleTransitionFormulaWithUIFAxioms(t,antD,t2,vmgr,pur);
+      findSingleTransitionFormulaWithUIFAxioms(t, antD, t2, vmgr, pur);
     }
     */
 
@@ -356,12 +356,12 @@ public class BasicBalancer implements Balancer {
   private void findSingleTransitionRREFassumptionsWithoutUIFAxioms(
       Transition t, TemplateDisjunction ant, TemplateFormula t2,
       VariableManager vmgr, TemplateNetwork tnet) {
-    AssumptionSet aset = consecRREF(ant,t2,vmgr,tnet);
+    AssumptionSet aset = consecRREF(ant, t2, vmgr, tnet);
     t.setRREFassumptions(aset);
   }
 
   private void findSingleTransitionFormulaWithoutUIFAxioms(Transition t, TemplateDisjunction ant, TemplateFormula t2, VariableManager vmgr) {
-    String Phi = consecQE(ant,t2,vmgr);
+    String Phi = consecQE(ant, t2, vmgr);
     t.setEliminationFormula(Phi);
   }
 
@@ -388,10 +388,10 @@ public class BasicBalancer implements Balancer {
       Vector<UIFAxiom> U = A.getNext();
       logger.log(Level.ALL, "UIF Axiom Set:\n", U);
 
-      Phi = consecQE(ant,t2,U,vmgr);
+      Phi = consecQE(ant, t2, U, vmgr);
 
       Set<String> params = t.writeAllParameters(VariableWriteMode.REDLOG);
-      params.addAll(getParameters(U,VariableWriteMode.REDLOG));
+      params.addAll(getParameters(U, VariableWriteMode.REDLOG));
 
       // Test.
       // Add nonzero parameter clause.
@@ -401,7 +401,7 @@ public class BasicBalancer implements Balancer {
       logger.log(Level.ALL, "Quantified transition formula:\n", Psi);
 
       //check whether it's satisfiable
-      HashMap<String,Rational> map = getParameterValuesFromRedlog(Psi, params);
+      HashMap<String, Rational> map = getParameterValuesFromRedlog(Psi, params);
       if (map == null) {
         // Not satisfiable, so get ready to try again.
         Phi = null;
@@ -424,8 +424,8 @@ public class BasicBalancer implements Balancer {
    * @param params The parameters for which to find values.
    * @return A map from parameter names to satisfying Rationals, if any are found; null otherwise.
    */
-  private HashMap<String,Rational> getParameterValuesFromRedlog(String phi, Set<String> params) {
-    HashMap<String,Rational> map = null;
+  private HashMap<String, Rational> getParameterValuesFromRedlog(String phi, Set<String> params) {
+    HashMap<String, Rational> map = null;
     try {
       EliminationAnswer EA = RLI.rlqea(phi);
       if (EA != null) {
@@ -442,7 +442,7 @@ public class BasicBalancer implements Balancer {
     return map;
   }
 
-  private void fillInZeros(Map<String,Rational> map, Set<String> params) {
+  private void fillInZeros(Map<String, Rational> map, Set<String> params) {
     Set<String> dom = map.keySet();
     Rational r = Rational.makeZero();
     for (String p : params) {
@@ -470,7 +470,7 @@ public class BasicBalancer implements Balancer {
 
   private List<String> getParameters(Vector<UIFAxiom> U, VariableWriteMode vwm) {
     TemplateFormula[] F = {};
-    return getParameters(F,U,vwm);
+    return getParameters(F, U, vwm);
   }
 
   private List<String> getParameters(TemplateFormula[] F, Vector<UIFAxiom> U, VariableWriteMode vwm) {
@@ -499,25 +499,25 @@ public class BasicBalancer implements Balancer {
 
   @Deprecated
   public String consecQE(TemplateFormula P, TemplateFormula R, TemplateFormula Q, Vector<UIFAxiom> U) {
-    TemplateVariableManager vmgr = getVariableManager(P,R,Q,U);
-    return consecQE(P,R,Q,U,vmgr);
+    TemplateVariableManager vmgr = getVariableManager(P, R, Q, U);
+    return consecQE(P, R, Q, U, vmgr);
   }
 
   @Deprecated
   public String consecQE(TemplateFormula P, TemplateFormula R, TemplateFormula Q, VariableManager vmgr) {
     Vector<UIFAxiom> U = new Vector<>();
-    return consecQE(P,R,Q,U,vmgr);
+    return consecQE(P, R, Q, U, vmgr);
   }
 
   public AssumptionSet consecRREF(TemplateDisjunction ant, TemplateFormula t2,
       VariableManager vmgr, TemplateNetwork tnet) {
     Vector<UIFAxiom> U = new Vector<>();
-    return consecRREF(ant,t2,U,vmgr,tnet);
+    return consecRREF(ant, t2, U, vmgr, tnet);
   }
 
   public String consecQE(TemplateDisjunction ant, TemplateFormula t2, VariableManager vmgr) {
     Vector<UIFAxiom> U = new Vector<>();
-    return consecQE(ant,t2,U,vmgr);
+    return consecQE(ant, t2, U, vmgr);
   }
 
   @Deprecated
@@ -552,7 +552,7 @@ public class BasicBalancer implements Balancer {
       prem.append(TemplateLinearizer.linearize(A.getConsequent(), vmgr));
     }
     concl = Q;
-    logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
+    logger.log(Level.ALL, "Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
     Phi = Farkas.makeRedlogFormula(prem, concl);
     Psi += " and " + Phi;
 
@@ -616,13 +616,13 @@ public class BasicBalancer implements Balancer {
         UIFAxiom A = U.get(i);
         concl = TemplateLinearizer.linearize(A.getAntecedent(), vmgr);
         logger.log(Level.ALL, "UIFAxiom:\n",A);
-        logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
+        logger.log(Level.ALL, "Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
         Phi = Farkas.makeRedlogFormulaUsingPremiseStrength(prem, concl);
         Psi += " and " + Phi;
         prem.append(TemplateLinearizer.linearize(A.getConsequent(), vmgr));
       }
       concl = Q;
-      logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
+      logger.log(Level.ALL, "Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
       Phi = Farkas.makeRedlogFormulaUsingPremiseStrength(prem, concl);
       Psi += " and " + Phi;
     }
@@ -681,14 +681,14 @@ public class BasicBalancer implements Balancer {
         UIFAxiom A = U.get(i);
         concl = formMat.buildMatrix(A.getAntecedent(), vmgr, paramVars, prependTrue);
         logger.log(Level.ALL, "UIFAxiom:\n",A);
-        logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
+        logger.log(Level.ALL, "Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
             "\nConclusions:","\n"+concl.toString());
         aset.addAll(applyRREFheuristic(prem, concl, tnet));
         prem = prem.concat(formMat.buildMatrix(A.getConsequent(), vmgr, paramVars, prependTrue));
       }
       concl = Q;
       //logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
-      logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
+      logger.log(Level.ALL, "Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
           "\nConclusions:","\n"+concl.toString());
       aset.addAll(applyRREFheuristic(prem, concl, tnet));
     }
@@ -704,8 +704,8 @@ public class BasicBalancer implements Balancer {
     } catch (ClassCastException e) {
       return applyRREFheuristicOLD(prem, concl);
     }
-    logger.log(Level.ALL,"Augmented Matrix:","\n"+au.toString());
-    MatrixSolver ms = new MatrixSolver(au,logger);
+    logger.log(Level.ALL, "Augmented Matrix:","\n"+au.toString());
+    MatrixSolver ms = new MatrixSolver(au, logger);
     Set<AssumptionSet> asetset;
     Timer msTimer = new Timer();
     msTimer.start();
@@ -730,7 +730,7 @@ public class BasicBalancer implements Balancer {
 
   private AssumptionSet applyRREFheuristicOLD(MatrixI prem, MatrixI concl) {
     MatrixI aug = prem.augment(concl);
-    logger.log(Level.ALL,"Augmented Matrix:","\n"+aug.toString());
+    logger.log(Level.ALL, "Augmented Matrix:","\n"+aug.toString());
     // We gather two types of assumptions.
     // First, those made during the process of putting the matrix into RREF:
     // Verbose:
@@ -739,8 +739,8 @@ public class BasicBalancer implements Balancer {
     //AssumptionSet aset = aug.putInRREF();
     MatrixI E = aug.getElemMatProd();
     // Write the RREF and the matrix E to the log, for debugging.
-    logger.log(Level.ALL,"RREF:","\n"+aug.toString());
-    logger.log(Level.ALL,"Matrix representing row operations performed:","\n"+E.toString());
+    logger.log(Level.ALL, "RREF:","\n"+aug.toString());
+    logger.log(Level.ALL, "Matrix representing row operations performed:","\n"+E.toString());
     // Then, the "almost-zero row" assumptions:
     aset.addAll(aug.getAlmostZeroRowAssumptions());
     return aset;

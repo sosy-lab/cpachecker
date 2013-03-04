@@ -102,7 +102,7 @@ public class Template {
     return templateFormula.purify(pur);
   }
 
-  public boolean evaluate(Map<String,Rational> vals) {
+  public boolean evaluate(Map<String, Rational> vals) {
     return templateFormula.evaluate(vals);
   }
 
