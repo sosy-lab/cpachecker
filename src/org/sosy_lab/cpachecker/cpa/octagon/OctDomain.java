@@ -56,12 +56,10 @@ class OctDomain implements AbstractDomain{
     if (result == 1) {
       totaltime = totaltime + (System.currentTimeMillis() - start);
       return true;
-    }
-    else if (result == 2) {
+    } else if (result == 2) {
       totaltime = totaltime + (System.currentTimeMillis() - start);
       return false;
-    }
-    else{
+    } else{
       assert(result == 3);
       boolean included = OctagonManager.isIncludedIn(octState1.getOctagon(), octState2.getOctagon());
       if (included){

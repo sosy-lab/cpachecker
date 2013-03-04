@@ -46,13 +46,11 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
     for (ReferencedVariable var : pContext.getReferencedVariables()) {
       if (var.occursInCondition()) {
         relevantVars.add(var.getName());
-      }
-      else if (var.occursOnLhs()) {
+      } else if (var.occursOnLhs()) {
         if (occursInPredicate(var, pPredicates)) {
           relevantVars.add(var.getName());
         }
-      }
-      else {
+      } else {
         unknownVars.add(var);
       }
     }
@@ -66,8 +64,7 @@ public class AuxiliaryComputer extends AbstractRelevantPredicatesComputer<Collec
         if (relevantVars.contains(var.getLhsVariable().getName())) {
           relevantVars.add(var.getName());
           changed = true;
-        }
-        else {
+        } else {
           yetUnknownVars.add(var);
         }
       }

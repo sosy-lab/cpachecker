@@ -269,8 +269,7 @@ public class PivotRowHandler {
             // An active 1 yields a P-challenge.
             pchal.add(r);
             break;
-          }
-          else if (code == 10 || code == 2 || code == 31) {
+          } else if (code == 10 || code == 2 || code == 31) {
             // An active 10, 2, 31 yields a Q-challenge.
             qchal.add(r);
             break;
@@ -693,12 +692,10 @@ public class PivotRowHandler {
           if (f.isZero()) {
             // f is identically zero
             codes[i][j] = 0;
-          }
-          else if (f.isPositive()) {
+          } else if (f.isPositive()) {
             // f is a positive constant
             codes[i][j] = 1;
-          }
-          else {
+          } else {
             // f is a negative constant
             codes[i][j] = 3;
           }

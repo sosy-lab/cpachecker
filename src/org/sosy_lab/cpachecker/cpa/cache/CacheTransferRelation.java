@@ -87,8 +87,7 @@ public class CacheTransferRelation implements TransferRelation {
       lLevel2Cache.put(pPrecision, lSuccessors);
 
       lCacheMisses++;
-    }
-    else {
+    } else {
       lCacheHits++;
     }
 
@@ -119,8 +118,7 @@ public class CacheTransferRelation implements TransferRelation {
       lLevel2Cache.put(pElement, lSuccessors);
 
       //lCacheMisses++;
-    }
-    else {
+    } else {
       //lCacheHits++;
     }
 

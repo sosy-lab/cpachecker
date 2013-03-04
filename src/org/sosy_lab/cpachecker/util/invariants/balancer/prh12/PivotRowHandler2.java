@@ -117,12 +117,10 @@ public class PivotRowHandler2 {
           if (f.isZero()) {
             // f is identically zero
             codes[i][j] = 0;
-          }
-          else if (f.isPositive()) {
+          } else if (f.isPositive()) {
             // f is a positive constant
             codes[i][j] = 1;
-          }
-          else {
+          } else {
             // f is a negative constant
             codes[i][j] = 3;
           }
@@ -186,14 +184,12 @@ public class PivotRowHandler2 {
         logger.log(Level.ALL,"Discarding row",r,": all augmentation entries nonnegative,",
             "and all postpivots nonpositive.");
         rowDiscard.add(r);
-      }
-      else if (EXpr3AU(r)) {
+      } else if (EXpr3AU(r)) {
         // If row r has a post-pivot entry that is of code 3 and in an absolutely unblocked column,
         // then again we do not need to worry about row r at all.
         logger.log(Level.ALL,"Discarding row",r,": contains a negative constant in an absolutely unblocked column.");
         rowDiscard.add(r);
-      }
-      else if (FApr0110(r)) {
+      } else if (FApr0110(r)) {
         // Suppose all post-pivot entries are of code 0, 1, or 10.
         if (EXar3(r)) {
           // If in addition there is an aug entry of code 3, then we have a complete fail.

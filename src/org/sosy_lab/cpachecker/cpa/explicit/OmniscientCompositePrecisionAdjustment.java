@@ -155,8 +155,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
 
         outElements.add(result.getFirst());
         outPrecisions.add(result.getSecond());
-      }
-      else {
+      } else {
         totalComposite.start();
 
         Triple<AbstractState, Precision, Action> result = precisionAdjustment.prec(oldState, oldPrecision, slice);

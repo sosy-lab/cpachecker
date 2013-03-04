@@ -204,11 +204,9 @@ public class RationalFunction {
     RationalFunction b = new RationalFunction(r,s);
     if (subtract(a,b).isZero()) {
       return true;
-    }
-    else if (add(a,b).isZero()) {
+    } else if (add(a,b).isZero()) {
       return true;
-    }
-    else {
+    } else {
       return false;
     }
   }

@@ -113,8 +113,7 @@ class Mathsat5Model {
   private static AssignableTerm toAssignable(long env, long pTermId) {
     if (!msat_term_is_constant(env, pTermId)) {
       return toFunction(env, pTermId);
-    }
-    else {
+    } else {
       return toVariable(env, pTermId);
     }
   }

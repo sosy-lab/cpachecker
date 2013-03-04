@@ -82,8 +82,7 @@ public class UninitializedVariablesStatistics implements Statistics {
       }
       if (warningsDisplayed.isEmpty()) {
         pOut.println("No uninitialized variables found");
-      }
-      else{
+      } else{
         pOut.println("No of uninitialized vars : " + noOfWarnings);
       }
     } else {

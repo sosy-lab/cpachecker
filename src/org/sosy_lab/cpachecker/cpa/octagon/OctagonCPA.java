@@ -71,8 +71,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
     MergeOperator octagonMergeOp = null;
     if (mergeType.equals("sep")){
       octagonMergeOp = MergeSepOperator.getInstance();
-    }
-    else if (mergeType.equals("join")){
+    } else if (mergeType.equals("join")){
       octagonMergeOp = new MergeJoinOperator (octagonDomain);
     } else {
       // default is sep

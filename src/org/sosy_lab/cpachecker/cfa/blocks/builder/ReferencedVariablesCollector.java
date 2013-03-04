@@ -143,8 +143,7 @@ public class ReferencedVariablesCollector {
     private void collectVar(String var) {
       if (lhsVar == null) {
         collectedVars.add(scoped(new ReferencedVariable(var, true, false, null), currentFunction));
-      }
-      else {
+      } else {
         collectedVars.add(scoped(new ReferencedVariable(var, false, false, lhsVar), currentFunction));
       }
     }

@@ -99,8 +99,7 @@ public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
 
     if (lIndex + 1 == mLength) {
       return mCFAEdge;
-    }
-    else {
+    } else {
       return mPredecessor.get(lIndex);
     }
   }
@@ -130,12 +129,10 @@ public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
   public String toString() {
     if (getLength() == 0) {
       return "<>";
-    }
-    else {
+    } else {
       if (getLength() == 1) {
         return "< " + mCFAEdge.toString() + " >";
-      }
-      else {
+      } else {
         return "< ... " + mCFAEdge.toString() + " >";
       }
     }

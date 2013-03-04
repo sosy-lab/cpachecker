@@ -449,8 +449,7 @@ public class ABMTransferRelation implements TransferRelation {
         currentBlock = outerSubtree;
 
         return attachAdditionalInfoToCallNodes(expandedResult);
-      }
-      else {
+      } else {
         List<AbstractState> result = new ArrayList<>();
         for (int i = 0; i < node.getNumLeavingEdges(); i++) {
           CFAEdge e = node.getLeavingEdge(i);
@@ -533,14 +532,12 @@ public class ABMTransferRelation implements TransferRelation {
         //this needs to be propagated to outer subgraph (till main is reached)
         returnElements = Collections.singletonList(lastElement);
 
-      }
-      else if (reached.hasWaitingState()) {
+      } else if (reached.hasWaitingState()) {
         //no target state, but waiting elements
         //analysis failed -> also break this analysis
         prec.breakAnalysis();
         return Collections.singletonList(Pair.of(reducedInitialState, reducedInitialPrecision)); //dummy element
-      }
-      else {
+      } else {
         returnElements = AbstractStates.filterLocations(reached, currentBlock.getReturnNodes())
             .toList();
       }
@@ -997,8 +994,7 @@ public class ABMTransferRelation implements TransferRelation {
             child.addParent(elementsMap.get(parent));
           }
           innerTree.removeFromARG();
-        }
-        else {
+        } else {
           //normal edge
           //create an edge from parent to current
           elementsMap.get(currentElement).addParent(elementsMap.get(parent));

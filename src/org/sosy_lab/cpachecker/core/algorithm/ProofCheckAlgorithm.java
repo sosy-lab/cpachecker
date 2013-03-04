@@ -234,8 +234,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
             return false;
           }
           stats.stopTimer.stop();
-        }
-        else {
+        } else {
           stats.transferTimer.start();
           Collection<ARGState> successors = state.getChildren();
           logger.log(Level.FINER, "Checking abstract successors", successors);

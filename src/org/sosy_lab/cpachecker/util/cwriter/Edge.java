@@ -61,8 +61,7 @@ class Edge implements Comparable<Edge> {
 
     if (thisElementId > otherElementId){
       return 1;
-    }
-    else if (thisElementId < otherElementId){
+    } else if (thisElementId < otherElementId){
       return -1;
     }
     return 0;

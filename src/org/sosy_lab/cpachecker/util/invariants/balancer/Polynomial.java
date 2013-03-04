@@ -139,18 +139,14 @@ public class Polynomial {
   public static Polynomial power(Polynomial f, int e) {
     if (e < 0) {
       return null;
-    }
-    else if (e == 0) {
+    } else if (e == 0) {
       return Polynomial.makeUnity();
-    }
-    else if (e == 1) {
+    } else if (e == 1) {
       return f.copy();
-    }
-    else if (e <= 100) {
+    } else if (e <= 100) {
       Polynomial g = Polynomial.power(f, e-1);
       return Polynomial.multiply(f, g);
-    }
-    else {
+    } else {
       System.err.println("Tried to raise polynomial to power higher than 100.");
       return null;
     }
@@ -444,11 +440,9 @@ public class Polynomial {
     Polynomial q = that.cancelRationalContent();
     if (subtract(p,q).isZero()) {
       return a.div(b);
-    }
-    else if (add(p,q).isZero()) {
+    } else if (add(p,q).isZero()) {
       return a.div(b).makeNegative();
-    }
-    else {
+    } else {
       return null;
     }
   }
@@ -458,11 +452,9 @@ public class Polynomial {
     Polynomial q = that.cancelRationalContent();
     if (subtract(p,q).isZero()) {
       return true;
-    }
-    else if (add(p,q).isZero()) {
+    } else if (add(p,q).isZero()) {
       return true;
-    }
-    else {
+    } else {
       return false;
     }
   }

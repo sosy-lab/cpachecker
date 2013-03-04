@@ -218,8 +218,7 @@ public class ExplicitInterpolator {
   private ExplicitState extractSuccessorState(Collection<ExplicitState> successors) {
     if(successors.isEmpty()) {
       return null;
-    }
-    else {
+    } else {
       assert(successors.size() == 1);
       return Lists.newArrayList(successors).get(0);
     }

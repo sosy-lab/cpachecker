@@ -136,24 +136,21 @@ implements GenericAssumptionBuilder {
     private static void visit(CExpression pExpression, List<CExpression> result) {
       if (pExpression instanceof CIdExpression){
         conjunctPredicateForArithmeticExpression(pExpression, result);
-      }
-      else if (pExpression instanceof CBinaryExpression) {
+      } else if (pExpression instanceof CBinaryExpression) {
         CBinaryExpression binexp = (CBinaryExpression)pExpression;
         CExpression op1 = binexp.getOperand1();
         // Only variables for now, ignoring * & operators
         if (op1 instanceof CIdExpression){
           conjunctPredicateForArithmeticExpression(op1, result);
         }
-      }
-      else if (pExpression instanceof CUnaryExpression) {
+      } else if (pExpression instanceof CUnaryExpression) {
         CUnaryExpression unexp = (CUnaryExpression)pExpression;
         CExpression op1 = unexp.getOperand();
         // Only variables. Ignoring * & operators for now
         if (op1 instanceof CIdExpression){
           conjunctPredicateForArithmeticExpression(op1, result);
         }
-      }
-      else if (pExpression instanceof CCastExpression) {
+      } else if (pExpression instanceof CCastExpression) {
         CCastExpression castexp = (CCastExpression)pExpression;
         CType toType = castexp.getExpressionType();
         conjunctPredicateForArithmeticExpression(toType, castexp.getOperand(), result);

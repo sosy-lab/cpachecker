@@ -99,8 +99,7 @@ public class ExplictFeasibilityChecker {
   private AbstractState extractNextState(Collection<? extends AbstractState> successors) {
     if (successors.isEmpty()) {
       return null;
-    }
-    else {
+    } else {
       assert(successors.size() == 1);
       return Lists.newArrayList(successors).get(0);
     }

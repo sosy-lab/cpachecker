@@ -881,8 +881,7 @@ public class Matrix implements MatrixI {
         kind = 10;
         height = 0;
         sign = 0;
-      }
-      else if (!f.isConstant()) {
+      } else if (!f.isConstant()) {
         if (f.getNumerator().isConstant()) {
           // If num const, this is almost as good as a constant function.
           kind = 1;
@@ -899,8 +898,7 @@ public class Matrix implements MatrixI {
           height = f.getTermHeight();
           sign = 0;
         }
-      }
-      else {
+      } else {
         // In this case f must be a nonzero constant.
         kind = 0;
         Rational r = f.getConstant();

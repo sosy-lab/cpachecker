@@ -154,8 +154,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     // return the reached state if both maps are equal
     if(newConstantsMap.size() == reachedState.constantsMap.size()) {
       return reachedState;
-    }
-    else {
+    } else {
       return new ExplicitState(newConstantsMap);
     }
   }
@@ -377,8 +376,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     for(String variableName : other.getTrackedVariableNames()) {
       if(!contains(variableName)) {
         difference.add(variableName);
-      }
-      else if(!getValueFor(variableName).equals(other.getValueFor(variableName))) {
+      } else if(!getValueFor(variableName).equals(other.getValueFor(variableName))) {
         difference.add(variableName);
       }
     }

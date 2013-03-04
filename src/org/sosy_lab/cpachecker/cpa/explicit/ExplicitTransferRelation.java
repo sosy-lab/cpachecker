@@ -1632,8 +1632,7 @@ public class ExplicitTransferRelation implements TransferRelation {
           handleAssignmentToVariable(missingInformationLeftVariable, missingInformationRightExpression, v);
 
           return Collections.singleton(newElement);
-        }
-        else if (missingInformationLeftPointer != null) {
+        } else if (missingInformationLeftPointer != null) {
           String leftVar = derefPointerToVariable(pointerElement, missingInformationLeftPointer);
           if (leftVar != null) {
             leftVar = getScopedVariableName(leftVar, functionName);

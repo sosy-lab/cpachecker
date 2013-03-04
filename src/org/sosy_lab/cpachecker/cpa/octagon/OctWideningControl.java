@@ -52,8 +52,7 @@ class OctWideningControl {
     public boolean isWideningUsed(){
       if (isWideningUsed) {
         return true;
-      }
-      else {
+      } else {
         incrementIteration();
         if (exceedThreshold()){
           switchToWideningUsed();
@@ -73,8 +72,7 @@ class OctWideningControl {
     if (loopNodeList.containsKey(nodeId)){
       ln = loopNodeList.get(nodeId);
       return ln.isWideningUsed();
-    }
-    else{
+    } else{
       ln = new LoopNode(nodeId);
       loopNodeList.put(nodeId, ln);
       return   ln.isWideningUsed();

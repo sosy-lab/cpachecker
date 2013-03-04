@@ -55,8 +55,7 @@ public class SMGEdgePointsTo extends SMGEdge {
       if (this.offset == ((SMGEdgePointsTo)other).offset && this.object == other.object){
         return false;
       }
-    }
-    else
+    } else
       if (this.offset != ((SMGEdgePointsTo)other).offset || this.object != other.object){
         return false;
       }

@@ -120,8 +120,7 @@ public class DominatorState implements AbstractStateWithLocation, AbstractState 
     for (AbstractState dominator : this.dominators) {
       if (first)  {
         first = false;
-      }
-      else {
+      } else {
         builder.append(", ");
       }
 

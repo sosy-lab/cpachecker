@@ -58,8 +58,7 @@ public class PredicateTranslator {
     for (String lVariable : lVariables) {
       if (isFirst) {
         isFirst = false;
-      }
-      else {
+      } else {
         lResult.append(", ");
       }
 

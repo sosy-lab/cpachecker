@@ -81,8 +81,7 @@ public class Monomial {
       if (!m.vars.containsKey(v)) {
         answer = false;
         break;
-      }
-      else {
+      } else {
         Integer e = vars.get(v);
         Integer f = m.vars.get(v);
         if (f.compareTo(e) < 0) {
@@ -211,14 +210,12 @@ public class Monomial {
     for (Integer e : exps) {
       if (e.intValue() == 0) {
         continue;
-      }
-      else if (e.intValue() == 1) {
+      } else if (e.intValue() == 1) {
         ones += 1;
         if (ones > 1) {
           return false;
         }
-      }
-      else if (e.intValue() > 1) {
+      } else if (e.intValue() > 1) {
         return false;
       }
     }
@@ -292,8 +289,7 @@ public class Monomial {
       // In this case there were no variables of positive power,
       // so the monomial is just 1.
       s = "1";
-    }
-    else if (writeStars) {
+    } else if (writeStars) {
       // In this case we had at least one variable of positive power,
       // so if we are writing stars *, then our string now begins with
       // one superfluous *. So we delete it.

@@ -155,8 +155,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
         if (useNondetFlags && name.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
           t = makeNondetFlagMerger(Math.max(i2, 1), i1);
-        }
-        else {
+        } else {
           t = makeSSAMerger(name, resultSSA.getType(name), Math.max(i2, 1), i1);
         }
 
@@ -170,8 +169,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
 
         if (useNondetFlags && name.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
           t = makeNondetFlagMerger(Math.max(i1, 1), i2);
-        }
-        else {
+        } else {
           t = makeSSAMerger(name, resultSSA.getType(name), Math.max(i1, 1), i2);
         }
 

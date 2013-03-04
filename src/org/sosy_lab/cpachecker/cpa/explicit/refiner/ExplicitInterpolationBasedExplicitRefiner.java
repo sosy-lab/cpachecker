@@ -123,8 +123,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
           for(Pair<String, Long> element : interpolant) {
             if(element.getSecond() == null) {
               currentInterpolant.remove(element.getFirst());
-            }
-            else {
+            } else {
               currentInterpolant.put(element.getFirst(), element.getSecond());
             }
           }

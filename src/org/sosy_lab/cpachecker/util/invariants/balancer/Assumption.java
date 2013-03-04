@@ -71,14 +71,12 @@ public class Assumption {
       // In this case the rational functions are the same, so we just conjoin the assumption types.
       AssumptionType t = AssumptionType.conjoin(this.atype,b.atype);
       return new Assumption(b.func,t);
-    }
-    else if (RationalFunction.add(func,b.func).isZero()) {
+    } else if (RationalFunction.add(func,b.func).isZero()) {
       // In this case the rational functions are additive inverses, so we flip one assumption type
       // before conjoining.
       AssumptionType t = AssumptionType.conjoin(this.atype.flip(),b.atype);
       return new Assumption(b.func,t);
-    }
-    else {
+    } else {
       // Else we can do nothing.
       return null;
     }

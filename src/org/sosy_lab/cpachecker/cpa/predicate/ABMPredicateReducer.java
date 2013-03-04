@@ -233,8 +233,7 @@ public class ABMPredicateReducer implements Reducer {
       if (expandedPredicatePrecision instanceof ReducedPredicatePrecision) {
         this.rootPredicatePrecision =
             ((ReducedPredicatePrecision) expandedPredicatePrecision).getRootPredicatePrecision();
-      }
-      else {
+      } else {
         this.rootPredicatePrecision = expandedPredicatePrecision;
       }
       assert !(rootPredicatePrecision instanceof ReducedPredicatePrecision);
@@ -309,8 +308,7 @@ public class ABMPredicateReducer implements Reducer {
           result = evaluatedGlobalPredicates;
         }
         return result;
-      }
-      else {
+      } else {
         Set<AbstractionPredicate> result =
             relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(loc));
         if (result.isEmpty()) {
