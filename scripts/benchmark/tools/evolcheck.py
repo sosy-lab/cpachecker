@@ -10,9 +10,11 @@ import benchmark.util as Util
 import benchmark.tools.template
 
 class Tool(benchmark.tools.template.BaseTool):
+  
+    previousStatus = None
     
     def getExecutable(self):
-        return Util.findExecutable('lib/native/x86_64-linux/evolcheck')
+        return Util.findExecutable('evolcheck_wrapper')
 
 
     def getVersion(self, executable):
@@ -23,34 +25,37 @@ class Tool(benchmark.tools.template.BaseTool):
         return 'eVolCheck'
 
     def preprocessSourcefile(self, sourcefile):
-        gotoCcExecutable  = Util.findExecutable('lib/native/x86_64-linux/goto-cc')
-        gotoCcFilename    = sourcefile + ".cc"
+        gotoCcExecutable      = Util.findExecutable('goto-cc')
+        # compile with goto-cc to same file, bith '.cc' appended
+        self.preprocessedFile = sourcefile + ".cc"
 
         subprocess.Popen([gotoCcExecutable,
                             sourcefile,
                             '-o',
-                            gotoCcFilename],
+                            self.preprocessedFile],
                           stdout=subprocess.PIPE).wait()
             
-        return gotoCcFilename
+        return self.preprocessedFile
             
 
     def getCmdline(self, executable, options, sourcefile):
         sourcefile = self.preprocessSourcefile(sourcefile)
+        
+        # also append '.cc' to the predecessor-file
+        if '--predecessor' in options :
+            options[options.index('--predecessor') + 1] = options[options.index('--predecessor') + 1] + '.cc'
 
-        if ("--init-upgrade-check" in options):
-            subprocess.check_call(["rm -f", "__summaries", "__omega"], shell=True)
-            return [executable] + options + [sourcefile]
-
-        else:
-            return [executable] + ['--do-upgrade-check'] + [sourcefile] + options
+        return [executable] + [sourcefile] + options
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
+        if not os.path.isfile(self.preprocessedFile):
+            return 'ERROR (goto-cc)'
+
         status = None
 
-        assertionHoldsFound = False
+        assertionHoldsFound         = False
         verificationSuccessfulFound = False
-        verificationFailedFound = False
+        verificationFailedFound     = False
 
         for line in output.splitlines():
             if 'A real bug found.' in line:
@@ -62,7 +67,7 @@ class Tool(benchmark.tools.template.BaseTool):
             elif 'ASSERTION(S) HOLD(S)' in line:
                 assertionHoldsFound = True
             elif 'The program models are identical' in line:
-                status = 'SAME'            
+                status = self.previousStatus
             elif 'Assertion(s) hold trivially.' in line:
                 status = 'SAFE'
 
@@ -72,4 +77,6 @@ class Tool(benchmark.tools.template.BaseTool):
             else:
                 status = 'UNKNOWN'
 
+        self.previousStatus = status
+                
         return status
