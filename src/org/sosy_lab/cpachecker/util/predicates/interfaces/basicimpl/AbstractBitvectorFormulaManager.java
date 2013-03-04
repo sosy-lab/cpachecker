@@ -49,7 +49,7 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo>
   }
 
   protected TFormulaInfo extractInfo(Formula pNumber) {
-    return getFormulaCreator().extractInfo( pNumber );
+    return getFormulaCreator().extractInfo(pNumber);
   }
 
   protected BitvectorFormula wrap(TFormulaInfo pTerm) {

@@ -112,7 +112,7 @@ public class ColumnChoiceFrame {
       AssumptionSet a = uc.getRequestedAssumptions();
       //Can we get a logger?
       //logger.log(Level.ALL,"Column",u.getColNum(),"produced assumption set",a);
-      aset.addAll( a );
+      aset.addAll(a);
       // Clear the requests to this column.
       // This is important in case we need to backtrack to an earlier choice frame.
       uc.clearRequests();
@@ -180,7 +180,7 @@ public class ColumnChoiceFrame {
       // Now add the challenged rows at the front of the queue.
       nextRows.addAll(0,challenged);
       // And add as many free column challenge types to the front of the ctypes queue.
-      nextCtypes.addAll(0, Collections.nCopies(challenged.size(), ChallengeType.FREECOLUMN) );
+      nextCtypes.addAll(0, Collections.nCopies(challenged.size(), ChallengeType.FREECOLUMN));
     }
     // Now construct a new frame using the row and ctype lists constructed.
     ColumnChoiceFrame nextCCF = new ColumnChoiceFrame(nextRows, nextCtypes);

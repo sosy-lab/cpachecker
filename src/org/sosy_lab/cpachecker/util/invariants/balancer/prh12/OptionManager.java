@@ -102,7 +102,7 @@ public class OptionManager {
     for (UsableColumn u : cols.values()) {
       AssumptionSet a = u.getRequestedAssumptions();
       logger.log(Level.ALL,"Column",u.getColNum(),"produced assumption set",a);
-      aset.addAll( a );
+      aset.addAll(a);
     }
     return aset;
   }

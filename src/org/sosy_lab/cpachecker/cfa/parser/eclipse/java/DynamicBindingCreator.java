@@ -121,7 +121,7 @@ public class DynamicBindingCreator {
     for (String functionName : cfAs.keySet()) {
       assert allParsedMethodDeclaration.containsKey(functionName);
       // Constructors and default Constructors can't be overriden
-      if (  !(allParsedMethodDeclaration.get(functionName) == null  || allParsedMethodDeclaration.get(functionName).isConstructor())  ) {
+      if (!(allParsedMethodDeclaration.get(functionName) == null  || allParsedMethodDeclaration.get(functionName).isConstructor()) ) {
         trackOverridenMethods(allParsedMethodDeclaration.get(functionName), cfAs.get(functionName));
       }
     }
@@ -129,7 +129,7 @@ public class DynamicBindingCreator {
 
   private void completeMethodBindings() {
 
-    for ( String key :  subMethodsOfMethod.keySet()) {
+    for (String key :  subMethodsOfMethod.keySet()) {
       methodTypeBindingsOfMethod.put(key, new LinkedList<>(subMethodsOfMethod.get(key)));
     }
 
@@ -137,7 +137,7 @@ public class DynamicBindingCreator {
 
 
     Map<String , List<Pair<FunctionEntryNode, JClassOrInterfaceType>>> workMap = new HashMap<>();
-    for ( String key :  subMethodsOfMethod.keySet()) {
+    for (String key :  subMethodsOfMethod.keySet()) {
       workMap.put(key, new LinkedList<>(subMethodsOfMethod.get(key)));
     }
 
@@ -146,8 +146,8 @@ public class DynamicBindingCreator {
 
 
     for (String methodName : workMap.keySet()) {
-      if (  !(allParsedMethodDeclaration.get(methodName) == null  || allParsedMethodDeclaration.get(methodName).isConstructor())  ) {
-        completeBindingsOfMethod( allParsedMethodDeclaration.get(methodName) , methodName);
+      if (!(allParsedMethodDeclaration.get(methodName) == null  || allParsedMethodDeclaration.get(methodName).isConstructor()) ) {
+        completeBindingsOfMethod(allParsedMethodDeclaration.get(methodName) , methodName);
       }
     }
   }
@@ -211,14 +211,14 @@ public class DynamicBindingCreator {
       List<Pair<FunctionEntryNode, JClassOrInterfaceType>> subMethodBindings = subMethodsOfMethod.get(methodNameToRegister);
       String nextMethodNameToRegister = methodNameToRegister;
 
-      Pair<Boolean , String> hasBindingAndBindingMethodName = typeHasBinding( classType , subMethodBindings);
+      Pair<Boolean , String> hasBindingAndBindingMethodName = typeHasBinding(classType , subMethodBindings);
 
       if (hasBindingAndBindingMethodName.getFirst()) {
         //Binding already exists possibly with new subMethod
         // Continue with sub method in this traversal Path
         nextMethodNameToRegister = hasBindingAndBindingMethodName.getSecond();
       } else {
-           methodTypeBindingsOfMethod.get(methodNametoBeRegistered).add(Pair.of( cfaBuilder.getCFAs().get(methodNameToRegister), (JClassOrInterfaceType) classType));
+           methodTypeBindingsOfMethod.get(methodNametoBeRegistered).add(Pair.of(cfaBuilder.getCFAs().get(methodNameToRegister), (JClassOrInterfaceType) classType));
       }
 
     return nextMethodNameToRegister;
@@ -285,9 +285,9 @@ public class DynamicBindingCreator {
      JMethodInvocationExpression functionCallExpression = (JMethodInvocationExpression) functionCall.getFunctionCallExpression();
      String functionName = functionCallExpression.getFunctionNameExpression().toASTString();
 
-    if (methodTypeBindingsOfMethod.get(functionName) != null &&    !methodTypeBindingsOfMethod.get(functionName).isEmpty() ) {
+    if (methodTypeBindingsOfMethod.get(functionName) != null &&    !methodTypeBindingsOfMethod.get(functionName).isEmpty()) {
 
-      if ( functionCallExpression instanceof JReferencedMethodInvocationExpression) {
+      if (functionCallExpression instanceof JReferencedMethodInvocationExpression) {
 
         if (!((JReferencedMethodInvocationExpression) functionCallExpression).hasKnownRunTimeBinding()) {
           createMethodInvocationBindings(edge, pProcessed, functionName);
@@ -376,11 +376,11 @@ public class DynamicBindingCreator {
 
     if (oldFunctionCall instanceof JMethodInvocationAssignmentStatement) {
       JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement =  (JMethodInvocationAssignmentStatement) oldFunctionCall;
-      newFunctionCall =  new JMethodInvocationAssignmentStatement( fileloc, oldFunctionCallAssignmentStatement.getLeftHandSide(), newFunctionCallExpression);
+      newFunctionCall =  new JMethodInvocationAssignmentStatement(fileloc, oldFunctionCallAssignmentStatement.getLeftHandSide(), newFunctionCallExpression);
 
     } else {
       assert edge.getStatement() instanceof JMethodInvocationStatement : "Statement is no Function Call";
-      newFunctionCall =   new JMethodInvocationStatement(fileloc, newFunctionCallExpression );
+      newFunctionCall =   new JMethodInvocationStatement(fileloc, newFunctionCallExpression);
     }
 
 
@@ -396,7 +396,7 @@ public class DynamicBindingCreator {
 
     // TODO ugly, change when a clear way is found to insert
     // functionDeclaaration which weren't parsed when called
-    JMethodDeclaration decl =   cfaBuilder.getScope().lookupMethod( ((AFunctionCall) edge.getStatement()).getFunctionCallExpression().getFunctionNameExpression().toASTString());
+    JMethodDeclaration decl =   cfaBuilder.getScope().lookupMethod(((AFunctionCall) edge.getStatement()).getFunctionCallExpression().getFunctionNameExpression().toASTString());
 
     CFANode nextPrevNode = prevNode;
 
@@ -447,11 +447,11 @@ public class DynamicBindingCreator {
         if (functionCall instanceof JMethodInvocationAssignmentStatement) {
           JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement =  (JMethodInvocationAssignmentStatement) functionCall;
           // TODO Clone leftHandSide
-          newFunctionCall = new JMethodInvocationAssignmentStatement( fileloc, oldFunctionCallAssignmentStatement.getLeftHandSide(), newFunctionCallExpression);
+          newFunctionCall = new JMethodInvocationAssignmentStatement(fileloc, oldFunctionCallAssignmentStatement.getLeftHandSide(), newFunctionCallExpression);
 
         } else {
           assert edge.getStatement() instanceof JMethodInvocationStatement : "Statement is no Function Call";
-          newFunctionCall =  new JMethodInvocationStatement(fileloc, newFunctionCallExpression );
+          newFunctionCall =  new JMethodInvocationStatement(fileloc, newFunctionCallExpression);
         }
 
         CFANode postFunctionCallNode = new CFANode(fileloc.getStartingLineNumber(),

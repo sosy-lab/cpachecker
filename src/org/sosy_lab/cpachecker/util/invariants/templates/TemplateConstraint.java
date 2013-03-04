@@ -241,8 +241,8 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   @Override
   public TemplateVariableManager getVariableManager() {
     TemplateVariableManager tvm = new TemplateVariableManager();
-    tvm.merge( LHS.getVariableManager() );
-    tvm.merge( RHS.getVariableManager() );
+    tvm.merge(LHS.getVariableManager());
+    tvm.merge(RHS.getVariableManager());
     return tvm;
   }
 
@@ -302,7 +302,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   @Override
   public Set<TemplateVariable> getAllPurificationVariables() {
     Set<TemplateVariable> pvs = LHS.getAllPurificationVariables();
-    pvs.addAll( RHS.getAllPurificationVariables() );
+    pvs.addAll(RHS.getAllPurificationVariables());
     return pvs;
   }
 
@@ -323,7 +323,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
     Vector<TemplateTerm> terms = copy.getTerms();
     Set<TermForm> forms = new HashSet<>();
     for (TemplateTerm t : terms) {
-      forms.add( new TermForm(t) );
+      forms.add(new TermForm(t));
     }
     return forms;
   }

@@ -392,7 +392,7 @@ public class TemplateDisjunction extends TemplateBoolean {
     TemplateBoolean tc;
     for (int i = 0; i < getNumDisjuncts(); i++) {
       tc = getDisjunct(i);
-      tvm.merge( tc.getVariableManager() );
+      tvm.merge(tc.getVariableManager());
     }
     return tvm;
   }
@@ -425,7 +425,7 @@ public class TemplateDisjunction extends TemplateBoolean {
       TemplateBoolean tc;
       for (int i = 0; i < getNumDisjuncts(); i++) {
         tc = getDisjunct(i);
-        atoms.addAll( tc.extractAtoms(sAE, cO) );
+        atoms.addAll(tc.extractAtoms(sAE, cO));
       }
     }
     return atoms;
@@ -437,7 +437,7 @@ public class TemplateDisjunction extends TemplateBoolean {
     TemplateBoolean tc;
     for (int i = 0; i < getNumDisjuncts(); i++) {
       tc = getDisjunct(i);
-      forms.addAll( tc.getTopLevelTermForms() );
+      forms.addAll(tc.getTopLevelTermForms());
     }
     return forms;
   }

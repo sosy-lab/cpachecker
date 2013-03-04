@@ -80,7 +80,7 @@ public class TemplateUIF extends TemplateNumericValue {
     }
     */
 
-    TemplateUIF u = new TemplateUIF(new String(name),pNewType, args.copy() );
+    TemplateUIF u = new TemplateUIF(new String(name),pNewType, args.copy());
     if (index != null) {
       u.index = new Integer(index);
     }

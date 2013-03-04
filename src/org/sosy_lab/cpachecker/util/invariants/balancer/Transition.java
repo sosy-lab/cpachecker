@@ -87,10 +87,10 @@ public class Transition {
     Template t = tmap.getTemplate(start);
     Set<TemplateVariable> pvars = t.getAllParmeters();
     t = tmap.getTemplate(end);
-    pvars.addAll( t.getAllParmeters() );
+    pvars.addAll(t.getAllParmeters());
     // Now write out as a list of Strings.
     for (TemplateVariable p : pvars) {
-      params.add( p.toString(vwm) );
+      params.add(p.toString(vwm));
     }
     return params;
   }
@@ -98,9 +98,9 @@ public class Transition {
   public Vector<TemplateBoolean> getAllNonzeroParameterClauses() {
     Vector<TemplateBoolean> clauses = new Vector<>();
     Template t = tmap.getTemplate(start);
-    clauses.add( t.getNonzeroParameterClause() );
+    clauses.add(t.getNonzeroParameterClause());
     t = tmap.getTemplate(end);
-    clauses.add( t.getNonzeroParameterClause() );
+    clauses.add(t.getNonzeroParameterClause());
     return clauses;
   }
 

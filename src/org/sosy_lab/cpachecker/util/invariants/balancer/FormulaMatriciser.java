@@ -40,7 +40,7 @@ public abstract class FormulaMatriciser {
   protected static List<RationalFunction> makeRationalFunctions(List<Coeff> clist, Map<String,Variable> paramVars) {
     List<RationalFunction> rfs = new Vector<>(clist.size());
     for (Coeff c : clist) {
-      rfs.add( c.makeRationalFunction(paramVars) );
+      rfs.add(c.makeRationalFunction(paramVars));
     }
     return rfs;
   }
@@ -54,7 +54,7 @@ public abstract class FormulaMatriciser {
     Coeff C;
     for (int i = 0; i < P.size(); i++) {
       C = P.get(i);
-      N.add( C.negative() );
+      N.add(C.negative());
     }
     return N;
   }

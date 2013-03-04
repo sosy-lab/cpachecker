@@ -928,7 +928,7 @@ public class ASTConverter {
 
     JAstNode node = convertExpressionWithSideEffects(e);
 
-    if (node instanceof JCastExpression ) {
+    if (node instanceof JCastExpression) {
       // Sideassignment to solve cast.
       return addSideassignmentsForCasts(node , e);
     } else if (node == null || node instanceof JExpression) {
@@ -2457,7 +2457,7 @@ public class ASTConverter {
 
     FileLocation fileLoc = new FileLocation(0, "", 0, 0, 0);
 
-    JConstructorType type = new JConstructorType((JClassType) convert( classBinding), param , false);
+    JConstructorType type = new JConstructorType((JClassType) convert(classBinding), param , false);
     return new JConstructorDeclaration(fileLoc, type , getFullyQualifiedDefaultConstructorName(classBinding) , VisibilityModifier.PUBLIC  , false, type.getReturnType());
   }
 

@@ -364,11 +364,11 @@ public class SMGTransferRelation implements TransferRelation {
 
     switch (cfaEdge.getEdgeType()) {
     case DeclarationEdge:
-      successor = handleDeclaration( smgState, (CDeclarationEdge) cfaEdge);
+      successor = handleDeclaration(smgState, (CDeclarationEdge) cfaEdge);
       break;
 
     case StatementEdge:
-      successor = handleStatement( smgState, (CStatementEdge) cfaEdge);
+      successor = handleStatement(smgState, (CStatementEdge) cfaEdge);
       break;
 
       // this is an assumption, e.g. if (a == b)
@@ -479,7 +479,7 @@ public class SMGTransferRelation implements TransferRelation {
       memoryOfField = lValue.accept(visitor);
       offset = visitor.offset;
 
-      if (memoryOfField != null && offset != null && rValueType != null && rValue != null ) {
+      if (memoryOfField != null && offset != null && rValueType != null && rValue != null) {
         // Assignment of explicit Value to symbolic Value already happened in handleExitFromFunction
         newState.writeValue(memoryOfField, offset, rValueType, rValue, machineModel);
       }
@@ -488,7 +488,7 @@ public class SMGTransferRelation implements TransferRelation {
     return newState;
   }
 
-  private Integer getFunctionReturnValue( SMGState smgState, CType type ) {
+  private Integer getFunctionReturnValue(SMGState smgState, CType type) {
 
     SMGObject tmpMemory = smgState.getObjectForVisibleVariable(FUNCTION_RETURN_VAR);
 
@@ -734,7 +734,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       Pair<SMGObject, Integer> memoryAndOffset = evaluateArraySubscriptExpression(smgState, cfaEdge, lValue);
 
-      if (memoryAndOffset == null ) {
+      if (memoryAndOffset == null) {
         return null;
       }
 
@@ -876,7 +876,7 @@ public class SMGTransferRelation implements TransferRelation {
       if (memberName.equals(fieldName)) {
         return new Field(offset, getRealExpressionType(typeMember.getType()));
       }
-      offset = offset + machineModel.getSizeof(getRealExpressionType( typeMember.getType()));
+      offset = offset + machineModel.getSizeof(getRealExpressionType(typeMember.getType()));
     }
 
     return null;
@@ -929,7 +929,7 @@ public class SMGTransferRelation implements TransferRelation {
     return newState;
   }
 
-  private Integer evaluateExplicitValue( SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue) throws UnrecognizedCCodeException {
+  private Integer evaluateExplicitValue(SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue) throws UnrecognizedCCodeException {
 
     ExplicitValueVisitor visitor = new ExplicitValueVisitor(smgState, cfaEdge);
 
@@ -940,7 +940,7 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
 
-  private boolean newValueIsNeqZero(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue ) throws UnrecognizedCCodeException {
+  private boolean newValueIsNeqZero(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue) throws UnrecognizedCCodeException {
 
     return rValue.accept(new IsNotZeroVisitor(newState, cfaEdge));
   }
@@ -1818,7 +1818,7 @@ public class SMGTransferRelation implements TransferRelation {
         }
       case MINUS:
         Integer value = unaryOperand.accept(this);
-        return ( value != null && value.equals(0)) ? 0 : null;
+        return (value != null && value.equals(0)) ? 0 : null;
 
       case NOT:
       case TILDE:
@@ -1986,7 +1986,7 @@ public class SMGTransferRelation implements TransferRelation {
       SMGObject object = exp.accept(v);
       Integer offset = v.offset;
 
-      if ( object == null || offset == null ) {
+      if (object == null || offset == null) {
         // We can't resolve the field to dereference, therefore
         // we must assume, that it is invalid
         smgState.setUnkownDereference();
@@ -2173,7 +2173,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       CType expType = getRealExpressionType(exp);
 
-      if (expType instanceof CPointerType || expType instanceof CArrayType ) {
+      if (expType instanceof CPointerType || expType instanceof CArrayType) {
         // We do not have explicit Values for these.
         return null;
       }

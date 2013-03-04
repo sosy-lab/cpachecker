@@ -62,7 +62,7 @@ public class BitvectorFormulaView extends FormulaView<BitvectorFormula> implemen
     return cast(manager.divide(this, pNumbe2, signed));
   }
 
-  public BitvectorFormulaView modulo( BitvectorFormulaView pNumbe2, boolean signed) {
+  public BitvectorFormulaView modulo(BitvectorFormulaView pNumbe2, boolean signed) {
     return cast(manager.modulo(this, pNumbe2, signed));
   }
 

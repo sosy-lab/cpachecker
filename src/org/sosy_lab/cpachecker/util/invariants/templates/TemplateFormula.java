@@ -142,7 +142,7 @@ public class TemplateFormula implements Formula, Template {
     List<TemplateConstraint> cons = getConstraints();
     Set<TemplateVariable> params = new HashSet<>();
     for (TemplateConstraint c : cons) {
-      params.addAll( c.getTopLevelLHSParameters() );
+      params.addAll(c.getTopLevelLHSParameters());
     }
     return params;
   }
@@ -151,7 +151,7 @@ public class TemplateFormula implements Formula, Template {
     List<TemplateConstraint> cons = getConstraints();
     Set<TemplateUIF> uifs = new HashSet<>();
     for (TemplateConstraint c : cons) {
-      uifs.addAll( c.getAllTopLevelUIFs() );
+      uifs.addAll(c.getAllTopLevelUIFs());
     }
     return uifs;
   }
@@ -160,7 +160,7 @@ public class TemplateFormula implements Formula, Template {
     List<TemplateConstraint> cons = getConstraints();
     Set<TemplateTerm> terms = new HashSet<>();
     for (TemplateConstraint c : cons) {
-      terms.addAll( c.getTopLevelTerms() );
+      terms.addAll(c.getTopLevelTerms());
     }
     return terms;
   }
@@ -169,7 +169,7 @@ public class TemplateFormula implements Formula, Template {
     List<TemplateConstraint> cons = getConstraints();
     Set<TemplateVariable> pvs = new HashSet<>();
     for (TemplateConstraint c : cons) {
-      pvs.addAll( c.getAllPurificationVariables() );
+      pvs.addAll(c.getAllPurificationVariables());
     }
     return pvs;
   }

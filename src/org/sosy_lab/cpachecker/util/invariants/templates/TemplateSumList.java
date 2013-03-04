@@ -193,7 +193,7 @@ public class TemplateSumList extends TemplateFormulaList {
     TemplateVariableManager tvm = new TemplateVariableManager();
     if (sums != null) {
       for (int i = 0; i < sums.length; i++) {
-        tvm.merge( sums[i].getVariableManager() );
+        tvm.merge(sums[i].getVariableManager());
       }
     }
     return tvm;
@@ -210,7 +210,7 @@ public class TemplateSumList extends TemplateFormulaList {
   public FormulaList translate(FormulaManagerView fmgr) {
     Formula[] lf = new Formula[sums.length];
     for (int i = 0; i < sums.length; i++) {
-      lf[i] = ( sums[i].translate(fmgr) );
+      lf[i] = (sums[i].translate(fmgr));
     }
     return new AbstractFormulaList(lf);
   }

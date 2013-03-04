@@ -82,7 +82,7 @@ public class SubsetGenerator {
       R = rest.getNext();
       R.add(new Integer(choice));
     }
-    if (choice == whole - part && ( rest == null || !rest.hasMore() ) ) {
+    if (choice == whole - part && (rest == null || !rest.hasMore() )) {
       hasmore = false;
     }
     return R;

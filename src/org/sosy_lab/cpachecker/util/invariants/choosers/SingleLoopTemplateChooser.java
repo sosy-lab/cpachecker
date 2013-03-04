@@ -187,7 +187,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     // Namely, we simply ask that not all of the top-level parameters on
     // the LHS be zero.
     Set<TemplateVariable> topLevelLHSparams = headLHS.getTopLevelParameters();
-    topLevelLHSparams.addAll( tailLHS.getTopLevelParameters() );
+    topLevelLHSparams.addAll(tailLHS.getTopLevelParameters());
     TemplateFormula nzpc = makeBasicParamClause(topLevelLHSparams);
 
     choice = new Template(formula, nzpc);
@@ -219,7 +219,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
       // create the uif
       uif = new TemplateUIF(name, type, new TemplateSumList(args));
       // put it in a term
-      templateTerms.add( new TemplateTerm(uif) );
+      templateTerms.add(new TemplateTerm(uif));
     }
 
     // Now add the loop vars themselves.
@@ -256,7 +256,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     TemplateTerm t;
     for (String name : varNames) {
       t = new TemplateTerm(type);
-      t.setVariable( new TemplateVariable(type, name) );
+      t.setVariable(new TemplateVariable(type, name));
       terms.add(t);
     }
     return terms;
@@ -280,13 +280,13 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
 
     // Get all forms.
     Set<TermForm> forms = entryFormula.getTopLevelTermForms();
-    forms.addAll( loopFormula.getTopLevelTermForms() );
-    forms.addAll( exitFormula.getTopLevelTermForms() );
+    forms.addAll(loopFormula.getTopLevelTermForms());
+    forms.addAll(exitFormula.getTopLevelTermForms());
 
     // Convert to terms, and sum up for LHS.
     Vector<TemplateTerm> terms = new Vector<>();
     for (TermForm f : forms) {
-      terms.add( f.getTemplate() );
+      terms.add(f.getTemplate());
     }
     TemplateSum LHS = new TemplateSum(FormulaType.RationalType, terms);
 

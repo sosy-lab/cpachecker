@@ -30,7 +30,7 @@ public abstract class AExpressionStatement extends AStatement {
   private final IAExpression expression;
 
   public AExpressionStatement(FileLocation pFileLocation, final IAExpression pExpression) {
-    super(pFileLocation );
+    super(pFileLocation);
     expression = pExpression;
   }
 

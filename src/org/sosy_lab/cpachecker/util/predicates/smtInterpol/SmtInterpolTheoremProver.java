@@ -235,7 +235,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
         Region region;
         if (isNot(t)) {
           t = getArg(t, 0);
-          region = rmgr.getPredicate( encapsulate(t));
+          region = rmgr.getPredicate(encapsulate(t));
           region = rmgr.makeNot(region);
         } else {
           region = rmgr.getPredicate(encapsulate(t));

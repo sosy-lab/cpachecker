@@ -322,14 +322,14 @@ public abstract class AbstractBalancer implements Balancer {
         logger.log(Level.ALL, "UIFAxiom:\n",A);
         logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
             "\nConclusions:","\n"+concl.toString());
-        matrices.add( Matrix.augment(prem, concl) );
+        matrices.add(Matrix.augment(prem, concl));
         prem = prem.concat(formMat.buildMatrix(A.getConsequent(), vmgr, paramVars, prependTrue));
       }
       concl = Q;
       //logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
       logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
           "\nConclusions:","\n"+concl.toString());
-      matrices.add( Matrix.augment(prem, concl) );
+      matrices.add(Matrix.augment(prem, concl));
     }
 
     return matrices;

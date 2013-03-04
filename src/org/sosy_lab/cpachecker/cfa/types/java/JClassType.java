@@ -105,7 +105,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
   public void registerSubType(JClassType pChild) {
 
       assert !directSubClasses.contains(pChild);
-      directSubClasses.add( pChild);
+      directSubClasses.add(pChild);
 
   }
 
@@ -153,7 +153,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
      List<JInterfaceType> result = new ArrayList<>();
      Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<>();
 
-     for ( JInterfaceType implementedInterface : this.getImplementedInterfaces()) {
+     for (JInterfaceType implementedInterface : this.getImplementedInterfaces()) {
 
        //Termination Check (maybe Exception?)
        if (result.contains(implementedInterface)) {
@@ -166,7 +166,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
 
      while (!toBeAdded.isEmpty()) {
 
-       for ( JInterfaceType implementedInterface : toBeAdded.poll()) {
+       for (JInterfaceType implementedInterface : toBeAdded.poll()) {
 
          //Termination Check (maybe Exception?)
          if (result.contains(implementedInterface)) {
@@ -197,7 +197,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
      Queue<Set<JClassType>> toBeAdded = new LinkedList<>();
 
 
-     for ( JClassType subClass : this.getDirectSubClasses()) {
+     for (JClassType subClass : this.getDirectSubClasses()) {
 
        if (result.contains(subClass)) {
          continue; //maybe Exception?
@@ -208,7 +208,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
      }
 
      while (!toBeAdded.isEmpty()) {
-       for ( JClassType subClass : toBeAdded.poll()) {
+       for (JClassType subClass : toBeAdded.poll()) {
 
          if (result.contains(subClass)) {
            continue; //maybe Exception?

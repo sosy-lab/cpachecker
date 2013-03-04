@@ -54,7 +54,7 @@ class AstDebugg extends ASTVisitor {
 
 
     // flags return the bitwise or of value Recovered =case 8, Malformed = case 1
-    if (ASTNode.RECOVERED == (problem.getFlags() & ASTNode.RECOVERED) || ASTNode.MALFORMED == (problem.getFlags() & ASTNode.MALFORMED )) {
+    if (ASTNode.RECOVERED == (problem.getFlags() & ASTNode.RECOVERED) || ASTNode.MALFORMED == (problem.getFlags() & ASTNode.MALFORMED)) {
       logger.log(Level.SEVERE, "Error " + problem.toString());
     }
   }

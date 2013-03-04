@@ -218,7 +218,7 @@ public class PivotRowHandler2 {
             logger.log(Level.ALL,"We also discard all postpivot columns having positive entry in this row:\n",
                 poscols);
           }
-          amgr.addNecessaryAssumptions( nonneg );
+          amgr.addNecessaryAssumptions(nonneg);
           // Now update the code table.
           writeCodes();
         }
@@ -352,11 +352,11 @@ public class PivotRowHandler2 {
       int c = codes[r][j];
       RationalFunction f = mat.getEntry(r,j);
       if (c == 2) {
-        aset.add( new Assumption(f, AssumptionType.NONNEGATIVE) );
+        aset.add(new Assumption(f, AssumptionType.NONNEGATIVE));
       } else if (c == 30) {
-        aset.add( new Assumption(f, AssumptionType.ZERO) );
+        aset.add(new Assumption(f, AssumptionType.ZERO));
       } else if (c == 31) {
-        aset.add( new Assumption(f, AssumptionType.POSITIVE) );
+        aset.add(new Assumption(f, AssumptionType.POSITIVE));
       }
     }
     return aset;

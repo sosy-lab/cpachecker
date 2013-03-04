@@ -58,7 +58,7 @@ public class UIFAxiomSet {
     // First get the set of all variables appearing in F
     Set<String> allVars = new HashSet<>();
     for (int i = 0; i < F.length; i++) {
-      allVars.addAll( getAllPurificationVariablesAsStrings(F[i],VariableWriteMode.PLAIN) );
+      allVars.addAll(getAllPurificationVariablesAsStrings(F[i],VariableWriteMode.PLAIN));
     }
 
     // go through the value that 'name' maps to, searching for those
@@ -113,7 +113,7 @@ public class UIFAxiomSet {
       HashSet<Integer> index_subset = SG.getNext();
       axiomSubset = new Vector<>();
       for (Integer I : index_subset) {
-        axiomSubset.add( axioms.get(I.intValue()) );
+        axiomSubset.add(axioms.get(I.intValue()));
       }
       maxk = getMaxk(N);
     } else {
@@ -146,13 +146,13 @@ public class UIFAxiomSet {
     Set<TemplateVariable> vars = F.getAllPurificationVariables();
     Set<String> str = new HashSet<>();
     for (TemplateVariable v : vars) {
-      str.add( v.toString(vwm) );
+      str.add(v.toString(vwm));
     }
     return str;
   }
 
   public boolean hasMore() {
-    return ( (k < N && k < maxk) || SG.hasMore() || PG.hasMore() );
+    return ((k < N && k < maxk) || SG.hasMore() || PG.hasMore());
   }
 
   public Vector<UIFAxiom> getNext() {
@@ -176,7 +176,7 @@ public class UIFAxiomSet {
         //create the axiom subset
         axiomSubset = new Vector<>();
         for (Integer I : index_subset) {
-          axiomSubset.add( axioms.get(I.intValue()) );
+          axiomSubset.add(axioms.get(I.intValue()));
         }
         PG = new PermutationGenerator(k);
       }
@@ -184,7 +184,7 @@ public class UIFAxiomSet {
       int[] index_perm = PG.getNext();
       next = new Vector<>();
       for (int i = 0; i < index_perm.length; i++) {
-        next.add( axiomSubset.get( index_perm[i] ) );
+        next.add( axiomSubset.get(index_perm[i] ));
       }
 
     }

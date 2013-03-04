@@ -91,19 +91,19 @@ public class TemplateNumber extends TemplateNumericValue {
   }
 
   public TemplateNumber divideBy(TemplateNumber n) {
-    return new TemplateNumber(getFormulaType(), rat.div(n.rat) );
+    return new TemplateNumber(getFormulaType(), rat.div(n.rat));
   }
 
   public TemplateNumber makeReciprocal() {
-    return new TemplateNumber(getFormulaType(), rat.makeReciprocal() );
+    return new TemplateNumber(getFormulaType(), rat.makeReciprocal());
   }
 
   public static TemplateNumber makeUnity(FormulaType<?> type) {
-    return new TemplateNumber(type, Rational.makeUnity() );
+    return new TemplateNumber(type, Rational.makeUnity());
   }
 
   public static TemplateNumber makeZero(FormulaType<?> type) {
-    return new TemplateNumber(type, Rational.makeZero() );
+    return new TemplateNumber(type, Rational.makeZero());
   }
 
   public boolean equals(TemplateNumber n) {

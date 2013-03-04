@@ -127,20 +127,20 @@ public class TemplateLinearizer {
       coeffs = cons.getNormalFormCoeffs(vmgr, VariableWriteMode.REDLOG);
       rhs = cons.getNormalFormConstant(VariableWriteMode.REDLOG);
       rfs = makeRationalFunctions(coeffs, paramVars);
-      rfs.add( rhs.makeRationalFunction(paramVars) );
+      rfs.add(rhs.makeRationalFunction(paramVars));
       reln = cons.getInfixReln();
       if (reln != InfixReln.EQUAL) {
         // The infix relation is LEQ or LT.
-        cols.add( new IRMatrix(rfs,reln) );
+        cols.add(new IRMatrix(rfs,reln));
       } else {
         // In this case the infix relation is EQUAL.
         // Really this corresponds to two lax inequalities.
-        cols.add( new IRMatrix(rfs, InfixReln.LEQ) );
+        cols.add(new IRMatrix(rfs, InfixReln.LEQ));
         coeffs = negative(coeffs);
         rhs = rhs.negative();
         rfs = makeRationalFunctions(coeffs,paramVars);
-        rfs.add( rhs.makeRationalFunction(paramVars) );
-        cols.add( new IRMatrix(rfs, InfixReln.LEQ) );
+        rfs.add(rhs.makeRationalFunction(paramVars));
+        cols.add(new IRMatrix(rfs, InfixReln.LEQ));
       }
     }
 
@@ -182,7 +182,7 @@ public class TemplateLinearizer {
       rhs = cons.getNormalFormConstant(VariableWriteMode.REDLOG);
       coeffs.add(rhs.negative());
       rfs = makeRationalFunctions(coeffs, paramVars);
-      cols.add( new Matrix(rfs) );
+      cols.add(new Matrix(rfs));
 
       reln = cons.getInfixReln();
       if (reln == InfixReln.EQUAL) {
@@ -190,7 +190,7 @@ public class TemplateLinearizer {
         // in addition to the column itself, we add its negation.
         coeffs = negative(coeffs);
         rfs = makeRationalFunctions(coeffs,paramVars);
-        cols.add( new Matrix(rfs) );
+        cols.add(new Matrix(rfs));
       }
     }
 
@@ -206,7 +206,7 @@ public class TemplateLinearizer {
   private static List<RationalFunction> makeRationalFunctions(List<Coeff> clist, Map<String,Variable> paramVars) {
     List<RationalFunction> rfs = new Vector<>(clist.size());
     for (Coeff c : clist) {
-      rfs.add( c.makeRationalFunction(paramVars) );
+      rfs.add(c.makeRationalFunction(paramVars));
     }
     return rfs;
   }
@@ -266,7 +266,7 @@ public class TemplateLinearizer {
     Coeff C;
     for (int i = 0; i < P.size(); i++) {
       C = P.get(i);
-      N.add( C.negative() );
+      N.add(C.negative());
     }
     return N;
   }

@@ -613,7 +613,7 @@ public class PointerState implements AbstractQueryableState, Memory,
 
     Pointer result;
 
-    if (target instanceof PointerLocation ) {
+    if (target instanceof PointerLocation) {
       result = ((PointerLocation) target).getPointer(this);
 
       if (result == null) {
@@ -711,7 +711,7 @@ public class PointerState implements AbstractQueryableState, Memory,
         AssumeInequality assumeIneqOp = (AssumeInequality) op;
 
         for (PointerTarget target : reverseRelation.keySet()) {
-          if (reverseRelation.get(target).contains(assumeIneqOp.getRemoveTarget() ) && reverseRelation.get(target).size() == 1) {
+          if (reverseRelation.get(target).contains(assumeIneqOp.getRemoveTarget()) && reverseRelation.get(target).size() == 1) {
              reverseRelation.remove(target);
           }
         }

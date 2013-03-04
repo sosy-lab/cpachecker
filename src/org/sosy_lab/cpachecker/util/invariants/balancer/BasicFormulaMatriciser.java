@@ -91,14 +91,14 @@ public class BasicFormulaMatriciser extends FormulaMatriciser {
       rfs = makeRationalFunctions(coeffs, paramVars);
 
       // Add a column.
-      cols.add( new Matrix(rfs) );
+      cols.add(new Matrix(rfs));
 
       // We consider EQUAL to be two LEQs, which means that
       // in addition to the column itself, we adjoin its negation.
       if (reln == InfixReln.EQUAL) {
         coeffs = negative(coeffs);
         rfs = makeRationalFunctions(coeffs,paramVars);
-        cols.add( new Matrix(rfs) );
+        cols.add(new Matrix(rfs));
       }
     }
 

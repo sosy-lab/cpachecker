@@ -66,7 +66,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
   public void registerSuperType(JInterfaceType superType) {
 
     assert !extendedInterfaces.contains(superType);
-    extendedInterfaces.add( superType);
+    extendedInterfaces.add(superType);
 
   }
 
@@ -95,7 +95,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
      Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<>();
 
 
-     for ( JInterfaceType subInterface : getDirectSubInterfaces()) {
+     for (JInterfaceType subInterface : getDirectSubInterfaces()) {
 
        if (result.contains(subInterface)) {
          continue; //maybe Exception?
@@ -106,7 +106,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
      }
 
      while (!toBeAdded.isEmpty()) {
-       for ( JInterfaceType subInterface : toBeAdded.poll()) {
+       for (JInterfaceType subInterface : toBeAdded.poll()) {
 
          if (result.contains(subInterface)) {
            continue; //maybe Exception?
@@ -127,7 +127,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
      Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<>();
 
 
-     for ( JInterfaceType superInterface : getExtendedInterfaces()) {
+     for (JInterfaceType superInterface : getExtendedInterfaces()) {
 
 
        if (result.contains(superInterface)) {
@@ -139,7 +139,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
      }
 
      while (!toBeAdded.isEmpty()) {
-       for ( JInterfaceType superInterface : toBeAdded.poll()) {
+       for (JInterfaceType superInterface : toBeAdded.poll()) {
 
          if (result.contains(superInterface)) {
            continue; //maybe Exception?
@@ -188,13 +188,13 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
      List<JClassType> result = new LinkedList<>();
      Queue<Set<JClassType>> toBeAdded = new LinkedList<>();
 
-     for ( JClassType subClasses : getKnownInterfaceImplementingClasses()) {
+     for (JClassType subClasses : getKnownInterfaceImplementingClasses()) {
        result.add(subClasses);
        toBeAdded.add(subClasses.getDirectSubClasses());
      }
 
      while (!toBeAdded.isEmpty()) {
-       for ( JClassType subClasses : toBeAdded.poll()) {
+       for (JClassType subClasses : toBeAdded.poll()) {
          result.add(subClasses);
          toBeAdded.add(subClasses.getDirectSubClasses());
        }

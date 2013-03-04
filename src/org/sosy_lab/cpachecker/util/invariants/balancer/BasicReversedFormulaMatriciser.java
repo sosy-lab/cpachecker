@@ -110,14 +110,14 @@ public class BasicReversedFormulaMatriciser extends FormulaMatriciser {
       rfs = makeRationalFunctions(coeffList, paramVars);
 
       // Add a column.
-      cols.add( new Matrix(rfs) );
+      cols.add(new Matrix(rfs));
 
       // We consider EQUAL to be two LEQs, which means that
       // in addition to the column itself, we adjoin its negation.
       if (reln == InfixReln.EQUAL) {
         coeffList = negative(coeffList);
         rfs = makeRationalFunctions(coeffList,paramVars);
-        cols.add( new Matrix(rfs) );
+        cols.add(new Matrix(rfs));
       }
     }
 

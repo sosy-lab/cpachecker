@@ -1961,7 +1961,7 @@ public class CtoFormulaConverter {
    */
   private int getFieldOffset(CCompositeType structType, String fieldName, CType assertFieldType) {
       int off = 0;
-      for (CCompositeTypeMemberDeclaration member : structType.getMembers() ) {
+      for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
         if (member.getName().equals(fieldName)) {
           if (assertFieldType != null) {
             if (!areEqual(assertFieldType, member.getType())) {
@@ -2490,7 +2490,7 @@ public class CtoFormulaConverter {
         idx = 1;
         ssa.setIndex(name, l, type, idx);
       }
-      return ffmgr.createFuncAndCall(name, idx, getFormulaTypeFromCType(type), Arrays.asList( args) );
+      return ffmgr.createFuncAndCall(name, idx, getFormulaTypeFromCType(type), Arrays.asList(args));
     }
 
     @Override
@@ -2541,7 +2541,7 @@ public class CtoFormulaConverter {
         // build the  function corresponding to this operation.
 
         return ffmgr.createFuncAndCall(
-            opname, idx, getFormulaTypeFromCType(expType), ImmutableList.of( term ));
+            opname, idx, getFormulaTypeFromCType(expType), ImmutableList.of(term));
 
       default:
         return super.visit(exp);

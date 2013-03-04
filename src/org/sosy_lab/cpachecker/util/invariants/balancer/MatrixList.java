@@ -43,7 +43,7 @@ public class MatrixList {
   public MatrixList(List<Matrix> l) {
     matrices = new Vector<>(l.size());
     for (Matrix m : l) {
-      matrices.add( m.copy() );
+      matrices.add(m.copy());
     }
     pointer = 0;
   }

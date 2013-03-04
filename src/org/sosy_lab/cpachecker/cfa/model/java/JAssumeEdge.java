@@ -35,7 +35,7 @@ public class JAssumeEdge extends AssumeEdge {
   public JAssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
       CFANode pSuccessor, JExpression pExpression, boolean pTruthAssumption) {
 
-    super( pRawStatement, pLineNumber, pPredecessor, pSuccessor, pExpression, pTruthAssumption);
+    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor, pExpression, pTruthAssumption);
   }
 
   @Override

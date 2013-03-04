@@ -54,7 +54,7 @@ public class UsableColumn implements Comparable<UsableColumn> {
     int m = mat.getRowNum();
     entries = new Vector<>(m);
     for (int i = 0; i < m; i++) {
-      entries.add( mat.getEntry(i, j) );
+      entries.add(mat.getEntry(i, j));
     }
     colNum = j;
     requests = new HashSet<>();
@@ -121,7 +121,7 @@ public class UsableColumn implements Comparable<UsableColumn> {
   }
 
   void makeRequest(PivotRow2 pr) {
-    requests.add( pr.getRowNum() );
+    requests.add(pr.getRowNum());
   }
 
   List<PivotRow2> query() {

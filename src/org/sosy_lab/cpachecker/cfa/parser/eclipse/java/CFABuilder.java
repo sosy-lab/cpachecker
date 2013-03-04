@@ -261,7 +261,7 @@ class CFABuilder extends ASTVisitor {
   public void preVisit(ASTNode problem) {
     if (ASTNode.RECOVERED == (problem.getFlags() & ASTNode.RECOVERED)
         || ASTNode.MALFORMED == (problem.getFlags() & ASTNode.MALFORMED)) {
-      throw new CFAGenerationRuntimeException( "Syntaxerror in " + problem.toString() +"\n", problem);
+      throw new CFAGenerationRuntimeException("Syntaxerror in " + problem.toString() +"\n", problem);
     }
   }
 }

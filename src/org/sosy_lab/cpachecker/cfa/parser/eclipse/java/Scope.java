@@ -110,7 +110,7 @@ class Scope {
     fileOfType = pFileOfTypes;
 
     // initialize Lists in type Map for each type
-    for ( String classNames : types.keySet()) {
+    for (String classNames : types.keySet()) {
       typeFieldDeclarations.put(classNames, new LinkedList<JFieldDeclaration>());
     }
   }
@@ -479,7 +479,7 @@ class Scope {
   public Map<String, JFieldDeclaration> getStaticFieldDeclarations() {
     Map<String, JFieldDeclaration> result = new HashMap<>();
 
-    for ( JFieldDeclaration declaration : fieldDeclarations.values()) {
+    for (JFieldDeclaration declaration : fieldDeclarations.values()) {
       if (declaration.isStatic()) {
         result.put(declaration.getName(), declaration);
       }
@@ -490,7 +490,7 @@ class Scope {
   public Map<String, JFieldDeclaration> getNonStaticFieldDeclarationOfClass(String className) {
     Map<String, JFieldDeclaration> result = new HashMap<>();
 
-    for ( JFieldDeclaration declaration : typeFieldDeclarations.get(className)) {
+    for (JFieldDeclaration declaration : typeFieldDeclarations.get(className)) {
       if (!declaration.isStatic()) {
         result.put(declaration.getName(), declaration);
       }
@@ -499,7 +499,7 @@ class Scope {
   }
 
   public String getFileOfCurrentType() {
-    if (fileOfType.containsKey( currentClassName)) {
+    if (fileOfType.containsKey(currentClassName)) {
       return fileOfType.get(currentClassName);
     } else {
       return "";

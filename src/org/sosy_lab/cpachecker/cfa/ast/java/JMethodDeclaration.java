@@ -57,7 +57,7 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
 
 
   public JMethodDeclaration(FileLocation pFileLocation, JMethodType pType, String pName , VisibilityModifier pVisibility  ,final boolean pIsFinal
-      ,final boolean pIsAbstract, final boolean pIsStatic,final boolean pIsNative,final boolean pIsSynchronized,final boolean pIsStrictfp, JClassOrInterfaceType pDeclaringClass ) {
+      ,final boolean pIsAbstract, final boolean pIsStatic,final boolean pIsNative,final boolean pIsSynchronized,final boolean pIsStrictfp, JClassOrInterfaceType pDeclaringClass) {
     super(pFileLocation, pType, pName, pType.getParameterDeclarations());
     visibility = pVisibility;
     isFinal = pIsFinal;
@@ -96,16 +96,16 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
       modifier.append("abstract ");
     }
     if (isStatic()) {
-      modifier.append( "static ");
+      modifier.append("static ");
     }
     if (isFinal()) {
-      modifier.append( "final ");
+      modifier.append("final ");
     }
     if (isSynchronized()) {
       modifier.append("synchronized ");
     }
     if (isNative()) {
-      modifier.append( "native ");
+      modifier.append("native ");
     }
     if (isStrictfp()) {
       modifier.append("strictfp ");

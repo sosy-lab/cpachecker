@@ -42,7 +42,7 @@ public class CFunctionEntryNode extends FunctionEntryNode {
 
   @Override
   public CFunctionDeclaration getFunctionDefinition() {
-    return  (CFunctionDeclaration )functionDefinition;
+    return  (CFunctionDeclaration)functionDefinition;
   }
 
 

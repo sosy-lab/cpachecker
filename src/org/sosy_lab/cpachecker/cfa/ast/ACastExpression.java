@@ -35,7 +35,7 @@ public abstract class ACastExpression extends AExpression {
   private final Type     castType;
 
 
-  public ACastExpression(FileLocation pFileLocation, Type castExpressionType , IAExpression pOperand ) {
+  public ACastExpression(FileLocation pFileLocation, Type castExpressionType , IAExpression pOperand) {
     super(pFileLocation, castExpressionType);
 
     operand = pOperand;

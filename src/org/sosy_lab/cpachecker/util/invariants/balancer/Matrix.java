@@ -122,7 +122,7 @@ public class Matrix implements MatrixI {
     // Copy pivot rows:
     m.pivotRows = new Vector<>(pivotRows.size());
     for (Integer i : pivotRows) {
-      m.pivotRows.add( new Integer(i.intValue()) );
+      m.pivotRows.add(new Integer(i.intValue()));
     }
     //
     return m;
@@ -344,7 +344,7 @@ public class Matrix implements MatrixI {
         for (int j = 0; j < numAugCols; j++) {
           RationalFunction f = entry[i][colNum - numAugCols + j];
           if (!f.isZero()) {
-            aset.add( new Assumption(f, AssumptionType.ZERO ) );
+            aset.add(new Assumption(f, AssumptionType.ZERO ));
           }
         }
       }
@@ -368,13 +368,13 @@ public class Matrix implements MatrixI {
         if (denom.isConstant()) {
           if (denom.isZero()) {
             aset = new AssumptionSet();
-            aset.add( new Assumption(RationalFunction.makeZero(),AssumptionType.NONZERO) );
+            aset.add(new Assumption(RationalFunction.makeZero(),AssumptionType.NONZERO));
             break outerloop;
           } else {
             // If the denom is a nonzero constant then we add nothing.
           }
         } else {
-          aset.add( new Assumption(denom,AssumptionType.NONZERO) );
+          aset.add(new Assumption(denom,AssumptionType.NONZERO));
         }
       }
     }
@@ -499,7 +499,7 @@ public class Matrix implements MatrixI {
       if (!f.getNumerator().isConstant()) {
         // Form the assumption.
         Assumption a = new Assumption(f.getNumerator(),AssumptionType.NONZERO);
-        aset.add( a );
+        aset.add(a);
       }
 
       // Now clear out all other entries in column j1.
@@ -696,7 +696,7 @@ public class Matrix implements MatrixI {
     List<SortablePivotEntry> spes = new Vector<>();
     for (int j = j0; j < n; j++) {
       for (int i = i0; i < m; i++) {
-        spes.add( new SortablePivotEntry(i,j,entry[i][j]) );
+        spes.add(new SortablePivotEntry(i,j,entry[i][j]));
       }
     }
     if (spes.size() == 0) {
@@ -786,7 +786,7 @@ public class Matrix implements MatrixI {
         }
         assert (!p.isConstant());
         Assumption a = new Assumption(p, AssumptionType.NONZERO);
-        nz.add( new PointedAssumption(i,j,a) );
+        nz.add(new PointedAssumption(i,j,a));
       }
     }
 

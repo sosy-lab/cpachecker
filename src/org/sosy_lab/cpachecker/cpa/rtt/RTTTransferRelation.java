@@ -204,7 +204,7 @@ public class RTTTransferRelation implements TransferRelation {
     JVariableDeclaration decl =
         (JVariableDeclaration) declarationEdge.getDeclaration();
 
-    if (decl.getType() instanceof JSimpleType ) {
+    if (decl.getType() instanceof JSimpleType) {
 
       JBasicType simpleType = ((JSimpleType)decl.getType()).getType();
 
@@ -528,7 +528,7 @@ public class RTTTransferRelation implements TransferRelation {
     } else if (functionCall instanceof JClassInstanceCreation) {
 
       AReturnStatementEdge returnEdge =  (AReturnStatementEdge) functionEntryNode.getExitNode().getEnteringEdge(RETURN_EDGE);
-      String uniqueObject = ((JExpression) returnEdge.getExpression()).accept(  new FunctionExitValueVisitor(returnEdge, newElement, calledFunctionName));
+      String uniqueObject = ((JExpression) returnEdge.getExpression()).accept(new FunctionExitValueVisitor(returnEdge, newElement, calledFunctionName));
       newElement.assignThisAndNewObjectScope(uniqueObject);
 
       // A Referenced Method Invocation, the new scope is the unique Object
@@ -537,8 +537,8 @@ public class RTTTransferRelation implements TransferRelation {
       JReferencedMethodInvocationExpression objectMethodInvocation = (JReferencedMethodInvocationExpression) functionCall;
       JSimpleDeclaration variableReference = objectMethodInvocation.getReferencedVariable().getDeclaration();
 
-      if ( newElement.contains(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope()))) {
-        newElement.assignThisAndNewObjectScope( newElement.getUniqueObjectFor(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope())));
+      if (newElement.contains(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope()))) {
+        newElement.assignThisAndNewObjectScope(newElement.getUniqueObjectFor(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope())));
       } else {
         // When the object of the variable can't be found
         newElement.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);

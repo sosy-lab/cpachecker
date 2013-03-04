@@ -42,7 +42,7 @@ public class JMethodEntryNode extends FunctionEntryNode {
 
   @Override
   public JMethodDeclaration getFunctionDefinition() {
-    return  (JMethodDeclaration )functionDefinition;
+    return  (JMethodDeclaration)functionDefinition;
   }
 
   @Override

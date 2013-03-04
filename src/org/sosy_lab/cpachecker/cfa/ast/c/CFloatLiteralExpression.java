@@ -34,7 +34,7 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression imple
   public CFloatLiteralExpression(FileLocation pFileLocation,
                                     CType pType,
                                     BigDecimal pValue) {
-    super(pFileLocation, pType, pValue );
+    super(pFileLocation, pType, pValue);
 
   }
 

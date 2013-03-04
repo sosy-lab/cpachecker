@@ -106,7 +106,7 @@ public class Rational {
   }
 
   public boolean isPositive() {
-    return !isInfinite() && ( (denom > 0 && num > 0) || (denom < 0 && num < 0) );
+    return !isInfinite() && ((denom > 0 && num > 0) || (denom < 0 && num < 0));
   }
 
   /*

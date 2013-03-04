@@ -161,11 +161,11 @@ public class OptionTable {
     private AssumptionSet change2to7(int i, int j) {
       AssumptionSet aset = new AssumptionSet();
       table[i][j] = 7;
-      aset.add( new Assumption(mat.getEntry(i, j), AssumptionType.NEGATIVE) );
+      aset.add(new Assumption(mat.getEntry(i, j), AssumptionType.NEGATIVE));
       for (Integer k : remainingRows) {
         if (k != i && table[k][j] == 2) {
           table[k][j] = 6;
-          aset.add( new Assumption(mat.getEntry(k, j), AssumptionType.NONPOSITIVE) );
+          aset.add(new Assumption(mat.getEntry(k, j), AssumptionType.NONPOSITIVE));
         }
       }
       return aset;
@@ -177,7 +177,7 @@ public class OptionTable {
       for (Integer k : remainingRows) {
         if (k != i && table[k][j] == 2) {
           table[k][j] = 6;
-          aset.add( new Assumption(mat.getEntry(k, j), AssumptionType.NONPOSITIVE) );
+          aset.add(new Assumption(mat.getEntry(k, j), AssumptionType.NONPOSITIVE));
         }
       }
       return aset;
@@ -191,7 +191,7 @@ public class OptionTable {
     private AssumptionSet change6to7(int i, int j) {
       AssumptionSet aset = new AssumptionSet();
       table[i][j] = 7;
-      aset.add( new Assumption(mat.getEntry(i, j), AssumptionType.NEGATIVE) );
+      aset.add(new Assumption(mat.getEntry(i, j), AssumptionType.NEGATIVE));
       return aset;
     }
 

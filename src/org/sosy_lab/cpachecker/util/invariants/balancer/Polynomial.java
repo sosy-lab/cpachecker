@@ -501,7 +501,7 @@ public class Polynomial {
       if (n < 0) {
         n = (-1)*n;
       }
-      absCoeffs.add( new Integer(n) );
+      absCoeffs.add(new Integer(n));
     }
     // Now get the gcd.
     Integer d = gcd(absCoeffs);

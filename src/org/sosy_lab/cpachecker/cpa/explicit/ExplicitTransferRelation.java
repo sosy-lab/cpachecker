@@ -564,7 +564,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     Long value;
 
-    if (exp instanceof JRightHandSide && !(exp instanceof CRightHandSide )) {
+    if (exp instanceof JRightHandSide && !(exp instanceof CRightHandSide)) {
        value = ((JRightHandSide) exp).accept(visitor);
     } else {
        value = ((CRightHandSide) exp).accept(visitor);
@@ -1257,7 +1257,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
 
 
-      if (expression instanceof JIdExpression ) {
+      if (expression instanceof JIdExpression) {
 
         JSimpleDeclaration decl = ((JIdExpression) expression).getDeclaration();
 
@@ -1483,7 +1483,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       newElement.assignConstant(getRTTScopedVariableName(
           fieldNameAndInitialValue.getFirst(),
-          rttState.getKeywordThisUniqueObject() ),
+          rttState.getKeywordThisUniqueObject()),
           fieldNameAndInitialValue.getSecond());
 
       missingFieldVariableObject = false;

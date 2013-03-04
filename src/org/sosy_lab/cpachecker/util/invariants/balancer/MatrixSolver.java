@@ -185,11 +185,11 @@ public class MatrixSolver {
       // Extract list of polynomials from the list of assumptions.
       List<Polynomial> polys = new Vector<>(aset.size());
       for (Assumption a : aset) {
-        polys.add( a.getNumerator() );
+        polys.add(a.getNumerator());
       }
       // Add list to stack, and initialize pointer to point just past the end of the list.
       stack.add(polys);
-      pointers.add( new Integer(polys.size()) );
+      pointers.add(new Integer(polys.size()));
     }
 
     /*
@@ -214,7 +214,7 @@ public class MatrixSolver {
         List<Polynomial> polys = stack.get(i);
         Integer ptr = pointers.get(i);
         Polynomial p = polys.get(ptr);
-        aset.add( new Assumption(p,AssumptionType.ZERO) );
+        aset.add(new Assumption(p,AssumptionType.ZERO));
       }
       return aset;
     }

@@ -110,7 +110,7 @@ public class TemplateMap {
   public Vector<TemplateBoolean> getAllNonzeroParameterClauses() {
     Vector<TemplateBoolean> clauses = new Vector<>();
     for (Template t : map.values()) {
-      clauses.add( t.getNonzeroParameterClause() );
+      clauses.add(t.getNonzeroParameterClause());
     }
     return clauses;
   }
@@ -118,7 +118,7 @@ public class TemplateMap {
   public Set<String> writeAllParameters(VariableWriteMode vwm) {
     Set<String> params = new HashSet<>();
     for (Template t : map.values()) {
-      params.addAll( t.writeAllParameters(vwm) );
+      params.addAll(t.writeAllParameters(vwm));
     }
     return params;
   }

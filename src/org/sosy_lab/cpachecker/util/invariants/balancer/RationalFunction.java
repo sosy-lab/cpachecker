@@ -215,7 +215,7 @@ public class RationalFunction {
    * Return the max of the number of terms of the num and denom.
    */
   public int getTermHeight() {
-    return Math.max( num.getNumTerms(), denom.getNumTerms() );
+    return Math.max(num.getNumTerms(), denom.getNumTerms());
   }
 
   /*

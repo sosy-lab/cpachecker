@@ -64,14 +64,14 @@ public class WeispfenningSystem {
       for (int j = 0; j < n; j++) {
         row.add(a.getEntry(i, j));
       }
-      rows.add( new LinCombOverParamField(row) );
+      rows.add(new LinCombOverParamField(row));
     }
     // We assume cols 0 through n-2 represent coeffs of variables, while
     // the final column, col n-1, represents constant terms.
     // So we add on n-1 rows, representing the statement that each variable
     // be nonnegative.
     for (int i = 0; i < n-1; i++) {
-      rows.add( new LinCombOverParamField(n,i) );
+      rows.add(new LinCombOverParamField(n,i));
     }
     // So first m rows represent equations, and last n-1 represent inequalities.
     numEqns = m;

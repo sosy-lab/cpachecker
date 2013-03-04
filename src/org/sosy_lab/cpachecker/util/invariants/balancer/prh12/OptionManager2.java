@@ -71,7 +71,7 @@ public class OptionManager2 {
     for (UsableColumn u : cols.values()) {
       AssumptionSet a = u.getRequestedAssumptions();
       logger.log(Level.ALL,"Column",u.getColNum(),"produced assumption set",a);
-      aset.addAll( a );
+      aset.addAll(a);
     }
     return aset;
   }
@@ -182,7 +182,7 @@ public class OptionManager2 {
       // Turn these into actual rows.
       List<PivotRow2> r = new Vector<>(rowNums.size());
       for (PivotRow2 pr : rows) {
-        Integer i = new Integer( pr.getRowNum() );
+        Integer i = new Integer(pr.getRowNum());
         if (rowNums.contains(i)) {
           r.add(pr);
         }

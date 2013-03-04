@@ -188,7 +188,7 @@ public class PivotRowHandler {
     // Initialize subset of assumptions that will be used in all sets.
     AssumptionSet base = new AssumptionSet();
     // Make the first pass:
-    base.addAll( firstPass() );
+    base.addAll(firstPass());
     // Second pass, if needed:
     Set<AssumptionSet> asetset;
     if (remainingRows.size() > 0) {
@@ -302,7 +302,7 @@ public class PivotRowHandler {
           // Else all aug entries are of codes 0, 1, 2, and the only hope for this row is that
           // all entries of code 2 be nonnegative.
           AssumptionSet nonneg = ar2nonneg(r);
-          aset.addAll( nonneg );
+          aset.addAll(nonneg);
           discard.add(r);
           logger.log(Level.ALL, "Discarding row",r,", and adding assumptions:",
               "all post-pivot entries are nonnegative constants, but no augmentation entries are negative",
@@ -356,7 +356,7 @@ public class PivotRowHandler {
               "all post-pivot entries are nonnegative constants, but no augmentation entries are negative",
               "constants. Therefore we add assumptions that all variable augmentation entries in row",
               r,"be nonnegative. Assumptions added:","\n"+nonneg.toString());
-          amgr.addNecessaryAssumptions( nonneg );
+          amgr.addNecessaryAssumptions(nonneg);
         }
         */
       }
@@ -375,7 +375,7 @@ public class PivotRowHandler {
     AssumptionSet aset = new AssumptionSet();
     for (int j = augStart; j < n; j++) {
       if (codes[r][j] == 2) {
-        aset.add( new Assumption(mat.getEntry(r, j), AssumptionType.NONNEGATIVE) );
+        aset.add(new Assumption(mat.getEntry(r, j), AssumptionType.NONNEGATIVE));
       }
     }
     return aset;

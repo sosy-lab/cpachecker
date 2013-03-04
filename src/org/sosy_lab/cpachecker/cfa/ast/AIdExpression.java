@@ -34,7 +34,7 @@ public abstract class AIdExpression extends AExpression {
 
 
   public AIdExpression(FileLocation pFileLocation, Type pType, final String pName,
-      final IASimpleDeclaration pDeclaration ) {
+      final IASimpleDeclaration pDeclaration) {
     super(pFileLocation, pType);
     name = pName.intern();
     declaration = pDeclaration;

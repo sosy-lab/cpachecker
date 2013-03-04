@@ -52,7 +52,7 @@ public class TemplatePathFormulaBuilder {
       FormulaManagerView efmgr = new FormulaManagerView(fmgr, config, logger);
       pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, MachineModel.LINUX32);
     } catch (Exception e) {
-      System.err.println( e.getMessage() );
+      System.err.println(e.getMessage());
     }
 
   }
@@ -66,7 +66,7 @@ public class TemplatePathFormulaBuilder {
       FormulaManagerView efmgr = new FormulaManagerView(fmgr, config, logger);
       pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, machineModel);
     } catch (Exception e) {
-      System.err.println( e.getMessage() );
+      System.err.println(e.getMessage());
     }
 
   }

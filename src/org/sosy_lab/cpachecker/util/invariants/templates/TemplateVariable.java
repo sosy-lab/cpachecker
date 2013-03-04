@@ -146,7 +146,7 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
   public boolean equals(TemplateVariable v) {
     // Call these variables equal if they produce the same
     // string.
-    return ( toString().equals( v.toString() ) );
+    return ( toString().equals(v.toString() ));
   }
 
   public String getName() {

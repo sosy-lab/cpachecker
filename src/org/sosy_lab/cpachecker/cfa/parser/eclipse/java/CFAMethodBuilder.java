@@ -174,7 +174,7 @@ class CFAMethodBuilder extends ASTVisitor {
   public void preVisit(ASTNode problem) {
 
     if (ASTNode.RECOVERED == problem.getFlags()
-        || ASTNode.MALFORMED  == problem.getFlags() ) {
+        || ASTNode.MALFORMED  == problem.getFlags()) {
       throw new CFAGenerationRuntimeException("Parse Error", problem);
     }
   }
@@ -1064,8 +1064,8 @@ class CFAMethodBuilder extends ASTVisitor {
 
 
 
-private void handleConditionalStatement( CFANode prevNode,
-                                      CFANode lastNode, JStatement statement ) {
+private void handleConditionalStatement(CFANode prevNode,
+                                      CFANode lastNode, JStatement statement) {
 
   ConditionalExpression condExp = astCreator.getConditionalExpression();
   astCreator.resetConditionalExpression();
@@ -1074,7 +1074,7 @@ private void handleConditionalStatement( CFANode prevNode,
   ASTNode parentExp = condExp.getParent();
   while (parentExp.getNodeType() == ASTNode.PARENTHESIZED_EXPRESSION
          || parentExp.getNodeType() == ASTNode.POSTFIX_EXPRESSION
-         || parentExp.getNodeType() == ASTNode.PREFIX_EXPRESSION ) {
+         || parentExp.getNodeType() == ASTNode.PREFIX_EXPRESSION) {
     parentExp = parentExp.getParent();
   }
 
@@ -1125,7 +1125,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
    Expression condtion = condExp.getExpression();
 
-   buildConditionTree( condtion, filelocStart, rootNode, thenNode, elseNode,
+   buildConditionTree(condtion, filelocStart, rootNode, thenNode, elseNode,
                                             thenNode, elseNode, true, true);
 
    Expression thenExp = condExp.getThenExpression();
@@ -1683,7 +1683,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     CFANode startLoopNode = getStartLoopNodeFromPrevLabelNode(nodeAfterLoopStart);
 
-    for ( Pair<CFANode, ContinueStatement> continuePair : continues) {
+    for (Pair<CFANode, ContinueStatement> continuePair : continues) {
       handleLabledContinueStatement(continuePair.getSecond(), continuePair.getFirst(), startLoopNode);
     }
 

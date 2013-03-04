@@ -36,7 +36,7 @@ public final class CTypedefType implements CType {
   private boolean   isVolatile;
 
   public CTypedefType(final boolean pConst, final boolean pVolatile,
-      final String pName, CType pRealType ) {
+      final String pName, CType pRealType) {
 
     isConst = pConst;
     isVolatile = pVolatile;

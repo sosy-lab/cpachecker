@@ -49,7 +49,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
 
 
   protected TFormulaInfo extractInfo(Formula pNumber) {
-    return getFormulaCreator().extractInfo( pNumber );
+    return getFormulaCreator().extractInfo(pNumber);
   }
 
   protected RationalFormula wrap(TFormulaInfo pTerm) {
@@ -228,12 +228,12 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
 
 
   @Override
-  public boolean isModulo(RationalFormula pNumber ) {
+  public boolean isModulo(RationalFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isModulo(param);
   }
 
-  protected  abstract boolean isModulo(TFormulaInfo pParam ) ;
+  protected  abstract boolean isModulo(TFormulaInfo pParam) ;
 
 
   @Override
@@ -251,7 +251,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
   protected abstract boolean isEqual(TFormulaInfo pParam) ;
 
   @Override
-  public boolean isGreaterThan(BooleanFormula pNumber ) {
+  public boolean isGreaterThan(BooleanFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isGreaterThan(param);
   }
@@ -265,17 +265,17 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
   protected abstract boolean isGreaterOrEquals(TFormulaInfo pParam) ;
 
   @Override
-  public boolean isLessThan(BooleanFormula pNumber ) {
+  public boolean isLessThan(BooleanFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isLessThan(param);
   }
-  protected abstract boolean isLessThan(TFormulaInfo pParam ) ;
+  protected abstract boolean isLessThan(TFormulaInfo pParam) ;
 
   @Override
-  public boolean isLessOrEquals(BooleanFormula pNumber ) {
+  public boolean isLessOrEquals(BooleanFormula pNumber) {
     TFormulaInfo param = extractInfo(pNumber);
     return isLessOrEquals(param);
   }
-  protected abstract boolean isLessOrEquals(TFormulaInfo pParam ) ;
+  protected abstract boolean isLessOrEquals(TFormulaInfo pParam) ;
 
 }

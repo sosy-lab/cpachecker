@@ -63,7 +63,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
       AbstractFunctionFormulaManager<TFormulaInfo> functionManager,
       AbstractBooleanFormulaManager<TFormulaInfo> booleanManager,
       AbstractRationalFormulaManager<TFormulaInfo> rationalManager,
-      AbstractBitvectorFormulaManager<TFormulaInfo> bitvectorManager ) {
+      AbstractBitvectorFormulaManager<TFormulaInfo> bitvectorManager) {
     if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
     }

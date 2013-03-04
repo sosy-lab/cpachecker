@@ -391,7 +391,7 @@ public class BasicBalancer implements Balancer {
       Phi = consecQE(ant,t2,U,vmgr);
 
       Set<String> params = t.writeAllParameters(VariableWriteMode.REDLOG);
-      params.addAll( getParameters(U,VariableWriteMode.REDLOG) );
+      params.addAll(getParameters(U,VariableWriteMode.REDLOG));
 
       // Test.
       // Add nonzero parameter clause.
@@ -477,10 +477,10 @@ public class BasicBalancer implements Balancer {
     Vector<String> params = new Vector<>();
 
     for (TemplateFormula f : F) {
-      params.addAll( f.getAllParameters(vwm) );
+      params.addAll(f.getAllParameters(vwm));
     }
     for (UIFAxiom A : U) {
-      params.addAll( A.getAllParameters(vwm) );
+      params.addAll(A.getAllParameters(vwm));
     }
 
     return params;
@@ -683,14 +683,14 @@ public class BasicBalancer implements Balancer {
         logger.log(Level.ALL, "UIFAxiom:\n",A);
         logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
             "\nConclusions:","\n"+concl.toString());
-        aset.addAll( applyRREFheuristic(prem, concl, tnet) );
+        aset.addAll(applyRREFheuristic(prem, concl, tnet));
         prem = prem.concat(formMat.buildMatrix(A.getConsequent(), vmgr, paramVars, prependTrue));
       }
       concl = Q;
       //logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:\n",prem,"\nConclusions:\n",concl);
       logger.log(Level.ALL,"Linearized premises and conclusions:\nPremises:","\n"+prem.toString(),
           "\nConclusions:","\n"+concl.toString());
-      aset.addAll( applyRREFheuristic(prem, concl, tnet) );
+      aset.addAll(applyRREFheuristic(prem, concl, tnet));
     }
 
     return aset;
@@ -742,7 +742,7 @@ public class BasicBalancer implements Balancer {
     logger.log(Level.ALL,"RREF:","\n"+aug.toString());
     logger.log(Level.ALL,"Matrix representing row operations performed:","\n"+E.toString());
     // Then, the "almost-zero row" assumptions:
-    aset.addAll( aug.getAlmostZeroRowAssumptions() );
+    aset.addAll(aug.getAlmostZeroRowAssumptions());
     return aset;
   }
 

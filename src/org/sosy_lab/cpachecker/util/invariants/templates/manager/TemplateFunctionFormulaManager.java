@@ -99,7 +99,7 @@ public class TemplateFunctionFormulaManager implements FunctionFormulaManager {
     TemplateFunctionFormulaTypeImpl<T> funcType = (TemplateFunctionFormulaTypeImpl<T>) pFuncType;
     Formula F = null;
     try {
-      TemplateFormulaList FL = new TemplateFormulaList( pArgs );
+      TemplateFormulaList FL = new TemplateFormulaList(pArgs);
       TemplateSumList SL =  new TemplateSumList(FL);
       TemplateUIF U = new TemplateUIF(funcType.getName(), funcType.getReturnType(), SL);
       TemplateTerm T = new TemplateTerm(funcType.getReturnType());

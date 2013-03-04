@@ -91,7 +91,7 @@ public class CacheTransferRelation implements TransferRelation {
       lCacheHits++;
     }
 
-    if ((lCacheMisses + lCacheHits) % 100 == 0 ) {
+    if ((lCacheMisses + lCacheHits) % 100 == 0) {
       System.out.println("Misses: " + lCacheMisses + ", hits: " + lCacheHits + ", sum: " + (lCacheMisses + lCacheHits));
     }
 

@@ -73,20 +73,20 @@ public class IRFormulaMatriciser extends FormulaMatriciser {
       coeffs = cons.getNormalFormCoeffs(vmgr, VariableWriteMode.REDLOG);
       rhs = cons.getNormalFormConstant(VariableWriteMode.REDLOG);
       rfs = makeRationalFunctions(coeffs, paramVars);
-      rfs.add( rhs.makeRationalFunction(paramVars) );
+      rfs.add(rhs.makeRationalFunction(paramVars));
       reln = cons.getInfixReln();
       if (reln != InfixReln.EQUAL) {
         // The infix relation is LEQ or LT.
-        cols.add( new IRMatrix(rfs,reln) );
+        cols.add(new IRMatrix(rfs,reln));
       } else {
         // In this case the infix relation is EQUAL.
         // Really this corresponds to two lax inequalities.
-        cols.add( new IRMatrix(rfs, InfixReln.LEQ) );
+        cols.add(new IRMatrix(rfs, InfixReln.LEQ));
         coeffs = negative(coeffs);
         rhs = rhs.negative();
         rfs = makeRationalFunctions(coeffs,paramVars);
-        rfs.add( rhs.makeRationalFunction(paramVars) );
-        cols.add( new IRMatrix(rfs, InfixReln.LEQ) );
+        rfs.add(rhs.makeRationalFunction(paramVars));
+        cols.add(new IRMatrix(rfs, InfixReln.LEQ));
       }
     }
 

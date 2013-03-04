@@ -54,7 +54,7 @@ public class Monomial {
     Map<Variable,Integer> v = new HashMap<>();
     for (Variable x : vars.keySet()) {
       Variable xp = new Variable(x.getName());
-      Integer pow = new Integer( vars.get(x).intValue() );
+      Integer pow = new Integer(vars.get(x).intValue());
       v.put(xp, pow);
     }
     return new Monomial(v);
@@ -112,7 +112,7 @@ public class Monomial {
       } else {
         ea = 0;
       }
-      d.put( v, new Integer( ea - b.get(v).intValue() ) );
+      d.put( v, new Integer(ea - b.get(v).intValue() ));
     }
     return new Monomial(d);
   }

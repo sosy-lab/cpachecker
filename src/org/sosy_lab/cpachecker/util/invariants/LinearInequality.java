@@ -176,29 +176,29 @@ public class LinearInequality {
 
     // Make the rows.
     for (int i = 0; i < this.rows.size(); i++) {
-      rows.add( this.rows.get(i) );
+      rows.add(this.rows.get(i));
     }
     Vector<List<Coeff>> rowsB = B.getRows();
     for (int i = 0; i < rowsB.size(); i++) {
-      rows.add( rowsB.get(i) );
+      rows.add(rowsB.get(i));
     }
 
     // Make the relns.
     for (int i = 0; i < this.relns.size(); i++) {
-      relns.add( this.relns.get(i) );
+      relns.add(this.relns.get(i));
     }
     Vector<InfixReln> relnsB = B.getRelns();
     for (int i = 0; i < relnsB.size(); i++) {
-      relns.add( relnsB.get(i) );
+      relns.add(relnsB.get(i));
     }
 
     // Make the rhs.
     for (int i = 0; i < this.rhs.size(); i++) {
-      rhs.add( this.rhs.get(i) );
+      rhs.add(this.rhs.get(i));
     }
     Vector<Coeff> rhsB = B.getRHS();
     for (int i = 0; i < rhsB.size(); i++) {
-      rhs.add( rhsB.get(i) );
+      rhs.add(rhsB.get(i));
     }
 
     // Build the new LI.

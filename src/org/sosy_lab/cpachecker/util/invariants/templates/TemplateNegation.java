@@ -190,7 +190,7 @@ public class TemplateNegation extends TemplateBoolean {
   @Override
   public TemplateVariableManager getVariableManager() {
     TemplateVariableManager tvm = new TemplateVariableManager();
-    tvm.merge( arg.getVariableManager() );
+    tvm.merge(arg.getVariableManager());
     return tvm;
   }
 
@@ -208,7 +208,7 @@ public class TemplateNegation extends TemplateBoolean {
     if (cO) {
       atoms.add(this);
     } else {
-      atoms.addAll( arg.extractAtoms(sAE, cO) );
+      atoms.addAll(arg.extractAtoms(sAE, cO));
     }
     return atoms;
   }

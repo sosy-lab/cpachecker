@@ -75,7 +75,7 @@ public class AugmentationColumn extends UsableColumn {
   public AssumptionSet getRequestedAssumptions() {
     AssumptionSet aset = new AssumptionSet();
     for (Integer r : requests) {
-      aset.addAll( asets.get(r) );
+      aset.addAll(asets.get(r));
     }
     return aset;
   }

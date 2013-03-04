@@ -342,7 +342,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
       InterpolatingProverEnvironment<T> itpProver) throws CPAException {
     assert !itpStack.isEmpty();
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
-    assert bfmgr.isFalse( itpProver.getInterpolant(itpStack) ); // last interpolant is False
+    assert bfmgr.isFalse(itpProver.getInterpolant(itpStack)); // last interpolant is False
 
     pathsRefined++;
     totalPathLengthToInfeasibility += itpStack.size();

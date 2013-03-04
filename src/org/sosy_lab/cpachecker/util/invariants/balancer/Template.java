@@ -89,7 +89,7 @@ public class Template {
   public Set<String> writeAllParameters(VariableWriteMode vwm) {
     Set<String> params = new HashSet<>();
     for (TemplateVariable p : allParameters) {
-      params.add( p.toString(vwm) );
+      params.add(p.toString(vwm));
     }
     return params;
   }

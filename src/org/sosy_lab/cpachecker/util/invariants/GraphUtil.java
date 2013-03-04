@@ -132,7 +132,7 @@ public class GraphUtil {
     CFAEdge E;
     for (int i = 0; i < len; i++) {
       N = nodes.get(i);
-      M = nodes.get( (i+1) % len );
+      M = nodes.get((i+1) % len);
       //diag:
       System.err.println(N);
       System.err.println(M);

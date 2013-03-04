@@ -106,7 +106,7 @@ public class TemplateSum extends TemplateNumericValue {
   }
 
   public static TemplateSum makeUnity(FormulaType<?> type) {
-    return new TemplateSum(TemplateTerm.makeUnity(type) );
+    return new TemplateSum(TemplateTerm.makeUnity(type));
   }
 
 //------------------------------------------------------------------
@@ -244,7 +244,7 @@ public class TemplateSum extends TemplateNumericValue {
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {
       T = getTerm(i);
-      vars.addAll( T.getAllVariables() );
+      vars.addAll(T.getAllVariables());
     }
     return vars;
   }
@@ -255,7 +255,7 @@ public class TemplateSum extends TemplateNumericValue {
     TemplateTerm T;
     for (int i = 0; i < getNumTerms(); i++) {
       T = getTerm(i);
-      params.addAll( T.getAllParameters() );
+      params.addAll(T.getAllParameters());
     }
     return params;
   }
@@ -467,7 +467,7 @@ public class TemplateSum extends TemplateNumericValue {
       u.setVariable(null);
       u.setUIF(null);
       if (!u.hasCoefficient()) {
-        u.setCoefficient( TemplateNumber.makeUnity(getFormulaType()) );
+        u.setCoefficient(TemplateNumber.makeUnity(getFormulaType()));
       }
       c.add(u);
     }
@@ -502,7 +502,7 @@ public class TemplateSum extends TemplateNumericValue {
       if (!vmap.containsKey(var)) {
         // This sum does not have the variable, so put a zero
         // into the return vector.
-        coeffs.add( new Coeff(getFormulaType(), "0") );
+        coeffs.add(new Coeff(getFormulaType(), "0") );
       } else {
         // This sum does have the variable.
         S = vmap.get(var);

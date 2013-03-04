@@ -56,7 +56,7 @@ public class TemplateVariableManager implements VariableManager {
   }
 
   public void merge(TemplateVariableManager tvm) {
-    vars.addAll( tvm.getVars() );
+    vars.addAll(tvm.getVars());
   }
 
   public List<TemplateVariable> getVars() {

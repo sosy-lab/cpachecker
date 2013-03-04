@@ -60,7 +60,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
   }
 
   private List<TFormulaInfo> toFormulaInfo(Formula[] formulas) {
-    List<TFormulaInfo> returns = from(Arrays.asList( formulas ))
+    List<TFormulaInfo> returns = from(Arrays.asList(formulas))
         .transform(new Function<Formula,TFormulaInfo>() {
           @Override
           public TFormulaInfo apply(Formula pArg0) {

@@ -55,7 +55,7 @@ public final class SMGPlotter {
     addGlobalObjectSubgraph(smg, sb);
 
     for (int value : smg.getValues()) {
-      sb.append(newLineWithOffset(smgValueAsDot(value) ));
+      sb.append(newLineWithOffset(smgValueAsDot(value)));
     }
 
     for (SMGEdgeHasValue edge: smg.getHVEdges()) {
@@ -77,7 +77,7 @@ public final class SMGPlotter {
     pSb.append(newLineWithOffset("label=\"Stack\";"));
 
     int i = 0;
-    for (CLangStackFrame stack_item : pSmg.getStackFrames() ) {
+    for (CLangStackFrame stack_item : pSmg.getStackFrames()) {
       addStackItemSubgraph(stack_item, pSb, i);
       i++;
     }

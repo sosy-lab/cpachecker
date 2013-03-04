@@ -77,7 +77,7 @@ public class FMtester {
 
       pfmgr = new PathFormulaManagerImpl(emgr, config, logger, MachineModel.LINUX32);
     } catch (Exception e) {
-      System.err.println( e.getMessage() );
+      System.err.println(e.getMessage());
     }
 
     List<CFAEdge> edgeSet = getEdgeSet(root);

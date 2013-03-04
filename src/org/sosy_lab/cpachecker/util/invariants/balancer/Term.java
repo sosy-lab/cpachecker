@@ -103,7 +103,7 @@ public class Term {
 
   public static Term makeNegative(Term t) {
     Term u = new Term();
-    u.setCoeff( t.getCoeff().makeNegative() );
+    u.setCoeff(t.getCoeff().makeNegative());
     u.setMonomial(t.getMonomial());
     return u;
   }

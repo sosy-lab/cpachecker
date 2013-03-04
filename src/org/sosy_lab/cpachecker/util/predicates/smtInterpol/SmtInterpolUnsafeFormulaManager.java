@@ -90,7 +90,7 @@ public class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManage
   @Override
   public String getName(Term t) {
     if (SmtInterpolUtil.isVariable(t)) {
-      return dequote( t.toString() );
+      return dequote(t.toString());
     } else if (uifs.contains(t)) {
       return ((ApplicationTerm)t).getFunction().toString();
     } else {

@@ -110,7 +110,7 @@ public class TemplateTerm extends TemplateSum {
     if (hasParameter()) {
       ans = false;
       String a = getParameter().toString(VariableWriteMode.REDLOG);
-      if ( map.containsKey(a) ) {
+      if (map.containsKey(a)) {
         Rational R = map.get(a);
         // Turn off parameter.
         oldParam = param;
@@ -243,7 +243,7 @@ public class TemplateTerm extends TemplateSum {
   public Set<TemplateVariable> getAllPurificationVariables() {
     Set<TemplateVariable> pvs = new HashSet<>();
     if (uif!=null && uif.isPurified()) {
-      pvs.add( uif.getPurifiedName().getVariable() );
+      pvs.add(uif.getPurifiedName().getVariable());
     }
     return pvs;
   }
@@ -321,14 +321,14 @@ public class TemplateTerm extends TemplateSum {
     Vector<Formula> factors = new Vector<>(4);
 
     if (hasCoefficient()) {
-      factors.add( getCoefficient().translate(fmgr) );
+      factors.add(getCoefficient().translate(fmgr));
     }
     // We ignore parameters, since other "languages" do not have them.
     if (hasVariable()) {
-      factors.add( getVariable().translate(fmgr) );
+      factors.add(getVariable().translate(fmgr));
     }
     if (hasUIF()) {
-      factors.add( getUIF().translate(fmgr) );
+      factors.add(getUIF().translate(fmgr));
     }
 
     if (factors.size() == 0) {
@@ -372,7 +372,7 @@ public class TemplateTerm extends TemplateSum {
   }
 
   public boolean hasAnyVariable() {
-    return (var!=null || (uif!=null && uif.isPurified()) );
+    return (var!=null || (uif!=null && uif.isPurified()));
   }
 
   public boolean hasUIF() {
@@ -393,7 +393,7 @@ public class TemplateTerm extends TemplateSum {
   public boolean isConstant() {
     // Return true iff this term has no variable and no UIF, but
     // does have a parameter and/or a constant.
-    return ( !hasVariable() && !hasUIF() && (hasCoefficient() || hasParameter()) );
+    return (!hasVariable() && !hasUIF() && (hasCoefficient() || hasParameter()));
   }
 
   @Override
@@ -577,7 +577,7 @@ public class TemplateTerm extends TemplateSum {
     TemplateVariable p2 = t2.getParameter();
     TemplateNumber c2 = t2.getCoefficient();
 
-    if ( (hv1 && hu2) || (hu1 && hv2) ) {
+    if ((hv1 && hu2) || (hu1 && hv2)) {
       System.err.println("Multiplying term with var by term with UIF.");
     }
 
@@ -679,7 +679,7 @@ public class TemplateTerm extends TemplateSum {
     if (hasUIF()) {
       s += "*"+uif.toString(vwm);
     }
-    if (s.length() > 0 && ( !hasCoefficient() || writingAsForm ) ) {
+    if (s.length() > 0 && (!hasCoefficient() || writingAsForm )) {
       // In this case there is a * hanging at the beginning.
       s = s.substring(1);
     } else if (s.startsWith("1*")) {

@@ -140,7 +140,7 @@ public final class CEnumType implements CComplexType {
 
     @Override
     public CType getType() {
-      return (CType ) super.getType();
+      return (CType) super.getType();
     }
 
     public long getValue() {

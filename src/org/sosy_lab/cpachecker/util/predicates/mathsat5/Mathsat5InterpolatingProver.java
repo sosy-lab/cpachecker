@@ -59,7 +59,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingProverEnvironme
     @Override
     public Integer push(BooleanFormula f) {
         Preconditions.checkState(interpolEnv != 0);
-        long t = Mathsat5FormulaManager.getMsatTerm( f );
+        long t = Mathsat5FormulaManager.getMsatTerm(f);
         //long t = ((Mathsat5Formula)f).getTerm();
         if (!useSharedEnv) {
             t = msat_make_copy_from(interpolEnv, t, mgr.getMsatEnv());

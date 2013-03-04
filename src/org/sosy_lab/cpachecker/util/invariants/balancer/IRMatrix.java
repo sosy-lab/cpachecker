@@ -298,13 +298,13 @@ public class IRMatrix implements MatrixI {
         if (denom.isConstant()) {
           if (denom.isZero()) {
             aset = new AssumptionSet();
-            aset.add( new Assumption(RationalFunction.makeZero(),AssumptionType.NONZERO) );
+            aset.add(new Assumption(RationalFunction.makeZero(),AssumptionType.NONZERO));
             break outerloop;
           } else {
             // If the denom is a nonzero constant then we add nothing.
           }
         } else {
-          aset.add( new Assumption(denom,AssumptionType.NONZERO) );
+          aset.add(new Assumption(denom,AssumptionType.NONZERO));
         }
       }
     }
@@ -359,7 +359,7 @@ public class IRMatrix implements MatrixI {
       if (!f.isConstant()) {
         Polynomial num = f.getNumerator();
         RationalFunction numOverUnity = new RationalFunction(num,new Polynomial(1));
-        assume.add( new Assumption(numOverUnity, AssumptionType.NONZERO) );
+        assume.add(new Assumption(numOverUnity, AssumptionType.NONZERO));
       }
       // Now clear out all other entries in column j1.
       for (int i = 0; i < m; i++) {

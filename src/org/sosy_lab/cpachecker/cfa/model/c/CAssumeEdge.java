@@ -37,7 +37,7 @@ public class CAssumeEdge extends AssumeEdge {
   public CAssumeEdge(String pRawStatement, int pLineNumber, CFANode pPredecessor,
       CFANode pSuccessor, CExpression pExpression, boolean pTruthAssumption) {
 
-    super( pRawStatement, pLineNumber, pPredecessor, pSuccessor, pExpression, pTruthAssumption);
+    super(pRawStatement, pLineNumber, pPredecessor, pSuccessor, pExpression, pTruthAssumption);
   }
 
   @Override

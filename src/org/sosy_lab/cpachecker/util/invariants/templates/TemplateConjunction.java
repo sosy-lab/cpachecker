@@ -412,7 +412,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
     TemplateBoolean tc;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tc = getConjunct(i);
-      tvm.merge( tc.getVariableManager() );
+      tvm.merge(tc.getVariableManager());
     }
     return tvm;
   }
@@ -445,7 +445,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
       if (cO) {
         atoms.add(tc);
       } else {
-        atoms.addAll( tc.extractAtoms(sAE, cO) );
+        atoms.addAll(tc.extractAtoms(sAE, cO));
       }
     }
     return atoms;
@@ -470,7 +470,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
     TemplateBoolean tc;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tc = getConjunct(i);
-      forms.addAll( tc.getTopLevelTermForms() );
+      forms.addAll(tc.getTopLevelTermForms());
     }
     return forms;
   }

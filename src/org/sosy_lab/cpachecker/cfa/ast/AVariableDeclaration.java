@@ -35,7 +35,7 @@ public abstract class AVariableDeclaration extends ADeclaration {
   private IAInitializer initializer;
 
   public AVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName, String pOrigName, IAInitializer pInitializer) {
-    super(pFileLocation, pIsGlobal, pType, pName, pOrigName );
+    super(pFileLocation, pIsGlobal, pType, pName, pOrigName);
     initializer = pInitializer;
 
   }

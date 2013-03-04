@@ -53,7 +53,7 @@ public class AcyclicColumnRelianceBalancer extends AbstractBalancer {
     // Build all the matrices
     List<Matrix> mats = new Vector<>();
     for (Transition t : tnet.getTransitions()) {
-      mats.addAll( getMatricesForTransition(t) );
+      mats.addAll(getMatricesForTransition(t));
     }
     matrices = mats;
     logger.log(Level.ALL,"Transformed network transitions into matrices.");
