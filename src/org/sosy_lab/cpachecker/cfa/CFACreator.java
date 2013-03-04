@@ -309,6 +309,7 @@ public class CFACreator {
         } else {
           spbuilder = new CFASecondPassBuilder(cfa, language, logger);
         }
+        spbuilder.collectDataRecursively();
         spbuilder.insertCallEdgesRecursively();
       }
 
