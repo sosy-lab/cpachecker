@@ -48,15 +48,15 @@ public class CallstackTransferRelation implements TransferRelation {
 
   @Option(name="depth", description = "depth of recursion bound")
   private int recursionBoundDepth = 0;
-  
+
   @Option(name="skipRecursion", description = "Skip recursion." +
       " Treat function call as a statement (the same as for functions without bodies)")
   private boolean skipRecursion = false;
-  
+
   public CallstackTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
-  
+
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
@@ -66,17 +66,17 @@ public class CallstackTransferRelation implements TransferRelation {
     case StatementEdge:
     {
       if(pCfaEdge instanceof CFunctionSummaryStatementEdge) {
-        //has function call edge 
+        //has function call edge
         CFunctionSummaryStatementEdge summary = (CFunctionSummaryStatementEdge)pCfaEdge;
         CallstackState element = (CallstackState)pElement;
         if(shouldGoByStatement(element, summary)) {//skip call, return the same element
           return Collections.singleton(pElement);
         } else {//should go by function call (skip current edge)
             return Collections.emptySet();
-        }         
+        }
       } else {
         return Collections.singleton(pElement);
-      }        
+      }
     }
     case FunctionCallEdge:
       {
@@ -133,7 +133,7 @@ public class CallstackTransferRelation implements TransferRelation {
 
     return null;
   }
-  
+
   private boolean hasRecursion(CallstackState element, FunctionCallEdge callEdge, int depth) {
     String functionName = callEdge.getSuccessor().getFunctionName();
     CallstackState e = element;
@@ -141,14 +141,14 @@ public class CallstackTransferRelation implements TransferRelation {
     while (e != null) {
       if (e.getCurrentFunction().equals(functionName)) {
         counter++;
-        if(counter > depth) 
+        if(counter > depth)
           return true;
       }
       e = e.getPreviousState();
     }
-    return false;    
+    return false;
   }
-  
+
   //call edge
   private boolean shouldGoByFunctionCall(CallstackState element, FunctionCallEdge callEdge) {
     if(!skipRecursion) {
@@ -161,7 +161,7 @@ public class CallstackTransferRelation implements TransferRelation {
       }
     }
   }
-  
+
   private boolean shouldGoByStatement(CallstackState element, CFunctionSummaryStatementEdge sumEdge) {
     String functionName = sumEdge.getFunctionName();
     if(functionName==null) {
@@ -169,7 +169,7 @@ public class CallstackTransferRelation implements TransferRelation {
       return true;
     }
     FunctionCallEdge callEdge = findCallEdge(sumEdge, functionName);
-    if(callEdge==null) 
+    if(callEdge==null)
       return true;
     return !shouldGoByFunctionCall(element, callEdge);
   }
@@ -185,5 +185,5 @@ public class CallstackTransferRelation implements TransferRelation {
       }
     }
     return null;
-  }  
+  }
 }

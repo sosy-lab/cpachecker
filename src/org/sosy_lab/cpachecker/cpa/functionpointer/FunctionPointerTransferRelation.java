@@ -108,7 +108,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
   @Option(name="immutableCFA",
       description="do not change CFA, just check equality expressions with function pointers in assume edges")
   private boolean immutableCFA = false;
-  
+
   FunctionPointerTransferRelation(TransferRelation pWrappedTransfer, CFA pCfa, LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     wrappedTransfer = pWrappedTransfer;
@@ -157,7 +157,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       cfaEdge = createCallEdgeIfNecessary(oldState, pCfaEdge);
     } else {
       cfaEdge = pCfaEdge;
-      //check assumptions about function pointers, like p == &h, where p is a function pointer, h  is a function 
+      //check assumptions about function pointers, like p == &h, where p is a function pointer, h  is a function
       if(!shouldGoByEdge(oldState, cfaEdge)) {
         //should not go by the edge
         return;//results is a empty set
@@ -230,7 +230,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
   private CFAEdge createCallEdgeIfNecessary(FunctionPointerState oldState,
       CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
     CFAEdge cfaEdge;
-    
+
     // first, check if this is a function pointer call
     String functionCallVariable = getFunctionPointerCall(pCfaEdge);
     if (functionCallVariable != null) {
@@ -616,7 +616,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
 
     private FunctionPointerTarget extractFunctionId(CIdExpression operand) {
-      if( (operand.getDeclaration()!=null && operand.getDeclaration().getType() instanceof CFunctionType) 
+      if( (operand.getDeclaration()!=null && operand.getDeclaration().getType() instanceof CFunctionType)
         || (operand.getExpressionType() instanceof CFunctionType)) {
         return new NamedFunctionTarget(operand.getName());
       }
@@ -625,7 +625,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
         if(t.getType() instanceof CFunctionType) {
           return state.getTarget(scopedIfNecessary(operand, function));
         }
-      }          
+      }
       return visitDefault(operand);
     }
 

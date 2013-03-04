@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class CFunctionSummaryStatementEdge extends CStatementEdge {
   protected String functionName;
   protected CFunctionCall fcall;
-  
+
   public CFunctionSummaryStatementEdge(String pRawStatement,
       CStatement pStatement, int pLineNumber, CFANode pPredecessor,
       CFANode pSuccessor, CFunctionCall fcall, String functionName) {
