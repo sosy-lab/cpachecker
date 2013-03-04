@@ -89,6 +89,8 @@ import com.google.common.collect.Iterables;
 @Options
 public class CFACreator {
 
+  private static final String JAVA_MAIN_METHOD_CFA_SUFFIX = "_main_String[]";
+
   @Option(name="parser.usePreprocessor",
       description="For C files, run the preprocessor on them before parsing. " +
                   "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
@@ -107,12 +109,12 @@ public class CFACreator {
   private boolean interprocedural = true;
 
   @Option(name="analysis.completeEdges",
-      description="create all potential function call edges" 
-          + " (e.g. for function pointer analysis)" 
+      description="create all potential function call edges"
+          + " (e.g. for function pointer analysis)"
           + " and add summary call statement edges"
           + " (e.g. for bounded recursion analysis)")
   private boolean completeEdges = false;
-  
+
   @Option(name="analysis.useGlobalVars",
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
@@ -261,7 +263,20 @@ public class CFACreator {
         }
       }
 
-      final FunctionEntryNode mainFunction = getMainFunction(programDenotation, c.getFunctions());
+      final FunctionEntryNode mainFunction;
+
+      switch (language) {
+      case JAVA:
+        mainFunction = getJavaMainMethod(programDenotation, c.getFunctions());
+        break;
+      case C:
+        mainFunction = getCMainFunction(programDenotation, c.getFunctions());
+        break;
+      default:
+        throw new AssertionError();
+      }
+
+
 
       MutableCFA cfa = new MutableCFA(machineModel, c.getFunctions(), c.getCFANodes(), mainFunction, language);
 
@@ -294,7 +309,6 @@ public class CFACreator {
         } else {
           spbuilder = new CFASecondPassBuilder(cfa, language, logger);
         }
-        spbuilder.collectDataRecursively();
         spbuilder.insertCallEdgesRecursively();
       }
 
@@ -349,6 +363,33 @@ public class CFACreator {
     }
   }
 
+  private FunctionEntryNode getJavaMainMethod(String mainClassName, Map<String, FunctionEntryNode> cfas)
+      throws InvalidConfigurationException {
+
+    // try specified function
+    FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
+
+    if (mainFunction != null) {
+      return mainFunction;
+    }
+
+    if (!mainFunctionName.equals("main")) {
+      // function explicitly given by user, but not found
+      throw new InvalidConfigurationException("Method " + mainFunctionName + " not found.\n" +
+      		"Please note that a method has to be given in the following notation:\n <ClassName>_" +
+      		"<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_pack1.Car\n" +
+      		"for the method drive(int speed, Car car) in the class Car.");
+    }
+
+    mainFunction = cfas.get(mainClassName + JAVA_MAIN_METHOD_CFA_SUFFIX);
+
+    if (mainFunction == null) {
+      throw new InvalidConfigurationException("No main method in given main class found, please specify one.");
+    }
+
+    return mainFunction;
+  }
+
   private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
     if (!denotesOneFile(fileDenotation)) {
       throw new InvalidConfigurationException(
@@ -368,7 +409,7 @@ public class CFACreator {
     return !filePath.contains(",");
   }
 
-  private FunctionEntryNode getMainFunction(String filename,
+  private FunctionEntryNode getCMainFunction(String filename,
       final Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
 
