@@ -30,12 +30,12 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 /**
  * AST node for the expression "a = b".
  */
-public class CExpressionAssignmentStatement extends AExpressionAssignmentStatement implements CAssignment , CStatement {
+public class CExpressionAssignmentStatement extends AExpressionAssignmentStatement implements CAssignment, CStatement {
 
   public CExpressionAssignmentStatement(FileLocation pFileLocation,
                                            CExpression pLeftHandSide,
                                            CExpression pRightHandSide) {
-    super(pFileLocation, pLeftHandSide , pRightHandSide);
+    super(pFileLocation, pLeftHandSide, pRightHandSide);
 
   }
 

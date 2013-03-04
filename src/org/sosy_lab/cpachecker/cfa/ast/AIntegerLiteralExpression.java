@@ -33,7 +33,7 @@ public abstract class AIntegerLiteralExpression extends ALiteralExpression {
 
   private final BigInteger value;
 
-  public AIntegerLiteralExpression(FileLocation pFileLocation, Type pType , BigInteger pValue) {
+  public AIntegerLiteralExpression(FileLocation pFileLocation, Type pType, BigInteger pValue) {
     super(pFileLocation, pType);
     value = pValue;
   }

@@ -30,12 +30,12 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 
 
-public class JArrayInitializer extends AExpression implements JAstNode , JInitializer, JExpression {
+public class JArrayInitializer extends AExpression implements JAstNode, JInitializer, JExpression {
 
   private final List<JExpression> initializerExpressions;
 
-  public JArrayInitializer(FileLocation pFileLocation , List<JExpression> pInitializerExpression , JArrayType pType) {
-    super(pFileLocation , pType);
+  public JArrayInitializer(FileLocation pFileLocation, List<JExpression> pInitializerExpression, JArrayType pType) {
+    super(pFileLocation, pType);
 
     initializerExpressions = pInitializerExpression;
   }

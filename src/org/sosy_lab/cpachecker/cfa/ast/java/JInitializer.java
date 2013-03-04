@@ -26,6 +26,6 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 
 
-public interface JInitializer extends IAInitializer , JAstNode {
+public interface JInitializer extends IAInitializer, JAstNode {
 
 }

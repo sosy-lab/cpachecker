@@ -31,7 +31,7 @@ public class CExpressionStatement extends AExpressionStatement implements CState
 
   public CExpressionStatement(final FileLocation pFileLocation,
                                  final CExpression pExpression) {
-    super(pFileLocation ,  pExpression);
+    super(pFileLocation,  pExpression);
 
   }
 

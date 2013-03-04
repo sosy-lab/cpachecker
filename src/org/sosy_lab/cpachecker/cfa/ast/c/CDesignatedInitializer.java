@@ -33,7 +33,7 @@ public class CDesignatedInitializer extends Initializer implements CInitializer 
   private final CDesignator left;
   private final CInitializer right;
 
-  public CDesignatedInitializer(FileLocation pFileLocation , final CDesignator pLeft, final CInitializer pRight) {
+  public CDesignatedInitializer(FileLocation pFileLocation, final CDesignator pLeft, final CInitializer pRight) {
     super(pFileLocation);
     left = pLeft;
     right = pRight;

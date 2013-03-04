@@ -32,7 +32,7 @@ public class JArrayType extends AArrayType implements JReferenceType {
 
   private final int dimension;
 
-  public JArrayType(final JType pElementType , final int pDimension) {
+  public JArrayType(final JType pElementType, final int pDimension) {
 
     super(pElementType);
     dimension = pDimension;

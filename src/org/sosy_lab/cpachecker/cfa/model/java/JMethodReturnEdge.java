@@ -34,7 +34,7 @@ public class JMethodReturnEdge extends FunctionReturnEdge {
       FunctionExitNode pPredecessor, CFANode pSuccessor,
       JMethodSummaryEdge pSummaryEdge) {
 
-    super(pLineNumber, pPredecessor, pSuccessor , pSummaryEdge);
+    super(pLineNumber, pPredecessor, pSuccessor, pSummaryEdge);
 
   }
 

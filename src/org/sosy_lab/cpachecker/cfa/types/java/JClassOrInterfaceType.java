@@ -34,7 +34,7 @@ public abstract class  JClassOrInterfaceType implements JReferenceType {
   private final VisibilityModifier visibility;
   private final String name;
 
-  protected JClassOrInterfaceType(String fullyQualifiedName  ,final VisibilityModifier pVisibility) {
+  protected JClassOrInterfaceType(String fullyQualifiedName,final VisibilityModifier pVisibility) {
     name = fullyQualifiedName;
     visibility = pVisibility;
 

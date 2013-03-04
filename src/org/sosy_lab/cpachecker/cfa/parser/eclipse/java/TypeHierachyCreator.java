@@ -57,7 +57,7 @@ public class TypeHierachyCreator extends ASTVisitor {
   private final LogManager logger;
 
 
-  private final Map< String ,JClassOrInterfaceType> types;
+  private final Map< String,JClassOrInterfaceType> types;
   private final Map<String, String> typeOfFiles;
   private  String fileOfCU;
 
@@ -174,10 +174,10 @@ public class TypeHierachyCreator extends ASTVisitor {
   }
 
   @SuppressWarnings("unused")
-  private void add(JInterfaceType pType, List<JClassType> pKnownInterfaceImplementingClasses, List<JInterfaceType> pSubInterfaces , List<JInterfaceType> pExtendedInterfaces)  {
+  private void add(JInterfaceType pType, List<JClassType> pKnownInterfaceImplementingClasses, List<JInterfaceType> pSubInterfaces, List<JInterfaceType> pExtendedInterfaces)  {
 
 
-    add(pType , pExtendedInterfaces);
+    add(pType, pExtendedInterfaces);
 
     for (JClassType subClass : pKnownInterfaceImplementingClasses) {
 
@@ -254,8 +254,8 @@ public class TypeHierachyCreator extends ASTVisitor {
 
    }
 
-  private void add(JClassType pType, JClassType pParentClass ,List<JInterfaceType> pImplementedInterfaces) {
-    add(pType , pParentClass);
+  private void add(JClassType pType, JClassType pParentClass,List<JInterfaceType> pImplementedInterfaces) {
+    add(pType, pParentClass);
     add(pType, pImplementedInterfaces);
   }
 

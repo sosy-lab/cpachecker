@@ -45,7 +45,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
   private final  Set<JInterfaceType> implementedInterfaces = new HashSet<>();
 
 
-  public JClassType(String fullyQualifiedName  ,final VisibilityModifier pVisibility, final boolean pIsFinal,
+  public JClassType(String fullyQualifiedName,final VisibilityModifier pVisibility, final boolean pIsFinal,
       final boolean pIsAbstract, final boolean pStrictFp) {
     super(fullyQualifiedName, pVisibility);
     isFinal = pIsFinal;

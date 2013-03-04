@@ -31,6 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
  * This excludes for examples methods parameter declarations.
  * It includes variables, as well as methods.
  */
-public interface JDeclaration extends IADeclaration , JSimpleDeclaration {
+public interface JDeclaration extends IADeclaration, JSimpleDeclaration {
 
 }

@@ -40,8 +40,8 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
 
 
 
-  public JInterfaceType(String fullyQualifiedpName  ,final VisibilityModifier pVisibility) {
-    super(fullyQualifiedpName , pVisibility);
+  public JInterfaceType(String fullyQualifiedpName,final VisibilityModifier pVisibility) {
+    super(fullyQualifiedpName, pVisibility);
   }
 
 

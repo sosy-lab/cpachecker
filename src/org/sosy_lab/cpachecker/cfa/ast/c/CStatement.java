@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 
 
-public  interface CStatement extends CAstNode , IAStatement{
+public  interface CStatement extends CAstNode, IAStatement{
 
 
 

@@ -34,7 +34,7 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
                               final CExpression pOperand1,
                               final CExpression pOperand2,
                               final BinaryOperator pOperator) {
-    super(pFileLocation, pType , pOperand1 , pOperand2, pOperator);
+    super(pFileLocation, pType, pOperand1, pOperand2, pOperator);
 
   }
 

@@ -1104,7 +1104,7 @@ private void handleConditionalStatement(CFANode prevNode,
 
     String signature = pExp.toASTString();
 
-    createSideAssignmentEdges(middle, lastNode, signature , fileLocStart , pExp);
+    createSideAssignmentEdges(middle, lastNode, signature, fileLocStart, pExp);
   }
 
 private void handleTernaryExpression(ConditionalExpression condExp,
@@ -1628,7 +1628,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     String mehtodName = cfa.getFunctionName();
     // In Java label Node is placed after Label Body
-    CLabelNode labelNode = new CLabelNode(fileLocStart, mehtodName , labelName);
+    CLabelNode labelNode = new CLabelNode(fileLocStart, mehtodName, labelName);
     cfaNodes.add(labelNode);
     labelMap.put(labelName, labelNode);
 
@@ -2488,7 +2488,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     }
 
     JReturnStatementEdge edge = new JReturnStatementEdge(returnStatement.toString(),
-        cfJReturnStatement , fileloc.getStartingLineNumber(), prevNode, functionExitNode);
+        cfJReturnStatement, fileloc.getStartingLineNumber(), prevNode, functionExitNode);
     addToCFA(edge);
 
     locStack.push(nextNode);

@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
-public class CInitializerList extends AInitializerList implements CInitializer , CAstNode {
+public class CInitializerList extends AInitializerList implements CInitializer, CAstNode {
 
   public CInitializerList(FileLocation pFileLocation, List<CInitializer> pInitializerList) {
     super(pFileLocation, pInitializerList);

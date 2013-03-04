@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 
 
-public interface JStatement extends IAStatement , JAstNode{
+public interface JStatement extends IAStatement, JAstNode{
 
 
   public <R, X extends Exception> R accept(JStatementVisitor<R, X> pV) throws X;

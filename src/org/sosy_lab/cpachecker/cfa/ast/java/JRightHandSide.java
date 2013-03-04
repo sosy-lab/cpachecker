@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 /**
  * Interface for all possible right-hand sides of an assignment.
  */
-public interface JRightHandSide extends IARightHandSide , JAstNode {
+public interface JRightHandSide extends IARightHandSide, JAstNode {
 
   public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> pV) throws X;
 

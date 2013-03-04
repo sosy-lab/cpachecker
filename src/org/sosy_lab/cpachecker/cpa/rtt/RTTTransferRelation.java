@@ -406,10 +406,10 @@ public class RTTTransferRelation implements TransferRelation {
 
       JIdExpression qualifier = ((JFieldAccess) notScopedField).getReferencedVariable();
 
-      String qualifierScope = getObjectScope(rttState, methodName , qualifier);
+      String qualifierScope = getObjectScope(rttState, methodName, qualifier);
 
       String scopedFieldName =
-          getScopedVariableName(qualifier.getDeclaration().getName(), methodName ,qualifierScope);
+          getScopedVariableName(qualifier.getDeclaration().getName(), methodName,qualifierScope);
 
       if (rttState.contains(scopedFieldName)) {
         return rttState.getUniqueObjectFor(scopedFieldName);
@@ -705,7 +705,7 @@ public class RTTTransferRelation implements TransferRelation {
 
       // The only binary Expressions on Class Types is String + which is not yet supported and EnumConstant Assignment
       if ((binaryExpression.getOperator() == BinaryOperator.EQUALS || binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS) && (binaryExpression.getOperand1() instanceof JEnumConstantExpression ||  binaryExpression.getOperand2() instanceof JEnumConstantExpression)) {
-        return handleEnumComparison(binaryExpression.getOperand1() , binaryExpression.getOperand2() , binaryExpression.getOperator());
+        return handleEnumComparison(binaryExpression.getOperand1(), binaryExpression.getOperand2(), binaryExpression.getOperator());
       }
 
       return null;

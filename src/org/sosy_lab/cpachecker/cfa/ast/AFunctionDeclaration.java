@@ -36,7 +36,7 @@ public abstract class AFunctionDeclaration extends ADeclaration {
 
   public AFunctionDeclaration(FileLocation pFileLocation, IAFunctionType pType, String pName,
       List<? extends AParameterDeclaration> pParameters) {
-    super(pFileLocation, true, pType, pName , pName);
+    super(pFileLocation, true, pType, pName, pName);
 
     parameters = ImmutableList.copyOf(pParameters);
   }

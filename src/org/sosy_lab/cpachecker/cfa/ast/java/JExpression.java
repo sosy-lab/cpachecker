@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 /**
  * Interface of Side effect free Expressions.
  */
-public interface JExpression extends JRightHandSide , IAExpression{
+public interface JExpression extends JRightHandSide, IAExpression{
 
   public  <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X;
 

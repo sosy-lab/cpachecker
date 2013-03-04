@@ -34,7 +34,7 @@ public class CFunctionReturnEdge extends FunctionReturnEdge {
       FunctionExitNode pPredecessor, CFANode pSuccessor,
       CFunctionSummaryEdge pSummaryEdge) {
 
-    super(pLineNumber, pPredecessor, pSuccessor , pSummaryEdge);
+    super(pLineNumber, pPredecessor, pSuccessor, pSummaryEdge);
 
   }
 

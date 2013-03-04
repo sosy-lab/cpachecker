@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
 public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignmentStatement
-                                                          implements CStatement , CAssignment, CFunctionCall {
+                                                          implements CStatement, CAssignment, CFunctionCall {
 
   public CFunctionCallAssignmentStatement(FileLocation pFileLocation,
                                              CExpression pLeftHandSide,

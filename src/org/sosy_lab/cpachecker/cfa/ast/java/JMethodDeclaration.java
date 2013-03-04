@@ -56,7 +56,7 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
   private final JClassOrInterfaceType declaringClass;
 
 
-  public JMethodDeclaration(FileLocation pFileLocation, JMethodType pType, String pName , VisibilityModifier pVisibility  ,final boolean pIsFinal,
+  public JMethodDeclaration(FileLocation pFileLocation, JMethodType pType, String pName, VisibilityModifier pVisibility,final boolean pIsFinal,
       final boolean pIsAbstract, final boolean pIsStatic,final boolean pIsNative,final boolean pIsSynchronized,final boolean pIsStrictfp, JClassOrInterfaceType pDeclaringClass) {
     super(pFileLocation, pType, pName, pType.getParameterDeclarations());
     visibility = pVisibility;

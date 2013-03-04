@@ -35,7 +35,7 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression i
                                       final CType pType,
                                       final CExpression pArrayExpression,
                                       final CExpression pSubscriptExpression) {
-    super(pFileLocation, pType, pArrayExpression , pSubscriptExpression);
+    super(pFileLocation, pType, pArrayExpression, pSubscriptExpression);
   }
 
   @Override

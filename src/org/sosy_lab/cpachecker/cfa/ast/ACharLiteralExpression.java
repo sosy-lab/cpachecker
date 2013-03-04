@@ -33,7 +33,7 @@ public abstract class ACharLiteralExpression extends ALiteralExpression {
 
   private final char character;
 
-  public ACharLiteralExpression(FileLocation pFileLocation, Type pType , char pCharacter) {
+  public ACharLiteralExpression(FileLocation pFileLocation, Type pType, char pCharacter) {
     super(pFileLocation, pType);
     character = pCharacter;
   }

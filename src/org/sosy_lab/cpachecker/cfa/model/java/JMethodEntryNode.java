@@ -37,7 +37,7 @@ public class JMethodEntryNode extends FunctionEntryNode {
       final FunctionExitNode pExitNode,
       final List<String> pParameterNames) {
 
-    super(pLineNumber, pMethodDefinition.getName(), pExitNode, pMethodDefinition ,pParameterNames);
+    super(pLineNumber, pMethodDefinition.getName(), pExitNode, pMethodDefinition,pParameterNames);
   }
 
   @Override

@@ -321,7 +321,7 @@ public class ASTConverter {
 
       // Declaration was created from Binding, update Method Type.
       if (decl.getType() == null) {
-        updateType(decl ,md);
+        updateType(decl,md);
       }
 
       return scope.lookupMethod(methodName);
@@ -930,7 +930,7 @@ public class ASTConverter {
 
     if (node instanceof JCastExpression) {
       // Sideassignment to solve cast.
-      return addSideassignmentsForCasts(node , e);
+      return addSideassignmentsForCasts(node, e);
     } else if (node == null || node instanceof JExpression) {
       return (JExpression) node;
 
@@ -1813,7 +1813,7 @@ public class ASTConverter {
 
       if (binding instanceof IVariableBinding) {
 
-        return convertSimpleVariable(e , (IVariableBinding) binding);
+        return convertSimpleVariable(e, (IVariableBinding) binding);
 
       } else if (binding instanceof IMethodBinding) {
         name = getFullyQualifiedMethodName((IMethodBinding) binding);
@@ -2283,7 +2283,7 @@ public class ASTConverter {
 
     JReferencedMethodInvocationExpression mi =
         new JReferencedMethodInvocationExpression(
-            fileloc, type, name, parameters , null,
+            fileloc, type, name, parameters, null,
             enhancedForLoopIterator);
 
     return addSideassignmentsForExpressionsWithoutMethodInvocationSideEffects(mi, e);
@@ -2457,8 +2457,8 @@ public class ASTConverter {
 
     FileLocation fileLoc = new FileLocation(0, "", 0, 0, 0);
 
-    JConstructorType type = new JConstructorType((JClassType) convert(classBinding), param , false);
-    return new JConstructorDeclaration(fileLoc, type , getFullyQualifiedDefaultConstructorName(classBinding) , VisibilityModifier.PUBLIC  , false, type.getReturnType());
+    JConstructorType type = new JConstructorType((JClassType) convert(classBinding), param, false);
+    return new JConstructorDeclaration(fileLoc, type, getFullyQualifiedDefaultConstructorName(classBinding), VisibilityModifier.PUBLIC, false, type.getReturnType());
   }
 
   private String getFullyQualifiedDefaultConstructorName(ITypeBinding classBinding) {

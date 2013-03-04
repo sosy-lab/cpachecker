@@ -33,7 +33,7 @@ public final class CIdExpression extends AIdExpression implements CExpression {
   public CIdExpression(final FileLocation pFileLocation,
                           final CType pType, final String pName,
                           final CSimpleDeclaration pDeclaration) {
-    super(pFileLocation, pType, pName , pDeclaration);
+    super(pFileLocation, pType, pName, pDeclaration);
   }
 
 

@@ -1338,8 +1338,8 @@ public class ExplicitTransferRelation implements TransferRelation {
           && (binaryExpression.getOperand1() instanceof JEnumConstantExpression
               ||  binaryExpression.getOperand2() instanceof JEnumConstantExpression)) {
         return handleEnumComparison(
-            binaryExpression.getOperand1() ,
-            binaryExpression.getOperand2() , binaryExpression.getOperator());
+            binaryExpression.getOperand1(),
+            binaryExpression.getOperand2(), binaryExpression.getOperator());
       }
 
       return super.visit(binaryExpression);
@@ -1493,7 +1493,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     } else if (missingScopedFieldName) {
 
       ExplicitState newElement = explicitState.clone();
-      newElement = handleNotScopedVariable(rttState, newElement , cfaEdge);
+      newElement = handleNotScopedVariable(rttState, newElement, cfaEdge);
       missingScopedFieldName = false;
       notScopedField = null;
       notScopedFieldValue = null;
@@ -1522,7 +1522,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     } else if (missingInformationRightJExpression != null) {
 
       ExplicitState newElement = explicitState.clone();
-      Long value = handleMissingInformationRightJExpression(rttState , newElement , cfaEdge);
+      Long value = handleMissingInformationRightJExpression(rttState, newElement, cfaEdge);
 
       if (value != null) {
         newElement.assignConstant(missingInformationLeftJVariable, value);
@@ -1542,12 +1542,12 @@ public class ExplicitTransferRelation implements TransferRelation {
   private String getRTTScopedVariableName(String fieldName, String uniqueObject) {
     return  uniqueObject + "::"+ fieldName;
   }
-  private Long handleMissingInformationRightJExpression(RTTState pJortState , ExplicitState newElement, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  private Long handleMissingInformationRightJExpression(RTTState pJortState, ExplicitState newElement, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
-    return missingInformationRightJExpression.accept(new FieldAccessExpressionValueVisitor(cfaEdge , newElement, cfaEdge.getPredecessor().getFunctionName() , pJortState));
+    return missingInformationRightJExpression.accept(new FieldAccessExpressionValueVisitor(cfaEdge, newElement, cfaEdge.getPredecessor().getFunctionName(), pJortState));
   }
 
-  private ExplicitState handleNotScopedVariable(RTTState rttState , ExplicitState newElement, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  private ExplicitState handleNotScopedVariable(RTTState rttState, ExplicitState newElement, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
    String objectScope = getObjectScope(rttState, cfaEdge.getPredecessor().getFunctionName(), notScopedField);
 
@@ -1557,7 +1557,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
      Long value = notScopedFieldValue;
      if (missingInformationRightJExpression != null) {
-       value = handleMissingInformationRightJExpression(rttState , newElement, cfaEdge);
+       value = handleMissingInformationRightJExpression(rttState, newElement, cfaEdge);
      }
 
      if (value != null) {
@@ -1586,10 +1586,10 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       JIdExpression qualifier = ((JFieldAccess) notScopedField).getReferencedVariable();
 
-      String qualifierScope = getObjectScope(rttState, methodName , qualifier);
+      String qualifierScope = getObjectScope(rttState, methodName, qualifier);
 
       String scopedFieldName =
-          getRTTScopedVariableName(qualifier.getDeclaration(), methodName ,qualifierScope);
+          getRTTScopedVariableName(qualifier.getDeclaration(), methodName,qualifierScope);
 
       if (rttState.contains(scopedFieldName)) {
         return rttState.getUniqueObjectFor(scopedFieldName);

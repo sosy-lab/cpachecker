@@ -889,7 +889,7 @@ public class CtoFormulaConverter {
       int bitsToExtend = stobits - sfrombits;
       FormulaType<BitvectorFormula> t = efmgr.getFormulaType(bitsToExtend);
       BitvectorFormula extendBits = fmgr.makeVariable(t, CtoFormulaConverter.EXPAND_VARIABLE + expands++, 0); // for every call a new variable
-      ret = fmgr.makeConcat(extendBits , pFormula);
+      ret = fmgr.makeConcat(extendBits, pFormula);
     } else {
       ret = pFormula;
     }
@@ -931,7 +931,7 @@ public class CtoFormulaConverter {
         extendBits = bfmgr.ifThenElse(zeroExtend, zeroes, ones);
       }
 
-      ret = fmgr.makeConcat(extendBits , pFormula);
+      ret = fmgr.makeConcat(extendBits, pFormula);
     } else {
       ret = pFormula;
     }

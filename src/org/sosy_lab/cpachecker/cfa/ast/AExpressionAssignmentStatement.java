@@ -29,7 +29,7 @@ public abstract class AExpressionAssignmentStatement extends AStatement implemen
   private final IAExpression leftHandSide;
   private final IAExpression rightHandSide;
 
-  public AExpressionAssignmentStatement(FileLocation pFileLocation , IAExpression pLeftHandSide,
+  public AExpressionAssignmentStatement(FileLocation pFileLocation, IAExpression pLeftHandSide,
       IAExpression pRightHandSide) {
     super(pFileLocation);
     leftHandSide = pLeftHandSide;

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 
 
-public abstract class Initializer extends AstNode implements IAInitializer , CAstNode{
+public abstract class Initializer extends AstNode implements IAInitializer, CAstNode{
 
   public Initializer(final FileLocation pFileLocation) {
     super(pFileLocation);

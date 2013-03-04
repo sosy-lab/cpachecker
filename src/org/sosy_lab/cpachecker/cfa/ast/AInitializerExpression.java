@@ -29,7 +29,7 @@ public abstract class AInitializerExpression extends Initializer {
 
   private final IAExpression expression;
 
-  public AInitializerExpression(FileLocation pFileLocation , final IAExpression pExpression) {
+  public AInitializerExpression(FileLocation pFileLocation, final IAExpression pExpression) {
     super(pFileLocation);
     expression = pExpression;
   }

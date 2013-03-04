@@ -37,7 +37,7 @@ public  abstract class ARightHandSide extends AstNode implements IARightHandSide
 
   private final Type type;
 
-  public ARightHandSide(FileLocation pFileLocation , Type pType) {
+  public ARightHandSide(FileLocation pFileLocation, Type pType) {
     super(pFileLocation);
     type = pType;
   }
