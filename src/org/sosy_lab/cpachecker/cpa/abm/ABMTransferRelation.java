@@ -542,7 +542,7 @@ public class ABMTransferRelation implements TransferRelation {
       }
       else {
         returnElements = AbstractStates.filterLocations(reached, currentBlock.getReturnNodes())
-            .toImmutableList();
+            .toList();
       }
 
       ARGState rootOfBlock = null;

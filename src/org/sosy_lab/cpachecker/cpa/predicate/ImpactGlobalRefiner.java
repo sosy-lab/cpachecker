@@ -161,7 +161,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
 
       List<AbstractState> targets = from(pReached)
         .filter(AbstractStates.IS_TARGET_STATE)
-        .toImmutableList();
+        .toList();
       assert !targets.isEmpty();
 
       do {
@@ -178,7 +178,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
 
         targets = from(pReached)
             .filter(AbstractStates.IS_TARGET_STATE)
-            .toImmutableList();
+            .toList();
 
       } while (!targets.isEmpty());
 

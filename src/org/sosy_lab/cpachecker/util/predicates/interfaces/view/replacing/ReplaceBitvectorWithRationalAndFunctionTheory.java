@@ -89,7 +89,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
         public Formula apply(BitvectorFormula pInput) {
           return unwrap(pInput);
         }
-      }).toImmutableList();
+      }).toList();
 
     return wrap(realreturn, functionManager.createUninterpretedFunctionCall(decl, unwrapped));
   }

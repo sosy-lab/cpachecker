@@ -155,7 +155,7 @@ public class BlockFormulaSlicer {
 
     ImmutableList<BooleanFormula> list = from(pfs)
         .transform(GET_BOOLEAN_FORMULA)
-        .toImmutableList();
+        .toList();
 
     //    System.out.println("\n\nFORMULA::");
     //    for (BooleanFormula formula : list) {
@@ -166,7 +166,7 @@ public class BlockFormulaSlicer {
     //    ImmutableList<BooleanFormula> origlist = from(path)
     //        .transform(toState(PredicateAbstractState.class))
     //        .transform(GET_BLOCK_FORMULA)
-    //        .toImmutableList();
+    //        .toList();
     //
     //    System.out.println("\n\nORIG FORMULA::");
     //    for (BooleanFormula formula : origlist) {
@@ -269,7 +269,7 @@ public class BlockFormulaSlicer {
   private Multimap<String, String> handleEdgesForState(ARGState current,
       Map<ARGState, Multimap<String, String>> s2v, Set<ARGState> subpath) {
 
-    List<ARGState> usedChildren = from(current.getChildren()).filter(in(subpath)).toImmutableList();
+    List<ARGState> usedChildren = from(current.getChildren()).filter(in(subpath)).toList();
     assert usedChildren.size() > 0 : "no child for " + current.getStateId();
 
     // there can be several children --> collect their vars and join them

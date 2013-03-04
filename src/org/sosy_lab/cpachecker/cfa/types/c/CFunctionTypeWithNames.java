@@ -55,7 +55,7 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
           public CType apply(CParameterDeclaration pInput) {
             return pInput.getType();
           }
-        }).toImmutableList(),
+        }).toList(),
         pTakesVarArgs);
 
     parameters = ImmutableList.copyOf(pParameters);

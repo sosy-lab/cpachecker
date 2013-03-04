@@ -306,7 +306,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       return from(path)
               .transform(toState(PredicateAbstractState.class))
               .transform(GET_REGION)
-              .toImmutableList();
+              .toList();
     }
 
     @Override

@@ -44,7 +44,7 @@ public class JMethodType extends AFunctionType implements JType {
           public JType apply(JParameterDeclaration pInput) {
             return pInput.getType();
           }
-        }).toImmutableList(),
+        }).toList(),
         pTakesVarArgs);
 
     parameters = ImmutableList.copyOf(pParameters);

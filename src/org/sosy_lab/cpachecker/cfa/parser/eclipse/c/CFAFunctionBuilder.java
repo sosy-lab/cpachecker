@@ -660,7 +660,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       if (isReachableNode(prevNode)) {
 
-        for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toImmutableList()) {
+        for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
           if ((prevEdge instanceof BlankEdge)
               && prevEdge.getDescription().equals("")) {
 

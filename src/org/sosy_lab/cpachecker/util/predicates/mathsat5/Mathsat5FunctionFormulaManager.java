@@ -101,7 +101,7 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
         public Long apply(FormulaType<?> pArg0) {
           return toMathsatType(pArg0);
         }})
-        .toImmutableList();
+        .toList();
     long[] msatTypes = Longs.toArray(types);
 
     long returnType = toMathsatType(pReturnType);

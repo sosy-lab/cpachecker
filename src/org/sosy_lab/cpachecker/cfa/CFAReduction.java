@@ -143,7 +143,7 @@ public class CFAReduction {
       return from(lReached)
                .filter(IS_TARGET_STATE)
                .transform(EXTRACT_LOCATION)
-               .toImmutableSet();
+               .toSet();
 
     } catch (CPAException e) {
       logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");

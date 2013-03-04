@@ -80,7 +80,7 @@ public class FunctionPointerVariablesCollector {
         continue;
       }
 
-      for (CFAEdge edge : leavingEdges(node).toImmutableList()) {
+      for (CFAEdge edge : leavingEdges(node).toList()) {
         collectVars(edge, collectedVars);
 
         // if successor node is not on a different CFA, add it to the worklist
@@ -111,7 +111,7 @@ public class FunctionPointerVariablesCollector {
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
       if(declaration instanceof CVariableDeclaration) {
         //CVariableDeclaration v = (CVariableDeclaration)declaration;
-        //TODO?:collectVars(v.getInitializer(), pCollectedVars);        
+        //TODO?:collectVars(v.getInitializer(), pCollectedVars);
       }
       break;
     case FunctionCallEdge:
@@ -123,7 +123,7 @@ public class FunctionPointerVariablesCollector {
     case ReturnStatementEdge:
       CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
       if(returnEdge.getExpression()!=null)
-        collectVars(returnEdge.getExpression(), pCollectedVars);      
+        collectVars(returnEdge.getExpression(), pCollectedVars);
       break;
     case StatementEdge:
       CStatementEdge statementEdge = (CStatementEdge)edge;
@@ -134,11 +134,11 @@ public class FunctionPointerVariablesCollector {
         collectVars(assignment.getRightHandSide(), pCollectedVars);
       } else if(s instanceof CExpressionStatement) {
         CExpressionStatement expr = (CExpressionStatement)s;
-        collectVars(expr.getExpression(), pCollectedVars);        
-      } else if(s instanceof CFunctionCallStatement) 
+        collectVars(expr.getExpression(), pCollectedVars);
+      } else if(s instanceof CFunctionCallStatement)
       {
         CFunctionCallStatement call = (CFunctionCallStatement)s;
-        collectVars(call.getFunctionCallExpression(), pCollectedVars);        
+        collectVars(call.getFunctionCallExpression(), pCollectedVars);
       }
       break;
     case FunctionReturnEdge:
@@ -175,7 +175,7 @@ public class FunctionPointerVariablesCollector {
     @Override
     public Void visit(CIdExpression pE) {
       if (pE.getExpressionType() instanceof CFunctionType) {
-        collectVar(pE.getName());        
+        collectVar(pE.getName());
       }
       return null;
     }
@@ -208,10 +208,10 @@ public class FunctionPointerVariablesCollector {
 
     @Override
     public Void visit(CFunctionCallExpression pE) {
-      
+
       if(CFASecondPassBuilderComplete.isRegularCall(pE)) {
         //skip regular calls;
-      } else {      
+      } else {
         pE.getFunctionNameExpression().accept(this);
       }
       for (CExpression param : pE.getParameterExpressions()) {

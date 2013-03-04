@@ -239,7 +239,7 @@ public class PathToCTranslator {
       Set<ARGState> elementsOnPath) {
     // find the next elements to add to the waitlist
 
-    List<ARGState> relevantChildrenOfElement = from(currentElement.getChildren()).filter(in(elementsOnPath)).toImmutableList();
+    List<ARGState> relevantChildrenOfElement = from(currentElement.getChildren()).filter(in(elementsOnPath)).toList();
 
     // if there is only one child on the path
     if (relevantChildrenOfElement.size() == 1) {

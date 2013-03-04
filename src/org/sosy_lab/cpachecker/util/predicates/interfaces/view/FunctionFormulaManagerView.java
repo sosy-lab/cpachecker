@@ -72,7 +72,7 @@ public class FunctionFormulaManagerView extends AbstractBaseManagerView implemen
             @Override
             public FormulaType<?> apply(Formula pArg0) {
               return viewManager.getFormulaType(pArg0);
-            }}).toImmutableList();
+            }}).toList();
 
 
     FunctionFormulaType<T> funcType = createFunction(name, pReturnType, argTypes);
@@ -89,7 +89,7 @@ public class FunctionFormulaManagerView extends AbstractBaseManagerView implemen
               @Override
               public Formula apply(Formula pArg0) {
                 return viewManager.extractFromView(pArg0);
-              }}).toImmutableList();
+              }}).toList();
 
     return viewManager.wrapInView(manager.createUninterpretedFunctionCall(pFuncType, args));
   }

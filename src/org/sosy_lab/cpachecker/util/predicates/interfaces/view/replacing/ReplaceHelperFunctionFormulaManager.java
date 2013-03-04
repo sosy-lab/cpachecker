@@ -95,7 +95,7 @@ public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManag
       List<FormulaType<?>> pArgs) {
 
     List<FormulaType<?>> newArgs =
-        from(pArgs).transform(unwrapTypes).toImmutableList();
+        from(pArgs).transform(unwrapTypes).toList();
     FormulaType<?> ret = unwrapTypes.apply(pReturnType);
     FunctionFormulaType<?> funcType = rawFunctionFormulaManager.createFunction(pName, ret, newArgs);
 
@@ -123,7 +123,7 @@ public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManag
               public Formula apply(Formula pArg0) {
                 return replaceManager.unwrap(pArg0);
               }
-            }).toImmutableList();
+            }).toList();
 
     Formula f = rawFunctionFormulaManager.createUninterpretedFunctionCall(rep.wrapped, newArgs);
 

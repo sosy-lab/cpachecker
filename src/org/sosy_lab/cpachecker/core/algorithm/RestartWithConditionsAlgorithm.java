@@ -78,7 +78,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for RestartWithConditionsAlgorithm");
     }
 
-    conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toImmutableList();
+    conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
   }
 
   @Override

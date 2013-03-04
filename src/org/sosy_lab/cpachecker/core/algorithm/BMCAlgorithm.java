@@ -365,7 +365,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private boolean checkTargetStates(final ReachedSet pReachedSet, final ProverEnvironment prover) {
     List<AbstractState> targetStates = from(pReachedSet)
                                             .filter(IS_TARGET_STATE)
-                                            .toImmutableList();
+                                            .toList();
 
     if (checkTargetStates) {
       logger.log(Level.FINER, "Found", targetStates.size(), "potential target states");

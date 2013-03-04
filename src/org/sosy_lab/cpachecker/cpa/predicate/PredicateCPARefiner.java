@@ -234,7 +234,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       .transform(Pair.<ARGState>getProjectionToFirst())
       .filter(Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
                                  toState(PredicateAbstractState.class)))
-      .toImmutableList();
+      .toList();
 
     assert from(result).allMatch(new Predicate<ARGState>() {
       @Override
@@ -274,7 +274,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       return from(path)
           .transform(toState(PredicateAbstractState.class))
           .transform(GET_BLOCK_FORMULA)
-          .toImmutableList();
+          .toList();
     }
   }
 

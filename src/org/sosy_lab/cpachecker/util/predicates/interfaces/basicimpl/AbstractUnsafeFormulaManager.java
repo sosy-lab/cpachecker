@@ -65,7 +65,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
           @Override
           public TFormulaInfo apply(Formula pArg0) {
             return getTerm(pArg0);
-          }}).toImmutableList();
+          }}).toList();
     return returns;
   }
 

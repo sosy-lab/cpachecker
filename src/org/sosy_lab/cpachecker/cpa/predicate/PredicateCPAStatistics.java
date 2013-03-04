@@ -289,7 +289,7 @@ class PredicateCPAStatistics implements Statistics {
       try (Writer invariants = Files.openOutputFile(invariantsFile)) {
         for (CFANode loc : from(cfa.getAllNodes())
                              .filter(CFAUtils.IS_LOOP_NODE)
-                             .toImmutableSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
+                             .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
           Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
           BooleanFormula formula = absmgr.toConcrete(region);
           invariants.append("loop__");

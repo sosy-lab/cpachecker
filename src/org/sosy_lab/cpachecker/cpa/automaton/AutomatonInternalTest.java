@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.io.NullOutputStream;
+import com.google.common.io.ByteStreams;
 
 /**
  * This class contains Tests for the AutomatonAnalysis
@@ -95,7 +95,7 @@ public class AutomatonInternalTest {
       @SuppressWarnings("unchecked")
       List<Automaton> as = (List<Automaton>) symbol.value;
       for (Automaton a : as) {
-        a.writeDotFile(new PrintStream(new NullOutputStream()));
+        a.writeDotFile(new PrintStream(ByteStreams.nullOutputStream()));
       }
     }
   }
