@@ -228,6 +228,7 @@ public class FunctionPointerVariablesCollector {
       case AMPER:
       case STAR:
         pE.getOperand().accept(this);
+        break;
       default:
         pE.getOperand().accept(this);
       }

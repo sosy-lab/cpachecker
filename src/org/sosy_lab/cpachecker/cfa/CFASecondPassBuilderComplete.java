@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -432,7 +433,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
       return cfa.getAllFunctionHeads();
     } else {
       Collection<FunctionEntryNode> col = cfa.getAllFunctionHeads();
-      Collection<FunctionEntryNode> res = new ArrayList<FunctionEntryNode>();
+      Collection<FunctionEntryNode> res = new ArrayList<>();
       if(functionSet == FunctionSet.EQ_PARAM_SIZES) {
         for(FunctionEntryNode f : col) {
           if(checkParamSizes(expr.getFunctionCallExpression(), f.getFunctionDefinition().getType())) {

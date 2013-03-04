@@ -338,6 +338,7 @@ public enum MachineModel {
       return pTypedefType.getRealType().accept(this);
     }
 
+    @SuppressWarnings("unused")
     private class ArrayLengthVisitor extends DefaultCExpressionVisitor<Integer, IllegalArgumentException>
     {
 
