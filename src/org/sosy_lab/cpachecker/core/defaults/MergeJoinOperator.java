@@ -40,15 +40,13 @@ public class MergeJoinOperator implements MergeOperator {
    * Creates a merge-join operator, based on the given join
    * operator
    */
-  public MergeJoinOperator(AbstractDomain d)
-  {
+  public MergeJoinOperator(AbstractDomain d) {
     this.domain = d;
   }
 
   @Override
   public AbstractState merge(AbstractState el1, AbstractState el2, Precision p)
-    throws CPAException
-  {
+    throws CPAException {
     return domain.join(el1, el2);
   }
 

@@ -40,8 +40,7 @@ public class CompositeState implements AbstractWrapperState, Targetable, Partiti
   private final ImmutableList<AbstractState> states;
   private transient Object partitionKey; // lazily initialized
 
-  public CompositeState(List<AbstractState> elements)
-  {
+  public CompositeState(List<AbstractState> elements) {
     this.states = ImmutableList.copyOf(elements);
   }
 
@@ -60,8 +59,7 @@ public class CompositeState implements AbstractWrapperState, Targetable, Partiti
   }
 
   @Override
-  public String toString()
-  {
+  public String toString() {
     StringBuilder builder = new StringBuilder();
     builder.append('(');
     for (AbstractState element : states) {

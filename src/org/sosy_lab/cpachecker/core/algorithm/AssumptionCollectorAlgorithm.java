@@ -106,8 +106,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   // statistics
   private int automatonStates = 0;
 
-  public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException
-  {
+  public AssumptionCollectorAlgorithm(Algorithm algo, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
     this.logger = logger;

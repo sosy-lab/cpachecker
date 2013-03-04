@@ -339,8 +339,7 @@ public enum MachineModel {
     }
 
     @SuppressWarnings("unused")
-    private class ArrayLengthVisitor extends DefaultCExpressionVisitor<Integer, IllegalArgumentException>
-    {
+    private class ArrayLengthVisitor extends DefaultCExpressionVisitor<Integer, IllegalArgumentException> {
 
       @Override
       protected Integer visitDefault(CExpression pExp) {

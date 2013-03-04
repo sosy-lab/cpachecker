@@ -29,8 +29,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public class DefUseDomain implements AbstractDomain
-{
+public class DefUseDomain implements AbstractDomain {
   @Override
   public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
             DefUseState defUseState1 = (DefUseState) element1;
@@ -50,8 +49,7 @@ public class DefUseDomain implements AbstractDomain
               joined.add(definition);
             }
 
-            for (DefUseDefinition definition : defUseState2)
-            {
+            for (DefUseDefinition definition : defUseState2) {
                 if (!joined.contains(definition)) {
                   joined.add (definition);
                 }

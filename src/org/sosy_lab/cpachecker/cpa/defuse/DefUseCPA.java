@@ -82,26 +82,22 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
   }
 
   @Override
-  public AbstractDomain getAbstractDomain ()
-  {
+  public AbstractDomain getAbstractDomain () {
     return abstractDomain;
   }
 
   @Override
-  public TransferRelation getTransferRelation ()
-  {
+  public TransferRelation getTransferRelation () {
     return transferRelation;
   }
 
   @Override
-  public MergeOperator getMergeOperator ()
-  {
+  public MergeOperator getMergeOperator () {
     return mergeOperator;
   }
 
   @Override
-  public StopOperator getStopOperator ()
-  {
+  public StopOperator getStopOperator () {
     return stopOperator;
   }
 
@@ -112,15 +108,12 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
 
 
   @Override
-  public AbstractState getInitialState (CFANode node)
-  {
+  public AbstractState getInitialState (CFANode node) {
     Set<DefUseDefinition> defUseDefinitions = new HashSet<>();
-    if (node instanceof CFunctionEntryNode)
-    {
+    if (node instanceof CFunctionEntryNode) {
       List<String> parameterNames = ((CFunctionEntryNode)node).getFunctionParameterNames ();
 
-      for (String parameterName : parameterNames)
-      {
+      for (String parameterName : parameterNames) {
         DefUseDefinition newDef = new DefUseDefinition (parameterName, null);
         defUseDefinitions.add (newDef);
       }

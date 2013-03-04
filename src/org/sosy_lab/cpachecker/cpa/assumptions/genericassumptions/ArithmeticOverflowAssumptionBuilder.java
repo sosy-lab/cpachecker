@@ -53,11 +53,9 @@ import com.google.common.collect.Lists;
  * of integer arithmetic operations
  */
 public class ArithmeticOverflowAssumptionBuilder
-implements GenericAssumptionBuilder
-{
+implements GenericAssumptionBuilder {
 
-  private static Pair<CIntegerLiteralExpression, CIntegerLiteralExpression> boundsForType(CType typ)
-  {
+  private static Pair<CIntegerLiteralExpression, CIntegerLiteralExpression> boundsForType(CType typ) {
     if (typ instanceof CSimpleType) {
       CSimpleType btyp = (CSimpleType) typ;
 
@@ -139,8 +137,7 @@ implements GenericAssumptionBuilder
       if (pExpression instanceof CIdExpression){
         conjunctPredicateForArithmeticExpression(pExpression, result);
       }
-      else if (pExpression instanceof CBinaryExpression)
-      {
+      else if (pExpression instanceof CBinaryExpression) {
         CBinaryExpression binexp = (CBinaryExpression)pExpression;
         CExpression op1 = binexp.getOperand1();
         // Only variables for now, ignoring * & operators
@@ -148,8 +145,7 @@ implements GenericAssumptionBuilder
           conjunctPredicateForArithmeticExpression(op1, result);
         }
       }
-      else if (pExpression instanceof CUnaryExpression)
-      {
+      else if (pExpression instanceof CUnaryExpression) {
         CUnaryExpression unexp = (CUnaryExpression)pExpression;
         CExpression op1 = unexp.getOperand();
         // Only variables. Ignoring * & operators for now
@@ -157,8 +153,7 @@ implements GenericAssumptionBuilder
           conjunctPredicateForArithmeticExpression(op1, result);
         }
       }
-      else if (pExpression instanceof CCastExpression)
-      {
+      else if (pExpression instanceof CCastExpression) {
         CCastExpression castexp = (CCastExpression)pExpression;
         CType toType = castexp.getExpressionType();
         conjunctPredicateForArithmeticExpression(toType, castexp.getOperand(), result);
@@ -179,8 +174,7 @@ implements GenericAssumptionBuilder
       if (!fcallEdge.getArguments().isEmpty()) {
         CFunctionEntryNode fdefnode = fcallEdge.getSuccessor();
         List<CParameterDeclaration> formalParams = fdefnode.getFunctionParameters();
-        for (CParameterDeclaration paramdecl : formalParams)
-        {
+        for (CParameterDeclaration paramdecl : formalParams) {
           String name = paramdecl.getName();
           CType type = paramdecl.getType();
           CExpression exp = new CIdExpression(paramdecl.getFileLocation(), type, name, paramdecl);

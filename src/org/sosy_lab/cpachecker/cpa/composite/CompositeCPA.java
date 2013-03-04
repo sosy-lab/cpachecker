@@ -190,8 +190,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       MergeOperator mergeOperator,
       CompositeStopOperator stopOperator,
       PrecisionAdjustment precisionAdjustment,
-      ImmutableList<ConfigurableProgramAnalysis> cpas)
-  {
+      ImmutableList<ConfigurableProgramAnalysis> cpas) {
     this.abstractDomain = abstractDomain;
     this.transferRelation = transferRelation;
     this.mergeOperator = mergeOperator;

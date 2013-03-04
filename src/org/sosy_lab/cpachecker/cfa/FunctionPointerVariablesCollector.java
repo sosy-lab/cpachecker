@@ -136,8 +136,7 @@ public class FunctionPointerVariablesCollector {
       } else if(s instanceof CExpressionStatement) {
         CExpressionStatement expr = (CExpressionStatement)s;
         collectVars(expr.getExpression(), pCollectedVars);
-      } else if(s instanceof CFunctionCallStatement)
-      {
+      } else if(s instanceof CFunctionCallStatement) {
         CFunctionCallStatement call = (CFunctionCallStatement)s;
         collectVars(call.getFunctionCallExpression(), pCollectedVars);
       }

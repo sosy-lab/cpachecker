@@ -35,8 +35,7 @@ public class MergeSepOperator implements MergeOperator {
 
   @Override
   public AbstractState merge(AbstractState el1, AbstractState el2, Precision p)
-    throws CPAException
-  {
+    throws CPAException {
     return el2;
   }
 

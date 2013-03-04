@@ -2257,8 +2257,7 @@ public class CtoFormulaConverter {
       case LESS_THAN:
       case LESS_EQUAL:
       case EQUALS:
-      case NOT_EQUALS:
-      {
+      case NOT_EQUALS: {
         BooleanFormula result;
         switch (op){
           case GREATER_THAN:

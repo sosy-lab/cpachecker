@@ -65,8 +65,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
   private final FormulaManagerView formulaManager;
   private final AssumptionStorageState topState;
 
-  private AssumptionStorageCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException
-  {
+  private AssumptionStorageCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     formulaManager = new FormulaManagerView(new FormulaManagerFactory(config, logger).getFormulaManager(), config, logger);
     CtoFormulaConverter converter = new CtoFormulaConverter(config, formulaManager, cfa.getMachineModel(), logger);
     abstractDomain = new AssumptionStorageDomain(formulaManager);
@@ -76,8 +75,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis {
     transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topState);
   }
 
-  public FormulaManagerView getFormulaManager()
-  {
+  public FormulaManagerView getFormulaManager() {
     return formulaManager;
   }
 

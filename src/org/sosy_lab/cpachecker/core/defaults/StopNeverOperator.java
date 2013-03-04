@@ -37,8 +37,7 @@ public class StopNeverOperator implements StopOperator {
 
   @Override
   public boolean stop(AbstractState el, Collection<AbstractState> reached, Precision precision)
-    throws CPAException
-  {
+    throws CPAException {
     return false;
   }
 

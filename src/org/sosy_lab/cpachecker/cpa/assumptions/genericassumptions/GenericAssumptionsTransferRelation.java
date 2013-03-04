@@ -55,8 +55,7 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState el, Precision p, CFAEdge edge)
-  throws CPATransferException
-  {
+  throws CPATransferException {
 
     List<CExpression> allAssumptions = Lists.newArrayList();
     for (GenericAssumptionBuilder b : assumptionBuilders) {

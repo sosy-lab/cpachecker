@@ -127,8 +127,7 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import com.google.common.collect.ImmutableMap;
 
 @Options(prefix="cpa.explicit")
-public class ExplicitTransferRelation implements TransferRelation
-{
+public class ExplicitTransferRelation implements TransferRelation {
 
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user

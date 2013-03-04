@@ -90,26 +90,22 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
   }
 
   @Override
-  public AbstractDomain getAbstractDomain ()
-  {
+  public AbstractDomain getAbstractDomain () {
     return abstractDomain;
   }
 
   @Override
-  public TransferRelation getTransferRelation ()
-  {
+  public TransferRelation getTransferRelation () {
     return transferRelation;
   }
 
   @Override
-  public MergeOperator getMergeOperator ()
-  {
+  public MergeOperator getMergeOperator () {
     return mergeOperator;
   }
 
   @Override
-  public StopOperator getStopOperator ()
-  {
+  public StopOperator getStopOperator () {
     return stopOperator;
   }
 

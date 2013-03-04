@@ -1141,8 +1141,7 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
   private class IsNotZeroVisitor extends DefaultCExpressionVisitor<Boolean, UnrecognizedCCodeException>
-  implements CRightHandSideVisitor<Boolean, UnrecognizedCCodeException>
-  {
+  implements CRightHandSideVisitor<Boolean, UnrecognizedCCodeException> {
 
     //TODO Refactor, this visitor should not be neccessary
 
@@ -1188,8 +1187,7 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
   private class PointerAddressVisitor extends ExpressionValueVisitor
-      implements CRightHandSideVisitor<Integer, UnrecognizedCCodeException>
-  {
+      implements CRightHandSideVisitor<Integer, UnrecognizedCCodeException> {
 
     private final CFAEdge cfaEdge;
     private final SMGState smgState;
@@ -1636,8 +1634,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
   }
 
-  private class AssumeVisitor extends ExpressionValueVisitor
-  {
+  private class AssumeVisitor extends ExpressionValueVisitor {
 
     private final SMGState smgState;
 
@@ -1701,8 +1698,7 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
   private class ExpressionValueVisitor extends DefaultCExpressionVisitor<Integer, UnrecognizedCCodeException>
-      implements CRightHandSideVisitor<Integer, UnrecognizedCCodeException>
-  {
+      implements CRightHandSideVisitor<Integer, UnrecognizedCCodeException> {
 
     private final CFAEdge cfaEdge;
     private final SMGState smgState;

@@ -63,8 +63,7 @@ public class CallstackTransferRelation implements TransferRelation {
       throws CPATransferException {
 
     switch (pCfaEdge.getEdgeType()) {
-    case StatementEdge:
-    {
+    case StatementEdge: {
       if(pCfaEdge instanceof CFunctionSummaryStatementEdge) {
         //has function call edge
         CFunctionSummaryStatementEdge summary = (CFunctionSummaryStatementEdge)pCfaEdge;
@@ -78,8 +77,7 @@ public class CallstackTransferRelation implements TransferRelation {
         return Collections.singleton(pElement);
       }
     }
-    case FunctionCallEdge:
-      {
+    case FunctionCallEdge: {
         FunctionCallEdge cfaEdge = (FunctionCallEdge)pCfaEdge;
         CallstackState element = (CallstackState)pElement;
         if(shouldGoByFunctionCall(element, cfaEdge)) {
@@ -94,8 +92,7 @@ public class CallstackTransferRelation implements TransferRelation {
           return Collections.emptySet();
         }
       }
-    case FunctionReturnEdge:
-      {
+    case FunctionReturnEdge: {
         FunctionReturnEdge cfaEdge = (FunctionReturnEdge)pCfaEdge;
 
         CallstackState element = (CallstackState)pElement;

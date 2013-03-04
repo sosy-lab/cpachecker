@@ -55,8 +55,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   protected static class StateProjectionFunction
-    implements Function<AbstractState, AbstractState>
-  {
+    implements Function<AbstractState, AbstractState> {
     private final int dimension;
 
     public StateProjectionFunction(int d) {
@@ -70,8 +69,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   protected static class PrecisionProjectionFunction
-  implements Function<Precision, Precision>
-  {
+  implements Function<Precision, Precision> {
     private final int dimension;
 
     public PrecisionProjectionFunction(int d) {

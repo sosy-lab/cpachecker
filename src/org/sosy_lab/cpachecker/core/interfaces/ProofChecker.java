@@ -32,8 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 /**
  * Interface for classes representing a analysis that can be proof checked.
  */
-public interface ProofChecker
-{
+public interface ProofChecker {
   /**
    * Checks whether the given set of abstract successors correctly over-approximates the set of concrete successors the
    * concretisations of the given abstract state has with respect to the given CFA edge. If the given edge is <code>null</code>

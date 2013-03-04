@@ -581,15 +581,13 @@ public class TemplateSum extends TemplateNumericValue {
     return I;
   }
 
-  public static TemplateSum subtract(TemplateSum s1, TemplateSum s2)
-  {
+  public static TemplateSum subtract(TemplateSum s1, TemplateSum s2) {
     // Returns s1 minus s2.
     s2.negate();
     return new TemplateSum(s1,s2);
   }
 
-  public static TemplateSum multiply(TemplateSum s1, TemplateSum s2)
-  {
+  public static TemplateSum multiply(TemplateSum s1, TemplateSum s2) {
     Vector<TemplateTerm> terms1 = s1.getTerms();
     Vector<TemplateTerm> terms2 = s2.getTerms();
     Vector<TemplateTerm> terms3 = new Vector<>();

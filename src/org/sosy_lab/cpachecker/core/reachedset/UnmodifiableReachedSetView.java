@@ -39,8 +39,7 @@ import com.google.common.collect.Iterators;
  * and precision are transformed by mapping functions.
  */
 public class UnmodifiableReachedSetView
-  implements UnmodifiableReachedSet
-{
+  implements UnmodifiableReachedSet {
   private final UnmodifiableReachedSet underlying;
   private final Function<? super AbstractState, AbstractState> mapStateFunction;
   private final Function<? super Precision, Precision> mapPrecisionFunction;

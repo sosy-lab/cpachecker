@@ -41,8 +41,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
 
   protected final ImmutableList<StopOperator> stopOperators;
 
-  public CompositeStopOperator(ImmutableList<StopOperator> stopOperators)
-  {
+  public CompositeStopOperator(ImmutableList<StopOperator> stopOperators) {
     this.stopOperators = stopOperators;
   }
 

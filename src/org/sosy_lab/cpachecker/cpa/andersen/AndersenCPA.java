@@ -50,8 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 @Options(prefix="cpa.pointerA")
 public class AndersenCPA implements ConfigurableProgramAnalysisWithABM {
 
-  public static CPAFactory factory()
-  {
+  public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(AndersenCPA.class);
   }
 
