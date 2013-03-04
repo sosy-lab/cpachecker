@@ -44,7 +44,7 @@ public class PermutationGenerator {
     for (int i = 0; i < a.length; i++) {
       a[i] = i;
     }
-    numLeft = new BigInteger (total.toString());
+    numLeft = new BigInteger(total.toString());
   }
 
   //------------------------------------------------
@@ -78,7 +78,7 @@ public class PermutationGenerator {
   private static BigInteger getFactorial(int n) {
     BigInteger fact = BigInteger.ONE;
     for (int i = n; i > 1; i--) {
-      fact = fact.multiply (new BigInteger (Integer.toString(i)));
+      fact = fact.multiply (new BigInteger(Integer.toString(i)));
     }
     return fact;
   }

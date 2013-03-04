@@ -96,14 +96,14 @@ public class TemplateVariableManager implements VariableManager {
 
   @Override
   public String toString() {
-	String s = "Variables:";
-	Iterator<TemplateVariable> I = vars.iterator();
-	TemplateVariable V;
-	while(I.hasNext()) {
-		V = I.next();
-		s += " "+V.toString();
-	}
-	return s;
+  String s = "Variables:";
+  Iterator<TemplateVariable> I = vars.iterator();
+  TemplateVariable V;
+  while (I.hasNext()) {
+    V = I.next();
+    s += " "+V.toString();
+  }
+  return s;
   }
 
 }

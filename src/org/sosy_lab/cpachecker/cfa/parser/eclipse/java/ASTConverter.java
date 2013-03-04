@@ -1268,7 +1268,7 @@ public class ASTConverter {
   private JAstNode convert(TypeLiteral pE) {
 
     throw new CFAGenerationRuntimeException("Standard Library support not yet implemented.\n"
-    	+	"Cannot use Type Literals which would return a class Object.");
+      +  "Cannot use Type Literals which would return a class Object.");
   }
 
 

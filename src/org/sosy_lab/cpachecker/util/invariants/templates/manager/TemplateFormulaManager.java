@@ -258,16 +258,16 @@ public class TemplateFormulaManager implements FormulaManager {
 //
 //    TemplateFormula tf = null;
 //    try {
-//    	tf = (TemplateFormula)f;
+//      tf = (TemplateFormula)f;
 //    } catch (ClassCastException e) {}
 //    if (tf == null) {
-//    	return null;
+//      return null;
 //    }
 //
 //    List<TemplateFormula> tfAtoms = tf.extractAtoms(splitArithEqualities, conjunctionsOnly);
 //    Collection<BooleanFormula> atoms = new Vector<>(tfAtoms);
 //
-//  	return atoms;
+//    return atoms;
 //  }
 
 

@@ -81,7 +81,7 @@ public class ExplicitPrecision implements Precision {
   private boolean ignoreIntEqual = false;
 
   @Option(description = "ignore variables, that are only used in simple " +
-  		"calculations (add, sub, lt, gt, eq). "
+      "calculations (add, sub, lt, gt, eq). "
       + "if this option is used, these variables from the cfa should "
       + "tracked with another CPA, i.e. with BDDCPA.")
   private boolean ignoreIntAdd = false;

@@ -113,7 +113,7 @@ public class TemplateNumber extends TemplateNumericValue {
   @Override
   public Formula translate(FormulaManagerView fmgr) {
     return fmgr.makeNumber(getFormulaType(), rat.makeInteger());
-  	//return fmgr.makeNumber(rat.toString());
+    //return fmgr.makeNumber(rat.toString());
   }
 
   @Override

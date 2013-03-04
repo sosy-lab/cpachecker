@@ -329,22 +329,22 @@ public class TemplateSum extends TemplateNumericValue {
 
   @Override
   public Formula translate(FormulaManagerView fmgr) {
-  	Formula form = null;
-  	int N = getNumTerms();
-  	if(N == 0) {
-  		// Really, this case should not occur.
-  		TemplateTerm Z = TemplateTerm.makeZero(getFormulaType());
-  		form = Z.translate(fmgr);
-  	} else {
-  		assert N >= 1;
+    Formula form = null;
+    int N = getNumTerms();
+    if (N == 0) {
+      // Really, this case should not occur.
+      TemplateTerm Z = TemplateTerm.makeZero(getFormulaType());
+      form = Z.translate(fmgr);
+    } else {
+      assert N >= 1;
       form = getTerm(0).translate(fmgr);
       Formula augend;
       for (int i = 1; i < N; i++) {
-      	augend = getTerm(i).translate(fmgr);
-      	form = fmgr.makePlus(form, augend);
+        augend = getTerm(i).translate(fmgr);
+        form = fmgr.makePlus(form, augend);
       }
-  	}
-  	return form;
+    }
+    return form;
   }
 
 //------------------------------------------------------------------

@@ -68,15 +68,15 @@ public class TemplateTerm extends TemplateSum {
   }
 
   public static TemplateTerm makeZero(FormulaType<?> type) {
-  	TemplateTerm T = new TemplateTerm(type);
-  	T.setCoefficient(new TemplateNumber(type, 0));
-  	return T;
+    TemplateTerm T = new TemplateTerm(type);
+    T.setCoefficient(new TemplateNumber(type, 0));
+    return T;
   }
 
   public static TemplateTerm makeUnity(FormulaType<?> type) {
-  	TemplateTerm T = new TemplateTerm(type);
-  	T.setCoefficient(new TemplateNumber(type, 1));
-  	return T;
+    TemplateTerm T = new TemplateTerm(type);
+    T.setCoefficient(new TemplateNumber(type, 1));
+    return T;
   }
 
 // ------------------------------------------------------------------
@@ -317,32 +317,32 @@ public class TemplateTerm extends TemplateSum {
 
   @Override
   public Formula translate(FormulaManagerView fmgr) {
-  	Formula form = null;
-  	Vector<Formula> factors = new Vector<>(4);
+    Formula form = null;
+    Vector<Formula> factors = new Vector<>(4);
 
-  	if(hasCoefficient()) {
-  		factors.add( getCoefficient().translate(fmgr) );
-  	}
-  	// We ignore parameters, since other "languages" do not have them.
-  	if(hasVariable()) {
-  		factors.add( getVariable().translate(fmgr) );
-  	}
-  	if(hasUIF()) {
-  		factors.add( getUIF().translate(fmgr) );
-  	}
+    if (hasCoefficient()) {
+      factors.add( getCoefficient().translate(fmgr) );
+    }
+    // We ignore parameters, since other "languages" do not have them.
+    if (hasVariable()) {
+      factors.add( getVariable().translate(fmgr) );
+    }
+    if (hasUIF()) {
+      factors.add( getUIF().translate(fmgr) );
+    }
 
-  	if(factors.size() == 0) {
-  		// This case probably should not occur.
-  		form = makeUnity(getFormulaType()).translate(fmgr);
-  	} else {
-  		form = factors.get(0);
-  		Formula f;
-  		for(int i = 1; i < factors.size(); i++) {
-  			f = factors.get(i);
-  			form = fmgr.makeMultiply(form, f);
-  		}
-  	}
-  	return form;
+    if (factors.size() == 0) {
+      // This case probably should not occur.
+      form = makeUnity(getFormulaType()).translate(fmgr);
+    } else {
+      form = factors.get(0);
+      Formula f;
+      for (int i = 1; i < factors.size(); i++) {
+        f = factors.get(i);
+        form = fmgr.makeMultiply(form, f);
+      }
+    }
+    return form;
   }
 
   @Override
@@ -506,7 +506,7 @@ public class TemplateTerm extends TemplateSum {
       s = s.substring(1);
     } else if (s.length() == 0) {
       // In this case the coefficient is 1.
-	    s = "1";
+      s = "1";
     }
     return new Coeff(getFormulaType(), s);
   }

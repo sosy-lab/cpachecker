@@ -419,27 +419,27 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
 
   @Override
   public BooleanFormula translate(FormulaManagerView fmgr) {
-  	BooleanFormula form = null;
-  	BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
-  	int N = getNumConjuncts();
-  	if(N == 0) {
-  		form = bfmgr.makeBoolean(true);
-  	} else {
-  		assert N >= 1;
+    BooleanFormula form = null;
+    BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
+    int N = getNumConjuncts();
+    if (N == 0) {
+      form = bfmgr.makeBoolean(true);
+    } else {
+      assert N >= 1;
       form = getConjunct(0).translate(fmgr);
       BooleanFormula augend;
       for (int i = 1; i < N; i++) {
-      	augend = getConjunct(i).translate(fmgr);
-      	form = bfmgr.and(form, augend);
+        augend = getConjunct(i).translate(fmgr);
+        form = bfmgr.and(form, augend);
       }
-  	}
-  	return form;
+    }
+    return form;
   }
 
   @Override
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
-  	List<TemplateFormula> atoms = new Vector<>();
-  	TemplateBoolean tc;
+    List<TemplateFormula> atoms = new Vector<>();
+    TemplateBoolean tc;
     for (int i = 0; i < getNumConjuncts(); i++) {
       tc = getConjunct(i);
       if (cO) {
@@ -448,7 +448,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
         atoms.addAll( tc.extractAtoms(sAE, cO) );
       }
     }
-  	return atoms;
+    return atoms;
   }
 
   /*

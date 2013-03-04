@@ -891,7 +891,7 @@ public class SMGTransferRelation implements TransferRelation {
     if (memoryOfField.getSizeInBytes() < machineModel.getSizeof(fieldType)) {
       logger.log(Level.WARNING, "Attempting to write "  +  machineModel.getSizeof(fieldType) +
           " bytes into a field with size " + memoryOfField.getSizeInBytes() + "bytes.\n" +
-          		"Line " + cfaEdge.getLineNumber() + ": " + cfaEdge.getRawStatement());
+              "Line " + cfaEdge.getLineNumber() + ": " + cfaEdge.getRawStatement());
     }
 
     Integer value = evaluateExpressionValue(newState, cfaEdge, rValue);

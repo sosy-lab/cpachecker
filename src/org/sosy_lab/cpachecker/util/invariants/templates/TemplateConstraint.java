@@ -255,30 +255,30 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
 
   @Override
   public BooleanFormula translate(FormulaManagerView fmgr) {
-  	BooleanFormula form = null;
-  	Formula lhs = LHS.translate(fmgr);
-  	Formula rhs = RHS.translate(fmgr);
-  	switch(reln) {
-  	case EQUAL: form = fmgr.makeEqual(lhs, rhs); break;
-  	case LEQ:   form = fmgr.makeLessOrEqual(lhs, rhs, true);   break;
-  	case LT:    form = fmgr.makeLessThan(lhs, rhs, true); break;
-  	}
-  	return form;
+    BooleanFormula form = null;
+    Formula lhs = LHS.translate(fmgr);
+    Formula rhs = RHS.translate(fmgr);
+    switch (reln) {
+    case EQUAL: form = fmgr.makeEqual(lhs, rhs); break;
+    case LEQ:   form = fmgr.makeLessOrEqual(lhs, rhs, true);   break;
+    case LT:    form = fmgr.makeLessThan(lhs, rhs, true); break;
+    }
+    return form;
   }
 
   @Override
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
     List<TemplateFormula> atoms = new Vector<>();
-  	if(!sAE) {
-  		atoms.add(this);
-  	} else {
-  		// In this case we want to split equations into pairs of inequalities.
-  		TemplateConstraint tc1 = new TemplateConstraint(LHS, InfixReln.LEQ, RHS);
-  		TemplateConstraint tc2 = new TemplateConstraint(RHS, InfixReln.LEQ, LHS);
-  		atoms.add(tc1);
-  		atoms.add(tc2);
-  	}
-  	return atoms;
+    if (!sAE) {
+      atoms.add(this);
+    } else {
+      // In this case we want to split equations into pairs of inequalities.
+      TemplateConstraint tc1 = new TemplateConstraint(LHS, InfixReln.LEQ, RHS);
+      TemplateConstraint tc2 = new TemplateConstraint(RHS, InfixReln.LEQ, LHS);
+      atoms.add(tc1);
+      atoms.add(tc2);
+    }
+    return atoms;
   }
 
   @Override

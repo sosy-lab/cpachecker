@@ -41,16 +41,16 @@ public class BDDPrecision implements Precision {
   private boolean trackBoolean = true;
 
   @Option(description = "track variables from cfa, that are only compared " +
-  		"for equality, they are tracked as (small) bitvectors")
+      "for equality, they are tracked as (small) bitvectors")
   private boolean trackIntEqual = true;
 
   @Option(description = "track variables, only used in simple calculations " +
-  		"(add, sub, gt, lt, eq,...) from cfa as bitvectors with (default) 32 bits")
+      "(add, sub, gt, lt, eq,...) from cfa as bitvectors with (default) 32 bits")
   private boolean trackIntAdd = true;
 
   @Option(name="forceTrackingPattern",
       description="Pattern for variablenames that will always be tracked with BDDs." +
-      		"This pattern should only be used for known variables, i.e. for boolean vars.")
+          "This pattern should only be used for known variables, i.e. for boolean vars.")
   private String forceTrackingPatternStr = "";
 
   private final Pattern forceTrackingPattern;

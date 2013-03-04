@@ -225,7 +225,7 @@ public class TemplateFormula implements Formula, Template {
    * that you want.
    */
   public Formula translate(FormulaManagerView fmgr) {
-  	return null;
+    return null;
   }
 
   public FormulaType<?> getFormulaType() {
@@ -248,7 +248,7 @@ public class TemplateFormula implements Formula, Template {
    * We implement it recursively.
    */
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
-  	return null;
+    return null;
   }
 
   public void negate() {}

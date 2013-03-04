@@ -46,7 +46,7 @@ public class TemplateMap {
   }
 
   public void put(Location L, Template T) {
-  	map.put(L, T);
+    map.put(L, T);
   }
 
   /**
@@ -54,14 +54,14 @@ public class TemplateMap {
    * @return the TemplateFormula for the Location whose CFANode is N.
    */
   public Template getTemplate(CFANode N) {
-  	Template T = null;
-  	for(Location L : map.keySet()) {
-  		if(L.getNode() == N) {
-  			T = map.get(L);
-  			break;
-  		}
-  	}
-  	return T;
+    Template T = null;
+    for (Location L : map.keySet()) {
+      if (L.getNode() == N) {
+        T = map.get(L);
+        break;
+      }
+    }
+    return T;
   }
 
   public Template getTemplate(Location L) {

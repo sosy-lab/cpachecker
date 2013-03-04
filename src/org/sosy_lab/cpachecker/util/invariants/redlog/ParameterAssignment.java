@@ -89,7 +89,7 @@ public class ParameterAssignment {
   }
 
   public String getParameter() {
-	return parameter;
+     return parameter;
   }
 
   public Rational getValue() {

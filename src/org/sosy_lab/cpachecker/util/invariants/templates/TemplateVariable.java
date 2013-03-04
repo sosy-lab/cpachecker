@@ -163,13 +163,13 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
 
   @Override
   public Formula translate(FormulaManagerView fmgr) {
-  	Formula form = null;
-  	if(hasIndex()) {
-  		form = fmgr.makeVariable(getFormulaType(), name, index);
-  	} else {
-  		form = fmgr.makeVariable(getFormulaType(), name);
-  	}
-  	return form;
+    Formula form = null;
+    if (hasIndex()) {
+      form = fmgr.makeVariable(getFormulaType(), name, index);
+    } else {
+      form = fmgr.makeVariable(getFormulaType(), name);
+    }
+    return form;
   }
 
   @Override

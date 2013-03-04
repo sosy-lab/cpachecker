@@ -64,13 +64,13 @@ public class TemplateLinearizer {
    */
   public static LinearInequality linearize(TemplateFormula t, VariableManager vmgr) {
 
-  	if(t.isTrue()) {
-  		return booleanLineq(t.getFormulaType(), vmgr, true);
-  	}
+    if (t.isTrue()) {
+      return booleanLineq(t.getFormulaType(), vmgr, true);
+    }
 
-  	if(t.isFalse()) {
-  		return booleanLineq(t.getFormulaType(), vmgr, false);
-  	}
+    if (t.isFalse()) {
+      return booleanLineq(t.getFormulaType(), vmgr, false);
+    }
 
     LinearInequality lineq = new LinearInequality(vmgr);
     List<TemplateConstraint> constraints = t.getConstraints();
@@ -218,18 +218,18 @@ public class TemplateLinearizer {
    * @return
    */
   private static LinearInequality booleanLineq(FormulaType<?> type, VariableManager vmgr, boolean trueStatement) {
-  	LinearInequality lineq = new LinearInequality(vmgr);
-  	int n = vmgr.getNumVars();
-  	List<Coeff> coeffs = Collections.nCopies(n, new Coeff(type, "0"));
-  	Coeff rhs = new Coeff(type, "0");
-  	InfixReln reln;
-  	if(trueStatement) {
-  		reln = InfixReln.LEQ;
-  	} else {
-  	  reln = InfixReln.LT;
-  	}
-  	lineq.addIneq(coeffs, reln, rhs);
-  	return lineq;
+    LinearInequality lineq = new LinearInequality(vmgr);
+    int n = vmgr.getNumVars();
+    List<Coeff> coeffs = Collections.nCopies(n, new Coeff(type, "0"));
+    Coeff rhs = new Coeff(type, "0");
+    InfixReln reln;
+    if (trueStatement) {
+      reln = InfixReln.LEQ;
+    } else {
+      reln = InfixReln.LT;
+    }
+    lineq.addIneq(coeffs, reln, rhs);
+    return lineq;
   }
 
   private static IRMatrix booleanIRMatrix(VariableManager vmgr, boolean trueStatement) {

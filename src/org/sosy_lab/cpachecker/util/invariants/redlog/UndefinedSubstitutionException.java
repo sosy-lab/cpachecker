@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.invariants.redlog;
 
 public class UndefinedSubstitutionException extends Exception {
 
-	/**
-	 *
-	 */
-	private static final long serialVersionUID = 1L;}
+  /**
+   *
+   */
+  private static final long serialVersionUID = 1L;}

@@ -223,17 +223,17 @@ public class TemplateUIF extends TemplateNumericValue {
 
   @Override
   public Formula translate(FormulaManagerView fmgr) {
-  	Formula form = null;
-  	List<Formula> fl = ((AbstractFormulaList)args.translate(fmgr)).getTerms();
-  	FunctionFormulaManagerView ffmgr = fmgr.getFunctionFormulaManager();
-  	if(hasIndex()) {
-  	  form = ffmgr.createFuncAndCall(name, index.intValue(), getFormulaType(), fl);
-  		//form = fmgr.makeUIF(name, fl, index.intValue());
-  	} else {
+    Formula form = null;
+    List<Formula> fl = ((AbstractFormulaList)args.translate(fmgr)).getTerms();
+    FunctionFormulaManagerView ffmgr = fmgr.getFunctionFormulaManager();
+    if (hasIndex()) {
+      form = ffmgr.createFuncAndCall(name, index.intValue(), getFormulaType(), fl);
+      //form = fmgr.makeUIF(name, fl, index.intValue());
+    } else {
       form = ffmgr.createFuncAndCall(name, getFormulaType(), fl);
-  		//form = fmgr.makeUIF(name, fl);
-  	}
-  	return form;
+      //form = fmgr.makeUIF(name, fl);
+    }
+    return form;
   }
 
 //------------------------------------------------------------------
@@ -248,7 +248,7 @@ public class TemplateUIF extends TemplateNumericValue {
   }
 
   public boolean hasIndex() {
-  	return(index != null);
+    return (index != null);
   }
 
   public Integer getIndex() {

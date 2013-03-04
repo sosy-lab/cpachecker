@@ -57,14 +57,14 @@ public class TemplateFalse extends TemplateConstraint {
   @Override
   public BooleanFormula translate(FormulaManagerView fmgr) {
     BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
-  	return bfmgr.makeBoolean(false);
+    return bfmgr.makeBoolean(false);
   }
 
   @Override
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
     List<TemplateFormula> atoms = new Vector<>();
-  	atoms.add(this);
-  	return atoms;
+    atoms.add(this);
+    return atoms;
   }
 
 }
