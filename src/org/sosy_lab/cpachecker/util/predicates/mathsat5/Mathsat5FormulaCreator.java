@@ -58,7 +58,7 @@ class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long>{
     return Mathsat5FormulaManager.getMsatTerm(pT);
   }
 
-  public Formula encapsulateUnsafe(Long pTerm){
+  public Formula encapsulateUnsafe(Long pTerm) {
     return new Mathsat5Formula(pTerm);
   }
 
@@ -66,11 +66,11 @@ class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long>{
   @Override
   public <T extends Formula> T encapsulate(Class<T> pClazz, Long pTerm) {
     Mathsat5Formula f;
-    if (pClazz == BitvectorFormula.class){
+    if (pClazz == BitvectorFormula.class) {
       f = new Mathsat5BitvectorFormula(pTerm);
-    } else if (pClazz == RationalFormula.class){
+    } else if (pClazz == RationalFormula.class) {
       f = new Mathsat5RationalFormula(pTerm);
-    } else if (pClazz == BooleanFormula.class){
+    } else if (pClazz == BooleanFormula.class) {
       f = new Mathsat5BooleanFormula(pTerm);
     } else {
       throw new IllegalArgumentException("invalid interface type");

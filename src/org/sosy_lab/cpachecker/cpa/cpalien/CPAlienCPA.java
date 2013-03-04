@@ -75,7 +75,7 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
     transferRelation = new SMGTransferRelation(config, logger, machineModel); //TODO: Implement transfer relation
   }
 
-  public MachineModel getMachineModel(){
+  public MachineModel getMachineModel() {
     return machineModel;
   }
 

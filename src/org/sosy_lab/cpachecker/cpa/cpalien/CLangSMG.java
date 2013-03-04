@@ -94,7 +94,7 @@ public class CLangSMG extends SMG {
   public CLangSMG(CLangSMG pHeap) {
     super(pHeap);
 
-    for (CLangStackFrame stack_frame : pHeap.stack_objects){
+    for (CLangStackFrame stack_frame : pHeap.stack_objects) {
       CLangStackFrame new_frame = new CLangStackFrame(stack_frame);
       stack_objects.push(new_frame);
     }
@@ -109,7 +109,7 @@ public class CLangSMG extends SMG {
    * Adds an object to the heap.
    */
   public void addHeapObject(SMGObject pObject) {
-    if (this.heap_objects.contains(pObject)){
+    if (this.heap_objects.contains(pObject)) {
       throw new IllegalArgumentException("Heap object already in the SMG: [" + pObject + "]");
     }
     this.heap_objects.add(pObject);
@@ -122,10 +122,10 @@ public class CLangSMG extends SMG {
    * Adds a global object
    */
   public void addGlobalObject(SMGObject pObject) {
-    if (this.global_objects.values().contains(pObject)){
+    if (this.global_objects.values().contains(pObject)) {
       throw new IllegalArgumentException("Global object already in the SMG: [" + pObject + "]");
     }
-    if (this.global_objects.containsKey(pObject.getLabel())){
+    if (this.global_objects.containsKey(pObject.getLabel())) {
       throw new IllegalArgumentException("Global object with label [" + pObject.getLabel() + "] already in the SMG");
     }
     this.global_objects.put(pObject.getLabel(), pObject);
@@ -168,12 +168,12 @@ public class CLangSMG extends SMG {
    */
   public SMGObject getObjectForVisibleVariable(CIdExpression pVariableName) {
     // Look in the local frame
-    if (stack_objects.size() != 0){
-      if (stack_objects.peek().containsVariable(pVariableName.getName())){
+    if (stack_objects.size() != 0) {
+      if (stack_objects.peek().containsVariable(pVariableName.getName())) {
         return stack_objects.peek().getVariable(pVariableName.getName());
       }
     }
-    if (global_objects.containsKey(pVariableName.getName())){
+    if (global_objects.containsKey(pVariableName.getName())) {
       return global_objects.get(pVariableName.getName());
     }
     return null;
@@ -264,7 +264,7 @@ final class CLangStackFrame{
    *
    * TODO: [PARAMETERS] Create objects for function parameters
    */
-  public CLangStackFrame(CFunctionDeclaration pFunctionDeclaration){
+  public CLangStackFrame(CFunctionDeclaration pFunctionDeclaration) {
     stack_function = pFunctionDeclaration;
   }
 
@@ -273,7 +273,7 @@ final class CLangStackFrame{
    *
    * @param origFrame
    */
-  public CLangStackFrame(CLangStackFrame origFrame){
+  public CLangStackFrame(CLangStackFrame origFrame) {
     stack_function = origFrame.stack_function;
     stack_variables.putAll(origFrame.stack_variables);
   }
@@ -285,7 +285,7 @@ final class CLangStackFrame{
   public SMGObject getVariable(String pName) {
     SMGObject to_return = stack_variables.get(pName);
 
-    if (to_return == null){
+    if (to_return == null) {
       throw new NoSuchElementException("No variable with name '" +
                                        pName + "' in stack frame for function '" +
                                        stack_function.toASTString() + "'");
@@ -308,7 +308,7 @@ final class CLangStackFrame{
    * @param pObj
    */
   public void addStackVariable(String pVariableName, SMGObject pObj) {
-    if (stack_variables.containsKey(pVariableName)){
+    if (stack_variables.containsKey(pVariableName)) {
       throw new IllegalArgumentException("Stack frame for function '" +
                                        stack_function.toASTString() +
                                        "' already contains a variable '" +
@@ -337,92 +337,92 @@ final class CLangStackFrame{
 class CLangSMGConsistencyVerifier{
   private CLangSMGConsistencyVerifier() {} /* utility class */
 
-  static private boolean verifyCLangSMGProperty(boolean result, LogManager pLogger, String message){
+  static private boolean verifyCLangSMGProperty(boolean result, LogManager pLogger, String message) {
     pLogger.log(Level.FINEST, message, ":", result);
     return result;
   }
 
-  static private boolean verifyDisjunctHeapAndGlobal(LogManager pLogger, CLangSMG smg){
+  static private boolean verifyDisjunctHeapAndGlobal(LogManager pLogger, CLangSMG smg) {
     Map<String, SMGObject> globals = smg.getGlobalObjects();
     Set<SMGObject> heap = smg.getHeapObjects();
 
     boolean toReturn = Collections.disjoint(globals.values(), heap);
 
-    if (! toReturn){
+    if (! toReturn) {
       pLogger.log(Level.SEVERE, "CLangSMG inconsistent, heap and global objects are not disjoint");
     }
 
     return toReturn;
   }
 
-  static private boolean verifyDisjunctHeapAndStack(LogManager pLogger, CLangSMG smg){
+  static private boolean verifyDisjunctHeapAndStack(LogManager pLogger, CLangSMG smg) {
     ArrayDeque<CLangStackFrame> stack_frames = smg.getStackFrames();
     Set<SMGObject> stack = new HashSet<>();
 
-    for (CLangStackFrame frame: stack_frames){
+    for (CLangStackFrame frame: stack_frames) {
       stack.addAll(frame.stack_variables.values());
     }
     Set<SMGObject> heap = smg.getHeapObjects();
 
     boolean toReturn = Collections.disjoint(stack, heap);
 
-    if (! toReturn){
+    if (! toReturn) {
       pLogger.log(Level.SEVERE, "CLangSMG inconsistent, heap and stack objects are not disjoint: " + Sets.intersection(stack, heap));
     }
 
     return toReturn;
   }
 
-  static private boolean verifyDisjunctGlobalAndStack(LogManager pLogger, CLangSMG smg){
+  static private boolean verifyDisjunctGlobalAndStack(LogManager pLogger, CLangSMG smg) {
     ArrayDeque<CLangStackFrame> stack_frames = smg.getStackFrames();
     Set<SMGObject> stack = new HashSet<>();
 
-    for (CLangStackFrame frame: stack_frames){
+    for (CLangStackFrame frame: stack_frames) {
       stack.addAll(frame.stack_variables.values());
     }
     Map<String, SMGObject> globals = smg.getGlobalObjects();
 
     boolean toReturn = Collections.disjoint(stack, globals.values());
 
-    if (! toReturn){
+    if (! toReturn) {
       pLogger.log(Level.SEVERE, "CLangSMG inconsistent, global and stack objects are not disjoint");
     }
 
     return toReturn;
   }
 
-  static private boolean verifyStackGlobalHeapUnion(LogManager pLogger, CLangSMG smg){
+  static private boolean verifyStackGlobalHeapUnion(LogManager pLogger, CLangSMG smg) {
     HashSet<SMGObject> object_union = new HashSet<>();
 
     object_union.addAll(smg.getHeapObjects());
     object_union.addAll(smg.getGlobalObjects().values());
 
-    for (CLangStackFrame frame : smg.getStackFrames()){
+    for (CLangStackFrame frame : smg.getStackFrames()) {
       object_union.addAll(frame.getVariables().values());
     }
 
     boolean toReturn = object_union.containsAll(smg.getObjects()) &&
                        smg.getObjects().containsAll(object_union);
 
-    if (! toReturn){
+    if (! toReturn) {
       pLogger.log(Level.SEVERE, "CLangSMG inconsistent: union of stack, heap and global object is not the same set as the set of SMG objects");
     }
 
     return toReturn;
   }
 
-  static private boolean verifyNullObjectCLangProperties(LogManager pLogger, CLangSMG smg){
-    for (SMGObject obj: smg.getGlobalObjects().values()){
-      if (! obj.notNull()){
+  static private boolean verifyNullObjectCLangProperties(LogManager pLogger, CLangSMG smg) {
+    for (SMGObject obj: smg.getGlobalObjects().values()) {
+      if (! obj.notNull()) {
         pLogger.log(Level.SEVERE, "CLangSMG inconsistent: null object in global object set [" + obj + "]");
         return false;
       }
     }
 
     SMGObject firstNull = null;
-    for (SMGObject obj: smg.getHeapObjects()){
-      if (! obj.notNull()){
-        if (firstNull != null){
+    for (SMGObject obj: smg.getHeapObjects()) {
+      if (! obj.notNull()) {
+        if (firstNull != null) {
           pLogger.log(Level.SEVERE, "CLangSMG inconsistent: second null object in heap object set [first=" + firstNull + ", second=" + obj +"]" );
           return false;
         } else {
@@ -431,16 +431,16 @@ class CLangSMGConsistencyVerifier{
       }
     }
 
-    for (CLangStackFrame frame: smg.getStackFrames()){
-      for (SMGObject obj: frame.getVariables().values()){
-        if (! obj.notNull()){
+    for (CLangStackFrame frame: smg.getStackFrames()) {
+      for (SMGObject obj: frame.getVariables().values()) {
+        if (! obj.notNull()) {
           pLogger.log(Level.SEVERE, "CLangSMG inconsistent: null object in stack object set [" + obj + "]");
           return false;
         }
       }
     }
 
-    if (firstNull == null){
+    if (firstNull == null) {
       pLogger.log(Level.SEVERE, "CLangSMG inconsistent: no null object");
       return false;
     }
@@ -448,9 +448,9 @@ class CLangSMGConsistencyVerifier{
     return true;
   }
 
-  static private boolean verifyGlobalNamespace(LogManager pLogger, CLangSMG smg){
-    for (String label: smg.getGlobalObjects().keySet()){
-      if (smg.getGlobalObjects().get(label).getLabel() != label){
+  static private boolean verifyGlobalNamespace(LogManager pLogger, CLangSMG smg) {
+    for (String label: smg.getGlobalObjects().keySet()) {
+      if (smg.getGlobalObjects().get(label).getLabel() != label) {
         pLogger.log(Level.SEVERE,  "CLangSMG inconsistent: label [" + label + "] points to an object with label [" + smg.getGlobalObjects().get(label).getLabel() + "]");
         return false;
       }
@@ -459,12 +459,12 @@ class CLangSMGConsistencyVerifier{
     return true;
   }
 
-  static private boolean verifyStackNamespaces(LogManager pLogger, CLangSMG smg){
+  static private boolean verifyStackNamespaces(LogManager pLogger, CLangSMG smg) {
     HashSet<SMGObject> stack_objects = new HashSet<>();
 
-    for (CLangStackFrame frame : smg.getStackFrames()){
-      for (SMGObject object : frame.getVariables().values()){
-        if (stack_objects.contains(object)){
+    for (CLangStackFrame frame : smg.getStackFrames()) {
+      for (SMGObject object : frame.getVariables().values()) {
+        if (stack_objects.contains(object)) {
           pLogger.log(Level.SEVERE, "CLangSMG inconsistent: object [" + object + "] present multiple times in the stack");
           return false;
         }
@@ -475,7 +475,7 @@ class CLangSMGConsistencyVerifier{
     return true;
   }
 
-  static public boolean verifyCLangSMG(LogManager pLogger, CLangSMG smg){
+  static public boolean verifyCLangSMG(LogManager pLogger, CLangSMG smg) {
     boolean toReturn = SMGConsistencyVerifier.verifySMG(pLogger, smg);
 
     pLogger.log(Level.FINEST, "Starting constistency check of a CLangSMG");

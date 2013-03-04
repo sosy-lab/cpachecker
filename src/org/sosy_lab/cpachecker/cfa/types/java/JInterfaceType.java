@@ -75,7 +75,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
 
 
 
-    if (subType instanceof JInterfaceType){
+    if (subType instanceof JInterfaceType) {
 
       assert !directSubInterfaces.contains(subType);
 
@@ -89,7 +89,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
 
   }
 
-  public List<JInterfaceType> getAllSubInterfacesOfInterface(){
+  public List<JInterfaceType> getAllSubInterfacesOfInterface() {
 
      List<JInterfaceType> result = new ArrayList<>();
      Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<>();
@@ -105,7 +105,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
        toBeAdded.add(subInterface.getDirectSubInterfaces());
      }
 
-     while (!toBeAdded.isEmpty()){
+     while (!toBeAdded.isEmpty()) {
        for ( JInterfaceType subInterface : toBeAdded.poll()) {
 
          if (result.contains(subInterface)) {
@@ -120,7 +120,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
 
   }
 
-  public List<JInterfaceType> getAllSuperTypesOfInterface(){
+  public List<JInterfaceType> getAllSuperTypesOfInterface() {
 
 
      List<JInterfaceType> result = new ArrayList<>();
@@ -138,7 +138,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
        toBeAdded.add(superInterface.getExtendedInterfaces());
      }
 
-     while (!toBeAdded.isEmpty()){
+     while (!toBeAdded.isEmpty()) {
        for ( JInterfaceType superInterface : toBeAdded.poll()) {
 
          if (result.contains(superInterface)) {
@@ -154,7 +154,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
 
   }
 
-  public List<JClassType>  getAllKnownImplementedClassesOfInterface(){
+  public List<JClassType>  getAllKnownImplementedClassesOfInterface() {
 
     List<JClassType> result = new LinkedList<>();
     List<JInterfaceType> subInterfaces = new LinkedList<>();
@@ -178,7 +178,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
 
 
 
-  private List<JClassType> getAllKnownDirectlyImplementedClassesOfInterface(){
+  private List<JClassType> getAllKnownDirectlyImplementedClassesOfInterface() {
 
 
     List<JInterfaceType> subInterfaces = new LinkedList<>();
@@ -193,7 +193,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
        toBeAdded.add(subClasses.getDirectSubClasses());
      }
 
-     while (!toBeAdded.isEmpty()){
+     while (!toBeAdded.isEmpty()) {
        for ( JClassType subClasses : toBeAdded.poll()) {
          result.add(subClasses);
          toBeAdded.add(subClasses.getDirectSubClasses());

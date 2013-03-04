@@ -65,7 +65,7 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
       env.setLogic(Logics.QF_UFLRA);
     }
     final Sort t = env.sort(type);
-    CreateBitType<Sort> bitTypeCreator = new CreateBitType<Sort>(){
+    CreateBitType<Sort> bitTypeCreator = new CreateBitType<Sort>() {
       @Override
       public Sort fromSize(int pSize) {
         return t;

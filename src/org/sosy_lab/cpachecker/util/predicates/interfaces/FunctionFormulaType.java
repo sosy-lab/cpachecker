@@ -31,7 +31,7 @@ import java.util.List;
  */
 public abstract class FunctionFormulaType<T extends Formula> extends FormulaType<T> {
 
-  public FunctionFormulaType(){}
+  public FunctionFormulaType() {}
   /**
    * The list of arguments.
    */

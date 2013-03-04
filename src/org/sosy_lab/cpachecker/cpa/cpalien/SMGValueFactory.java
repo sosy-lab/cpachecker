@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 
 public class SMGValueFactory {
   private static int counter = 0;
-  public static final Integer getNewValue(){
+  public static final Integer getNewValue() {
     counter++;
     return Integer.valueOf(counter);
   }

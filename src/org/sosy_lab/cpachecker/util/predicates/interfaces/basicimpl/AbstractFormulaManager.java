@@ -63,8 +63,8 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
       AbstractFunctionFormulaManager<TFormulaInfo> functionManager,
       AbstractBooleanFormulaManager<TFormulaInfo> booleanManager,
       AbstractRationalFormulaManager<TFormulaInfo> rationalManager,
-      AbstractBitvectorFormulaManager<TFormulaInfo> bitvectorManager ){
-    if (functionManager == null || booleanManager == null || unsafeManager == null){
+      AbstractBitvectorFormulaManager<TFormulaInfo> bitvectorManager ) {
+    if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
     }
 
@@ -84,25 +84,25 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
         || functionManager.getFormulaCreator() != formulaCreator
         || (rationalManager != null && rationalManager.getFormulaCreator() != formulaCreator)
         || (bitvectorManager != null && bitvectorManager.getFormulaCreator() != formulaCreator)
-        ){
+        ) {
       throw new IllegalArgumentException("The creator instances must match across the managers!");
     }
 
   }
 
-  protected FormulaCreator<TFormulaInfo> getFormulaCreator(){
+  protected FormulaCreator<TFormulaInfo> getFormulaCreator() {
     return formulaCreator;
   }
 
   @SuppressWarnings("unchecked")
-  public static <T extends Formula> Class<T> getInterfaceHelper(T instance){
+  public static <T extends Formula> Class<T> getInterfaceHelper(T instance) {
     checkNotNull(instance);
     Class<?> c ;
-    if (instance instanceof BooleanFormula){
+    if (instance instanceof BooleanFormula) {
       c = BooleanFormula.class;
-    } else if (instance instanceof RationalFormula){
+    } else if (instance instanceof RationalFormula) {
       c = RationalFormula.class;
-    } else if (instance instanceof BitvectorFormula){
+    } else if (instance instanceof BitvectorFormula) {
       c = BitvectorFormula.class;
     } else {
       throw new IllegalArgumentException("Invalid instance");
@@ -112,12 +112,12 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
   }
 
   @Override
-  public <T extends Formula> Class<T> getInterface(T pInstance){
+  public <T extends Formula> Class<T> getInterface(T pInstance) {
     return AbstractFormulaManager.getInterfaceHelper(pInstance);
   }
   @Override
   public AbstractRationalFormulaManager<TFormulaInfo> getRationalFormulaManager() {
-    if (rationalManager == null){
+    if (rationalManager == null) {
       throw new UnsupportedOperationException();
     }
     return rationalManager;
@@ -130,7 +130,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
 
   @Override
   public AbstractBitvectorFormulaManager<TFormulaInfo> getBitvectorFormulaManager() {
-    if (bitvectorManager == null){
+    if (bitvectorManager == null) {
       throw new UnsupportedOperationException();
     }
     return bitvectorManager;
@@ -162,7 +162,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
 
   @SuppressWarnings("unchecked")
   @Override
-  public <T extends Formula> FormulaType<T> getFormulaType(T formula){
+  public <T extends Formula> FormulaType<T> getFormulaType(T formula) {
     checkNotNull(formula);
     Class<T> clazz = getInterface(formula);
     FormulaType<?> t;

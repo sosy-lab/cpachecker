@@ -53,7 +53,7 @@ public class PathFormula implements Serializable {
   }
 
   @Override
-  public String toString(){
+  public String toString() {
     return getFormula().toString();
   }
 

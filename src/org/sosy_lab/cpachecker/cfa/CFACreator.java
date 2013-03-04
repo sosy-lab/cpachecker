@@ -291,7 +291,7 @@ public class CFACreator {
       stats.processingTime.start();
 
       // annotate CFA nodes with reverse postorder information for later use
-      for (FunctionEntryNode function : cfa.getAllFunctionHeads()){
+      for (FunctionEntryNode function : cfa.getAllFunctionHeads()) {
         CFAReversePostorder sorter = new CFAReversePostorder();
         sorter.assignSorting(function);
       }
@@ -313,7 +313,7 @@ public class CFACreator {
         spbuilder.insertCallEdgesRecursively();
       }
 
-      if (useGlobalVars){
+      if (useGlobalVars) {
         // add global variables at the beginning of main
         insertGlobalDeclarations(cfa, c.getGlobalDeclarations());
       }
@@ -512,7 +512,7 @@ public class CFACreator {
             d.getFileLocation().getStartingLineNumber(), cur, n, (CDeclaration) d);
         addToCFA(e);
         cur = n;
-      } else if (cfa.getLanguage() == Language.JAVA){
+      } else if (cfa.getLanguage() == Language.JAVA) {
         JDeclarationEdge e = new JDeclarationEdge(rawSignature,
             d.getFileLocation().getStartingLineNumber(), cur, n, (JDeclaration) d);
         addToCFA(e);

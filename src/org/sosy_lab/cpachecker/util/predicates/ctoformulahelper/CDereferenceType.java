@@ -50,7 +50,7 @@ public final class CDereferenceType extends CtoFormulaCType {
     return guessedType;
   }
 
-  public CDereferenceType withGuess(CType guessedType){
+  public CDereferenceType withGuess(CType guessedType) {
     if (this.guessedType != null) {
       throw new IllegalArgumentException("Type was already guessed!");
     }

@@ -29,127 +29,127 @@ import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
 public class OctagonManager {
 
   /* Initialization */
-  public static boolean init(){
+  public static boolean init() {
     return J_init();
   }
 
   /* num handling function*/
 
   /* allocate new space for num array and init*/
-  public static NumArray init_num_t (int n){
+  public static NumArray init_num_t (int n) {
     long l = J_init_n(n);
     return new NumArray(l);
   }
 
   /* num copy */
-  public static void num_set(NumArray n1, NumArray n2){
+  public static void num_set(NumArray n1, NumArray n2) {
     J_num_set(n1.getArray(), n2.getArray());
   }
 
   /* set int */
-  public static void num_set_int(NumArray n, int pos, int i){
+  public static void num_set_int(NumArray n, int pos, int i) {
     J_num_set_int(n.getArray(), pos, i);
   }
   /* set float */
-  public static void num_set_float(NumArray n, int pos, double d){
+  public static void num_set_float(NumArray n, int pos, double d) {
     J_num_set_float(n.getArray(), pos, d);
   }
   /* set infinity */
-  public static void num_set_inf(NumArray n, int pos){
+  public static void num_set_inf(NumArray n, int pos) {
     J_num_set_inf(n.getArray(), pos);
   }
 
-  public static long num_get_int(NumArray n, int pos){
+  public static long num_get_int(NumArray n, int pos) {
     return J_num_get_int(n.getArray(), pos);
   }
 
-  public static double num_get_float(NumArray n, int pos){
+  public static double num_get_float(NumArray n, int pos) {
     return J_num_get_float(n.getArray(), pos);
   }
 
-  public static boolean num_infty(NumArray n, int pos){
+  public static boolean num_infty(NumArray n, int pos) {
     return J_num_infty(n.getArray(), pos);
   }
 
-  public static void num_clear_n(NumArray n, int size){
+  public static void num_clear_n(NumArray n, int size) {
     J_num_clear_n(n.getArray(), size);
   }
 
   /* Octagon handling functions */
 
   /* Octagon Creation */
-  public static Octagon empty(int n){
+  public static Octagon empty(int n) {
     long l = J_empty(n);
     return new Octagon(l);
   }
 
-  public static Octagon universe(int n){
+  public static Octagon universe(int n) {
     long l = J_universe(n);
     return new Octagon(l);
   }
-  public static void free(Octagon oct){
+  public static void free(Octagon oct) {
     J_free(oct.getOctId());
   }
 
-  public static Octagon copy(Octagon oct){
+  public static Octagon copy(Octagon oct) {
     long l = J_copy(oct.getOctId());
     return new Octagon(l);
   }
 
-  public static Octagon full_copy(Octagon oct){
+  public static Octagon full_copy(Octagon oct) {
     long l = J_full_copy(oct.getOctId());
     return new Octagon(l);
   }
 
   /* Query Functions */
-  public static int dimension(Octagon oct){
+  public static int dimension(Octagon oct) {
     return J_dimension(oct.getOctId());
   }
 
-  public static int nbconstraints(Octagon oct){
+  public static int nbconstraints(Octagon oct) {
     return J_nbconstraints(oct.getOctId());
   }
 
   /* Test Functions */
-  public static boolean isEmpty(Octagon oct){
+  public static boolean isEmpty(Octagon oct) {
     return J_isEmpty(oct.getOctId());
   }
 
-  public static int isEmptyLazy(Octagon oct){
+  public static int isEmptyLazy(Octagon oct) {
     return J_isEmptyLazy(oct.getOctId());
   }
 
-  public static boolean isUniverse(Octagon oct){
+  public static boolean isUniverse(Octagon oct) {
     return J_isUniverse(oct.getOctId());
   }
 
-  public static boolean isIncludedIn(Octagon oct1, Octagon oct2){
+  public static boolean isIncludedIn(Octagon oct1, Octagon oct2) {
     return J_isIncludedIn(oct1.getOctId(), oct2.getOctId());
   }
 
-  public static int isIncludedInLazy(Octagon oct1, Octagon oct2){
+  public static int isIncludedInLazy(Octagon oct1, Octagon oct2) {
     return J_isIncludedInLazy(oct1.getOctId(), oct2.getOctId());
   }
 
-  public static boolean isEqual(Octagon oct1, Octagon oct2){
+  public static boolean isEqual(Octagon oct1, Octagon oct2) {
     return J_isEqual(oct1.getOctId(), oct2.getOctId());
   }
 
-  public static int isEqualLazy(Octagon oct1, Octagon oct2){
+  public static int isEqualLazy(Octagon oct1, Octagon oct2) {
     return J_isEqualLazy(oct1.getOctId(), oct2.getOctId());
   }
 
-  public static boolean isIn(Octagon oct1, NumArray array){
+  public static boolean isIn(Octagon oct1, NumArray array) {
     return J_isIn(oct1.getOctId(), array.getArray());
   }
 
   /* Operators */
-  public static Octagon intersection(Octagon oct1, Octagon oct2){
+  public static Octagon intersection(Octagon oct1, Octagon oct2) {
     long l = J_intersection(oct1.getOctId(), oct2.getOctId(), false);
     return new Octagon(l);
   }
 
-  public static Octagon union(Octagon oct1, Octagon oct2){
+  public static Octagon union(Octagon oct1, Octagon oct2) {
     long l = J_union(oct1.getOctId(), oct2.getOctId(), false);
     return new Octagon(l);
   }
@@ -157,69 +157,69 @@ public class OctagonManager {
   /* int widening = 0 -> OCT_WIDENING_FAST
    * int widening = 1 ->  OCT_WIDENING_ZERO
    * int widening = 2 -> OCT_WIDENING_UNIT*/
-  public Octagon widening(Octagon oct1, Octagon oct2){
+  public Octagon widening(Octagon oct1, Octagon oct2) {
     long l = J_widening(oct1.getOctId(), oct2.getOctId(), false, 1);
     return new Octagon(l);
   }
 
-  public static Octagon narrowing(Octagon oct1, Octagon oct2){
+  public static Octagon narrowing(Octagon oct1, Octagon oct2) {
     long l = J_narrowing(oct1.getOctId(), oct2.getOctId(), false);
     return new Octagon(l);
   }
 
   /* Transfer Functions */
-  public static Octagon forget(Octagon oct, int k){
+  public static Octagon forget(Octagon oct, int k) {
     long l = J_forget(oct.getOctId(), k, false);
     return new Octagon(l);
   }
 
-  public static Octagon assingVar(Octagon oct, int k, NumArray array){
+  public static Octagon assingVar(Octagon oct, int k, NumArray array) {
     long l = J_assingVar(oct.getOctId(), k, array.getArray(), false);
     return new Octagon(l);
   }
 
-  public static Octagon addBinConstraint(Octagon oct, int noOfConstraints, NumArray array){
+  public static Octagon addBinConstraint(Octagon oct, int noOfConstraints, NumArray array) {
     long  l = J_addBinConstraints(oct.getOctId(), noOfConstraints, array.getArray(), false);
     return new Octagon(l);
   }
 
-  public static Octagon substituteVar(Octagon oct, int x, NumArray array){
+  public static Octagon substituteVar(Octagon oct, int x, NumArray array) {
     long l = J_substituteVar(oct.getOctId(), x, array.getArray(), false);
     return new Octagon(l);
   }
 
-  public static Octagon addConstraint(Octagon oct, NumArray array){
+  public static Octagon addConstraint(Octagon oct, NumArray array) {
     long l = J_addConstraint(oct.getOctId(), array.getArray(), false);
     return new Octagon(l);
   }
-  public static Octagon intervAssingVar(Octagon oct, int k, NumArray array){
+  public static Octagon intervAssingVar(Octagon oct, int k, NumArray array) {
     long l = J_intervAssingVar(oct.getOctId(), k, array.getArray(), false);
     return new Octagon(l);
   }
-  public static Octagon intervSubstituteVar(Octagon oct, int x, NumArray array){
+  public static Octagon intervSubstituteVar(Octagon oct, int x, NumArray array) {
     long l = J_intervSubstituteVar(oct.getOctId(), x, array.getArray(), false);
     return new Octagon(l);
   }
-  public static Octagon intervAddConstraint(Octagon oct, NumArray array){
+  public static Octagon intervAddConstraint(Octagon oct, NumArray array) {
     long l = J_intervAddConstraint(oct.getOctId(), array.getArray(), false);
     return new Octagon(l);
   }
 
   /* change of dimensions */
-  public static Octagon addDimensionAndEmbed(Octagon oct, int k){
+  public static Octagon addDimensionAndEmbed(Octagon oct, int k) {
     long l = J_addDimenensionAndEmbed(oct.getOctId(), k, false);
     return new Octagon(l);
   }
-  public static Octagon addDimensionAndProject(Octagon oct, int k){
+  public static Octagon addDimensionAndProject(Octagon oct, int k) {
     long l = J_addDimenensionAndProject(oct.getOctId(), k, false);
     return new Octagon(l);
   }
-  public static Octagon removeDimension(Octagon oct, int k){
+  public static Octagon removeDimension(Octagon oct, int k) {
     long l = J_removeDimension(oct.getOctId(), k, false);
     return new Octagon(l);
   }
 
-  public static void print(Octagon oct){
+  public static void print(Octagon oct) {
     J_print(oct.getOctId());
   }
 }

@@ -48,7 +48,7 @@ public class NonTemplate extends TemplateFormula implements BooleanFormula, Bitv
   }
 
   @Override
-  public FormulaType<?> getFormulaType(){
+  public FormulaType<?> getFormulaType() {
     return type;
   }
 }

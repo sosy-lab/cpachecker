@@ -73,7 +73,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   public ARGState(AbstractState pWrappedState, ARGState pParentElement) {
     super(pWrappedState);
     stateId = ++nextArgStateId;
-    if (pParentElement != null){
+    if (pParentElement != null) {
       addParent(pParentElement);
     }
   }
@@ -84,11 +84,11 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    * Get the parent elements of this state.
    * @return A unmodifiable collection of ARGStates without duplicates.
    */
-  public Collection<ARGState> getParents(){
+  public Collection<ARGState> getParents() {
     return Collections.unmodifiableCollection(parents);
   }
 
-  public void addParent(ARGState pOtherParent){
+  public void addParent(ARGState pOtherParent) {
     checkNotNull(pOtherParent);
     assert !destroyed : "Don't use destroyed ARGState " + this;
 

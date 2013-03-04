@@ -48,7 +48,7 @@ class OctDomain implements AbstractDomain{
     OctState octState1 = (OctState) element1;
     OctState octState2 = (OctState) element2;
 
-    if (covers.containsKey(octState2) && ((HashSet<OctState>)(covers.get(octState2))).contains(octState1)){
+    if (covers.containsKey(octState2) && ((HashSet<OctState>)(covers.get(octState2))).contains(octState1)) {
       return true;
     }
 
@@ -62,7 +62,7 @@ class OctDomain implements AbstractDomain{
     } else {
       assert (result == 3);
       boolean included = OctagonManager.isIncludedIn(octState1.getOctagon(), octState2.getOctagon());
-      if (included){
+      if (included) {
         Set<OctState> s;
         if (covers.containsKey(octState2)) {
           s = covers.get(octState2);

@@ -43,7 +43,7 @@ public class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaMana
     this.env = creator.getEnv();
   }
 
-  public static SmtInterpolBooleanFormulaManager create(SmtInterpolFormulaCreator creator){
+  public static SmtInterpolBooleanFormulaManager create(SmtInterpolFormulaCreator creator) {
     return new SmtInterpolBooleanFormulaManager(creator);
   }
 
@@ -56,7 +56,7 @@ public class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaMana
   @Override
   public Term makeBooleanImpl(boolean pValue) {
     Term t ;
-    if (pValue){
+    if (pValue) {
       t = env.getTrueTerm();
     } else {
       t = env.getFalseTerm();

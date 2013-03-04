@@ -60,7 +60,7 @@ public class JArrayCreationExpression extends AExpression implements JExpression
 
       StringBuilder astString = new StringBuilder("new "+ getExpressionType().getElementType().toASTString(""));
 
-      for (JExpression exp : length){
+      for (JExpression exp : length) {
         astString.append("[");
         astString.append(exp.toASTString());
         astString.append("]");

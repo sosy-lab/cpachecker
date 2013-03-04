@@ -36,11 +36,11 @@ public class Variable {
     type = pType;
   }
 
-  public String getName(){
+  public String getName() {
     return name;
   }
 
-  public CType getType(){
+  public CType getType() {
     assert type != null;
     return type;
   }

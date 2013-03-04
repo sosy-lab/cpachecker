@@ -377,7 +377,7 @@ public class CtoFormulaConverter {
     } else if (exp instanceof CUnaryExpression) {
       CUnaryExpression unary = (CUnaryExpression) exp;
       name = scopedIfNecessary(unary.getOperand(), ssa, function);
-      switch (unary.getOperator()){
+      switch (unary.getOperator()) {
       case STAR:
         name = makePointerMask(name, ssa);
         break;
@@ -421,7 +421,7 @@ public class CtoFormulaConverter {
 
   @SuppressWarnings("unused")
   private boolean isSignedType(CType pType) {
-    if (pType instanceof CSimpleType){
+    if (pType instanceof CSimpleType) {
       return !((CSimpleType)pType).isUnsigned();
     }
     // Default behaviour, structs for example
@@ -536,7 +536,7 @@ public class CtoFormulaConverter {
                 + "(Type1: " + t + ", Type2: " + type + ")");
       }
 
-      if (getFormulaTypeFromCType(t) != getFormulaTypeFromCType(type)){
+      if (getFormulaTypeFromCType(t) != getFormulaTypeFromCType(type)) {
         throw new UnsupportedOperationException(
             "Variable " + name + " used with types of different sizes! " +
                 "(Type1: " + t + ", Type2: " + type + ")");
@@ -1551,7 +1551,7 @@ public class CtoFormulaConverter {
     BitvectorFormulaManagerView bitvectorFormulaManager = efmgr;
     FormulaType<Formula> tl = fmgr.getFormulaType(left);
     FormulaType<Formula> tr = fmgr.getFormulaType(right);
-    if (tl == tr){
+    if (tl == tr) {
       return fmgr.assignment(left, right);
     }
 
@@ -1964,7 +1964,7 @@ public class CtoFormulaConverter {
       for (CCompositeTypeMemberDeclaration member : structType.getMembers() ) {
         if (member.getName().equals(fieldName)) {
           if (assertFieldType != null) {
-            if (!areEqual(assertFieldType, member.getType())){
+            if (!areEqual(assertFieldType, member.getType())) {
               log(Level.SEVERE,
                   "Expected the same type for member (Ignore it for function pointer): " +
                       assertFieldType.toString() + ", " + member.getType().toString());
@@ -2259,7 +2259,7 @@ public class CtoFormulaConverter {
       case EQUALS:
       case NOT_EQUALS: {
         BooleanFormula result;
-        switch (op){
+        switch (op) {
           case GREATER_THAN:
             result= fmgr.makeGreaterThan(f1, f2, signed);
             break;

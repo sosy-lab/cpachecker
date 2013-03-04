@@ -197,7 +197,7 @@ public final class DOTBuilder2 {
     private static String nodeToDot(CFANode node) {
       String shape = "circle";
 
-      if (node.isLoopStart()){
+      if (node.isLoopStart()) {
         shape = "doublecircle";
       } else if (node.getNumLeavingEdges() > 0 &&
           node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge) {

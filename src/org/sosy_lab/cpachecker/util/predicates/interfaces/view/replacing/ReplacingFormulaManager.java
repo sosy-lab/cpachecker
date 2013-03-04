@@ -63,8 +63,8 @@ public class ReplacingFormulaManager implements FormulaManager {
           @Override
           public FormulaType<?> apply(FormulaType<?> pArg0) {
             Class<? extends Formula> clazz = pArg0.getInterfaceType();
-            if (clazz == BitvectorFormula.class){
-              if (replaceBitvectorWithRationalAndFunctions){
+            if (clazz == BitvectorFormula.class) {
+              if (replaceBitvectorWithRationalAndFunctions) {
                 return FormulaType.RationalType;
               }
             }
@@ -133,7 +133,7 @@ public class ReplacingFormulaManager implements FormulaManager {
 
   @SuppressWarnings("unchecked")
   public <T extends Formula> T unwrap(Formula f) {
-    if (f instanceof WrappingFormula<?,?>){
+    if (f instanceof WrappingFormula<?,?>) {
       return ((WrappingFormula<T,?>)f).getWrapped();
     } else {
       return (T) f;
@@ -183,7 +183,7 @@ public class ReplacingFormulaManager implements FormulaManager {
   public <T extends Formula> T parse(Class<T> pClazz, String pS) throws IllegalArgumentException {
     if (replacedBitvectorTheory && BitvectorFormula.class == pClazz
       || replacedRationalTheory && RationalFormula.class == pClazz
-      || replacedBooleanTheory && BooleanFormula.class == pClazz){
+      || replacedBooleanTheory && BooleanFormula.class == pClazz) {
       throw new IllegalArgumentException("Can't parse a replaced theory, please change the replacement settings");
     }
 

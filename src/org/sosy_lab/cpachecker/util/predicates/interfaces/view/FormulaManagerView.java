@@ -572,7 +572,7 @@ public class FormulaManagerView implements FormulaManager {
     return t;
   }
 
-  public <T extends Formula> T makeVariable(FormulaType<T> formulaType, String name, int idx){
+  public <T extends Formula> T makeVariable(FormulaType<T> formulaType, String name, int idx) {
     return makeVariable(formulaType, makeName(name, idx));
   }
 
@@ -584,7 +584,7 @@ public class FormulaManagerView implements FormulaManager {
             LINE_JOINER.join(
                 FluentIterable.from(f)
                   .transform(
-                      new Function<BooleanFormula, String>(){
+                      new Function<BooleanFormula, String>() {
                       @Override
                       public String apply(BooleanFormula pArg0) {
                         return dumpFormula(pArg0);
@@ -627,21 +627,21 @@ public class FormulaManagerView implements FormulaManager {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T wrapInView(T formula){
+  public <T extends Formula> T wrapInView(T formula) {
     Class<T> formulaType = AbstractFormulaManager.getInterfaceHelper(formula);
-    if (BooleanFormula.class == formulaType){
+    if (BooleanFormula.class == formulaType) {
       return (T) booleanFormulaManager.wrapInView((BooleanFormula) formula);
     }
-    if (RationalFormula.class == (formulaType)){
+    if (RationalFormula.class == (formulaType)) {
       return (T) rationalFormulaManager.wrapInView((RationalFormula) formula);
     }
-    if (BitvectorFormula.class == (formulaType)){
+    if (BitvectorFormula.class == (formulaType)) {
       return (T) bitvectorFormulaManager.wrapInView((BitvectorFormula) formula);
     }
     throw new IllegalArgumentException("Invalid class");
   }
 
-  public <T extends Formula> BooleanFormula assignment(T left, T right){
+  public <T extends Formula> BooleanFormula assignment(T left, T right) {
     left = extractFromView(left);
     right = extractFromView(right);
     FormulaType<T> lformulaType = this.getFormulaType(left);
@@ -893,7 +893,7 @@ public class FormulaManagerView implements FormulaManager {
 
         if (splitArithEqualities
             && myIsPurelyArithmetic(tt)) {
-          if (rawNumericManager.isEqual(tt)){
+          if (rawNumericManager.isEqual(tt)) {
             RationalFormula a0 = unsafeManager.typeFormula(FormulaType.RationalType, unsafeManager.getArg(tt, 0));
             RationalFormula a1 = unsafeManager.typeFormula(FormulaType.RationalType, unsafeManager.getArg(tt, 1));
 
@@ -1100,7 +1100,7 @@ public class FormulaManagerView implements FormulaManager {
         allLiterals.add(tt);
       }
       if (unsafeManager.isUF(tt)) {
-        if (unsafeManager.getName(tt).equals(BitwiseAndUfName) && !andFound){
+        if (unsafeManager.getName(tt).equals(BitwiseAndUfName) && !andFound) {
           andFound = true;
         }
 //        FunctionSymbol funcSym = ((ApplicationTerm) t).getFunction();

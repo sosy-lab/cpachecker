@@ -60,8 +60,8 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
       TType boolType,
       TType numberType,
       CreateBitType<TType> bittype
-      ){
-    if (bittype == null){
+      ) {
+    if (bittype == null) {
       throw new IllegalArgumentException("CreateBitType instance has to be valid!");
     }
     this.boolType = boolType;

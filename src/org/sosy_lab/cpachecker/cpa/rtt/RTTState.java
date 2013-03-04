@@ -108,7 +108,7 @@ public class RTTState extends AbstractAppender implements AbstractState {
     checkNotNull(variableName);
     checkNotNull(object);
 
-    if (constantsMap.containsValue(object)){
+    if (constantsMap.containsValue(object)) {
       constantsMap.put(variableName, object);
     } else {
       assignNewUniqueObject(variableName, object);
@@ -133,7 +133,7 @@ public class RTTState extends AbstractAppender implements AbstractState {
 
     String iD ;
 
-    if (javaRunTimeClassName.equals(NULL_REFERENCE)){
+    if (javaRunTimeClassName.equals(NULL_REFERENCE)) {
      iD = "";
     } else {
      iD = Integer.toString(RTTTransferRelation.nextId());
@@ -148,7 +148,7 @@ public class RTTState extends AbstractAppender implements AbstractState {
   void forget(String variableName) {
     String oldValue = constantsMap.get(variableName);
 
-    if (oldValue != null && !oldValue.equals(NULL_REFERENCE) && !constantsMap.containsValue(oldValue)){
+    if (oldValue != null && !oldValue.equals(NULL_REFERENCE) && !constantsMap.containsValue(oldValue)) {
      forgetObject(oldValue);
     }
 
@@ -276,12 +276,12 @@ public class RTTState extends AbstractAppender implements AbstractState {
     }
 
     // this element is not less or equal, if their scope differ
-    if (!classObjectScope.equals(other.getClassObjectScope())){
+    if (!classObjectScope.equals(other.getClassObjectScope())) {
       return false;
     }
 
     // Is this neccessary?
-    if (!getClassObjectStack().equals(other.getClassObjectStack())){
+    if (!getClassObjectStack().equals(other.getClassObjectStack())) {
       return false;
     }
 
@@ -366,7 +366,7 @@ public class RTTState extends AbstractAppender implements AbstractState {
 
   }
 
-   public String getKeywordThisUniqueObject(){
+   public String getKeywordThisUniqueObject() {
      return getUniqueObjectFor(KEYWORD_THIS);
    }
 

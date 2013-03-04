@@ -37,39 +37,39 @@ class OctWideningControl {
     private int iterationCount = 0;
     private boolean isWideningUsed = false;
 
-    public LoopNode(int id){
+    public LoopNode(int id) {
       nodeId = id;
     }
 
-    public void incrementIteration(){
+    public void incrementIteration() {
       iterationCount++;
     }
 
-    public boolean exceedThreshold(){
+    public boolean exceedThreshold() {
       return iterationCount > OctConstants.wideningThreshold;
     }
 
-    public boolean isWideningUsed(){
+    public boolean isWideningUsed() {
       if (isWideningUsed) {
         return true;
       } else {
         incrementIteration();
-        if (exceedThreshold()){
+        if (exceedThreshold()) {
           switchToWideningUsed();
         }
       }
       return isWideningUsed;
     }
 
-    public void switchToWideningUsed(){
+    public void switchToWideningUsed() {
       isWideningUsed = true;
     }
   }
 
-  public boolean isWideningUsed(LocationState le){
+  public boolean isWideningUsed(LocationState le) {
     Integer nodeId = le.getLocationNode().getNodeNumber();
     LoopNode ln;
-    if (loopNodeList.containsKey(nodeId)){
+    if (loopNodeList.containsKey(nodeId)) {
       ln = loopNodeList.get(nodeId);
       return ln.isWideningUsed();
     } else {

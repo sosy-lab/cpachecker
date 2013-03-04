@@ -71,7 +71,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
       AbstractState absElem2 = compositeReachedStates.get(idx);
       Precision prec = compositePrecisions.get(idx);
 
-      if (!stopOp.stop(absElem1, Collections.singleton(absElem2), prec)){
+      if (!stopOp.stop(absElem1, Collections.singleton(absElem2), prec)) {
         return false;
       }
     }
@@ -95,7 +95,7 @@ public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOp
       AbstractState absElem1 = componentElements.get(idx);
       AbstractState absElem2 = componentOtherElements.get(idx);
 
-      if (!componentProofChecker.isCoveredBy(absElem1, absElem2)){
+      if (!componentProofChecker.isCoveredBy(absElem1, absElem2)) {
         return false;
       }
     }

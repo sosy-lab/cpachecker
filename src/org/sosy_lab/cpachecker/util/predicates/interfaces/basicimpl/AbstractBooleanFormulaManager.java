@@ -62,7 +62,7 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
 
 
   @Override
-  public BooleanFormula makeBoolean(boolean value){
+  public BooleanFormula makeBoolean(boolean value) {
     return wrap(makeBooleanImpl(value));
   }
   protected abstract TFormulaInfo makeBooleanImpl(boolean value);
@@ -142,7 +142,7 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
    * @return (f1 <-> f2)
    */
   @Override
-  public final BooleanFormula equivalence(BooleanFormula pBits1, BooleanFormula pBits2){
+  public final BooleanFormula equivalence(BooleanFormula pBits1, BooleanFormula pBits2) {
     TFormulaInfo param1 = extractInfo(pBits1);
     TFormulaInfo param2 = extractInfo(pBits2);
     return wrap(equivalence(param1, param2));
@@ -151,19 +151,19 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
 
 
   @Override
-  public final boolean isTrue(BooleanFormula pBits){
+  public final boolean isTrue(BooleanFormula pBits) {
     return isTrue(extractInfo(pBits));
   }
   protected abstract boolean isTrue(TFormulaInfo bits);
 
   @Override
-  public final boolean isFalse(BooleanFormula pBits){
+  public final boolean isFalse(BooleanFormula pBits) {
     return isFalse(extractInfo(pBits));
   }
   protected abstract boolean isFalse(TFormulaInfo bits);
 
   @Override
-  public FormulaType<BooleanFormula> getFormulaType(){
+  public FormulaType<BooleanFormula> getFormulaType() {
     return FormulaType.BooleanType;
   }
 
@@ -176,8 +176,8 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
    * @return (IF cond THEN f1 ELSE f2)
    */
   @Override
-  public final <T extends Formula> T ifThenElse(BooleanFormula pBits, T f1, T f2){
-    if (AbstractFormulaManager.getInterfaceHelper(f1) != AbstractFormulaManager.getInterfaceHelper(f2)){
+  public final <T extends Formula> T ifThenElse(BooleanFormula pBits, T f1, T f2) {
+    if (AbstractFormulaManager.getInterfaceHelper(f1) != AbstractFormulaManager.getInterfaceHelper(f2)) {
       throw new IllegalArgumentException("f1 and f2 can't be from differen interface types!");
     }
     FormulaCreator<TFormulaInfo> creator = getFormulaCreator();

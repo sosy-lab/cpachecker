@@ -77,7 +77,7 @@ public class TypeHierachyCreator extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(EnumDeclaration node){
+  public boolean visit(EnumDeclaration node) {
 
     handleHierachy(node.resolveBinding());
     return VISIT_CHILDREN;
@@ -179,9 +179,9 @@ public class TypeHierachyCreator extends ASTVisitor {
 
     add(pType , pExtendedInterfaces);
 
-    for (JClassType subClass : pKnownInterfaceImplementingClasses){
+    for (JClassType subClass : pKnownInterfaceImplementingClasses) {
 
-     if (!types.containsKey(subClass.getName())){
+     if (!types.containsKey(subClass.getName())) {
        add(subClass);
      }
 
@@ -190,9 +190,9 @@ public class TypeHierachyCreator extends ASTVisitor {
 
     }
 
-    for (JInterfaceType subInterface : pSubInterfaces){
+    for (JInterfaceType subInterface : pSubInterfaces) {
 
-      if (!types.containsKey(subInterface.getName())){
+      if (!types.containsKey(subInterface.getName())) {
         add(subInterface);
       }
 
@@ -206,14 +206,14 @@ public class TypeHierachyCreator extends ASTVisitor {
 
     assert pExtendedInterfaces != null;
 
-    if (!types.containsKey(pType.getName())){
+    if (!types.containsKey(pType.getName())) {
       add(pType);
     }
 
 
-    for (JInterfaceType extendedInterfaces : pExtendedInterfaces){
+    for (JInterfaceType extendedInterfaces : pExtendedInterfaces) {
 
-     if (!types.containsKey(extendedInterfaces.getName())){
+     if (!types.containsKey(extendedInterfaces.getName())) {
        add(extendedInterfaces);
      }
 
@@ -227,7 +227,7 @@ public class TypeHierachyCreator extends ASTVisitor {
 
   private boolean add(JInterfaceType pType)  {
 
-    if (!types.containsKey(pType.getName())){
+    if (!types.containsKey(pType.getName())) {
       types.put(pType.getName(),pType);
       return SUCCESSFUL;
     } else {
@@ -241,9 +241,9 @@ public class TypeHierachyCreator extends ASTVisitor {
 
       add(pType, pParentClass, pImplementedInterfaces);
 
-      for (JClassType subClass : pDirectSubClasses){
+      for (JClassType subClass : pDirectSubClasses) {
 
-       if (!types.containsKey(subClass.getName())){
+       if (!types.containsKey(subClass.getName())) {
          add(subClass);
        }
 
@@ -265,14 +265,14 @@ public class TypeHierachyCreator extends ASTVisitor {
 
     assert pImplementedInterfaces != null;
 
-    if (!types.containsKey(pType.getName())){
+    if (!types.containsKey(pType.getName())) {
       add(pType);
     }
 
 
-    for (JInterfaceType implementedType : pImplementedInterfaces){
+    for (JInterfaceType implementedType : pImplementedInterfaces) {
 
-     if (!types.containsKey(implementedType.getName())){
+     if (!types.containsKey(implementedType.getName())) {
        add(implementedType);
      }
 
@@ -287,11 +287,11 @@ public class TypeHierachyCreator extends ASTVisitor {
 
     assert pParentClass != null;
 
-    if (!types.containsKey(pType.getName())){
+    if (!types.containsKey(pType.getName())) {
      add(pType);
     }
 
-    if (!types.containsKey(pParentClass.getName())){
+    if (!types.containsKey(pParentClass.getName())) {
       add(pParentClass);
     }
 
@@ -302,7 +302,7 @@ public class TypeHierachyCreator extends ASTVisitor {
 
   private boolean add(JClassType pType) {
 
-    if (!types.containsKey(pType.getName())){
+    if (!types.containsKey(pType.getName())) {
       types.put(pType.getName(), pType);
       return SUCCESSFUL;
     } else {

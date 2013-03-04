@@ -156,7 +156,7 @@ public final class CCompositeType implements CComplexType {
 
 
 
-    public CType getType(){
+    public CType getType() {
       return type;
     }
 

@@ -42,7 +42,7 @@ public class SMGEdgePointsTo extends SMGEdge {
   }
 
   @Override
-  public boolean isConsistentWith(SMGEdge other){
+  public boolean isConsistentWith(SMGEdge other) {
     /*
      * different value- > different place
      * same value -> same place
@@ -51,12 +51,12 @@ public class SMGEdgePointsTo extends SMGEdge {
       return false;
     }
 
-    if (this.value != other.value){
-      if (this.offset == ((SMGEdgePointsTo)other).offset && this.object == other.object){
+    if (this.value != other.value) {
+      if (this.offset == ((SMGEdgePointsTo)other).offset && this.object == other.object) {
         return false;
       }
     } else
-      if (this.offset != ((SMGEdgePointsTo)other).offset || this.object != other.object){
+      if (this.offset != ((SMGEdgePointsTo)other).offset || this.object != other.object) {
         return false;
       }
 

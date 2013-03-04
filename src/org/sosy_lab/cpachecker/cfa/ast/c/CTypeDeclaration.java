@@ -42,7 +42,7 @@ public abstract class CTypeDeclaration extends ADeclaration implements CDeclarat
   }
 
   @Override
-  public CType getType(){
+  public CType getType() {
     return (CType)super.getType();
   }
 }

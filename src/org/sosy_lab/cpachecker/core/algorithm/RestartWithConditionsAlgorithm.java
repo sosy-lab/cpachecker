@@ -156,7 +156,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     for (AbstractState s: pStatesWithAssumptions) {
       ARGState argState = (ARGState)s;
 
-      for (ARGState parent : ImmutableSet.copyOf(argState.getParents())){
+      for (ARGState parent : ImmutableSet.copyOf(argState.getParents())) {
         reached.removeSubtree(parent);
       }
     }

@@ -51,7 +51,7 @@ public class SMG {
    */
   final private static int nullAddress = 0;
 
-  public SMG(MachineModel pMachineModel){
+  public SMG(MachineModel pMachineModel) {
     SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
 
     addObject(nullObject);
@@ -73,11 +73,11 @@ public class SMG {
     machine_model = pHeap.machine_model;
   }
 
-  final public SMGObject getNullObject(){
+  final public SMGObject getNullObject() {
     return nullObject;
   }
 
-  final public int getNullValue(){
+  final public int getNullValue() {
     return nullAddress;
   }
 
@@ -94,7 +94,7 @@ public class SMG {
     this.values.add(Integer.valueOf(pValue));
   }
 
-  final public void addPointsToEdge(SMGEdgePointsTo pEdge){
+  final public void addPointsToEdge(SMGEdgePointsTo pEdge) {
     this.pt_edges.add(pEdge);
   }
 
@@ -102,31 +102,31 @@ public class SMG {
     this.hv_edges.add(pNewEdge);
   }
 
-  final public String valuesToString(){
+  final public String valuesToString() {
     return "values=" + values.toString();
   }
 
-  final public String hvToString(){
+  final public String hvToString() {
     return "hasValue=" + hv_edges.toString();
   }
 
-  final public String ptToString(){
+  final public String ptToString() {
     return "pointsTo=" + pt_edges.toString();
   }
 
-  final public Set<Integer> getValues(){
+  final public Set<Integer> getValues() {
     return Collections.unmodifiableSet(values);
   }
 
-  final public Set<SMGObject> getObjects(){
+  final public Set<SMGObject> getObjects() {
     return Collections.unmodifiableSet(objects);
   }
 
-  final public Set<SMGEdgeHasValue> getHVEdges(){
+  final public Set<SMGEdgeHasValue> getHVEdges() {
     return Collections.unmodifiableSet(hv_edges);
   }
 
-  final public Set<SMGEdgePointsTo> getPTEdges(){
+  final public Set<SMGEdgePointsTo> getPTEdges() {
     return Collections.unmodifiableSet(pt_edges);
   }
 
@@ -138,9 +138,9 @@ public class SMG {
    * TODO: Test
    * TODO: Consistency check: no value can point to more objects
    */
-  final public SMGObject getObjectPointedBy(Integer value){
-    for (SMGEdgePointsTo edge: pt_edges){
-      if (value == edge.getValue()){
+  final public SMGObject getObjectPointedBy(Integer value) {
+    for (SMGEdgePointsTo edge: pt_edges) {
+      if (value == edge.getValue()) {
         return edge.getObject();
       }
     }
@@ -148,10 +148,10 @@ public class SMG {
     return null;
   }
 
-  final private HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, Integer pOffset){
+  final private HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, Integer pOffset) {
     HashSet<SMGEdgeHasValue> toReturn = new HashSet<>();
-    for (SMGEdgeHasValue edge: hv_edges){
-      if (edge.getObject() == pObject && (pOffset == null || edge.getOffset() == pOffset)){
+    for (SMGEdgeHasValue edge: hv_edges) {
+      if (edge.getObject() == pObject && (pOffset == null || edge.getOffset() == pOffset)) {
         toReturn.add(edge);
       }
     }
@@ -167,16 +167,16 @@ public class SMG {
     return getValuesForObject(pObject, Integer.valueOf(pOffset));
   }
 
-  public void setValidity(SMGObject obj, boolean value){
-    if (this.objects.contains(obj)){
+  public void setValidity(SMGObject obj, boolean value) {
+    if (this.objects.contains(obj)) {
       this.object_validity.put(obj, value);
     } else {
       throw new IllegalArgumentException("Object [" + obj + "] not in SMG");
     }
   }
 
-  public boolean isObjectValid(SMGObject obj){
-    if (this.objects.contains(obj)){
+  public boolean isObjectValid(SMGObject obj) {
+    if (this.objects.contains(obj)) {
       return object_validity.get(obj).booleanValue();
     } else {
       throw new IllegalArgumentException("Object [" + obj + "] not in SMG");
@@ -191,41 +191,41 @@ public class SMG {
 class SMGConsistencyVerifier{
   private SMGConsistencyVerifier() {} /* utility class */
 
-  static private boolean verifySMGProperty(boolean result, LogManager pLogger, String message){
+  static private boolean verifySMGProperty(boolean result, LogManager pLogger, String message) {
     pLogger.log(Level.FINEST, "Checking SMG consistency: ", message, ":", result);
     return result;
   }
 
-  static private boolean verifyNullObject(LogManager pLogger, SMG smg){
+  static private boolean verifyNullObject(LogManager pLogger, SMG smg) {
     Integer null_value = null;
 
-    for (Integer value: smg.getValues()){
-      if (smg.getObjectPointedBy(value) == smg.getNullObject()){
+    for (Integer value: smg.getValues()) {
+      if (smg.getObjectPointedBy(value) == smg.getNullObject()) {
         null_value = value;
       }
     }
 
-    if (smg.getObjectPointedBy(smg.getNullValue()) != smg.getNullObject()){
+    if (smg.getObjectPointedBy(smg.getNullValue()) != smg.getNullObject()) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null value not pointing to null object");
       return false;
     }
 
-    if (null_value == null){
+    if (null_value == null) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: no value pointing to null object");
       return false;
     }
 
-    if (! smg.getValuesForObject(smg.getNullObject()).isEmpty()){
+    if (! smg.getValuesForObject(smg.getNullObject()).isEmpty()) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object has some value");
       return false;
     }
 
-    if (smg.isObjectValid(smg.getNullObject())){
+    if (smg.isObjectValid(smg.getNullObject())) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object is not invalid");
       return false;
     }
 
-    if (smg.getNullObject().getSizeInBytes() != 0){
+    if (smg.getNullObject().getSizeInBytes() != 0) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object does not have zero size");
       return false;
     }
@@ -233,12 +233,12 @@ class SMGConsistencyVerifier{
     return true;
   }
 
-  static private boolean verifyInvalidRegionsHaveNoHVEdges(LogManager pLogger, SMG smg){
-    for (SMGObject obj : smg.getObjects()){
+  static private boolean verifyInvalidRegionsHaveNoHVEdges(LogManager pLogger, SMG smg) {
+    for (SMGObject obj : smg.getObjects()) {
       if (smg.isObjectValid(obj)) {
         continue;
       }
-      if (smg.getValuesForObject(obj).size() > 0){
+      if (smg.getValuesForObject(obj).size() > 0) {
         pLogger.log(Level.SEVERE, "SMG inconsistent: invalid object has a HVEdge");
         return false;
       }
@@ -247,9 +247,9 @@ class SMGConsistencyVerifier{
     return true;
   }
 
-  static private boolean checkSingleFieldConsistency(LogManager pLogger, SMGObject pObject, SMG smg){
-    for (SMGEdgeHasValue hvEdge : smg.getValuesForObject(pObject)){
-      if ((hvEdge.getOffset() + hvEdge.getSizeInBytes(smg.getMachineModel())) > pObject.getSizeInBytes()){
+  static private boolean checkSingleFieldConsistency(LogManager pLogger, SMGObject pObject, SMG smg) {
+    for (SMGEdgeHasValue hvEdge : smg.getValuesForObject(pObject)) {
+      if ((hvEdge.getOffset() + hvEdge.getSizeInBytes(smg.getMachineModel())) > pObject.getSizeInBytes()) {
         pLogger.log(Level.SEVERE, "SMG inconistent: field exceedes boundary of the object");
         pLogger.log(Level.SEVERE, "Object: ", pObject);
         pLogger.log(Level.SEVERE, "Field: ", hvEdge);
@@ -259,9 +259,9 @@ class SMGConsistencyVerifier{
     return true;
   }
 
-  static private boolean verifyFieldConsistency(LogManager pLogger, SMG smg){
-    for (SMGObject obj : smg.getObjects()){
-      if (! checkSingleFieldConsistency(pLogger, obj, smg)){
+  static private boolean verifyFieldConsistency(LogManager pLogger, SMG smg) {
+    for (SMGObject obj : smg.getObjects()) {
+      if (! checkSingleFieldConsistency(pLogger, obj, smg)) {
         return false;
       }
     }
@@ -269,27 +269,27 @@ class SMGConsistencyVerifier{
     return true;
   }
 
-  static private boolean verifyEdgeConsistency(LogManager pLogger, SMG smg, Set<? extends SMGEdge> edges){
+  static private boolean verifyEdgeConsistency(LogManager pLogger, SMG smg, Set<? extends SMGEdge> edges) {
     ArrayList<SMGEdge> to_verify = new ArrayList<>();
     to_verify.addAll(edges);
 
-    while (to_verify.size() > 0){
+    while (to_verify.size() > 0) {
       SMGEdge edge = to_verify.get(0);
       to_verify.remove(0);
-      if (!smg.getObjects().contains(edge.getObject())){
+      if (!smg.getObjects().contains(edge.getObject())) {
         pLogger.log(Level.SEVERE, "SMG inconsistent: Has Value Edge from a nonexistent object");
         pLogger.log(Level.SEVERE, "Edge :", edge);
         return false;
       }
 
-      if (! smg.getValues().contains(edge.getValue())){
+      if (! smg.getValues().contains(edge.getValue())) {
         pLogger.log(Level.SEVERE, "SMG inconsistent: Has Value Edge to a nonexistent value");
         pLogger.log(Level.SEVERE, "Edge :", edge);
         return false;
       }
 
-      for (SMGEdge other_edge : to_verify){
-        if (! edge.isConsistentWith(other_edge)){
+      for (SMGEdge other_edge : to_verify) {
+        if (! edge.isConsistentWith(other_edge)) {
           pLogger.log(Level.SEVERE, "SMG inconsistent: inconsistent Has Value edges");
           pLogger.log(Level.SEVERE, "First edge:  ", edge);
           pLogger.log(Level.SEVERE, "Second edge: ", other_edge);
@@ -300,7 +300,7 @@ class SMGConsistencyVerifier{
     return true;
   }
 
-  static public boolean verifySMG(LogManager pLogger, SMG smg){
+  static public boolean verifySMG(LogManager pLogger, SMG smg) {
     boolean toReturn = true;
     pLogger.log(Level.FINEST, "Starting constistency check of a SMG");
 

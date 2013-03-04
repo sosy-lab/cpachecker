@@ -74,7 +74,7 @@ public abstract class TemplateBoolean extends TemplateFormula implements Boolean
   }
 
   @Override
-  public FormulaType<BooleanFormula> getFormulaType(){
+  public FormulaType<BooleanFormula> getFormulaType() {
     return FormulaType.BooleanType;
   }
 

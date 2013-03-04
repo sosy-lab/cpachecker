@@ -75,9 +75,9 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
 
   @Override
   public String getName(Long t) {
-    if (isUF(t)){
+    if (isUF(t)) {
       return msat_decl_get_name(msat_term_get_decl(t));
-    } else if (isVariable(t)){
+    } else if (isVariable(t)) {
       return msat_term_repr(t);
     } else {
       throw new IllegalArgumentException("Can't get the name from the given formula!");
@@ -92,7 +92,7 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
 
   @Override
   public Long replaceName(Long t, String newName) {
-    if (isUF(t)){
+    if (isUF(t)) {
       long decl = msat_term_get_decl(t);
       int arity = msat_decl_get_arity(decl);
       long retType = msat_decl_get_return_type(decl);
@@ -103,7 +103,7 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
       long funcType = msat_get_function_type(msatEnv, argTypes, argTypes.length, retType);
       long funcDecl = msat_declare_function(msatEnv, newName, funcType);
       return msat_make_uf(msatEnv, funcDecl, Longs.toArray(getArguments(t)));
-    } else if (isVariable(t)){
+    } else if (isVariable(t)) {
       return creator.makeVariable(msat_term_get_type(t), newName);
     } else {
       throw new IllegalArgumentException("Can't set the name from the given formula!");

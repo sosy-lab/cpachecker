@@ -41,7 +41,7 @@ public class JObjectReferenceReturn extends JReturnStatement {
     return (JThisExpression) super.getReturnValue();
   }
 
-  public JClassType getReturnClassType(){
+  public JClassType getReturnClassType() {
     return classReference;
   }
 

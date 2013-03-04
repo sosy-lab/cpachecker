@@ -32,7 +32,7 @@ import java.util.Map;
  */
 public abstract class FormulaType<T extends Formula> {
   public abstract Class<T> getInterfaceType();
-  FormulaType(){}
+  FormulaType() {}
   public static final FormulaType<RationalFormula> RationalType = new FormulaTypeImpl<>(RationalFormula.class);
   public static final FormulaType<BooleanFormula> BooleanType = new FormulaTypeImpl<>(BooleanFormula.class);
 
@@ -41,7 +41,7 @@ public abstract class FormulaType<T extends Formula> {
 
   private static class FormulaTypeImpl<T extends Formula> extends FormulaType<T> {
     private Class<T> interfaceClass;
-    private FormulaTypeImpl(Class<T> interfaceClass){
+    private FormulaTypeImpl(Class<T> interfaceClass) {
       this.interfaceClass = interfaceClass;
     }
     @Override
@@ -67,7 +67,7 @@ public abstract class FormulaType<T extends Formula> {
   public static class BitvectorType extends FormulaType<BitvectorFormula> {
     private int size;
 
-    private BitvectorType(int size){
+    private BitvectorType(int size) {
       this.size = (size);
     }
     private static Map<Integer, FormulaType<BitvectorFormula>> table = new Hashtable<>();
@@ -77,10 +77,10 @@ public abstract class FormulaType<T extends Formula> {
      * @param size
      * @return
      */
-    public static FormulaType<BitvectorFormula> getBitvectorType(int size){
+    public static FormulaType<BitvectorFormula> getBitvectorType(int size) {
       int hashValue = size;
       FormulaType<BitvectorFormula> value = table.get(hashValue);
-      if (value == null){
+      if (value == null) {
         value = new BitvectorType(size);
         table.put(hashValue, value);
       }
@@ -91,7 +91,7 @@ public abstract class FormulaType<T extends Formula> {
       return size;
     }
 
-    public BitvectorType withSize(int size){
+    public BitvectorType withSize(int size) {
       return (BitvectorType) getBitvectorType(size);
     }
 

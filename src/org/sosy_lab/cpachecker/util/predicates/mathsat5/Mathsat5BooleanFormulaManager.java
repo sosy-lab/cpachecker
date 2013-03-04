@@ -40,12 +40,12 @@ class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager<Long> 
   }
 
 
-  public static Mathsat5BooleanFormulaManager create(Mathsat5FormulaCreator creator){
+  public static Mathsat5BooleanFormulaManager create(Mathsat5FormulaCreator creator) {
     return new Mathsat5BooleanFormulaManager(creator);
   }
 
   @Override
-  public Long makeVariableImpl(String pVar){
+  public Long makeVariableImpl(String pVar) {
     long boolType = creator.getBoolType();
     return creator.makeVariable(boolType, pVar);
   }
@@ -53,7 +53,7 @@ class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager<Long> 
   @Override
   public Long makeBooleanImpl(boolean pValue) {
     long v;
-    if (pValue){
+    if (pValue) {
       v = msat_make_true(mathsatEnv);
     } else {
       v = msat_make_false(mathsatEnv);
@@ -63,22 +63,22 @@ class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager<Long> 
   }
 
   @Override
-  public Long equivalence(Long f1, Long f2){
+  public Long equivalence(Long f1, Long f2) {
     return msat_make_iff(mathsatEnv, f1, f2);
   }
 
   @Override
-  public boolean isTrue(Long t){
+  public boolean isTrue(Long t) {
     return msat_term_is_true(mathsatEnv, t);
   }
 
   @Override
-  public boolean isFalse(Long t){
+  public boolean isFalse(Long t) {
     return msat_term_is_false(mathsatEnv, t);
   }
 
   @Override
-  public Long ifThenElse(Long cond, Long f1, Long f2){
+  public Long ifThenElse(Long cond, Long f1, Long f2) {
     long t;
     long msatEnv = mathsatEnv;
     long f1Type = msat_term_get_type(f1);

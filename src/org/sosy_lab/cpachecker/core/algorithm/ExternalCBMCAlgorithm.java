@@ -117,9 +117,9 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     // ERROR is REACHED
-    if (cbmc.getResult()){
+    if (cbmc.getResult()) {
       // if this is unwinding assertions violation the analysis result is UNKNOWN
-      if (cbmc.didUnwindingAssertionFail()){
+      if (cbmc.didUnwindingAssertionFail()) {
         logger.log(Level.INFO, "CBMC terminated with unwinding assertions violation");
         return false;
       } else {
@@ -147,7 +147,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     paramsList.add("--error-label");
     paramsList.add(errorLabel);
 
-    if (noUnwindingAssertions){
+    if (noUnwindingAssertions) {
       paramsList.add("--no-unwinding-assertions");
     }
 

@@ -68,19 +68,19 @@ class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long
   private Mathsat5FormulaCreator creator;
   private long mathsatEnv;
 
-  public static Mathsat5RationalFormulaManager create(Mathsat5FormulaCreator creator, Mathsat5FunctionFormulaManager functionManager){
+  public static Mathsat5RationalFormulaManager create(Mathsat5FormulaCreator creator, Mathsat5FunctionFormulaManager functionManager) {
 
     return new Mathsat5RationalFormulaManager(creator, functionManager);
   }
 
   @Override
-  public Long makeNumberImpl(long pI){
+  public Long makeNumberImpl(long pI) {
     return msat_make_number(mathsatEnv, Long.toString(pI));
   }
 
 
   @Override
-  public Long makeVariableImpl(String var){
+  public Long makeVariableImpl(String var) {
     long numberType = creator.getNumberType();
     return creator.makeVariable(numberType, var);
   }
@@ -166,7 +166,7 @@ class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long
     return lessOrEquals(pNumber2, pNumber1);
   }
 
-  private long makeNot(long n){
+  private long makeNot(long n) {
     return msat_make_not(mathsatEnv, n);
   }
 
@@ -187,7 +187,7 @@ class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long
       return false;
     }
     long arg = msat_term_get_arg(pNumber, 1);
-    if (msat_term_is_number(mathsatEnv, arg)){
+    if (msat_term_is_number(mathsatEnv, arg)) {
       String n = msat_term_repr(arg);
       if (n.startsWith("(")) {
         n = n.substring(1, n.length() - 1);

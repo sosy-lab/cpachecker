@@ -35,17 +35,17 @@ public class SMGState implements AbstractQueryableState {
   private final CLangSMG heap;
   private final LogManager logger;
 
-  public SMGState(LogManager pLogger, MachineModel pMachineModel){
+  public SMGState(LogManager pLogger, MachineModel pMachineModel) {
     heap = new CLangSMG(pMachineModel);
     logger = pLogger;
   }
 
-  public SMGState(SMGState originalState){
+  public SMGState(SMGState originalState) {
     heap = new CLangSMG(originalState.heap);
     logger = originalState.logger;
   }
 
-  void addStackObject(SMGObject obj){
+  void addStackObject(SMGObject obj) {
     heap.addStackObject(obj);
   }
 
@@ -73,17 +73,17 @@ public class SMGState implements AbstractQueryableState {
     heap.addHasValueEdge(pNewEdge);
   }
 
-  public void performConsistencyCheck(){
+  public void performConsistencyCheck() {
     CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap);
   }
 
-  public String toDot(String name){
+  public String toDot(String name) {
     SMGPlotter plotter = new SMGPlotter();
     return plotter.smgAsDot(heap, name);
   }
 
   @Override
-  public String toString(){
+  public String toString() {
     return heap.toString();
   }
 
@@ -165,7 +165,7 @@ public class SMGState implements AbstractQueryableState {
     // SMG Properties:
     // has-leaks:boolean
 
-    switch (pProperty){
+    switch (pProperty) {
       case "has-leaks":
         return heap.hasMemoryLeaks();
       default:

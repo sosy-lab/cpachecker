@@ -294,7 +294,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
           lineNumber, predecessorNode,
           (CFunctionEntryNode) fDefNode, functionCall,  (CFunctionSummaryEdge) calltoReturnEdge);
 
-    } else if (language == Language.JAVA){
+    } else if (language == Language.JAVA) {
 
       callEdge = new JMethodCallEdge(pRawStatement,
           lineNumber, predecessorNode,

@@ -936,7 +936,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // unwrap (a)
     if (condition instanceof IASTUnaryExpression
-          && ((IASTUnaryExpression)condition).getOperator() == IASTUnaryExpression.op_bracketedPrimary){
+          && ((IASTUnaryExpression)condition).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
       buildConditionTree(((IASTUnaryExpression)condition).getOperand(), filelocStart, rootNode, thenNode, elseNode, thenNode, elseNode, true, true);
 
       // !a --> switch branches

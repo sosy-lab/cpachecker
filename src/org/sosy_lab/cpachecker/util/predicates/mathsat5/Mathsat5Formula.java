@@ -32,23 +32,23 @@ class Mathsat5Formula implements Formula {
 
   private final long msatTerm;
 
-  public Mathsat5Formula(long term){
+  public Mathsat5Formula(long term) {
     this.msatTerm = term;
   }
 
   @Override
-  public String toString(){
+  public String toString() {
     return Mathsat5NativeApi.msat_term_repr(msatTerm);
   }
 
   @Override
-  public boolean equals(Object o){
+  public boolean equals(Object o) {
     if (!(o instanceof Mathsat5Formula)) {return false;}
     return msatTerm == ((Mathsat5Formula)o).msatTerm;
   }
 
   @Override
-  public int hashCode(){
+  public int hashCode() {
     return (int) msatTerm;
   }
 

@@ -59,7 +59,7 @@ public class AssumptionStorageState implements AbstractState {
     return assumption;
   }
 
-  public boolean isAssumptionTrue(){
+  public boolean isAssumptionTrue() {
     return bfmgr.isTrue(assumption);
   }
 
@@ -67,11 +67,11 @@ public class AssumptionStorageState implements AbstractState {
     return stopFormula;
   }
 
-  public boolean isStopFormulaTrue(){
+  public boolean isStopFormulaTrue() {
     return bfmgr.isTrue(stopFormula);
   }
 
-  public BooleanFormulaManager getManager(){
+  public BooleanFormulaManager getManager() {
     return bfmgr;
   }
 

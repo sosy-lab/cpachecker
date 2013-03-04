@@ -82,7 +82,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       return subStats;
     }
 
-    public void resetSubStatistics(){
+    public void resetSubStatistics() {
       subStats.clear();
       totalTime = new Timer();
     }
@@ -283,7 +283,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     Configuration singleConfig = singleConfigBuilder.build();
     singleConfig.inject(singleOptions);
 
-    if (singleOptions.runCBMCasExternalTool){
+    if (singleOptions.runCBMCasExternalTool) {
       algorithm = new ExternalCBMCAlgorithm(filename, singleConfig, logger);
       reached = new ReachedSetFactory(singleConfig, logger).create();
     } else {

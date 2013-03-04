@@ -36,11 +36,11 @@ public class FormulaView <T extends Formula> implements Formula {
     this.view = view;
   }
 
-  FormulaManagerView getView(){
+  FormulaManagerView getView() {
     return view;
   }
 
-   public T getWrapped(){
+   public T getWrapped() {
     return wrapped;
   }
 }

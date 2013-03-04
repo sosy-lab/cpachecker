@@ -199,7 +199,7 @@ public class ASTConverter {
    *
    * @return number of  Side Assignments of converted Statements
    */
-  public int numberOfSideAssignments(){
+  public int numberOfSideAssignments() {
     return preSideAssignments.size() + postSideAssignments.size();
   }
 
@@ -432,7 +432,7 @@ public class ASTConverter {
 
       String[] typeNames = getTypeNames(binding.getParameterTypes());
 
-      if (typeNames.length > 0){
+      if (typeNames.length > 0) {
       name.append("_");
       }
 
@@ -1818,7 +1818,7 @@ public class ASTConverter {
       } else if (binding instanceof IMethodBinding) {
         name = getFullyQualifiedMethodName((IMethodBinding) binding);
         declaration = scope.lookupMethod(name);
-      } else if (binding instanceof ITypeBinding){
+      } else if (binding instanceof ITypeBinding) {
         name = e.getIdentifier();
       }
 
@@ -1935,7 +1935,7 @@ public class ASTConverter {
   private BinaryOperator convert(Assignment.Operator op) {
 
 
-    if (op.equals(Assignment.Operator.ASSIGN)){
+    if (op.equals(Assignment.Operator.ASSIGN)) {
       return null;
     } else if (op.equals(Assignment.Operator.BIT_AND_ASSIGN)) {
       return BinaryOperator.BINARY_AND;
@@ -2092,7 +2092,7 @@ public class ASTConverter {
 
   private BinaryOperator convertBinaryOperator(InfixExpression.Operator op) {
 
-    if (op.equals(InfixExpression.Operator.PLUS)){
+    if (op.equals(InfixExpression.Operator.PLUS)) {
       return BinaryOperator.PLUS;
     } else if (op.equals(InfixExpression.Operator.MINUS)) {
       return BinaryOperator.MINUS;
@@ -2126,7 +2126,7 @@ public class ASTConverter {
       return BinaryOperator.SHIFT_RIGHT_SIGNED;
     } else if (op.equals(InfixExpression.Operator.RIGHT_SHIFT_UNSIGNED)) {
       return BinaryOperator.SHIFT_RIGHT_UNSIGNED;
-    } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)){
+    } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
      return BinaryOperator.NOT_EQUALS;
     } else {
       throw new CFAGenerationRuntimeException(

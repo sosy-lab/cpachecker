@@ -62,9 +62,9 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
 
   @Override
   public int getArity(Formula pF) {
-    if (pF instanceof TemplateConstraint){
+    if (pF instanceof TemplateConstraint) {
       return 2;
-    } else if (pF instanceof TemplateTerm){
+    } else if (pF instanceof TemplateTerm) {
       TemplateTerm tt = (TemplateTerm)pF;
 
       int args = 0;
@@ -80,10 +80,10 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
       if (tt.hasVariable()) {
         args++;
       }
-      if (args == 0 || args > 1){
+      if (args == 0 || args > 1) {
         return args;
       }
-      if (tt.hasUIF()){
+      if (tt.hasUIF()) {
         return tt.getUIF().getArity();
       }
 
@@ -96,10 +96,10 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
 
   @Override
   public Formula getArg(Formula pF, int pN) {
-    if (pF instanceof TemplateConstraint){
+    if (pF instanceof TemplateConstraint) {
 
       TemplateConstraint tc = (TemplateConstraint)pF;
-      switch (pN){
+      switch (pN) {
       case 0:
         return tc.getLeft();
       case 1:
@@ -108,7 +108,7 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
         throw new IndexOutOfBoundsException("Invalid index");
       }
 
-    } else if (pF instanceof TemplateTerm){
+    } else if (pF instanceof TemplateTerm) {
       TemplateTerm tt = (TemplateTerm)pF;
 
       int args = 0;
@@ -131,11 +131,11 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
         formulas[i] = tt.getUIF();
         i++;
       }
-      if (tt.hasCoefficient()){
+      if (tt.hasCoefficient()) {
         formulas[i] = tt.getUIF();
         i++;
       }
-      if (tt.hasParameter()){
+      if (tt.hasParameter()) {
         formulas[i] = tt.getUIF();
         i++;
       }
@@ -144,15 +144,15 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
         i++;
       }
 
-      if (args == 0 || args > 1){
-        if (args > 0){
+      if (args == 0 || args > 1) {
+        if (args > 0) {
           return formulas[pN];
         } else {
           throw new IndexOutOfBoundsException("Invalid index");
         }
       }
 
-      if (tt.hasUIF()){
+      if (tt.hasUIF()) {
         TemplateSumList uifargs = tt.getUIF().getArgs();
         return uifargs.getFormulas()[pN];
       }
@@ -165,7 +165,7 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
 
   @Override
   public boolean isVariable(Formula pF) {
-    if (pF instanceof TemplateTerm){
+    if (pF instanceof TemplateTerm) {
       TemplateTerm tt = (TemplateTerm)pF;
       return !tt.hasUIF()  && !tt.hasCoefficient() && !tt.hasParameter() && tt.hasVariable();
     }
@@ -175,7 +175,7 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
 
   @Override
   public boolean isNumber(Formula pF) {
-    if (pF instanceof TemplateTerm){
+    if (pF instanceof TemplateTerm) {
       TemplateTerm tt = (TemplateTerm)pF;
       return tt.isANumber();
     }
@@ -185,7 +185,7 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
 
   @Override
   public boolean isUF(Formula pF) {
-    if (pF instanceof TemplateTerm){
+    if (pF instanceof TemplateTerm) {
       TemplateTerm tt = (TemplateTerm)pF;
       return tt.hasUIF()  && !tt.hasCoefficient() && !tt.hasParameter() && !tt.hasVariable();
     }
@@ -194,21 +194,21 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
 
   @Override
   public String getName(Formula pF) {
-    if (pF instanceof TemplateTerm){
+    if (pF instanceof TemplateTerm) {
       TemplateTerm tt = (TemplateTerm)pF;
-      if (!tt.hasUIF()  && !tt.hasCoefficient() && !tt.hasParameter() && tt.hasVariable()){
+      if (!tt.hasUIF()  && !tt.hasCoefficient() && !tt.hasParameter() && tt.hasVariable()) {
         return tt.getVariable().getName();
       }
-      if (tt.hasUIF() && !tt.hasCoefficient() && !tt.hasParameter() && !tt.hasVariable()){
+      if (tt.hasUIF() && !tt.hasCoefficient() && !tt.hasParameter() && !tt.hasVariable()) {
         return tt.getUIF().getName();
       }
     }
 
-    if (pF instanceof TemplateVariable){
+    if (pF instanceof TemplateVariable) {
       TemplateVariable tv = (TemplateVariable)pF;
       return tv.getName();
     }
-    if (pF instanceof TemplateUIF){
+    if (pF instanceof TemplateUIF) {
       TemplateUIF tuif = (TemplateUIF)pF;
       return tuif.getName();
     }
@@ -222,16 +222,16 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
 
   @Override
   public Formula replaceArgs(Formula pF, Formula[] pArgs) {
-    if (pF instanceof TemplateTerm){
+    if (pF instanceof TemplateTerm) {
       TemplateTerm tt = (TemplateTerm)pF;
-      if (tt.hasUIF() && !tt.hasCoefficient() && !tt.hasParameter() && !tt.hasVariable()){
+      if (tt.hasUIF() && !tt.hasCoefficient() && !tt.hasParameter() && !tt.hasVariable()) {
         TemplateUIF oldUif = tt.getUIF();
         TemplateUIF newUif = new TemplateUIF(oldUif.getName(), oldUif.getFormulaType(), new TemplateSumList(new TemplateFormulaList(pArgs)));
         return new TemplateTerm(newUif);
       }
     }
 
-    if (pF instanceof TemplateUIF){
+    if (pF instanceof TemplateUIF) {
       TemplateUIF oldUif = (TemplateUIF)pF;
       TemplateUIF newUif = new TemplateUIF(oldUif.getName(), oldUif.getFormulaType(), new TemplateSumList(new TemplateFormulaList(pArgs)));
       return new TemplateTerm(newUif);
@@ -242,25 +242,25 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
 
   @Override
   public Formula replaceName(Formula pF, String pNewName) {
-    if (pF instanceof TemplateTerm){
+    if (pF instanceof TemplateTerm) {
       TemplateTerm tt = (TemplateTerm)pF;
-      if (!tt.hasUIF()  && !tt.hasCoefficient() && !tt.hasParameter() && tt.hasVariable()){
+      if (!tt.hasUIF()  && !tt.hasCoefficient() && !tt.hasParameter() && tt.hasVariable()) {
         TemplateTerm newtt = new TemplateTerm(tt.getFormulaType());
         newtt.setVariable(new TemplateVariable(tt.getVariable().getFormulaType(), pNewName));
         return newtt;
       }
-      if (tt.hasUIF() && !tt.hasCoefficient() && !tt.hasParameter() && !tt.hasVariable()){
+      if (tt.hasUIF() && !tt.hasCoefficient() && !tt.hasParameter() && !tt.hasVariable()) {
         TemplateUIF oldUif = tt.getUIF();
         TemplateUIF newUif = new TemplateUIF(pNewName, oldUif.getFormulaType(), oldUif.getArgs());
         return new TemplateTerm(newUif);
       }
     }
 
-    if (pF instanceof TemplateVariable){
+    if (pF instanceof TemplateVariable) {
       TemplateVariable tv = (TemplateVariable)pF;
       return new TemplateVariable(tv.getFormulaType(), pNewName);
     }
-    if (pF instanceof TemplateUIF){
+    if (pF instanceof TemplateUIF) {
       TemplateUIF oldUif = (TemplateUIF)pF;
       TemplateUIF newUif = new TemplateUIF(pNewName, oldUif.getFormulaType(), oldUif.getArgs());
       return new TemplateTerm(newUif);

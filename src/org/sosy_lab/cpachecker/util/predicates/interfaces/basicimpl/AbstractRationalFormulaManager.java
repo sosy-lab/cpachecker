@@ -73,7 +73,7 @@ public abstract class AbstractRationalFormulaManager<TFormulaInfo>
   protected abstract TFormulaInfo makeVariableImpl(String i);
 
   @Override
-  public FormulaType<RationalFormula> getFormulaType(){
+  public FormulaType<RationalFormula> getFormulaType() {
     return FormulaType.RationalType;
   }
 

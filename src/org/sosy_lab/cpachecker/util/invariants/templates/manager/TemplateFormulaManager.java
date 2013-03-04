@@ -93,7 +93,7 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   @SuppressWarnings("unchecked")
-  static <T extends TemplateFormula> T toTemplate(Formula f){
+  static <T extends TemplateFormula> T toTemplate(Formula f) {
     return (T)f;
   }
 

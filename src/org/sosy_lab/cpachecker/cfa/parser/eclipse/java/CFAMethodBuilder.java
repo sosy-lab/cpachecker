@@ -196,12 +196,12 @@ class CFAMethodBuilder extends ASTVisitor {
     handleMethodDeclaration(mdef);
 
     //If Declaration is Constructor add non static field member Declarations
-    if (mDeclaration.isConstructor()){
+    if (mDeclaration.isConstructor()) {
       addNonStaticFieldMember();
     }
 
     // Check if method has a body. Interface methods are always marked with abstract.
-    if (!mdef.isAbstract() && !mdef.isNative()){
+    if (!mdef.isAbstract() && !mdef.isNative()) {
       // Skip Children , and manually go to Block, to protect parameter variables to be processed
       // more than one time
 
@@ -1065,7 +1065,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
 
 private void handleConditionalStatement( CFANode prevNode,
-                                      CFANode lastNode, JStatement statement ){
+                                      CFANode lastNode, JStatement statement ) {
 
   ConditionalExpression condExp = astCreator.getConditionalExpression();
   astCreator.resetConditionalExpression();
@@ -1954,12 +1954,12 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
 
   @Override
-  public void endVisit(WhileStatement whileStatement){
+  public void endVisit(WhileStatement whileStatement) {
     handleLeaveWhileLoop();
   }
 
   @Override
-  public void endVisit(DoStatement doStatement){
+  public void endVisit(DoStatement doStatement) {
     handleLeaveWhileLoop();
   }
 

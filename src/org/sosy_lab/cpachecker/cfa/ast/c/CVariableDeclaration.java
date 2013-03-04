@@ -54,7 +54,7 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   }
 
   @Override
-  public CType getType(){
+  public CType getType() {
     return (CType)super.getType();
   }
 

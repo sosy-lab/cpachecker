@@ -38,16 +38,16 @@ import com.google.common.base.Function;
 
 public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends AbstractBaseFormulaManager<TFormulaInfo> implements UnsafeFormulaManager {
 
-  protected AbstractUnsafeFormulaManager(FormulaCreator<TFormulaInfo> creator){
+  protected AbstractUnsafeFormulaManager(FormulaCreator<TFormulaInfo> creator) {
     super(creator);
   }
 
-  private TFormulaInfo getTerm(Formula f){
+  private TFormulaInfo getTerm(Formula f) {
     return getFormulaCreator().extractInfo(f);
   }
 
   @Override
-  public <T extends Formula> T typeFormula(FormulaType<T> type, Formula f){
+  public <T extends Formula> T typeFormula(FormulaType<T> type, Formula f) {
     TFormulaInfo formulaInfo = getTerm(f);
 
     return typeFormula(type, formulaInfo);
@@ -61,7 +61,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
 
   private List<TFormulaInfo> toFormulaInfo(Formula[] formulas) {
     List<TFormulaInfo> returns = from(Arrays.asList( formulas ))
-        .transform(new Function<Formula,TFormulaInfo>(){
+        .transform(new Function<Formula,TFormulaInfo>() {
           @Override
           public TFormulaInfo apply(Formula pArg0) {
             return getTerm(pArg0);
@@ -73,7 +73,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
     return new AbstractFormula<>(pL);
   }
 
-  protected List<TFormulaInfo> getArguments(TFormulaInfo pT){
+  protected List<TFormulaInfo> getArguments(TFormulaInfo pT) {
     int arity = getArity(pT);
     List<TFormulaInfo> rets = new ArrayList<>(arity);
     for (int i = 0; i < arity; i++) {
@@ -139,11 +139,11 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
   protected abstract String getName(TFormulaInfo pT);
 
   @Override
-  public Formula replaceArgsAndName(Formula f, String newName, Formula[] args){
+  public Formula replaceArgsAndName(Formula f, String newName, Formula[] args) {
     return encapsulateUnsafe(replaceArgsAndName(getTerm(f), newName, toFormulaInfo(args)));
   }
 
-  protected TFormulaInfo replaceArgsAndName(TFormulaInfo pTerm, String pNewName, List<TFormulaInfo> newArgs){
+  protected TFormulaInfo replaceArgsAndName(TFormulaInfo pTerm, String pNewName, List<TFormulaInfo> newArgs) {
     TFormulaInfo withNewArgs = replaceArgs(pTerm, newArgs);
     return replaceName(withNewArgs, pNewName);
   }

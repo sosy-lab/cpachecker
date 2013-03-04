@@ -232,7 +232,7 @@ public final class InterpolationManager {
       // given to complete the task specified by timeLimit
       return future.get(itpTimeLimit, TimeUnit.MILLISECONDS);
 
-    } catch (TimeoutException e){
+    } catch (TimeoutException e) {
       logger.log(Level.SEVERE, "SMT-solver timed out during interpolation process");
       throw new RefinementFailedException(Reason.TIMEOUT, null);
 

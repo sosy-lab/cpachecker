@@ -85,7 +85,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
 
    public void registerSuperType(JClassOrInterfaceType superType) {
 
-    if (superType instanceof JInterfaceType){
+    if (superType instanceof JInterfaceType) {
 
       assert !implementedInterfaces.contains(superType);
 
@@ -109,7 +109,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
 
   }
 
-  public List<JClassType> getAllSuperClasses(){
+  public List<JClassType> getAllSuperClasses() {
 
      List<JClassType> result = new ArrayList<>();
 
@@ -117,7 +117,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
 
      JClassType superSuperClass = superClass;
 
-     while (superSuperClass.getParentClass() != null){
+     while (superSuperClass.getParentClass() != null) {
 
         superSuperClass = superSuperClass.getParentClass();
 
@@ -134,13 +134,13 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
      return result;
     }
 
-  public List<JInterfaceType> getAllImplementedInterfaces(){
+  public List<JInterfaceType> getAllImplementedInterfaces() {
 
     List<JClassType> superClasses = getAllSuperClasses();
 
     List<JInterfaceType> result = new LinkedList<>();
 
-    for (JClassType superClass : superClasses){
+    for (JClassType superClass : superClasses) {
       result.addAll(superClass.getAllSuperInterfacesOfImplementedInterfacsOfClass());
     }
 
@@ -164,7 +164,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
        toBeAdded.add(implementedInterface.getExtendedInterfaces());
      }
 
-     while (!toBeAdded.isEmpty()){
+     while (!toBeAdded.isEmpty()) {
 
        for ( JInterfaceType implementedInterface : toBeAdded.poll()) {
 
@@ -190,7 +190,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
     return result;
   }
 
-  public List<JClassType> getAllSubTypesOfClass(){
+  public List<JClassType> getAllSubTypesOfClass() {
 
 
      List<JClassType> result = new LinkedList<>();
@@ -207,7 +207,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
        toBeAdded.add(subClass.getDirectSubClasses());
      }
 
-     while (!toBeAdded.isEmpty()){
+     while (!toBeAdded.isEmpty()) {
        for ( JClassType subClass : toBeAdded.poll()) {
 
          if (result.contains(subClass)) {

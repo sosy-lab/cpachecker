@@ -46,10 +46,10 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   private InfixReln reln = null;
   private TemplateSum RHS = null;
 
-  public TemplateSum getLeft(){
+  public TemplateSum getLeft() {
     return LHS;
   }
-  public TemplateSum getRight(){
+  public TemplateSum getRight() {
     return RHS;
   }
 

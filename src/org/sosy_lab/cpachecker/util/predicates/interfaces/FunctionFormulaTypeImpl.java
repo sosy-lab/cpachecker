@@ -36,24 +36,24 @@ import com.google.common.collect.ImmutableList;
 public class FunctionFormulaTypeImpl<T extends Formula> extends FunctionFormulaType<T> {
   private final FormulaType<T> returnType;
   private final List<FormulaType<?>> argumentTypes;
-  public FunctionFormulaTypeImpl(FormulaType<T> returnType, FormulaType<?>... argumentTypes){
+  public FunctionFormulaTypeImpl(FormulaType<T> returnType, FormulaType<?>... argumentTypes) {
     this.returnType = returnType;
     this.argumentTypes = ImmutableList.copyOf(argumentTypes);
   }
 
-  public FunctionFormulaTypeImpl(FormulaType<T> returnType, List<FormulaType<?>> argumentTypes){
+  public FunctionFormulaTypeImpl(FormulaType<T> returnType, List<FormulaType<?>> argumentTypes) {
     this.returnType = returnType;
     this.argumentTypes =
         Collections.unmodifiableList(new LinkedList<>(argumentTypes));
   }
 
   @Override
-  public List<FormulaType<?>> getArgumentTypes(){
+  public List<FormulaType<?>> getArgumentTypes() {
     return argumentTypes;
   }
 
   @Override
-  public FormulaType<T> getReturnType(){
+  public FormulaType<T> getReturnType() {
     return returnType;
   }
 

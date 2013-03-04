@@ -37,7 +37,7 @@ public final class SMGPlotter {
 
   public SMGPlotter() {} /* utility class */
 
-  public String smgAsDot(CLangSMG smg, String name){
+  public String smgAsDot(CLangSMG smg, String name) {
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph " + name.replace('-', '_') + "{\n");
@@ -45,7 +45,7 @@ public final class SMGPlotter {
 
     addStackSubgraph(smg, sb);
 
-    for (SMGObject heapObject : smg.getHeapObjects()){
+    for (SMGObject heapObject : smg.getHeapObjects()) {
       //if (heapObject.notNull()){
         sb.append(newLineWithOffset(smgObjectAsDot(heapObject)));
         objectIndex.put(heapObject, heapObject.getLabel());
@@ -54,15 +54,15 @@ public final class SMGPlotter {
 
     addGlobalObjectSubgraph(smg, sb);
 
-    for (int value : smg.getValues()){
+    for (int value : smg.getValues()) {
       sb.append(newLineWithOffset(smgValueAsDot(value) ));
     }
 
-    for (SMGEdgeHasValue edge: smg.getHVEdges()){
+    for (SMGEdgeHasValue edge: smg.getHVEdges()) {
       sb.append(newLineWithOffset(smgHVEdgeAsDot(edge)));
     }
 
-    for (SMGEdgePointsTo edge: smg.getPTEdges()){
+    for (SMGEdgePointsTo edge: smg.getPTEdges()) {
       sb.append(newLineWithOffset(smgPTEdgeAsDot(edge)));
     }
 
@@ -77,7 +77,7 @@ public final class SMGPlotter {
     pSb.append(newLineWithOffset("label=\"Stack\";"));
 
     int i = 0;
-    for (CLangStackFrame stack_item : pSmg.getStackFrames() ){
+    for (CLangStackFrame stack_item : pSmg.getStackFrames() ) {
       addStackItemSubgraph(stack_item, pSb, i);
       i++;
     }
@@ -104,7 +104,7 @@ public final class SMGPlotter {
 
     // I sooo wish for Python list comprehension here...
     ArrayList<String> nodes = new ArrayList<>();
-    for (String key : pNamespace.keySet()){
+    for (String key : pNamespace.keySet()) {
       SMGObject obj = pNamespace.get(key);
       nodes.add("<" + key + "> " + obj.toString());
       objectIndex.put(obj, "struct" + pStructId + ":" + key);
@@ -131,15 +131,15 @@ public final class SMGPlotter {
     return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()) + "[label=\"+" + pEdge.getOffset() + "b\"];";
   }
 
-  private static String smgObjectAsDot(SMGObject pObject){
+  private static String smgObjectAsDot(SMGObject pObject) {
     return pObject.getLabel() + " [ shape=rectangle, label = \"" + pObject.toString() + "\"];";
   }
 
-  private static String smgValueAsDot(int value){
+  private static String smgValueAsDot(int value) {
     return "value_" + value + "[label=\"#" + value + "\"];";
   }
 
-  private String newLineWithOffset(String pLine){
+  private String newLineWithOffset(String pLine) {
     return  Strings.repeat(" ", offset) + pLine + "\n";
   }
 }

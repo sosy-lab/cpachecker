@@ -28,7 +28,7 @@ public abstract class SMGEdge {
   final protected int value;
   final protected SMGObject object;
 
-  SMGEdge(int value, SMGObject object){
+  SMGEdge(int value, SMGObject object) {
     this.value = value;
     this.object = object;
   }

@@ -694,7 +694,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       Address address = evaluateAddress(smgState, cfaEdge, addressExpression);
 
-      if (address == null){
+      if (address == null) {
         return null;
       }
 

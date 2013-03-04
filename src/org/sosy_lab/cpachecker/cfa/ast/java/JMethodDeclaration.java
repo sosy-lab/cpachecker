@@ -92,22 +92,22 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
 
     modifier.append(getVisibility().getModifierString() + " ");
 
-    if (isAbstract()){
+    if (isAbstract()) {
       modifier.append("abstract ");
     }
-    if (isStatic()){
+    if (isStatic()) {
       modifier.append( "static ");
     }
-    if (isFinal()){
+    if (isFinal()) {
       modifier.append( "final ");
     }
-    if (isSynchronized()){
+    if (isSynchronized()) {
       modifier.append("synchronized ");
     }
-    if (isNative()){
+    if (isNative()) {
       modifier.append( "native ");
     }
-    if (isStrictfp()){
+    if (isStrictfp()) {
       modifier.append("strictfp ");
     }
 

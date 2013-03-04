@@ -48,7 +48,7 @@ public class JBooleanLiteralExpression extends ALiteralExpression implements JLi
 
   @Override
   public String toASTString() {
-    if (value){
+    if (value) {
       return "true";
     } else {
       return"false";

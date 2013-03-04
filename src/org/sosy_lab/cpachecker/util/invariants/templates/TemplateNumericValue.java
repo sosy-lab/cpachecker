@@ -31,12 +31,12 @@ public abstract class TemplateNumericValue extends TemplateFormula implements Ra
 
   private FormulaType<?> myType;
 
-  TemplateNumericValue(FormulaType<?> myType){
+  TemplateNumericValue(FormulaType<?> myType) {
     this.myType = myType;
   }
 
   @Override
-  public FormulaType<?> getFormulaType(){
+  public FormulaType<?> getFormulaType() {
     return myType;
   }
 

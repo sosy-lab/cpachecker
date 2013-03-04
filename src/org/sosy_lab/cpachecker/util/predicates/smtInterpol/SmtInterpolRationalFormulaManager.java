@@ -61,7 +61,7 @@ public class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaMa
 
   }
 
-  public static SmtInterpolRationalFormulaManager create(SmtInterpolFormulaCreator creator, SmtInterpolFunctionFormulaManager functionManager){
+  public static SmtInterpolRationalFormulaManager create(SmtInterpolFormulaCreator creator, SmtInterpolFunctionFormulaManager functionManager) {
     return new SmtInterpolRationalFormulaManager(creator, functionManager);
   }
 
@@ -96,7 +96,7 @@ public class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaMa
       return false;
     }
     Term arg = SmtInterpolUtil.getArg(pNumber, 0);
-    if (SmtInterpolUtil.isNumber(arg)){
+    if (SmtInterpolUtil.isNumber(arg)) {
       // TODO: BUG: possible bug
       return SmtInterpolUtil.toNumber(arg) == -1;
     }

@@ -40,7 +40,7 @@ public class SMGEdgeHasValueTest {
 
   @SuppressWarnings("unchecked")
   @Before
-  public void setUp(){
+  public void setUp() {
     when(mockType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
   }
 

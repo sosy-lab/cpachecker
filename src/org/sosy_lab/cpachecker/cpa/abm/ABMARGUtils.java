@@ -65,12 +65,12 @@ class ABMARGUtils {
 
     worklist.add(firstElement);
 
-    while (worklist.size() != 0){
+    while (worklist.size() != 0) {
       ARGState currentElement = worklist.removeLast();
 
       assert reachedSet.contains(currentElement);
 
-      if (processed.contains(currentElement)){
+      if (processed.contains(currentElement)) {
         continue;
       }
       processed.add(currentElement);
@@ -82,7 +82,7 @@ class ABMARGUtils {
           Pair<Block,ReachedSet> pair = cpa.getTransferRelation().getCachedReachedSet(currentElement, reachedSet.getPrecision(currentElement));
           gatherReachedSets(cpa, pair.getFirst(), pair.getSecond(), blockToReachedSet);
         }
-        if (!worklist.contains(child)){
+        if (!worklist.contains(child)) {
           if (reachedSet.contains(child)) {
             worklist.add(child);
           }

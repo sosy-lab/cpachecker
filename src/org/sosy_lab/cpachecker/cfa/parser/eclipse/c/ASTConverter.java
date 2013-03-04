@@ -229,7 +229,7 @@ class ASTConverter {
   }
 
   private CExpression addSideassignmentsForExpressionsWithoutSideEffects(CAstNode node,
-                                                                            IASTExpression e){
+                                                                            IASTExpression e) {
     CIdExpression tmp = createTemporaryVariable(e);
 
     preSideAssignments.add(new CFunctionCallAssignmentStatement(getLocation(e),
@@ -1217,7 +1217,7 @@ class ASTConverter {
         return null;
       }
 
-      if (initializer instanceof CAssignment){
+      if (initializer instanceof CAssignment) {
         preSideAssignments.add(initializer);
         return new CInitializerExpression(getLocation(e), ((CAssignment)initializer).getLeftHandSide());
 

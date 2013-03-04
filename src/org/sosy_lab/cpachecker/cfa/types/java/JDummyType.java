@@ -28,7 +28,7 @@ public class JDummyType implements JType {
 
   private final String typeName;
 
-  public JDummyType(String pTypeName){
+  public JDummyType(String pTypeName) {
     typeName = pTypeName;
   }
 

@@ -59,13 +59,13 @@ public class SMGTest {
   // yyyy has value 2
   // zzzz has value 1
 
-  private static SMG getNewSMG64(){
+  private static SMG getNewSMG64() {
     return new SMG(MachineModel.LINUX64);
   }
 
   @SuppressWarnings("unchecked")
   @Before
-  public void setUp(){
+  public void setUp() {
     smg = getNewSMG64();
 
     smg.addObject(obj1);
@@ -83,7 +83,7 @@ public class SMGTest {
   }
 
   @Test
-  public void SMGConstructorTest(){
+  public void SMGConstructorTest() {
     SMG smg = getNewSMG64();
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
     SMGObject nullObject = smg.getNullObject();
@@ -136,7 +136,7 @@ public class SMGTest {
   }
 
   @Test
-  public void validityTest(){
+  public void validityTest() {
     Assert.assertFalse(smg.isObjectValid(smg.getNullObject()));
     Assert.assertTrue(smg.isObjectValid(obj1));
     Assert.assertTrue(smg.isObjectValid(obj2));
@@ -163,14 +163,14 @@ public class SMGTest {
   }
 
   @Test
-  public void ConsistencyViolationValidNullTest(){
+  public void ConsistencyViolationValidNullTest() {
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
     smg.setValidity(smg.getNullObject(), true);
     Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
   }
 
   @Test
-  public void ConsistencyViolationInvalidRegionHasValue(){
+  public void ConsistencyViolationInvalidRegionHasValue() {
     smg.setValidity(obj1, false);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
     smg.setValidity(obj2, false);
@@ -178,7 +178,7 @@ public class SMGTest {
   }
 
   @Test
-  public void ConsistencyViolationFieldConsistency(){
+  public void ConsistencyViolationFieldConsistency() {
     SMG smg1 = getNewSMG64();
     SMG smg2 = getNewSMG64();
 
@@ -205,7 +205,7 @@ public class SMGTest {
   }
 
   @Test
-  public void ConsistencyViolationHVConsistency(){
+  public void ConsistencyViolationHVConsistency() {
     SMG smg = getNewSMG64();
 
     SMGObject object_8b = new SMGObject(8, "object_8b");
@@ -245,7 +245,7 @@ public class SMGTest {
   }
 
   @Test
-  public void ConsistencyViolationPTConsistency(){
+  public void ConsistencyViolationPTConsistency() {
     SMG smg = getNewSMG64();
 
     SMGObject object_8b = new SMGObject(8, "object_8b");
@@ -291,12 +291,12 @@ public class SMGTest {
   }
 
   @Test(expected=IllegalArgumentException.class)
-  public void isObjectValidBadCallTest(){
+  public void isObjectValidBadCallTest() {
     smg.isObjectValid(new SMGObject(24, "wee"));
   }
 
   @Test(expected=IllegalArgumentException.class)
-  public void setValidityBadCallTest(){
+  public void setValidityBadCallTest() {
     smg.setValidity(new SMGObject(24, "wee"), true);
   }
 
@@ -311,14 +311,14 @@ public class SMGTest {
   }
 
   @Test
-  public void getNullObjectTest(){
+  public void getNullObjectTest() {
     SMGObject nullObject = smg.getNullObject();
     Assert.assertFalse(smg.isObjectValid(nullObject));
     Assert.assertEquals(nullObject.getSizeInBytes(), 0);
   }
 
   @Test
-  public void getValuesTest(){
+  public void getValuesTest() {
     HashSet<Integer> set = new HashSet<>();
     set.add(val1);
     set.add(val2);
@@ -328,7 +328,7 @@ public class SMGTest {
   }
 
   @Test
-  public void getHVEdgesTest(){
+  public void getHVEdgesTest() {
     HashSet<SMGEdgeHasValue> set = new HashSet<>();
     set.add(hv2has1at4);
     set.add(hv2has1at4);
@@ -337,7 +337,7 @@ public class SMGTest {
   }
 
   @Test
-  public void getPTEdgesTest(){
+  public void getPTEdgesTest() {
     HashSet<SMGEdgePointsTo> set = new HashSet<>();
     set.add(pt1to1);
 
@@ -345,13 +345,13 @@ public class SMGTest {
   }
 
   @Test
-  public void getObjectPointedByTest(){
+  public void getObjectPointedByTest() {
     Assert.assertEquals(obj1, smg.getObjectPointedBy(val1));
     Assert.assertNull(smg.getObjectPointedBy(val2));
   }
 
   @Test
-  public void getValuesForObjectTest(){
+  public void getValuesForObjectTest() {
     Assert.assertEquals(smg.getValuesForObject(obj1).size(), 0);
     Assert.assertEquals(smg.getValuesForObject(obj2).size(), 2);
 

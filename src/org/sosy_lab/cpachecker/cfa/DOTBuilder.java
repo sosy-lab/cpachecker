@@ -93,7 +93,7 @@ public final class DOTBuilder {
       }
 
       List<String> graph;
-      if ((edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge){
+      if ((edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
         graph = edges.get(MAIN_GRAPH);
       } else {
         graph = edges.get(predecessor.getFunctionName());
@@ -106,7 +106,7 @@ public final class DOTBuilder {
     @Override
     public TraversalProcess visitNode(CFANode node) {
 
-      if (node.isLoopStart()){
+      if (node.isLoopStart()) {
         nodes.add(formatNode(node, "doublecircle"));
       }
 

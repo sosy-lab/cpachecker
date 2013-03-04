@@ -42,7 +42,7 @@ public class JArrayType extends AArrayType implements JReferenceType {
   public String toASTString(String pDeclarator) {
     StringBuilder astString = new StringBuilder(getElementType().toASTString(""));
 
-    for (int dim = 0; dim < dimension ; dim++){
+    for (int dim = 0; dim < dimension ; dim++) {
         astString.append("[]");
     }
     astString.append(" ");
@@ -55,7 +55,7 @@ public class JArrayType extends AArrayType implements JReferenceType {
     return (JType) super.getType();
   }
 
-  public int getDimensions(){
+  public int getDimensions() {
     return dimension;
   }
 

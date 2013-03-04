@@ -39,7 +39,7 @@ public class TemplateFunctionFormulaTypeImpl<T extends Formula> extends Function
     this.name = name;
   }
 
-  public String getName(){
+  public String getName() {
     return name;
   }
 }

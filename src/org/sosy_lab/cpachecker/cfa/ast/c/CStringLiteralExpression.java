@@ -55,7 +55,7 @@ public final class CStringLiteralExpression extends AStringLiteralExpression imp
     return getValue();
   }
 
-  public String getContentString(){
+  public String getContentString() {
     String literal = getValue();
     return literal.substring(1, literal.length()-1);
   }

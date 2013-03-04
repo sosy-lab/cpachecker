@@ -35,13 +35,13 @@ public class SMGObject {
     nullObject = false;
   }
 
-  public SMGObject(){
+  public SMGObject() {
     size_in_bytes = 0;
     label = "NULL";
     nullObject = true;
   }
 
-  public SMGObject(SMGObject pObject){
+  public SMGObject(SMGObject pObject) {
     size_in_bytes = pObject.size_in_bytes;
     label = pObject.label;
     nullObject = pObject.nullObject;

@@ -90,7 +90,7 @@ public class ReplaceUnsafeFormulaManager implements UnsafeFormulaManager {
     return rawUnsafeManager.getName(replaceManager.unwrap(pF));
   }
 
-  private Formula[] unwrapArgs(Formula[] wrapped){
+  private Formula[] unwrapArgs(Formula[] wrapped) {
     Formula[] unwrapped = new Formula[wrapped.length];
     for (int i = 0; i < unwrapped.length; i++) {
       unwrapped[i] = replaceManager.unwrap(wrapped[i]);

@@ -62,7 +62,7 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
 
-    if (isFinal){
+    if (isFinal) {
     lASTString.append("final ");
     }
 

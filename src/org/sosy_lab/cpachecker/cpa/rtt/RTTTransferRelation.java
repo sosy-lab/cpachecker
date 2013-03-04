@@ -208,7 +208,7 @@ public class RTTTransferRelation implements TransferRelation {
 
       JBasicType simpleType = ((JSimpleType)decl.getType()).getType();
 
-          switch (simpleType){
+          switch (simpleType) {
           case BOOLEAN:
           case BYTE:
           case CHAR:
@@ -238,7 +238,7 @@ public class RTTTransferRelation implements TransferRelation {
 
       JFieldDeclaration fieldVariable = (JFieldDeclaration) decl;
 
-      if (fieldVariable.isStatic()){
+      if (fieldVariable.isStatic()) {
         // if this is a  field, add to the list of field variables
         staticFieldVariables.add(varName);
       } else {
@@ -402,7 +402,7 @@ public class RTTTransferRelation implements TransferRelation {
       return null;
     }
 
-    if (notScopedField instanceof JFieldAccess){
+    if (notScopedField instanceof JFieldAccess) {
 
       JIdExpression qualifier = ((JFieldAccess) notScopedField).getReferencedVariable();
 
@@ -537,7 +537,7 @@ public class RTTTransferRelation implements TransferRelation {
       JReferencedMethodInvocationExpression objectMethodInvocation = (JReferencedMethodInvocationExpression) functionCall;
       JSimpleDeclaration variableReference = objectMethodInvocation.getReferencedVariable().getDeclaration();
 
-      if ( newElement.contains(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope()))){
+      if ( newElement.contains(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope()))) {
         newElement.assignThisAndNewObjectScope( newElement.getUniqueObjectFor(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope())));
       } else {
         // When the object of the variable can't be found
@@ -863,7 +863,7 @@ public class RTTTransferRelation implements TransferRelation {
    *
    * @return id for object
    */
-  public static int nextId(){
+  public static int nextId() {
     nextFreeId++;
     return nextFreeId;
 

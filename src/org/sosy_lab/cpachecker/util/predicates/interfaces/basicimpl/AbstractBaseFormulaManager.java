@@ -33,11 +33,11 @@ abstract class AbstractBaseFormulaManager<TFormulaInfo> {
   private final FormulaCreator<TFormulaInfo> formulaCreator;
 
   AbstractBaseFormulaManager(
-      FormulaCreator<TFormulaInfo> formulaCreator){
+      FormulaCreator<TFormulaInfo> formulaCreator) {
     this.formulaCreator = formulaCreator;
   }
 
-  final FormulaCreator<TFormulaInfo> getFormulaCreator(){
+  final FormulaCreator<TFormulaInfo> getFormulaCreator() {
     return formulaCreator;
   }
 }

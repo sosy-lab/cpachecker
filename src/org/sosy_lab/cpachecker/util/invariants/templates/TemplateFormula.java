@@ -228,7 +228,7 @@ public class TemplateFormula implements Formula, Template {
   	return null;
   }
 
-  public FormulaType<?> getFormulaType(){
+  public FormulaType<?> getFormulaType() {
     return null;
   }
 

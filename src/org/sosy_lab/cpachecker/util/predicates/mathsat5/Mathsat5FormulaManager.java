@@ -200,7 +200,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     return env;
   }
 
-  long getMsatEnv(){
+  long getMsatEnv() {
     return mathsatEnv;
   }
 

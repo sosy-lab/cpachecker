@@ -53,7 +53,7 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
     this.creator = pCreator;
   }
 
-  public long createUIFCallImpl(long funcDecl, long[] args){
+  public long createUIFCallImpl(long funcDecl, long[] args) {
     return msat_make_uf(mathsatEnv, funcDecl, args);
   }
 
@@ -67,7 +67,7 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
     return createUIFCallImpl(funcDecl, args);
   }
 
-  public long toMathsatType(FormulaType<?> formulaType){
+  public long toMathsatType(FormulaType<?> formulaType) {
     Class<?> clazz = formulaType.getInterfaceType();
     long t;
     if (clazz==BooleanFormula.class) {
@@ -95,7 +95,7 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
 
     List<Long> types =
       from(pArgs)
-      .transform(new Function<FormulaType<?>,Long>(){
+      .transform(new Function<FormulaType<?>,Long>() {
 
         @Override
         public Long apply(FormulaType<?> pArg0) {

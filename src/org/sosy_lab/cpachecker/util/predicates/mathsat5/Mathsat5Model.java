@@ -95,9 +95,9 @@ class Mathsat5Model {
       Object lValue;
       long msatType = msat_term_get_type(lArgument);
       if (msat_is_integer_type(env, msatType)
-          || msat_is_rational_type(env, msatType)){
+          || msat_is_rational_type(env, msatType)) {
         lValue = parseReal(lTermRepresentation);
-      } else if (msat_is_bv_type(env, msatType)){
+      } else if (msat_is_bv_type(env, msatType)) {
         lValue = interpreteBitvector(lTermRepresentation);
       } else {
         throw new NumberFormatException("Unknown number format: " + lTermRepresentation);

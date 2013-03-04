@@ -404,7 +404,7 @@ class Scope {
 
     if (!registeredClasses.contains(className)) {
 
-      if (!registeredClasses.contains(topClassName)){
+      if (!registeredClasses.contains(topClassName)) {
         classesToBeParsed.add(topClassName);
       }
 
@@ -448,8 +448,8 @@ class Scope {
     return nextClass.getQualifiedName();
   }
 
-  public String getNextClass(){
-    if (classesToBeParsed.isEmpty()){
+  public String getNextClass() {
+    if (classesToBeParsed.isEmpty()) {
       return null;
     } else {
       return classesToBeParsed.poll();

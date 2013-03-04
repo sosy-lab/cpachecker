@@ -280,7 +280,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       IAExpression exp = arguments.get(i);
 
 
-      if (exp instanceof JExpression){
+      if (exp instanceof JExpression) {
         value = ((JExpression) arguments.get(i)).accept(visitor);
       } else {
         value = ((CExpression) arguments.get(i)).accept(visitor);
@@ -386,7 +386,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       AssigningValueVisitor avv = new AssigningValueVisitor(cfaEdge, element, functionName, truthValue);
 
-      if (expression instanceof JExpression && ! (expression instanceof CExpression)){
+      if (expression instanceof JExpression && ! (expression instanceof CExpression)) {
 
         ((JExpression) expression).accept(avv);
 
@@ -432,7 +432,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       // if this is a global variable, add to the list of global variables
       globalVariables.add(varName);
 
-      if (decl instanceof JFieldDeclaration && !((JFieldDeclaration)decl).isStatic()){
+      if (decl instanceof JFieldDeclaration && !((JFieldDeclaration)decl).isStatic()) {
         missingFieldVariableObject = true;
         javaNonStaticVariables.add(varName);
       }
@@ -564,7 +564,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     Long value;
 
-    if (exp instanceof JRightHandSide && !(exp instanceof CRightHandSide )){
+    if (exp instanceof JRightHandSide && !(exp instanceof CRightHandSide )) {
        value = ((JRightHandSide) exp).accept(visitor);
     } else {
        value = ((CRightHandSide) exp).accept(visitor);
@@ -594,7 +594,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
     }
 
-    if (missingScopedFieldName){
+    if (missingScopedFieldName) {
       notScopedFieldValue = value;
     } else {
       if (value == null) {
@@ -1393,7 +1393,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       boolean result = value1.equals(value2);
 
-      switch (operator){
+      switch (operator) {
       case EQUALS:   break;
       case NOT_EQUALS: result = !result;
       }
@@ -1431,7 +1431,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
   private Long getExpressionValue(ExplicitState element, IAExpression expression, String functionName, CFAEdge edge)
     throws UnrecognizedCCodeException {
-    if (expression instanceof JRightHandSide && !(expression instanceof CRightHandSide)){
+    if (expression instanceof JRightHandSide && !(expression instanceof CRightHandSide)) {
 
         ExpressionValueVisitor evv = new ExpressionValueVisitor(edge, element, functionName);
         Long value =  ((JRightHandSide) expression).accept(evv);
@@ -1490,7 +1490,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       fieldNameAndInitialValue = null;
       return Collections.singleton(newElement);
 
-    } else if (missingScopedFieldName){
+    } else if (missingScopedFieldName) {
 
       ExplicitState newElement = explicitState.clone();
       newElement = handleNotScopedVariable(rttState, newElement , cfaEdge);
@@ -1556,7 +1556,7 @@ public class ExplicitTransferRelation implements TransferRelation {
      String scopedFieldName = getRTTScopedVariableName(notScopedField.getName(), objectScope);
 
      Long value = notScopedFieldValue;
-     if (missingInformationRightJExpression != null){
+     if (missingInformationRightJExpression != null) {
        value = handleMissingInformationRightJExpression(rttState , newElement, cfaEdge);
      }
 
@@ -1582,7 +1582,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       return null;
     }
 
-    if (notScopedField instanceof JFieldAccess){
+    if (notScopedField instanceof JFieldAccess) {
 
       JIdExpression qualifier = ((JFieldAccess) notScopedField).getReferencedVariable();
 

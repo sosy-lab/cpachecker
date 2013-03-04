@@ -63,7 +63,7 @@ public class ReplaceHelperFunctionFormulaManager implements FunctionFormulaManag
     public ReplaceFunctionFormulaType(
         FunctionFormulaType<?> wrapped,
         FormulaType<T> retType,
-        List<FormulaType<?>> pArgs){
+        List<FormulaType<?>> pArgs) {
       this.wrapped = wrapped;
       this.ret = retType;
       this.args = pArgs;

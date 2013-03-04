@@ -44,7 +44,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
     this.mathsatEnv = creator.getEnv();
   }
 
-  public static Mathsat5BitvectorFormulaManager create(Mathsat5FormulaCreator creator){
+  public static Mathsat5BitvectorFormulaManager create(Mathsat5FormulaCreator creator) {
     return new Mathsat5BitvectorFormulaManager(creator);
   }
 
@@ -60,9 +60,9 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
 
   @Override
   public Long makeBitvectorImpl(int pLength, long pI) {
-    if (pI < 0){
+    if (pI < 0) {
       long max = (long)Math.pow(2, pLength - 1);
-      if (pI < -max){
+      if (pI < -max) {
         throw new IllegalArgumentException(pI + " is to small for a bitvector with length " + pLength);
       }
       long n = (long)Math.pow(2, pLength);
@@ -84,7 +84,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   @Override
   public Long shiftRight(Long number, Long toShift, boolean signed) {
     long t;
-    if (signed){
+    if (signed) {
       t = msat_make_bv_ashr(mathsatEnv, number, toShift);
     } else {
       t = msat_make_bv_lshr(mathsatEnv, number, toShift);
@@ -154,7 +154,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
 
   @Override
   public Long divide(Long pNumber1, Long pNumber2, boolean signed) {
-    if (signed){
+    if (signed) {
       return msat_make_bv_sdiv(mathsatEnv, pNumber1, pNumber2);
     } else {
       return msat_make_bv_udiv(mathsatEnv, pNumber1, pNumber2);
@@ -163,7 +163,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
 
   @Override
   public Long modulo(Long pNumber1, Long pNumber2, boolean signed) {
-    if (signed){
+    if (signed) {
       return msat_make_bv_srem(mathsatEnv, pNumber1, pNumber2);
     } else {
       return msat_make_bv_urem(mathsatEnv, pNumber1, pNumber2);
@@ -182,7 +182,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
 
   @Override
   public Long lessThan(Long pNumber1, Long pNumber2, boolean signed) {
-    if (signed){
+    if (signed) {
       return msat_make_bv_slt(mathsatEnv, pNumber1, pNumber2);
     } else {
       return msat_make_bv_ult(mathsatEnv, pNumber1, pNumber2);
@@ -191,7 +191,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
 
   @Override
   public Long lessOrEquals(Long pNumber1, Long pNumber2, boolean signed) {
-    if (signed){
+    if (signed) {
       return msat_make_bv_sleq(mathsatEnv, pNumber1, pNumber2);
     } else {
       return msat_make_bv_uleq(mathsatEnv, pNumber1, pNumber2);
@@ -230,7 +230,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
 
   @Override
   public boolean isModulo(Long pNumber, boolean signed) {
-    if (signed){
+    if (signed) {
       return msat_term_is_bv_srem(mathsatEnv, pNumber);
     } else {
       return msat_term_is_bv_urem(mathsatEnv, pNumber);
@@ -259,7 +259,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
 
   @Override
   public boolean isLessThan(Long pNumber, boolean signed) {
-    if (signed){
+    if (signed) {
       return msat_term_is_bv_slt(mathsatEnv, pNumber);
     } else {
       return msat_term_is_bv_ult(mathsatEnv, pNumber);
@@ -268,7 +268,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
 
   @Override
   public boolean isLessOrEquals(Long pNumber, boolean signed) {
-    if (signed){
+    if (signed) {
       return msat_term_is_bv_sleq(mathsatEnv, pNumber);
     } else {
       return msat_term_is_bv_uleq(mathsatEnv, pNumber);

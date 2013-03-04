@@ -40,7 +40,7 @@ class AstDebugg extends ASTVisitor {
 
   private final LogManager logger;
 
-  public AstDebugg(LogManager logger){
+  public AstDebugg(LogManager logger) {
     this.logger = logger;
   }
 
@@ -54,13 +54,13 @@ class AstDebugg extends ASTVisitor {
 
 
     // flags return the bitwise or of value Recovered =case 8, Malformed = case 1
-    if (ASTNode.RECOVERED == (problem.getFlags() & ASTNode.RECOVERED) || ASTNode.MALFORMED == (problem.getFlags() & ASTNode.MALFORMED )){
+    if (ASTNode.RECOVERED == (problem.getFlags() & ASTNode.RECOVERED) || ASTNode.MALFORMED == (problem.getFlags() & ASTNode.MALFORMED )) {
       logger.log(Level.SEVERE, "Error " + problem.toString());
     }
   }
 
 
-  public static String getTypeName(int type){
+  public static String getTypeName(int type) {
 
     String name = "";
     switch (type) {

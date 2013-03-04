@@ -282,11 +282,11 @@ public final class AbstractionManager {
 
   public Region buildRegionFromFormula(BooleanFormula pF) {
     // expect that pF is uninstantiated
-    if (bfmgr.isFalse(pF)){
+    if (bfmgr.isFalse(pF)) {
       return getRegionCreator().makeFalse();
     }
 
-    if (bfmgr.isTrue(pF)){
+    if (bfmgr.isTrue(pF)) {
       return getRegionCreator().makeTrue();
     }
 

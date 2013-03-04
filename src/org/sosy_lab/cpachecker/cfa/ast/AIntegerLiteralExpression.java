@@ -50,7 +50,7 @@ public abstract class AIntegerLiteralExpression extends ALiteralExpression {
 
 
    @Override
-  public  String toASTString(){
+  public  String toASTString() {
      return value.toString();
    }
 

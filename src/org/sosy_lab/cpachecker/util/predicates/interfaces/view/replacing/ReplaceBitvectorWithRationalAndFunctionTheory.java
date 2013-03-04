@@ -101,10 +101,10 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
 
   private Map<Integer[], FunctionFormulaType<RationalFormula>> extractMethods = new Hashtable<>();
 
-  private FunctionFormulaType<RationalFormula> getExtractDecl(int pMsb, int pLsb){
+  private FunctionFormulaType<RationalFormula> getExtractDecl(int pMsb, int pLsb) {
     Integer[] hasKey = new Integer[]{pMsb, pLsb};
     FunctionFormulaType<RationalFormula> value = extractMethods.get(hasKey);
-    if (value == null){
+    if (value == null) {
       value = functionManager.createFunction("_extract("+ pMsb + "," + pLsb + ")_", formulaType, formulaType);
       extractMethods.put(hasKey, value);
     }
@@ -113,10 +113,10 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
 
   private Map<Integer[], FunctionFormulaType<RationalFormula>> concatMethods = new Hashtable<>();
 
-  private FunctionFormulaType<RationalFormula> getConcatDecl(int firstSize, int secoundSize){
+  private FunctionFormulaType<RationalFormula> getConcatDecl(int firstSize, int secoundSize) {
     Integer[] hasKey = new Integer[]{firstSize, secoundSize};
     FunctionFormulaType<RationalFormula> value = concatMethods.get(hasKey);
-    if (value == null){
+    if (value == null) {
       value = functionManager.createFunction("_concat("+ firstSize + "," + secoundSize + ")_", formulaType, formulaType);
       concatMethods.put(hasKey, value);
     }

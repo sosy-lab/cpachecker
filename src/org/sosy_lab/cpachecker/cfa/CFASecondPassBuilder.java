@@ -233,7 +233,7 @@ public class CFASecondPassBuilder {
           lineNumber, predecessorNode,
           (CFunctionEntryNode) fDefNode, (CFunctionCall) functionCall,  (CFunctionSummaryEdge) calltoReturnEdge);
 
-    } else if (language == Language.JAVA){
+    } else if (language == Language.JAVA) {
 
       calltoReturnEdge = new JMethodSummaryEdge(edge.getRawStatement(),
           lineNumber, predecessorNode, successorNode, (JMethodOrConstructorInvocation) functionCall);
