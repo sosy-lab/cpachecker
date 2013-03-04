@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import com.google.common.base.Function;
 
 
-public interface CAstNode extends IAstNode{
+public interface CAstNode extends IAstNode {
 
   public static final Function<CAstNode, String> TO_AST_STRING
       = new Function<CAstNode, String>() {

@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  * It is also used stand-alone for the declaration of members of composite types
  * (e.g. structs) and for the declaration of function parameters.
  */
-public interface IASimpleDeclaration extends IAstNode{
+public interface IASimpleDeclaration extends IAstNode {
 
 
 

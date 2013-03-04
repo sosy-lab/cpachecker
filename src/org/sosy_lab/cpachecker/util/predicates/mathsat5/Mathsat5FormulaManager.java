@@ -67,7 +67,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
 
     private final ImmutableMap<String, String> furtherOptionsMap ;
 
-    private Mathsat5Settings(Configuration config) throws InvalidConfigurationException{
+    private Mathsat5Settings(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
 
       MapSplitter optionSplitter = Splitter.on(',').trimResults().omitEmptyStrings()
@@ -113,7 +113,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     return ((Mathsat5Formula)pT).getTerm();
   }
 
-  public static synchronized Mathsat5FormulaManager create(LogManager logger, Configuration config) throws InvalidConfigurationException{
+  public static synchronized Mathsat5FormulaManager create(LogManager logger, Configuration config) throws InvalidConfigurationException {
     if (instance != null) {
       return instance;
     }

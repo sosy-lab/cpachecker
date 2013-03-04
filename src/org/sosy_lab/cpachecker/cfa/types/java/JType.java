@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
 
-public interface JType extends Type{
+public interface JType extends Type {
 
 
 }

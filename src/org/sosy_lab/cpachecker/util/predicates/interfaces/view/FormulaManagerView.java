@@ -164,7 +164,7 @@ public class FormulaManagerView implements FormulaManager {
     }
   }
 
-  public FormulaManagerView(FormulaManager wrapped, Configuration config, LogManager pLogger) throws InvalidConfigurationException{
+  public FormulaManagerView(FormulaManager wrapped, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     this(DEFAULTMANAGERS, wrapped, config, pLogger);
   }
 

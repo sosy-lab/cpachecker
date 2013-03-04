@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import com.google.common.base.Optional;
 
 
-public class AssumeEdge extends AbstractCFAEdge{
+public class AssumeEdge extends AbstractCFAEdge {
 
   private final boolean truthAssumption;
   protected final IAExpression expression;

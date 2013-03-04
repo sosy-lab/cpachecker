@@ -886,7 +886,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       case BINARY_XOR:
       case MODULO:
       case SHIFT_RIGHT_SIGNED:
-      case SHIFT_RIGHT_UNSIGNED:{
+      case SHIFT_RIGHT_UNSIGNED: {
         Long lVal =    ((JExpression)lVarInBinaryExp).accept(this);
         if (lVal == null) {
           return null;

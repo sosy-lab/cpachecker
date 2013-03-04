@@ -188,7 +188,7 @@ public class SMG {
   }
 }
 
-class SMGConsistencyVerifier{
+class SMGConsistencyVerifier {
   private SMGConsistencyVerifier() {} /* utility class */
 
   static private boolean verifySMGProperty(boolean result, LogManager pLogger, String message) {

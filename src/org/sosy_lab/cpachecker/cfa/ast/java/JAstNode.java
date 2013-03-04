@@ -26,6 +26,6 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 
 
-public interface JAstNode extends IAstNode{
+public interface JAstNode extends IAstNode {
 
 }

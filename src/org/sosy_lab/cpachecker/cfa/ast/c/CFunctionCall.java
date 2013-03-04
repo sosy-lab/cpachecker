@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
  * Interface for all statements that contain function calls.
  * Only sub-classes of {@link CStatement} may implement this interface.
  */
-public interface CFunctionCall extends AFunctionCall{
+public interface CFunctionCall extends AFunctionCall {
 
   @Override
   CFunctionCallExpression getFunctionCallExpression();

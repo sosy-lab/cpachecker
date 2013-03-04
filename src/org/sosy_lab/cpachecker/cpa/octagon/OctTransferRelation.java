@@ -74,7 +74,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  * Handles transfer relation for Octagon abstract domain library.
  * See <a href="http://www.di.ens.fr/~mine/oct/">Octagon abstract domain library</a>
  */
-class OctTransferRelation implements TransferRelation{
+class OctTransferRelation implements TransferRelation {
 
   // set to set global variables
   private List<String> globalVars;

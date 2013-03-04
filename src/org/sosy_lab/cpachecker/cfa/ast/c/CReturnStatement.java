@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public class CReturnStatement extends AReturnStatement implements CAstNode{
+public class CReturnStatement extends AReturnStatement implements CAstNode {
 
 
 

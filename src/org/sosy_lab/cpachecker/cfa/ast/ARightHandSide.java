@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  * The Interface {@link IARightHandSide} contains all language specific
  * AST Nodes as well.
  */
-public  abstract class ARightHandSide extends AstNode implements IARightHandSide{
+public  abstract class ARightHandSide extends AstNode implements IARightHandSide {
 
   private final Type type;
 

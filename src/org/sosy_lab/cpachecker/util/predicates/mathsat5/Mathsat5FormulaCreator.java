@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator;
 
 
-class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long>{
+class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
 
   public Mathsat5FormulaCreator(
       final Long msatEnv) {

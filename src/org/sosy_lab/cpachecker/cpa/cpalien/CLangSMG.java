@@ -244,7 +244,7 @@ public class CLangSMG extends SMG {
 /**
  * Represents a C language stack frame
  */
-final class CLangStackFrame{
+final class CLangStackFrame {
 
   /**
    * Function to which this stack frame belongs
@@ -334,7 +334,7 @@ final class CLangStackFrame{
   }
 }
 
-class CLangSMGConsistencyVerifier{
+class CLangSMGConsistencyVerifier {
   private CLangSMGConsistencyVerifier() {} /* utility class */
 
   static private boolean verifyCLangSMGProperty(boolean result, LogManager pLogger, String message) {

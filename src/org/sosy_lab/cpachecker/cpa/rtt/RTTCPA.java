@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 @Options(prefix="cpa.RTT")
-public class RTTCPA implements ConfigurableProgramAnalysis, StatisticsProvider{
+public class RTTCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(RTTCPA.class);

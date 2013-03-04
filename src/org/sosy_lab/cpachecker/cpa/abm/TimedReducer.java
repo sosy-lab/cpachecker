@@ -89,7 +89,7 @@ class TimedReducer implements Reducer {
   @Override
   public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
     expandPrecisionTime.start();
-    try{
+    try {
       return wrappedReducer.getVariableExpandedPrecision(rootPrecision, rootContext, reducedPrecision);
     } finally {
       expandPrecisionTime.stop();

@@ -665,7 +665,7 @@ public class RTTTransferRelation implements TransferRelation {
 
 
 
-  private class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException>{
+  private class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException> {
 
     @SuppressWarnings("unused")
     protected final CFAEdge edge;

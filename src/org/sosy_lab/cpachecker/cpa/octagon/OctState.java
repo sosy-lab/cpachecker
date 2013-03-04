@@ -40,7 +40,7 @@ import com.google.common.collect.HashBiMap;
  * see {@link Variable}.
  *
  */
-class OctState implements AbstractState{
+class OctState implements AbstractState {
 
   // the octagon representation
   private Octagon octagon;

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 /**
  * Abstract interface for side-effect free expressions.
  */
-public interface IAExpression extends IARightHandSide{
+public interface IAExpression extends IARightHandSide {
 
 
 }

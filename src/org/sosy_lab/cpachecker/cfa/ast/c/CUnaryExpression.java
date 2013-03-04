@@ -63,7 +63,7 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
     return v.visit(this);
   }
 
-  public static enum UnaryOperator implements AUnaryExpression.AUnaryOperator{
+  public static enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
     PLUS   ("+"),
     MINUS  ("-"),
     STAR   ("*"),

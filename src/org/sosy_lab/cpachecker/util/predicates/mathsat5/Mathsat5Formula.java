@@ -57,7 +57,7 @@ class Mathsat5Formula implements Formula {
   }
 }
 
-class Mathsat5BitvectorFormula extends Mathsat5Formula implements BitvectorFormula{
+class Mathsat5BitvectorFormula extends Mathsat5Formula implements BitvectorFormula {
   public Mathsat5BitvectorFormula(long pTerm) {
     super(pTerm);
   }

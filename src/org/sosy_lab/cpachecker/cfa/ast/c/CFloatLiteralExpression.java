@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CFloatLiteralExpression extends AFloatLiteralExpression implements CLiteralExpression{
+public final class CFloatLiteralExpression extends AFloatLiteralExpression implements CLiteralExpression {
 
   public CFloatLiteralExpression(FileLocation pFileLocation,
                                     CType pType,

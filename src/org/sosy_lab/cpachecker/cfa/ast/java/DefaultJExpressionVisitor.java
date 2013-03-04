@@ -44,12 +44,12 @@ public abstract class DefaultJExpressionVisitor<R, X extends Exception> implemen
   }
 
   @Override
-  public R visit(JBooleanLiteralExpression e) throws X{
+  public R visit(JBooleanLiteralExpression e) throws X {
     return visitDefault(e);
   }
 
   @Override
-  public R visit(JFloatLiteralExpression e) throws X{
+  public R visit(JFloatLiteralExpression e) throws X {
     return visitDefault(e);
   }
 

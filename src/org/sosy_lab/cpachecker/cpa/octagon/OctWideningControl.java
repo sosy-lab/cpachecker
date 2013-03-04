@@ -31,7 +31,7 @@ class OctWideningControl {
 
   HashMap<Integer, LoopNode> loopNodeList = new HashMap<>();
 
-  static class LoopNode{
+  static class LoopNode {
     @SuppressWarnings("unused")
     private int nodeId;
     private int iterationCount = 0;

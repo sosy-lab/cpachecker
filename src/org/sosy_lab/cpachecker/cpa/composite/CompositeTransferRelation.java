@@ -47,7 +47,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-public class CompositeTransferRelation implements TransferRelation{
+public class CompositeTransferRelation implements TransferRelation {
 
   protected final ImmutableList<TransferRelation> transferRelations;
   protected final int size;

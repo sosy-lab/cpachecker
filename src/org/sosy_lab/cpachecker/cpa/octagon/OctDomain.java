@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 import com.google.common.collect.BiMap;
 
-class OctDomain implements AbstractDomain{
+class OctDomain implements AbstractDomain {
 
   static long totaltime = 0;
 

@@ -44,7 +44,7 @@ public class WrappingFormulaManager extends FormulaManagerView {
     super(pLoadManagers, pBaseManager, config, pLogger);
   }
 
-  public WrappingFormulaManager(FormulaManager wrapped, Configuration config, LogManager pLogger) throws InvalidConfigurationException{
+  public WrappingFormulaManager(FormulaManager wrapped, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     this(DEFAULTMANAGERS, wrapped, config, pLogger);
   }
 

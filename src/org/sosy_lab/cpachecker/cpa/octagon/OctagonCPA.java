@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 @Options(prefix="cpa.octagon")
-public class OctagonCPA implements ConfigurableProgramAnalysis{
+public class OctagonCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(OctagonCPA.class);

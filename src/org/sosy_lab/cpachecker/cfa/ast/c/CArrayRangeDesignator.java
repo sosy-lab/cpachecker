@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 
 
-public class CArrayRangeDesignator extends CDesignator{
+public class CArrayRangeDesignator extends CDesignator {
 
   private final IAExpression rangeFloor;
   private final IAExpression rangeCeiling;

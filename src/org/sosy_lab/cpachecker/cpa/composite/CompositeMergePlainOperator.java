@@ -36,7 +36,7 @@ import com.google.common.collect.ImmutableList;
  * Provides a MergeOperator implementation that just delegates to the component
  * CPAs without any further logic.
  */
-public class CompositeMergePlainOperator implements MergeOperator{
+public class CompositeMergePlainOperator implements MergeOperator {
 
   private final ImmutableList<MergeOperator> mergeOperators;
 

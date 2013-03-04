@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 
 import com.google.common.base.Function;
 
-public abstract class AstNode implements IAstNode, CAstNode{
+public abstract class AstNode implements IAstNode, CAstNode {
 
   private final FileLocation fileLocation;
 

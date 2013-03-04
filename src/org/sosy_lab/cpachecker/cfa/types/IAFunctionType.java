@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.types;
 import java.util.List;
 
 
-public interface IAFunctionType extends Type{
+public interface IAFunctionType extends Type {
   public Type getReturnType();
 
   public String getName() ;
