@@ -2074,7 +2074,7 @@ public class CtoFormulaConverter {
    * @param level the current level of indirection.
    * @return true if we can create a variable from this expression.
    */
-  private boolean isSupportedExpression (CExpression exp, int level) {
+  private boolean isSupportedExpression(CExpression exp, int level) {
     if (level > supportedIndirectionLevel) {
       return false;
     }
@@ -3214,7 +3214,7 @@ public class CtoFormulaConverter {
         throws UnrecognizedCCodeException {
       CExpression lRawExpr = assignment.getLeftHandSide();
       CExpression lExpr = removeCast(lRawExpr);
-      assert(lExpr instanceof CIdExpression
+      assert (lExpr instanceof CIdExpression
           || (lExpr instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)lExpr)))
           : "We currently can't handle too complex lefthandside-Expressions";
 
@@ -3366,7 +3366,7 @@ public class CtoFormulaConverter {
 
     /** Returns the variable name of a memory address variable */
     private String getVariableNameFromMemoryAddress(String memoryAddress) {
-      assert(memoryAddress.startsWith(MEMORY_ADDRESS_VARIABLE_PREFIX));
+      assert (memoryAddress.startsWith(MEMORY_ADDRESS_VARIABLE_PREFIX));
 
       return memoryAddress.substring(MEMORY_ADDRESS_VARIABLE_PREFIX.length());
     }

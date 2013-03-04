@@ -31,7 +31,7 @@ public interface JExpressionVisitor<R, X extends Exception>  {
 
   R visit(JStringLiteralExpression paStringLiteralExpression) throws X;
 
-  R visit (JBinaryExpression paBinaryExpression) throws X;
+  R visit(JBinaryExpression paBinaryExpression) throws X;
 
   R visit(JUnaryExpression pAUnaryExpression) throws X;
 

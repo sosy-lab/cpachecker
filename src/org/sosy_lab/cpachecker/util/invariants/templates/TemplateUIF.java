@@ -226,7 +226,7 @@ public class TemplateUIF extends TemplateNumericValue {
   	Formula form = null;
   	List<Formula> fl = ((AbstractFormulaList)args.translate(fmgr)).getTerms();
   	FunctionFormulaManagerView ffmgr = fmgr.getFunctionFormulaManager();
-  	if (hasIndex()) {
+  	if(hasIndex()) {
   	  form = ffmgr.createFuncAndCall(name, index.intValue(), getFormulaType(), fl);
   		//form = fmgr.makeUIF(name, fl, index.intValue());
   	} else {
@@ -248,7 +248,7 @@ public class TemplateUIF extends TemplateNumericValue {
   }
 
   public boolean hasIndex() {
-  	return (index != null);
+  	return(index != null);
   }
 
   public Integer getIndex() {

@@ -78,7 +78,7 @@ public class ExplictFeasibilityChecker {
         next = extractNextState(successors);
 
         // path is not feasible
-        if(next == null && !pathElement.getFirst().isTarget()) {
+        if (next == null && !pathElement.getFirst().isTarget()) {
           return false;
         }
       }
@@ -100,7 +100,7 @@ public class ExplictFeasibilityChecker {
     if (successors.isEmpty()) {
       return null;
     } else {
-      assert(successors.size() == 1);
+      assert (successors.size() == 1);
       return Lists.newArrayList(successors).get(0);
     }
   }

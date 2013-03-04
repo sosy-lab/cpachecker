@@ -213,7 +213,7 @@ class ASTConverter {
     } else if (node instanceof CFunctionCallExpression) {
       return addSideassignmentsForExpressionsWithoutSideEffects(node, e);
 
-    } else if(e instanceof IASTUnaryExpression && (((IASTUnaryExpression)e).getOperator() == IASTUnaryExpression.op_postFixDecr
+    } else if (e instanceof IASTUnaryExpression && (((IASTUnaryExpression)e).getOperator() == IASTUnaryExpression.op_postFixDecr
                                                    || ((IASTUnaryExpression)e).getOperator() == IASTUnaryExpression.op_postFixIncr)) {
       return addSideAssignmentsForUnaryExpressions(e, ((CAssignment)node).getLeftHandSide(),
           node.getFileLocation(), typeConverter.convert(e.getExpressionType()),
@@ -935,7 +935,7 @@ class ASTConverter {
           tmpArrMod.add((IASTArrayModifier) modifier);
         } else if (modifier instanceof IASTPointerOperator) {
           //add accumulated array modifiers before adding next pointer operator
-          for(int i = tmpArrMod.size() -1; i >= 0; i--) {
+          for (int i = tmpArrMod.size() -1; i >= 0; i--) {
             type = convert(tmpArrMod.get(i), type);
           }
           // clear added modifiers
@@ -949,7 +949,7 @@ class ASTConverter {
       }
 
       // add last array modifiers if necessary
-      for(int i = tmpArrMod.size() -1; i >= 0; i--) {
+      for (int i = tmpArrMod.size() -1; i >= 0; i--) {
         type = convert(tmpArrMod.get(i), type);
       }
 
@@ -1170,8 +1170,8 @@ class ASTConverter {
     CDesignator exp = new CEmptyDesignator(fileLoc);
 
     // convert all designators
-    for(int i = 0; i < desInit.length; i++) {
-      if(desInit[i] instanceof ICASTFieldDesignator) {
+    for (int i = 0; i < desInit.length; i++) {
+      if (desInit[i] instanceof ICASTFieldDesignator) {
        exp = new CFieldDesignator(fileLoc,
            convert(((ICASTFieldDesignator) desInit[i]).getName()),
            exp);

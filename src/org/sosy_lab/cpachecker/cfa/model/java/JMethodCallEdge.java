@@ -38,7 +38,7 @@ public class JMethodCallEdge extends FunctionCallEdge {
 
 
 
-  public JMethodCallEdge (String pRawStatement,
+  public JMethodCallEdge(String pRawStatement,
       int pLineNumber, CFANode pPredecessor, JMethodEntryNode pSuccessor,
       JMethodOrConstructorInvocation pFunctionCall, JMethodSummaryEdge pSummaryEdge) {
 

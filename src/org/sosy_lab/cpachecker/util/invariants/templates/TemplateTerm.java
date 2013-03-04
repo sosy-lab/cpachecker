@@ -320,24 +320,24 @@ public class TemplateTerm extends TemplateSum {
   	Formula form = null;
   	Vector<Formula> factors = new Vector<>(4);
 
-  	if (hasCoefficient()) {
+  	if(hasCoefficient()) {
   		factors.add( getCoefficient().translate(fmgr) );
   	}
   	// We ignore parameters, since other "languages" do not have them.
-  	if (hasVariable()) {
+  	if(hasVariable()) {
   		factors.add( getVariable().translate(fmgr) );
   	}
-  	if (hasUIF()) {
+  	if(hasUIF()) {
   		factors.add( getUIF().translate(fmgr) );
   	}
 
-  	if (factors.size() == 0) {
+  	if(factors.size() == 0) {
   		// This case probably should not occur.
   		form = makeUnity(getFormulaType()).translate(fmgr);
   	} else {
   		form = factors.get(0);
   		Formula f;
-  		for (int i = 1; i < factors.size(); i++) {
+  		for(int i = 1; i < factors.size(); i++) {
   			f = factors.get(i);
   			form = fmgr.makeMultiply(form, f);
   		}

@@ -96,7 +96,7 @@ public class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaMa
       return false;
     }
     Term arg = SmtInterpolUtil.getArg(pNumber, 0);
-    if(SmtInterpolUtil.isNumber(arg)){
+    if (SmtInterpolUtil.isNumber(arg)){
       // TODO: BUG: possible bug
       return SmtInterpolUtil.toNumber(arg) == -1;
     }

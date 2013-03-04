@@ -103,7 +103,7 @@ public class ExplicitCPAStatistics implements Statistics {
     out.println("Avg. number of global variables: " + ((totalNumberOfGlobalVariables * 10000) / reached.size()) / 10000.0);
 
     if (refiner != null) {
-      if(precisionFile != null) {
+      if (precisionFile != null) {
         exportPrecision(reached);
       }
     }
@@ -143,8 +143,8 @@ public class ExplicitCPAStatistics implements Statistics {
   private int getNumberOfGlobalVariables(ExplicitState state) {
     int numberOfGlobalVariables = 0;
 
-    for(String variableName : state.getConstantsMap().keySet()) {
-      if(variableName.contains("::")) {
+    for (String variableName : state.getConstantsMap().keySet()) {
+      if (variableName.contains("::")) {
         numberOfGlobalVariables++;
       }
     }

@@ -45,7 +45,7 @@ public class FlatLatticeDomain implements AbstractDomain {
   }
 
   public FlatLatticeDomain(AbstractState pTopState) {
-    assert(pTopState != null);
+    assert (pTopState != null);
 
     this.mTopState = pTopState;
   }

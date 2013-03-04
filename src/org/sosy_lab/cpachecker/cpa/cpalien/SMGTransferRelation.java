@@ -195,7 +195,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       try {
        sizeExpr = functionCall.getParameterExpressions().get(MALLOC_PARAMETER);
-      } catch(IndexOutOfBoundsException e) {
+      } catch (IndexOutOfBoundsException e) {
         throw new UnrecognizedCCodeException("Malloc argument not found." , cfaEdge, functionCall);
       }
 
@@ -260,7 +260,7 @@ public class SMGTransferRelation implements TransferRelation {
       CType type = new CSimpleType(false, false, CBasicType.CHAR, false, false, false, true, false, false, false);
 
       //TODO More effective memset evaluation
-      for(int c = 0; c < count; c++) {
+      for (int c = 0; c < count; c++) {
         handleAssignmentToField(currentState, cfaEdge, memory, bufferOffset, type, chExpr);
       }
 
@@ -479,7 +479,7 @@ public class SMGTransferRelation implements TransferRelation {
       memoryOfField = lValue.accept(visitor);
       offset = visitor.offset;
 
-      if(memoryOfField != null && offset != null && rValueType != null && rValue != null ) {
+      if (memoryOfField != null && offset != null && rValueType != null && rValue != null ) {
         // Assignment of explicit Value to symbolic Value already happened in handleExitFromFunction
         newState.writeValue(memoryOfField, offset, rValueType, rValue, machineModel);
       }
@@ -514,7 +514,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
       //TODO Parameter with varArgs
-      assert(paramDecl.size() == arguments.size());
+      assert (paramDecl.size() == arguments.size());
     }
 
     // get value of actual parameter in caller function context
@@ -694,7 +694,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       Address address = evaluateAddress(smgState, cfaEdge, addressExpression);
 
-      if(address == null){
+      if (address == null){
         return null;
       }
 
@@ -734,7 +734,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       Pair<SMGObject, Integer> memoryAndOffset = evaluateArraySubscriptExpression(smgState, cfaEdge, lValue);
 
-      if(memoryAndOffset == null ) {
+      if (memoryAndOffset == null ) {
         return null;
       }
 
@@ -900,7 +900,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       value = SMGValueFactory.getNewValue();
 
-      if(newValueIsNeqZero(newState, cfaEdge, rValue)) {
+      if (newValueIsNeqZero(newState, cfaEdge, rValue)) {
         newState.setUnequal(value, 0);
       }
     }
@@ -908,7 +908,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     // If Assignment contained malloc, handle possible fail with
     // alternate State
-    if(possibleMallocFail) {
+    if (possibleMallocFail) {
       possibleMallocFail = false;
       SMGState otherState = new SMGState(state);
       otherState.writeValue(memoryOfField, fieldOffset, fieldType, 0, machineModel);
@@ -959,7 +959,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       Address address = evaluateAddress(smgState, cfaEdge, rValue);
 
-      if(address == null) {
+      if (address == null) {
         return null;
       }
 
@@ -968,7 +968,7 @@ public class SMGTransferRelation implements TransferRelation {
       // Otherwise, we would add an Address to the SMG
       // without a necessary Has-Value-Edge to the address value.
 
-      if(!newState.containsValue(address.getValue())) {
+      if (!newState.containsValue(address.getValue())) {
         newState.addAddress(address.getObject(), address.getOffset(), address.getValue());
       }
 
@@ -1108,8 +1108,8 @@ public class SMGTransferRelation implements TransferRelation {
       CExpression riteOperand = binaryExpression.getOperand2();
 
 
-      if(operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS) {
-        if(leftOperand instanceof CBinaryExpression && riteOperand instanceof CLiteralExpression) {
+      if (operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS) {
+        if (leftOperand instanceof CBinaryExpression && riteOperand instanceof CLiteralExpression) {
           CBinaryExpression expr = (CBinaryExpression)leftOperand;
 
           BinaryOperator operation = expr.getOperator();
@@ -1118,7 +1118,7 @@ public class SMGTransferRelation implements TransferRelation {
 
           // [(a + 753) != 951] => [a != 951 + 753]
 
-          if(riteAddend instanceof CLiteralExpression && (operation == BinaryOperator.PLUS || operation == BinaryOperator.MINUS)) {
+          if (riteAddend instanceof CLiteralExpression && (operation == BinaryOperator.PLUS || operation == BinaryOperator.MINUS)) {
             BinaryOperator newOperation = (operation == BinaryOperator.PLUS) ? BinaryOperator.MINUS : BinaryOperator.PLUS;
 
             CBinaryExpression sum = new CBinaryExpression(expr.getFileLocation(),
@@ -1211,7 +1211,7 @@ public class SMGTransferRelation implements TransferRelation {
     public Integer visit(CIntegerLiteralExpression exp) throws UnrecognizedCCodeException {
       Integer value = super.visit(exp);
 
-      if(value != null && value == 0) {
+      if (value != null && value == 0) {
         object = smgState.getMemoryOfAddress(0);
         offset = 0;
       }
@@ -1300,7 +1300,7 @@ public class SMGTransferRelation implements TransferRelation {
       offset = field.getOffset();
       object = memoryOfField;
 
-      if(offset == null || object == null) {
+      if (offset == null || object == null) {
         return null;
       }
 
@@ -1718,7 +1718,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       Pair<SMGObject, Integer> arrayMemAndOff = evaluateArraySubscriptExpression(smgState, cfaEdge, exp);
 
-      if(arrayMemAndOff == null) {
+      if (arrayMemAndOff == null) {
         return null;
       }
 
@@ -1733,7 +1733,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       BigInteger value = exp.getValue();
 
-      if(smgState.isSymbolicValueKnown(value.intValue())) {
+      if (smgState.isSymbolicValueKnown(value.intValue())) {
         return smgState.getSymbolicValue(value.intValue());
       }
 
@@ -1747,7 +1747,7 @@ public class SMGTransferRelation implements TransferRelation {
 
      char value = exp.getCharacter();
 
-     if(smgState.isSymbolicValueKnown(value)) {
+     if (smgState.isSymbolicValueKnown(value)) {
        return smgState.getSymbolicValue(value);
      }
 
@@ -1811,7 +1811,7 @@ public class SMGTransferRelation implements TransferRelation {
       case STAR:
         if (unaryOperandType instanceof CPointerType) {
           return dereferencePointer(unaryOperand, expType);
-        } else if(unaryOperandType instanceof CArrayType) {
+        } else if (unaryOperandType instanceof CArrayType) {
           return dereferenceArray(unaryOperand, expType);
         } else {
           throw new UnrecognizedCCodeException(cfaEdge, unaryExpression);
@@ -1986,7 +1986,7 @@ public class SMGTransferRelation implements TransferRelation {
       SMGObject object = exp.accept(v);
       Integer offset = v.offset;
 
-      if( object == null || offset == null ) {
+      if ( object == null || offset == null ) {
         // We can't resolve the field to dereference, therefore
         // we must assume, that it is invalid
         smgState.setUnkownDereference();
@@ -2173,7 +2173,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       CType expType = getRealExpressionType(exp);
 
-      if(expType instanceof CPointerType || expType instanceof CArrayType ) {
+      if (expType instanceof CPointerType || expType instanceof CArrayType ) {
         // We do not have explicit Values for these.
         return null;
       }
@@ -2182,7 +2182,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       Integer symbolicValue = exp.accept(visitor);
 
-      if(smgState.isExplicitValueKnown(symbolicValue)) {
+      if (smgState.isExplicitValueKnown(symbolicValue)) {
         return BigInteger.valueOf(smgState.getExplicitValue(symbolicValue));
       } else {
         return null;
@@ -2326,7 +2326,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     Long explicitValue = null;
 
-    if(explState.contains(scopedVariableName)) {
+    if (explState.contains(scopedVariableName)) {
       explicitValue = explState.getValueFor(scopedVariableName);
     }
 

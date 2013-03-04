@@ -99,7 +99,7 @@ public class TemplateVariableManager implements VariableManager {
 	String s = "Variables:";
 	Iterator<TemplateVariable> I = vars.iterator();
 	TemplateVariable V;
-	while (I.hasNext()) {
+	while(I.hasNext()) {
 		V = I.next();
 		s += " "+V.toString();
 	}

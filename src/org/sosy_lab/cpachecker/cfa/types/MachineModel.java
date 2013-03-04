@@ -257,7 +257,7 @@ public enum MachineModel {
     @Override
     public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
 
-      switch(pCompositeType.getKind()) {
+      switch (pCompositeType.getKind()) {
         case STRUCT: return handleSizeOfStruct(pCompositeType);
         case UNION:  return handleSizeOfUnion(pCompositeType);
         case ENUM: // There is no such kind of Composit Type.

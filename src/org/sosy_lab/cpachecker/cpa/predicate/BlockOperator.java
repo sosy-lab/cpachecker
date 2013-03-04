@@ -90,7 +90,7 @@ public class BlockOperator {
     CFANode predLoc = cfaEdge.getPredecessor();
 
     if (alwaysAndOnlyAtExplicitNodes) {
-      assert(explicitAbstractionNodes != null);
+      assert (explicitAbstractionNodes != null);
       return explicitAbstractionNodes.contains(predLoc);
     }
 

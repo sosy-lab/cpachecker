@@ -55,7 +55,7 @@ public class ColumnChoiceFrame {
 
   private void construct(List<PivotRow2> r, List<ChallengeType> c) {
     // r and c must have the same size!
-    assert(r.size() == c.size());
+    assert (r.size() == c.size());
     rows = r;
     ctypes = c;
     choices = new HashMap<>();

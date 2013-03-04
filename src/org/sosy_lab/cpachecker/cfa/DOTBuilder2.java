@@ -91,7 +91,7 @@ public final class DOTBuilder2 {
     //future updates of dotty may make this obsolete.
     return edge.getDescription()
       .replaceAll("\\Q\\\"\\E", "\\ \"")
-      .replaceAll ("\\\"", "\\\\\\\"")
+      .replaceAll("\\\"", "\\\\\\\"")
       .replaceAll("\n", " ")
       .replaceAll("\\s+", " ")
       .replaceAll(" ;", ";");

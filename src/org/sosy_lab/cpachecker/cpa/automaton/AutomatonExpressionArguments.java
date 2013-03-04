@@ -126,7 +126,7 @@ class AutomatonExpressionArguments {
    * @param pSourceString
    * @return
    */
-  String replaceVariables (String pSourceString) {
+  String replaceVariables(String pSourceString) {
 
     // replace references to Transition Variables
     Matcher matcher = AutomatonExpressionArguments.TRANSITION_VARS_PATTERN.matcher(pSourceString);

@@ -266,7 +266,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     List<? extends IAExpression> arguments = callEdge.getArguments();
 
     if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
-      assert(paramNames.size() == arguments.size());
+      assert (paramNames.size() == arguments.size());
     }
 
 
@@ -280,7 +280,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       IAExpression exp = arguments.get(i);
 
 
-      if(exp instanceof JExpression){
+      if (exp instanceof JExpression){
         value = ((JExpression) arguments.get(i)).accept(visitor);
       } else {
         value = ((CExpression) arguments.get(i)).accept(visitor);
@@ -328,21 +328,21 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     // expression is an assignment operation, e.g. a = g(b);
 
-    if(exprOnSummary instanceof AFunctionCallAssignmentStatement) {
+    if (exprOnSummary instanceof AFunctionCallAssignmentStatement) {
       AFunctionCallAssignmentStatement assignExp = ((AFunctionCallAssignmentStatement)exprOnSummary);
       IAExpression op1 = assignExp.getLeftHandSide();
 
       // we expect left hand side of the expression to be a variable
 
-      if((op1 instanceof AIdExpression) || (op1 instanceof CFieldReference)) {
+      if ((op1 instanceof AIdExpression) || (op1 instanceof CFieldReference)) {
         String returnVarName = getScopedVariableName(FUNCTION_RETURN_VAR, calledFunctionName);
 
         String assignedVarName = getScopedVariableName(op1.toASTString(), callerFunctionName);
 
 
-        if(!element.contains(returnVarName)) {
+        if (!element.contains(returnVarName)) {
           newElement.forget(assignedVarName);
-        } else if(op1 instanceof JIdExpression && ((JIdExpression) op1).getDeclaration() instanceof JFieldDeclaration && !((JFieldDeclaration) ((JIdExpression) op1).getDeclaration()).isStatic()) {
+        } else if (op1 instanceof JIdExpression && ((JIdExpression) op1).getDeclaration() instanceof JFieldDeclaration && !((JFieldDeclaration) ((JIdExpression) op1).getDeclaration()).isStatic()) {
           missingScopedFieldName = true;
           notScopedField = (JIdExpression) op1;
           notScopedFieldValue = element.getValueFor(returnVarName);
@@ -352,7 +352,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
 
       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
-      else if(op1 instanceof AUnaryExpression && ((AUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
+      else if (op1 instanceof AUnaryExpression && ((AUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
         return newElement;
       }
 
@@ -386,11 +386,11 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       AssigningValueVisitor avv = new AssigningValueVisitor(cfaEdge, element, functionName, truthValue);
 
-      if(expression instanceof JExpression && ! (expression instanceof CExpression)){
+      if (expression instanceof JExpression && ! (expression instanceof CExpression)){
 
         ((JExpression) expression).accept(avv);
 
-        if(avv.missingFieldAccessInformation || avv.missingEnumComparisonInformation) {
+        if (avv.missingFieldAccessInformation || avv.missingEnumComparisonInformation) {
           assert missingInformationRightJExpression != null;
           missingAssumeInformation = true;
         }
@@ -432,7 +432,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       // if this is a global variable, add to the list of global variables
       globalVariables.add(varName);
 
-      if(decl instanceof JFieldDeclaration && !((JFieldDeclaration)decl).isStatic()){
+      if (decl instanceof JFieldDeclaration && !((JFieldDeclaration)decl).isStatic()){
         missingFieldVariableObject = true;
         javaNonStaticVariables.add(varName);
       }
@@ -444,7 +444,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     // get initial value
     IAInitializer init = decl.getInitializer();
 
-    if(init instanceof AInitializerExpression) {
+    if (init instanceof AInitializerExpression) {
       IAExpression exp = ((AInitializerExpression)init).getExpression();
 
         initialValue = getExpressionValue(newElement, exp, functionName, declarationEdge);
@@ -460,7 +460,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     if (!complexType  && (missingInformationRightJExpression != null || initialValue != null)) {
       if (missingFieldVariableObject) {
         fieldNameAndInitialValue = Pair.of(varName, initialValue);
-      } else if(missingInformationRightJExpression == null) {
+      } else if (missingInformationRightJExpression == null) {
         newElement.assignConstant(scopedVarName, initialValue);
       } else {
         missingInformationLeftJVariable = scopedVarName;
@@ -511,18 +511,18 @@ public class ExplicitTransferRelation implements TransferRelation {
     IARightHandSide op2 = assignExpression.getRightHandSide();
 
 
-    if(op1 instanceof AIdExpression) {
+    if (op1 instanceof AIdExpression) {
       // a = ...
 
         String functionName = cfaEdge.getPredecessor().getFunctionName();
 
-        if(op1 instanceof JIdExpression && ((JIdExpression) op1).getDeclaration() instanceof JFieldDeclaration && !((JFieldDeclaration) ((JIdExpression) op1).getDeclaration()).isStatic()) {
+        if (op1 instanceof JIdExpression && ((JIdExpression) op1).getDeclaration() instanceof JFieldDeclaration && !((JFieldDeclaration) ((JIdExpression) op1).getDeclaration()).isStatic()) {
           missingScopedFieldName = true;
           notScopedField = (JIdExpression) op1;
         }
 
         handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(cfaEdge, newElement, functionName));
-      } else if(op1 instanceof AUnaryExpression && ((AUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
+      } else if (op1 instanceof AUnaryExpression && ((AUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
       // *a = ...
 
       op1 = ((AUnaryExpression)op1).getOperand();
@@ -535,7 +535,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
 
 
-      if(op1 instanceof AIdExpression) {
+      if (op1 instanceof AIdExpression) {
         missingInformationLeftPointer = ((AIdExpression)op1).getName();
         missingInformationRightExpression = op2;
       }
@@ -564,7 +564,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     Long value;
 
-    if(exp instanceof JRightHandSide && !(exp instanceof CRightHandSide )){
+    if (exp instanceof JRightHandSide && !(exp instanceof CRightHandSide )){
        value = ((JRightHandSide) exp).accept(visitor);
     } else {
        value = ((CRightHandSide) exp).accept(visitor);
@@ -572,7 +572,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
 
 
-    if(visitor.missingPointer) {
+    if (visitor.missingPointer) {
       missingInformationRightExpression = exp;
       assert value == null;
     }
@@ -580,26 +580,26 @@ public class ExplicitTransferRelation implements TransferRelation {
     ExplicitState newElement = visitor.state;
     String assignedVar = getScopedVariableName(lParam, visitor.functionName);
 
-    if(visitor.missingFieldAccessInformation || visitor.missingEnumComparisonInformation) {
+    if (visitor.missingFieldAccessInformation || visitor.missingEnumComparisonInformation) {
       // This may happen if an object of class is created which could not be parsed,
       // In  such a case, forget about it
-      if(value != null) {
+      if (value != null) {
         newElement.forget(lParam);
         return;
       } else {
         missingInformationRightJExpression =  (JRightHandSide) exp;
-        if(!missingScopedFieldName) {
+        if (!missingScopedFieldName) {
           missingInformationLeftJVariable = assignedVar;
         }
       }
     }
 
-    if(missingScopedFieldName){
+    if (missingScopedFieldName){
       notScopedFieldValue = value;
     } else {
       if (value == null) {
         // Don't erase it when there if it has yet to be evaluated
-        if(missingInformationRightJExpression == null) {
+        if (missingInformationRightJExpression == null) {
           // TODO HasToBeErased Later
          newElement.forget(assignedVar);
         }
@@ -875,7 +875,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       IAExpression lVarInBinaryExp = pE.getOperand1();
       IAExpression rVarInBinaryExp = pE.getOperand2();
 
-      switch(binaryOperator) {
+      switch (binaryOperator) {
       case PLUS:
       case MINUS:
       case DIVIDE:
@@ -888,16 +888,16 @@ public class ExplicitTransferRelation implements TransferRelation {
       case SHIFT_RIGHT_SIGNED:
       case SHIFT_RIGHT_UNSIGNED:{
         Long lVal =    ((JExpression)lVarInBinaryExp).accept(this);
-        if(lVal == null) {
+        if (lVal == null) {
           return null;
         }
 
         Long rVal = ((JExpression)rVarInBinaryExp).accept(this);
-        if(rVal == null) {
+        if (rVal == null) {
           return null;
         }
 
-        switch(binaryOperator) {
+        switch (binaryOperator) {
         case PLUS:
           return lVal + rVal;
 
@@ -906,7 +906,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
         case DIVIDE:
           // TODO maybe we should signal a division by zero error?
-          if(rVal == 0) {
+          if (rVal == 0) {
             return null;
           }
 
@@ -949,14 +949,14 @@ public class ExplicitTransferRelation implements TransferRelation {
 
         Long lVal = ((JExpression)lVarInBinaryExp).accept(this);
         Long rVal = ((JExpression)rVarInBinaryExp).accept(this);
-        if(lVal == null || rVal == null)
+        if (lVal == null || rVal == null)
           return null;
 
         long l = lVal;
         long r = rVal;
 
         boolean result;
-        switch(binaryOperator) {
+        switch (binaryOperator) {
         case EQUALS:
           result = (l == r);
           break;
@@ -996,18 +996,18 @@ public class ExplicitTransferRelation implements TransferRelation {
       IASimpleDeclaration decl = idExp.getDeclaration();
 
       // Java IdExpression could not be resolved
-      if(decl == null) {
+      if (decl == null) {
         return null;
       }
 
-      if(decl instanceof JFieldDeclaration
+      if (decl instanceof JFieldDeclaration
           && !((JFieldDeclaration) decl).isStatic()) {
         missingFieldAccessInformation = true;
       }
 
       String varName = getScopedVariableName(idExp.getName(), functionName);
 
-      if(state.contains(varName)) {
+      if (state.contains(varName)) {
         return state.getValueFor(varName);
       } else {
         return null;
@@ -1022,7 +1022,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       Long value = null;
 
-      switch(unaryOperator) {
+      switch (unaryOperator) {
       case MINUS:
         value = ((JExpression)unaryOperand).accept(this);
         return (value != null) ? -value : null;
@@ -1030,7 +1030,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       case NOT:
         value = ((JExpression)(unaryOperand)).accept(this);
 
-        if(value == null) {
+        if (value == null) {
           return null;
         } else {
           // if the value is 0, return 1, if it is anything other than 0, return 0
@@ -1134,7 +1134,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     private IAExpression unwrap(IAExpression expression) {
       // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
 
-      if(expression instanceof AUnaryExpression) {
+      if (expression instanceof AUnaryExpression) {
         AUnaryExpression exp = (AUnaryExpression)expression;
         if (exp.getOperator() == UnaryOperator.NOT) {
           expression = exp.getOperand();
@@ -1214,8 +1214,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       Long leftValue                  = ((JExpression) lVarInBinaryExp).accept(this);
       Long rightValue                 = ((JExpression) rVarInBinaryExp).accept(this);
 
-      if((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue) || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
-        if(leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
+      if ((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue) || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
+        if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
 
           String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
           state.assignConstant(leftVariableName, rightValue);
@@ -1249,7 +1249,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     private boolean isAssignable(IAExpression expression) {
 
-      if(expression instanceof CIdExpression || expression instanceof CFieldReference) {
+      if (expression instanceof CIdExpression || expression instanceof CFieldReference) {
         return true;
       }
 
@@ -1257,13 +1257,13 @@ public class ExplicitTransferRelation implements TransferRelation {
 
 
 
-      if(expression instanceof JIdExpression ) {
+      if (expression instanceof JIdExpression ) {
 
         JSimpleDeclaration decl = ((JIdExpression) expression).getDeclaration();
 
-        if(decl == null) {
+        if (decl == null) {
           result = false;
-        } else if(decl instanceof JFieldDeclaration) {
+        } else if (decl instanceof JFieldDeclaration) {
           result = ((JFieldDeclaration) decl).isStatic();
         } else {
           result = true;
@@ -1333,7 +1333,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     @Override
     public Long visit(JBinaryExpression binaryExpression) throws UnrecognizedCCodeException {
 
-      if((binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.EQUALS
+      if ((binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.EQUALS
           || binaryExpression.getOperator() == JBinaryExpression.BinaryOperator.NOT_EQUALS)
           && (binaryExpression.getOperand1() instanceof JEnumConstantExpression
               ||  binaryExpression.getOperand2() instanceof JEnumConstantExpression)) {
@@ -1393,7 +1393,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       boolean result = value1.equals(value2);
 
-      switch(operator){
+      switch (operator){
       case EQUALS:   break;
       case NOT_EQUALS: result = !result;
       }
@@ -1405,7 +1405,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       JSimpleDeclaration decl = expr.getDeclaration();
 
-      if(decl == null) {
+      if (decl == null) {
         return null;
       }
 
@@ -1420,7 +1420,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       String varName = handleIdExpression(idExp);
 
-      if(state.contains(varName)) {
+      if (state.contains(varName)) {
         return state.getValueFor(varName);
       } else {
         return null;
@@ -1431,11 +1431,11 @@ public class ExplicitTransferRelation implements TransferRelation {
 
   private Long getExpressionValue(ExplicitState element, IAExpression expression, String functionName, CFAEdge edge)
     throws UnrecognizedCCodeException {
-    if(expression instanceof JRightHandSide && !(expression instanceof CRightHandSide)){
+    if (expression instanceof JRightHandSide && !(expression instanceof CRightHandSide)){
 
         ExpressionValueVisitor evv = new ExpressionValueVisitor(edge, element, functionName);
         Long value =  ((JRightHandSide) expression).accept(evv);
-        if(evv.missingFieldAccessInformation || evv.missingEnumComparisonInformation) {
+        if (evv.missingFieldAccessInformation || evv.missingEnumComparisonInformation) {
           missingInformationRightJExpression = (JRightHandSide) expression;
           return null;
         } else {
@@ -1464,7 +1464,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     for (AbstractState ae : elements) {
       if (ae instanceof PointerState) {
         return strengthen(explicitState, (PointerState)ae, cfaEdge);
-      } else if(ae instanceof RTTState) {
+      } else if (ae instanceof RTTState) {
         return strengthen(explicitState, (RTTState)ae, cfaEdge, precision);
       }
     }
@@ -1477,7 +1477,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       ExplicitState explicitState, RTTState rttState, CFAEdge cfaEdge,
       Precision precision) throws UnrecognizedCCodeException {
 
-    if(missingFieldVariableObject) {
+    if (missingFieldVariableObject) {
 
       ExplicitState newElement = explicitState.clone();
 
@@ -1490,7 +1490,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       fieldNameAndInitialValue = null;
       return Collections.singleton(newElement);
 
-    } else if(missingScopedFieldName){
+    } else if (missingScopedFieldName){
 
       ExplicitState newElement = explicitState.clone();
       newElement = handleNotScopedVariable(rttState, newElement , cfaEdge);
@@ -1499,12 +1499,12 @@ public class ExplicitTransferRelation implements TransferRelation {
       notScopedFieldValue = null;
       missingInformationRightJExpression = null;
 
-      if(newElement != null) {
+      if (newElement != null) {
       return Collections.singleton(newElement);
       } else {
         return null;
       }
-    } else if(missingAssumeInformation && missingInformationRightJExpression != null) {
+    } else if (missingAssumeInformation && missingInformationRightJExpression != null) {
       ExplicitState newElement = explicitState.clone();
       Long value = handleMissingInformationRightJExpression(rttState, newElement, cfaEdge);
 
@@ -1512,19 +1512,19 @@ public class ExplicitTransferRelation implements TransferRelation {
       missingAssumeInformation = false;
       missingInformationRightJExpression = null;
 
-      if(value == null) {
+      if (value == null) {
         return null;
       } else if ((((AssumeEdge) cfaEdge).getTruthAssumption() && value == 1L) || (!((AssumeEdge) cfaEdge).getTruthAssumption() && value == 0L)) {
         return Collections.singleton(newElement);
       } else {
         return new HashSet<>();
       }
-    } else if(missingInformationRightJExpression != null) {
+    } else if (missingInformationRightJExpression != null) {
 
       ExplicitState newElement = explicitState.clone();
       Long value = handleMissingInformationRightJExpression(rttState , newElement , cfaEdge);
 
-      if(value != null) {
+      if (value != null) {
         newElement.assignConstant(missingInformationLeftJVariable, value);
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
@@ -1551,16 +1551,16 @@ public class ExplicitTransferRelation implements TransferRelation {
 
    String objectScope = getObjectScope(rttState, cfaEdge.getPredecessor().getFunctionName(), notScopedField);
 
-   if(objectScope != null) {
+   if (objectScope != null) {
 
      String scopedFieldName = getRTTScopedVariableName(notScopedField.getName(), objectScope);
 
      Long value = notScopedFieldValue;
-     if(missingInformationRightJExpression != null){
+     if (missingInformationRightJExpression != null){
        value = handleMissingInformationRightJExpression(rttState , newElement, cfaEdge);
      }
 
-     if(value != null) {
+     if (value != null) {
        newElement.assignConstant(scopedFieldName, value);
        return newElement;
      } else {
@@ -1578,11 +1578,11 @@ public class ExplicitTransferRelation implements TransferRelation {
       JIdExpression notScopedField) {
 
     // Could not resolve var
-    if(notScopedField.getDeclaration() == null) {
+    if (notScopedField.getDeclaration() == null) {
       return null;
     }
 
-    if(notScopedField instanceof JFieldAccess){
+    if (notScopedField instanceof JFieldAccess){
 
       JIdExpression qualifier = ((JFieldAccess) notScopedField).getReferencedVariable();
 
@@ -1591,13 +1591,13 @@ public class ExplicitTransferRelation implements TransferRelation {
       String scopedFieldName =
           getRTTScopedVariableName(qualifier.getDeclaration(), methodName ,qualifierScope);
 
-      if(rttState.contains(scopedFieldName)) {
+      if (rttState.contains(scopedFieldName)) {
         return rttState.getUniqueObjectFor(scopedFieldName);
       } else {
         return null;
       }
     } else {
-      if(rttState.contains(RTTState.KEYWORD_THIS)) {
+      if (rttState.contains(RTTState.KEYWORD_THIS)) {
         return rttState.getUniqueObjectFor(RTTState.KEYWORD_THIS);
       } else {
         return null;
@@ -1682,8 +1682,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       CExpression riteOperand = binaryExpression.getOperand2();
 
 
-      if(operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS) {
-        if(leftOperand instanceof CBinaryExpression && riteOperand instanceof CLiteralExpression) {
+      if (operator == BinaryOperator.EQUALS || operator == BinaryOperator.NOT_EQUALS) {
+        if (leftOperand instanceof CBinaryExpression && riteOperand instanceof CLiteralExpression) {
           CBinaryExpression expr = (CBinaryExpression)leftOperand;
 
           BinaryOperator operation = expr.getOperator();
@@ -1692,7 +1692,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
           // [(a + 753) != 951] => [a != 951 + 753]
 
-          if(riteAddend instanceof CLiteralExpression && (operation == BinaryOperator.PLUS || operation == BinaryOperator.MINUS)) {
+          if (riteAddend instanceof CLiteralExpression && (operation == BinaryOperator.PLUS || operation == BinaryOperator.MINUS)) {
             BinaryOperator newOperation = (operation == BinaryOperator.PLUS) ? BinaryOperator.MINUS : BinaryOperator.PLUS;
 
             CBinaryExpression sum = new CBinaryExpression(expr.getFileLocation(),
@@ -1718,8 +1718,8 @@ public class ExplicitTransferRelation implements TransferRelation {
       JExpression riteOperand = binaryExpression.getOperand2();
 
 
-      if(operator == JBinaryExpression.BinaryOperator.EQUALS || operator == JBinaryExpression.BinaryOperator.NOT_EQUALS) {
-        if(leftOperand instanceof JBinaryExpression && riteOperand instanceof JLiteralExpression) {
+      if (operator == JBinaryExpression.BinaryOperator.EQUALS || operator == JBinaryExpression.BinaryOperator.NOT_EQUALS) {
+        if (leftOperand instanceof JBinaryExpression && riteOperand instanceof JLiteralExpression) {
           JBinaryExpression expr = (JBinaryExpression)leftOperand;
 
           JBinaryExpression.BinaryOperator operation = expr.getOperator();
@@ -1728,7 +1728,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
           // [(a + 753) != 951] => [a != 951 + 753]
 
-          if(riteAddend instanceof JLiteralExpression && (operation == JBinaryExpression.BinaryOperator.PLUS || operation == JBinaryExpression.BinaryOperator.MINUS)) {
+          if (riteAddend instanceof JLiteralExpression && (operation == JBinaryExpression.BinaryOperator.PLUS || operation == JBinaryExpression.BinaryOperator.MINUS)) {
             JBinaryExpression.BinaryOperator newOperation = (operation == JBinaryExpression.BinaryOperator.PLUS) ? JBinaryExpression.BinaryOperator.MINUS : JBinaryExpression.BinaryOperator.PLUS;
 
             JBinaryExpression sum = new JBinaryExpression(expr.getFileLocation(),

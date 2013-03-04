@@ -168,7 +168,7 @@ public class UIFAxiomSet {
           //we have done all the subsets for the current k,
           //so we should increment k and make new SG
           k++;
-          assert(k <= N);
+          assert (k <= N);
           SG = new SubsetGenerator(N,k);
         }
         HashSet<Integer> index_subset = SG.getNext();

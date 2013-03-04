@@ -258,7 +258,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   	BooleanFormula form = null;
   	Formula lhs = LHS.translate(fmgr);
   	Formula rhs = RHS.translate(fmgr);
-  	switch (reln) {
+  	switch(reln) {
   	case EQUAL: form = fmgr.makeEqual(lhs, rhs); break;
   	case LEQ:   form = fmgr.makeLessOrEqual(lhs, rhs, true);   break;
   	case LT:    form = fmgr.makeLessThan(lhs, rhs, true); break;
@@ -269,7 +269,7 @@ public class TemplateConstraint extends TemplateBoolean implements Constraint {
   @Override
   public List<TemplateFormula> extractAtoms(boolean sAE, boolean cO) {
     List<TemplateFormula> atoms = new Vector<>();
-  	if (!sAE) {
+  	if(!sAE) {
   		atoms.add(this);
   	} else {
   		// In this case we want to split equations into pairs of inequalities.

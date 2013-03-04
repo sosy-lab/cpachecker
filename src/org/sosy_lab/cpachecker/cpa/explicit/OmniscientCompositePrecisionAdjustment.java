@@ -179,7 +179,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
 
     AbstractState outElement = pElement;
     Precision outPrecision   = pPrecision;
-    if(modified) {
+    if (modified) {
       outElement    = new CompositeState(outElements.build());
       outPrecision  = new CompositePrecision(outPrecisions.build());
     }
@@ -199,7 +199,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   private ExplicitState enforceAbstraction(ExplicitState explicitState, LocationState location, ExplicitPrecision explicitPrecision) {
     explicitPrecision.setLocation(location.getLocationNode());
 
-    for(String variableName : getVariablesToDrop(explicitState, explicitPrecision)) {
+    for (String variableName : getVariablesToDrop(explicitState, explicitPrecision)) {
       explicitState.forget(variableName);
     }
 
@@ -219,9 +219,9 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
     Set<String> candidates = useDeltaPrecision ? explicitState.getDelta() : explicitState.getTrackedVariableNames();
 
     List<String> toDrop = new ArrayList<>();
-    if(candidates != null) {
-      for(String variableName : candidates) {
-        if(!explicitPrecision.isTracking(variableName)) {
+    if (candidates != null) {
+      for (String variableName : candidates) {
+        if (!explicitPrecision.isTracking(variableName)) {
           toDrop.add(variableName);
         }
       }

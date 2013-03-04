@@ -367,7 +367,7 @@ public class PathToCTranslator {
       }
 
       // avoid having the same declaration edge twice in one basic block
-      if(currentBlock.hasDeclaration(lDeclarationEdge)) {
+      if (currentBlock.hasDeclaration(lDeclarationEdge)) {
         return "";
       } else {
         currentBlock.addDeclaration(lDeclarationEdge);

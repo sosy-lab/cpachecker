@@ -185,7 +185,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
 
-  protected CompositeCPA (AbstractDomain abstractDomain,
+  protected CompositeCPA(AbstractDomain abstractDomain,
       CompositeTransferRelation transferRelation,
       MergeOperator mergeOperator,
       CompositeStopOperator stopOperator,
@@ -235,7 +235,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment () {
+  public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
 
@@ -245,7 +245,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public AbstractState getInitialState (CFANode node) {
+  public AbstractState getInitialState(CFANode node) {
     Preconditions.checkNotNull(node);
 
     ImmutableList.Builder<AbstractState> initialStates = ImmutableList.builder();
@@ -257,7 +257,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public Precision getInitialPrecision (CFANode node) {
+  public Precision getInitialPrecision(CFANode node) {
     Preconditions.checkNotNull(node);
 
     ImmutableList.Builder<Precision> initialPrecisions = ImmutableList.builder();

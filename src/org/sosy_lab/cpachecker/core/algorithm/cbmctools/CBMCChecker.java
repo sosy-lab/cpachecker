@@ -90,7 +90,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
   public CBMCChecker(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException, CPAException {
     this.logger = logger;
 
-    if(cfa.getLanguage() == Language.JAVA) {
+    if (cfa.getLanguage() == Language.JAVA) {
       throw new UnsupportedOperationException("CBMC can't be used with the language Java");
     }
 

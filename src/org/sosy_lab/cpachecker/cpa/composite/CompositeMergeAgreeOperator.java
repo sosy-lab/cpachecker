@@ -74,7 +74,7 @@ public class CompositeMergeAgreeOperator implements MergeOperator {
     CompositeState compReachedState   = (CompositeState) reachedState;
     CompositePrecision compPrecision  = (CompositePrecision) precision;
 
-    assert(compSuccessorState.getNumberOfStates() == compReachedState.getNumberOfStates());
+    assert (compSuccessorState.getNumberOfStates() == compReachedState.getNumberOfStates());
 
     if (from(compSuccessorState.getWrappedStates()).anyMatch(NON_MERGEABLE_STATE)
         || from(compReachedState.getWrappedStates()).anyMatch(NON_MERGEABLE_STATE)) {

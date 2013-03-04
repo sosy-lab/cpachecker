@@ -153,12 +153,12 @@ class FunctionPointerTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
     CFAEdge cfaEdge;
 
-    if(!immutableCFA) {
+    if (!immutableCFA) {
       cfaEdge = createCallEdgeIfNecessary(oldState, pCfaEdge);
     } else {
       cfaEdge = pCfaEdge;
       //check assumptions about function pointers, like p == &h, where p is a function pointer, h  is a function
-      if(!shouldGoByEdge(oldState, cfaEdge)) {
+      if (!shouldGoByEdge(oldState, cfaEdge)) {
         //should not go by the edge
         return;//results is a empty set
       }
@@ -175,30 +175,30 @@ class FunctionPointerTransferRelation implements TransferRelation {
         results.add(newState.build());
       }
     }
-    if(!immutableCFA) {
+    if (!immutableCFA) {
       cleanUpEdge(pCfaEdge);
     }
   }
 
   private boolean shouldGoByEdge(FunctionPointerState oldState, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
-    if(cfaEdge.getEdgeType()==CFAEdgeType.AssumeEdge) {
+    if (cfaEdge.getEdgeType()==CFAEdgeType.AssumeEdge) {
       CAssumeEdge a = (CAssumeEdge)cfaEdge;
       CExpression exp = a.getExpression();
       String functionName = cfaEdge.getPredecessor().getFunctionName();
-      if(exp instanceof CBinaryExpression) {
+      if (exp instanceof CBinaryExpression) {
         CBinaryExpression e = (CBinaryExpression)exp;
         BinaryOperator op = e.getOperator();
-        if(op == BinaryOperator.EQUALS) {
+        if (op == BinaryOperator.EQUALS) {
           FunctionPointerState.Builder newState = oldState.createBuilderWithNewWrappedState(oldState.getWrappedState());
           FunctionPointerTarget v1 = getValue(e.getOperand1(), newState, functionName);
           FunctionPointerTarget v2 = getValue(e.getOperand2(), newState, functionName);
           logger.log(Level.ALL, "Operand1 value is " + v1);
           logger.log(Level.ALL, "Operand2 value is " + v2);
-          if(v1!=null && v2!=null
+          if (v1!=null && v2!=null
               && v1 instanceof NamedFunctionTarget
               && v2 instanceof NamedFunctionTarget) {
             boolean eq = v1.equals(v2);
-            if(eq != a.getTruthAssumption()) {
+            if (eq != a.getTruthAssumption()) {
               logger.log(Level.FINE, "Should not go by the edge " + a);
               return false;//should not go by this edge
             } else {
@@ -412,7 +412,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       }
 
       case MultiEdge: {
-        for(CFAEdge currentEdge : ((MultiEdge)pCfaEdge).getEdges()) {
+        for (CFAEdge currentEdge : ((MultiEdge)pCfaEdge).getEdges()) {
           newState = handleEdge(newState, currentEdge);
         }
         break;
@@ -616,13 +616,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
 
     private FunctionPointerTarget extractFunctionId(CIdExpression operand) {
-      if( (operand.getDeclaration()!=null && operand.getDeclaration().getType() instanceof CFunctionType)
+      if ( (operand.getDeclaration()!=null && operand.getDeclaration().getType() instanceof CFunctionType)
         || (operand.getExpressionType() instanceof CFunctionType)) {
         return new NamedFunctionTarget(operand.getName());
       }
-      if(operand.getExpressionType() instanceof CPointerType) {
+      if (operand.getExpressionType() instanceof CPointerType) {
         CPointerType t = (CPointerType)operand.getExpressionType();
-        if(t.getType() instanceof CFunctionType) {
+        if (t.getType() instanceof CFunctionType) {
           return state.getTarget(scopedIfNecessary(operand, function));
         }
       }

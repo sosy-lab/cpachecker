@@ -165,7 +165,7 @@ public class SMGState implements AbstractQueryableState {
     // SMG Properties:
     // has-leaks:boolean
 
-    switch(pProperty){
+    switch (pProperty){
       case "has-leaks":
         return heap.hasMemoryLeaks();
       default:

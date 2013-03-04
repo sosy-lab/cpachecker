@@ -54,7 +54,7 @@ public class JArrayInitializer extends AExpression implements JAstNode , JInitia
 
     StringBuilder astString = new StringBuilder("{");
 
-    for(JExpression exp : initializerExpressions){
+    for (JExpression exp : initializerExpressions){
       astString.append(exp.toASTString() + ", " );
     }
 

@@ -45,7 +45,7 @@ class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager<Long> 
   }
 
   @Override
-  public Long makeVariableImpl (String pVar){
+  public Long makeVariableImpl(String pVar){
     long boolType = creator.getBoolType();
     return creator.makeVariable(boolType, pVar);
   }

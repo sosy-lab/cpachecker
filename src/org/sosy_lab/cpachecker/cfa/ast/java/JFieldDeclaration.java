@@ -56,15 +56,15 @@ public class JFieldDeclaration extends JVariableDeclaration {
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
 
-    if(visibility != null){
+    if (visibility != null){
     lASTString.append(visibility.getModifierString() + " ");
     }
 
-    if(isFinal()){
+    if (isFinal()){
     lASTString.append("final ");
     }
 
-    if(isStatic){
+    if (isStatic){
     lASTString.append("static ");
     }
 

@@ -413,7 +413,7 @@ class CLangSMGConsistencyVerifier{
 
   static private boolean verifyNullObjectCLangProperties(LogManager pLogger, CLangSMG smg){
     for (SMGObject obj: smg.getGlobalObjects().values()){
-      if(! obj.notNull()){
+      if (! obj.notNull()){
         pLogger.log(Level.SEVERE, "CLangSMG inconsistent: null object in global object set [" + obj + "]");
         return false;
       }
@@ -421,7 +421,7 @@ class CLangSMGConsistencyVerifier{
 
     SMGObject firstNull = null;
     for (SMGObject obj: smg.getHeapObjects()){
-      if(! obj.notNull()){
+      if (! obj.notNull()){
         if (firstNull != null){
           pLogger.log(Level.SEVERE, "CLangSMG inconsistent: second null object in heap object set [first=" + firstNull + ", second=" + obj +"]" );
           return false;

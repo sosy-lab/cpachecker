@@ -422,7 +422,7 @@ public class TemplateConjunction extends TemplateBoolean implements Template {
   	BooleanFormula form = null;
   	BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
   	int N = getNumConjuncts();
-  	if (N == 0) {
+  	if(N == 0) {
   		form = bfmgr.makeBoolean(true);
   	} else {
   		assert N >= 1;

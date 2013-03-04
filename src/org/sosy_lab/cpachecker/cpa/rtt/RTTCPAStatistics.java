@@ -76,8 +76,8 @@ public class RTTCPAStatistics implements Statistics {
   private int getNumberOfGlobalVariables(RTTState state) {
     int numberOfGlobalVariables = 0;
 
-    for(String variableName : state.getConstantsMap().keySet()) {
-      if(variableName.contains("::")) {
+    for (String variableName : state.getConstantsMap().keySet()) {
+      if (variableName.contains("::")) {
         numberOfGlobalVariables++;
       }
     }

@@ -733,7 +733,7 @@ public final class ErrorPathShrinker {
             final boolean isEqualOp;
 
 
-            if(aLastExp instanceof CBinaryExpression) {
+            if (aLastExp instanceof CBinaryExpression) {
               final CBinaryExpression.BinaryOperator op = (CBinaryExpression.BinaryOperator) aLastExp.getOperator();
               isEqualOp = (op == CBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
                   || (op == CBinaryExpression.BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());

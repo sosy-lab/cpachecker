@@ -109,7 +109,7 @@ public class FunctionPointerVariablesCollector {
       break;
     case DeclarationEdge:
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
-      if(declaration instanceof CVariableDeclaration) {
+      if (declaration instanceof CVariableDeclaration) {
         //CVariableDeclaration v = (CVariableDeclaration)declaration;
         //TODO?:collectVars(v.getInitializer(), pCollectedVars);
       }
@@ -122,7 +122,7 @@ public class FunctionPointerVariablesCollector {
       break;
     case ReturnStatementEdge:
       CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
-      if(returnEdge.getExpression()!=null) {
+      if (returnEdge.getExpression()!=null) {
         collectVars(returnEdge.getExpression(), pCollectedVars);
       }
       break;
@@ -133,10 +133,10 @@ public class FunctionPointerVariablesCollector {
         CAssignment assignment = (CAssignment)s;
         collectVars(assignment.getLeftHandSide(), pCollectedVars);
         collectVars(assignment.getRightHandSide(), pCollectedVars);
-      } else if(s instanceof CExpressionStatement) {
+      } else if (s instanceof CExpressionStatement) {
         CExpressionStatement expr = (CExpressionStatement)s;
         collectVars(expr.getExpression(), pCollectedVars);
-      } else if(s instanceof CFunctionCallStatement) {
+      } else if (s instanceof CFunctionCallStatement) {
         CFunctionCallStatement call = (CFunctionCallStatement)s;
         collectVars(call.getFunctionCallExpression(), pCollectedVars);
       }
@@ -209,7 +209,7 @@ public class FunctionPointerVariablesCollector {
     @Override
     public Void visit(CFunctionCallExpression pE) {
 
-      if(CFASecondPassBuilderComplete.isRegularCall(pE)) {
+      if (CFASecondPassBuilderComplete.isRegularCall(pE)) {
         //skip regular calls;
       } else {
         pE.getFunctionNameExpression().accept(this);

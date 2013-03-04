@@ -27,31 +27,31 @@ public class PermutationGenerator {
   // why we use BigInteger instead.
   //----------------------------------------------------------
 
-  public PermutationGenerator (int n) {
+  public PermutationGenerator(int n) {
     if (n < 1) {
-      throw new IllegalArgumentException ("Min 1");
+      throw new IllegalArgumentException("Min 1");
     }
     a = new int[n];
-    total = getFactorial (n);
-    reset ();
+    total = getFactorial(n);
+    reset();
   }
 
   //------
   // Reset
   //------
 
-  public void reset () {
+  public void reset() {
     for (int i = 0; i < a.length; i++) {
       a[i] = i;
     }
-    numLeft = new BigInteger (total.toString ());
+    numLeft = new BigInteger (total.toString());
   }
 
   //------------------------------------------------
   // Return number of permutations not yet generated
   //------------------------------------------------
 
-  public BigInteger getNumLeft () {
+  public BigInteger getNumLeft() {
     return numLeft;
   }
 
@@ -59,7 +59,7 @@ public class PermutationGenerator {
   // Return total number of permutations
   //------------------------------------
 
-  public BigInteger getTotal () {
+  public BigInteger getTotal() {
     return total;
   }
 
@@ -67,18 +67,18 @@ public class PermutationGenerator {
   // Are there more permutations?
   //-----------------------------
 
-  public boolean hasMore () {
-    return numLeft.compareTo (BigInteger.ZERO) == 1;
+  public boolean hasMore() {
+    return numLeft.compareTo(BigInteger.ZERO) == 1;
   }
 
   //------------------
   // Compute factorial
   //------------------
 
-  private static BigInteger getFactorial (int n) {
+  private static BigInteger getFactorial(int n) {
     BigInteger fact = BigInteger.ONE;
     for (int i = n; i > 1; i--) {
-      fact = fact.multiply (new BigInteger (Integer.toString (i)));
+      fact = fact.multiply (new BigInteger (Integer.toString(i)));
     }
     return fact;
   }
@@ -87,10 +87,10 @@ public class PermutationGenerator {
   // Generate next permutation (algorithm from Rosen p. 284)
   //--------------------------------------------------------
 
-  public int[] getNext () {
+  public int[] getNext() {
 
-    if (numLeft.equals (total)) {
-      numLeft = numLeft.subtract (BigInteger.ONE);
+    if (numLeft.equals(total)) {
+      numLeft = numLeft.subtract(BigInteger.ONE);
       return a;
     }
 
@@ -130,7 +130,7 @@ public class PermutationGenerator {
       s++;
     }
 
-    numLeft = numLeft.subtract (BigInteger.ONE);
+    numLeft = numLeft.subtract(BigInteger.ONE);
     return a;
 
   }

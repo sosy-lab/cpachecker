@@ -64,11 +64,11 @@ public class CallstackTransferRelation implements TransferRelation {
 
     switch (pCfaEdge.getEdgeType()) {
     case StatementEdge: {
-      if(pCfaEdge instanceof CFunctionSummaryStatementEdge) {
+      if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
         //has function call edge
         CFunctionSummaryStatementEdge summary = (CFunctionSummaryStatementEdge)pCfaEdge;
         CallstackState element = (CallstackState)pElement;
-        if(shouldGoByStatement(element, summary)) {//skip call, return the same element
+        if (shouldGoByStatement(element, summary)) {//skip call, return the same element
           return Collections.singleton(pElement);
         } else {//should go by function call (skip current edge)
             return Collections.emptySet();
@@ -80,10 +80,10 @@ public class CallstackTransferRelation implements TransferRelation {
     case FunctionCallEdge: {
         FunctionCallEdge cfaEdge = (FunctionCallEdge)pCfaEdge;
         CallstackState element = (CallstackState)pElement;
-        if(shouldGoByFunctionCall(element, cfaEdge)) {
+        if (shouldGoByFunctionCall(element, cfaEdge)) {
           String functionName = cfaEdge.getSuccessor().getFunctionName();
           CFANode callNode = cfaEdge.getPredecessor();
-          if(hasRecursion(element, cfaEdge, recursionBoundDepth)) {
+          if (hasRecursion(element, cfaEdge, recursionBoundDepth)) {
             throw new UnsupportedCCodeException("recursion", pCfaEdge);
           } else {
             return Collections.singleton(new CallstackState(element, functionName, callNode));
@@ -138,7 +138,7 @@ public class CallstackTransferRelation implements TransferRelation {
     while (e != null) {
       if (e.getCurrentFunction().equals(functionName)) {
         counter++;
-        if(counter > depth) {
+        if (counter > depth) {
           return true;
         }
       }
@@ -149,10 +149,10 @@ public class CallstackTransferRelation implements TransferRelation {
 
   //call edge
   private boolean shouldGoByFunctionCall(CallstackState element, FunctionCallEdge callEdge) {
-    if(!skipRecursion) {
+    if (!skipRecursion) {
       return true;
     } else {
-      if(hasRecursion(element, callEdge, recursionBoundDepth)) {
+      if (hasRecursion(element, callEdge, recursionBoundDepth)) {
         return false;
       } else {
         return true;
@@ -162,12 +162,12 @@ public class CallstackTransferRelation implements TransferRelation {
 
   private boolean shouldGoByStatement(CallstackState element, CFunctionSummaryStatementEdge sumEdge) {
     String functionName = sumEdge.getFunctionName();
-    if(functionName==null) {
+    if (functionName==null) {
       //TODO: decide what todo with it
       return true;
     }
     FunctionCallEdge callEdge = findCallEdge(sumEdge, functionName);
-    if(callEdge==null) {
+    if (callEdge==null) {
       return true;
     }
     return !shouldGoByFunctionCall(element, callEdge);
@@ -175,11 +175,11 @@ public class CallstackTransferRelation implements TransferRelation {
 
   private FunctionCallEdge findCallEdge(CFAEdge pCfaEdge, String functionName) {
     CFANode predNode = pCfaEdge.getPredecessor();
-    for(int i=0; i<predNode.getNumLeavingEdges(); i++) {
+    for (int i=0; i<predNode.getNumLeavingEdges(); i++) {
       CFAEdge edge = predNode.getLeavingEdge(i);
-      if(edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+      if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
         String fcallname = edge.getSuccessor().getFunctionName();
-        if(functionName.equals(fcallname)) {
+        if (functionName.equals(fcallname)) {
           return (FunctionCallEdge)edge;
         }
       }

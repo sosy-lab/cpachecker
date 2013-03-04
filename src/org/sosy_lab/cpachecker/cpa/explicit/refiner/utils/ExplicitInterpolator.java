@@ -90,7 +90,7 @@ public class ExplicitInterpolator {
       transfer  = new ExplicitTransferRelation(config);
     }
 
-    catch(InvalidConfigurationException e) {
+    catch (InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
     }
   }
@@ -119,7 +119,7 @@ public class ExplicitInterpolator {
       Pair<ARGState, CFAEdge> interpolationState = errorPath.get(offset);
 
       // cancel the interpolation if we are interpolating at the conflicting element
-      if(wasFeasible && interpolationState == conflictingElement) {
+      if (wasFeasible && interpolationState == conflictingElement) {
         cancelInterpolation = true;
       }
 
@@ -130,18 +130,18 @@ public class ExplicitInterpolator {
           errorPath.get(offset).getSecond());
       ExplicitState initialSuccessor = extractSuccessorState(successors);
 
-      if(initialSuccessor == null) {
+      if (initialSuccessor == null) {
         return null;
       }
 
       // for each variable in the difference: remove the variable from the abstract assignment and check the path
       // TODO: also do this the other way round, remove all first, than re-add one by one
       Set<String> irrelevantVariables = new HashSet<>();
-      for(String currentVar : initialState.getDifference(initialSuccessor)) {
+      for (String currentVar : initialState.getDifference(initialSuccessor)) {
         // start off with the successor of the initial state
         ExplicitState successor = initialSuccessor.clone();
 
-        if(successor.contains(currentVar)) {
+        if (successor.contains(currentVar)) {
           currentVariableValue = successor.getValueFor(currentVar);
         }
 
@@ -149,12 +149,12 @@ public class ExplicitInterpolator {
 
         // remove the value of the current variable and the already-found-irrelevant variables from the successor
         successor.forget(currentVar);
-        for(String irrelevantVar : irrelevantVariables) {
+        for (String irrelevantVar : irrelevantVariables) {
           successor.forget(irrelevantVar);
         }
 
         // simulate the remaining path
-        for(Pair<ARGState, CFAEdge> pathElement : skip(errorPath, offset + 1)) {
+        for (Pair<ARGState, CFAEdge> pathElement : skip(errorPath, offset + 1)) {
           successors = transfer.getAbstractSuccessors(
               successor,
               precision,
@@ -163,8 +163,8 @@ public class ExplicitInterpolator {
           successor = extractSuccessorState(successors);
 
           // there is no successor and the current path element is not an error state => error path is spurious
-          if(successor == null && !pathElement.getFirst().isTarget()) {
-            if(conflictingElement == null || conflictingElement.getFirst().isOlderThan(pathElement.getFirst())) {
+          if (successor == null && !pathElement.getFirst().isTarget()) {
+            if (conflictingElement == null || conflictingElement.getFirst().isOlderThan(pathElement.getFirst())) {
               conflictingElement = pathElement;
             }
 
@@ -177,7 +177,7 @@ public class ExplicitInterpolator {
           }
         }
 
-        if(isFeasible) {
+        if (isFeasible) {
           wasFeasible = true;
         }
 
@@ -186,7 +186,7 @@ public class ExplicitInterpolator {
 
 
       // signal callee to cancel any further interpolation runs
-      if(cancelInterpolation) {
+      if (cancelInterpolation) {
         return null;
       }
 
@@ -195,7 +195,7 @@ public class ExplicitInterpolator {
 
       // path is feasible
       return interpolant;
-    } catch(InvalidConfigurationException e) {
+    } catch (InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
     }
   }
@@ -216,10 +216,10 @@ public class ExplicitInterpolator {
    * @return the successor, or null if none exists
    */
   private ExplicitState extractSuccessorState(Collection<ExplicitState> successors) {
-    if(successors.isEmpty()) {
+    if (successors.isEmpty()) {
       return null;
     } else {
-      assert(successors.size() == 1);
+      assert (successors.size() == 1);
       return Lists.newArrayList(successors).get(0);
     }
   }

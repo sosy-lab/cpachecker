@@ -61,7 +61,7 @@ public class CompositeDomain implements AbstractDomain {
 
     for (int idx = 0; idx < comp1Elements.size(); idx++) {
       AbstractDomain domain = domains.get(idx);
-      if (!domain.isLessOrEqual(comp1Elements.get (idx), comp2Elements.get(idx))) {
+      if (!domain.isLessOrEqual(comp1Elements.get(idx), comp2Elements.get(idx))) {
         return false;
       }
     }

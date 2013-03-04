@@ -67,7 +67,7 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
     return createUIFCallImpl(funcDecl, args);
   }
 
-  public long toMathsatType (FormulaType<?> formulaType){
+  public long toMathsatType(FormulaType<?> formulaType){
     Class<?> clazz = formulaType.getInterfaceType();
     long t;
     if (clazz==BooleanFormula.class) {

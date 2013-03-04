@@ -116,27 +116,27 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public AbstractDomain getAbstractDomain () {
+  public AbstractDomain getAbstractDomain() {
     return abstractDomain;
   }
 
   @Override
-  public TransferRelation getTransferRelation () {
+  public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
   @Override
-  public MergeOperator getMergeOperator () {
+  public MergeOperator getMergeOperator() {
     return mergeOperator;
   }
 
   @Override
-  public StopOperator getStopOperator () {
+  public StopOperator getStopOperator() {
     return stopOperator;
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment () {
+  public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
 
@@ -146,7 +146,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
   }
 
   @Override
-  public AbstractState getInitialState (CFANode pNode) {
+  public AbstractState getInitialState(CFANode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ARG
     return new ARGState(getWrappedCpa().getInitialState(pNode), null);
   }

@@ -109,7 +109,7 @@ public class DynamicBindingCreator {
     trackOverridenMethods(cfAs);
     completeMethodBindings();
 
-    for(String functionName : cfAs.keySet()){
+    for (String functionName : cfAs.keySet()){
       insertBindings(cfAs.get(functionName));
     }
   }
@@ -118,10 +118,10 @@ public class DynamicBindingCreator {
 
     Map<String, MethodDeclaration> allParsedMethodDeclaration = cfaBuilder.getAllParsedMethodDeclaration();
 
-    for(String functionName : cfAs.keySet()){
+    for (String functionName : cfAs.keySet()){
       assert allParsedMethodDeclaration.containsKey(functionName);
       // Constructors and default Constructors can't be overriden
-      if(  !(allParsedMethodDeclaration.get(functionName) == null  || allParsedMethodDeclaration.get(functionName).isConstructor())  ) {
+      if (  !(allParsedMethodDeclaration.get(functionName) == null  || allParsedMethodDeclaration.get(functionName).isConstructor())  ) {
         trackOverridenMethods(allParsedMethodDeclaration.get(functionName), cfAs.get(functionName));
       }
     }
@@ -129,7 +129,7 @@ public class DynamicBindingCreator {
 
   private void completeMethodBindings() {
 
-    for( String key :  subMethodsOfMethod.keySet()) {
+    for ( String key :  subMethodsOfMethod.keySet()) {
       methodTypeBindingsOfMethod.put(key, new LinkedList<>(subMethodsOfMethod.get(key)));
     }
 
@@ -137,7 +137,7 @@ public class DynamicBindingCreator {
 
 
     Map<String , List<Pair<FunctionEntryNode, JClassOrInterfaceType>>> workMap = new HashMap<>();
-    for( String key :  subMethodsOfMethod.keySet()) {
+    for ( String key :  subMethodsOfMethod.keySet()) {
       workMap.put(key, new LinkedList<>(subMethodsOfMethod.get(key)));
     }
 
@@ -145,8 +145,8 @@ public class DynamicBindingCreator {
     Map<String, MethodDeclaration> allParsedMethodDeclaration = cfaBuilder.getAllParsedMethodDeclaration();
 
 
-    for(String methodName : workMap.keySet()) {
-      if(  !(allParsedMethodDeclaration.get(methodName) == null  || allParsedMethodDeclaration.get(methodName).isConstructor())  ) {
+    for (String methodName : workMap.keySet()) {
+      if (  !(allParsedMethodDeclaration.get(methodName) == null  || allParsedMethodDeclaration.get(methodName).isConstructor())  ) {
         completeBindingsOfMethod( allParsedMethodDeclaration.get(methodName) , methodName);
       }
     }
@@ -162,9 +162,9 @@ public class DynamicBindingCreator {
 
     JClassOrInterfaceType methodDeclaringType = astCreator.convertClassOrInterfaceType(methodDeclaration.resolveBinding().getDeclaringClass());
 
-    if(methodDeclaringType instanceof JClassType) {
+    if (methodDeclaringType instanceof JClassType) {
       completeBindingsForDeclaringClassType((JClassType)methodDeclaringType, methodName);
-    } else if(methodDeclaringType instanceof JInterfaceType) {
+    } else if (methodDeclaringType instanceof JInterfaceType) {
       completeBindingsForDeclaringInterfaceType((JInterfaceType)methodDeclaringType, methodName);
     }
   }
@@ -173,14 +173,14 @@ public class DynamicBindingCreator {
     Set<JClassType> directImpementingClasses = methodDeclaringType.getKnownInterfaceImplementingClasses();
 
 
-    for(JClassType implementingClasses : directImpementingClasses) {
+    for (JClassType implementingClasses : directImpementingClasses) {
       copmleteBindingsForClassType(implementingClasses , methodName, methodName);
     }
 
     List<JInterfaceType> subInterfaces = methodDeclaringType.getAllSubInterfacesOfInterface();
 
-    for(JInterfaceType subInterface : subInterfaces) {
-      for(JClassType implementingClasses : subInterface.getKnownInterfaceImplementingClasses()) {
+    for (JInterfaceType subInterface : subInterfaces) {
+      for (JClassType implementingClasses : subInterface.getKnownInterfaceImplementingClasses()) {
         copmleteBindingsForClassType(implementingClasses , methodName, methodName);
       }
     }
@@ -190,7 +190,7 @@ public class DynamicBindingCreator {
       String methodName) {
       Set<JClassType> directSubClasses = methodDeclaringType.getDirectSubClasses();
 
-    for(JClassType subClass : directSubClasses) {
+    for (JClassType subClass : directSubClasses) {
       copmleteBindingsForClassType(subClass, methodName ,methodName);
     }
   }
@@ -201,7 +201,7 @@ public class DynamicBindingCreator {
       String nextMethodNameToRegister = updateBinding(classType, methodNametoBeRegistered ,methodNameToRegister);
 
       Set<JClassType> directSubClasses = classType.getDirectSubClasses();
-      for(JClassType subClass : directSubClasses) {
+      for (JClassType subClass : directSubClasses) {
         copmleteBindingsForClassType(subClass, methodNametoBeRegistered ,nextMethodNameToRegister);
       }
   }
@@ -213,7 +213,7 @@ public class DynamicBindingCreator {
 
       Pair<Boolean , String> hasBindingAndBindingMethodName = typeHasBinding( classType , subMethodBindings);
 
-      if(hasBindingAndBindingMethodName.getFirst()) {
+      if (hasBindingAndBindingMethodName.getFirst()) {
         //Binding already exists possibly with new subMethod
         // Continue with sub method in this traversal Path
         nextMethodNameToRegister = hasBindingAndBindingMethodName.getSecond();
@@ -231,9 +231,9 @@ public class DynamicBindingCreator {
 
     boolean result = false;
 
-    for(Pair<FunctionEntryNode , JClassOrInterfaceType> methodTypeBindingPair : subMethodBindings){
+    for (Pair<FunctionEntryNode , JClassOrInterfaceType> methodTypeBindingPair : subMethodBindings){
       result = methodTypeBindingPair.getSecond().equals(classType);
-      if(result) {
+      if (result) {
         return Pair.of(true, methodTypeBindingPair.getFirst().getFunctionName());
       }
     }
@@ -285,16 +285,16 @@ public class DynamicBindingCreator {
      JMethodInvocationExpression functionCallExpression = (JMethodInvocationExpression) functionCall.getFunctionCallExpression();
      String functionName = functionCallExpression.getFunctionNameExpression().toASTString();
 
-    if(methodTypeBindingsOfMethod.get(functionName) != null &&    !methodTypeBindingsOfMethod.get(functionName).isEmpty() ){
+    if (methodTypeBindingsOfMethod.get(functionName) != null &&    !methodTypeBindingsOfMethod.get(functionName).isEmpty() ){
 
-      if( functionCallExpression instanceof JReferencedMethodInvocationExpression) {
+      if ( functionCallExpression instanceof JReferencedMethodInvocationExpression) {
 
         if (!((JReferencedMethodInvocationExpression) functionCallExpression).hasKnownRunTimeBinding()) {
           createMethodInvocationBindings(edge, pProcessed, functionName);
         } else {
           createOnlyReferencedMethodInvocationBinding(edge, subMethodsOfMethod.get(functionName));
         }
-      } else if(!functionCallExpression.getDeclaration().isStatic() && !functionCallExpression.getDeclaration().isFinal() && !(functionCallExpression.getDeclaringClassType() instanceof JInterfaceType) && !((JClassType) functionCallExpression.getDeclaringClassType()).isFinal() && !functionCallExpression.hasKnownRunTimeBinding()){
+      } else if (!functionCallExpression.getDeclaration().isStatic() && !functionCallExpression.getDeclaration().isFinal() && !(functionCallExpression.getDeclaringClassType() instanceof JInterfaceType) && !((JClassType) functionCallExpression.getDeclaringClassType()).isFinal() && !functionCallExpression.hasKnownRunTimeBinding()){
         createMethodInvocationBindings(edge, pProcessed, functionName);
       }
     }
@@ -333,8 +333,8 @@ public class DynamicBindingCreator {
     // If method can't be found with iterating the list
     // it means that we search for a super Method which
     // can be easier gotten with a map
-    for(Pair<FunctionEntryNode, JClassOrInterfaceType> methodBinding : subMethods){
-      if(runTimeBinding.equals(methodBinding.getSecond())){
+    for (Pair<FunctionEntryNode, JClassOrInterfaceType> methodBinding : subMethods){
+      if (runTimeBinding.equals(methodBinding.getSecond())){
         onlyFunction = methodBinding.getFirst();
         break;
       }
@@ -342,12 +342,12 @@ public class DynamicBindingCreator {
     }
 
 
-    if(onlyFunction == null) {
+    if (onlyFunction == null) {
 
       List<JClassType> superTypes = runTimeBinding.getAllSuperClasses();
 
-      for(JClassType superType : superTypes){
-        if(map.containsKey(superType)) {
+      for (JClassType superType : superTypes){
+        if (map.containsKey(superType)) {
           onlyFunction = map.get(superType);
           break;
         }
@@ -355,7 +355,7 @@ public class DynamicBindingCreator {
     }
 
 
-    if(onlyFunction == null){
+    if (onlyFunction == null){
       //TODO Throw Exception;
     }
 
@@ -374,7 +374,7 @@ public class DynamicBindingCreator {
 
     JStatement newFunctionCall;
 
-    if(oldFunctionCall instanceof JMethodInvocationAssignmentStatement){
+    if (oldFunctionCall instanceof JMethodInvocationAssignmentStatement){
       JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement =  (JMethodInvocationAssignmentStatement) oldFunctionCall;
       newFunctionCall =  new JMethodInvocationAssignmentStatement( fileloc, oldFunctionCallAssignmentStatement.getLeftHandSide(), newFunctionCallExpression);
 
@@ -400,7 +400,7 @@ public class DynamicBindingCreator {
 
     CFANode nextPrevNode = prevNode;
 
-    if(!decl.isAbstract() && cfaBuilder.getCFAs().containsKey(decl.getName())) {
+    if (!decl.isAbstract() && cfaBuilder.getCFAs().containsKey(decl.getName())) {
      nextPrevNode = createBinding(edge, Pair.of(cfaBuilder.getCFAs().get(decl.getName()) , decl.getDeclaringClass()), prevNode, postConditionNode, pProcessed);
     }
 
@@ -444,7 +444,7 @@ public class DynamicBindingCreator {
 
       JStatement newFunctionCall;
 
-        if(functionCall instanceof JMethodInvocationAssignmentStatement){
+        if (functionCall instanceof JMethodInvocationAssignmentStatement){
           JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement =  (JMethodInvocationAssignmentStatement) functionCall;
           // TODO Clone leftHandSide
           newFunctionCall = new JMethodInvocationAssignmentStatement( fileloc, oldFunctionCallAssignmentStatement.getLeftHandSide(), newFunctionCallExpression);
@@ -504,7 +504,7 @@ public class DynamicBindingCreator {
     // If toBeRegistered Method not yet tracked, it needs to be added
     // That way, even if the method is not overridden, it is tracked
     // with an empty list
-    if(!subMethodsOfMethod.containsKey(entryNode.getFunctionDefinition().getName())){
+    if (!subMethodsOfMethod.containsKey(entryNode.getFunctionDefinition().getName())){
       subMethodsOfMethod.put(entryNode.getFunctionDefinition().getName(), new LinkedList<Pair<FunctionEntryNode,JClassOrInterfaceType>>());
     }
 
@@ -536,10 +536,10 @@ public class DynamicBindingCreator {
   // and register that the method toBeRegistered overrides
   // this function
   private void registerForSuperClass(ITypeBinding superClass , Pair<FunctionEntryNode , JClassOrInterfaceType> toBeRegistered, IMethodBinding bindingToBeRegistered) {
-    if(superClass != null){
+    if (superClass != null){
       IMethodBinding[] methodsBinding = superClass.getDeclaredMethods();
-      for(IMethodBinding methodBinding : methodsBinding){
-        if(bindingToBeRegistered.overrides(methodBinding)){
+      for (IMethodBinding methodBinding : methodsBinding){
+        if (bindingToBeRegistered.overrides(methodBinding)){
           registerMethod(methodBinding , toBeRegistered);
         }
       }
@@ -552,7 +552,7 @@ public class DynamicBindingCreator {
    String overridenMethodName = astCreator.getFullyQualifiedMethodName(overriddenMethod);
 
    // If Method not yet parsed, it needs to be added
-   if(!subMethodsOfMethod.containsKey(overridenMethodName)){
+   if (!subMethodsOfMethod.containsKey(overridenMethodName)){
      subMethodsOfMethod.put(overridenMethodName, new LinkedList<Pair<FunctionEntryNode,JClassOrInterfaceType>>());
    }
      subMethodsOfMethod.get(overridenMethodName).add(toBeRegistered);

@@ -140,7 +140,7 @@ public class CFASecondPassBuilder {
       return false;
     }
     AFunctionCallExpression f = ((AFunctionCall)s).getFunctionCallExpression();
-    if(!isRegularCall(f)) {
+    if (!isRegularCall(f)) {
       return false;
     }
     return isDefined(f);
@@ -151,7 +151,7 @@ public class CFASecondPassBuilder {
       // There might be a function pointer shadowing a function,
       // so we need to check this explicitly here.
       String name = f.getFunctionNameExpression().toASTString();
-      if(name.startsWith("__builtin_")) {
+      if (name.startsWith("__builtin_")) {
         //logger.log(Level.INFO, "Ignoring builtin function " + name);
         return true;
       }
@@ -224,7 +224,7 @@ public class CFASecondPassBuilder {
     FunctionCallEdge callEdge = null;
 
     // create new edges
-    if(language == Language.C) {
+    if (language == Language.C) {
 
       calltoReturnEdge = new CFunctionSummaryEdge(edge.getRawStatement(),
           lineNumber, predecessorNode, successorNode, (CFunctionCall) functionCall);
@@ -233,7 +233,7 @@ public class CFASecondPassBuilder {
           lineNumber, predecessorNode,
           (CFunctionEntryNode) fDefNode, (CFunctionCall) functionCall,  (CFunctionSummaryEdge) calltoReturnEdge);
 
-    } else if(language == Language.JAVA){
+    } else if (language == Language.JAVA){
 
       calltoReturnEdge = new JMethodSummaryEdge(edge.getRawStatement(),
           lineNumber, predecessorNode, successorNode, (JMethodOrConstructorInvocation) functionCall);
@@ -260,7 +260,7 @@ public class CFASecondPassBuilder {
 
       FunctionReturnEdge returnEdge = null;
 
-      if(language == Language.C) {
+      if (language == Language.C) {
         returnEdge = new CFunctionReturnEdge(lineNumber, fExitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
       } else if (language == Language.JAVA) {
         returnEdge = new JMethodReturnEdge(lineNumber, fExitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);

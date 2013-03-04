@@ -126,8 +126,8 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
     AFunctionCall functionCall = (AFunctionCall)expr;
     AFunctionCallExpression f = functionCall.getFunctionCallExpression();
 
-    if(isRegularCall(f)) {
-      if(isDefined(f)) {
+    if (isRegularCall(f)) {
+      if (isDefined(f)) {
         createCallAndReturnEdges(statement, functionCall);
       } else {
         logger.log(Level.FINEST, "Call to undefined function " + f);
@@ -135,7 +135,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
       }
     } else {
       logger.log(Level.FINEST, "Function pointer call " + f);
-      if(language == Language.C && fptrCallEdges) {
+      if (language == Language.C && fptrCallEdges) {
         CExpression nameExp = (CExpression)f.getFunctionNameExpression();
         Collection<FunctionEntryNode> funcs = getFunctionSet(f, functionCall);
         CFANode start = statement.getPredecessor();
@@ -146,7 +146,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
 
         CFANode rootNode = start;
         CFANode elseNode = null;
-        for(FunctionEntryNode fNode : funcs) {
+        for (FunctionEntryNode fNode : funcs) {
           logger.log(Level.FINEST, "Matching function: " + fNode.getFunctionName());
           CFANode thenNode = newCFANode(start.getLineNumber(), start.getFunctionName());
           elseNode = newCFANode(start.getLineNumber(), start.getFunctionName());
@@ -166,7 +166,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
 
           //replace function call by pointer expression with regular call by name (in functionCall and edge.getStatement())
           CFunctionCall regularCall;
-          if(functionSet != FunctionSet.EQ_PARAM_TYPES) {
+          if (functionSet != FunctionSet.EQ_PARAM_TYPES) {
             regularCall = (CFunctionCall)functionCall;
           } else {
             regularCall = createRegularCall((CFunctionCall)functionCall, fNode);
@@ -185,12 +185,12 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
           rootNode = elseNode;
         }
 
-        if(elseNode==null) {
+        if (elseNode==null) {
           logger.log(Level.INFO, "Functions matching function pointer call " + nameExp + " were not found");
           createUndefinedSummaryStatementEdge(rootNode, end, statement, functionCall);
         } else {
           //rootNode --> end
-          if(createUndefinedFunctionCall) {
+          if (createUndefinedFunctionCall) {
             createUndefinedSummaryStatementEdge(rootNode, end, statement, functionCall);
           } else {
             //no way to skip the function call
@@ -209,8 +209,8 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
 
   @Override
   public void collectDataRecursively() {
-    if(language == Language.C && fptrCallEdges) {
-      if(functionSet == FunctionSet.USED_IN_CODE) {
+    if (language == Language.C && fptrCallEdges) {
+      if (functionSet == FunctionSet.USED_IN_CODE) {
         addressedFunctions = new HashSet<>();
         logger.log(Level.FINEST, "Collect function pointer variables");
         for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
@@ -232,14 +232,14 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
   }
 
   private CFunctionCall createRegularCall(CFunctionCall functionCall, FunctionEntryNode fNode) {
-    if(functionCall instanceof CFunctionCallAssignmentStatement) {
+    if (functionCall instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement asgn = (CFunctionCallAssignmentStatement)functionCall;
       CFunctionCallExpression e = asgn.getRightHandSide();
       CFunctionCallExpression newExpr = new CFunctionCallExpression(e.getFileLocation(), e.getExpressionType(),
           createIdExpression(e.getFunctionNameExpression(), fNode),
           e.getParameterExpressions(), (CFunctionDeclaration)fNode.getFunctionDefinition());
       return new CFunctionCallAssignmentStatement(asgn.getFileLocation(), asgn.getLeftHandSide(), newExpr);
-    } else if(functionCall instanceof CFunctionCallStatement) {
+    } else if (functionCall instanceof CFunctionCallStatement) {
       CFunctionCallStatement asgn = (CFunctionCallStatement)functionCall;
       CFunctionCallExpression e = asgn.getFunctionCallExpression();
       CFunctionCallExpression newExpr = new CFunctionCallExpression(e.getFileLocation(), e.getExpressionType(),
@@ -278,9 +278,9 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
     CStatement statement = functionCall.asStatement();
 
     // create new edges
-    if(language == Language.C) {
+    if (language == Language.C) {
 
-      if(summaryEdges) {
+      if (summaryEdges) {
         CFunctionSummaryStatementEdge summaryStatementEdge =
             new CFunctionSummaryStatementEdge(pRawStatement,
                 statement, lineNumber,
@@ -294,7 +294,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
           lineNumber, predecessorNode,
           (CFunctionEntryNode) fDefNode, functionCall,  (CFunctionSummaryEdge) calltoReturnEdge);
 
-    } else if(language == Language.JAVA){
+    } else if (language == Language.JAVA){
 
       callEdge = new JMethodCallEdge(pRawStatement,
           lineNumber, predecessorNode,
@@ -314,7 +314,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
 
       FunctionReturnEdge returnEdge = null;
 
-      if(language == Language.C) {
+      if (language == Language.C) {
         returnEdge = new CFunctionReturnEdge(lineNumber, fExitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
       } else if (language == Language.JAVA) {
         returnEdge = new JMethodReturnEdge(lineNumber, fExitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);
@@ -339,10 +339,10 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
       CFANode predecessorNode, CFANode successorNode, AFunctionCall functionCall) {
     FunctionSummaryEdge calltoReturnEdge = null;
     // create new edges
-    if(language == Language.C) {
+    if (language == Language.C) {
       calltoReturnEdge = new CFunctionSummaryEdge(pRawStatement, lineNumber,
           predecessorNode, successorNode, (CFunctionCall) functionCall);
-    } else if(language == Language.JAVA) {
+    } else if (language == Language.JAVA) {
       calltoReturnEdge = new JMethodSummaryEdge(pRawStatement,
           lineNumber, predecessorNode, successorNode, (JMethodOrConstructorInvocation) functionCall);
     }
@@ -400,7 +400,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
     String functionName = functionCallExpression.getDeclaration().getName();
     FunctionEntryNode fDefNode = cfa.getFunctionHead(functionName);
 
-    if(!checkParamSizes(functionCallExpression, fDefNode.getFunctionDefinition().getType())) {
+    if (!checkParamSizes(functionCallExpression, fDefNode.getFunctionDefinition().getType())) {
       int actualParameters = functionCallExpression.getParameterExpressions().size();
       int declaredParameters = fDefNode.getFunctionDefinition().getType().getParameters().size();
       switch (language) {
@@ -429,26 +429,26 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
 
   private Collection<FunctionEntryNode> getFunctionSet(
       AFunctionCallExpression functionCallExpression, AFunctionCall expr) {
-    if(functionSet == FunctionSet.ALL) {
+    if (functionSet == FunctionSet.ALL) {
       return cfa.getAllFunctionHeads();
     } else {
       Collection<FunctionEntryNode> col = cfa.getAllFunctionHeads();
       Collection<FunctionEntryNode> res = new ArrayList<>();
-      if(functionSet == FunctionSet.EQ_PARAM_SIZES) {
-        for(FunctionEntryNode f : col) {
-          if(checkParamSizes(expr.getFunctionCallExpression(), f.getFunctionDefinition().getType())) {
+      if (functionSet == FunctionSet.EQ_PARAM_SIZES) {
+        for (FunctionEntryNode f : col) {
+          if (checkParamSizes(expr.getFunctionCallExpression(), f.getFunctionDefinition().getType())) {
             res.add(f);
           }
         }
         return res;
       } else {
-        for(FunctionEntryNode f : col) {
-          if(checkParamSizesAndTypes(expr.getFunctionCallExpression(), f.getFunctionDefinition().getType())) {
-            if(functionSet == FunctionSet.EQ_PARAM_TYPES) {
+        for (FunctionEntryNode f : col) {
+          if (checkParamSizesAndTypes(expr.getFunctionCallExpression(), f.getFunctionDefinition().getType())) {
+            if (functionSet == FunctionSet.EQ_PARAM_TYPES) {
               res.add(f);
             } else {
               //functionSet == FunctionSet.USED_IN_CODE
-              if(addressedFunctions.contains(f.getFunctionName())) {
+              if (addressedFunctions.contains(f.getFunctionName())) {
                 res.add(f);
               }
             }
@@ -462,7 +462,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
   private boolean checkParamSizesAndTypes(
       AFunctionCallExpression functionCallExpression, IAFunctionType functionType) {
 
-    if(!checkParamSizes(functionCallExpression, functionType)) {
+    if (!checkParamSizes(functionCallExpression, functionType)) {
       return false;
     }
 
@@ -472,17 +472,17 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
     Type declRet = functionType.getReturnType();
     Type actRet = functionCallExpression.getExpressionType();
     boolean b = declRet.equals(actRet);
-    if(!b) {
+    if (!b) {
       //logger.log(Level.FINEST, "declRet=" + declRet + ", actRet=" + actRet);
       return false;
     }
     List<? extends Type> declParams = functionType.getParameters();
     List<? extends IAExpression> exprParams = functionCallExpression.getParameterExpressions();
-    for(int i=0; i<declaredParameters; i++) {
+    for (int i=0; i<declaredParameters; i++) {
       Type dt = declParams.get(i);
       Type et = exprParams.get(i).getExpressionType();
       assert dt!=null;
-      if(!dt.equals(et)) {
+      if (!dt.equals(et)) {
         return false;
       }
       logger.log(Level.FINEST, "declType=" + functionType);

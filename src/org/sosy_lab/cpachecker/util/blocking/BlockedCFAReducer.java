@@ -92,7 +92,7 @@ public class BlockedCFAReducer implements BlockComputer {
    * with pNode as the rood-node.
    */
   private void incSummarizationsOnNode(ReducedNode pNode, int pIncBy) {
-    assert(reductionThreshold > 0);
+    assert (reductionThreshold > 0);
     pNode.incSummarizations(pIncBy);
   }
 
@@ -146,8 +146,8 @@ public class BlockedCFAReducer implements BlockComputer {
         for (ReducedEdge f: vLeavingEdges) {
           ReducedNode w = f.getPointsTo();
 
-          assert(u != v);
-          assert(v != w);
+          assert (u != v);
+          assert (v != w);
 
           ReducedEdge sumEdge = new ReducedEdge(w);
           sumEdge.addEdge(e);
@@ -358,7 +358,7 @@ public class BlockedCFAReducer implements BlockComputer {
    * @param pInlinedCfa
    * @param pOut
    */
-  public void printInlinedCfa (Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> pInlinedCfa, PrintStream pOut) {
+  public void printInlinedCfa(Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> pInlinedCfa, PrintStream pOut) {
     for (ReducedNode u: pInlinedCfa.keySet()) {
       Map<ReducedNode, Set<ReducedEdge>> uTarget = pInlinedCfa.get(u);
       for (ReducedNode v: uTarget.keySet()) {
@@ -374,9 +374,9 @@ public class BlockedCFAReducer implements BlockComputer {
    */
   @Override
   public synchronized ImmutableSet<CFANode> computeAbstractionNodes(final CFA pCfa) {
-    assert(pCfa != null);
-    assert(this.inliningStack.size() == 0);
-    assert(this.functionCallSeq == 0);
+    assert (pCfa != null);
+    assert (this.inliningStack.size() == 0);
+    assert (this.functionCallSeq == 0);
 
     this.functionCallSeq = 0;
     ReducedFunction reducedProgram = inlineAndSummarize(pCfa.getMainFunction());
@@ -385,7 +385,7 @@ public class BlockedCFAReducer implements BlockComputer {
       try {
         Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = reducedProgram.getInlinedCfa();
 
-        PrintStream out = new PrintStream (reducedCfaFile);
+        PrintStream out = new PrintStream(reducedCfaFile);
         printInlinedCfa(inlinedCfa, out);
         out.flush();
         out.close();

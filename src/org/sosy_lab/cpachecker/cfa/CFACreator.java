@@ -234,7 +234,7 @@ public class CFACreator {
       logger.log(Level.FINE, "Starting parsing of file");
       ParseResult c;
 
-      if(language == Language.C) {
+      if (language == Language.C) {
         checkIfValidFile(programDenotation);
       }
 
@@ -303,7 +303,7 @@ public class CFACreator {
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
         CFASecondPassBuilder spbuilder;
-        if(completeEdges) {
+        if (completeEdges) {
           logger.log(Level.FINE, "Complete edges option is on.");
           spbuilder = new CFASecondPassBuilderComplete(cfa, language, config, logger);
         } else {
@@ -477,7 +477,7 @@ public class CFACreator {
       return;
     }
 
-    if(cfa.getLanguage() == Language.C) {
+    if (cfa.getLanguage() == Language.C) {
       addDefaultInitializers(globalVars);
     } else {
       //TODO addDefaultInitializerForJava
@@ -507,12 +507,12 @@ public class CFACreator {
       CFANode n = new CFANode(d.getFileLocation().getStartingLineNumber(), cur.getFunctionName());
       cfa.addNode(n);
 
-      if(cfa.getLanguage() == Language.C) {
+      if (cfa.getLanguage() == Language.C) {
         CDeclarationEdge e = new CDeclarationEdge(rawSignature,
             d.getFileLocation().getStartingLineNumber(), cur, n, (CDeclaration) d);
         addToCFA(e);
         cur = n;
-      } else if(cfa.getLanguage() == Language.JAVA){
+      } else if (cfa.getLanguage() == Language.JAVA){
         JDeclarationEdge e = new JDeclarationEdge(rawSignature,
             d.getFileLocation().getStartingLineNumber(), cur, n, (JDeclaration) d);
         addToCFA(e);

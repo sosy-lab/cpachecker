@@ -87,12 +87,12 @@ class OctTransferRelation implements TransferRelation{
   /**
    * Class constructor.
    */
-  public OctTransferRelation () {
+  public OctTransferRelation() {
     globalVars = new ArrayList<>();
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors (AbstractState element, Precision prec, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState element, Precision prec, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
     // octElement is the region of the current state
     // this state will be updated using the edge
@@ -101,16 +101,16 @@ class OctTransferRelation implements TransferRelation{
     OctState prevElement = (OctState)element;
     octState = ((OctState)element).clone();
 
-    assert(octState != null);
+    assert (octState != null);
 
     // check the type of the edge
-    switch (cfaEdge.getEdgeType ()) {
+    switch (cfaEdge.getEdgeType()) {
 
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge: {
       CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
       CStatement expression = statementEdge.getStatement();
-      octState = handleStatement (octState, expression, cfaEdge);
+      octState = handleStatement(octState, expression, cfaEdge);
       break;
     }
 
@@ -128,7 +128,7 @@ class OctTransferRelation implements TransferRelation{
     // edge is a decleration edge, e.g. int a;
     case DeclarationEdge: {
       CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
-      octState = handleDeclaration (octState, declarationEdge);
+      octState = handleDeclaration(octState, declarationEdge);
       break;
     }
 
@@ -136,7 +136,7 @@ class OctTransferRelation implements TransferRelation{
     case AssumeEdge: {
       CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
       CExpression expression = assumeEdge.getExpression();
-      octState = (OctState)handleAssumption (octState, expression, cfaEdge, assumeEdge.getTruthAssumption());
+      octState = (OctState)handleAssumption(octState, expression, cfaEdge, assumeEdge.getTruthAssumption());
       break;
 
     }
@@ -161,7 +161,7 @@ class OctTransferRelation implements TransferRelation{
 
     // Summary edge, we handle this on function return, do nothing
     case CallToReturnEdge: {
-      assert(false);
+      assert (false);
       break;
     }
     }
@@ -280,7 +280,7 @@ class OctTransferRelation implements TransferRelation{
 
       else if (arg instanceof CUnaryExpression){
         CUnaryExpression unaryExp = (CUnaryExpression) arg;
-        assert(unaryExp.getOperator() == UnaryOperator.STAR || unaryExp.getOperator() == UnaryOperator.AMPER);
+        assert (unaryExp.getOperator() == UnaryOperator.STAR || unaryExp.getOperator() == UnaryOperator.AMPER);
       }
 
       else if (arg instanceof CFieldReference){
@@ -297,7 +297,7 @@ class OctTransferRelation implements TransferRelation{
     return octagonElement;
   }
 
-  private AbstractState handleAssumption (OctState pElement,
+  private AbstractState handleAssumption(OctState pElement,
       CExpression expression, CFAEdge cfaEdge, boolean truthValue)
   throws UnrecognizedCCodeException {
 
@@ -305,7 +305,7 @@ class OctTransferRelation implements TransferRelation{
     // Binary operation
     if (expression instanceof CBinaryExpression) {
       CBinaryExpression binExp = ((CBinaryExpression)expression);
-      BinaryOperator opType = binExp.getOperator ();
+      BinaryOperator opType = binExp.getOperator();
 
       CExpression op1 = binExp.getOperand1();
       CExpression op2 = binExp.getOperand2();
@@ -808,7 +808,7 @@ class OctTransferRelation implements TransferRelation{
         return declareVariable(pElement, variableName);
       }
     }
-    assert(false);
+    assert (false);
     return null;
   }
 
@@ -840,7 +840,7 @@ class OctTransferRelation implements TransferRelation{
     } else {
       throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
-    assert(false);
+    assert (false);
     return null;
   }
 

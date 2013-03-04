@@ -557,7 +557,7 @@ public class BasicBalancer implements Balancer {
     Psi += " and " + Phi;
 
     //Psi begins with a superfluous " and ".
-    assert(Psi.length() >= 5);
+    assert (Psi.length() >= 5);
     Psi = Psi.substring(5);
 
     logger.log(Level.ALL, "Consecution formula for Redlog:\n",Psi);
@@ -628,7 +628,7 @@ public class BasicBalancer implements Balancer {
     }
 
     //Psi begins with a superfluous " and ".
-    assert(Psi.length() >= 5);
+    assert (Psi.length() >= 5);
     Psi = Psi.substring(5);
 
     logger.log(Level.ALL, "Consecution formula for Redlog:\n",Psi);

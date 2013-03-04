@@ -331,7 +331,7 @@ public class TemplateSum extends TemplateNumericValue {
   public Formula translate(FormulaManagerView fmgr) {
   	Formula form = null;
   	int N = getNumTerms();
-  	if (N == 0) {
+  	if(N == 0) {
   		// Really, this case should not occur.
   		TemplateTerm Z = TemplateTerm.makeZero(getFormulaType());
   		form = Z.translate(fmgr);

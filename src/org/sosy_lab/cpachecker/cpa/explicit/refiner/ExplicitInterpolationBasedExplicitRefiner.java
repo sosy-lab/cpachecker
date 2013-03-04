@@ -89,17 +89,17 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
     Multimap<CFANode, String> increment = HashMultimap.create();
     // only do a refinement if a full-precision check shows that the path is infeasible
-    if(!isPathFeasable(errorPath)) {
+    if (!isPathFeasable(errorPath)) {
       numberOfRefinements++;
 
       ExplicitInterpolator interpolator     = new ExplicitInterpolator();
       Map<String, Long> currentInterpolant  = new HashMap<>();
 
-      for(int i = 0; i < errorPath.size(); i++) {
+      for (int i = 0; i < errorPath.size(); i++) {
         numberOfErrorPathElements++;
 
         CFAEdge currentEdge = errorPath.get(i).getSecond();
-        if(currentEdge instanceof CFunctionReturnEdge) {
+        if (currentEdge instanceof CFunctionReturnEdge) {
           currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
         }
 
@@ -116,12 +116,12 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
           //System.out.println("\t\t ----> element: " + element);
 
           // early stop once we are past the first statement that made a path feasible for the first time
-          if(interpolant == null) {
+          if (interpolant == null) {
             timerInterpolation.stop();
             return increment;
           }
-          for(Pair<String, Long> element : interpolant) {
-            if(element.getSecond() == null) {
+          for (Pair<String, Long> element : interpolant) {
+            if (element.getSecond() == null) {
               currentInterpolant.remove(element.getFirst());
             } else {
               currentInterpolant.put(element.getFirst(), element.getSecond());
@@ -134,16 +134,16 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
         // remove variables from the interpolant that belong to the scope of the returning function
         // this is done one iteration after returning from the function, as the special FUNCTION_RETURN_VAR is needed that long
-        if(i > 0 && errorPath.get(i - 1).getSecond().getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
+        if (i > 0 && errorPath.get(i - 1).getSecond().getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
           currentInterpolant = clearInterpolant(currentInterpolant, errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
         }
 
         // add the current interpolant to the precision
-        for(String variableName : currentInterpolant.keySet()) {
-          if(!isRedundant(extractPrecision(reachedSet, errorPath.get(i).getFirst()), currentEdge, variableName)) {
+        for (String variableName : currentInterpolant.keySet()) {
+          if (!isRedundant(extractPrecision(reachedSet, errorPath.get(i).getFirst()), currentEdge, variableName)) {
             increment.put(currentEdge.getSuccessor(), variableName);
 
-            if(firstInterpolationPoint == null) {
+            if (firstInterpolationPoint == null) {
               firstInterpolationPoint = errorPath.get(Math.max(1, i - 1)).getFirst();
               numberOfSuccessfulRefinements++;
             }
@@ -166,8 +166,8 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private Map<String, Long> clearInterpolant(Map<String, Long> currentInterpolant, String functionName) {
     List<String> toDrop = new ArrayList<>();
 
-    for(String variableName : currentInterpolant.keySet()) {
-      if(variableName.startsWith(functionName + "::")) {
+    for (String variableName : currentInterpolant.keySet()) {
+      if (variableName.startsWith(functionName + "::")) {
         toDrop.add(variableName);
       }
     }
@@ -193,7 +193,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    */
   protected ARGState determineInterpolationPoint(ARGPath errorPath) {
     // just use initial node of error path if the respective option is set
-    if(useInitialNodeAsRestartingPoint) {
+    if (useInitialNodeAsRestartingPoint) {
       return errorPath.get(1).getFirst();
     }
 

@@ -65,11 +65,11 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
 
-  private DefUseCPA (Configuration config) throws InvalidConfigurationException {
+  private DefUseCPA(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     this.abstractDomain = new DefUseDomain();
 
-    this.transferRelation = new DefUseTransferRelation ();
+    this.transferRelation = new DefUseTransferRelation();
 
     this.mergeOperator = null;
     if (mergeType.equals("sep")){
@@ -82,22 +82,22 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
   }
 
   @Override
-  public AbstractDomain getAbstractDomain () {
+  public AbstractDomain getAbstractDomain() {
     return abstractDomain;
   }
 
   @Override
-  public TransferRelation getTransferRelation () {
+  public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
   @Override
-  public MergeOperator getMergeOperator () {
+  public MergeOperator getMergeOperator() {
     return mergeOperator;
   }
 
   @Override
-  public StopOperator getStopOperator () {
+  public StopOperator getStopOperator() {
     return stopOperator;
   }
 
@@ -108,18 +108,18 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
 
 
   @Override
-  public AbstractState getInitialState (CFANode node) {
+  public AbstractState getInitialState(CFANode node) {
     Set<DefUseDefinition> defUseDefinitions = new HashSet<>();
     if (node instanceof CFunctionEntryNode) {
-      List<String> parameterNames = ((CFunctionEntryNode)node).getFunctionParameterNames ();
+      List<String> parameterNames = ((CFunctionEntryNode)node).getFunctionParameterNames();
 
       for (String parameterName : parameterNames) {
-        DefUseDefinition newDef = new DefUseDefinition (parameterName, null);
-        defUseDefinitions.add (newDef);
+        DefUseDefinition newDef = new DefUseDefinition(parameterName, null);
+        defUseDefinitions.add(newDef);
       }
     }
 
-    return new DefUseState (defUseDefinitions);
+    return new DefUseState(defUseDefinitions);
   }
 
   @Override

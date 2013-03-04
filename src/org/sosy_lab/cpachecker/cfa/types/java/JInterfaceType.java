@@ -40,7 +40,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
 
 
 
-  public JInterfaceType (String fullyQualifiedpName  ,final VisibilityModifier pVisibility) {
+  public JInterfaceType(String fullyQualifiedpName  ,final VisibilityModifier pVisibility) {
     super(fullyQualifiedpName , pVisibility);
   }
 
@@ -75,7 +75,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
 
 
 
-    if(subType instanceof JInterfaceType){
+    if (subType instanceof JInterfaceType){
 
       assert !directSubInterfaces.contains(subType);
 
@@ -95,9 +95,9 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
      Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<>();
 
 
-     for( JInterfaceType subInterface : getDirectSubInterfaces()) {
+     for ( JInterfaceType subInterface : getDirectSubInterfaces()) {
 
-       if(result.contains(subInterface)) {
+       if (result.contains(subInterface)) {
          continue; //maybe Exception?
        }
 
@@ -105,10 +105,10 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
        toBeAdded.add(subInterface.getDirectSubInterfaces());
      }
 
-     while(!toBeAdded.isEmpty()){
-       for( JInterfaceType subInterface : toBeAdded.poll()) {
+     while (!toBeAdded.isEmpty()){
+       for ( JInterfaceType subInterface : toBeAdded.poll()) {
 
-         if(result.contains(subInterface)) {
+         if (result.contains(subInterface)) {
            continue; //maybe Exception?
          }
          result.add(subInterface);
@@ -127,10 +127,10 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
      Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<>();
 
 
-     for( JInterfaceType superInterface : getExtendedInterfaces()) {
+     for ( JInterfaceType superInterface : getExtendedInterfaces()) {
 
 
-       if(result.contains(superInterface)) {
+       if (result.contains(superInterface)) {
          continue; //maybe Exception?
        }
 
@@ -138,10 +138,10 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
        toBeAdded.add(superInterface.getExtendedInterfaces());
      }
 
-     while(!toBeAdded.isEmpty()){
-       for( JInterfaceType superInterface : toBeAdded.poll()) {
+     while (!toBeAdded.isEmpty()){
+       for ( JInterfaceType superInterface : toBeAdded.poll()) {
 
-         if(result.contains(superInterface)) {
+         if (result.contains(superInterface)) {
            continue; //maybe Exception?
          }
 
@@ -162,7 +162,7 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
 
     result.addAll(this.getAllKnownDirectlyImplementedClassesOfInterface());
 
-    for(JInterfaceType subInterface : subInterfaces) {
+    for (JInterfaceType subInterface : subInterfaces) {
 
       result.addAll(subInterface.getAllKnownDirectlyImplementedClassesOfInterface());
 
@@ -188,13 +188,13 @@ public class JInterfaceType extends JClassOrInterfaceType implements JReferenceT
      List<JClassType> result = new LinkedList<>();
      Queue<Set<JClassType>> toBeAdded = new LinkedList<>();
 
-     for( JClassType subClasses : getKnownInterfaceImplementingClasses()) {
+     for ( JClassType subClasses : getKnownInterfaceImplementingClasses()) {
        result.add(subClasses);
        toBeAdded.add(subClasses.getDirectSubClasses());
      }
 
-     while(!toBeAdded.isEmpty()){
-       for( JClassType subClasses : toBeAdded.poll()) {
+     while (!toBeAdded.isEmpty()){
+       for ( JClassType subClasses : toBeAdded.poll()) {
          result.add(subClasses);
          toBeAdded.add(subClasses.getDirectSubClasses());
        }

@@ -48,7 +48,7 @@ public class SubsetGenerator {
 
     // If part > whole, or start > whole - part, throw exception.
     if (part > whole || start > whole - part) {
-      throw new IllegalArgumentException ("Must have part <= whole and start <= whole - part.");
+      throw new IllegalArgumentException("Must have part <= whole and start <= whole - part.");
     }
 
     this.whole = whole;

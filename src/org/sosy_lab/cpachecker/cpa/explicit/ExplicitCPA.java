@@ -155,7 +155,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
 
   private Multimap<CFANode, String> restoreMappingFromFile(CFA cfa) throws InvalidConfigurationException {
     Multimap<CFANode, String> mapping = HashMultimap.create();
-    if(initialPrecisionFile == null) {
+    if (initialPrecisionFile == null) {
       return mapping;
     }
 
@@ -173,7 +173,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
 
       CFANode location = idToCfaNode.get(Integer.parseInt(splits[0].substring(1)));
 
-      if(location != null) {
+      if (location != null) {
         String variables = splits[1].substring(1, splits[1].length() - 1);
         mapping.putAll(location, Arrays.asList(variables.split(CegarPrecision.DELIMITER)));
       }

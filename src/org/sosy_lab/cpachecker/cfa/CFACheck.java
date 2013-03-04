@@ -111,9 +111,9 @@ public class CFACheck {
         CFAEdge edge1 = pNode.getLeavingEdge(0);
         CFAEdge edge2 = pNode.getLeavingEdge(1);
         //relax this assumption for summary edges
-        if(edge1 instanceof CFunctionSummaryStatementEdge) {
+        if (edge1 instanceof CFunctionSummaryStatementEdge) {
           assert edge2 instanceof CFunctionCallEdge : "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node " + DEBUG_FORMAT.apply(pNode);
-        } else if(edge2 instanceof CFunctionSummaryStatementEdge) {
+        } else if (edge2 instanceof CFunctionSummaryStatementEdge) {
           assert edge1 instanceof CFunctionCallEdge : "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node " + DEBUG_FORMAT.apply(pNode);
         } else {
           assert (edge1 instanceof AssumeEdge) && (edge2 instanceof AssumeEdge) : "Branching without conditions at node " + DEBUG_FORMAT.apply(pNode);  // TODO Ask for permission

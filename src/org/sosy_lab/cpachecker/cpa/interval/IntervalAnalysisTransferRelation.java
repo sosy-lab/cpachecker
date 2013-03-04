@@ -101,7 +101,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors (AbstractState element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
+  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
     Collection<? extends AbstractState> successors  = null;
 
     AbstractState successor                         = null;
@@ -255,7 +255,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
     List<String> parameterNames = functionEntryNode.getFunctionParameterNames();
     List<CExpression> arguments  = callEdge.getArguments();
 
-    assert(parameterNames.size() == arguments.size());
+    assert (parameterNames.size() == arguments.size());
 
     IntervalAnalysisState newElement = new IntervalAnalysisState(previousElement);
 

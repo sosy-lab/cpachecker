@@ -34,7 +34,7 @@ public abstract class  JClassOrInterfaceType implements JReferenceType {
   private final VisibilityModifier visibility;
   private final String name;
 
-  protected JClassOrInterfaceType (String fullyQualifiedName  ,final VisibilityModifier pVisibility) {
+  protected JClassOrInterfaceType(String fullyQualifiedName  ,final VisibilityModifier pVisibility) {
     name = fullyQualifiedName;
     visibility = pVisibility;
 
@@ -76,9 +76,9 @@ public abstract class  JClassOrInterfaceType implements JReferenceType {
     //TODO Maybe dynamic Binding of getAllSuperTypes here?
     List<JClassOrInterfaceType> result = new LinkedList<>();
 
-    if(this instanceof JClassType){
+    if (this instanceof JClassType){
       result.addAll(((JClassType)this).getAllSuperTypesOfClass()) ;
-    } else if(this instanceof JInterfaceType){
+    } else if (this instanceof JInterfaceType){
       result.addAll(((JInterfaceType)this).getAllSuperTypesOfInterface());
       return result;
     }
@@ -89,9 +89,9 @@ public abstract class  JClassOrInterfaceType implements JReferenceType {
 
     List<JClassOrInterfaceType> result = new LinkedList<>();
 
-    if(this instanceof JClassType){
+    if (this instanceof JClassType){
       result.addAll(((JClassType)this).getAllSubTypesOfClass()) ;
-    } else if(this instanceof JInterfaceType){
+    } else if (this instanceof JInterfaceType){
       result.addAll(((JInterfaceType)this).getAllSuperTypesOfInterface());
       return result;
     }

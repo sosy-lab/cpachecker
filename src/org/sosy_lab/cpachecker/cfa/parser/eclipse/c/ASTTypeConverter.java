@@ -110,7 +110,7 @@ class ASTTypeConverter {
     } else if (t instanceof ITypedef) {
       return conv((ITypedef) t);
 
-    } else if(t instanceof ICompositeType) {
+    } else if (t instanceof ICompositeType) {
       ICompositeType ct = (ICompositeType) t;
 
       ComplexTypeKind kind;
@@ -267,7 +267,7 @@ class ASTTypeConverter {
   private List<CCompositeTypeMemberDeclaration> conv(IField[] pFields) {
     List<CCompositeTypeMemberDeclaration> list = new ArrayList<>(pFields.length);
 
-    for(int i = 0; i < pFields.length; i++) {
+    for (int i = 0; i < pFields.length; i++) {
       list.add(new CCompositeTypeMemberDeclaration(convert(pFields[i].getType()), pFields[i].getName()));
     }
     return list;

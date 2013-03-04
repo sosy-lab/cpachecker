@@ -113,8 +113,8 @@ public class DominatorState implements AbstractStateWithLocation, AbstractState 
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder ();
-    builder.append ("( " + this.dominatedState.toString() + ", {");
+    StringBuilder builder = new StringBuilder();
+    builder.append("( " + this.dominatedState.toString() + ", {");
 
     boolean first = true;
     for (AbstractState dominator : this.dominators) {
@@ -127,9 +127,9 @@ public class DominatorState implements AbstractStateWithLocation, AbstractState 
       builder.append(dominator.toString());
     }
 
-    builder.append ("})");
+    builder.append("})");
 
-    return builder.toString ();
+    return builder.toString();
   }
 
   @Override

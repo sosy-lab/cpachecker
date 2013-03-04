@@ -51,10 +51,10 @@ public class DefUseDomain implements AbstractDomain {
 
             for (DefUseDefinition definition : defUseState2) {
                 if (!joined.contains(definition)) {
-                  joined.add (definition);
+                  joined.add(definition);
                 }
             }
 
-            return new DefUseState (joined);
+            return new DefUseState(joined);
     }
 }

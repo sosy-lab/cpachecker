@@ -101,7 +101,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     PredicateCPARefiner backupRefiner    = null;
 
     PredicateCPA predicateCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
-    if(predicateCpa != null) {
+    if (predicateCpa != null) {
 
       FormulaManagerFactory factory               = predicateCpa.getFormulaManagerFactory();
       FormulaManagerView formulaManager           = predicateCpa.getFormulaManager();
@@ -174,7 +174,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     precisionIncrement = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
     interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
 
-    if(precisionIncrement.size() > 0) {
+    if (precisionIncrement.size() > 0) {
       ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
       explicitPrecision                   = new ExplicitPrecision(explicitPrecision);
       explicitPrecision.getCegarPrecision().addToMapping(precisionIncrement);
@@ -184,7 +184,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       return CounterexampleInfo.spurious();
     }
 
-    else if(predicatingRefiner == null) {
+    else if (predicatingRefiner == null) {
       return CounterexampleInfo.feasible(errorPath, null);
     }
 

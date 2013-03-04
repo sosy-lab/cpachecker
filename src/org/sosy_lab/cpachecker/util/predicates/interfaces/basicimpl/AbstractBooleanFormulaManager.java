@@ -58,7 +58,7 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo>
     return wrap(makeVariableImpl(pVar));
   }
 
-  protected abstract TFormulaInfo makeVariableImpl (String pVar);
+  protected abstract TFormulaInfo makeVariableImpl(String pVar);
 
 
   @Override

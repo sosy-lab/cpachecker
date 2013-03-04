@@ -213,7 +213,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
         Region b2 = cubes.remove();
         cubes.add(rmgr.makeOr(b1, b2));
       }
-      assert(cubes.size() == 1);
+      assert (cubes.size() == 1);
       formula = cubes.remove();
     }
 
@@ -249,7 +249,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
         Region v2 = curCube.remove();
         curCube.add(rmgr.makeAnd(v1, v2));
       }
-      assert(curCube.size() == 1);
+      assert (curCube.size() == 1);
       m = curCube.remove();
       cubes.add(m);
 

@@ -199,7 +199,7 @@ class SMGConsistencyVerifier{
   static private boolean verifyNullObject(LogManager pLogger, SMG smg){
     Integer null_value = null;
 
-    for(Integer value: smg.getValues()){
+    for (Integer value: smg.getValues()){
       if (smg.getObjectPointedBy(value) == smg.getNullObject()){
         null_value = value;
       }

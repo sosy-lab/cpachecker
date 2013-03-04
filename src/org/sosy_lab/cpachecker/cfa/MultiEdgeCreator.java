@@ -137,14 +137,14 @@ class MultiEdgeCreator extends DefaultCFAVisitor {
    * @return whether or not this edge contains a function call or not.
    */
   private boolean containsFunctionPointerCall(CFAEdge edge) {
-    if(edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+    if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       CStatementEdge statementEdge = (CStatementEdge)edge;
 
-      if((statementEdge.getStatement() instanceof CFunctionCall)) {
+      if ((statementEdge.getStatement() instanceof CFunctionCall)) {
         CFunctionCall call = ((CFunctionCall)statementEdge.getStatement());
         CSimpleDeclaration declaration = call.getFunctionCallExpression().getDeclaration();
 
-        if(declaration == null) {
+        if (declaration == null) {
           return true;
         }
       }

@@ -64,15 +64,15 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
 
   private OctagonCPA(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-    OctDomain octagonDomain = new OctDomain ();
+    OctDomain octagonDomain = new OctDomain();
 
-    this.transferRelation = new OctTransferRelation ();
+    this.transferRelation = new OctTransferRelation();
 
     MergeOperator octagonMergeOp = null;
     if (mergeType.equals("sep")){
       octagonMergeOp = MergeSepOperator.getInstance();
     } else if (mergeType.equals("join")){
-      octagonMergeOp = new MergeJoinOperator (octagonDomain);
+      octagonMergeOp = new MergeJoinOperator(octagonDomain);
     } else {
       // default is sep
       octagonMergeOp = MergeSepOperator.getInstance();
@@ -85,26 +85,26 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
     this.stopOperator = octagonStopOp;
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 
-    assert(OctagonManager.init());
+    assert (OctagonManager.init());
   }
 
   @Override
-  public AbstractDomain getAbstractDomain () {
+  public AbstractDomain getAbstractDomain() {
     return abstractDomain;
   }
 
   @Override
-  public TransferRelation getTransferRelation () {
+  public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
   @Override
-  public MergeOperator getMergeOperator () {
+  public MergeOperator getMergeOperator() {
     return mergeOperator;
   }
 
   @Override
-  public StopOperator getStopOperator () {
+  public StopOperator getStopOperator() {
     return stopOperator;
   }
 

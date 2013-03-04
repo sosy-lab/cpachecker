@@ -204,11 +204,11 @@ public class RTTTransferRelation implements TransferRelation {
     JVariableDeclaration decl =
         (JVariableDeclaration) declarationEdge.getDeclaration();
 
-    if(decl.getType() instanceof JSimpleType ) {
+    if (decl.getType() instanceof JSimpleType ) {
 
       JBasicType simpleType = ((JSimpleType)decl.getType()).getType();
 
-          switch(simpleType){
+          switch (simpleType){
           case BOOLEAN:
           case BYTE:
           case CHAR:
@@ -238,7 +238,7 @@ public class RTTTransferRelation implements TransferRelation {
 
       JFieldDeclaration fieldVariable = (JFieldDeclaration) decl;
 
-      if(fieldVariable.isStatic()){
+      if (fieldVariable.isStatic()){
         // if this is a  field, add to the list of field variables
         staticFieldVariables.add(varName);
       } else {
@@ -262,7 +262,7 @@ public class RTTTransferRelation implements TransferRelation {
         getScopedVariableName(varName, methodName,
                               newElement.getClassObjectScope());
 
-    if(initialValue == null) {
+    if (initialValue == null) {
       newElement.forget(scopedVarName);
     } else {
       newElement.assignObject(scopedVarName, initialValue);
@@ -351,7 +351,7 @@ public class RTTTransferRelation implements TransferRelation {
       String methodName = cfaEdge.getPredecessor().getFunctionName();
 
       // If declaration could not be resolve, forget variable
-      if(((JIdExpression) op1).getDeclaration() == null) {
+      if (((JIdExpression) op1).getDeclaration() == null) {
 
         String scopedName = getScopedVariableName(
                                               ((JIdExpression) op1).getName(),
@@ -376,7 +376,7 @@ public class RTTTransferRelation implements TransferRelation {
 
     RTTState newElement = visitor.state;
 
-    if(nonStaticFieldVariables.contains(lParam) && lParamObjectScope == null) {
+    if (nonStaticFieldVariables.contains(lParam) && lParamObjectScope == null) {
       // can't resolve lParam variable, do nothing
       // TODO How to forget old Values?
       return;
@@ -398,11 +398,11 @@ public class RTTTransferRelation implements TransferRelation {
       JIdExpression notScopedField) {
 
     // Could not resolve var
-    if(notScopedField.getDeclaration() == null) {
+    if (notScopedField.getDeclaration() == null) {
       return null;
     }
 
-    if(notScopedField instanceof JFieldAccess){
+    if (notScopedField instanceof JFieldAccess){
 
       JIdExpression qualifier = ((JFieldAccess) notScopedField).getReferencedVariable();
 
@@ -411,13 +411,13 @@ public class RTTTransferRelation implements TransferRelation {
       String scopedFieldName =
           getScopedVariableName(qualifier.getDeclaration().getName(), methodName ,qualifierScope);
 
-      if(rttState.contains(scopedFieldName)) {
+      if (rttState.contains(scopedFieldName)) {
         return rttState.getUniqueObjectFor(scopedFieldName);
       } else {
         return null;
       }
     } else {
-      if(rttState.contains(RTTState.KEYWORD_THIS)) {
+      if (rttState.contains(RTTState.KEYWORD_THIS)) {
         return rttState.getUniqueObjectFor(RTTState.KEYWORD_THIS);
       } else {
         return null;
@@ -439,13 +439,13 @@ public class RTTTransferRelation implements TransferRelation {
 
     // expression is an assignment operation, e.g. a = g(b);
 
-    if(exprOnSummary instanceof JMethodInvocationAssignmentStatement) {
+    if (exprOnSummary instanceof JMethodInvocationAssignmentStatement) {
       JMethodInvocationAssignmentStatement assignExp = ((JMethodInvocationAssignmentStatement)exprOnSummary);
       JExpression op1 = assignExp.getLeftHandSide();
 
       // we expect left hand side of the expression to be a variable
 
-      if((op1 instanceof JIdExpression)) {
+      if ((op1 instanceof JIdExpression)) {
 
         String returnVarName = getScopedVariableName("___cpa_temp_result_var_", calledFunctionName, newElement.getClassObjectScope());
 
@@ -520,12 +520,12 @@ public class RTTTransferRelation implements TransferRelation {
     // There are five possibilities when assigning this and the new object Scope.
 
     // A Object calls its super Constructor
-    if(functionCall instanceof JSuperConstructorInvocation) {
+    if (functionCall instanceof JSuperConstructorInvocation) {
 
       newElement.assignThisAndNewObjectScope(element.getUniqueObjectFor(RTTState.KEYWORD_THIS));
 
    // A New Object is created, which is the new classObject scope
-    } else if(functionCall instanceof JClassInstanceCreation) {
+    } else if (functionCall instanceof JClassInstanceCreation) {
 
       AReturnStatementEdge returnEdge =  (AReturnStatementEdge) functionEntryNode.getExitNode().getEnteringEdge(RETURN_EDGE);
       String uniqueObject = ((JExpression) returnEdge.getExpression()).accept(  new FunctionExitValueVisitor(returnEdge, newElement, calledFunctionName));
@@ -533,11 +533,11 @@ public class RTTTransferRelation implements TransferRelation {
 
       // A Referenced Method Invocation, the new scope is the unique Object
       // of its reference variable
-    } else if(functionCall instanceof JReferencedMethodInvocationExpression) {
+    } else if (functionCall instanceof JReferencedMethodInvocationExpression) {
       JReferencedMethodInvocationExpression objectMethodInvocation = (JReferencedMethodInvocationExpression) functionCall;
       JSimpleDeclaration variableReference = objectMethodInvocation.getReferencedVariable().getDeclaration();
 
-      if( newElement.contains(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope()))){
+      if ( newElement.contains(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope()))){
         newElement.assignThisAndNewObjectScope( newElement.getUniqueObjectFor(getScopedVariableName(variableReference.getName(), callerFunctionName, newElement.getClassObjectScope())));
       } else {
         // When the object of the variable can't be found
@@ -549,7 +549,7 @@ public class RTTTransferRelation implements TransferRelation {
       JMethodDeclaration decl = functionCall.getDeclaration();
 
       // If the method isn't static, the object  scope remains the same
-      if(decl.isStatic()) {
+      if (decl.isStatic()) {
         newElement.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
       } else {
        newElement.assignThisAndNewObjectScope(newElement.getUniqueObjectFor(RTTState.KEYWORD_THIS));
@@ -650,11 +650,11 @@ public class RTTTransferRelation implements TransferRelation {
 
       String referenz  = pE.getRunTimeTypeExpression().accept(this);
 
-      if(referenz == null) {
+      if (referenz == null) {
         return null;
       }
 
-      if(truthAssumption == true) {
+      if (truthAssumption == true) {
         newState.assignAssumptionType(referenz, assignableType);
       }
 
@@ -704,7 +704,7 @@ public class RTTTransferRelation implements TransferRelation {
     public String visit(JBinaryExpression binaryExpression) throws UnrecognizedCCodeException {
 
       // The only binary Expressions on Class Types is String + which is not yet supported and EnumConstant Assignment
-      if((binaryExpression.getOperator() == BinaryOperator.EQUALS || binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS) && (binaryExpression.getOperand1() instanceof JEnumConstantExpression ||  binaryExpression.getOperand2() instanceof JEnumConstantExpression)) {
+      if ((binaryExpression.getOperator() == BinaryOperator.EQUALS || binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS) && (binaryExpression.getOperand1() instanceof JEnumConstantExpression ||  binaryExpression.getOperand2() instanceof JEnumConstantExpression)) {
         return handleEnumComparison(binaryExpression.getOperand1() , binaryExpression.getOperand2() , binaryExpression.getOperator());
       }
 
@@ -725,7 +725,7 @@ public class RTTTransferRelation implements TransferRelation {
         value2 = state.getRunTimeClassOfUniqueObject(value2);
       }
 
-      if(value1 == null || value2 == null) {
+      if (value1 == null || value2 == null) {
         return null;
       }
 
@@ -813,7 +813,7 @@ public class RTTTransferRelation implements TransferRelation {
 
       String jrunTimeType = jRunTimeTypeEqualsType.getRunTimeTypeExpression().accept(this);
 
-      if(jrunTimeType == null) {
+      if (jrunTimeType == null) {
         return null;
       }
 

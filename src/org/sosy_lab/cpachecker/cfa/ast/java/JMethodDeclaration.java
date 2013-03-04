@@ -69,8 +69,8 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
     declaringClass = pDeclaringClass;
 
 
-    assert(pVisibility != null);
-    assert(isAbstract() && !isStatic() && !isNative() && !isFinal() && !isSynchronized() && !isStrictfp() || (!isAbstract()))
+    assert (pVisibility != null);
+    assert (isAbstract() && !isStatic() && !isNative() && !isFinal() && !isSynchronized() && !isStrictfp() || (!isAbstract()))
     : "Abstract Method may only have one Modifier , either public or protected";
 
   }
@@ -92,22 +92,22 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
 
     modifier.append(getVisibility().getModifierString() + " ");
 
-    if(isAbstract()){
+    if (isAbstract()){
       modifier.append("abstract ");
     }
-    if(isStatic()){
+    if (isStatic()){
       modifier.append( "static ");
     }
-    if(isFinal()){
+    if (isFinal()){
       modifier.append( "final ");
     }
-    if(isSynchronized()){
+    if (isSynchronized()){
       modifier.append("synchronized ");
     }
-    if(isNative()){
+    if (isNative()){
       modifier.append( "native ");
     }
-    if(isStrictfp()){
+    if (isStrictfp()){
       modifier.append("strictfp ");
     }
 
@@ -162,7 +162,7 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
    */
   public void updateMethodType(JMethodType type) {
 
-    if(this instanceof JConstructorDeclaration) {
+    if (this instanceof JConstructorDeclaration) {
       assert type instanceof JConstructorType;
     }
     setType(type);

@@ -64,11 +64,11 @@ public class TemplateLinearizer {
    */
   public static LinearInequality linearize(TemplateFormula t, VariableManager vmgr) {
 
-  	if (t.isTrue()) {
+  	if(t.isTrue()) {
   		return booleanLineq(t.getFormulaType(), vmgr, true);
   	}
 
-  	if (t.isFalse()) {
+  	if(t.isFalse()) {
   		return booleanLineq(t.getFormulaType(), vmgr, false);
   	}
 
@@ -223,7 +223,7 @@ public class TemplateLinearizer {
   	List<Coeff> coeffs = Collections.nCopies(n, new Coeff(type, "0"));
   	Coeff rhs = new Coeff(type, "0");
   	InfixReln reln;
-  	if (trueStatement) {
+  	if(trueStatement) {
   		reln = InfixReln.LEQ;
   	} else {
   	  reln = InfixReln.LT;

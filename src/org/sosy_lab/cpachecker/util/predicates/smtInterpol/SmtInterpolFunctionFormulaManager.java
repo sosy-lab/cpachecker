@@ -65,7 +65,7 @@ public class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaMa
     return unsafeManager.createUIFCallImpl(funcDecl, args);
   }
 
-  public Sort toSmtInterpolType (FormulaType<?> formulaType){
+  public Sort toSmtInterpolType(FormulaType<?> formulaType){
     Class<?> clazz = formulaType.getInterfaceType();
     Sort t;
     if (clazz==BooleanFormula.class) {

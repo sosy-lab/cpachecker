@@ -130,7 +130,7 @@ public class EclipseJavaParser implements Parser {
       File directory = new File(path);
       if (!directory.exists()) {
         logger.log(Level.WARNING, "Path " + directory + " could not be found.");
-      } else if(!directory.canRead()) {
+      } else if (!directory.canRead()) {
         logger.log(Level.WARNING, "Path " + directory + " can not be read.");
       } else {
         resultList.add(directory.getAbsolutePath());
@@ -166,7 +166,7 @@ public class EclipseJavaParser implements Parser {
   private File getMainClassFile(String mainClassName) throws JParserException  {
 
      File mainClass = searchForClassFile(mainClassName);
-     if(mainClass == null) {
+     if (mainClass == null) {
        throw new JParserException("Could not find main class in the specified paths");
      }
 

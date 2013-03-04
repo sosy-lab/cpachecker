@@ -784,7 +784,7 @@ public class Matrix implements MatrixI {
           pivot[0] = i; pivot[1] = j;
           return pivot;
         }
-        assert(!p.isConstant());
+        assert (!p.isConstant());
         Assumption a = new Assumption(p, AssumptionType.NONZERO);
         nz.add( new PointedAssumption(i,j,a) );
       }

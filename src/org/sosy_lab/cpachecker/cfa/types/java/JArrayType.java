@@ -42,7 +42,7 @@ public class JArrayType extends AArrayType implements JReferenceType {
   public String toASTString(String pDeclarator) {
     StringBuilder astString = new StringBuilder(getElementType().toASTString(""));
 
-    for(int dim = 0; dim < dimension ; dim++){
+    for (int dim = 0; dim < dimension ; dim++){
         astString.append("[]");
     }
     astString.append(" ");

@@ -205,7 +205,7 @@ public class ExplicitPrecision implements Precision {
     private CegarPrecision(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
 
-      if(Boolean.parseBoolean(config.getProperty("analysis.useRefinement"))) {
+      if (Boolean.parseBoolean(config.getProperty("analysis.useRefinement"))) {
         mapping = HashMultimap.create();
       }
     }
@@ -213,7 +213,7 @@ public class ExplicitPrecision implements Precision {
     private CegarPrecision(Configuration config, Multimap<CFANode, String> mapping) throws InvalidConfigurationException {
       config.inject(this);
 
-      if(Boolean.parseBoolean(config.getProperty("analysis.useRefinement"))) {
+      if (Boolean.parseBoolean(config.getProperty("analysis.useRefinement"))) {
         this.mapping = HashMultimap.create(mapping);
       }
     }
@@ -248,12 +248,12 @@ public class ExplicitPrecision implements Precision {
      * @return true, if the given variable is being tracked at the given location, else false
      */
     public boolean allowsTrackingAt(CFANode location, String variable) {
-      if(mapping == null) {
+      if (mapping == null) {
         return true;
       }
 
       // when using scoped interpolation, it suffices to have the (scoped) variable identifier in the precision
-      if(useScopedInterpolation) {
+      if (useScopedInterpolation) {
         return mapping.containsValue(variable);
       }
 

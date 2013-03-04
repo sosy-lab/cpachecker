@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableList;
 public class CompositePrecision implements WrapperPrecision {
   private final List<Precision> precisions;
 
-  public CompositePrecision (List<Precision> precisions) {
+  public CompositePrecision(List<Precision> precisions) {
     this.precisions = ImmutableList.copyOf(precisions);
   }
 

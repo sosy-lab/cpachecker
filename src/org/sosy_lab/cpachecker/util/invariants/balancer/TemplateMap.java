@@ -55,8 +55,8 @@ public class TemplateMap {
    */
   public Template getTemplate(CFANode N) {
   	Template T = null;
-  	for (Location L : map.keySet()) {
-  		if (L.getNode() == N) {
+  	for(Location L : map.keySet()) {
+  		if(L.getNode() == N) {
   			T = map.get(L);
   			break;
   		}

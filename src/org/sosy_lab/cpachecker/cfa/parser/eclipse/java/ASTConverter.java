@@ -320,7 +320,7 @@ public class ASTConverter {
       JMethodDeclaration decl = scope.lookupMethod(methodName);
 
       // Declaration was created from Binding, update Method Type.
-      if(decl.getType() == null) {
+      if (decl.getType() == null) {
         updateType(decl ,md);
       }
 
@@ -432,7 +432,7 @@ public class ASTConverter {
 
       String[] typeNames = getTypeNames(binding.getParameterTypes());
 
-      if(typeNames.length > 0){
+      if (typeNames.length > 0){
       name.append("_");
       }
 
@@ -542,7 +542,7 @@ public class ASTConverter {
 
     JType type = convert(t);
 
-    if(type instanceof JClassOrInterfaceType) {
+    if (type instanceof JClassOrInterfaceType) {
       return (JClassOrInterfaceType) type;
     } else {
       return new JClassType(t.getBinaryName(), null, false, false, false);
@@ -928,7 +928,7 @@ public class ASTConverter {
 
     JAstNode node = convertExpressionWithSideEffects(e);
 
-    if(node instanceof JCastExpression ) {
+    if (node instanceof JCastExpression ) {
       // Sideassignment to solve cast.
       return addSideassignmentsForCasts(node , e);
     } else if (node == null || node instanceof JExpression) {
@@ -1251,11 +1251,11 @@ public class ASTConverter {
       JMethodInvocationExpression miv =
           new JMethodInvocationExpression(getFileLocation(e), convert(e.resolveTypeBinding()), methodName, params, declaration);
 
-      if(canBeResolve) {
+      if (canBeResolve) {
 
         JType type = miv.getDeclaringClassType();
 
-        if(type instanceof JClassType) {
+        if (type instanceof JClassType) {
          miv.setRunTimeBinding((JClassType) type);
         }
       }
@@ -1818,7 +1818,7 @@ public class ASTConverter {
       } else if (binding instanceof IMethodBinding) {
         name = getFullyQualifiedMethodName((IMethodBinding) binding);
         declaration = scope.lookupMethod(name);
-      } else if(binding instanceof ITypeBinding){
+      } else if (binding instanceof ITypeBinding){
         name = e.getIdentifier();
       }
 
@@ -1935,7 +1935,7 @@ public class ASTConverter {
   private BinaryOperator convert(Assignment.Operator op) {
 
 
-    if(op.equals(Assignment.Operator.ASSIGN)){
+    if (op.equals(Assignment.Operator.ASSIGN)){
       return null;
     } else if (op.equals(Assignment.Operator.BIT_AND_ASSIGN)) {
       return BinaryOperator.BINARY_AND;
@@ -2092,7 +2092,7 @@ public class ASTConverter {
 
   private BinaryOperator convertBinaryOperator(InfixExpression.Operator op) {
 
-    if(op.equals(InfixExpression.Operator.PLUS)){
+    if (op.equals(InfixExpression.Operator.PLUS)){
       return BinaryOperator.PLUS;
     } else if (op.equals(InfixExpression.Operator.MINUS)) {
       return BinaryOperator.MINUS;
@@ -2126,7 +2126,7 @@ public class ASTConverter {
       return BinaryOperator.SHIFT_RIGHT_SIGNED;
     } else if (op.equals(InfixExpression.Operator.RIGHT_SHIFT_UNSIGNED)) {
       return BinaryOperator.SHIFT_RIGHT_UNSIGNED;
-    } else if(op.equals(InfixExpression.Operator.NOT_EQUALS)){
+    } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)){
      return BinaryOperator.NOT_EQUALS;
     } else {
       throw new CFAGenerationRuntimeException(
@@ -2221,7 +2221,7 @@ public class ASTConverter {
     // Get Object to be iterated
     JExpression iterable = convertExpressionWithoutSideEffects(pExpr);
 
-    if(!(iterable instanceof JIdExpression)) {
+    if (!(iterable instanceof JIdExpression)) {
       throw new CFAGenerationRuntimeException(pExpr.toString() + "was not correctly proccessed." , pExpr);
     }
 

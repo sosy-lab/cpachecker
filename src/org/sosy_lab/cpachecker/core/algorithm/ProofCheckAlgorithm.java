@@ -247,14 +247,14 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
           stats.transferTimer.stop();
           for (ARGState e : successors) {
             unexploredParent = false;
-            for(ARGState p:e.getParents()){
-              if(!reachedSet.contains(p) || inWaitlist.contains(p)){
+            for (ARGState p:e.getParents()){
+              if (!reachedSet.contains(p) || inWaitlist.contains(p)){
                 waitingForUnexploredParents.add(e);
                 unexploredParent = true;
                 break;
               }
             }
-            if(unexploredParent){
+            if (unexploredParent){
               continue;
             }
             if (reachedSet.contains(e)) {

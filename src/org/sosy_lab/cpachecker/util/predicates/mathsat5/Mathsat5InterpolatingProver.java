@@ -81,7 +81,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingProverEnvironme
         Preconditions.checkState(interpolEnv != 0);
 
         int res = msat_solve(interpolEnv);
-        assert(res != MSAT_UNKNOWN);
+        assert (res != MSAT_UNKNOWN);
 
         return res == MSAT_UNSAT;
     }

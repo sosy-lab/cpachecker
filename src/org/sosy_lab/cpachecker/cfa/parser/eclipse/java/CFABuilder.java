@@ -114,13 +114,13 @@ class CFABuilder extends ASTVisitor {
 
     ITypeBinding classBinding = typeDec.resolveBinding();
 
-    if(!typeDec.isPackageMemberTypeDeclaration()) {
+    if (!typeDec.isPackageMemberTypeDeclaration()) {
       // inner classes not implemented
 
       ASTConverter.ModifierBean mB =
           ASTConverter.ModifierBean.getModifiers(typeDec.resolveBinding());
 
-      if(mB.isStatic() || typeDec.isInterface()) {
+      if (mB.isStatic() || typeDec.isInterface()) {
 
         scope.enterClass(astCreator.convertClassOrInterfaceType(classBinding));
 
@@ -184,12 +184,12 @@ class CFABuilder extends ASTVisitor {
   @Override
   public void endVisit(TypeDeclaration typeDef) {
 
-    if(!typeDef.isPackageMemberTypeDeclaration()) {
+    if (!typeDef.isPackageMemberTypeDeclaration()) {
       // inner classes not implemented
       ASTConverter.ModifierBean mB =
           ASTConverter.ModifierBean.getModifiers(typeDef.resolveBinding());
 
-      if(!(mB.isStatic() || typeDef.isInterface())) {
+      if (!(mB.isStatic() || typeDef.isInterface())) {
         return;
       }
     }
@@ -225,17 +225,17 @@ class CFABuilder extends ASTVisitor {
 
   private boolean hasDefaultConstructor(ITypeBinding classBinding) {
 
-    if(classBinding.isInterface()) {
+    if (classBinding.isInterface()) {
       // Interfaces don't have Constructors
       return false;
     }
 
     IMethodBinding[] declaredMethods = classBinding.getDeclaredMethods();
 
-    for(IMethodBinding declaredMethod : declaredMethods) {
-      if(declaredMethod.isDefaultConstructor()) {
+    for (IMethodBinding declaredMethod : declaredMethods) {
+      if (declaredMethod.isDefaultConstructor()) {
         return true;
-      } else if(declaredMethod.isConstructor()) {
+      } else if (declaredMethod.isConstructor()) {
         return false;
       }
     }

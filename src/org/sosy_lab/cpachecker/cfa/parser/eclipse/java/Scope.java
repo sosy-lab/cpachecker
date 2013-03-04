@@ -110,7 +110,7 @@ class Scope {
     fileOfType = pFileOfTypes;
 
     // initialize Lists in type Map for each type
-    for( String classNames : types.keySet()) {
+    for ( String classNames : types.keySet()) {
       typeFieldDeclarations.put(classNames, new LinkedList<JFieldDeclaration>());
     }
   }
@@ -162,12 +162,12 @@ class Scope {
   public void enterClass(JClassOrInterfaceType enteredClassType) {
       depth++;
 
-      if(!types.containsKey(enteredClassType.getName())) {
+      if (!types.containsKey(enteredClassType.getName())) {
         throw new CFAGenerationRuntimeException(
             "Could not find Type for Class" + enteredClassType.getName());
       }
 
-      if(depth > 0) {
+      if (depth > 0) {
         classStack.push(currentClassName);
       }
 
@@ -309,7 +309,7 @@ class Scope {
 
     Map<String, JSimpleDeclaration> vars = varsStack.getLast();
 
-    if(isProgramScope()) {
+    if (isProgramScope()) {
       throw new CFAGenerationRuntimeException("Could not find Class for Declaration " + declaration.getName() , declaration);
     }
 
@@ -321,7 +321,7 @@ class Scope {
 
     vars.put(name, declaration);
 
-    if(declaration instanceof JFieldDeclaration) {
+    if (declaration instanceof JFieldDeclaration) {
       registerFieldDeclarationOfThisClass((JFieldDeclaration) declaration);
     }
   }
@@ -338,7 +338,7 @@ class Scope {
 
      programScopeVars.put(name, decl);
 
-     if(type instanceof JClassOrInterfaceType) {
+     if (type instanceof JClassOrInterfaceType) {
        registerFieldDeclarationOfClass(decl, ((JClassOrInterfaceType) type).getName());
      } else {
        registerFieldDeclarationOfUnspecifiedClass(decl);
@@ -438,7 +438,7 @@ class Scope {
 
     ITypeBinding nextClass = classBinding;
 
-    for(ITypeBinding declaringClass = nextClass.getDeclaringClass();
+    for (ITypeBinding declaringClass = nextClass.getDeclaringClass();
         declaringClass != null; declaringClass = nextClass.getDeclaringClass()) {
       nextClass = declaringClass;
     }
@@ -449,7 +449,7 @@ class Scope {
   }
 
   public String getNextClass(){
-    if(classesToBeParsed.isEmpty()){
+    if (classesToBeParsed.isEmpty()){
       return null;
     } else {
       return classesToBeParsed.poll();
@@ -479,8 +479,8 @@ class Scope {
   public Map<String, JFieldDeclaration> getStaticFieldDeclarations() {
     Map<String, JFieldDeclaration> result = new HashMap<>();
 
-    for( JFieldDeclaration declaration : fieldDeclarations.values()) {
-      if(declaration.isStatic()) {
+    for ( JFieldDeclaration declaration : fieldDeclarations.values()) {
+      if (declaration.isStatic()) {
         result.put(declaration.getName(), declaration);
       }
     }
@@ -490,8 +490,8 @@ class Scope {
   public Map<String, JFieldDeclaration> getNonStaticFieldDeclarationOfClass(String className) {
     Map<String, JFieldDeclaration> result = new HashMap<>();
 
-    for( JFieldDeclaration declaration : typeFieldDeclarations.get(className)) {
-      if(!declaration.isStatic()) {
+    for ( JFieldDeclaration declaration : typeFieldDeclarations.get(className)) {
+      if (!declaration.isStatic()) {
         result.put(declaration.getName(), declaration);
       }
     }
@@ -499,7 +499,7 @@ class Scope {
   }
 
   public String getFileOfCurrentType() {
-    if(fileOfType.containsKey( currentClassName)) {
+    if (fileOfType.containsKey( currentClassName)) {
       return fileOfType.get(currentClassName);
     } else {
       return "";

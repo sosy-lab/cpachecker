@@ -176,7 +176,7 @@ class CFABuilder extends ASTVisitor {
       final IASTFileLocation fileloc) {
 
     //these are unneccesary semicolons which would cause an abort of CPAchecker
-    if(sd.getDeclarators().length == 0  && sd.getDeclSpecifier() instanceof IASTSimpleDeclSpecifier) {
+    if (sd.getDeclarators().length == 0  && sd.getDeclSpecifier() instanceof IASTSimpleDeclSpecifier) {
       return PROCESS_SKIP;
     }
 
@@ -200,7 +200,7 @@ class CFABuilder extends ASTVisitor {
           init.accept(checkBinding);
 
           // save global initialized variable in map to check duplicates
-          if(globalInitializedVariables.containsKey(newD.getName())) {
+          if (globalInitializedVariables.containsKey(newD.getName())) {
             globalInitializedVariables.remove(newD.getName());
             globalInitializedVariables.put(newD.getName(), true);
           } else {
@@ -268,9 +268,9 @@ class CFABuilder extends ASTVisitor {
       StringBuilder duplicateVars = new StringBuilder();
       Iterator<String> it = globalInitializedVariables.keySet().iterator();
       duplicateVars.append("[");
-      while(it.hasNext()) {
+      while (it.hasNext()) {
         String key = it.next();
-        if(globalInitializedVariables.get(key)) {
+        if (globalInitializedVariables.get(key)) {
           duplicateVars.append(key + ", ");
         }
       }

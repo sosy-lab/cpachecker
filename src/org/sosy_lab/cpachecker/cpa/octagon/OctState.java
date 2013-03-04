@@ -161,7 +161,7 @@ class OctState implements AbstractState{
   }
 
   public void declareVariable(String pVariableName) {
-    assert(!variableToIndexMap.containsKey(pVariableName));
+    assert (!variableToIndexMap.containsKey(pVariableName));
     variableToIndexMap.put(pVariableName, size());
     octagon = OctagonManager.addDimensionAndEmbed(octagon, 1);
   }
@@ -282,7 +282,7 @@ class OctState implements AbstractState{
     }
 
     octagon = OctagonManager.removeDimension(octagon, noOfLocalVars);
-    assert(OctagonManager.dimension(octagon) == size());
+    assert (OctagonManager.dimension(octagon) == size());
   }
 
 }

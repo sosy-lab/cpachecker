@@ -235,7 +235,7 @@ class Mathsat5RationalFormulaManager extends AbstractRationalFormulaManager<Long
     return msat_term_is_equal(mathsatEnv, pNumber);
   }
 
-  private boolean isBoolNot (long n) {
+  private boolean isBoolNot(long n) {
     return msat_term_is_not(mathsatEnv, n);
   }
 

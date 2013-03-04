@@ -38,7 +38,7 @@ public class CFunctionCallEdge extends FunctionCallEdge {
 
 
 
-  public CFunctionCallEdge (String pRawStatement,
+  public CFunctionCallEdge(String pRawStatement,
       int pLineNumber, CFANode pPredecessor, CFunctionEntryNode pSuccessor,
       CFunctionCall pFunctionCall, CFunctionSummaryEdge pSummaryEdge) {
 

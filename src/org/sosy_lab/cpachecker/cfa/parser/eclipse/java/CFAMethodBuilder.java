@@ -173,7 +173,7 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public void preVisit(ASTNode problem) {
 
-    if(ASTNode.RECOVERED == problem.getFlags()
+    if (ASTNode.RECOVERED == problem.getFlags()
         || ASTNode.MALFORMED  == problem.getFlags() ) {
       throw new CFAGenerationRuntimeException("Parse Error", problem);
     }
@@ -196,12 +196,12 @@ class CFAMethodBuilder extends ASTVisitor {
     handleMethodDeclaration(mdef);
 
     //If Declaration is Constructor add non static field member Declarations
-    if(mDeclaration.isConstructor()){
+    if (mDeclaration.isConstructor()){
       addNonStaticFieldMember();
     }
 
     // Check if method has a body. Interface methods are always marked with abstract.
-    if(!mdef.isAbstract() && !mdef.isNative()){
+    if (!mdef.isAbstract() && !mdef.isNative()){
       // Skip Children , and manually go to Block, to protect parameter variables to be processed
       // more than one time
 
@@ -1072,18 +1072,18 @@ private void handleConditionalStatement( CFANode prevNode,
 
   //unpack unaryExpressions or Statements if there are some
   ASTNode parentExp = condExp.getParent();
-  while(parentExp.getNodeType() == ASTNode.PARENTHESIZED_EXPRESSION
+  while (parentExp.getNodeType() == ASTNode.PARENTHESIZED_EXPRESSION
          || parentExp.getNodeType() == ASTNode.POSTFIX_EXPRESSION
          || parentExp.getNodeType() == ASTNode.PREFIX_EXPRESSION ) {
     parentExp = parentExp.getParent();
   }
 
   //evaluates to true if the ternary expressions return value is not used (i. e. var==0 ? 0 : 1;)
-  if(parentExp.getNodeType() != ASTNode.VARIABLE_DECLARATION_STATEMENT
+  if (parentExp.getNodeType() != ASTNode.VARIABLE_DECLARATION_STATEMENT
       && parentExp.getNodeType() != ASTNode.ASSIGNMENT) {
     handleTernaryStatement(condExp, prevNode, lastNode);
   } else {
-    if(statement != null) {
+    if (statement != null) {
       handleTernaryExpression(condExp, prevNode, lastNode, statement);
     } else {
       handleTernaryExpression(condExp, prevNode, lastNode);
@@ -1141,7 +1141,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
    FileLocation fileLoc = astCreator.getFileLocation(condExp);
    int filelocStart = fileLoc.getStartingLineNumber();
 
-   while(astCreator.numberOfPreSideAssignments() > 0) {
+   while (astCreator.numberOfPreSideAssignments() > 0) {
      astCreator.getNextPreSideAssignment();
    }
 
@@ -1638,7 +1638,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         || innerStatementTyp == ASTNode.WHILE_STATEMENT
         || innerStatementTyp == ASTNode.DO_STATEMENT;
 
-    if(innerStatementIsLoop) {
+    if (innerStatementIsLoop) {
       registeredContinues.put(labelName, new LinkedList<Pair<CFANode, ContinueStatement>>());
     }
 
@@ -1667,7 +1667,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       addToCFA(blankEdge);
     }
 
-    if(registeredContinues.containsKey(labelName)) {
+    if (registeredContinues.containsKey(labelName)) {
       handleContinues(prevNode, registeredContinues.get(labelName));
       registeredContinues.remove(labelName);
     }
@@ -1683,7 +1683,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     CFANode startLoopNode = getStartLoopNodeFromPrevLabelNode(nodeAfterLoopStart);
 
-    for( Pair<CFANode, ContinueStatement> continuePair : continues) {
+    for ( Pair<CFANode, ContinueStatement> continuePair : continues) {
       handleLabledContinueStatement(continuePair.getSecond(), continuePair.getFirst(), startLoopNode);
     }
 
@@ -1865,7 +1865,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
 
   @Override
-  public boolean visit (WhileStatement whileStatement) {
+  public boolean visit(WhileStatement whileStatement) {
 
     handleElseCondition(whileStatement);
 
@@ -2427,7 +2427,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
      List<Pair<CFANode,ContinueStatement>> prevNodeList = registeredContinues.get(
                continueStatement.getLabel().getIdentifier());
 
-     if(prevNodeList == null) {
+     if (prevNodeList == null) {
        throw new CFAGenerationRuntimeException(
            "Could not Find Loop of Label Name "
        + continueStatement.getLabel().getIdentifier());
@@ -2483,7 +2483,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     prevNode = handleSideassignments(prevNode, returnStatement.toString(), fileloc.getStartingLineNumber());
 
     // TODO After Assignments within Expressions are supported, change this
-    if(astCreator.getConditionalExpression() != null) {
+    if (astCreator.getConditionalExpression() != null) {
       astCreator.resetConditionalExpression();
     }
 

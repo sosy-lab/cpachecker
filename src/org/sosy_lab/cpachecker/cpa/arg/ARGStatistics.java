@@ -258,7 +258,7 @@ public class ARGStatistics implements Statistics {
         }
 
         for (Pair<Object, File> info : counterexample.getAllFurtherInformation()) {
-          if(info.getSecond() != null) {
+          if (info.getSecond() != null) {
             writeErrorPathFile(info.getSecond().toPath(), info.getFirst());
           }
         }

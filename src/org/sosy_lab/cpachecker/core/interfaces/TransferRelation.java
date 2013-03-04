@@ -56,7 +56,7 @@ public interface TransferRelation {
    * @param precision
    * @return list of all abstract states which should replace the old one, empty list for bottom or null for no change.
    */
-  public Collection<? extends AbstractState> strengthen (AbstractState state,
+  public Collection<? extends AbstractState> strengthen(AbstractState state,
                                      List<AbstractState> otherStates,
                                      CFAEdge cfaEdge,
                                      Precision precision)

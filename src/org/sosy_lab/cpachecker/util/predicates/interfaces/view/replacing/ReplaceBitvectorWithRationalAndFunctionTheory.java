@@ -101,7 +101,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
 
   private Map<Integer[], FunctionFormulaType<RationalFormula>> extractMethods = new Hashtable<>();
 
-  private FunctionFormulaType<RationalFormula> getExtractDecl (int pMsb, int pLsb){
+  private FunctionFormulaType<RationalFormula> getExtractDecl(int pMsb, int pLsb){
     Integer[] hasKey = new Integer[]{pMsb, pLsb};
     FunctionFormulaType<RationalFormula> value = extractMethods.get(hasKey);
     if (value == null){
