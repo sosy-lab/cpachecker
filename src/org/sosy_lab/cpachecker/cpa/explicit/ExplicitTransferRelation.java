@@ -615,9 +615,9 @@ public class ExplicitTransferRelation implements TransferRelation {
    * The result may be null, i.e., the value is unknown.
    */
   private class ExpressionValueVisitor extends DefaultCExpressionVisitor<Long, UnrecognizedCCodeException>
-                                       implements CRightHandSideVisitor<Long, UnrecognizedCCodeException>
-                                       , JRightHandSideVisitor<Long, UnrecognizedCCodeException>
-                                       , JExpressionVisitor<Long, UnrecognizedCCodeException>  {
+                                       implements CRightHandSideVisitor<Long, UnrecognizedCCodeException>,
+                                                   JRightHandSideVisitor<Long, UnrecognizedCCodeException>,
+                                                   JExpressionVisitor<Long, UnrecognizedCCodeException> {
     protected final CFAEdge edge;
     protected final ExplicitState state;
     protected final String functionName;

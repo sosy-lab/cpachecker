@@ -32,8 +32,8 @@ public abstract class AFunctionCallAssignmentStatement extends AStatement implem
   private final IAExpression leftHandSide;
   private final AFunctionCallExpression rightHandSide;
 
-  public AFunctionCallAssignmentStatement(FileLocation pFileLocation
-                                          , IAExpression pLeftHandSide,
+  public AFunctionCallAssignmentStatement(FileLocation pFileLocation,
+                                          IAExpression pLeftHandSide,
                                           AFunctionCallExpression pRightHandSide) {
     super(pFileLocation);
 
