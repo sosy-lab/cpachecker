@@ -1,6 +1,8 @@
 CPAchecker Develop Instructions
 
-More details (style guide etc.) can be found in the other files in this directory.
+More details can be found in the other files in this directory.
+
+Please read and follow StyleGuide.txt!
 
 
 Develop CPAchecker from within Eclipse
