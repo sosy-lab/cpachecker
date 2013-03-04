@@ -71,7 +71,7 @@ public class PivotRowHandler {
     remainingRows = new Vector<>(m);
     for (int i = 0; i < m; i++) {
       if (mat.isPivotRow(i)) {
-        remainingRows.add(new Integer(i));
+        remainingRows.add(Integer.valueOf(i));
       }
     }
     // Make a copy, which we will NOT alter as we proceed.
@@ -111,9 +111,9 @@ public class PivotRowHandler {
         }
       }
       if (absolute) {
-        auv.add(new Integer(j));
+        auv.add(Integer.valueOf(j));
       } else if (conditional) {
-        cuv.add(new Integer(j));
+        cuv.add(Integer.valueOf(j));
       }
     }
     AU = auv;
@@ -137,9 +137,9 @@ public class PivotRowHandler {
         }
       }
       if (absolute) {
-        auv.add(new Integer(j));
+        auv.add(Integer.valueOf(j));
       } else if (conditional) {
-        cuv.add(new Integer(j));
+        cuv.add(Integer.valueOf(j));
       }
     }
     // Return.

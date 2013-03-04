@@ -486,12 +486,12 @@ public class Polynomial {
           coeffs.add(t.getCoeff().makeInteger());
         }
       } else {
-        return new Integer(1);
+        return Integer.valueOf(1);
       }
     }
     // If all the coeffs were 0, then return 1.
     if (coeffs.size() == 0) {
-      return new Integer(1);
+      return Integer.valueOf(1);
     }
     // Replace each coeff by its absolute value.
     List<Integer> absCoeffs = new Vector<>(coeffs.size());
@@ -501,7 +501,7 @@ public class Polynomial {
       if (n < 0) {
         n = (-1)*n;
       }
-      absCoeffs.add(new Integer(n));
+      absCoeffs.add(Integer.valueOf(n));
     }
     // Now get the gcd.
     Integer d = gcd(absCoeffs);
@@ -551,7 +551,7 @@ public class Polynomial {
     for (Integer f : list) {
       p *= f;
     }
-    return new Integer(p);
+    return Integer.valueOf(p);
   }
 
   public static Integer gcd(Integer... ma) {
@@ -566,7 +566,7 @@ public class Polynomial {
     int N = mlist.size();
     // If list is length zero, return the Integer 1, a dummy response.
     if (N == 0) {
-      return new Integer(1);
+      return Integer.valueOf(1);
     }
     // If exactly 1, then it is its own gcd.
     else if (N == 1) {
@@ -600,7 +600,7 @@ public class Polynomial {
       b = r;
       r = a%b;
     }
-    return new Integer(b);
+    return Integer.valueOf(b);
   }
 
   /*

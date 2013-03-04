@@ -43,7 +43,7 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
 
   public TemplateVariable(FormulaType<?> type, String name, int i) {
     super(type);
-    index = new Integer(i);
+    index = Integer.valueOf(i);
     build(name, index);
   }
 
@@ -76,7 +76,7 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
     } else {
       String s = vn.substring(0, i);
       String ind = vn.substring(i+1);
-      Integer I = new Integer(ind);
+      Integer I = Integer.valueOf(ind);
       int j = I.intValue();
       V = new TemplateVariable(type, s, j);
     }
@@ -113,7 +113,7 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
   @Override
   public void preindex(Map<String, Integer> indices) {
     if (name!=null && indices.containsKey(name)) {
-      index = new Integer(1);
+      index = Integer.valueOf(1);
     } else {
       index = null;
     }
@@ -182,9 +182,9 @@ public class TemplateVariable extends TemplateNumericValue implements BooleanFor
 
     TemplateVariable v = null;
     if (index == null) {
-      v = new TemplateVariable(pNewType, new String(name));
+      v = new TemplateVariable(pNewType, name);
     } else {
-      v = new TemplateVariable(pNewType, new String(name), new Integer(index));
+      v = new TemplateVariable(pNewType, name, Integer.valueOf(index));
     }
     return v;
   }

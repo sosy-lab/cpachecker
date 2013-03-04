@@ -269,7 +269,7 @@ public class SingleLoopTemplateChooser implements TemplateChooser {
     Integer arity;
     for (TemplateUIF u : topLevelUIFs) {
       name = u.getName();
-      arity = new Integer(u.getArity());
+      arity = Integer.valueOf(u.getArity());
       map.put(name, arity);
     }
     return map;

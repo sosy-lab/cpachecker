@@ -57,7 +57,7 @@ public class TemplateUIF extends TemplateNumericValue {
     super(returnValue);
     name = pName;
     args = pArgs;
-    index = new Integer(pIdx);
+    index = Integer.valueOf(pIdx);
   }
 
   //----------------------------------------------------------------
@@ -80,9 +80,9 @@ public class TemplateUIF extends TemplateNumericValue {
     }
     */
 
-    TemplateUIF u = new TemplateUIF(new String(name), pNewType, args.copy());
+    TemplateUIF u = new TemplateUIF(name, pNewType, args.copy());
     if (index != null) {
-      u.index = new Integer(index);
+      u.index = Integer.valueOf(index);
     }
     if (oldPurifiedName != null) {
       u.oldPurifiedName = oldPurifiedName.copy();

@@ -189,7 +189,7 @@ public class MatrixSolver {
       }
       // Add list to stack, and initialize pointer to point just past the end of the list.
       stack.add(polys);
-      pointers.add(new Integer(polys.size()));
+      pointers.add(Integer.valueOf(polys.size()));
     }
 
     /*
@@ -226,7 +226,7 @@ public class MatrixSolver {
       }
       int topPtr = pointers.get(n-1).intValue();
       if (topPtr > 0) {
-        pointers.set(n-1, new Integer(topPtr-1));
+        pointers.set(n-1, Integer.valueOf(topPtr-1));
       } else {
         stack.remove(n-1);
         pointers.remove(n-1);

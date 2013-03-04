@@ -47,14 +47,14 @@ public class Monomial {
 
   public Monomial(Variable v) {
     vars = new HashMap<>();
-    vars.put(v, new Integer(1));
+    vars.put(v, Integer.valueOf(1));
   }
 
   public Monomial copy() {
     Map<Variable, Integer> v = new HashMap<>();
     for (Variable x : vars.keySet()) {
       Variable xp = new Variable(x.getName());
-      Integer pow = new Integer(vars.get(x).intValue());
+      Integer pow = Integer.valueOf(vars.get(x).intValue());
       v.put(xp, pow);
     }
     return new Monomial(v);
@@ -112,7 +112,7 @@ public class Monomial {
       } else {
         ea = 0;
       }
-      d.put( v, new Integer(ea - b.get(v).intValue() ));
+      d.put( v, Integer.valueOf(ea - b.get(v).intValue() ));
     }
     return new Monomial(d);
   }
@@ -172,7 +172,7 @@ public class Monomial {
       if (m3.vars.containsKey(v)) {
         int p1 = m3.vars.get(v).intValue();
         int p2 = m2.vars.get(v).intValue();
-        m3.vars.put(v, new Integer(p1+p2));
+        m3.vars.put(v, Integer.valueOf(p1+p2));
       } else {
         m3.vars.put(v, m2.vars.get(v));
       }
@@ -245,7 +245,7 @@ public class Monomial {
   }
 
   public void setPower(Variable v, int n) {
-    vars.put(v, new Integer(n));
+    vars.put(v, Integer.valueOf(n));
   }
 
   public int getPower(Variable v) {

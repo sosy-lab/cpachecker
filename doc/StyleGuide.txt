@@ -110,6 +110,8 @@ Coding:
   it is better to use the corresponding primitive types like int.
 - Never call the constructor of Integer, Double, Long, Boolean, etc.!
   Use the valueOf() method, it may do caching.
+- Never call the String constructor.
+  Strings do not need copying, and for other uses there is the valueOf() method.
 - Avoid Cloneable and clone(), use copy constructors instead if you need them
   (you don't if you use immutable classes).
 - When using our LogManager, don't concatenate log messages with +,

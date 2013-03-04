@@ -84,7 +84,7 @@ public class Purification {
    * the index n, or null if there is none.
    */
   public TemplateUIF getUIFByIndex(int n) {
-    Integer N = new Integer(n);
+    Integer N = Integer.valueOf(n);
     TemplateUIF F = null;
     if (UIFByIndex.containsKey(N)) {
       F = UIFByIndex.get(N);

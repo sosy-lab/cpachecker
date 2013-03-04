@@ -75,12 +75,12 @@ public class SubsetGenerator {
       hasmore = false;
     } else if (rest.hasMore()) {
       R = rest.getNext();
-      R.add(new Integer(choice));
+      R.add(Integer.valueOf(choice));
     } else if (choice < whole - part) {
       choice += 1;
       rest = new SubsetGenerator(whole, part-1, choice+1);
       R = rest.getNext();
-      R.add(new Integer(choice));
+      R.add(Integer.valueOf(choice));
     }
     if (choice == whole - part && (rest == null || !rest.hasMore() )) {
       hasmore = false;

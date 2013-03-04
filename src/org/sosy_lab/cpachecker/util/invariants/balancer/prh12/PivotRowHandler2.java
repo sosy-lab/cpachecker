@@ -77,7 +77,7 @@ public class PivotRowHandler2 {
     remainingRows = new Vector<>(m);
     for (int i = 0; i < m; i++) {
       if (mat.isPivotRow(i)) {
-        remainingRows.add(new Integer(i));
+        remainingRows.add(Integer.valueOf(i));
       }
     }
     // Make a copy, which we will NOT alter as we proceed.
@@ -87,7 +87,7 @@ public class PivotRowHandler2 {
     // Initialize the "available cols" as all the non augmentation columns.
     availableCols = new Vector<>(augStart);
     for (int j = 0; j < augStart; j++) {
-      availableCols.add(new Integer(j));
+      availableCols.add(Integer.valueOf(j));
     }
 
     writeCodes();
@@ -152,7 +152,7 @@ public class PivotRowHandler2 {
         }
       }
       if (absolute) {
-        auv.add(new Integer(j));
+        auv.add(Integer.valueOf(j));
       }
     }
     AU = auv;

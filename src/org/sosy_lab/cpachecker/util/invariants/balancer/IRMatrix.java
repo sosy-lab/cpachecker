@@ -407,7 +407,7 @@ public class IRMatrix implements MatrixI {
     Vector<Integer> rows = new Vector<>();
     for (int i = i0; i < m; i++) {
       if (!entry[i][j].isZero()) {
-        rows.add(new Integer(i));
+        rows.add(Integer.valueOf(i));
       }
     }
     return makeIntArray(rows);

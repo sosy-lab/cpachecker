@@ -122,7 +122,7 @@ public class Matrix implements MatrixI {
     // Copy pivot rows:
     m.pivotRows = new Vector<>(pivotRows.size());
     for (Integer i : pivotRows) {
-      m.pivotRows.add(new Integer(i.intValue()));
+      m.pivotRows.add(Integer.valueOf(i.intValue()));
     }
     //
     return m;
@@ -857,7 +857,7 @@ public class Matrix implements MatrixI {
     Vector<Integer> rows = new Vector<>();
     for (int i = i0; i < m; i++) {
       if (!entry[i][j].isZero()) {
-        rows.add(new Integer(i));
+        rows.add(Integer.valueOf(i));
       }
     }
     return makeIntArray(rows);

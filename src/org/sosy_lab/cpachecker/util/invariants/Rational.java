@@ -134,7 +134,7 @@ public class Rational {
   public Integer makeInteger() {
     Integer z = null;
     if (isIntegral()) {
-      z = new Integer(num/denom);
+      z = Integer.valueOf(num/denom);
     }
     return z;
   }

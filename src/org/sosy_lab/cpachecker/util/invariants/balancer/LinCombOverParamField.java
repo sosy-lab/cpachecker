@@ -164,7 +164,7 @@ public class LinCombOverParamField {
     for (int j = 0; j < numVars - 1; j++) {
       RationalFunction f = coeffs.get(j);
       if (!f.isZero()) {
-        vars.add(new Integer(j));
+        vars.add(Integer.valueOf(j));
       }
     }
     return vars;

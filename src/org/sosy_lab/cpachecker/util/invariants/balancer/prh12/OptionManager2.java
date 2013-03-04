@@ -182,7 +182,7 @@ public class OptionManager2 {
       // Turn these into actual rows.
       List<PivotRow2> r = new Vector<>(rowNums.size());
       for (PivotRow2 pr : rows) {
-        Integer i = new Integer(pr.getRowNum());
+        Integer i = Integer.valueOf(pr.getRowNum());
         if (rowNums.contains(i)) {
           r.add(pr);
         }

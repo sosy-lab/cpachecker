@@ -43,7 +43,7 @@ public class TemplateNumber extends TemplateNumericValue {
   public TemplateNumber(FormulaType<?> type, String s) {
     super(type);
     try {
-      Integer i = new Integer(s);
+      Integer i = Integer.valueOf(s);
       rat = new Rational(i, 1);
     } catch (Exception e) {
       System.err.println("Attempted to use float "+s+".\nOnly rational coefficients are allowed.");

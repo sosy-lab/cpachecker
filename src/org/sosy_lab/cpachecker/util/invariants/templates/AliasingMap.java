@@ -60,7 +60,7 @@ public class AliasingMap {
     if (map.containsKey(p)) {
       j = map.get(p);
     } else {
-      j = new Integer(nextIndex.incrementAndGet());
+      j = Integer.valueOf(nextIndex.incrementAndGet());
       map.put(p, j);
     }
     x.setAlias(prefix, j);

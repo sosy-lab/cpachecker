@@ -517,7 +517,7 @@ public class TemplateTerm extends TemplateSum {
     // any.
     Integer I = null;
     if (hasCoefficient()) {
-      I = new Integer(coeff.toString());
+      I = Integer.valueOf(coeff.toString());
     }
     return I;
   }

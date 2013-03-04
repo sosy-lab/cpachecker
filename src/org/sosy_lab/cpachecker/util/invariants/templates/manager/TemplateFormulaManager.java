@@ -159,7 +159,7 @@ public class TemplateFormulaManager implements FormulaManager {
 //   */
 //  @Override
 //  public BooleanFormula makeVariable(String pVar, int pIdx) {
-//    Integer i = new Integer(pIdx);
+//    Integer i = Integer.valueOf(pIdx);
 //    return makeVariable(pVar, i);
 //  }
 //
