@@ -64,7 +64,7 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
   public int getArity(Formula pF) {
     if (pF instanceof TemplateConstraint){
       return 2;
-    }else if (pF instanceof TemplateTerm){
+    } else if (pF instanceof TemplateTerm){
       TemplateTerm tt = (TemplateTerm)pF;
 
       int args = 0;
@@ -108,7 +108,7 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
         throw new IndexOutOfBoundsException("Invalid index");
       }
 
-    }else if (pF instanceof TemplateTerm){
+    } else if (pF instanceof TemplateTerm){
       TemplateTerm tt = (TemplateTerm)pF;
 
       int args = 0;
@@ -147,7 +147,7 @@ public class TemplateUnsafeFormulaManager implements UnsafeFormulaManager {
       if (args == 0 || args > 1){
         if (args > 0){
           return formulas[pN];
-        }else{
+        } else {
           throw new IndexOutOfBoundsException("Invalid index");
         }
       }

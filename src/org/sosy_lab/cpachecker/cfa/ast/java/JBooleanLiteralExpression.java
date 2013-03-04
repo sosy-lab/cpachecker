@@ -50,7 +50,7 @@ public class JBooleanLiteralExpression extends ALiteralExpression implements JLi
   public String toASTString() {
     if(value){
       return "true";
-    }else{
+    } else {
       return"false";
     }
   }

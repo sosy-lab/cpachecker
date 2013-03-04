@@ -1945,7 +1945,7 @@ public class ASTConverter {
       return BinaryOperator.BINARY_XOR;
     } else if (op.equals(Assignment.Operator.DIVIDE_ASSIGN)) {
       return BinaryOperator.DIVIDE;
-    }else if (op.equals(Assignment.Operator.LEFT_SHIFT_ASSIGN)) {
+    } else if (op.equals(Assignment.Operator.LEFT_SHIFT_ASSIGN)) {
       return BinaryOperator.SHIFT_LEFT;
     } else if (op.equals(Assignment.Operator.RIGHT_SHIFT_SIGNED_ASSIGN)) {
       return BinaryOperator.SHIFT_RIGHT_SIGNED;
@@ -1959,7 +1959,7 @@ public class ASTConverter {
       return BinaryOperator.MODULO;
     } else if (op.equals(Assignment.Operator.TIMES_ASSIGN)) {
       return BinaryOperator.MULTIPLY;
-    }else {
+    } else {
       logger.log(Level.SEVERE, "Did not find Operator");
       return null;
     }

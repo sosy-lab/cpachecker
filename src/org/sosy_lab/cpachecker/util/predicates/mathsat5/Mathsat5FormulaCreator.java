@@ -68,11 +68,11 @@ class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long>{
     Mathsat5Formula f;
     if (pClazz == BitvectorFormula.class){
       f = new Mathsat5BitvectorFormula(pTerm);
-    }else if (pClazz == RationalFormula.class){
+    } else if (pClazz == RationalFormula.class){
       f = new Mathsat5RationalFormula(pTerm);
-    }else if (pClazz == BooleanFormula.class){
+    } else if (pClazz == BooleanFormula.class){
       f = new Mathsat5BooleanFormula(pTerm);
-    }else {
+    } else {
       throw new IllegalArgumentException("invalid interface type");
     }
     return (T)f;

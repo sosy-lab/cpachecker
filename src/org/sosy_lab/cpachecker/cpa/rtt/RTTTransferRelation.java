@@ -551,7 +551,7 @@ public class RTTTransferRelation implements TransferRelation {
       // If the method isn't static, the object  scope remains the same
       if(decl.isStatic()) {
         newElement.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
-      }else {
+      } else {
        newElement.assignThisAndNewObjectScope(newElement.getUniqueObjectFor(RTTState.KEYWORD_THIS));
       }
      //  the method Invocation can't be handled

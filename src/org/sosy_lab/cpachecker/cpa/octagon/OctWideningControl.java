@@ -72,7 +72,7 @@ class OctWideningControl {
     if (loopNodeList.containsKey(nodeId)){
       ln = loopNodeList.get(nodeId);
       return ln.isWideningUsed();
-    } else{
+    } else {
       ln = new LoopNode(nodeId);
       loopNodeList.put(nodeId, ln);
       return   ln.isWideningUsed();

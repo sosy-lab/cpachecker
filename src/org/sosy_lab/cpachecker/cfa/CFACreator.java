@@ -432,7 +432,7 @@ public class CFACreator {
       // only one function available, take this one
       return Iterables.getOnlyElement(cfas.values());
 
-    } else{
+    } else {
       // get the AAA part out of a filename like test/program/AAA.cil.c
       filename = (new File(filename)).getName(); // remove directory
 

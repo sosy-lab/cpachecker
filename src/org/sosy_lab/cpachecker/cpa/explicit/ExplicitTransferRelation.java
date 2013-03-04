@@ -566,7 +566,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     if(exp instanceof JRightHandSide && !(exp instanceof CRightHandSide )){
        value = ((JRightHandSide) exp).accept(visitor);
-    }else {
+    } else {
        value = ((CRightHandSide) exp).accept(visitor);
     }
 

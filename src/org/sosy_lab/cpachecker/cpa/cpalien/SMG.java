@@ -170,7 +170,7 @@ public class SMG {
   public void setValidity(SMGObject obj, boolean value){
     if (this.objects.contains(obj)){
       this.object_validity.put(obj, value);
-    } else{
+    } else {
       throw new IllegalArgumentException("Object [" + obj + "] not in SMG");
     }
   }
@@ -178,7 +178,7 @@ public class SMG {
   public boolean isObjectValid(SMGObject obj){
     if (this.objects.contains(obj)){
       return object_validity.get(obj).booleanValue();
-    } else{
+    } else {
       throw new IllegalArgumentException("Object [" + obj + "] not in SMG");
     }
   }

@@ -156,7 +156,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   public Long divide(Long pNumber1, Long pNumber2, boolean signed) {
     if (signed){
       return msat_make_bv_sdiv(mathsatEnv, pNumber1, pNumber2);
-    }else{
+    } else {
       return msat_make_bv_udiv(mathsatEnv, pNumber1, pNumber2);
     }
   }
@@ -165,7 +165,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   public Long modulo(Long pNumber1, Long pNumber2, boolean signed) {
     if (signed){
       return msat_make_bv_srem(mathsatEnv, pNumber1, pNumber2);
-    }else {
+    } else {
       return msat_make_bv_urem(mathsatEnv, pNumber1, pNumber2);
     }
   }
@@ -184,7 +184,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   public Long lessThan(Long pNumber1, Long pNumber2, boolean signed) {
     if (signed){
       return msat_make_bv_slt(mathsatEnv, pNumber1, pNumber2);
-    }else {
+    } else {
       return msat_make_bv_ult(mathsatEnv, pNumber1, pNumber2);
     }
   }
@@ -193,7 +193,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   public Long lessOrEquals(Long pNumber1, Long pNumber2, boolean signed) {
     if (signed){
       return msat_make_bv_sleq(mathsatEnv, pNumber1, pNumber2);
-    }else {
+    } else {
       return msat_make_bv_uleq(mathsatEnv, pNumber1, pNumber2);
     }
   }

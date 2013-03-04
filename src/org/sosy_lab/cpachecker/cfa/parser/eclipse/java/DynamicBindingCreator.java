@@ -378,7 +378,7 @@ public class DynamicBindingCreator {
       JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement =  (JMethodInvocationAssignmentStatement) oldFunctionCall;
       newFunctionCall =  new JMethodInvocationAssignmentStatement( fileloc, oldFunctionCallAssignmentStatement.getLeftHandSide(), newFunctionCallExpression);
 
-    }else {
+    } else {
       assert edge.getStatement() instanceof JMethodInvocationStatement : "Statement is no Function Call";
       newFunctionCall =   new JMethodInvocationStatement(fileloc, newFunctionCallExpression );
     }
@@ -449,7 +449,7 @@ public class DynamicBindingCreator {
           // TODO Clone leftHandSide
           newFunctionCall = new JMethodInvocationAssignmentStatement( fileloc, oldFunctionCallAssignmentStatement.getLeftHandSide(), newFunctionCallExpression);
 
-        }else {
+        } else {
           assert edge.getStatement() instanceof JMethodInvocationStatement : "Statement is no Function Call";
           newFunctionCall =  new JMethodInvocationStatement(fileloc, newFunctionCallExpression );
         }

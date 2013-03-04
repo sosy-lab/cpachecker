@@ -425,7 +425,7 @@ class CLangSMGConsistencyVerifier{
         if (firstNull != null){
           pLogger.log(Level.SEVERE, "CLangSMG inconsistent: second null object in heap object set [first=" + firstNull + ", second=" + obj +"]" );
           return false;
-        } else{
+        } else {
           firstNull = obj;
         }
       }

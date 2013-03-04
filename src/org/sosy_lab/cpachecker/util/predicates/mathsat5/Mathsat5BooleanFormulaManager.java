@@ -55,7 +55,7 @@ class Mathsat5BooleanFormulaManager extends AbstractBooleanFormulaManager<Long> 
     long v;
     if (pValue){
       v = msat_make_true(mathsatEnv);
-    }else{
+    } else {
       v = msat_make_false(mathsatEnv);
     }
 

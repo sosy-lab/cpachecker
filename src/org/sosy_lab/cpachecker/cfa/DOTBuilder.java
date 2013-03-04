@@ -95,7 +95,7 @@ public final class DOTBuilder {
       List<String> graph;
       if ((edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge){
         graph = edges.get(MAIN_GRAPH);
-      } else{
+      } else {
         graph = edges.get(predecessor.getFunctionName());
       }
       graph.add(formatEdge(edge));

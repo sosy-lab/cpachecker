@@ -91,7 +91,7 @@ public class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManage
   public String getName(Term t) {
     if (SmtInterpolUtil.isVariable(t)){
       return dequote( t.toString() );
-    }else if (uifs.contains(t)) {
+    } else if (uifs.contains(t)) {
       return ((ApplicationTerm)t).getFunction().toString();
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");
@@ -108,7 +108,7 @@ public class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManage
 
     if (SmtInterpolUtil.isVariable(t)){
       return creator.makeVariable(t.getSort(), pNewName);
-    }else if (uifs.contains(t)) {
+    } else if (uifs.contains(t)) {
       ApplicationTerm at = (ApplicationTerm) t;
       Term[] args = at.getParameters();
       Sort[] sorts = new Sort[args.length];

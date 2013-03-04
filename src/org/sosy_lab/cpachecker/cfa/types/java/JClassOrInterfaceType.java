@@ -78,7 +78,7 @@ public abstract class  JClassOrInterfaceType implements JReferenceType {
 
     if(this instanceof JClassType){
       result.addAll(((JClassType)this).getAllSuperTypesOfClass()) ;
-    }else if(this instanceof JInterfaceType){
+    } else if(this instanceof JInterfaceType){
       result.addAll(((JInterfaceType)this).getAllSuperTypesOfInterface());
       return result;
     }
@@ -91,7 +91,7 @@ public abstract class  JClassOrInterfaceType implements JReferenceType {
 
     if(this instanceof JClassType){
       result.addAll(((JClassType)this).getAllSubTypesOfClass()) ;
-    }else if(this instanceof JInterfaceType){
+    } else if(this instanceof JInterfaceType){
       result.addAll(((JInterfaceType)this).getAllSuperTypesOfInterface());
       return result;
     }

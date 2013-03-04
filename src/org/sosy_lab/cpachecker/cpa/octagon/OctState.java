@@ -149,7 +149,7 @@ class OctState implements AbstractState{
       forget(pVariableName);
     }
 
-    else{
+    else {
       NumArray arr = getArrayForLiteral(pLongValue);
       octagon = OctagonManager.assingVar(octagon, getVariableIndexFor(pVariableName), arr);
       OctagonManager.num_clear_n(arr, size() + 1);
@@ -195,7 +195,7 @@ class OctState implements AbstractState{
       forget(pLeftVarName);
     }
 
-    else{
+    else {
       NumArray arr = getArrayForVariable(getVariableIndexFor(pRightVarName), coef);
       octagon = OctagonManager.assingVar(octagon, getVariableIndexFor(pLeftVarName), arr);
       OctagonManager.num_clear_n(arr, size() + 1);
@@ -207,7 +207,7 @@ class OctState implements AbstractState{
     for (int i = 0; i<variableToIndexMap.size(); i++){
       if (i == pVariableIndexFor){
         OctagonManager.num_set_int(arr, i, coef);
-      } else{
+      } else {
         OctagonManager.num_set_int(arr, i, 0);
       }
     }
@@ -226,11 +226,11 @@ class OctState implements AbstractState{
         (pLeftVarName != null && pLeftVarName.contains("NONDET")) ||
         (pRightVarName != null && pRightVarName.contains("NONDET"))){
       forget(pAssignedVar);
-    } else{
+    } else {
       if (pLeftVarName == null){
         leftVarIdx = -1;
         leftVarCoef = 0;
-      } else{
+      } else {
         leftVarIdx = getVariableIndexFor(pLeftVarName);
         leftVarCoef = pLeftVarCoef;
       }
@@ -238,7 +238,7 @@ class OctState implements AbstractState{
       if (pRightVarName == null){
         rightVarIdx = -1;
         rightVarCoef = 0;
-      } else{
+      } else {
         rightVarIdx = getVariableIndexFor(pRightVarName);
         rightVarCoef = pRightVarCoef;
       }
@@ -260,7 +260,7 @@ class OctState implements AbstractState{
         OctagonManager.num_set_int(arr, i, pLeftVarCoef);
       } else if (i == pRightVarIdx){
         OctagonManager.num_set_int(arr, i, pRightVarCoef);
-      } else{
+      } else {
         OctagonManager.num_set_int(arr, i, 0);
       }
     }

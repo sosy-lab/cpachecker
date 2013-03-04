@@ -58,7 +58,7 @@ public class SmtInterpolBooleanFormulaManager extends AbstractBooleanFormulaMana
     Term t ;
     if (pValue){
       t = env.getTrueTerm();
-    }else{
+    } else {
       t = env.getFalseTerm();
     }
     return t;

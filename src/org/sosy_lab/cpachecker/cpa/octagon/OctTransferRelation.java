@@ -205,14 +205,14 @@ class OctTransferRelation implements TransferRelation{
         String assignedVarName = getvarName(varName, callerFunctionName);
 
         assignVariable(element, assignedVarName, returnVarName, 1);
-      } else{
+      } else {
         throw new UnrecognizedCCodeException("on function return", summaryEdge, op1);
       }
     }
     // g(b)
     else if (exprOnSummary instanceof CFunctionCallStatement) {
       // do nothing
-    } else{
+    } else {
       throw new UnrecognizedCCodeException("on function return", summaryEdge, exprOnSummary.asStatement());
     }
 
@@ -287,7 +287,7 @@ class OctTransferRelation implements TransferRelation{
      // do nothing
       }
 
-      else{
+      else {
         // TODO forgetting
      // do nothing
         //      throw new ExplicitTransferException("Unhandled case");
@@ -332,7 +332,7 @@ class OctTransferRelation implements TransferRelation{
       return handleAssumption(pElement, ((CCastExpression)expression).getOperand(), cfaEdge, truthValue);
     }
 
-    else{
+    else {
       throw new UnrecognizedCCodeException("Unknown expression type in assumption", cfaEdge, expression);
     }
 
@@ -452,10 +452,10 @@ class OctTransferRelation implements TransferRelation{
             return pElement;
           }
 
-          else{
+          else {
             throw new UnrecognizedCCodeException("Unhandled case ", edge);
           }
-        } else{
+        } else {
           throw new UnrecognizedCCodeException("Unhandled case ", edge);
         }
       }
@@ -474,7 +474,7 @@ class OctTransferRelation implements TransferRelation{
         if (opType == BinaryOperator.EQUALS) {
           if (truthValue){
             return addEqConstraint(pElement, rightVariableName, leftVariableName);
-          } else{
+          } else {
             return propagateBooleanExpression(pElement, BinaryOperator.NOT_EQUALS, op1, op2, functionName, !truthValue, edge);
           }
         }
@@ -482,7 +482,7 @@ class OctTransferRelation implements TransferRelation{
         else if (opType == BinaryOperator.NOT_EQUALS) {
           if (truthValue){
             return addIneqConstraint(pElement, rightVariableName, leftVariableName);
-          } else{
+          } else {
             return propagateBooleanExpression(pElement, BinaryOperator.EQUALS, op1, op2, functionName, !truthValue, edge);
           }
         }
@@ -490,7 +490,7 @@ class OctTransferRelation implements TransferRelation{
         else if (opType == BinaryOperator.GREATER_THAN) {
           if (truthValue){
             return addGreaterConstraint(pElement, rightVariableName, leftVariableName);
-          } else{
+          } else {
             return  propagateBooleanExpression(pElement, BinaryOperator.LESS_EQUAL, op1, op2, functionName, !truthValue, edge);
           }
         }
@@ -498,7 +498,7 @@ class OctTransferRelation implements TransferRelation{
         else if (opType == BinaryOperator.GREATER_EQUAL) {
           if (truthValue){
             return addGreaterEqConstraint(pElement, rightVariableName, leftVariableName);
-          } else{
+          } else {
             return propagateBooleanExpression(pElement, BinaryOperator.LESS_THAN, op1, op2, functionName, !truthValue, edge);
           }
         }
@@ -506,7 +506,7 @@ class OctTransferRelation implements TransferRelation{
         else if (opType == BinaryOperator.LESS_THAN) {
           if (truthValue){
             return addSmallerConstraint(pElement, rightVariableName, leftVariableName);
-          } else{
+          } else {
             return propagateBooleanExpression(pElement, BinaryOperator.GREATER_EQUAL, op1, op2, functionName, !truthValue, edge);
           }
         }
@@ -514,10 +514,10 @@ class OctTransferRelation implements TransferRelation{
         else if (opType == BinaryOperator.LESS_EQUAL) {
           if (truthValue){
             return addSmallerEqConstraint(pElement, rightVariableName, leftVariableName);
-          } else{
+          } else {
             return propagateBooleanExpression(pElement, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue, edge);
           }
-        } else{
+        } else {
           throw new UnrecognizedCCodeException("Unhandled case ", edge);
         }
       } else if (op2 instanceof CUnaryExpression) {
@@ -590,16 +590,16 @@ class OctTransferRelation implements TransferRelation{
                 } else {
                   return propagateBooleanExpression(pElement, BinaryOperator.GREATER_THAN, op1, op2, functionName, !truthValue, edge);
                 }
-              } else{
+              } else {
                 throw new UnrecognizedCCodeException("Unhandled case ", edge);
               }
-            } else{
+            } else {
               throw new UnrecognizedCCodeException("Unhandled case ", edge);
             }
-          } else{
+          } else {
             throw new UnrecognizedCCodeException("Unhandled case ", edge);
           }
-        } else{
+        } else {
           throw new UnrecognizedCCodeException("Unhandled case ", edge);
         }
       } else if (op2 instanceof CBinaryExpression){
@@ -612,7 +612,7 @@ class OctTransferRelation implements TransferRelation{
         CCastExpression castExp = (CCastExpression)op2;
         CExpression exprInCastOp = castExp.getOperand();
         return propagateBooleanExpression(pElement, opType, op1, exprInCastOp, functionName, truthValue, edge);
-      } else{
+      } else {
         String varName = op1.toASTString();
         String variableName = getvarName(varName, functionName);
         return forgetState(pElement, variableName);
@@ -621,7 +621,7 @@ class OctTransferRelation implements TransferRelation{
       CCastExpression castExp = (CCastExpression) op1;
       CExpression castOperand = castExp.getOperand();
       return propagateBooleanExpression(pElement, opType, castOperand, op2, functionName, truthValue, edge);
-    } else{
+    } else {
       String varName = op1.toASTString();
       String variableName = getvarName(varName, functionName);
       return forgetState(pElement, variableName);
@@ -678,7 +678,7 @@ class OctTransferRelation implements TransferRelation{
     addEqConstraint(newElem1, pLeftVariableName, pRightVariableName);
     if (! newElem1.isEmpty()){
       return null;
-    } else{
+    } else {
       return pElement;
     }
   }
@@ -695,7 +695,7 @@ class OctTransferRelation implements TransferRelation{
     addGreaterEqConstraint(pElement, pRightVariableName, pLeftVariableName);
     if (newElem1.isEmpty()){
       return null;
-    } else{
+    } else {
       return assignVariable(pElement, pLeftVariableName, pRightVariableName, 1);
     }
   }
@@ -742,7 +742,7 @@ class OctTransferRelation implements TransferRelation{
     addGreaterEqConstraint(pElement, pVariableName, pI);
     if (newElem1.isEmpty()){
       return null;
-    } else{
+    } else {
       return assignConstant(pElement, pVariableName, pI);
     }
 
@@ -756,7 +756,7 @@ class OctTransferRelation implements TransferRelation{
     addEqConstraint(newElem1, pVariableName, pI);
     if (! newElem1.isEmpty()){
       return pElement;
-    } else{
+    } else {
       return pElement;
     }
   }
@@ -803,7 +803,7 @@ class OctTransferRelation implements TransferRelation{
         if (v != null) {
           return assignConstant(pElement, variableName, v.longValue());
         }
-      } else{
+      } else {
         String variableName = getvarName(varName, declarationEdge.getPredecessor().getFunctionName());
         return declareVariable(pElement, variableName);
       }
@@ -837,7 +837,7 @@ class OctTransferRelation implements TransferRelation{
     // there is such a case
     else if (expression instanceof CExpressionStatement){
       // do nothing
-    } else{
+    } else {
       throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
     assert(false);
@@ -923,7 +923,7 @@ class OctTransferRelation implements TransferRelation{
       //      OctState newElement = element.clone();
       String lvarName = getvarName(lParam, functionName);
       return forget(pElement, lvarName);
-    } else{
+    } else {
       throw new UnrecognizedCCodeException(cfaEdge, rightExp);
     }
   }
@@ -967,7 +967,7 @@ class OctTransferRelation implements TransferRelation{
       if (unaryOperand instanceof CIdExpression) {
 //        missingInformationLeftVariable = assignedVar;
 //        missingInformationRightPointer = unaryOperand.getRawSignature();
-      } else{
+      } else {
         throw new UnrecognizedCCodeException(cfaEdge, unaryOperand);
       }
 
@@ -1072,7 +1072,7 @@ class OctTransferRelation implements TransferRelation{
           default:
             throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
           }
-        } else{
+        } else {
           throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
         }
       }
@@ -1104,7 +1104,7 @@ class OctTransferRelation implements TransferRelation{
           default:
             throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
           }
-        } else{
+        } else {
           throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
         }
       }
@@ -1132,7 +1132,7 @@ class OctTransferRelation implements TransferRelation{
           default:
             throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
           }
-        } else{
+        } else {
           throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge);
         }
       }
