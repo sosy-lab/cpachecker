@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -33,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Pair;
@@ -57,6 +60,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment.AllS
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+
+import com.google.common.base.Joiner;
 
 @Options(prefix = "cpa.predicate")
 public class PredicateAbstractionManager {
@@ -199,15 +204,35 @@ public class PredicateAbstractionManager {
       abstractionCache.put(absKey, result);
     }
 
+    long abstractionTime = stats.abstractionSolveTime.getLengthOfLastInterval()
+        + stats.abstractionEnumTime.getLengthOfLastOuterInterval();
+    logger.log(Level.FINEST, "Computing abstraction took", abstractionTime, "ms");
     logger.log(Level.ALL, "Abstraction result is", result);
+
+    if (dumpHardAbstractions && abstractionTime > 10000) {
+      // we want to dump "hard" problems...
+      File dumpFile;
+
+      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
+      fmgr.dumpFormulaToFile(f, dumpFile);
+
+      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
+      try (Writer w = Files.openOutputFile(dumpFile.toPath())) {
+        Joiner.on('\n').appendTo(w, predicates);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");
+      }
+
+      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "result", 0);
+      fmgr.dumpFormulaToFile(result.asInstantiatedFormula(), dumpFile);
+    }
+
     return result;
   }
 
   private Region buildCartesianAbstraction(final BooleanFormula f, final SSAMap ssa,
       Collection<AbstractionPredicate> predicates) {
     final RegionCreator rmgr = amgr.getRegionCreator();
-
-    stats.abstractionEnumTime.startOuter();
 
     try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
       thmProver.push(f);
@@ -217,7 +242,10 @@ public class PredicateAbstractionManager {
         feasibility = feasibilityCache.get(f);
 
       } else {
+        stats.abstractionSolveTime.start();
         feasibility = !thmProver.isUnsat();
+        stats.abstractionSolveTime.stop();
+
         if (useCache) {
           feasibilityCache.put(f, feasibility);
         }
@@ -236,6 +264,7 @@ public class PredicateAbstractionManager {
         warnedOfCartesianAbstraction = true;
       }
 
+      stats.abstractionEnumTime.startOuter();
       try {
         Region absbdd = rmgr.makeTrue();
 
@@ -308,11 +337,8 @@ public class PredicateAbstractionManager {
 
       } finally {
         thmProver.pop();
+        stats.abstractionEnumTime.stopOuter();
       }
-
-    } finally {
-
-      stats.abstractionEnumTime.stopOuter();
     }
   }
 
@@ -392,27 +418,6 @@ public class PredicateAbstractionManager {
       if (numModels < Integer.MAX_VALUE) {
         stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
         stats.allSatCount += numModels;
-      }
-    }
-
-    long abstractionTime = stats.abstractionSolveTime.getLengthOfLastInterval()
-        + stats.abstractionEnumTime.getLengthOfLastOuterInterval();
-    logger.log(Level.FINEST, "Computing abstraction took", abstractionTime, "ms");
-
-    if (dumpHardAbstractions) {
-      // we want to dump "hard" problems...
-
-      if (abstractionTime > 10000) {
-        File dumpFile;
-
-        dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
-        fmgr.dumpFormulaToFile(f, dumpFile);
-
-        dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predDef", 0);
-        fmgr.dumpFormulaToFile(predDef, dumpFile);
-
-        dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predVars", 0);
-        fmgr.printFormulasToFile(predVars, dumpFile);
       }
     }
 
