@@ -232,18 +232,18 @@ public class BlockFormulaSlicer {
 
     // this map contains all done states with their last important state
     // a state is important, if any outgoing edge is important
-    Multimap<ARGState, ARGState> s2s = HashMultimap.create(block.size(), 1);
+    final Multimap<ARGState, ARGState> s2s = HashMultimap.create(block.size(), 1);
 
     // bfs for parents, visit each state once.
     // we use a list for the next states,
     // but we also remove states from waitlist, when they are done,
     // so we need fast access to the states
-    Set<ARGState> waitlist = new LinkedHashSet<>();
+    final Set<ARGState> waitlist = new LinkedHashSet<>();
 
     // special handling of first state
     s2v.put(end, importantVars);
     s2s.put(end, end);
-    for (ARGState parent : end.getParents()) {
+    for (final ARGState parent : end.getParents()) {
       if (block.contains(parent)) {
         waitlist.add(parent);
       }
@@ -264,7 +264,7 @@ public class BlockFormulaSlicer {
       }
 
       // collect new states, ignore unreachable states
-      for (ARGState parent : current.getParents()) {
+      for (final ARGState parent : current.getParents()) {
         if (block.contains(parent)) {
           waitlist.add(parent);
         }
@@ -275,9 +275,10 @@ public class BlockFormulaSlicer {
       s2v.put(current, vars);
 
       // cleanup, remove states, that will not be used in future
-      for (ARGState child : current.getChildren()) {
+      for (final ARGState child : current.getChildren()) {
         if (block.contains(child) && isAllParentsDone(child, s2v.keySet(), block)) {
           s2v.remove(child);
+          s2s.removeAll(child);
         }
       }
     }
@@ -333,7 +334,7 @@ public class BlockFormulaSlicer {
 
       // do the hard work
       final CFAEdge edge = current.getEdgeToChild(child);
-      boolean isImportant = handleEdge(edge, newVars);
+      final boolean isImportant = handleEdge(edge, newVars);
 
       assert !importantEdges.containsEntry(current, child);
 
@@ -481,12 +482,6 @@ public class BlockFormulaSlicer {
     final String functionName = edge.getPredecessor().getFunctionName();
     addAllVarsFromExpr(expression, functionName, importantVars);
 
-    // TODO merge left and right?
-    // 3 cases:
-    // 1. important, because assumption is only left xor right
-    // 2. important, because vars of assumption are used later as important vars
-    // 3. unimportant, if vars are not used and both sides are identical
-
     return true;
   }
 
@@ -494,7 +489,7 @@ public class BlockFormulaSlicer {
    * @param pImportantVars */
   private boolean handleStatement(CStatementEdge edge,
       Multimap<String, String> importantVars) {
-    IAStatement statement = edge.getStatement();
+    final IAStatement statement = edge.getStatement();
 
     // expression is an assignment operation, e.g. a = b;
     if (statement instanceof CAssignment) {
@@ -520,7 +515,7 @@ public class BlockFormulaSlicer {
 
   private boolean handleAssignment(CAssignment statement, CStatementEdge edge,
       Multimap<String, String> importantVars) {
-    CExpression lhs = statement.getLeftHandSide();
+    final CExpression lhs = statement.getLeftHandSide();
 
     // a = ?
     if (lhs instanceof CIdExpression) {
@@ -530,7 +525,7 @@ public class BlockFormulaSlicer {
 
       if (importantVars.containsEntry(scopedFunctionName, varName)) {
         importantVars.remove(scopedFunctionName, varName);
-        IARightHandSide rhs = statement.getRightHandSide();
+        final IARightHandSide rhs = statement.getRightHandSide();
 
         // a = b + c
         if (rhs instanceof CExpression) {
@@ -557,7 +552,6 @@ public class BlockFormulaSlicer {
 
   private boolean handleExternalFunctionCall(CStatementEdge pEdge,
       List<CExpression> parameterExpressions) {
-    // TODO Auto-generated method stub
     return true;
   }
 
@@ -766,7 +760,6 @@ public class BlockFormulaSlicer {
       waitlist.remove(current);
 
       // already handled
-      System.out.println(s2f.size());
       assert !s2f.keySet().contains(current);
 
       // we have to wait for all parents completed,
