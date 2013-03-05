@@ -134,38 +134,40 @@ public class BlockFormulaSlicer {
   public List<BooleanFormula> sliceFormulasForPath(List<ARGState> path, ARGState initialState)
       throws CPATransferException {
 
-    // first find all ARGStates for each subpath,
-    // a subpath is a set of states with one start- and one end-state,
-    // there can be several traces from start to end
-    // TODO rename 'subpath' to something better?
-    Map<ARGState, Set<ARGState>> subpaths = new HashMap<>(path.size());
-    for (int i = 0; i < path.size(); i++) {
-      ARGState start = i > 0 ? path.get(i - 1) : initialState;
-      ARGState end = path.get(i);
+    // first find all ARGStates for each block,
+    // a block is a set of states with one start- and one end-state,
+    // each path, that ends at the end-state, starts in the start-state,
+    // but not the other way. there can be several pathes from start to end.
 
-      subpaths.put(start, getARGStatesOfSubpath(start, end));
+    // the map contains a start-state with the block after it
+    Map<ARGState, Set<ARGState>> blocks = new HashMap<>(path.size());
+    for (int i = 0; i < path.size(); i++) {
+      final ARGState start = i > 0 ? path.get(i - 1) : initialState;
+      final ARGState end = path.get(i);
+
+      blocks.put(start, getARGStatesOfBlock(start, end));
     }
 
-    assert path.size() == subpaths.size();
+    assert path.size() == blocks.size();
 
-    // slice each subpath, we do this backwards
+    // slice each block, we do this backwards
     Multimap<String, String> importantVars = HashMultimap.create();
     for (int i = path.size() - 1; i >= 0; i--) {
-      ARGState start = i > 0 ? path.get(i - 1) : initialState;
-      ARGState end = path.get(i);
+      final ARGState start = i > 0 ? path.get(i - 1) : initialState;
+      final ARGState end = path.get(i);
 
-      importantVars = sliceSubpath(start, end, subpaths.get(start), importantVars);
+      importantVars = sliceBlock(start, end, blocks.get(start), importantVars);
     }
 
     // build new pathformulas, forwards
     PathFormula pf = pfmgr.makeEmptyPathFormula();
     List<PathFormula> pfs = new ArrayList<>(path.size());
     for (int i = 0; i < path.size(); i++) {
-      ARGState start = i > 0 ? path.get(i - 1) : initialState;
-      ARGState end = path.get(i);
+      final ARGState start = i > 0 ? path.get(i - 1) : initialState;
+      final ARGState end = path.get(i);
 
       PathFormula oldPf = pfmgr.makeEmptyPathFormula(pf);
-      pf = buildFormula(start, end, subpaths.get(start), oldPf);
+      pf = buildFormula(start, end, blocks.get(start), oldPf);
       pfs.add(pf);
     }
 
@@ -193,24 +195,22 @@ public class BlockFormulaSlicer {
     return list;
   }
 
-  /** This function returns all states, that are contained in a subpath.
-   * The subpath is the union of all paths, that end in the end-state.
+  /** This function returns all states, that are contained in a block.
+   * The block is the union of all paths, that end in the end-state.
    * We assume, that all paths begin in the start-state (that may be null).
    * The returned collection includes the end-state and the start-state. */
-  private Set<ARGState> getARGStatesOfSubpath(ARGState start, ARGState end) {
-    Set<ARGState> states = new HashSet<>();
+  private Set<ARGState> getARGStatesOfBlock(ARGState start, ARGState end) {
+    final Set<ARGState> states = new HashSet<>();
     states.add(start); // start is the last state to be reachable backwards
     states.add(end); // end is the first state to be reachable backwards
 
     // backwards-bfs for parents, visit each state once
-    List<ARGState> waitlist = new LinkedList<>();
+    final List<ARGState> waitlist = new LinkedList<>();
     waitlist.add(end);
     while (!waitlist.isEmpty()) {
       final ARGState current = waitlist.remove(0);
       for (ARGState parent : current.getParents()) {
-        // stop, if state was seen before
-        if (!states.contains(parent)) {
-          states.add(parent);
+        if (states.add(parent)) { // state was not seen before
           waitlist.add(parent);
         }
       }
@@ -220,15 +220,15 @@ public class BlockFormulaSlicer {
   }
 
 
-  private Multimap<String, String> sliceSubpath(ARGState start, ARGState end,
-      Set<ARGState> subpath, Multimap<String, String> importantVars) {
+  private Multimap<String, String> sliceBlock(ARGState start, ARGState end,
+      Set<ARGState> block, Multimap<String, String> importantVars) {
 
     // this map contains all done states with their vars
-    Map<ARGState, Multimap<String, String>> s2v = new HashMap<>(subpath.size());
+    Map<ARGState, Multimap<String, String>> s2v = new HashMap<>(block.size());
 
     // this map contains all done states with their last important state
     // a state is important, if any outgoing edge is important
-    Multimap<ARGState, ARGState> s2s = HashMultimap.create(subpath.size(), 1);
+    Multimap<ARGState, ARGState> s2s = HashMultimap.create(block.size(), 1);
 
     // bfs for parents, visit each state once.
     // we use a list for the next states,
@@ -240,7 +240,7 @@ public class BlockFormulaSlicer {
     s2v.put(end, importantVars);
     s2s.put(end, end);
     for (ARGState parent : end.getParents()) {
-      if (subpath.contains(parent)) {
+      if (block.contains(parent)) {
         waitlist.add(parent);
       }
     }
@@ -254,25 +254,25 @@ public class BlockFormulaSlicer {
 
       // we have to wait for all children completed,
       // because we want to join the branches
-      if (!isAllChildrenDone(current, s2v.keySet(), subpath)) {
+      if (!isAllChildrenDone(current, s2v.keySet(), block)) {
         waitlist.add(current); // re-add current state, at last position
         continue;
       }
 
       // collect new states, ignore unreachable states
       for (ARGState parent : current.getParents()) {
-        if (subpath.contains(parent)) {
+        if (block.contains(parent)) {
           waitlist.add(parent);
         }
       }
 
       // handle state
-      Multimap<String, String> vars = handleEdgesForState(current, s2v, s2s, subpath);
+      final Multimap<String, String> vars = handleEdgesForState(current, s2v, s2s, block);
       s2v.put(current, vars);
 
       // cleanup, remove unused states
       for (ARGState child : current.getChildren()) {
-        if (subpath.contains(child) && isAllParentsDone(child, s2v.keySet(), subpath)){
+        if (block.contains(child) && isAllParentsDone(child, s2v.keySet(), block)) {
           s2v.remove(child);
         }
       }
@@ -281,8 +281,8 @@ public class BlockFormulaSlicer {
     // logging
     //    System.out.println("START::  " + (start == null ? null : start.getStateId()));
     //    System.out.println("END::    " + end.getStateId());
-    //    System.out.print("SUBPATH::  ");
-    //    for (ARGState current : subpath) {
+    //    System.out.print("BLOCK::  ");
+    //    for (ARGState current : block) {
     //      System.out.print(current.getStateId() + ", ");
     //    }
     //    System.out.println();
@@ -300,9 +300,9 @@ public class BlockFormulaSlicer {
   private Multimap<String, String> handleEdgesForState(ARGState current,
       Map<ARGState, Multimap<String, String>> s2v,
       Multimap<ARGState, ARGState> s2s,
-      Set<ARGState> subpath) {
+      Set<ARGState> block) {
 
-    List<ARGState> usedChildren = from(current.getChildren()).filter(in(subpath)).toImmutableList();
+    List<ARGState> usedChildren = from(current.getChildren()).filter(in(block)).toImmutableList();
 
     assert usedChildren.size() > 0 : "no child for " + current.getStateId();
 
@@ -369,8 +369,8 @@ public class BlockFormulaSlicer {
             // we found an assumption with same important child,
             // so we can ignore it
 
-            System.out.println("ASSUMTION FOUND WITH SAME CHILD: "
-                + assume1.getRawStatement());
+            // System.out.println("ASSUMTION FOUND WITH SAME CHILD: "
+            //     + assume1.getRawStatement());
 
             importantEdges.remove(current, child1);
             importantEdges.remove(current, child2);
@@ -630,17 +630,17 @@ public class BlockFormulaSlicer {
 
     // overtake arguments from last functioncall into function,
     // get args from functioncall and make them equal with params from functionstart
-    List<CExpression> args = edge.getArguments();
-    List<CParameterDeclaration> params = edge.getSuccessor().getFunctionParameters();
+    final List<CExpression> args = edge.getArguments();
+    final List<CParameterDeclaration> params = edge.getSuccessor().getFunctionParameters();
 
     // var_args cannot be handled: func(int x, ...) --> we only handle the first n parameters
     assert args.size() >= params.size();
 
-    String innerFunctionName = edge.getSuccessor().getFunctionName();
-    String outerFunctionName = edge.getPredecessor().getFunctionName();
+    final String innerFunctionName = edge.getSuccessor().getFunctionName();
+    final String outerFunctionName = edge.getPredecessor().getFunctionName();
 
     for (int i = 0; i < params.size(); i++) {
-      String varName = params.get(i).getName();
+      final String varName = params.get(i).getName();
       if (importantVars.containsEntry(innerFunctionName, varName)) {
         importantVars.remove(innerFunctionName, varName);
         addAllVarsFromExpr(args.get(i), outerFunctionName, importantVars);
@@ -736,21 +736,21 @@ public class BlockFormulaSlicer {
   }
 
 
-  /** This function returns a PathFormula for the whole subpath from start to end.
+  /** This function returns a PathFormula for the whole block from start to end.
    * The SSA-indices of the new formula are based on the old formula. */
   private PathFormula buildFormula(ARGState start, ARGState end,
-      Collection<ARGState> subpath, PathFormula oldPf) throws CPATransferException {
+      Collection<ARGState> block, PathFormula oldPf) throws CPATransferException {
 
     // this map contains all done states with their formulas
-    Map<ARGState, PathFormula> s2f = new HashMap<>(subpath.size());
+    final Map<ARGState, PathFormula> s2f = new HashMap<>(block.size());
 
     // bfs for parents, visit each state once
-    List<ARGState> waitlist = new LinkedList<>();
+    final List<ARGState> waitlist = new LinkedList<>();
 
     // special handling of first state
     s2f.put(start, oldPf);
     for (ARGState child : start.getChildren()) {
-      if (subpath.contains(child)) {
+      if (block.contains(child)) {
         waitlist.add(child);
       }
     }
@@ -765,14 +765,14 @@ public class BlockFormulaSlicer {
 
       // we have to wait for all parents completed,
       // because we want to join the branches
-      if (!isAllParentsDone(current, s2f.keySet(), subpath)) {
+      if (!isAllParentsDone(current, s2f.keySet(), block)) {
         waitlist.add(current);
         continue;
       }
 
       // collect new states, ignore unreachable states
       for (ARGState child : current.getChildren()) {
-        if (subpath.contains(child)) {
+        if (block.contains(child)) {
           waitlist.add(child);
         }
       }
