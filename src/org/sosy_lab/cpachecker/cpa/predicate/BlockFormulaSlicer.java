@@ -139,13 +139,12 @@ public class BlockFormulaSlicer {
     // each path, that ends at the end-state, starts in the start-state,
     // but not the other way. there can be several pathes from start to end.
 
-    // the map contains a start-state with the block after it
-    Map<ARGState, Set<ARGState>> blocks = new HashMap<>(path.size());
+    final List<Set<ARGState>> blocks = new ArrayList<>(path.size());
     for (int i = 0; i < path.size(); i++) {
       final ARGState start = i > 0 ? path.get(i - 1) : initialState;
       final ARGState end = path.get(i);
 
-      blocks.put(start, getARGStatesOfBlock(start, end));
+      blocks.add(getARGStatesOfBlock(start, end));
     }
 
     assert path.size() == blocks.size();
@@ -155,25 +154,30 @@ public class BlockFormulaSlicer {
     for (int i = path.size() - 1; i >= 0; i--) {
       final ARGState start = i > 0 ? path.get(i - 1) : initialState;
       final ARGState end = path.get(i);
+      final Set<ARGState> block = blocks.get(i);
 
-      importantVars = sliceBlock(start, end, blocks.get(start), importantVars);
+      importantVars = sliceBlock(start, end, block, importantVars);
     }
 
     // build new pathformulas, forwards
     PathFormula pf = pfmgr.makeEmptyPathFormula();
-    List<PathFormula> pfs = new ArrayList<>(path.size());
+    final List<PathFormula> pfs = new ArrayList<>(path.size());
     for (int i = 0; i < path.size(); i++) {
       final ARGState start = i > 0 ? path.get(i - 1) : initialState;
       final ARGState end = path.get(i);
 
-      PathFormula oldPf = pfmgr.makeEmptyPathFormula(pf);
-      pf = buildFormula(start, end, blocks.get(start), oldPf);
+      // we do not need the block later, so we can remove it.
+      // the list gets shorter each iteration, so this is equal to "blocks.get(i)"
+      final Set<ARGState> block = blocks.remove(0);
+
+      final PathFormula oldPf = pfmgr.makeEmptyPathFormula(pf);
+      pf = buildFormula(start, end, block, oldPf);
       pfs.add(pf);
     }
 
-    ImmutableList<BooleanFormula> list = from(pfs)
+    final ImmutableList<BooleanFormula> list = from(pfs)
         .transform(GET_BOOLEAN_FORMULA)
-        .toImmutableList();
+        .toList();
 
     //    System.out.println("\n\nFORMULA::");
     //    for (BooleanFormula formula : list) {
@@ -184,7 +188,7 @@ public class BlockFormulaSlicer {
     //    ImmutableList<BooleanFormula> origlist = from(path)
     //        .transform(toState(PredicateAbstractState.class))
     //        .transform(GET_BLOCK_FORMULA)
-    //        .toImmutableList();
+    //        .toList();
     //
     //    System.out.println("\n\nORIG FORMULA::");
     //    for (BooleanFormula formula : origlist) {
@@ -209,7 +213,7 @@ public class BlockFormulaSlicer {
     waitlist.add(end);
     while (!waitlist.isEmpty()) {
       final ARGState current = waitlist.remove(0);
-      for (ARGState parent : current.getParents()) {
+      for (final ARGState parent : current.getParents()) {
         if (states.add(parent)) { // state was not seen before
           waitlist.add(parent);
         }
@@ -223,8 +227,8 @@ public class BlockFormulaSlicer {
   private Multimap<String, String> sliceBlock(ARGState start, ARGState end,
       Set<ARGState> block, Multimap<String, String> importantVars) {
 
-    // this map contains all done states with their vars
-    Map<ARGState, Multimap<String, String>> s2v = new HashMap<>(block.size());
+    // this map contains all done states with their vars (if not removed through cleanup)
+    final Map<ARGState, Multimap<String, String>> s2v = new HashMap<>(block.size());
 
     // this map contains all done states with their last important state
     // a state is important, if any outgoing edge is important
@@ -270,7 +274,7 @@ public class BlockFormulaSlicer {
       final Multimap<String, String> vars = handleEdgesForState(current, s2v, s2s, block);
       s2v.put(current, vars);
 
-      // cleanup, remove unused states
+      // cleanup, remove states, that will not be used in future
       for (ARGState child : current.getChildren()) {
         if (block.contains(child) && isAllParentsDone(child, s2v.keySet(), block)) {
           s2v.remove(child);
@@ -302,18 +306,18 @@ public class BlockFormulaSlicer {
       Multimap<ARGState, ARGState> s2s,
       Set<ARGState> block) {
 
-    List<ARGState> usedChildren = from(current.getChildren()).filter(in(block)).toImmutableList();
+    final List<ARGState> usedChildren = from(current.getChildren()).filter(in(block)).toList();
 
     assert usedChildren.size() > 0 : "no child for " + current.getStateId();
 
     // there can be several children --> collect their vars and join them
-    List<Multimap<String, String>> iVars = new ArrayList<>(usedChildren.size());
+    final List<Multimap<String, String>> iVars = new ArrayList<>(usedChildren.size());
 
     for (ARGState child : usedChildren) {
 
       // do not modify oldVars, they are used later for the second parent
-      Multimap<String, String> oldVars = s2v.get(child);
-      Multimap<String, String> newVars;
+      final Multimap<String, String> oldVars = s2v.get(child);
+      final Multimap<String, String> newVars;
 
       // if there is only one parent for the child, we re-use oldVars
       // TODO better solution: if (allParentsExceptThisDone(child)) {
@@ -328,7 +332,7 @@ public class BlockFormulaSlicer {
       iVars.add(newVars);
 
       // do the hard work
-      CFAEdge edge = current.getEdgeToChild(child);
+      final CFAEdge edge = current.getEdgeToChild(child);
       boolean isImportant = handleEdge(edge, newVars);
 
       assert !importantEdges.containsEntry(current, child);
@@ -444,20 +448,19 @@ public class BlockFormulaSlicer {
 
   private boolean handleDeclaration(CDeclarationEdge edge,
       Multimap<String, String> importantVars) {
-    CDeclaration decl = edge.getDeclaration();
+    final CDeclaration decl = edge.getDeclaration();
 
     if (decl instanceof CVariableDeclaration) {
-      CVariableDeclaration vdecl = (CVariableDeclaration) decl;
-
+      final CVariableDeclaration vdecl = (CVariableDeclaration) decl;
       final String functionName = edge.getPredecessor().getFunctionName();
       final String scopedFunctionName = vdecl.isGlobal() ? null : functionName;
       final String varName = vdecl.getName();
 
       if (importantVars.containsEntry(scopedFunctionName, varName)) {
         importantVars.remove(scopedFunctionName, varName);
-        CInitializer initializer = vdecl.getInitializer();
+        final CInitializer initializer = vdecl.getInitializer();
         if (initializer != null && initializer instanceof CInitializerExpression) {
-          CExpression init = ((CInitializerExpression) initializer).getExpression();
+          final CExpression init = ((CInitializerExpression) initializer).getExpression();
           addAllVarsFromExpr(init, functionName, importantVars);
         }
         return true;
@@ -474,7 +477,7 @@ public class BlockFormulaSlicer {
   private boolean handleAssumption(CAssumeEdge edge,
       Multimap<String, String> importantVars) {
 
-    CExpression expression = edge.getExpression();
+    final CExpression expression = edge.getExpression();
     final String functionName = edge.getPredecessor().getFunctionName();
     addAllVarsFromExpr(expression, functionName, importantVars);
 
@@ -745,7 +748,10 @@ public class BlockFormulaSlicer {
     final Map<ARGState, PathFormula> s2f = new HashMap<>(block.size());
 
     // bfs for parents, visit each state once
-    final List<ARGState> waitlist = new LinkedList<>();
+    // we use a list for the next states,
+    // but we also remove states from waitlist, when they are done,
+    // so we need fast access to the states
+    final Set<ARGState> waitlist = new LinkedHashSet<>();
 
     // special handling of first state
     s2f.put(start, oldPf);
@@ -756,31 +762,37 @@ public class BlockFormulaSlicer {
     }
 
     while (!waitlist.isEmpty()) {
-      final ARGState current = waitlist.remove(0);
+      final ARGState current = Iterables.getFirst(waitlist, null);
+      waitlist.remove(current);
 
       // already handled
-      if (s2f.keySet().contains(current)) {
-        continue;
-      }
+      System.out.println(s2f.size());
+      assert !s2f.keySet().contains(current);
 
       // we have to wait for all parents completed,
       // because we want to join the branches
       if (!isAllParentsDone(current, s2f.keySet(), block)) {
-        waitlist.add(current);
+        waitlist.add(current); // re-add current state, at last position
         continue;
       }
 
       // collect new states, ignore unreachable states
-      for (ARGState child : current.getChildren()) {
+      for (final ARGState child : current.getChildren()) {
         if (block.contains(child)) {
           waitlist.add(child);
         }
       }
 
       // handle state
-      PathFormula pf = makeFormulaForState(current, s2f);
+      final PathFormula pf = makeFormulaForState(current, s2f);
       s2f.put(current, pf);
 
+      // cleanup, remove states, that will not be used in future
+      for (final ARGState parent : current.getParents()) {
+        if (block.contains(parent) && isAllChildrenDone(parent, s2f.keySet(), block)) {
+          s2f.remove(parent);
+        }
+      }
     }
     return s2f.get(end);
   }
@@ -792,9 +804,9 @@ public class BlockFormulaSlicer {
     assert current.getParents().size() > 0 : "no parent for " + current.getStateId();
 
     // join all formulas from parents
-    List<PathFormula> pfs = new ArrayList<>(current.getParents().size());
+    final List<PathFormula> pfs = new ArrayList<>(current.getParents().size());
     for (ARGState parent : current.getParents()) {
-      PathFormula oldPf = s2f.get(parent);
+      final PathFormula oldPf = s2f.get(parent);
       pfs.add(buildFormulaForEdge(parent, current, oldPf));
     }
 
