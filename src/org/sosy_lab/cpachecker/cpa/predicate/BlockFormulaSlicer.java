@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -79,17 +81,31 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 
 public class BlockFormulaSlicer {
 
+  /** if important or not, this does not matter, because it will be ignored later,
+   * so it can be used for optimization. */
+  private static final boolean IS_BLANK_EDGE_IMPORTANT = false;
+
   private static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
 
   final private PathFormulaManager pfmgr;
-  final private Collection<CFAEdge> importantEdges = new HashSet<>();
+
+  //  TODO future work:
+  //  We could not store the important edges, because they are much more.
+  //  It is more efficient, to store the complement.
+
+  /** This set contains all edges, that are important.
+   * We store the parent- and the child-ARGState, because they are unique,
+   * the edge itself can be used several times (for example in a loop). */
+  final private Multimap<ARGState, ARGState> importantEdges = ArrayListMultimap.create();
 
   @SuppressWarnings("unused")
   private static final Function<PredicateAbstractState, BooleanFormula> GET_BLOCK_FORMULA =
@@ -155,7 +171,7 @@ public class BlockFormulaSlicer {
 
     ImmutableList<BooleanFormula> list = from(pfs)
         .transform(GET_BOOLEAN_FORMULA)
-        .toList();
+        .toImmutableList();
 
     //    System.out.println("\n\nFORMULA::");
     //    for (BooleanFormula formula : list) {
@@ -166,7 +182,7 @@ public class BlockFormulaSlicer {
     //    ImmutableList<BooleanFormula> origlist = from(path)
     //        .transform(toState(PredicateAbstractState.class))
     //        .transform(GET_BLOCK_FORMULA)
-    //        .toList();
+    //        .toImmutableList();
     //
     //    System.out.println("\n\nORIG FORMULA::");
     //    for (BooleanFormula formula : origlist) {
@@ -210,11 +226,19 @@ public class BlockFormulaSlicer {
     // this map contains all done states with their vars
     Map<ARGState, Multimap<String, String>> s2v = new HashMap<>(subpath.size());
 
-    // bfs for parents, visit each state once
-    List<ARGState> waitlist = new LinkedList<>();
+    // this map contains all done states with their last important state
+    // a state is important, if any outgoing edge is important
+    Multimap<ARGState, ARGState> s2s = HashMultimap.create(subpath.size(), 1);
+
+    // bfs for parents, visit each state once.
+    // we use a list for the next states,
+    // but we also remove states from waitlist, when they are done,
+    // so we need fast access to the states
+    Set<ARGState> waitlist = new LinkedHashSet<>();
 
     // special handling of first state
     s2v.put(end, importantVars);
+    s2s.put(end, end);
     for (ARGState parent : end.getParents()) {
       if (subpath.contains(parent)) {
         waitlist.add(parent);
@@ -222,17 +246,16 @@ public class BlockFormulaSlicer {
     }
 
     while (!waitlist.isEmpty()) {
-      final ARGState current = waitlist.remove(0);
+      final ARGState current = Iterables.getFirst(waitlist, null);
+      waitlist.remove(current);
 
       // already handled
-      if (s2v.keySet().contains(current)) {
-        continue;
-      }
+      assert !s2v.keySet().contains(current);
 
       // we have to wait for all children completed,
       // because we want to join the branches
       if (!isAllChildrenDone(current, s2v.keySet(), subpath)) {
-        waitlist.add(current);
+        waitlist.add(current); // re-add current state, at last position
         continue;
       }
 
@@ -244,9 +267,15 @@ public class BlockFormulaSlicer {
       }
 
       // handle state
-      Multimap<String, String> vars = handleEdgesForState(current, s2v, subpath);
+      Multimap<String, String> vars = handleEdgesForState(current, s2v, s2s, subpath);
       s2v.put(current, vars);
 
+      // cleanup, remove unused states
+      for (ARGState child : current.getChildren()) {
+        if (subpath.contains(child) && isAllParentsDone(child, s2v.keySet(), subpath)){
+          s2v.remove(child);
+        }
+      }
     }
 
     // logging
@@ -266,10 +295,15 @@ public class BlockFormulaSlicer {
     return s2v.get(start);
   }
 
+  /** This function handles all outgoing edges of the current state.
+   * Their important vars are joined and returned. */
   private Multimap<String, String> handleEdgesForState(ARGState current,
-      Map<ARGState, Multimap<String, String>> s2v, Set<ARGState> subpath) {
+      Map<ARGState, Multimap<String, String>> s2v,
+      Multimap<ARGState, ARGState> s2s,
+      Set<ARGState> subpath) {
 
-    List<ARGState> usedChildren = from(current.getChildren()).filter(in(subpath)).toList();
+    List<ARGState> usedChildren = from(current.getChildren()).filter(in(subpath)).toImmutableList();
+
     assert usedChildren.size() > 0 : "no child for " + current.getStateId();
 
     // there can be several children --> collect their vars and join them
@@ -279,17 +313,31 @@ public class BlockFormulaSlicer {
 
       // do not modify oldVars, they are used later for the second parent
       Multimap<String, String> oldVars = s2v.get(child);
-      Multimap<String, String> newVars = HashMultimap.create();
-      // TODO do we always need to copy?
-      newVars.putAll(oldVars);
+      Multimap<String, String> newVars;
+
+      // if there is only one parent for the child, we re-use oldVars
+      // TODO better solution: if (allParentsExceptThisDone(child)) {
+      if (child.getParents().size() == 1) {
+        newVars = oldVars;
+      } else {
+        // copy oldVars, we need them again later
+        newVars = HashMultimap.create();
+        newVars.putAll(oldVars);
+      }
+
       iVars.add(newVars);
 
       // do the hard work
       CFAEdge edge = current.getEdgeToChild(child);
       boolean isImportant = handleEdge(edge, newVars);
 
+      assert !importantEdges.containsEntry(current, child);
+
       if (isImportant) {
-        importantEdges.add(edge);
+        importantEdges.put(current, child);
+        s2s.put(current, current);
+      } else {
+        s2s.putAll(current, s2s.get(child));
       }
 
       //      System.out.println("WORK   " + isImportant + "  \t" +
@@ -299,6 +347,39 @@ public class BlockFormulaSlicer {
       //              ("class org.sosy_lab.cpachecker.cfa.model.", "") + "    \t" +
       //          newVars
       //          );
+    }
+
+    // if we have an assumption, and the branches are completely unimportant,
+    // the assumption itself is unimportant.
+    if (usedChildren.size() == 2) {
+      final ARGState child1 = usedChildren.get(0);
+      final ARGState child2 = usedChildren.get(1);
+      final CFAEdge edge1 = current.getEdgeToChild(child1);
+      final CFAEdge edge2 = current.getEdgeToChild(child2);
+
+      if (edge1.getEdgeType() == CFAEdgeType.AssumeEdge
+          && edge2.getEdgeType() == CFAEdgeType.AssumeEdge) {
+        final CAssumeEdge assume1 = (CAssumeEdge) edge1;
+        final CAssumeEdge assume2 = (CAssumeEdge) edge2;
+
+        if (assume1.getExpression() == assume2.getExpression()
+            && assume1.getTruthAssumption() != assume2.getTruthAssumption()) {
+
+          if (s2s.get(child1).equals(s2s.get(child2))) {
+            // we found an assumption with same important child,
+            // so we can ignore it
+
+            System.out.println("ASSUMTION FOUND WITH SAME CHILD: "
+                + assume1.getRawStatement());
+
+            importantEdges.remove(current, child1);
+            importantEdges.remove(current, child2);
+
+            s2s.remove(current, current);
+            s2s.put(current, child1);
+          }
+        }
+      }
     }
 
     Multimap<String, String> joined = iVars.get(0);
@@ -347,8 +428,12 @@ public class BlockFormulaSlicer {
       break;
 
     case BlankEdge:
-      result = false; // not important
+      result = IS_BLANK_EDGE_IMPORTANT;
       break;
+
+    case MultiEdge:
+      // TODO is support possible?
+      throw new AssertionError("multiEdge not supported: " + edge.getRawStatement());
 
     default:
       throw new AssertionError("unhandled edge: " + edge.getRawStatement());
@@ -709,9 +794,8 @@ public class BlockFormulaSlicer {
     // join all formulas from parents
     List<PathFormula> pfs = new ArrayList<>(current.getParents().size());
     for (ARGState parent : current.getParents()) {
-      CFAEdge edge = parent.getEdgeToChild(current);
       PathFormula oldPf = s2f.get(parent);
-      pfs.add(buildFormulaForEdge(edge, oldPf));
+      pfs.add(buildFormulaForEdge(parent, current, oldPf));
     }
 
     PathFormula joined = pfs.get(0);
@@ -722,10 +806,10 @@ public class BlockFormulaSlicer {
     return joined;
   }
 
-  private PathFormula buildFormulaForEdge(CFAEdge edge, PathFormula oldFormula)
+  private PathFormula buildFormulaForEdge(ARGState parent, ARGState child, PathFormula oldFormula)
       throws CPATransferException {
-    if (importantEdges.contains(edge)) {
-      return pfmgr.makeAnd(oldFormula, edge);
+    if (importantEdges.containsEntry(parent, child)) {
+      return pfmgr.makeAnd(oldFormula, parent.getEdgeToChild(child));
     } else {
       return oldFormula;
     }
@@ -739,22 +823,22 @@ public class BlockFormulaSlicer {
     return false;
   }
 
-  /** This function returns, if all children of a state,
-   * that are reachable backwards from the state, are visited. */
+  /** This function returns, if all parents of a state,
+   * that are in the subset, are done. */
   private boolean isAllChildrenDone(ARGState s,
-      Collection<ARGState> visited, Collection<ARGState> subpath) {
+      Collection<ARGState> done, Collection<ARGState> subset) {
     for (ARGState child : s.getChildren()) {
-      if (subpath.contains(child) && !visited.contains(child)) { return false; }
+      if (subset.contains(child) && !done.contains(child)) { return false; }
     }
     return true;
   }
 
   /** This function returns, if all parents of a state,
-   * that are reachable from the state, are visited. */
+   * that are in the subset, are done. */
   private boolean isAllParentsDone(ARGState s,
-      Collection<ARGState> visited, Collection<ARGState> subpath) {
+      Collection<ARGState> done, Collection<ARGState> subset) {
     for (ARGState parent : s.getParents()) {
-      if (subpath.contains(parent) && !visited.contains(parent)) { return false; }
+      if (subset.contains(parent) && !done.contains(parent)) { return false; }
     }
     return true;
   }
