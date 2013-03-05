@@ -31,8 +31,10 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -106,11 +108,14 @@ public class PredicateAbstractionManager {
   private boolean warnedOfCartesianAbstraction = false;
 
   private final Map<Pair<BooleanFormula, Collection<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
+
+  // Cache for satisfiability queries: if formula is contained, it is unsat
+  private final Set<BooleanFormula> unsatisfiabilityCache;
+
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
   // 1: predicate is true
   private final Map<Pair<BooleanFormula, AbstractionPredicate>, Byte> cartesianAbstractionCache;
-  private final Map<BooleanFormula, Boolean> feasibilityCache;
 
   private final BooleanFormulaManagerView bfmgr;
 
@@ -134,15 +139,15 @@ public class PredicateAbstractionManager {
 
     if (useCache) {
       abstractionCache = new HashMap<>();
+      unsatisfiabilityCache = new HashSet<>();
     } else {
       abstractionCache = null;
+      unsatisfiabilityCache = null;
     }
     if (useCache && cartesianAbstraction) {
       cartesianAbstractionCache = new HashMap<>();
-      feasibilityCache = new HashMap<>();
     } else {
       cartesianAbstractionCache = null;
-      feasibilityCache = null;
     }
   }
 
@@ -189,6 +194,16 @@ public class PredicateAbstractionManager {
         stats.numCallsAbstractionCached++;
         return result;
       }
+
+      boolean unsatisfiable = unsatisfiabilityCache.contains(symbFormula)
+                            || unsatisfiabilityCache.contains(f);
+      if (unsatisfiable) {
+        // block is infeasible
+        logger.log(Level.FINEST, "Block feasibility of abstraction", stats.numCallsAbstraction, "was cached and is false.");
+        stats.numCallsAbstractionCached++;
+        return new AbstractionFormula(fmgr, amgr.getRegionCreator().makeFalse(),
+            bfmgr.makeBoolean(false), bfmgr.makeBoolean(false), pathFormula);
+      }
     }
 
     Region abs;
@@ -202,6 +217,10 @@ public class PredicateAbstractionManager {
 
     if (useCache) {
       abstractionCache.put(absKey, result);
+
+      if (result.isFalse()) {
+        unsatisfiabilityCache.add(f);
+      }
     }
 
     long abstractionTime = stats.abstractionSolveTime.getLengthOfLastInterval()
@@ -237,19 +256,9 @@ public class PredicateAbstractionManager {
     try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
       thmProver.push(f);
 
-      boolean feasibility;
-      if (useCache && feasibilityCache.containsKey(f)) {
-        feasibility = feasibilityCache.get(f);
-
-      } else {
-        stats.abstractionSolveTime.start();
-        feasibility = !thmProver.isUnsat();
-        stats.abstractionSolveTime.stop();
-
-        if (useCache) {
-          feasibilityCache.put(f, feasibility);
-        }
-      }
+      stats.abstractionSolveTime.start();
+      boolean feasibility = !thmProver.isUnsat();
+      stats.abstractionSolveTime.stop();
 
       if (!feasibility) {
         // abstract post leads to false, we can return immediately
