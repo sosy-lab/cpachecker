@@ -83,6 +83,7 @@ public class CPAMain {
     } catch (InvalidConfigurationException e) {
       System.err.println("Invalid configuration: " + e.getMessage());
       System.exit(1);
+      return;
     }
 
     // create everything
@@ -102,6 +103,7 @@ public class CPAMain {
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(1);
+      return;
     }
 
     // this is for catching Ctrl+C and printing statistics even in that

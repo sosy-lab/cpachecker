@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -128,8 +130,10 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
       ARGPath targetPath = counterexample.getTargetPath();
 
       // new targetPath must contain root and error node
-      assert targetPath.getFirst().getFirst() == path.getFirst().getFirst() : "Target path from refiner does not contain root node";
-      assert targetPath.getLast().getFirst()  == path.getLast().getFirst() : "Target path from refiner does not contain target state";
+      if (path != null) {
+        assert targetPath.getFirst().getFirst() == path.getFirst().getFirst() : "Target path from refiner does not contain root node";
+        assert targetPath.getLast().getFirst()  == path.getLast().getFirst() : "Target path from refiner does not contain target state";
+      }
 
       argCpa.setCounterexample(counterexample);
     }
@@ -162,6 +166,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    * @return
    * @throws InterruptedException
    */
+  @Nullable
   protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPAException {
     return ARGUtils.getOnePathTo(pLastElement);
   }

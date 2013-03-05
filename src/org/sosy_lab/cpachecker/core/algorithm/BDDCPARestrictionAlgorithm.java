@@ -176,7 +176,9 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
                 fvstate = (BDDState)y;
               }
             }
-            fvstate.addConstraintToState(manager.makeNot(errorBDD));
+            if (fvstate != null) {
+              fvstate.addConstraintToState(manager.makeNot(errorBDD));
+            }
           }
 
 
