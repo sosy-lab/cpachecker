@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
 import java.io.IOException;
+import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -186,11 +187,28 @@ public class ReachingDefState implements AbstractState, Serializable {
 
     private static final long serialVersionUID = 6987753908487106524L;
     private static UninitializedDefinitionPoint instance = new UninitializedDefinitionPoint();
+    private static final SerialProxy writeReplace = new SerialProxy();
 
     private UninitializedDefinitionPoint() {}
 
     public static UninitializedDefinitionPoint getInstance() {
       return instance;
+    }
+
+    private Object writeReplace() throws ObjectStreamException {
+      return writeReplace;
+    }
+
+    private static class SerialProxy implements Serializable {
+
+      private static final long serialVersionUID = 2843708585446089623L;
+
+      public SerialProxy() {
+      }
+
+      private Object readResolve() throws ObjectStreamException {
+        return instance;
+      }
     }
   }
 
