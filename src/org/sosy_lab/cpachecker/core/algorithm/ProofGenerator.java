@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -52,9 +53,12 @@ public class ProofGenerator {
 
   @Option(name = "pcc.proofgen.doPCC", description = "")
   private boolean doPCC = false;
-  @Option(name = "pcc.proofFile", description = "file in which ARG representation needed for proof checking is stored")
+  @Option(name = "pcc.proofFile", description = "file in which proof representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File file = new File("arg.obj");
+
+  @Option(name="pcc.proofType", description = "defines proof representation, either abstract reachability graph or set of reachable abstract states", values={"ARG", "SET"})
+  private String pccType = "ARG";
 
   private final LogManager logger;
 
@@ -68,10 +72,7 @@ public class ProofGenerator {
     if (!doPCC) { return; }
     UnmodifiableReachedSet reached = pResult.getReached();
     // check result
-    if (pResult.getResult() != Result.SAFE
-        || reached.getFirstState() == null
-        || !(reached.getFirstState() instanceof ARGState)
-        || (extractLocation(reached.getFirstState()) == null)) {
+    if (pResult.getResult() != Result.SAFE) {
       logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return;
     }
@@ -79,6 +80,27 @@ public class ProofGenerator {
     logger.log(Level.INFO, "Proof Generation started.");
     Timer writingTimer = new Timer();
     writingTimer.start();
+
+    if (pccType.equals("ARG")) {
+      writeARG(reached);
+    } else if (pccType.equals("SET")) {
+      writeReachedSet(reached);
+    } else {
+      logger.log(Level.SEVERE, "Undefined proof format. No proof will be written.");
+    }
+
+    writingTimer.stop();
+    logger.log(Level.INFO, "Writing proof took " + writingTimer.printMaxTime());
+  }
+
+  private void writeARG(UnmodifiableReachedSet pReached) {
+    if (pReached.getFirstState() == null
+        || !(pReached.getFirstState() instanceof ARGState)
+        || (extractLocation(pReached.getFirstState()) == null)) {
+      logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
+      return;
+    }
+    // saves the ARG in specified file
 
     OutputStream fos = null;
     try {
@@ -91,7 +113,7 @@ public class ProofGenerator {
       ObjectOutputStream o = new ObjectOutputStream(zos);
       //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
       //write ARG
-      o.writeObject(reached.getFirstState());
+      o.writeObject(pReached.getFirstState());
       zos.closeEntry();
 
       ze = new ZipEntry("Helper");
@@ -115,8 +137,46 @@ public class ProofGenerator {
       } catch (Exception e) {
       }
     }
+  }
 
-    writingTimer.stop();
-    logger.log(Level.INFO, "Writing proof took " + writingTimer.printMaxTime());
+  private void writeReachedSet(UnmodifiableReachedSet pReached) {
+    // saves the abstract states in reached set in specified file
+    OutputStream fos = null;
+    try {
+      fos = new FileOutputStream(file);
+      ZipOutputStream zos = new ZipOutputStream(fos);
+      zos.setLevel(9);
+
+      ZipEntry ze = new ZipEntry("Proof");
+      zos.putNextEntry(ze);
+      ObjectOutputStream o = new ObjectOutputStream(zos);
+      //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
+      //write reached set
+      AbstractState[] reachedSet = new AbstractState[pReached.size()];
+      pReached.asCollection().toArray(reachedSet);
+      o.writeObject(reachedSet);
+      zos.closeEntry();
+
+      ze = new ZipEntry("Helper");
+      zos.putNextEntry(ze);
+      //write helper storages
+      o = new ObjectOutputStream(zos);
+      int numberOfStorages = GlobalInfo.getInstance().getNumberOfHelperStorages();
+      o.writeInt(numberOfStorages);
+      for (int i = 0; i < numberOfStorages; ++i) {
+        o.writeObject(GlobalInfo.getInstance().getHelperStorage(i));
+      }
+
+      o.flush();
+      zos.closeEntry();
+      zos.close();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    } finally {
+      try {
+        fos.close();
+      } catch (Exception e) {
+      }
+    }
   }
 }
