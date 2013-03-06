@@ -174,9 +174,9 @@ public class CtoFormulaConverter {
   private String nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-z]*";
   private final Pattern nondetFunctionsPattern;
 
-  @Option(description="Name of an external function that will be interpreted as if the function " +
-  		"call would be replaced by an externally defined expression over the program variables." +
-  		" This will only work when all variables referenced by the dimacs file are global and declared before this function is called.")
+  @Option(description="Name of an external function that will be interpreted as if the function "
+     + "call would be replaced by an externally defined expression over the program variables."
+     + " This will only work when all variables referenced by the dimacs file are global and declared before this function is called.")
   private String externModelFunctionName = "__VERIFIER_externModelSatisfied";
 
   @Option(description = "Handle aliasing of pointers. "
@@ -1518,12 +1518,12 @@ public class CtoFormulaConverter {
   }
 
   private Formula buildTerm(CExpression exp, CFAEdge edge, String function,
-      SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+      SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
     return exp.accept(getCExpressionVisitor(edge, function, ssa, constraints));
   }
 
   private Formula buildLvalueTerm(CExpression exp, CFAEdge edge, String function,
-      SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+      SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
     return exp.accept(getLvalueVisitor(edge, function, ssa, constraints));
   }
 
@@ -1811,7 +1811,7 @@ public class CtoFormulaConverter {
 
 
   private BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
-      String function, SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+      String function, SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
 
     if (getIndirectionLevel(exp) > supportedIndirectionLevel) {
       warnToComplex(exp);
@@ -1826,7 +1826,7 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  public BooleanFormula makePredicate(CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws CPATransferException {
+  public BooleanFormula makePredicate(CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     Constraints constraints = new Constraints();
     BooleanFormula f = makePredicate(exp, true, edge, function, ssa, constraints);
     return bfmgr.and(f, constraints.get());
@@ -2169,7 +2169,7 @@ public class CtoFormulaConverter {
     }
   }
 
-  private class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, CPATransferException> {
+  private class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
     protected final CFAEdge       edge;
     protected final String        function;
@@ -2190,7 +2190,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(CBinaryExpression exp) throws CPATransferException {
+    public Formula visit(CBinaryExpression exp) throws UnrecognizedCCodeException {
       BinaryOperator op = exp.getOperator();
       CExpression e1 = exp.getOperand1();
       CExpression e2 = exp.getOperand2();
@@ -2315,7 +2315,7 @@ public class CtoFormulaConverter {
 
 
     @Override
-    public Formula visit(CCastExpression cexp) throws CPATransferException {
+    public Formula visit(CCastExpression cexp) throws UnrecognizedCCodeException {
       Formula operand = cexp.getOperand().accept(this);
       return makeCast(cexp, operand);
     }
@@ -2338,7 +2338,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(CFieldReference fExp) throws CPATransferException {
+    public Formula visit(CFieldReference fExp) throws UnrecognizedCCodeException {
       if (handleFieldAccess) {
         CExpression fieldOwner = getRealFieldOwner(fExp);
         Formula f = fieldOwner.accept(this);
@@ -2409,7 +2409,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(CUnaryExpression exp) throws CPATransferException {
+    public Formula visit(CUnaryExpression exp) throws UnrecognizedCCodeException {
       CExpression operand = exp.getOperand();
       UnaryOperator op = exp.getOperator();
       switch (op) {
@@ -2503,7 +2503,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(CArraySubscriptExpression aexp) throws CPATransferException {
+    public Formula visit(CArraySubscriptExpression aexp) throws UnrecognizedCCodeException {
       CExpression arrexp = aexp.getArrayExpression();
       CExpression subexp = aexp.getSubscriptExpression();
       Formula aterm = arrexp.accept(this);
@@ -2514,7 +2514,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(CFieldReference fexp) throws CPATransferException {
+    public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
       String field = fexp.getFieldName();
       CExpression owner = getRealFieldOwner(fexp);
       Formula term = owner.accept(this);
@@ -2527,7 +2527,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(CUnaryExpression exp) throws CPATransferException {
+    public Formula visit(CUnaryExpression exp) throws UnrecognizedCCodeException {
       UnaryOperator op = exp.getOperator();
       switch (op) {
       case AMPER:
@@ -2568,7 +2568,7 @@ public class CtoFormulaConverter {
 
     @Override
     public Formula visit(CUnaryExpression exp)
-        throws CPATransferException {
+        throws UnrecognizedCCodeException {
       UnaryOperator op = exp.getOperator();
 
       switch (op) {
@@ -2643,8 +2643,8 @@ public class CtoFormulaConverter {
   }
 
   private class RightHandSideToFormulaVisitor extends
-      ForwardingCExpressionVisitor<Formula, CPATransferException>
-      implements CRightHandSideVisitor<Formula, CPATransferException> {
+      ForwardingCExpressionVisitor<Formula, UnrecognizedCCodeException>
+      implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
 
     protected final CFAEdge       edge;
     protected final String        function;
@@ -2660,7 +2660,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(CFunctionCallExpression fexp) throws CPATransferException {
+    public Formula visit(CFunctionCallExpression fexp) throws UnrecognizedCCodeException {
 
       CExpression fn = fexp.getFunctionNameExpression();
       List<CExpression> pexps = fexp.getParameterExpressions();
@@ -2759,13 +2759,14 @@ public class CtoFormulaConverter {
      * Might lead to problems when the program variable is introduced afterwards.
      * @param pModelFile File with the dimacs model.
      * @return BooleanFormula
-     * @throws CPATransferException
      */
-    public BooleanFormula loadExternalFormula(File pModelFile) throws CPATransferException {
+    public BooleanFormula loadExternalFormula(File pModelFile) {
       if (! pModelFile.getName().endsWith(".dimacs")) {
         throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
       }
-      try (BufferedReader br = new BufferedReader(new FileReader(pModelFile))) {
+      BufferedReader br = null;
+      try {
+         br = new BufferedReader(new FileReader(pModelFile));
          ArrayList<String> predicates = new ArrayList<>(10000);
          //var ids in dimacs files start with 1, so we want the first var at position 1
          predicates.add("RheinDummyVar");
@@ -2835,12 +2836,18 @@ public class CtoFormulaConverter {
          }// end of while
         return externalModel;
       } catch (IOException e) {
-        throw new CPATransferException("Could not load model", e);
+        throw new RuntimeException(e); //TODO: find the proper exception
+      } finally {
+        if (br!=null) {
+            try {
+              br.close();
+            } catch (IOException e) {}
+        }
       }
     }
   }
 
-  private class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements CStatementVisitor<BooleanFormula, CPATransferException> {
+  private class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements CStatementVisitor<BooleanFormula, UnrecognizedCCodeException> {
 
     public StatementToFormulaVisitor(String pFunction, SSAMapBuilder pSsa, Constraints pConstraints, CFAEdge edge) {
       super(pFunction, pSsa, pConstraints, edge);
@@ -2859,7 +2866,7 @@ public class CtoFormulaConverter {
      * @return a triple of right, left and assignment formula (in this order which is chronological)
      * @throws UnrecognizedCCodeException
      */
-    public Triple<Formula, Formula, BooleanFormula> visitAssignment(CAssignment assignment) throws CPATransferException {
+    public Triple<Formula, Formula, BooleanFormula> visitAssignment(CAssignment assignment) throws UnrecognizedCCodeException {
       Formula r = assignment.getRightHandSide().accept(this);
       Formula l = buildLvalueTerm(assignment.getLeftHandSide(), edge, function, ssa, constraints);
       r = makeCast(
@@ -2871,24 +2878,24 @@ public class CtoFormulaConverter {
       return Triple.of(r, l, a);
     }
 
-    public BooleanFormula visit(CAssignment assignment) throws CPATransferException {
+    public BooleanFormula visit(CAssignment assignment) throws UnrecognizedCCodeException {
       // No need to alias anything so just return the assignment
       return
             visitAssignment(assignment).getThird();
     }
 
     @Override
-    public BooleanFormula visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws CPATransferException {
+    public BooleanFormula visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws UnrecognizedCCodeException {
       return visit((CAssignment)pIastExpressionAssignmentStatement);
     }
 
     @Override
-    public BooleanFormula visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws CPATransferException {
+    public BooleanFormula visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws UnrecognizedCCodeException {
       return visit((CAssignment)pIastFunctionCallAssignmentStatement);
     }
 
     @Override
-    public BooleanFormula visit(CFunctionCallStatement fexp) throws CPATransferException {
+    public BooleanFormula visit(CFunctionCallStatement fexp) throws UnrecognizedCCodeException {
       // this is an external call
       // visit expression in order to print warnings if necessary
       visit(fexp.getFunctionCallExpression());
@@ -2904,7 +2911,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(CFunctionCallExpression fexp) throws CPATransferException {
+    public Formula visit(CFunctionCallExpression fexp) throws UnrecognizedCCodeException {
       // handle malloc
       CExpression fn = fexp.getFunctionNameExpression();
       if (fn instanceof CIdExpression) {
@@ -2951,7 +2958,7 @@ public class CtoFormulaConverter {
 
     @Override
     public BooleanFormula visit(CAssignment assignment)
-        throws CPATransferException {
+        throws UnrecognizedCCodeException {
       CExpression left = removeCast(assignment.getLeftHandSide());
 
       if (left instanceof CIdExpression) {
@@ -2989,7 +2996,7 @@ public class CtoFormulaConverter {
      * aliased on the left hand side.
      */
     private BooleanFormula handleIndirectAssignment(CAssignment pAssignment)
-        throws CPATransferException {
+        throws UnrecognizedCCodeException {
       CExpression lExpr = removeCast(pAssignment.getLeftHandSide());
 
       assert (lExpr instanceof CUnaryExpression || (lExpr instanceof CFieldReference && isIndirectFieldReference((CFieldReference)lExpr)))
@@ -3319,7 +3326,7 @@ public class CtoFormulaConverter {
 
     /** A direct assignment changes the value of the variable on the left side. */
     private BooleanFormula handleDirectAssignment(CAssignment assignment)
-        throws CPATransferException {
+        throws UnrecognizedCCodeException {
       CExpression lRawExpr = assignment.getLeftHandSide();
       CExpression lExpr = removeCast(lRawExpr);
       assert (lExpr instanceof CIdExpression
@@ -3481,7 +3488,7 @@ public class CtoFormulaConverter {
   }
 
   private class LvalueVisitor extends
-      DefaultCExpressionVisitor<Formula, CPATransferException> {
+      DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
     protected final CFAEdge       edge;
     protected final String        function;
@@ -3513,12 +3520,12 @@ public class CtoFormulaConverter {
 
 
     @Override
-    public Formula visit(CUnaryExpression pE) throws CPATransferException {
+    public Formula visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
       return giveUpAndJustMakeVariable(pE);
     }
 
     @Override
-    public Formula visit(CFieldReference fexp) throws CPATransferException {
+    public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
       if (!handleFieldAccess) {
         CExpression fieldRef = fexp.getFieldOwner();
         if (fieldRef instanceof CIdExpression) {
@@ -3554,7 +3561,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(CArraySubscriptExpression pE) throws CPATransferException {
+    public Formula visit(CArraySubscriptExpression pE) throws UnrecognizedCCodeException {
       return giveUpAndJustMakeVariable(pE);
     }
   }
@@ -3566,7 +3573,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(CUnaryExpression uExp) throws CPATransferException {
+    public Formula visit(CUnaryExpression uExp) throws UnrecognizedCCodeException {
       UnaryOperator op = uExp.getOperator();
       CExpression operand = uExp.getOperand();
       String opname;
@@ -3602,7 +3609,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(CFieldReference fexp) throws CPATransferException {
+    public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
       if (!handleFieldAccess) {
         String field = fexp.getFieldName();
         CExpression owner = getRealFieldOwner(fexp);
@@ -3627,7 +3634,7 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(CArraySubscriptExpression aexp) throws CPATransferException {
+    public Formula visit(CArraySubscriptExpression aexp) throws UnrecognizedCCodeException {
       CExpression arrexp = aexp.getArrayExpression();
       CExpression subexp = aexp.getSubscriptExpression();
       Formula aterm = buildTerm(arrexp, edge, function, ssa, constraints);
@@ -3650,14 +3657,14 @@ public class CtoFormulaConverter {
     }
 
     @Override
-    public Formula visit(CCastExpression e) throws CPATransferException {
+    public Formula visit(CCastExpression e) throws UnrecognizedCCodeException {
       Formula inner = e.getOperand().accept(this);
       return makeCast(e, inner);
     }
 
 
     @Override
-    public Formula visit(CUnaryExpression pE) throws CPATransferException {
+    public Formula visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
       if (pE.getOperator() == UnaryOperator.STAR) {
         // When the expression is supported we can create a Variable.
         if (isSupportedExpression(pE)) {
