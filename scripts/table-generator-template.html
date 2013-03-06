@@ -949,7 +949,7 @@ $(document).ready(function() {
     }
   }
   
-  var runSetTitles = $('#run > td:not(:first-child)'); // do not use first column
+  var runSetTitles = $('.run > td:not(:first-child)'); // do not use first column
   for (i = 0; i< runSetTitles.length; i++) {
     var column = runSetTitles[i];
     debug(column);
@@ -1045,6 +1045,13 @@ def formatStatTitle(stat):
     {{endfor}}
   </tr>
 {{endfor}}
+{{py:line = head['runset']}}
+<tr class="{{line.id}}">
+  <td>{{line.name}}</td>
+  {{for cell, width in line.content}}
+  <td colspan="{{width}}">{{cell}}</td>
+  {{endfor}}
+</tr>
 </tfoot>
 </table>
 
