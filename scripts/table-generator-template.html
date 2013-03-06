@@ -17,7 +17,7 @@
   tbody td:first-child { font-family: monospace; }
   #options td:not(:first-child) {  text-align:left; font-size: x-small;
                                    font-family: monospace; }
-  #columnTitles td:first-child { font-family: monospace; font-size: x-small; }
+  .columnTitles td:first-child { font-family: monospace; font-size: x-small; }
   tbody tr:first-child td { border-top:3px solid black}
   tfoot tr:first-child td { border-top:3px solid black}
   .status { text-align: center; }
@@ -376,7 +376,7 @@ function createColumnToggleView() {
 }
 
 $(document).ready(function() {
-  $('#columnTitles > td:first-child')
+  $('.columnTitles > td:first-child')
     .addClass("clickable")
     .attr("title", "Click here to toggle visibility of columns")
     .click(function (event) {
@@ -935,8 +935,8 @@ function showPlot() {
 
 // this function adds the listeners to the table
 $(document).ready(function() {
-  var columnTitles = $('#columnTitles > td');
-  for (i = 1; i< columnTitles.length; i++) { // do not use first column (i!=0)
+  var columnTitles = $('.columnTitles > td:not(:first-child)'); // do not use first column
+  for (i = 0; i< columnTitles.length; i++) {
     var column = columnTitles[i];
     debug(column);
     $(column)
@@ -949,8 +949,8 @@ $(document).ready(function() {
     }
   }
   
-  var runSetTitles = $('#run > td');
-  for (i = 1; i< runSetTitles.length; i++) { // do not use first column (i!=0)
+  var runSetTitles = $('#run > td:not(:first-child)'); // do not use first column
+  for (i = 0; i< runSetTitles.length; i++) {
     var column = runSetTitles[i];
     debug(column);
     $(column)
@@ -992,7 +992,7 @@ def formatOptions(str):
 {{for lineName in ['tool', 'limit', 'host', 'os', 'system', 'date', 'runset', 'branch', 'options', 'title']}}
   {{if lineName in head and head[lineName]}}
   {{py:line = head[lineName]}}
-  <tr id="{{line.id}}">
+  <tr id="{{line.id}}" class="{{line.id}}">
     <td>{{line.name}}</td>
     {{for cell, width in line.content}}
     <td colspan="{{width}}">{{formatOptions(cell) if line.id == 'options' else cell}}</td>
@@ -1030,6 +1030,13 @@ def formatStatTitle(stat):
         return None
     return 'Min: {min}, Max: {max}, Average: {avg:.3f}, Median: {median}'.format(**stat.__dict__)
 }}
+{{py:line = head['title']}}
+<tr class="{{line.id}}">
+  <td>{{line.name}}</td>
+  {{for cell, width in line.content}}
+  <td colspan="{{width}}">{{cell}}</td>
+  {{endfor}}
+</tr>
 {{for line in foot}}
   <tr>
     <td {{attr(title=line.description)}}>{{line.title}}</td>
