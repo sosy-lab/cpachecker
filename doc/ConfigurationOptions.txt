@@ -53,10 +53,10 @@ rootDirectory = "."
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
-# create all potential function call edges (e.g. for function pointer
-# analysis) and add summary call statement edges (e.g. for bounded recursion
-# analysis)
-analysis.completeEdges = false
+# DEPRECATED: create all potential function call edges (e.g. for function
+# pointer analysis) and add summary call statement edges (e.g. for bounded
+# recursion analysis)
+analysis.completeEdges = true
 
 # create undefined function call summary statement edge
 analysis.createUndefinedFunctionCall = true
@@ -102,7 +102,7 @@ analysis.restartAfterUnknown = false
 analysis.stopAfterError = true
 
 # create summary call statement edges
-analysis.summaryEdges = true
+analysis.summaryEdges = false
 
 # which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
@@ -532,9 +532,9 @@ cpa.explicit.variableBlacklist = ""
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value
 
-# do not change CFA, just check equality expressions with function pointers
-# in assume edges
-cpa.functionpointer.immutableCFA = false
+# DEPRECATED: do not change CFA, just check equality expressions with
+# function pointers in assume edges
+cpa.functionpointer.immutableCFA = true
 
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers

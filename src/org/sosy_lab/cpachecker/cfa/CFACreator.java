@@ -113,7 +113,8 @@ public class CFACreator {
           + " (e.g. for function pointer analysis)"
           + " and add summary call statement edges"
           + " (e.g. for bounded recursion analysis)")
-  private boolean completeEdges = false;
+  @Deprecated
+  private boolean completeEdges = true;
 
   @Option(name="analysis.useGlobalVars",
       description="add declarations for global variables before entry function")

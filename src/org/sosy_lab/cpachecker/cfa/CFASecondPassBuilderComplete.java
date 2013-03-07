@@ -97,7 +97,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
 
   @Option(name="analysis.summaryEdges",
       description="create summary call statement edges")
-  private boolean summaryEdges = true;
+  private boolean summaryEdges = false;
 
   @Option(name="analysis.createUndefinedFunctionCall",
       description="create undefined function call summary statement edge")
