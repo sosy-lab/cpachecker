@@ -164,7 +164,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
       left = ((CFunctionCallAssignmentStatement) statement).getLeftHandSide();
       logger.log(Level.WARNING,
           "Analysis may be unsound if external method redefines global variables",
-          " or considers extra global variables.");
+          "or considers extra global variables.");
     } else {
       return pState;
     }
