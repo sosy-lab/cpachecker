@@ -163,6 +163,25 @@ class FunctionPointerTransferRelation implements TransferRelation {
         //should not go by the edge
         return;//results is a empty set
       }
+
+      // print warning if we go by the default edge of a function pointer call
+      // (i.e., the edge for the case where we don't have information about the target).
+      String functionCallVariable = getFunctionPointerCall(pCfaEdge);
+      if (functionCallVariable != null) {
+        FunctionPointerTarget target = oldState.getTarget(functionCallVariable);
+        if (target instanceof NamedFunctionTarget) {
+          String functionName = ((NamedFunctionTarget)target).getFunctionName();
+          logger.log(Level.WARNING, "Function pointer", functionCallVariable,
+              "points to", functionName + ",",
+              "but no corresponding call edge was created during preprocessing.",
+              "Ignoring function pointer call in line", pCfaEdge.getLineNumber() +":",
+              pCfaEdge.getDescription());
+        } else {
+          logger.log(Level.WARNING, "Ignoring call via function pointer", functionCallVariable,
+              "for which no suitable target was found in line", pCfaEdge.getLineNumber() +":",
+              pCfaEdge.getDescription());
+        }
+      }
     }
     // now handle the edge, whether it is real or not
     Collection<? extends AbstractState> newWrappedStates = wrappedTransfer.getAbstractSuccessors(oldState.getWrappedState(), pPrecision, cfaEdge);
