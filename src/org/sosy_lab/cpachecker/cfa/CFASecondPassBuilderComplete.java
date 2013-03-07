@@ -254,7 +254,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
   private void createUndefinedSummaryStatementEdge(CFANode predecessorNode, CFANode successorNode, AStatementEdge statement,
       AFunctionCall functionCall) {
     CFunctionSummaryStatementEdge summaryStatementEdge =
-        new CFunctionSummaryStatementEdge("undefined call " + statement.getRawStatement(),
+        new CFunctionSummaryStatementEdge(statement.getRawStatement(),
         (CStatement)statement.getStatement(), statement.getLineNumber(), predecessorNode, successorNode,
         (CFunctionCall) functionCall, null);
 
