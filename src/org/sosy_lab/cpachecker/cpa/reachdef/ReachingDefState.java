@@ -143,6 +143,8 @@ public class ReachingDefState implements AbstractState, Serializable {
     Map<String, Set<DefinitionPoint>> newLocal = null;
     if (toJoin == this)
       return this;
+    if (toJoin == topElement || this == topElement)
+      return topElement;
     if (stateOnLastFunctionCall != toJoin.stateOnLastFunctionCall)
       return topElement;
     Map<String, Set<DefinitionPoint>> resultOfMapUnion;
@@ -174,7 +176,7 @@ public class ReachingDefState implements AbstractState, Serializable {
       }
       newMap.put(var, unionResult);
     }
-    assert(map1.keySet().equals(newMap.keySet()));
+    assert (map1.keySet().equals(newMap.keySet()));
     if (changed) { return newMap; }
     return map1;
   }
@@ -203,8 +205,7 @@ public class ReachingDefState implements AbstractState, Serializable {
 
       private static final long serialVersionUID = 2843708585446089623L;
 
-      public SerialProxy() {
-      }
+      public SerialProxy() {}
 
       private Object readResolve() throws ObjectStreamException {
         return instance;
