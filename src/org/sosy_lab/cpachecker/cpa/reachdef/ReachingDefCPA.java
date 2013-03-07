@@ -29,12 +29,18 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -54,6 +60,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
  * If function x is called from at least two distinct functions y and z, analysis must be done together
  * with CallstackCPA.
  */
+@Options(prefix="cpa.reachdef")
 public class ReachingDefCPA implements ConfigurableProgramAnalysis {
 
   private LogManager logger;
@@ -62,6 +69,14 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
 
   private ReachingDefTransferRelation transfer;
 
+  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+      description="which merge operator to use for ReachingDefCPA")
+  private String mergeType = "JOIN";
+
+  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN"},
+      description="which stop operator to use for ReachingDefCPA")
+  private String stopType = "SEP";
+
   private StopOperator stop;
   private MergeOperator merge;
 
@@ -69,14 +84,21 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(ReachingDefCPA.class);
   }
 
-  private ReachingDefCPA(LogManager logger) {
+  private ReachingDefCPA(LogManager logger, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
     this.logger = logger;
 
     domain = new ReachingDefDomain();
     transfer = new ReachingDefTransferRelation(logger);
 
-    stop = new StopSepOperator(domain);
-    merge = new MergeJoinOperator(domain);
+    if (stopType.equals("SEP"))
+      stop = new StopSepOperator(domain);
+    else
+      stop = new StopJoinOperator(domain);
+    if (mergeType.equals("SEP"))
+      merge = new MergeSepOperator();
+    else
+      merge = new MergeJoinOperator(domain);
   }
 
   @Override
