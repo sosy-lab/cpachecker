@@ -133,9 +133,6 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
     if (isRegularCall(f)) {
       if (isDefined(f)) {
         createCallAndReturnEdges(statement, functionCall);
-      } else {
-        logger.log(Level.FINEST, "Call to undefined function", f);
-        //TODO: decide: should we create summary edge?
       }
     } else {
       logger.log(Level.FINEST, "Function pointer call", f);
@@ -152,15 +149,17 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
           return;
         }
 
+        logger.log(Level.FINEST, "Inserting edges for the function pointer",
+            nameExp.toASTString(), "with type", nameExp.getExpressionType().toASTString("*"),
+            "to the functions", funcs);
+
         CFANode start = statement.getPredecessor();
         CFANode end = statement.getSuccessor();
         // delete old edge
         CFACreationUtils.removeEdgeFromNodes(statement);
-        logger.log(Level.FINEST, "Size of matching function set is", funcs.size());
 
         CFANode rootNode = start;
         for (FunctionEntryNode fNode : funcs) {
-          logger.log(Level.FINEST, "Matching function: " + fNode.getFunctionName());
           CFANode thenNode = newCFANode(start.getLineNumber(), start.getFunctionName());
           CFANode elseNode = newCFANode(start.getLineNumber(), start.getFunctionName());
           CIdExpression func = createIdExpression(nameExp, fNode);
@@ -217,11 +216,13 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
   public void collectDataRecursively() {
     if (language == Language.C && fptrCallEdges) {
       if (functionSet == FunctionSet.USED_IN_CODE) {
-        logger.log(Level.FINEST, "Collect function pointer variables");
         for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
           Set<String> vars = FunctionPointerVariablesCollector.collectVars(functionStartNode);
-          logger.log(Level.FINEST, "Function pointer variables =", vars);
-          addressedFunctions.addAll(vars);
+          if (!vars.isEmpty()) {
+            logger.log(Level.FINEST, "Functions whose address is taken in function",
+                functionStartNode.getFunctionName() + ":", vars);
+            addressedFunctions.addAll(vars);
+          }
         }
       }
     }
@@ -447,15 +448,14 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
         return res;
       } else {
         for (FunctionEntryNode f : col) {
+
+          if (functionSet == FunctionSet.USED_IN_CODE
+              && !addressedFunctions.contains(f.getFunctionName())) {
+            continue;
+          }
+
           if (checkParamSizesAndTypes(expr.getFunctionCallExpression(), f.getFunctionDefinition().getType())) {
-            if (functionSet == FunctionSet.EQ_PARAM_TYPES) {
-              res.add(f);
-            } else {
-              //functionSet == FunctionSet.USED_IN_CODE
-              if (addressedFunctions.contains(f.getFunctionName())) {
-                res.add(f);
-              }
-            }
+            res.add(f);
           }
         }
         return res;
@@ -467,6 +467,8 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
       AFunctionCallExpression functionCallExpression, IAFunctionType functionType) {
 
     if (!checkParamSizes(functionCallExpression, functionType)) {
+      logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(),
+          "does not match function", functionType, "because of number of parameters.");
       return false;
     }
 
@@ -475,9 +477,9 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
 
     Type declRet = functionType.getReturnType();
     Type actRet = functionCallExpression.getExpressionType();
-    boolean b = declRet.equals(actRet);
-    if (!b) {
-      //logger.log(Level.FINEST, "declRet=" + declRet + ", actRet=" + actRet);
+    if (!isCompatibleType(declRet, actRet)) {
+      logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(), "with type", actRet,
+          "does not match function", functionType, "with return type", declRet);
       return false;
     }
     List<? extends Type> declParams = functionType.getParameters();
@@ -485,14 +487,27 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
     for (int i=0; i<declaredParameters; i++) {
       Type dt = declParams.get(i);
       Type et = exprParams.get(i).getExpressionType();
-      assert dt!=null;
-      if (!dt.equals(et)) {
+      if (!isCompatibleType(dt, et)) {
+        logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(),
+            "does not match function", functionType,
+            "because actual parameter", i, "has type", et, "instead of", dt);
         return false;
       }
-      logger.log(Level.FINEST, "declType =", functionType);
-      logger.log(Level.FINEST, "param", i, " decl =", dt, " expr =", et);
     }
 
     return true;
+  }
+
+  /**
+   * Check whether two types are assignment compatible.
+   *
+   * @param declaredType The type that is declared (e.g., as variable type).
+   * @param actualType The type that is actually used (e.g., as type of an expression).
+   * @return True if a value of actualType may be assigned to a variable of declaredType.
+   */
+  private boolean isCompatibleType(Type declaredType, Type actualType) {
+    // TODO this needs to be implemented
+    // Type equality is too strong.
+    return declaredType.equals(actualType);
   }
 }
