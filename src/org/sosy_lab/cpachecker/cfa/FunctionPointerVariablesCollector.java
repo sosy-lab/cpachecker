@@ -24,10 +24,6 @@ package org.sosy_lab.cpachecker.cfa;
  *    http://cpachecker.sosy-lab.org
  */
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -50,55 +46,36 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 
 /**
  * Helper class that collects all <code>ReferencedVariable</code>s in a given set of nodes.
  */
-public class FunctionPointerVariablesCollector {
+public class FunctionPointerVariablesCollector extends CFATraversal.DefaultCFAVisitor {
+
+  private final Set<String> collectedVars = new HashSet<>();
 
   public static Set<String> collectVars(FunctionEntryNode initialNode) {
     // we use a worklist algorithm
-    Deque<CFANode> workList = new ArrayDeque<>();
-    Set<CFANode> processed = new HashSet<>();
-
-    workList.addLast(initialNode);
-    Set<String> collectedVars = new HashSet<>();
-
-
-    while (!workList.isEmpty()) {
-      CFANode node = workList.pollFirst();
-      if (!processed.add(node)) {
-        // already handled
-        continue;
-      }
-
-      for (CFAEdge edge : leavingEdges(node).toList()) {
-        collectVars(edge, collectedVars);
-
-        // if successor node is not on a different CFA, add it to the worklist
-        CFANode successorNode = edge.getSuccessor();
-        if (node.getFunctionName().equals(successorNode.getFunctionName())) {
-          workList.add(successorNode);
-        }
-      }
-    }
-
-    return collectedVars;
+    FunctionPointerVariablesCollector collector = new FunctionPointerVariablesCollector();
+    CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(initialNode, collector);
+    return collector.collectedVars;
   }
 
-  private static void collectVars(CFAEdge edge, Set<String> pCollectedVars) {
+  @Override
+  public TraversalProcess visitEdge(CFAEdge edge) {
     switch (edge.getEdgeType()) {
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge)edge;
-      collectVars(assumeEdge.getExpression(), pCollectedVars);
+      collectVars(assumeEdge.getExpression(), collectedVars);
       break;
     case BlankEdge:
       //nothing to do
@@ -114,16 +91,10 @@ public class FunctionPointerVariablesCollector {
         //TODO?:collectVars(v.getInitializer(), pCollectedVars);
       }
       break;
-    case FunctionCallEdge:
-      assert false;
-      //for (CExpression argument : functionCallEdge.getArguments()) {
-      //  collectVars(argument, pCollectedVars);
-      //}
-      break;
     case ReturnStatementEdge:
       CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
       if (returnEdge.getExpression()!=null) {
-        collectVars(returnEdge.getExpression(), pCollectedVars);
+        collectVars(returnEdge.getExpression(), collectedVars);
       }
       break;
     case StatementEdge:
@@ -131,19 +102,15 @@ public class FunctionPointerVariablesCollector {
       CStatement s = statementEdge.getStatement();
       if (s instanceof CAssignment) {
         CAssignment assignment = (CAssignment)s;
-        collectVars(assignment.getLeftHandSide(), pCollectedVars);
-        collectVars(assignment.getRightHandSide(), pCollectedVars);
+        collectVars(assignment.getLeftHandSide(), collectedVars);
+        collectVars(assignment.getRightHandSide(), collectedVars);
       } else if (s instanceof CExpressionStatement) {
         CExpressionStatement expr = (CExpressionStatement)s;
-        collectVars(expr.getExpression(), pCollectedVars);
+        collectVars(expr.getExpression(), collectedVars);
       } else if (s instanceof CFunctionCallStatement) {
         CFunctionCallStatement call = (CFunctionCallStatement)s;
-        collectVars(call.getFunctionCallExpression(), pCollectedVars);
+        collectVars(call.getFunctionCallExpression(), collectedVars);
       }
-      break;
-    case FunctionReturnEdge:
-      //TODO
-      assert false;
       break;
     case MultiEdge:
       //TODO
@@ -153,6 +120,8 @@ public class FunctionPointerVariablesCollector {
       assert false;
       break;
     }
+
+    return TraversalProcess.CONTINUE;
   }
 
   private static void collectVars(CRightHandSide pNode, Set<String> pCollectedVars) {
