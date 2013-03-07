@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -343,6 +344,7 @@ class PredicateCPAStatistics implements Statistics {
         }
       }
 
+      Set<String> uniqueDefs = new TreeSet<>();
       StringBuilder defs = new StringBuilder();
       StringBuilder asserts = new StringBuilder();
 
@@ -357,8 +359,10 @@ class PredicateCPAStatistics implements Statistics {
           Pair<String, List<String>> locInvariant = splitFormula(fmgr, formula);
 
           for (String def : locInvariant.getSecond()) {
-            defs.append(def);
-            defs.append("\n");
+            if (uniqueDefs.add(def)) {
+              defs.append(def);
+              defs.append("\n");
+            }
           }
 
           asserts.append(loc.getFunctionName());
