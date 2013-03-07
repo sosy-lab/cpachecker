@@ -110,7 +110,11 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
     USED_IN_CODE //includes only functions which address is taken in the code
   }
 
+  @Option(name="analysis.functionPointerTargets",
+      description="potential targets for call edges created for function pointer calls")
   private FunctionSet functionSet = FunctionSet.USED_IN_CODE;
+
+  private final Set<String> addressedFunctions = new HashSet<>();
 
   public CFASecondPassBuilderComplete(MutableCFA pCfa, Language pLanguage, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(pCfa, pLanguage, pLogger);
@@ -130,11 +134,11 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
       if (isDefined(f)) {
         createCallAndReturnEdges(statement, functionCall);
       } else {
-        logger.log(Level.FINEST, "Call to undefined function " + f);
+        logger.log(Level.FINEST, "Call to undefined function", f);
         //TODO: decide: should we create summary edge?
       }
     } else {
-      logger.log(Level.FINEST, "Function pointer call " + f);
+      logger.log(Level.FINEST, "Function pointer call", f);
       if (language == Language.C && fptrCallEdges) {
         CExpression nameExp = (CExpression)f.getFunctionNameExpression();
         Collection<FunctionEntryNode> funcs = getFunctionSet(f, functionCall);
@@ -142,7 +146,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
         CFANode end = statement.getSuccessor();
         // delete old edge
         CFACreationUtils.removeEdgeFromNodes(statement);
-        logger.log(Level.FINEST, "Size of matching function set is " + funcs.size());
+        logger.log(Level.FINEST, "Size of matching function set is", funcs.size());
 
         CFANode rootNode = start;
         CFANode elseNode = null;
@@ -186,7 +190,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
         }
 
         if (elseNode==null) {
-          logger.log(Level.INFO, "Functions matching function pointer call " + nameExp + " were not found");
+          logger.log(Level.INFO, "Functions matching function pointer call", nameExp, "were not found");
           createUndefinedSummaryStatementEdge(rootNode, end, statement, functionCall);
         } else {
           //rootNode --> end
@@ -205,18 +209,14 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
     }
   }
 
-  private Set<String> addressedFunctions;
-
   @Override
   public void collectDataRecursively() {
     if (language == Language.C && fptrCallEdges) {
       if (functionSet == FunctionSet.USED_IN_CODE) {
-        addressedFunctions = new HashSet<>();
         logger.log(Level.FINEST, "Collect function pointer variables");
         for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
           Set<String> vars = FunctionPointerVariablesCollector.collectVars(functionStartNode);
-          logger.log(Level.FINEST, "Function pointer variables size = " + vars.size());
-          logger.log(Level.FINEST, "Function pointer variables = " + vars);
+          logger.log(Level.FINEST, "Function pointer variables =", vars);
           addressedFunctions.addAll(vars);
         }
       }
@@ -485,8 +485,8 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
       if (!dt.equals(et)) {
         return false;
       }
-      logger.log(Level.FINEST, "declType=" + functionType);
-      logger.log(Level.FINEST, "param[" + i + "] decl=" + dt + ", expr=" + et);
+      logger.log(Level.FINEST, "declType =", functionType);
+      logger.log(Level.FINEST, "param", i, " decl =", dt, " expr =", et);
     }
 
     return true;
