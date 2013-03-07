@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 
 public class CFunctionType extends AFunctionType implements CType {
 
@@ -75,7 +76,7 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public String toString() {
-    return this.getName();
+    return toASTString(Strings.nullToEmpty(getName()));
   }
 
   @Override
