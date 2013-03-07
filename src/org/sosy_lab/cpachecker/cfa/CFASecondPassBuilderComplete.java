@@ -142,6 +142,16 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
       if (language == Language.C && fptrCallEdges) {
         CExpression nameExp = (CExpression)f.getFunctionNameExpression();
         Collection<FunctionEntryNode> funcs = getFunctionSet(f, functionCall);
+
+        if (funcs.isEmpty()) {
+          // no possible targets, we leave the CFA unchanged and print a warning
+          logger.log(Level.WARNING, "Function pointer", nameExp.toASTString(),
+              "with type", nameExp.getExpressionType().toASTString("*"),
+              "is called in line", statement.getLineNumber() + ",",
+              "but no possible target functions were found.");
+          return;
+        }
+
         CFANode start = statement.getPredecessor();
         CFANode end = statement.getSuccessor();
         // delete old edge
@@ -149,11 +159,10 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
         logger.log(Level.FINEST, "Size of matching function set is", funcs.size());
 
         CFANode rootNode = start;
-        CFANode elseNode = null;
         for (FunctionEntryNode fNode : funcs) {
           logger.log(Level.FINEST, "Matching function: " + fNode.getFunctionName());
           CFANode thenNode = newCFANode(start.getLineNumber(), start.getFunctionName());
-          elseNode = newCFANode(start.getLineNumber(), start.getFunctionName());
+          CFANode elseNode = newCFANode(start.getLineNumber(), start.getFunctionName());
           CIdExpression func = createIdExpression(nameExp, fNode);
           CUnaryExpression amper = new CUnaryExpression(nameExp.getFileLocation(),
               nameExp.getExpressionType(), func, CUnaryExpression.UnaryOperator.AMPER);
@@ -189,21 +198,16 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
           rootNode = elseNode;
         }
 
-        if (elseNode==null) {
-          logger.log(Level.INFO, "Functions matching function pointer call", nameExp, "were not found");
+        //rootNode --> end
+        if (createUndefinedFunctionCall) {
           createUndefinedSummaryStatementEdge(rootNode, end, statement, functionCall);
         } else {
-          //rootNode --> end
-          if (createUndefinedFunctionCall) {
-            createUndefinedSummaryStatementEdge(rootNode, end, statement, functionCall);
-          } else {
-            //no way to skip the function call
-            //remove last edge to elseNode
-            for (CFAEdge edge : CFAUtils.enteringEdges(elseNode)) {
-              CFACreationUtils.removeEdgeFromNodes(edge);
-            }
-            cfa.removeNode(elseNode);
+          //no way to skip the function call
+          //remove last edge to rootNode
+          for (CFAEdge edge : CFAUtils.enteringEdges(rootNode)) {
+            CFACreationUtils.removeEdgeFromNodes(edge);
           }
+          cfa.removeNode(rootNode);
         }
       }
     }
