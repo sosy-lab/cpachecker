@@ -87,11 +87,12 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         ReachedSet pReached) {
       out.println("Number of iterations:                     " + countIterations);
       out.println();
-      out.println("Total time for proof check algorithm: " + totalTimer);
-      out.println("  Time for reading in proof:          " + readTimer);
-      out.println("  Time for abstract successor checks: " + transferTimer + " (Calls: "
+      out.println("Total time for proof check algorithm:     " + totalTimer);
+      out.println("  Time for reading in proof:              " + readTimer);
+      out.println("  Time for preparing proof for checking:          " + preparationTimer);
+      out.println("  Time for abstract successor checks:     " + transferTimer + " (Calls: "
           + transferTimer.getNumberOfIntervals() + ")");
-      out.println("  Time for covering checks:           " + stopTimer + " (Calls: " + stopTimer.getNumberOfIntervals()
+      out.println("  Time for covering checks:               " + stopTimer + " (Calls: " + stopTimer.getNumberOfIntervals()
           + ")");
     }
   }
@@ -108,6 +109,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   private String pccType = "ARG";
 
   private final Object proof;
+  private Multimap<CFANode, AbstractState> statesPerLocation = null;
 
 
   public ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig, LogManager logger)
@@ -181,11 +183,10 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
             "ProofCheckAlgorithm needs a CPA that implements the ProofChecker interface."); }
         if (!(pReadProof instanceof ARGState)) { throw new InvalidConfigurationException(
             "Proof Type requires ARG."); }
-
       } else if (pccType.equals("SET")) {
         if (!(pReadProof instanceof AbstractState[])) { throw new InvalidConfigurationException(
             "Proof Type requires reached set as set of abstract states."); }
-        pReadProof = orderReachedSetByLocation((AbstractState[]) pReadProof);
+        orderReachedSetByLocation((AbstractState[]) pReadProof);
       }
 
     } finally {
@@ -349,11 +350,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private boolean checkReachedSet(final ReachedSet reachedSet) throws CPAException, InterruptedException {
-    if (!(proof instanceof AbstractState[])) { throw new CPAException(
-        "Proof Type requires reached set as set of abstract states."); }
-
-    AbstractState[] result = (AbstractState[]) proof;
-    Multimap<CFANode, AbstractState> pReachedSet = orderReachedSetByLocation(result);
+    AbstractState[] certificate = (AbstractState[]) proof;
 
     /*also restrict stop to elements of same location as analysis does*/
     StopOperator stop = cpa.getStopOperator();
@@ -365,7 +362,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     try {
       stats.stopTimer.start();
-      if (!stop.stop(initialState, pReachedSet.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
+      if (!stop.stop(initialState, statesPerLocation .get(AbstractStates.extractLocation(initialState)), initialPrec)) {
         logger.log(Level.FINE, "Cannot check that initial element is covered by result.");
         return false;
       }
@@ -379,7 +376,9 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     // check if elements form transitive closure
     Collection<? extends AbstractState> successors;
-    for (AbstractState state : result) {
+    for (AbstractState state : certificate) {
+      // TODO here a check for property must be added
+
       CPAchecker.stopIfNecessary();
       stats.countIterations++;
 
@@ -391,7 +390,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         for (AbstractState succ : successors) {
           try {
             stats.stopTimer.start();
-            if (!stop.stop(succ, pReachedSet.get(AbstractStates.extractLocation(succ)), initialPrec)) {
+            if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
               logger.log(Level.FINE, "Cannot check that result is transitive closure.", "Successor ", succ,
                   "of element ", state, "not covered by result.");
               return false;
@@ -411,12 +410,11 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private Multimap<CFANode, AbstractState> orderReachedSetByLocation(AbstractState[] pReached) {
-    Multimap<CFANode, AbstractState> result = HashMultimap.create();
+  private void orderReachedSetByLocation(AbstractState[] pReached) {
+    statesPerLocation = HashMultimap.create();
     for (AbstractState state : pReached) {
-      result.put(AbstractStates.extractLocation(state), state);
+      statesPerLocation.put(AbstractStates.extractLocation(state), state);
     }
-    return result;
   }
 
   @Override
