@@ -1271,7 +1271,9 @@ def executeBenchmarkInCloud(benchmark):
     
     # iterate over run sets
     for runSet in benchmark.runSets:
-        
+        if not runSet.shouldBeExecuted():
+            continue
+
         if STOPPED_BY_INTERRUPT: break
         
         numOfRunDefLines += (len(runSet.runs) + 1)
@@ -1339,6 +1341,10 @@ def executeBenchmarkInCloud(benchmark):
     #write results in runs and
     #handle output after all runs are done
     for runSet in benchmark.runSets:
+        if not runSet.shouldBeExecuted():
+            outputHandler.outputForSkippingRunSet(runSet)
+            continue
+
         outputHandler.outputBeforeRunSet(runSet)     
         for run in runSet.runs:
             outputHandler.outputBeforeRun(run)
