@@ -20,6 +20,7 @@
 # /lib/
 /lib/java
 /lib/java-contrib
+/lib/java-benchmark
 
 # /lib/native/
 /lib/native/.hg*

@@ -13,6 +13,9 @@
         <!-- Dependencies needed for building or running tests. -->
         <conf name="test" />
 
+        <!-- Dependencies needed for benchmarking. -->
+        <conf name="benchmark" />
+
         <!-- Additional files like JavaDocs or source code that will help developers.
              These are not downloaded by default, but only when "ant install-contrib" is called. -->
         <conf name="contrib" />
@@ -67,5 +70,8 @@
 
         <!-- SmtInterpol -->
         <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.0-r6308qb" conf="runtime->runtime; contrib->sources"/>
+
+        <!-- VerifierCloud -->
+        <dependency org="org.sosy_lab" name="vercip" rev="0.1058" conf="benchmark->runtime"/>
     </dependencies>
 </ivy-module>

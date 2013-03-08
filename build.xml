@@ -97,6 +97,11 @@
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-contrib/[artifact](-[classifier]).[ext]"/>
     </target>
 
+    <target name="resolve-benchmark-dependencies" depends="load-ivy" description="retrieve dependencies for benchmark configuration" unless="ivy.disable">
+        <ivy:resolve conf="benchmark" log="download-only"/>
+        <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
+    </target>
+
     <target name="build-subprojects">
             <echo message="Generate automaton parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>

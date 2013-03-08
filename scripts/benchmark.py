@@ -1313,14 +1313,20 @@ def executeBenchmarkInCloud(benchmark):
                 requirements + "\n" + \
                 str(numOfRunDefLines) + "\n" + \
                 runDefinitions
-                
-     # start cloud and wait for exit
+
+    # install cloud and dependencies
+    ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"])
+    ant.communicate()
+    ant.wait()
+
+    # start cloud and wait for exit
     logging.debug("Starting cloud.")
     if(config.debug):
         logLevel =  "ALL"
     else:
         logLevel = "INFO"
-    cloud = subprocess.Popen(["java", "-jar", config.cloudPath, "benchmark", "--master", config.cloudMasterName, "--loglevel", logLevel], stdin=subprocess.PIPE)
+    libDir = os.path.abspath("./lib/java-benchmark")
+    cloud = subprocess.Popen(["java", "-jar", libDir + "/vercip.jar", "benchmark", "--master", config.cloudMasterName, "--loglevel", logLevel], stdin=subprocess.PIPE)
     (out, err) = cloud.communicate(cloudInput)
     returnCode = cloud.wait()
     if(not returnCode == 0):
@@ -1447,11 +1453,6 @@ def main(argv=None):
                       dest="cloud",
                       action="store_true",
                       help="Use cloud.")
-
-    parser.add_argument("--cloudPath",
-                      dest="cloudPath",
-                     default="vecip.jar",
-                      help="The path to jar file of cloud client.")
 
     parser.add_argument("--cloudMaster",
                       dest="cloudMasterName",
