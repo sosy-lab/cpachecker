@@ -1326,7 +1326,7 @@ def executeBenchmarkInCloud(benchmark):
     else:
         logLevel = "INFO"
     libDir = os.path.abspath("./lib/java-benchmark")
-    cloud = subprocess.Popen(["java", "-jar", libDir + "/vercip.jar", "benchmark", "--master", config.cloudMasterName, "--loglevel", logLevel], stdin=subprocess.PIPE)
+    cloud = subprocess.Popen(["java", "-jar", libDir + "/vercip.jar", "benchmark", "--master", config.cloud, "--loglevel", logLevel], stdin=subprocess.PIPE)
     (out, err) = cloud.communicate(cloudInput)
     returnCode = cloud.wait()
     if(not returnCode == 0):
@@ -1451,13 +1451,8 @@ def main(argv=None):
     
     parser.add_argument("--cloud",
                       dest="cloud",
-                      action="store_true",
-                      help="Use cloud.")
-
-    parser.add_argument("--cloudMaster",
-                      dest="cloudMasterName",
-                      default="localhost",
-                      help="Use given cloud master if -cloud is used.")
+                      metavar="HOST",
+                      help="Use cloud with given host as master.")
 
     global config, OUTPUT_PATH
     config = parser.parse_args(argv[1:])
