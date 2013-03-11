@@ -26,8 +26,11 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -105,6 +108,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
   private final CFA functions;
   private final LogManager logger;
 
+  private final Set<List<String>> loggedMessages = new HashSet<>();
+
   @Option(name="immutableCFA",
       description="do not change CFA, just check equality expressions with function pointers in assume edges")
   @Deprecated
@@ -119,6 +124,14 @@ class FunctionPointerTransferRelation implements TransferRelation {
     invalidFunctionPointerTarget = trackInvalidFunctionPointers
                                    ? InvalidTarget.getInstance()
                                    : UnknownTarget.getInstance();
+  }
+
+  private void log(Level level, String... msg) {
+    if (logger.wouldBeLogged(level)) {
+      if (loggedMessages.add(Arrays.asList(msg))) {
+        logger.log(level, (Object[])msg);
+      }
+    }
   }
 
   @Override
@@ -171,13 +184,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
         FunctionPointerTarget target = oldState.getTarget(functionCallVariable);
         if (target instanceof NamedFunctionTarget) {
           String functionName = ((NamedFunctionTarget)target).getFunctionName();
-          logger.log(Level.WARNING, "Function pointer", functionCallVariable,
+          log(Level.WARNING, "Function pointer", functionCallVariable,
               "points to", functionName + ",",
               "but no corresponding call edge was created during preprocessing.",
               "Ignoring function pointer call in line", pCfaEdge.getLineNumber() +":",
               pCfaEdge.getDescription());
         } else {
-          logger.log(Level.WARNING, "Ignoring call via function pointer", functionCallVariable,
+          log(Level.WARNING, "Ignoring call via function pointer", functionCallVariable,
               "for which no suitable target was found in line", pCfaEdge.getLineNumber() +":",
               pCfaEdge.getDescription());
         }
@@ -306,7 +319,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
           // now substitute the real edge with the fake edge
           cfaEdge = callEdge;
         } else {
-          logger.log(Level.WARNING, "Ignoring function pointer call to external function", functionName);
+          log(Level.WARNING, "Ignoring function pointer call to external function", functionName);
           cfaEdge = pCfaEdge;
         }
 
