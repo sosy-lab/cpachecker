@@ -23,14 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -79,6 +84,11 @@ import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
+
 /**
  * This class is responsible for creating call edges.
  * Additionally to super class it creates
@@ -104,21 +114,76 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
   private boolean createUndefinedFunctionCall = true;
 
   private enum FunctionSet {
+    // The items here need to be declared in the order they should be used when checking function.
     ALL, //all defined functions considered (Warning: some CPAs require at least EQ_PARAM_SIZES)
+    USED_IN_CODE, //includes only functions which address is taken in the code
     EQ_PARAM_SIZES, //all functions with matching number of parameters considered
-    EQ_PARAM_TYPES, //all functions with matching number and types of parameters considered
-    USED_IN_CODE //includes only functions which address is taken in the code
+    EQ_PARAM_TYPES, //all functions with matching number and types of parameters considered (implies EQ_PARAM_SIZES)
   }
 
   @Option(name="analysis.functionPointerTargets",
       description="potential targets for call edges created for function pointer calls")
-  private FunctionSet functionSet = FunctionSet.USED_IN_CODE;
+  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_TYPES);
 
   private final Set<String> addressedFunctions = new HashSet<>();
+
+  private final Predicate<Pair<AFunctionCallExpression, IAFunctionType>> matchingFunctionCall;
 
   public CFASecondPassBuilderComplete(MutableCFA pCfa, Language pLanguage, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(pCfa, pLanguage, pLogger);
     config.inject(this);
+
+    matchingFunctionCall = getFunctionSetPredicate(functionSets);
+  }
+
+  private Predicate<Pair<AFunctionCallExpression, IAFunctionType>> getFunctionSetPredicate(Collection<FunctionSet> pFunctionSets) {
+    // note that this set is sorted according to the declaration order of the enum
+    EnumSet<FunctionSet> functionSets = EnumSet.copyOf(pFunctionSets);
+
+    if (functionSets.contains(FunctionSet.EQ_PARAM_TYPES)) {
+      functionSets.add(FunctionSet.EQ_PARAM_SIZES); // TYPES needs SIZES checked first
+    }
+
+    List<Predicate<Pair<AFunctionCallExpression, IAFunctionType>>> predicates = new ArrayList<>();
+    for (FunctionSet functionSet : functionSets) {
+      switch (functionSet) {
+      case ALL:
+        // do nothing
+        break;
+      case EQ_PARAM_SIZES:
+        predicates.add(new Predicate<Pair<AFunctionCallExpression, IAFunctionType>>() {
+          @Override
+          public boolean apply(Pair<AFunctionCallExpression, IAFunctionType> pInput) {
+            boolean result = checkParamSizes(pInput.getFirst(), pInput.getSecond());
+            if (!result) {
+              logger.log(Level.FINEST, "Function call", pInput.getFirst().toASTString(),
+                  "does not match function", pInput.getSecond(), "because of number of parameters.");
+            }
+            return result;
+          }
+        });
+        break;
+      case EQ_PARAM_TYPES:
+        predicates.add(new Predicate<Pair<AFunctionCallExpression, IAFunctionType>>() {
+          @Override
+          public boolean apply(Pair<AFunctionCallExpression, IAFunctionType> pInput) {
+            return checkReturnAndParamTypes(pInput.getFirst(), pInput.getSecond());
+          }
+        });
+        break;
+      case USED_IN_CODE:
+        predicates.add(new Predicate<Pair<AFunctionCallExpression, IAFunctionType>>() {
+          @Override
+          public boolean apply(Pair<AFunctionCallExpression, IAFunctionType> pInput) {
+            return addressedFunctions.contains(checkNotNull(pInput.getSecond().getName()));
+          }
+        });
+        break;
+      default:
+        throw new AssertionError();
+      }
+    }
+    return Predicates.and(predicates);
   }
 
   @Override
@@ -138,7 +203,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
       logger.log(Level.FINEST, "Function pointer call", f);
       if (language == Language.C && fptrCallEdges) {
         CExpression nameExp = (CExpression)f.getFunctionNameExpression();
-        Collection<FunctionEntryNode> funcs = getFunctionSet(f, functionCall);
+        Collection<FunctionEntryNode> funcs = getFunctionSet(f);
 
         if (funcs.isEmpty()) {
           // no possible targets, we leave the CFA unchanged and print a warning
@@ -151,7 +216,12 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
 
         logger.log(Level.FINEST, "Inserting edges for the function pointer",
             nameExp.toASTString(), "with type", nameExp.getExpressionType().toASTString("*"),
-            "to the functions", funcs);
+            "to the functions", from(funcs).transform(new Function<CFANode, String>() {
+                @Override
+                public String apply(CFANode pInput) {
+                  return pInput.getFunctionName();
+                }
+              }));
 
         CFANode start = statement.getPredecessor();
         CFANode end = statement.getSuccessor();
@@ -210,7 +280,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
   @Override
   public void collectDataRecursively() {
     if (language == Language.C && fptrCallEdges) {
-      if (functionSet == FunctionSet.USED_IN_CODE) {
+      if (functionSets.contains(FunctionSet.USED_IN_CODE)) {
         for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
           Set<String> vars = FunctionPointerVariablesCollector.collectVars(functionStartNode);
           if (!vars.isEmpty()) {
@@ -427,48 +497,20 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
         (CFunctionCall)functionCall, fDefNode, true);
   }
 
-  private Collection<FunctionEntryNode> getFunctionSet(
-      AFunctionCallExpression functionCallExpression, AFunctionCall expr) {
-    if (functionSet == FunctionSet.ALL) {
-      return cfa.getAllFunctionHeads();
-    } else {
-      Collection<FunctionEntryNode> col = cfa.getAllFunctionHeads();
-      Collection<FunctionEntryNode> res = new ArrayList<>();
-      if (functionSet == FunctionSet.EQ_PARAM_SIZES) {
-        for (FunctionEntryNode f : col) {
-          if (checkParamSizes(expr.getFunctionCallExpression(), f.getFunctionDefinition().getType())) {
-            res.add(f);
-          }
-        }
-        return res;
-      } else {
-        for (FunctionEntryNode f : col) {
-
-          if (functionSet == FunctionSet.USED_IN_CODE
-              && !addressedFunctions.contains(f.getFunctionName())) {
-            continue;
-          }
-
-          if (checkParamSizesAndTypes(expr.getFunctionCallExpression(), f.getFunctionDefinition().getType())) {
-            res.add(f);
-          }
-        }
-        return res;
-      }
-    }
+  private List<FunctionEntryNode> getFunctionSet(final AFunctionCallExpression call) {
+    return from(cfa.getAllFunctionHeads())
+            .filter(Predicates.compose(matchingFunctionCall,
+                      new Function<FunctionEntryNode, Pair<AFunctionCallExpression, IAFunctionType>>() {
+                        @Override
+                        public Pair<AFunctionCallExpression, IAFunctionType> apply(FunctionEntryNode f) {
+                          return Pair.of(call, f.getFunctionDefinition().getType());
+                        }
+                      }))
+            .toList();
   }
 
-  private boolean checkParamSizesAndTypes(
+  private boolean checkReturnAndParamTypes(
       AFunctionCallExpression functionCallExpression, IAFunctionType functionType) {
-
-    if (!checkParamSizes(functionCallExpression, functionType)) {
-      logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(),
-          "does not match function", functionType, "because of number of parameters.");
-      return false;
-    }
-
-    // check if the number of function parameters are right
-    int declaredParameters = functionType.getParameters().size();
 
     Type declRet = functionType.getReturnType();
     Type actRet = functionCallExpression.getExpressionType();
@@ -477,9 +519,10 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
           "does not match function", functionType, "with return type", declRet);
       return false;
     }
+
     List<? extends Type> declParams = functionType.getParameters();
     List<? extends IAExpression> exprParams = functionCallExpression.getParameterExpressions();
-    for (int i=0; i<declaredParameters; i++) {
+    for (int i=0; i<declParams.size(); i++) {
       Type dt = declParams.get(i);
       Type et = exprParams.get(i).getExpressionType();
       if (!isCompatibleType(dt, et)) {
