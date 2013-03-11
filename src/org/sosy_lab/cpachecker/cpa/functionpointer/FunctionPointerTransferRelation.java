@@ -363,6 +363,14 @@ class FunctionPointerTransferRelation implements TransferRelation {
     CExpression nameExp = funcCall.getFunctionNameExpression();
     String currentFunction = pCfaEdge.getPredecessor().getFunctionName();
 
+    if (nameExp instanceof CIdExpression) {
+      CIdExpression idExp = (CIdExpression)nameExp;
+      if (idExp.getExpressionType() instanceof CFunctionType) {
+        // this is a regular function
+        return null;
+      }
+    }
+
     // functions may be called either as f() or as (*f)(),
     // so remove the star operator if its there
     if (nameExp instanceof CUnaryExpression) {
