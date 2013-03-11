@@ -32,12 +32,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -87,8 +92,10 @@ public class FunctionPointerVariablesCollector extends CFATraversal.DefaultCFAVi
     case DeclarationEdge:
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
       if (declaration instanceof CVariableDeclaration) {
-        //CVariableDeclaration v = (CVariableDeclaration)declaration;
-        //TODO?:collectVars(v.getInitializer(), pCollectedVars);
+        CInitializer init = ((CVariableDeclaration)declaration).getInitializer();
+        if (init != null) {
+          init.accept(new CollectVariablesVisitor(collectedVars));
+        }
       }
       break;
     case ReturnStatementEdge:
@@ -129,7 +136,8 @@ public class FunctionPointerVariablesCollector extends CFATraversal.DefaultCFAVi
   }
 
   private static class CollectVariablesVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
-                                               implements CRightHandSideVisitor<Void, RuntimeException> {
+                                               implements CRightHandSideVisitor<Void, RuntimeException>,
+                                                           CInitializerVisitor<Void, RuntimeException> {
 
     private final Set<String> collectedVars;
 
@@ -208,6 +216,26 @@ public class FunctionPointerVariablesCollector extends CFATraversal.DefaultCFAVi
 
     @Override
     protected Void visitDefault(CExpression pExp) {
+      return null;
+    }
+
+    @Override
+    public Void visit(CInitializerExpression pInitializerExpression) throws RuntimeException {
+      pInitializerExpression.getExpression().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CInitializerList pInitializerList) throws RuntimeException {
+      for (CInitializer init : pInitializerList.getInitializers()) {
+        init.accept(this);
+      }
+      return null;
+    }
+
+    @Override
+    public Void visit(CDesignatedInitializer pCStructInitializerPart) throws RuntimeException {
+      pCStructInitializerPart.getRightHandSide().accept(this);
       return null;
     }
   }
