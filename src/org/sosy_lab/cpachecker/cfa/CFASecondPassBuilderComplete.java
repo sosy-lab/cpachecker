@@ -177,12 +177,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
           String pRawStatement = "pointer call(" + fNode.getFunctionName() + ") " + statement.getRawStatement();
 
           //replace function call by pointer expression with regular call by name (in functionCall and edge.getStatement())
-          CFunctionCall regularCall;
-          if (functionSet != FunctionSet.EQ_PARAM_TYPES) {
-            regularCall = (CFunctionCall)functionCall;
-          } else {
-            regularCall = createRegularCall((CFunctionCall)functionCall, fNode);
-          }
+          CFunctionCall regularCall = createRegularCall((CFunctionCall)functionCall, fNode);
 
           FunctionSummaryEdge calltoReturnEdge = createSpecialSummaryEdge(statement.getLineNumber(),
               pRawStatement,
