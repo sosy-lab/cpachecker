@@ -175,6 +175,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private Object prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
+    stats.totalTimer.start();
     stats.preparationTimer.start();
 
     try {
@@ -191,6 +192,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     } finally {
       stats.preparationTimer.stop();
+      stats.totalTimer.stop();
     }
 
     return pReadProof;
