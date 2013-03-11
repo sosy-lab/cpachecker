@@ -87,7 +87,7 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
+    int result = 7;
     result = prime * result + (isFinal ? 1231 : 1237);
     result = prime * result + super.hashCode();
     return result;
@@ -98,13 +98,18 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof JVariableDeclaration)) { return false; }
-    JVariableDeclaration other = (JVariableDeclaration) obj;
-    if (isFinal != other.isFinal) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof JVariableDeclaration)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    JVariableDeclaration other = (JVariableDeclaration) obj;
+
+    return other.isFinal == isFinal;
   }
 
 }

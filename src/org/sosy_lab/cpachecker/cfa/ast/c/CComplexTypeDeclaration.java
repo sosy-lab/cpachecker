@@ -51,10 +51,22 @@ public final class CComplexTypeDeclaration extends CTypeDeclaration {
   }
 
   @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 7;
+    return result * prime + super.hashCode();
+  }
+
+  @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof CComplexTypeDeclaration)) { return false; }
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CComplexTypeDeclaration)) {
+      return false;
+    }
+
     return super.equals(obj);
   }
 }

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import static com.google.common.collect.Iterables.transform;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
@@ -88,10 +89,10 @@ public abstract class AFunctionCallExpression extends ARightHandSide {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((declaration == null) ? 0 : declaration.hashCode());
-    result = prime * result + ((functionName == null) ? 0 : functionName.hashCode());
-    result = prime * result + ((parameters == null) ? 0 : parameters.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(declaration);
+    result = prime * result + Objects.hashCode(functionName);
+    result = prime * result + Objects.hashCode(parameters);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -101,21 +102,20 @@ public abstract class AFunctionCallExpression extends ARightHandSide {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof AFunctionCallExpression)) { return false; }
-    AFunctionCallExpression other = (AFunctionCallExpression) obj;
-    if (declaration == null) {
-      if (other.declaration != null) { return false; }
-    } else if (!declaration.equals(other.declaration)) { return false; }
-    if (functionName == null) {
-      if (other.functionName != null) { return false; }
-    } else if (!functionName.equals(other.functionName)) { return false; }
-    if (parameters == null) {
-      if (other.parameters != null) { return false; }
-    } else if (!parameters.equals(other.parameters)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof AFunctionCallExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    AFunctionCallExpression other = (AFunctionCallExpression) obj;
+
+    return Objects.equals(other.declaration, declaration)
+            && Objects.equals(other.functionName, functionName)
+            && Objects.equals(other.parameters, parameters);
   }
 
 }

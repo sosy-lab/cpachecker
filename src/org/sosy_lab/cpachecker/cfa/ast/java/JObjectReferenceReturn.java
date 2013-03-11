@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
@@ -51,8 +53,8 @@ public class JObjectReferenceReturn extends JReturnStatement {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((classReference == null) ? 0 : classReference.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(classReference);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -62,15 +64,18 @@ public class JObjectReferenceReturn extends JReturnStatement {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof JObjectReferenceReturn)) { return false; }
-    JObjectReferenceReturn other = (JObjectReferenceReturn) obj;
-    if (classReference == null) {
-      if (other.classReference != null) { return false; }
-    } else if (!classReference.equals(other.classReference)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof JObjectReferenceReturn)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    JObjectReferenceReturn other = (JObjectReferenceReturn) obj;
+
+    return Objects.equals(other.classReference, classReference);
   }
 
 }

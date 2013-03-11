@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
@@ -64,9 +66,9 @@ public abstract class AIdExpression extends AExpression {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((declaration == null) ? 0 : declaration.hashCode());
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(declaration);
+    result = prime * result + Objects.hashCode(name);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -76,18 +78,19 @@ public abstract class AIdExpression extends AExpression {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof AIdExpression)) { return false; }
-    AIdExpression other = (AIdExpression) obj;
-    if (declaration == null) {
-      if (other.declaration != null) { return false; }
-    } else if (!declaration.equals(other.declaration)) { return false; }
-    if (name == null) {
-      if (other.name != null) { return false; }
-    } else if (!name.equals(other.name)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof AIdExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    AIdExpression other = (AIdExpression) obj;
+
+    return Objects.equals(other.declaration, declaration)
+            && Objects.equals(other.name, name);
   }
 
 }

@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
@@ -53,8 +55,9 @@ public  abstract class ARightHandSide extends AstNode implements IARightHandSide
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = 1;
-    result = prime * result + ((type == null) ? 0 : type.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(type);
+    result = prime * result + super.hashCode();
     return result;
   }
 
@@ -63,14 +66,18 @@ public  abstract class ARightHandSide extends AstNode implements IARightHandSide
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof ARightHandSide)) { return false; }
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof ARightHandSide)
+        || !super.equals(obj)) {
+      return false;
+    }
+
     ARightHandSide other = (ARightHandSide) obj;
-    if (type == null) {
-      if (other.type != null) { return false; }
-    } else if (!type.equals(other.type)) { return false; }
-    return true;
+
+    return Objects.equals(other.type, type);
   }
 
 

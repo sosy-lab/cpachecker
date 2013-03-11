@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 
@@ -63,9 +65,10 @@ public class CDesignatedInitializer extends Initializer implements CInitializer 
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = 1;
-    result = prime * result + ((left == null) ? 0 : left.hashCode());
-    result = prime * result + ((right == null) ? 0 : right.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(left);
+    result = prime * result + Objects.hashCode(right);
+    result = prime * result + super.hashCode();
     return result;
   }
 
@@ -74,17 +77,18 @@ public class CDesignatedInitializer extends Initializer implements CInitializer 
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof CDesignatedInitializer)) { return false; }
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CDesignatedInitializer)
+        || !super.equals(obj)) {
+      return false;
+    }
+
     CDesignatedInitializer other = (CDesignatedInitializer) obj;
-    if (left == null) {
-      if (other.left != null) { return false; }
-    } else if (!left.equals(other.left)) { return false; }
-    if (right == null) {
-      if (other.right != null) { return false; }
-    } else if (!right.equals(other.right)) { return false; }
-    return true;
+
+    return Objects.equals(other.left, left) && Objects.equals(other.right, right);
   }
 
 }

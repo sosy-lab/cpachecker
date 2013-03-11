@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.util.Objects;
+
 
 
 public abstract class AExpressionStatement extends AStatement {
@@ -55,8 +57,9 @@ public abstract class AExpressionStatement extends AStatement {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = 1;
-    result = prime * result + ((expression == null) ? 0 : expression.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(expression);
+    result = prime * result + super.hashCode();
     return result;
   }
 
@@ -65,14 +68,18 @@ public abstract class AExpressionStatement extends AStatement {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof AExpressionStatement)) { return false; }
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof AExpressionStatement)
+        || !super.equals(obj)) {
+      return false;
+    }
+
     AExpressionStatement other = (AExpressionStatement) obj;
-    if (expression == null) {
-      if (other.expression != null) { return false; }
-    } else if (!expression.equals(other.expression)) { return false; }
-    return true;
+
+    return Objects.equals(other.expression, expression);
   }
 
 }

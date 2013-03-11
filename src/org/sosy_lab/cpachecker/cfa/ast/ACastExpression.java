@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
@@ -61,9 +63,9 @@ public abstract class ACastExpression extends AExpression {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((castType == null) ? 0 : castType.hashCode());
-    result = prime * result + ((operand == null) ? 0 : operand.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(castType);
+    result = prime * result + Objects.hashCode(operand);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -73,18 +75,19 @@ public abstract class ACastExpression extends AExpression {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof ACastExpression)) { return false; }
-    ACastExpression other = (ACastExpression) obj;
-    if (castType == null) {
-      if (other.castType != null) { return false; }
-    } else if (!castType.equals(other.castType)) { return false; }
-    if (operand == null) {
-      if (other.operand != null) { return false; }
-    } else if (!operand.equals(other.operand)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof ACastExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    ACastExpression other = (ACastExpression) obj;
+
+    return Objects.equals(other.operand, operand)
+            && Objects.equals(other.castType, castType);
   }
 
 }

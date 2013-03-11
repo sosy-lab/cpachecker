@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -44,7 +45,7 @@ import com.google.common.base.Strings;
  * Type v = new Type(a, b);
  *
  */
-public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclaration {
+public class JMethodDeclaration extends AFunctionDeclaration implements JDeclaration {
 
   private final boolean isFinal;
   private final boolean isAbstract;
@@ -174,15 +175,15 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((declaringClass == null) ? 0 : declaringClass.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(declaringClass);
     result = prime * result + (isAbstract ? 1231 : 1237);
     result = prime * result + (isFinal ? 1231 : 1237);
     result = prime * result + (isNative ? 1231 : 1237);
     result = prime * result + (isStatic ? 1231 : 1237);
     result = prime * result + (isStrictfp ? 1231 : 1237);
     result = prime * result + (isSynchronized ? 1231 : 1237);
-    result = prime * result + ((visibility == null) ? 0 : visibility.hashCode());
+    result = prime * result + Objects.hashCode(visibility);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -192,22 +193,25 @@ public  class JMethodDeclaration extends AFunctionDeclaration implements JDeclar
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof JMethodDeclaration)) { return false; }
-    JMethodDeclaration other = (JMethodDeclaration) obj;
-    if (declaringClass == null) {
-      if (other.declaringClass != null) { return false; }
-    } else if (!declaringClass.equals(other.declaringClass)) { return false; }
-    if (isAbstract != other.isAbstract) { return false; }
-    if (isFinal != other.isFinal) { return false; }
-    if (isNative != other.isNative) { return false; }
-    if (isStatic != other.isStatic) { return false; }
-    if (isStrictfp != other.isStrictfp) { return false; }
-    if (isSynchronized != other.isSynchronized) { return false; }
-    if (visibility != other.visibility) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof JMethodDeclaration)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    JMethodDeclaration other = (JMethodDeclaration) obj;
+
+    return Objects.equals(other.declaringClass, declaringClass)
+            && other.isAbstract == isAbstract
+            && other.isFinal == isFinal
+            && other.isNative == isNative
+            && other.isStatic == isStatic
+            && other.isStrictfp == isStrictfp
+            && other.isSynchronized == isSynchronized
+            && Objects.equals(other.visibility, visibility);
   }
 
 }

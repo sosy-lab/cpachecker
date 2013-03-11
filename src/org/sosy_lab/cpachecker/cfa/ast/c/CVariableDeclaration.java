@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -103,8 +105,8 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = 1;
-    result = prime * result + ((cStorageClass == null) ? 0 : cStorageClass.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(cStorageClass);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -115,12 +117,15 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   @Override
   public boolean equals(Object obj) {
     if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof CVariableDeclaration)) { return false; }
-    CVariableDeclaration other = (CVariableDeclaration) obj;
-    if (cStorageClass != other.cStorageClass) { return false; }
 
-    return super.equals(other);
+    if (!(obj instanceof CVariableDeclaration)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    CVariableDeclaration other = (CVariableDeclaration) obj;
+
+    return Objects.equals(other.cStorageClass, cStorageClass);
   }
 
 

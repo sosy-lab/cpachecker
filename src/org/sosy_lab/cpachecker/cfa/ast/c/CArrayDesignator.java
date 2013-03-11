@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 
@@ -69,9 +71,10 @@ public class CArrayDesignator extends CDesignator {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = 1;
-    result = prime * result + ((arrayDesignator == null) ? 0 : arrayDesignator.hashCode());
-    result = prime * result + ((subscriptExpression == null) ? 0 : subscriptExpression.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(arrayDesignator);
+    result = prime * result + Objects.hashCode(subscriptExpression);
+    result = prime * result * super.hashCode();
     return result;
   }
 
@@ -80,19 +83,19 @@ public class CArrayDesignator extends CDesignator {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof CArrayDesignator)) { return false; }
+    if (obj == this) {
+      return true;
+    }
+
+    if (!(obj instanceof CArrayDesignator)
+        || !super.equals(obj)) {
+      return false;
+    }
+
     CArrayDesignator other = (CArrayDesignator) obj;
-    if (arrayDesignator == null) {
-      if (other.arrayDesignator != null) { return false; }
-    } else if (!arrayDesignator.equals(other.arrayDesignator)) { return false; }
-    if (subscriptExpression == null) {
-      if (other.subscriptExpression != null) { return false; }
-    } else if (!subscriptExpression.equals(other.subscriptExpression)) { return false; }
 
-    return true;
+    return Objects.equals(other.arrayDesignator, arrayDesignator)
+            && Objects.equals(other.subscriptExpression, subscriptExpression);
   }
-
 
 }

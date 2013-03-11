@@ -65,14 +65,21 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression i
 
   @Override
   public int hashCode() {
-    return super.hashCode();
+    final int prime = 31;
+    int result = 7;
+    return result * prime + super.hashCode();
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof CArraySubscriptExpression)) { return false; }
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CArraySubscriptExpression)) {
+      return false;
+    }
+
     return super.equals(obj);
   }
 }

@@ -34,4 +34,24 @@ public abstract class CDesignator extends AstNode implements CAstNode {
   }
 
   public abstract <R, X extends Exception> R accept(CDesignatorVisitor<R, X> pV) throws X;
+
+  @Override
+  public int hashCode() {
+    int prime = 31;
+    int result = 7;
+    return prime * result + super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+
+    if (!(obj instanceof CDesignator)) {
+      return false;
+    }
+
+    return super.equals(obj);
+  }
 }

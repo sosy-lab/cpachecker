@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
@@ -66,8 +68,8 @@ public class JFieldAccess extends JIdExpression {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((qualifier == null) ? 0 : qualifier.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(qualifier);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -77,15 +79,18 @@ public class JFieldAccess extends JIdExpression {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof JFieldAccess)) { return false; }
-    JFieldAccess other = (JFieldAccess) obj;
-    if (qualifier == null) {
-      if (other.qualifier != null) { return false; }
-    } else if (!qualifier.equals(other.qualifier)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof JFieldAccess)
+        || super.equals(obj)) {
+      return false;
+    }
+
+    JFieldAccess other = (JFieldAccess) obj;
+
+    return Objects.equals(other.qualifier, qualifier);
   }
 
 }

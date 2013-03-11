@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -34,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CTypeIdInitializerExpression extends AExpression implements CExpression {
 
   private final CInitializer initializer;
-  @SuppressWarnings("hiding")
   private final CType     type;
 
   public CTypeIdInitializerExpression(final FileLocation pFileLocation,
@@ -80,9 +81,9 @@ public final class CTypeIdInitializerExpression extends AExpression implements C
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((initializer == null) ? 0 : initializer.hashCode());
-    result = prime * result + ((type == null) ? 0 : type.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(initializer);
+    result = prime * result + Objects.hashCode(type);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -92,18 +93,19 @@ public final class CTypeIdInitializerExpression extends AExpression implements C
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof CTypeIdInitializerExpression)) { return false; }
-    CTypeIdInitializerExpression other = (CTypeIdInitializerExpression) obj;
-    if (initializer == null) {
-      if (other.initializer != null) { return false; }
-    } else if (!initializer.equals(other.initializer)) { return false; }
-    if (type == null) {
-      if (other.type != null) { return false; }
-    } else if (!type.equals(other.type)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof CTypeIdInitializerExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    CTypeIdInitializerExpression other = (CTypeIdInitializerExpression) obj;
+
+    return Objects.equals(other.initializer, initializer)
+            && Objects.equals(other.type, type);
   }
 
 }

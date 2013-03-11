@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -30,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CTypeIdExpression extends AExpression implements CExpression {
 
   private final TypeIdOperator operator;
-  @SuppressWarnings("hiding")
   private final CType type;
 
   public CTypeIdExpression(final FileLocation pFileLocation,
@@ -90,9 +91,9 @@ public final class CTypeIdExpression extends AExpression implements CExpression 
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((operator == null) ? 0 : operator.hashCode());
-    result = prime * result + ((type == null) ? 0 : type.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(operator);
+    result = prime * result + Objects.hashCode(type);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -102,16 +103,19 @@ public final class CTypeIdExpression extends AExpression implements CExpression 
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof CTypeIdExpression)) { return false; }
-    CTypeIdExpression other = (CTypeIdExpression) obj;
-    if (operator != other.operator) { return false; }
-    if (type == null) {
-      if (other.type != null) { return false; }
-    } else if (!type.equals(other.type)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof CTypeIdExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    CTypeIdExpression other = (CTypeIdExpression) obj;
+
+    return Objects.equals(other.operator, operator)
+            && Objects.equals(other.type, type);
   }
 
 }

@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  */
 public abstract class ADeclaration extends ASimpleDeclarations implements IADeclaration {
 
-  private final boolean   isGlobal;
+  private final boolean isGlobal;
 
   public ADeclaration(FileLocation pFileLocation,  boolean pIsGlobal, Type pType, String pName) {
     super(pFileLocation, pType, pName, pName);
@@ -60,7 +60,7 @@ public abstract class ADeclaration extends ASimpleDeclarations implements IADecl
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = 1;
+    int result = 7;
     result = prime * result + (isGlobal ? 1231 : 1237);
     result = prime * result + super.hashCode();
     return result;
@@ -71,13 +71,18 @@ public abstract class ADeclaration extends ASimpleDeclarations implements IADecl
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof ADeclaration)) { return false; }
-    ADeclaration other = (ADeclaration) obj;
-    if (isGlobal != other.isGlobal) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof ADeclaration)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    ADeclaration other = (ADeclaration) obj;
+
+    return other.isGlobal == isGlobal;
   }
 
 }

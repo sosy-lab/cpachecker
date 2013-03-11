@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -30,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CCastExpression extends AExpression implements CExpression {
 
   private final CExpression operand;
-  @SuppressWarnings("hiding")
   private final CType     type;
 
   public CCastExpression(final FileLocation pFileLocation,
@@ -76,9 +77,9 @@ public final class CCastExpression extends AExpression implements CExpression {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = 1;
-    result = prime * result + ((operand == null) ? 0 : operand.hashCode());
-    result = prime * result + ((type == null) ? 0 : type.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(operand);
+    result = prime * result + Objects.hashCode(type);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -88,19 +89,18 @@ public final class CCastExpression extends AExpression implements CExpression {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof CCastExpression)) { return false; }
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CCastExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
     CCastExpression other = (CCastExpression) obj;
-    if (operand == null) {
-      if (other.operand != null) { return false; }
-    } else if (!operand.equals(other.operand)) { return false; }
-    if (type == null) {
-      if (other.type != null) { return false; }
-    } else if (!type.equals(other.type)) { return false; }
 
-    return super.equals(other);
+    return Objects.equals(other.operand, operand) && Objects.equals(other.type, type);
   }
-
 
 }

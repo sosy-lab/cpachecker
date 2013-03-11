@@ -51,6 +51,24 @@ public abstract class AstNode implements IAstNode, CAstNode {
     return toASTString();
   }
 
+  @Override
+  public int hashCode() {
+    return 2857;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if(this == obj) {
+      return true;
+    }
+
+    if(obj instanceof AstNode) {
+      return true;
+    }
+
+    return false;
+  }
+
   public static final Function<IAstNode, String> TO_AST_STRING
       = new Function<IAstNode, String>() {
 
@@ -59,4 +77,5 @@ public abstract class AstNode implements IAstNode, CAstNode {
           return pInput.toASTString();
         }
       };
+
 }

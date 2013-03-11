@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -91,9 +92,9 @@ public class JArrayCreationExpression extends AExpression implements JExpression
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((initializer == null) ? 0 : initializer.hashCode());
-    result = prime * result + ((length == null) ? 0 : length.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(initializer);
+    result = prime * result + Objects.hashCode(length);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -103,18 +104,19 @@ public class JArrayCreationExpression extends AExpression implements JExpression
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof JArrayCreationExpression)) { return false; }
-    JArrayCreationExpression other = (JArrayCreationExpression) obj;
-    if (initializer == null) {
-      if (other.initializer != null) { return false; }
-    } else if (!initializer.equals(other.initializer)) { return false; }
-    if (length == null) {
-      if (other.length != null) { return false; }
-    } else if (!length.equals(other.length)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof JArrayCreationExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    JArrayCreationExpression other = (JArrayCreationExpression) obj;
+
+    return Objects.equals(other.initializer, initializer)
+            && Objects.equals(other.length, length);
   }
 
 }

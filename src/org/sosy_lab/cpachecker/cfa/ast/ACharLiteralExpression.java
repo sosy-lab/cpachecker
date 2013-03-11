@@ -62,7 +62,7 @@ public abstract class ACharLiteralExpression extends ALiteralExpression {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
+    int result = 7;
     result = prime * result + character;
     result = prime * result + super.hashCode();
     return result;
@@ -73,13 +73,18 @@ public abstract class ACharLiteralExpression extends ALiteralExpression {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof ACharLiteralExpression)) { return false; }
-    ACharLiteralExpression other = (ACharLiteralExpression) obj;
-    if (character != other.character) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof ACharLiteralExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    ACharLiteralExpression other = (ACharLiteralExpression) obj;
+
+    return other.character == character;
   }
 
 }

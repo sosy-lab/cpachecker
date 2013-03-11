@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
@@ -74,10 +76,10 @@ public abstract class ABinaryExpression extends AExpression {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((operand1 == null) ? 0 : operand1.hashCode());
-    result = prime * result + ((operand2 == null) ? 0 : operand2.hashCode());
-    result = prime * result + ((operator == null) ? 0 : operator.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(operand1);
+    result = prime * result + Objects.hashCode(operand2);
+    result = prime * result + Objects.hashCode(operator);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -89,21 +91,20 @@ public abstract class ABinaryExpression extends AExpression {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof ABinaryExpression)) { return false; }
-    ABinaryExpression other = (ABinaryExpression) obj;
-    if (operand1 == null) {
-      if (other.operand1 != null) { return false; }
-    } else if (!operand1.equals(other.operand1)) { return false; }
-    if (operand2 == null) {
-      if (other.operand2 != null) { return false; }
-    } else if (!operand2.equals(other.operand2)) { return false; }
-    if (operator == null) {
-      if (other.operator != null) { return false; }
-    } else if (!operator.equals(other.operator)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof ABinaryExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    ABinaryExpression other = (ABinaryExpression) obj;
+
+    return Objects.equals(other.operand1, operand1)
+            && Objects.equals(other.operand2, operand2)
+            && Objects.equals(other.operator, operator);
   }
 
   public static  interface ABinaryOperator {

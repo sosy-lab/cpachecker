@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
@@ -51,8 +53,8 @@ public abstract class AStringLiteralExpression extends ALiteralExpression {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((value == null) ? 0 : value.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(value);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -62,15 +64,18 @@ public abstract class AStringLiteralExpression extends ALiteralExpression {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof AStringLiteralExpression)) { return false; }
-    AStringLiteralExpression other = (AStringLiteralExpression) obj;
-    if (value == null) {
-      if (other.value != null) { return false; }
-    } else if (!value.equals(other.value)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof AStringLiteralExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    AStringLiteralExpression other = (AStringLiteralExpression) obj;
+
+    return Objects.equals(other.value, value);
   }
 
 }

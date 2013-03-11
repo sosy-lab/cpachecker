@@ -32,6 +32,7 @@ public class JIdExpression extends AIdExpression implements JExpression {
 
   public JIdExpression(FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName, pDeclaration);
+    // TODO check if code is necessary (it was already commented out before adding the todo)
     //assert pDeclaration != null;
   }
 
@@ -57,14 +58,21 @@ public class JIdExpression extends AIdExpression implements JExpression {
 
   @Override
   public int hashCode() {
-    return super.hashCode();
+    int prime = 31;
+    int result = 7;
+    return prime * result + super.hashCode();
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof JIdExpression)) { return false; }
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof JIdExpression)) {
+      return false;
+    }
+
     return super.equals(obj);
   }
 }

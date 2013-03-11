@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.util.Objects;
+
 
 
 public abstract class AFunctionCallStatement extends AStatement implements AFunctionCall {
@@ -60,8 +62,9 @@ public abstract class AFunctionCallStatement extends AStatement implements AFunc
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = 1;
-    result = prime * result + ((functionCall == null) ? 0 : functionCall.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(functionCall);
+    result = prime * result + super.hashCode();
     return result;
   }
 
@@ -70,14 +73,18 @@ public abstract class AFunctionCallStatement extends AStatement implements AFunc
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof AFunctionCallStatement)) { return false; }
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof AFunctionCallStatement)
+        || !super.equals(obj)) {
+      return false;
+    }
+
     AFunctionCallStatement other = (AFunctionCallStatement) obj;
-    if (functionCall == null) {
-      if (other.functionCall != null) { return false; }
-    } else if (!functionCall.equals(other.functionCall)) { return false; }
-    return true;
+
+    return Objects.equals(other.functionCall, functionCall);
   }
 
 }

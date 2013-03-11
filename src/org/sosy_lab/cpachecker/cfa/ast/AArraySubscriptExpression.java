@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
@@ -67,9 +69,9 @@ public abstract class AArraySubscriptExpression extends AExpression {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((arrayExpression == null) ? 0 : arrayExpression.hashCode());
-    result = prime * result + ((subscriptExpression == null) ? 0 : subscriptExpression.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(arrayExpression);
+    result = prime * result + Objects.hashCode(subscriptExpression);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -79,18 +81,19 @@ public abstract class AArraySubscriptExpression extends AExpression {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof AArraySubscriptExpression)) { return false; }
-    AArraySubscriptExpression other = (AArraySubscriptExpression) obj;
-    if (arrayExpression == null) {
-      if (other.arrayExpression != null) { return false; }
-    } else if (!arrayExpression.equals(other.arrayExpression)) { return false; }
-    if (subscriptExpression == null) {
-      if (other.subscriptExpression != null) { return false; }
-    } else if (!subscriptExpression.equals(other.subscriptExpression)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof AArraySubscriptExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    AArraySubscriptExpression other = (AArraySubscriptExpression) obj;
+
+    return Objects.equals(other.arrayExpression, arrayExpression)
+            && Objects.equals(other.subscriptExpression, subscriptExpression);
   }
 
 }

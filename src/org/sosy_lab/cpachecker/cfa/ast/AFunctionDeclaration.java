@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 
@@ -52,14 +53,26 @@ public abstract class AFunctionDeclaration extends ADeclaration {
 
   @Override
   public int hashCode() {
-    return super.hashCode();
+    int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(parameters);
+    result = prime * result + super.hashCode();
+    return result;
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof AFunctionDeclaration)) { return false; }
-    return super.equals(obj);
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof AFunctionDeclaration)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    AFunctionDeclaration other = (AFunctionDeclaration) obj;
+
+    return Objects.equals(other.parameters, parameters);
   }
 }

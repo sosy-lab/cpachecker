@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import static com.google.common.collect.Iterables.transform;
 
 import java.util.List;
+import java.util.Objects;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -61,8 +62,9 @@ public abstract class AInitializerList extends Initializer {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = 1;
-    result = prime * result + ((initializerList == null) ? 0 : initializerList.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(initializerList);
+    result = prime * result + super.hashCode();
     return result;
   }
 
@@ -71,14 +73,18 @@ public abstract class AInitializerList extends Initializer {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof AInitializerList)) { return false; }
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof AInitializerList)
+        || !super.equals(obj)) {
+      return false;
+    }
+
     AInitializerList other = (AInitializerList) obj;
-    if (initializerList == null) {
-      if (other.initializerList != null) { return false; }
-    } else if (!initializerList.equals(other.initializerList)) { return false; }
-    return true;
+
+    return Objects.equals(other.initializerList, initializerList);
   }
 
 }

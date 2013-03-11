@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
@@ -77,7 +79,7 @@ public class JBooleanLiteralExpression extends ALiteralExpression implements JLi
   public int hashCode() {
     final int prime = 31;
     int result = super.hashCode();
-    result = prime * result + ((value == null) ? 0 : value.hashCode());
+    result = prime * result + Objects.hashCode(value);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -87,15 +89,18 @@ public class JBooleanLiteralExpression extends ALiteralExpression implements JLi
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof JBooleanLiteralExpression)) { return false; }
-    JBooleanLiteralExpression other = (JBooleanLiteralExpression) obj;
-    if (value == null) {
-      if (other.value != null) { return false; }
-    } else if (!value.equals(other.value)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof JBooleanLiteralExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    JBooleanLiteralExpression other = (JBooleanLiteralExpression) obj;
+
+    return Objects.equals(other.value, value);
   }
 
 }

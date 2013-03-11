@@ -50,14 +50,21 @@ public class JMethodInvocationStatement extends AFunctionCallStatement implement
 
   @Override
   public int hashCode() {
-    return super.hashCode();
+    int prime = 31;
+    int result = 7;
+    return prime * result + super.hashCode();
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof JMethodInvocationStatement)) { return false; }
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof JMethodInvocationStatement)) {
+      return false;
+    }
+
     return super.equals(obj);
   }
 }

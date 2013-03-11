@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
+import com.google.common.base.Objects;
+
 
 public abstract class AUnaryExpression extends AExpression {
 
@@ -63,9 +65,9 @@ public abstract class AUnaryExpression extends AExpression {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((operand == null) ? 0 : operand.hashCode());
-    result = prime * result + ((operator == null) ? 0 : operator.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(operand);
+    result = prime * result + Objects.hashCode(operator);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -75,18 +77,19 @@ public abstract class AUnaryExpression extends AExpression {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof AUnaryExpression)) { return false; }
-    AUnaryExpression other = (AUnaryExpression) obj;
-    if (operand == null) {
-      if (other.operand != null) { return false; }
-    } else if (!operand.equals(other.operand)) { return false; }
-    if (operator == null) {
-      if (other.operator != null) { return false; }
-    } else if (!operator.equals(other.operator)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof AUnaryExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    AUnaryExpression other = (AUnaryExpression) obj;
+
+    return Objects.equal(other.operand, operand)
+            && Objects.equal(other.operator, operator);
   }
 
   public static  interface AUnaryOperator {

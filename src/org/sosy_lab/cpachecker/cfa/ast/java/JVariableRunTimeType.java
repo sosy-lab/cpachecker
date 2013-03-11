@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -78,8 +80,8 @@ public class JVariableRunTimeType extends AExpression implements JRunTimeTypeExp
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((referencedVariable == null) ? 0 : referencedVariable.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(referencedVariable);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -89,15 +91,18 @@ public class JVariableRunTimeType extends AExpression implements JRunTimeTypeExp
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof JVariableRunTimeType)) { return false; }
-    JVariableRunTimeType other = (JVariableRunTimeType) obj;
-    if (referencedVariable == null) {
-      if (other.referencedVariable != null) { return false; }
-    } else if (!referencedVariable.equals(other.referencedVariable)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof JVariableRunTimeType)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    JVariableRunTimeType other = (JVariableRunTimeType) obj;
+
+    return Objects.equals(other.referencedVariable, referencedVariable);
   }
 
 }

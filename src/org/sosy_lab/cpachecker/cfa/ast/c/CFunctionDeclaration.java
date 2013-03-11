@@ -58,14 +58,19 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
 
   @Override
   public int hashCode() {
-    return super.hashCode();
+    int prime = 31;
+    int result = 7;
+    return prime * result + super.hashCode();
   }
 
   @Override
   public boolean equals(Object obj) {
     if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof CFunctionDeclaration)) { return false; }
+
+    if (!(obj instanceof CFunctionDeclaration)) {
+      return false;
+    }
+
     return super.equals(obj);
   }
 }

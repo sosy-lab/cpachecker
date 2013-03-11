@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
@@ -75,8 +77,8 @@ public abstract class AVariableDeclaration extends ADeclaration {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = 1;
-    result = prime * result + ((initializer == null) ? 0 : initializer.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(initializer);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -86,15 +88,18 @@ public abstract class AVariableDeclaration extends ADeclaration {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof AVariableDeclaration)) { return false; }
-    AVariableDeclaration other = (AVariableDeclaration) obj;
-    if (initializer == null) {
-      if (other.initializer != null) { return false; }
-    } else if (!initializer.equals(other.initializer)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof AVariableDeclaration)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    AVariableDeclaration other = (AVariableDeclaration) obj;
+
+    return Objects.equals(other.initializer, initializer);
   }
 
 }

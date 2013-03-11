@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
@@ -86,9 +88,9 @@ public class JRunTimeTypeEqualsType extends AExpression implements JExpression {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((runTimeTypeExpression == null) ? 0 : runTimeTypeExpression.hashCode());
-    result = prime * result + ((typeDef == null) ? 0 : typeDef.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(runTimeTypeExpression);
+    result = prime * result + Objects.hashCode(typeDef);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -98,18 +100,19 @@ public class JRunTimeTypeEqualsType extends AExpression implements JExpression {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof JRunTimeTypeEqualsType)) { return false; }
-    JRunTimeTypeEqualsType other = (JRunTimeTypeEqualsType) obj;
-    if (runTimeTypeExpression == null) {
-      if (other.runTimeTypeExpression != null) { return false; }
-    } else if (!runTimeTypeExpression.equals(other.runTimeTypeExpression)) { return false; }
-    if (typeDef == null) {
-      if (other.typeDef != null) { return false; }
-    } else if (!typeDef.equals(other.typeDef)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof JRunTimeTypeEqualsType)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    JRunTimeTypeEqualsType other = (JRunTimeTypeEqualsType) obj;
+
+    return Objects.equals(other.runTimeTypeExpression, runTimeTypeExpression)
+            && Objects.equals(other.typeDef, typeDef);
   }
 
 }

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
@@ -70,9 +72,10 @@ public class CFieldDesignator extends CDesignator {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = 1;
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    result = prime * result + ((owner == null) ? 0 : owner.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(name);
+    result = prime * result + Objects.hashCode(owner);
+    result = prime * result + super.hashCode();
     return result;
   }
 
@@ -82,17 +85,18 @@ public class CFieldDesignator extends CDesignator {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof CFieldDesignator)) { return false; }
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CFieldDesignator)
+        || !super.equals(obj)) {
+      return false;
+    }
+
     CFieldDesignator other = (CFieldDesignator) obj;
-    if (name == null) {
-      if (other.name != null) { return false; }
-    } else if (!name.equals(other.name)) { return false; }
-    if (owner == null) {
-      if (other.owner != null) { return false; }
-    } else if (!owner.equals(other.owner)) { return false; }
-    return true;
+
+    return Objects.equals(other.name, name) && Objects.equals(other.owner, owner);
   }
 
 

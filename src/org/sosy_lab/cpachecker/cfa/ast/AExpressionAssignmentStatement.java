@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.util.Objects;
+
 
 public abstract class AExpressionAssignmentStatement extends AStatement implements IAssignment {
 
@@ -68,9 +70,10 @@ public abstract class AExpressionAssignmentStatement extends AStatement implemen
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = 1;
-    result = prime * result + ((leftHandSide == null) ? 0 : leftHandSide.hashCode());
-    result = prime * result + ((rightHandSide == null) ? 0 : rightHandSide.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(leftHandSide);
+    result = prime * result + Objects.hashCode(rightHandSide);
+    result = prime * result + super.hashCode();
     return result;
   }
 
@@ -79,17 +82,19 @@ public abstract class AExpressionAssignmentStatement extends AStatement implemen
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof AExpressionAssignmentStatement)) { return false; }
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof AExpressionAssignmentStatement)
+        || !super.equals(obj)) {
+      return false;
+    }
+
     AExpressionAssignmentStatement other = (AExpressionAssignmentStatement) obj;
-    if (leftHandSide == null) {
-      if (other.leftHandSide != null) { return false; }
-    } else if (!leftHandSide.equals(other.leftHandSide)) { return false; }
-    if (rightHandSide == null) {
-      if (other.rightHandSide != null) { return false; }
-    } else if (!rightHandSide.equals(other.rightHandSide)) { return false; }
-    return true;
+
+    return Objects.equals(other.leftHandSide, leftHandSide)
+            && Objects.equals(other.rightHandSide, rightHandSide);
   }
 
 }

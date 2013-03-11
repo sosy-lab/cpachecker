@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -81,8 +82,8 @@ public class JArrayInitializer extends AExpression implements JAstNode, JInitial
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + ((initializerExpressions == null) ? 0 : initializerExpressions.hashCode());
+    int result = 7;
+    result = prime * result + Objects.hashCode(initializerExpressions);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -92,15 +93,18 @@ public class JArrayInitializer extends AExpression implements JAstNode, JInitial
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof JArrayInitializer)) { return false; }
-    JArrayInitializer other = (JArrayInitializer) obj;
-    if (initializerExpressions == null) {
-      if (other.initializerExpressions != null) { return false; }
-    } else if (!initializerExpressions.equals(other.initializerExpressions)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof JArrayInitializer)
+        || super.equals(obj)) {
+      return false;
+    }
+
+    JArrayInitializer other = (JArrayInitializer) obj;
+
+    return Objects.equals(other.initializerExpressions, initializerExpressions);
   }
 
 }

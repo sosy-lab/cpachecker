@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.Initializer;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -113,11 +115,11 @@ public class JFieldDeclaration extends JVariableDeclaration {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
+    int result = 7;
     result = prime * result + (isStatic ? 1231 : 1237);
     result = prime * result + (isTransient ? 1231 : 1237);
     result = prime * result + (isVolatile ? 1231 : 1237);
-    result = prime * result + ((visibility == null) ? 0 : visibility.hashCode());
+    result = prime * result + Objects.hashCode(visibility);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -129,16 +131,21 @@ public class JFieldDeclaration extends JVariableDeclaration {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof JFieldDeclaration)) { return false; }
-    JFieldDeclaration other = (JFieldDeclaration) obj;
-    if (isStatic != other.isStatic) { return false; }
-    if (isTransient != other.isTransient) { return false; }
-    if (isVolatile != other.isVolatile) { return false; }
-    if (visibility != other.visibility) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof JFieldDeclaration)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    JFieldDeclaration other = (JFieldDeclaration) obj;
+
+    return other.isStatic == isStatic
+            && other.isTransient == isTransient
+            && other.isVolatile == isVolatile
+            && Objects.equals(other.visibility, visibility);
   }
 
 }

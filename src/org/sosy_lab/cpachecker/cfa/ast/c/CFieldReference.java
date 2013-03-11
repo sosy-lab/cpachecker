@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -84,10 +86,10 @@ public final class CFieldReference extends AExpression implements CExpression {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = 1;
+    int result = 7;
     result = prime * result + (isPointerDereference ? 1231 : 1237);
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    result = prime * result + ((owner == null) ? 0 : owner.hashCode());
+    result = prime * result + Objects.hashCode(name);
+    result = prime * result + Objects.hashCode(owner);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -97,19 +99,20 @@ public final class CFieldReference extends AExpression implements CExpression {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof CFieldReference)) { return false; }
-    CFieldReference other = (CFieldReference) obj;
-    if (isPointerDereference != other.isPointerDereference) { return false; }
-    if (name == null) {
-      if (other.name != null) { return false; }
-    } else if (!name.equals(other.name)) { return false; }
-    if (owner == null) {
-      if (other.owner != null) { return false; }
-    } else if (!owner.equals(other.owner)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(obj);
+    if (!(obj instanceof CFieldReference)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    CFieldReference other = (CFieldReference) obj;
+
+    return Objects.equals(other.isPointerDereference, isPointerDereference)
+            && Objects.equals(other.name, name)
+            && Objects.equals(other.owner, owner);
   }
 
 }

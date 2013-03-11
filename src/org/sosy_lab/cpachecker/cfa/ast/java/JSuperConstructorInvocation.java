@@ -44,14 +44,21 @@ public class JSuperConstructorInvocation extends JClassInstanceCreation {
 
   @Override
   public int hashCode() {
-    return super.hashCode();
+    int prime = 31;
+    int result = 7;
+    return prime * result + super.hashCode();
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof JSuperConstructorInvocation)) { return false; }
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof JSuperConstructorInvocation)) {
+      return false;
+    }
+
     return super.equals(obj);
   }
 }

@@ -55,7 +55,7 @@ public class JParameterDeclaration extends AParameterDeclaration implements JSim
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
+    int result = 7;
     result = prime * result + (isFinal ? 1231 : 1237);
     result = prime * result + super.hashCode();
     return result;
@@ -67,12 +67,15 @@ public class JParameterDeclaration extends AParameterDeclaration implements JSim
   @Override
   public boolean equals(Object obj) {
     if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof JParameterDeclaration)) { return false; }
-    JParameterDeclaration other = (JParameterDeclaration) obj;
-    if (isFinal != other.isFinal) { return false; }
 
-    return super.equals(other);
+    if (!(obj instanceof JParameterDeclaration)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    JParameterDeclaration other = (JParameterDeclaration) obj;
+
+    return other.isFinal == isFinal;
   }
 
 }

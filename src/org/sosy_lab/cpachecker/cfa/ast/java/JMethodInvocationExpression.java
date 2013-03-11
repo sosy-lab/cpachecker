@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -92,9 +93,9 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
+    int result = 7;
     result = prime * result + (hasKnownRunTimeBinding ? 1231 : 1237);
-    result = prime * result + ((runTimeBinding == null) ? 0 : runTimeBinding.hashCode());
+    result = prime * result + Objects.hashCode(runTimeBinding);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -104,16 +105,19 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (!super.equals(obj)) { return false; }
-    if (!(obj instanceof JMethodInvocationExpression)) { return false; }
-    JMethodInvocationExpression other = (JMethodInvocationExpression) obj;
-    if (hasKnownRunTimeBinding != other.hasKnownRunTimeBinding) { return false; }
-    if (runTimeBinding == null) {
-      if (other.runTimeBinding != null) { return false; }
-    } else if (!runTimeBinding.equals(other.runTimeBinding)) { return false; }
+    if (this == obj) {
+      return true;
+    }
 
-    return super.equals(other);
+    if (!(obj instanceof JMethodInvocationExpression)
+        || !super.equals(obj)) {
+      return false;
+    }
+
+    JMethodInvocationExpression other = (JMethodInvocationExpression) obj;
+
+    return other.hasKnownRunTimeBinding == hasKnownRunTimeBinding
+            && Objects.equals(other.runTimeBinding, runTimeBinding);
   }
 
 }
