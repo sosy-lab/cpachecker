@@ -72,6 +72,6 @@
         <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.0-r6308qb" conf="runtime->runtime; contrib->sources"/>
 
         <!-- VerifierCloud -->
-        <dependency org="org.sosy_lab" name="vercip" rev="0.1058" conf="benchmark->runtime"/>
+        <dependency org="org.sosy_lab" name="vercip" rev="0.1082" conf="benchmark->runtime"/>
     </dependencies>
 </ivy-module>
