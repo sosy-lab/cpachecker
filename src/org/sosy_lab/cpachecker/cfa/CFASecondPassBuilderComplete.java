@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -232,9 +233,12 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
         for (FunctionEntryNode fNode : funcs) {
           CFANode thenNode = newCFANode(start.getLineNumber(), start.getFunctionName());
           CFANode elseNode = newCFANode(start.getLineNumber(), start.getFunctionName());
-          CIdExpression func = createIdExpression(nameExp, fNode);
+          CIdExpression func = new CIdExpression(nameExp.getFileLocation(),
+                                                  (CType)fNode.getFunctionDefinition().getType(),
+                                                  fNode.getFunctionName(),
+                                                  (CSimpleDeclaration)fNode.getFunctionDefinition());
           CUnaryExpression amper = new CUnaryExpression(nameExp.getFileLocation(),
-              nameExp.getExpressionType(), func, CUnaryExpression.UnaryOperator.AMPER);
+              func.getExpressionType(), func, CUnaryExpression.UnaryOperator.AMPER);
           CBinaryExpression condition = new CBinaryExpression(f.getFileLocation(),
               CNumericTypes.INT, nameExp, amper, BinaryOperator.EQUALS);
 
