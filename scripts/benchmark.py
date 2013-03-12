@@ -73,8 +73,13 @@ COLOR_DIC = {"correctSafe": COLOR_GREEN,
              "wrongUnsafe": COLOR_RED,
              "wrongSafe": COLOR_RED,
              None: COLOR_DEFAULT}
-TERMINAL_TITLE = "\033kBenchmark {0}\033"
 
+TERMINAL_TITLE=''
+_term = os.environ.get('TERM', '')
+if _term.startswith('xterm') or _term.startswith('rxvt'):
+    TERMINAL_TITLE = "\033]0;Benchmark {0}\007"
+elif _term.startswith('screen'):
+    TERMINAL_TITLE = "\033kBenchmark {0}\033"
 
 # the number of digits after the decimal separator of the time column,
 # for the other columns it can be configured in the xml-file
