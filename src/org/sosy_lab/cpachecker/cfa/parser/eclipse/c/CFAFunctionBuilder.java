@@ -1606,7 +1606,14 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode lastNode = newCFANode(filelocStart);
 
-    createEdgesForTernaryOperatorBranch(condExp.getPositiveResultExpression(), lastNode, filelocStart, thenNode, tempVar);
+    // as a gnu c extension allows omitting the second operand and the implicitly adds the first operand
+    // as the second also, this is checked here
+    if(condExp.getPositiveResultExpression() == null) {
+      createEdgesForTernaryOperatorBranch(condExp.getLogicalConditionExpression(), lastNode, filelocStart, thenNode, tempVar);
+    } else {
+      createEdgesForTernaryOperatorBranch(condExp.getPositiveResultExpression(), lastNode, filelocStart, thenNode, tempVar);
+    }
+
     createEdgesForTernaryOperatorBranch(condExp.getNegativeResultExpression(), lastNode, filelocStart, elseNode, tempVar);
 
     return lastNode;
