@@ -466,7 +466,39 @@ class ASTConverter {
   }
 
   private CFieldReference convert(IASTFieldReference e) {
-    return new CFieldReference(getLocation(e), typeConverter.convert(e.getExpressionType()), convert(e.getFieldName()), convertExpressionWithoutSideEffects(e.getFieldOwner()), e.isPointerDereference());
+    CType type = typeConverter.convert(e.getExpressionType());
+    CExpression owner = convertExpressionWithoutSideEffects(e.getFieldOwner());
+    String fieldName = convert(e.getFieldName());
+
+    if (type instanceof CProblemType) {
+      CType ownerType = owner.getExpressionType();
+      if (ownerType instanceof CElaboratedType) {
+        ownerType = ((CElaboratedType)ownerType).getRealType();
+      }
+      if (ownerType instanceof CCompositeType) {
+        CCompositeType compositeType = (CCompositeType)ownerType;
+        boolean foundReplacement = false;
+        for (CCompositeTypeMemberDeclaration field : compositeType.getMembers()) {
+          if (fieldName.equals(field.getName())) {
+            logger.log(Level.FINE, "Replacing type", type, "of field reference", e.getRawSignature(),
+                "in line", e.getFileLocation().getStartingLineNumber(),
+                "with", field.getType());
+            type = field.getType();
+            foundReplacement = true;
+            break;
+          }
+        }
+
+        // no matching field found
+        if (!foundReplacement) {
+          throw new CFAGenerationRuntimeException("Accessing non-existent field of composite type", e);
+        }
+      }
+
+      logger.log(Level.FINE, "Field reference", e.getRawSignature(), "has unknown type", type);
+    }
+
+    return new CFieldReference(getLocation(e), type, fieldName, owner, e.isPointerDereference());
   }
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
