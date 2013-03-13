@@ -77,11 +77,13 @@ class ASTLiteralConverter {
     case IASTLiteralExpression.lk_float_constant:
       BigDecimal value;
       try {
+
         //in Java float and double can be distinguished by the suffixes "f" (Float) and "d" (Double)
         // in C the suffixes are "f" / "F" (Float) and "l" / "L" (Long Double)
         if(valueStr.endsWith("L") || valueStr.endsWith("l")) {
-          valueStr = valueStr.substring(0, valueStr.length()-2) + "d";
+          valueStr = valueStr.substring(0, valueStr.length()-1) + "d";
         }
+
         value = new BigDecimal(valueStr);
       } catch (NumberFormatException nfe1) {
         try {
