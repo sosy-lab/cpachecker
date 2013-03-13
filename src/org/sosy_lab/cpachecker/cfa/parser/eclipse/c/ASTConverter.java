@@ -1132,10 +1132,15 @@ class ASTConverter {
     } else {
       CExpression v = convertExpressionWithoutSideEffects(e.getValue());
       boolean negate = false;
+      boolean complement = false;
 
       if (v instanceof CUnaryExpression && ((CUnaryExpression) v).getOperator() == UnaryOperator.MINUS) {
         CUnaryExpression u = (CUnaryExpression)v;
         negate = true;
+        v = u.getOperand();
+      } else if (v instanceof CUnaryExpression && ((CUnaryExpression) v).getOperator() == UnaryOperator.TILDE) {
+        CUnaryExpression u = (CUnaryExpression)v;
+        complement = true;
         v = u.getOperand();
       } else if (v instanceof CUnaryExpression && ((CUnaryExpression) v).getOperator() != UnaryOperator.PLUS){
         assert false : v;
@@ -1145,6 +1150,8 @@ class ASTConverter {
         value = ((CIntegerLiteralExpression)v).asLong();
         if (negate) {
           value = -value;
+        } else if(complement) {
+          value = ~value;
         }
       } else {
         // ignoring unsupported enum value
