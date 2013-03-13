@@ -1531,8 +1531,13 @@ class CFAFunctionBuilder extends ASTVisitor {
     CAstNode exp = astCreator.convertExpressionWithSideEffects(((IASTExpressionStatement)lastStatement).getExpression());
 
     middleNode = handleAllSideEffects(middleNode, filelocStart, lastStatement.getRawSignature(), true);
-    CStatement stmt = createStatement(ASTConverter.convert(compoundExp.getFileLocation()),
-        tempVar, (CRightHandSide)exp);
+    CStatement stmt;
+    if (exp instanceof CStatement) {
+      stmt = (CStatement)exp;
+    } else {
+      stmt = createStatement(ASTConverter.convert(compoundExp.getFileLocation()),
+          tempVar, (CRightHandSide)exp);
+    }
     CFANode lastNode = newCFANode(compoundExp.getFileLocation().getEndingLineNumber());
     CFAEdge edge = new CStatementEdge(stmt.toASTString(), stmt, compoundExp.getFileLocation().getStartingLineNumber(), middleNode, lastNode);
     addToCFA(edge);
