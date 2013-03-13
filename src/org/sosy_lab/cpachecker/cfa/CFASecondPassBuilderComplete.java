@@ -127,7 +127,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
 
   @Option(name="analysis.functionPointerTargets",
       description="potential targets for call edges created for function pointer calls")
-  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_TYPES);
+  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES);
 
   private final Set<String> addressedFunctions = new HashSet<>();
 
@@ -601,6 +601,8 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
   private boolean isCompatibleType(Type declaredType, Type actualType) {
     // TODO this needs to be implemented
     // Type equality is too strong.
+    // After this is implemented, change the default of functionSets
+    // to USED_IN_CODE, EQ_PARAM_TYPES
     return declaredType.equals(actualType);
   }
 }
