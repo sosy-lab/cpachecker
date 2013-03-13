@@ -77,7 +77,9 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -118,7 +120,8 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
     // The items here need to be declared in the order they should be used when checking function.
     ALL, //all defined functions considered (Warning: some CPAs require at least EQ_PARAM_SIZES)
     USED_IN_CODE, //includes only functions which address is taken in the code
-    EQ_PARAM_SIZES, //all functions with matching number of parameters considered
+    EQ_PARAM_COUNT, //all functions with matching number of parameters considered
+    EQ_PARAM_SIZES, //all functions with parameters with matching sizes
     EQ_PARAM_TYPES, //all functions with matching number and types of parameters considered (implies EQ_PARAM_SIZES)
   }
 
@@ -128,7 +131,7 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
 
   private final Set<String> addressedFunctions = new HashSet<>();
 
-  private final Predicate<Pair<AFunctionCallExpression, IAFunctionType>> matchingFunctionCall;
+  private final Predicate<Pair<CFunctionCallExpression, CFunctionType>> matchingFunctionCall;
 
   public CFASecondPassBuilderComplete(MutableCFA pCfa, Language pLanguage, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(pCfa, pLanguage, pLogger);
@@ -137,24 +140,25 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
     matchingFunctionCall = getFunctionSetPredicate(functionSets);
   }
 
-  private Predicate<Pair<AFunctionCallExpression, IAFunctionType>> getFunctionSetPredicate(Collection<FunctionSet> pFunctionSets) {
+  private Predicate<Pair<CFunctionCallExpression, CFunctionType>> getFunctionSetPredicate(Collection<FunctionSet> pFunctionSets) {
     // note that this set is sorted according to the declaration order of the enum
     EnumSet<FunctionSet> functionSets = EnumSet.copyOf(pFunctionSets);
 
-    if (functionSets.contains(FunctionSet.EQ_PARAM_TYPES)) {
-      functionSets.add(FunctionSet.EQ_PARAM_SIZES); // TYPES needs SIZES checked first
+    if (functionSets.contains(FunctionSet.EQ_PARAM_TYPES)
+        || functionSets.contains(FunctionSet.EQ_PARAM_SIZES)) {
+      functionSets.add(FunctionSet.EQ_PARAM_COUNT); // TYPES and SIZES need COUNT checked first
     }
 
-    List<Predicate<Pair<AFunctionCallExpression, IAFunctionType>>> predicates = new ArrayList<>();
+    List<Predicate<Pair<CFunctionCallExpression, CFunctionType>>> predicates = new ArrayList<>();
     for (FunctionSet functionSet : functionSets) {
       switch (functionSet) {
       case ALL:
         // do nothing
         break;
-      case EQ_PARAM_SIZES:
-        predicates.add(new Predicate<Pair<AFunctionCallExpression, IAFunctionType>>() {
+      case EQ_PARAM_COUNT:
+        predicates.add(new Predicate<Pair<CFunctionCallExpression, CFunctionType>>() {
           @Override
-          public boolean apply(Pair<AFunctionCallExpression, IAFunctionType> pInput) {
+          public boolean apply(Pair<CFunctionCallExpression, CFunctionType> pInput) {
             boolean result = checkParamSizes(pInput.getFirst(), pInput.getSecond());
             if (!result) {
               logger.log(Level.FINEST, "Function call", pInput.getFirst().toASTString(),
@@ -164,18 +168,26 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
           }
         });
         break;
-      case EQ_PARAM_TYPES:
-        predicates.add(new Predicate<Pair<AFunctionCallExpression, IAFunctionType>>() {
+      case EQ_PARAM_SIZES:
+        predicates.add(new Predicate<Pair<CFunctionCallExpression, CFunctionType>>() {
           @Override
-          public boolean apply(Pair<AFunctionCallExpression, IAFunctionType> pInput) {
+          public boolean apply(Pair<CFunctionCallExpression, CFunctionType> pInput) {
+            return checkReturnAndParamSizes(pInput.getFirst(), pInput.getSecond());
+          }
+        });
+        break;
+      case EQ_PARAM_TYPES:
+        predicates.add(new Predicate<Pair<CFunctionCallExpression, CFunctionType>>() {
+          @Override
+          public boolean apply(Pair<CFunctionCallExpression, CFunctionType> pInput) {
             return checkReturnAndParamTypes(pInput.getFirst(), pInput.getSecond());
           }
         });
         break;
       case USED_IN_CODE:
-        predicates.add(new Predicate<Pair<AFunctionCallExpression, IAFunctionType>>() {
+        predicates.add(new Predicate<Pair<CFunctionCallExpression, CFunctionType>>() {
           @Override
-          public boolean apply(Pair<AFunctionCallExpression, IAFunctionType> pInput) {
+          public boolean apply(Pair<CFunctionCallExpression, CFunctionType> pInput) {
             return addressedFunctions.contains(checkNotNull(pInput.getSecond().getName()));
           }
         });
@@ -203,8 +215,9 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
     } else {
       logger.log(Level.FINEST, "Function pointer call", f);
       if (language == Language.C && fptrCallEdges) {
-        CExpression nameExp = (CExpression)f.getFunctionNameExpression();
-        Collection<FunctionEntryNode> funcs = getFunctionSet(f);
+        CFunctionCallExpression fExp = (CFunctionCallExpression)f;
+        CExpression nameExp = fExp.getFunctionNameExpression();
+        Collection<CFunctionEntryNode> funcs = getFunctionSet(fExp);
 
         if (funcs.isEmpty()) {
           // no possible targets, we leave the CFA unchanged and print a warning
@@ -501,16 +514,54 @@ public class CFASecondPassBuilderComplete extends CFASecondPassBuilder {
         (CFunctionCall)functionCall, fDefNode, true);
   }
 
-  private List<FunctionEntryNode> getFunctionSet(final AFunctionCallExpression call) {
+  private List<CFunctionEntryNode> getFunctionSet(final CFunctionCallExpression call) {
     return from(cfa.getAllFunctionHeads())
+            .filter(CFunctionEntryNode.class)
             .filter(Predicates.compose(matchingFunctionCall,
-                      new Function<FunctionEntryNode, Pair<AFunctionCallExpression, IAFunctionType>>() {
+                      new Function<CFunctionEntryNode, Pair<CFunctionCallExpression, CFunctionType>>() {
                         @Override
-                        public Pair<AFunctionCallExpression, IAFunctionType> apply(FunctionEntryNode f) {
+                        public Pair<CFunctionCallExpression, CFunctionType> apply(CFunctionEntryNode f) {
                           return Pair.of(call, f.getFunctionDefinition().getType());
                         }
                       }))
             .toList();
+  }
+
+  private boolean checkReturnAndParamSizes(
+      CFunctionCallExpression functionCallExpression, CFunctionType functionType) {
+    final MachineModel machine = cfa.getMachineModel();
+
+    try {
+      CType declRet = functionType.getReturnType();
+      CType actRet = functionCallExpression.getExpressionType();
+      if (machine.getSizeof(declRet) != machine.getSizeof(actRet)) {
+        logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(), "with type", actRet,
+            "does not match function", functionType, "with return type", declRet,
+            "because of return types with different sizes.");
+        return false;
+      }
+
+      List<CType> declParams = functionType.getParameters();
+      List<CExpression> exprParams = functionCallExpression.getParameterExpressions();
+      for (int i=0; i<declParams.size(); i++) {
+        CType dt = declParams.get(i);
+        CType et = exprParams.get(i).getExpressionType();
+        if (machine.getSizeof(dt) != machine.getSizeof(et)) {
+          logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(),
+              "does not match function", functionType,
+              "because actual parameter", i, "has type", et, "instead of", dt,
+              "(differing sizes).");
+          return false;
+        }
+      }
+    } catch (IllegalArgumentException e) {
+      // We can't get size of CProblemTypes, and they actually occur for valid C code.
+      // This is ugly, but we have no chance but catch this exception and return true here.
+      logger.logUserException(Level.INFO, e, functionType.toASTString("") + " " + functionCallExpression);
+      return true;
+    }
+
+    return true;
   }
 
   private boolean checkReturnAndParamTypes(
