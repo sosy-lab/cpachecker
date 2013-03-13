@@ -1101,11 +1101,12 @@ class ASTConverter {
       CExpression v = convertExpressionWithoutSideEffects(e.getValue());
       boolean negate = false;
 
-      if (v instanceof CUnaryExpression) {
+      if (v instanceof CUnaryExpression && ((CUnaryExpression) v).getOperator() == UnaryOperator.MINUS) {
         CUnaryExpression u = (CUnaryExpression)v;
-        assert u.getOperator() == UnaryOperator.MINUS : v;
         negate = true;
         v = u.getOperand();
+      } else if (v instanceof CUnaryExpression && ((CUnaryExpression) v).getOperator() != UnaryOperator.PLUS){
+        assert false : v;
       }
 
       if (v instanceof CIntegerLiteralExpression) {
