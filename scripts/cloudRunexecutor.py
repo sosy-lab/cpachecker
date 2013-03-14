@@ -25,11 +25,8 @@ def main(argv=None):
         result = result + "Returnvalue: " + str(returnvalue) + "\n"
         result = result + "Output:\n" + output
 
-        print(result)
-
-        fobj = open(outputFileName, "w")
-        fobj.write(result)
-        fobj.close()
+        with open(outputFileName, "w") as f:
+            fobj.write(result)
 
         return returnvalue
 
