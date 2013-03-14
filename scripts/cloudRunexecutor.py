@@ -15,35 +15,27 @@ def main(argv=None):
         outputFileName = argv[4]
 
         rlimits={"memlimit":memlimit, "timelimit":timelimit}
-        print args
-        print rlimits
-        print outputFileName
-        
-        (wallTime, cpuTime, memUsage, returnvalue, output) = runexecutor.executeRun(args, rlimits, outputFileName);
 
-        print wallTime
-        print cpuTime
-        print returnvalue
-        print output
+        (wallTime, cpuTime, memUsage, returnvalue, output) = runexecutor.executeRun(args, rlimits, outputFileName);
 
         result = argStr + "\n"
         result = result + "Walltime: " + str(wallTime) + "\n"
         result = result +  "CpuTime: " + str(cpuTime) + "\n"
         result = result +  "MemoryUsage: " + str(memUsage) + "\n"
-        result = result + "Returnvalue: " + str(returnvalue) + "\n"   
+        result = result + "Returnvalue: " + str(returnvalue) + "\n"
         result = result + "Output:\n" + output
 
-        print result
+        print(result)
 
         fobj = open(outputFileName, "w")
         fobj.write(result)
         fobj.close()
-	
-	return returnvalue
+
+        return returnvalue
 
     else:
-        print "to few arg; expected 4 arguments:"
-	print "<command> <memlimit in MB> <timelimit in s> <output file name>"
+        print("to few arg; expected 4 arguments:")
+        print("<command> <memlimit in MB> <timelimit in s> <output file name>")
 
 
 
