@@ -110,6 +110,29 @@ public class ARGReachedSet {
   }
 
   /**
+   * Like {@link #removeSubtree(ARGState)}, but when re-adding elements to the
+   * waitlist adapts precisions with respect to the supplied precision p (see
+   * {@link #adaptPrecision(ARGState, Precision)}).
+   * If multiple precisions are given,
+   * adapt all matching sub-precisions of a WrappedPrecision.
+   *
+   * @param e The root of the removed subtree, may not be the initial element.
+   * @param p The new precision.
+   */
+  public void removeSubtree(ARGState e, Precision... p) {
+    Set<ARGState> toWaitlist = removeSubtree0(e);
+
+    for (ARGState ae : toWaitlist) {
+      Precision prec = mReached.getPrecision(ae);
+      for (final Precision newPrec : p){
+        prec = adaptPrecision(prec, newPrec);
+      }
+      mReached.updatePrecision(ae, prec);
+      mReached.reAddToWaitlist(ae);
+    }
+  }
+
+  /**
    * Safely remove a port of the ARG which has been proved as completely
    * unreachable. This method takes care of the coverage relationships of the
    * removed nodes, re-adding covered nodes to the waitlist if necessary.

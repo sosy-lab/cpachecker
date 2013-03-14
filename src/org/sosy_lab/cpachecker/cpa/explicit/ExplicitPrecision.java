@@ -86,7 +86,7 @@ public class ExplicitPrecision implements Precision {
       + "tracked with another CPA, i.e. with BDDCPA.")
   private boolean ignoreIntAdd = false;
 
-  private Optional<VariableClassification> varClass;
+  private final Optional<VariableClassification> varClass;
 
   public ExplicitPrecision(String variableBlacklist, Configuration config,
       Optional<VariableClassification> vc,
@@ -109,7 +109,7 @@ public class ExplicitPrecision implements Precision {
   public ExplicitPrecision(ExplicitPrecision original) {
 
     blackListPattern = original.blackListPattern;
-
+    varClass = original.varClass;
     cegarPrecision        = new CegarPrecision(original.cegarPrecision);
     reachedSetThresholds  = new ReachedSetThresholds(original.reachedSetThresholds);
     pathThresholds        = new PathThresholds(original.pathThresholds);
@@ -176,7 +176,7 @@ public class ExplicitPrecision implements Precision {
   }
 
   /** split var into function and varName */
-  private Pair<String, String> splitVar(String variable) {
+  private static Pair<String, String> splitVar(String variable) {
     int i = variable.indexOf("::");
     String function;
     String varName;

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
 import javax.annotation.Nullable;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.bdd.BDDPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -175,11 +177,21 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
 
     if (precisionIncrement.size() > 0) {
+
+      Collection<Precision> newPrecisions = new ArrayList<>();
+
       ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
       explicitPrecision                   = new ExplicitPrecision(explicitPrecision);
       explicitPrecision.getCegarPrecision().addToMapping(precisionIncrement);
+      newPrecisions.add(explicitPrecision);
 
-      reached.removeSubtree(interpolationPoint, explicitPrecision);
+      BDDPrecision bddPrecision = Precisions.extractPrecisionByType(precision, BDDPrecision.class);
+      if (bddPrecision != null) {
+        bddPrecision = new BDDPrecision(bddPrecision);
+        bddPrecision.getCegarPrecision().addToMapping(precisionIncrement);
+        newPrecisions.add(bddPrecision);
+      }
+      reached.removeSubtree(interpolationPoint, newPrecisions.toArray(new Precision[0]));
 
       return CounterexampleInfo.spurious();
     }
