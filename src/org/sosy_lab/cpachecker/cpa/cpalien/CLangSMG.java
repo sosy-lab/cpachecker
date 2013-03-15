@@ -34,7 +34,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 import com.google.common.collect.Sets;
@@ -166,15 +165,15 @@ public class CLangSMG extends SMG {
    *
    * TODO: [SCOPES] Test for getting visible local object hiding other local object
    */
-  public SMGObject getObjectForVisibleVariable(CIdExpression pVariableName) {
+  public SMGObject getObjectForVisibleVariable(String pVariableName) {
     // Look in the local frame
     if (stack_objects.size() != 0) {
-      if (stack_objects.peek().containsVariable(pVariableName.getName())) {
-        return stack_objects.peek().getVariable(pVariableName.getName());
+      if (stack_objects.peek().containsVariable(pVariableName)) {
+        return stack_objects.peek().getVariable(pVariableName);
       }
     }
-    if (global_objects.containsKey(pVariableName.getName())) {
-      return global_objects.get(pVariableName.getName());
+    if (global_objects.containsKey(pVariableName)) {
+      return global_objects.get(pVariableName);
     }
     return null;
   }

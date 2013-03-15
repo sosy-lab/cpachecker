@@ -671,9 +671,9 @@ public class SMGTransferRelation implements TransferRelation {
       offset = 0;
 
       lParam = variableName.toASTString();
-      lParamIsGlobal = smgState.isGlobal(variableName);
+      lParamIsGlobal = smgState.isGlobal(variableName.getName());
 
-      return smgState.getObjectForVisibleVariable(variableName);
+      return smgState.getObjectForVisibleVariable(variableName.getName());
     }
 
     @Override
@@ -815,7 +815,7 @@ public class SMGTransferRelation implements TransferRelation {
 
 
     if (fieldOwner instanceof CIdExpression) {
-      memoryOfFieldOwner = smgState.getObjectForVisibleVariable((CIdExpression) fieldOwner);
+      memoryOfFieldOwner = smgState.getObjectForVisibleVariable(((CIdExpression) fieldOwner).getName());
 
     } else if (fieldOwner instanceof CFieldReference) {
       memoryOfFieldOwner = getMemoryOfField(smgState, cfaEdge, (CFieldReference) fieldOwner);
@@ -1315,7 +1315,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     private Integer createAddressOfVariable(CIdExpression idExpression) {
 
-      SMGObject variableObject = smgState.getObjectForVisibleVariable(idExpression);
+      SMGObject variableObject = smgState.getObjectForVisibleVariable(idExpression.getName());
 
       if (variableObject == null) {
         return null;
@@ -1489,7 +1489,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     @Override
     public SMGObject visit(CIdExpression idExpression) throws UnrecognizedCCodeException {
-      return smgState.getObjectForVisibleVariable(idExpression);
+      return smgState.getObjectForVisibleVariable(idExpression.getName());
     }
 
     @Override
@@ -1784,7 +1784,7 @@ public class SMGTransferRelation implements TransferRelation {
       } else if (decl instanceof CVariableDeclaration
           || decl instanceof CParameterDeclaration) {
 
-        SMGObject variableObject = smgState.getObjectForVisibleVariable(idExpression);
+        SMGObject variableObject = smgState.getObjectForVisibleVariable(idExpression.getName());
 
         if (variableObject == null) {
           return null;

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -53,10 +52,6 @@ public class SMGState implements AbstractQueryableState {
     heap.addValue(Integer.valueOf(pValue));
   }
 
-  public SMGObject getObjectForVisibleVariable(CIdExpression pVariableName) {
-    return heap.getObjectForVisibleVariable(pVariableName);
-  }
-
   /**
    * Get memory of variable with the given Name. This method is used for
    * the temporary function return variable.
@@ -65,8 +60,7 @@ public class SMGState implements AbstractQueryableState {
    * @return
    */
   public SMGObject getObjectForVisibleVariable(String variableName) {
-    // TODO Auto-generated method stub
-    return null;
+    return this.heap.getObjectForVisibleVariable(variableName);
   }
 
   public void addHVEdge(SMGEdgeHasValue pNewEdge) {
@@ -188,7 +182,7 @@ public class SMGState implements AbstractQueryableState {
     heap.addGlobalObject(newObject);
   }
 
-  public boolean isGlobal(CIdExpression variable) {
+  public boolean isGlobal(String variable) {
     return  heap.getGlobalObjects().containsValue(heap.getObjectForVisibleVariable(variable));
   }
 
@@ -325,8 +319,7 @@ public class SMGState implements AbstractQueryableState {
    * @return A newly created SMGObject representing Memory.
    */
   public SMGObject createObject(int size, String label) {
-    // TODO Auto-generated method stub
-    return null;
+    return new SMGObject(size, label);
   }
 
   /**

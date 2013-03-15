@@ -275,22 +275,22 @@ public class CLangSMGTest {
     SMGObject obj2 = new SMGObject(16, "label");
     SMGObject obj3 = new SMGObject(32, "label");
 
-    Assert.assertNull(smg.getObjectForVisibleVariable(id_expression));
+    Assert.assertNull(smg.getObjectForVisibleVariable(id_expression.getName()));
     smg.addGlobalObject(obj3);
-    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression), obj3);
+    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj3);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     smg.addStackObject(obj1);
-    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression), obj1);
+    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj1);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     smg.addStackObject(obj2);
-    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression), obj2);
-    Assert.assertNotEquals(smg.getObjectForVisibleVariable(id_expression), obj1);
+    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj2);
+    Assert.assertNotEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj1);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
-    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression), obj3);
-    Assert.assertNotEquals(smg.getObjectForVisibleVariable(id_expression), obj2);
+    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj3);
+    Assert.assertNotEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj2);
   }
 
   @Test
