@@ -31,17 +31,37 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class SMGState implements AbstractQueryableState {
+  static private int id_counter = 0;
+
   private final CLangSMG heap;
   private final LogManager logger;
+  private SMGState predecessor;
+  private final int id;
 
   public SMGState(LogManager pLogger, MachineModel pMachineModel) {
     heap = new CLangSMG(pMachineModel);
     logger = pLogger;
+    predecessor = null;
+    id = id_counter++;
   }
 
   public SMGState(SMGState originalState) {
     heap = new CLangSMG(originalState.heap);
     logger = originalState.logger;
+    predecessor = originalState.predecessor;
+    id = id_counter++;
+  }
+
+  public int getId() {
+    return id;
+  }
+
+  public SMGState getPredecessor() {
+    return predecessor;
+  }
+
+  public void setPredecessor(SMGState pSMGState) {
+    predecessor = pSMGState;
   }
 
   void addStackObject(SMGObject obj) {
@@ -78,7 +98,11 @@ public class SMGState implements AbstractQueryableState {
 
   @Override
   public String toString() {
-    return heap.toString();
+    if ( this.getPredecessor() != null) {
+      return "SMGState [" + this.getId() + "] <-- parent [" + this.getPredecessor().getId() + "]\n" + heap.toString();
+    } else {
+      return "SMGState [" + this.getId() + "] <-- no parent, initial state\n" + heap.toString();
+    }
   }
 
   public void addStackFrame(CFunctionDeclaration pFunctionDefinition) {

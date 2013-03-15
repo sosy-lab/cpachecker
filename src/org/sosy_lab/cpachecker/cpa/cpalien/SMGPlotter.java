@@ -40,7 +40,7 @@ public final class SMGPlotter {
   public String smgAsDot(CLangSMG smg, String name) {
     StringBuilder sb = new StringBuilder();
 
-    sb.append("digraph " + name.replace('-', '_') + "{\n");
+    sb.append("digraph gr_" + name.replace('-', '_') + "{\n");
     offset += 2;
 
     addStackSubgraph(smg, sb);

@@ -110,9 +110,12 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix = "cpa.cpalien")
 public class SMGTransferRelation implements TransferRelation {
 
-  @Option(name = "exportSMG.file", description = "dump SMG for each edge")
+  @Option(name = "exportSMG.file", description = "Filename format for SMG graph dumps")
   @FileOption(Type.OUTPUT_FILE)
   private File exportSMGFilePattern = new File("smg-%s.dot");
+
+  @Option(name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped. One of: {never, leaf, every}")
+  private String exportSMG = "never";
 
   @Option(name="enableMallocFail", description = "If this Option is enabled, failure of malloc" + "is simulated")
   private boolean enableMallocFailure = true;
@@ -176,9 +179,16 @@ public class SMGTransferRelation implements TransferRelation {
             "calloc"
         }));
 
-    public Integer evaluateVBPlot(CFunctionCallExpression functionCall, SMGState currentState) {
+    public void dumpSMGPlot(String name, SMGState currentState)
+    {
       if (exportSMGFilePattern != null) {
-        String name = ((CStringLiteralExpression) functionCall.getParameterExpressions().get(0)).getContentString();
+        if (name == null) {
+          if (currentState.getPredecessor() == null){
+            name = String.format("initial-%03d", currentState.getId());
+          } else {
+            name = String.format("%03d-%03d", currentState.getPredecessor().getId(), currentState.getId());
+          }
+        }
         File outputFile = new File(String.format(exportSMGFilePattern.getAbsolutePath(), name));
         try {
           Files.writeFile(outputFile, currentState.toDot(name));
@@ -186,7 +196,11 @@ public class SMGTransferRelation implements TransferRelation {
           logger.logUserException(Level.WARNING, e, "Could not write SMG " + name + " to file");
         }
       }
-      return null;
+    }
+
+    public void evaluateVBPlot(CFunctionCallExpression functionCall, SMGState currentState) {
+      String name = ((CStringLiteralExpression) functionCall.getParameterExpressions().get(0)).getContentString();
+      this.dumpSMGPlot(name, currentState);
     }
 
     public Address evaluateMalloc(CFunctionCallExpression functionCall, SMGState currentState, CFAEdge cfaEdge)
@@ -405,16 +419,28 @@ public class SMGTransferRelation implements TransferRelation {
       successor = smgState;
     }
 
+    Collection<? extends AbstractState> result;
+
     if (successor == null) {
-      return Collections.emptySet();
+      result = Collections.emptySet();
     } else if (mallocFailState != null && enableMallocFailure) {
       // Return a successor for malloc succeeding, and one for malloc failing.
-      Collection<? extends AbstractState> result = ImmutableSet.of(successor, mallocFailState);
+      successor.setPredecessor(smgState);
+      mallocFailState.setPredecessor(smgState);
+      result = ImmutableSet.of(successor, mallocFailState);
       mallocFailState = null;
-      return result;
     } else {
-      return Collections.singleton(successor);
+      successor.setPredecessor(smgState);
+      result = Collections.singleton(successor);
     }
+
+    if ( this.exportSMG.equals("never")) {
+      return result;
+    }
+    else if ( this.exportSMG.equals("every")) {
+      builtins.dumpSMGPlot(null, smgState);
+    }
+    return result;
   }
 
   private SMGState handleExitFromFunction(SMGState smgState,
@@ -1959,7 +1985,8 @@ public class SMGTransferRelation implements TransferRelation {
       if (builtins.isABuiltIn(functionName)) {
         switch (functionName) {
         case "__VERIFIER_BUILTIN_PLOT":
-          return builtins.evaluateVBPlot(pIastFunctionCallExpression, smgState);
+          builtins.evaluateVBPlot(pIastFunctionCallExpression, smgState);
+          break;
         case "malloc":
           possibleMallocFail = true;
           return builtins.evaluateMalloc(pIastFunctionCallExpression, smgState, cfaEdge).getValue();

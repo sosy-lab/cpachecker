@@ -245,6 +245,15 @@ public class CLangSMG extends SMG {
  */
 final class CLangStackFrame {
 
+  @Override
+  public String toString() {
+    String to_return = "<";
+    for (String key : stack_variables.keySet()){
+      to_return = to_return + " " + stack_variables.get(key);
+    }
+    return to_return + " >";
+  }
+
   /**
    * Function to which this stack frame belongs
    */
