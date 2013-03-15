@@ -26,7 +26,7 @@ def main(argv=None):
         result = result + "Output:\n" + output
 
         with open(outputFileName, "w") as f:
-            fobj.write(result)
+            f.write(result)
 
         return returnvalue
 
