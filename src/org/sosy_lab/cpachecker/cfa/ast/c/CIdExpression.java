@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CIdExpression extends AIdExpression implements CExpression {
+public final class CIdExpression extends AIdExpression implements CExpression, CLeftHandSide {
 
 
   public CIdExpression(final FileLocation pFileLocation,
@@ -63,6 +63,11 @@ public final class CIdExpression extends AIdExpression implements CExpression {
   }
 
   @Override
+  public <R, X extends Exception> R accept(CLeftHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
   public int hashCode() {
     int prime = 31;
     int result = 7;
@@ -81,4 +86,10 @@ public final class CIdExpression extends AIdExpression implements CExpression {
 
     return super.equals(obj);
   }
+
+  @Override
+  public CExpression getExpression() {
+    return this;
+  }
+
 }

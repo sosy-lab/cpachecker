@@ -158,10 +158,10 @@ public class ReachingDefTransferRelation implements TransferRelation {
     CStatement statement = edge.getStatement();
     CExpression left;
     if (statement instanceof CExpressionAssignmentStatement) {
-      left = ((CExpressionAssignmentStatement) statement).getLeftHandSide();
+      left = ((CExpressionAssignmentStatement) statement).getLeftHandSide().getExpression();
     } else if (statement instanceof CFunctionCallAssignmentStatement) {
       // handle function call on right hand side to external method
-      left = ((CFunctionCallAssignmentStatement) statement).getLeftHandSide();
+      left = ((CFunctionCallAssignmentStatement) statement).getLeftHandSide().getExpression();
       logger.log(Level.WARNING,
           "Analysis may be unsound if external method redefines global variables",
           "or considers extra global variables.");

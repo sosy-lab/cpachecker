@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
@@ -580,7 +581,7 @@ public final class ErrorPathShrinker {
 
 
 
-      IAExpression lParam = statementExp.getLeftHandSide();
+      IALeftHandSide lParam = statementExp.getLeftHandSide();
       IARightHandSide rightExp = statementExp.getRightHandSide();
 
       // a = ?

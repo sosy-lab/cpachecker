@@ -109,6 +109,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
@@ -941,7 +942,7 @@ public class ASTConverter {
 
       addSideassignmentsForExpressionsWithoutAssignmentSideEffects(node, e);
 
-      return ((JAssignment) node).getLeftHandSide();
+      return ((JAssignment) node).getLeftHandSide().getExpression();
     } else {
       throw new AssertionError("unknown expression " + node);
     }
@@ -1886,8 +1887,8 @@ public class ASTConverter {
 
     FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
-    JExpression leftHandSide =
-        convertExpressionWithoutSideEffects(e.getLeftHandSide());
+    JLeftHandSide leftHandSide =
+        (JLeftHandSide) convertExpressionWithoutSideEffects(e.getLeftHandSide());
 
     BinaryOperator op = convert(e.getOperator());
 
@@ -1913,7 +1914,7 @@ public class ASTConverter {
         preSideAssignments.add(rightHandSide);
 
         return new JExpressionAssignmentStatement(fileLoc, leftHandSide,
-            ((JAssignment) rightHandSide).getLeftHandSide());
+            ((JAssignment) rightHandSide).getLeftHandSide().getExpression());
 
       } else {
         throw new CFAGenerationRuntimeException("Expression is not free of side-effects");
@@ -1924,7 +1925,7 @@ public class ASTConverter {
       JExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightHandSide());
 
       // first create expression "a + b"
-      JBinaryExpression exp = new JBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
+      JBinaryExpression exp = new JBinaryExpression(fileLoc, type, leftHandSide.getExpression(), rightHandSide, op);
 
       // and now the assignment
       return new JExpressionAssignmentStatement(fileLoc, leftHandSide, exp);
@@ -2011,11 +2012,11 @@ public class ASTConverter {
 
     FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
-    JExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+    JLeftHandSide operand = (JLeftHandSide) convertExpressionWithoutSideEffects(e.getOperand());
 
     JExpression preOne = new JIntegerLiteralExpression(fileLoc, BigInteger.ONE);
     JBinaryExpression preExp =
-        new JBinaryExpression(fileLoc, type, operand, preOne, postOp);
+        new JBinaryExpression(fileLoc, type, operand.getExpression(), preOne, postOp);
 
     return new JExpressionAssignmentStatement(fileLoc, operand, preExp);
   }
@@ -2033,11 +2034,11 @@ public class ASTConverter {
 
     FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
-    JExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+    JLeftHandSide operand = (JLeftHandSide) convertExpressionWithoutSideEffects(e.getOperand());
 
     JExpression preOne = new JIntegerLiteralExpression(fileLoc, BigInteger.ONE);
     JBinaryExpression preExp = new JBinaryExpression(fileLoc, type,
-        operand, preOne, preOp);
+        operand.getExpression(), preOne, preOp);
     return new JExpressionAssignmentStatement(fileLoc, operand, preExp);
   }
 
@@ -2438,7 +2439,7 @@ public class ASTConverter {
     methodInvocation.setRunTimeBinding(returnType);
   }
 
-  public JExpressionAssignmentStatement getBooleanAssign(JExpression pLeftHandSide, boolean booleanLiteral) {
+  public JExpressionAssignmentStatement getBooleanAssign(JLeftHandSide pLeftHandSide, boolean booleanLiteral) {
     return new JExpressionAssignmentStatement(pLeftHandSide.getFileLocation(), pLeftHandSide,
         new JBooleanLiteralExpression(pLeftHandSide.getFileLocation(), booleanLiteral));
   }

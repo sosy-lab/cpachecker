@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *   fields with qualifier, and the rest.
  *
  */
-public class JFieldAccess extends JIdExpression {
+public class JFieldAccess extends JIdExpression implements JLeftHandSide{
 
   private final JIdExpression qualifier;
 
@@ -91,6 +91,16 @@ public class JFieldAccess extends JIdExpression {
     JFieldAccess other = (JFieldAccess) obj;
 
     return Objects.equals(other.qualifier, qualifier);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(JLeftHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public JExpression getExpression() {
+    return this;
   }
 
 }

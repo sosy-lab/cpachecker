@@ -369,7 +369,7 @@ public class BDDTransferRelation implements TransferRelation {
    * This equality is added to the BDDstate to get the next state. */
   private BDDState handleAssignment(CFAEdge cfaEdge, BDDState state, CAssignment assignment, BDDPrecision precision) {
     Region newRegion = state.getRegion();
-    CExpression lhs = assignment.getLeftHandSide();
+    CExpression lhs = assignment.getLeftHandSide().getExpression();
     if (!(lhs instanceof CIdExpression)) { return state; }
 
     final String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -587,7 +587,7 @@ public class BDDTransferRelation implements TransferRelation {
     // handle assignments like "y = f(x);"
     if (call instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) call;
-      CExpression lhs = cAssignment.getLeftHandSide();
+      CExpression lhs = cAssignment.getLeftHandSide().getExpression();
 
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator

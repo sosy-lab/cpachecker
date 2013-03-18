@@ -113,6 +113,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -221,7 +222,7 @@ class ASTConverter {
 
     } else if (node instanceof CAssignment) {
       preSideAssignments.add(node);
-      return ((CAssignment) node).getLeftHandSide();
+      return ((CAssignment) node).getLeftHandSide().getExpression();
 
     } else {
       throw new AssertionError("unknown expression " + node);
@@ -239,17 +240,18 @@ class ASTConverter {
   }
 
   private CIdExpression addSideAssignmentsForUnaryExpressions(IASTExpression e,
-                                                              CExpression exp,
+                                                              CLeftHandSide exp,
                                                               FileLocation fileLoc,
                                                               CType type,
                                                               BinaryOperator op) {
     CIdExpression tmp = createTemporaryVariable(e);
-    preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmp, exp));
+    preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmp, exp.getExpression()));
 
 
     CExpression one = createSideeffectLiteralOne(type, fileLoc, e);
-    CBinaryExpression postExp = new CBinaryExpression(fileLoc, type, exp, one, op);
+    CBinaryExpression postExp = new CBinaryExpression(fileLoc, type, exp.getExpression(), one, op);
     preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, exp, postExp));
+
 
     return tmp;
   }
@@ -398,9 +400,9 @@ class ASTConverter {
 
     FileLocation fileLoc = getLocation(e);
     CType type = typeConverter.convert(e.getExpressionType());
-    CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getOperand1());
 
     if (isAssign) {
+      CLeftHandSide leftHandSide = (CLeftHandSide) convertExpressionWithoutSideEffects(e.getOperand1());
 
       if (op == null) {
         // a = b
@@ -417,7 +419,7 @@ class ASTConverter {
 
         } else if (rightHandSide instanceof CAssignment) {
           preSideAssignments.add(rightHandSide);
-          return new CExpressionAssignmentStatement(fileLoc, leftHandSide, ((CAssignment) rightHandSide).getLeftHandSide());
+          return new CExpressionAssignmentStatement(fileLoc, leftHandSide, ((CAssignment) rightHandSide).getLeftHandSide().getExpression());
         } else {
           throw new CFAGenerationRuntimeException("Expression is not free of side-effects", e);
         }
@@ -427,13 +429,14 @@ class ASTConverter {
         CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
 
         // first create expression "a + b"
-        CBinaryExpression exp = new CBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
+        CBinaryExpression exp = new CBinaryExpression(fileLoc, type, leftHandSide.getExpression(), rightHandSide, op);
 
         // and now the assignment
         return new CExpressionAssignmentStatement(fileLoc, leftHandSide, exp);
       }
 
     } else {
+      CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getOperand1());
       CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
 
 
@@ -470,6 +473,14 @@ class ASTConverter {
     CExpression owner = convertExpressionWithoutSideEffects(e.getFieldOwner());
     String fieldName = convert(e.getFieldName());
 
+    // if the owner is a FieldReference itself there's the need for a temporary Variable
+    // but only if we are not in global scope, otherwise there will be parsing errors
+    if(owner instanceof CFieldReference && !scope.isGlobalScope()) {
+      CIdExpression tmpVar = createTemporaryVariable(e.getFieldOwner());
+      preSideAssignments.add(new CExpressionAssignmentStatement(getLocation(e), tmpVar, owner));
+      owner = tmpVar;
+    }
+
     if (type instanceof CProblemType) {
       CType ownerType = owner.getExpressionType();
       if (ownerType instanceof CElaboratedType) {
@@ -496,6 +507,12 @@ class ASTConverter {
       }
 
       logger.log(Level.FINE, "Field reference", e.getRawSignature(), "has unknown type", type);
+    }
+
+    // if there is a "var->field" convert it to (*var).field
+    if(e.isPointerDereference()) {
+      CUnaryExpression exp = new CUnaryExpression(getLocation(e), type, owner, UnaryOperator.STAR);
+      return new CFieldReference(getLocation(e), type, fieldName, exp, false);
     }
 
     return new CFieldReference(getLocation(e), type, fieldName, owner, e.isPointerDereference());
@@ -578,18 +595,50 @@ class ASTConverter {
 
   private CAstNode convert(IASTUnaryExpression e) {
     CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
-
-    if (e.getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-      return operand;
-    }
-
-
     FileLocation fileLoc = getLocation(e);
     CType type = typeConverter.convert(e.getExpressionType());
 
-
-
     switch (e.getOperator()) {
+    case IASTUnaryExpression.op_bracketedPrimary:
+      return operand;
+
+    case IASTUnaryExpression.op_star:
+      // if there is a dereference on a field of a dereferenced struct a temporary variable is needed
+      if(operand instanceof CFieldReference
+          && ((CFieldReference)operand).getFieldOwner() instanceof CUnaryExpression
+          && ((CUnaryExpression)((CFieldReference)operand).getFieldOwner()).getOperator() == UnaryOperator.STAR) {
+        CIdExpression tmpVar = createTemporaryVariable(e.getOperand());
+        preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmpVar, operand));
+        return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+      }
+
+      // in case of *& both can be left out
+      if(operand instanceof CUnaryExpression
+          && ((CUnaryExpression)operand).getOperator() == UnaryOperator.AMPER) {
+        return ((CUnaryExpression)operand).getOperand();
+      }
+
+      // in case of ** a temporary variable is needed
+      if(operand instanceof CUnaryExpression
+          && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR) {
+        CIdExpression tmpVar = createTemporaryVariable(e.getOperand());
+        preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmpVar, operand));
+        return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+      }
+
+      // if none of the special cases before fits the default unaryExpression is created
+      return new CUnaryExpression(fileLoc, type, operand, ASTOperatorConverter.convertUnaryOperator(e));
+
+    case IASTUnaryExpression.op_amper:
+      // in case of *& both can be left out
+      if(operand instanceof CUnaryExpression
+          && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR) {
+        return ((CUnaryExpression)operand).getOperand();
+      }
+
+      // if none of the special cases before fits the default unaryExpression is created
+      return new CUnaryExpression(fileLoc, type, operand, ASTOperatorConverter.convertUnaryOperator(e));
+
     case IASTUnaryExpression.op_prefixIncr:
     case IASTUnaryExpression.op_prefixDecr:
       // instead of ++x, create "x = x+1"
@@ -608,7 +657,11 @@ class ASTConverter {
       CExpression one = createSideeffectLiteralOne(type, fileLoc, e);
       CBinaryExpression preExp = new CBinaryExpression(fileLoc, type, operand, one, preOp);
 
-      return new CExpressionAssignmentStatement(fileLoc, operand, preExp);
+      if (operand instanceof CLeftHandSide) {
+        return new CExpressionAssignmentStatement(fileLoc, (CLeftHandSide) operand, preExp);
+      } else {
+        throw new CFAGenerationRuntimeException(operand.toASTString() + " is not applicable for the left side of a statement");
+      }
 
     case IASTUnaryExpression.op_postFixIncr:
     case IASTUnaryExpression.op_postFixDecr:
@@ -627,7 +680,12 @@ class ASTConverter {
 
       CExpression postOne = createSideeffectLiteralOne(type, fileLoc, e);
       CBinaryExpression postExp = new CBinaryExpression(fileLoc, type, operand, postOne, postOp);
-      return new CExpressionAssignmentStatement(fileLoc, operand, postExp);
+
+      if (operand instanceof CLeftHandSide) {
+        return new CExpressionAssignmentStatement(fileLoc, (CLeftHandSide) operand, postExp);
+      } else {
+        throw new CFAGenerationRuntimeException(operand.toASTString() + " is not applicable for the left side of a statement");
+      }
 
     default:
       return new CUnaryExpression(fileLoc, type, operand, ASTOperatorConverter.convertUnaryOperator(e));
@@ -1259,7 +1317,7 @@ class ASTConverter {
 
       if (initializer instanceof CAssignment) {
         preSideAssignments.add(initializer);
-        return new CInitializerExpression(getLocation(e), ((CAssignment)initializer).getLeftHandSide());
+        return new CInitializerExpression(getLocation(e), ((CAssignment)initializer).getLeftHandSide().getExpression());
 
       } else if (initializer instanceof CFunctionCallExpression) {
         FileLocation loc = getLocation(i);

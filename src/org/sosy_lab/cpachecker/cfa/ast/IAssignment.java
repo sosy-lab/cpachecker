@@ -31,7 +31,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 public interface IAssignment extends IAstNode {
 
 
-  IAExpression getLeftHandSide();
+  IALeftHandSide getLeftHandSide();
 
   IARightHandSide getRightHandSide();
 

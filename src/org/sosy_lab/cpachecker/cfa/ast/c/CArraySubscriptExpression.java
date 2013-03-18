@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CArraySubscriptExpression extends AArraySubscriptExpression implements CExpression {
+public final class CArraySubscriptExpression extends AArraySubscriptExpression implements CExpression, CLeftHandSide{
 
 
 
@@ -64,6 +64,11 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression i
   }
 
   @Override
+  public <R, X extends Exception> R accept(CLeftHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
   public int hashCode() {
     final int prime = 31;
     int result = 7;
@@ -81,5 +86,10 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression i
     }
 
     return super.equals(obj);
+  }
+
+  @Override
+  public CExpression getExpression() {
+    return this;
   }
 }

@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -162,7 +163,8 @@ class AutomatonASTComparator {
    * The visitor that generates a pre-compiled ASTMatcher from a pattern AST.
    */
   private static enum ASTMatcherGenerator implements CRightHandSideVisitor<ASTMatcher, InvalidAutomatonException>,
-                                                     CStatementVisitor<ASTMatcher, InvalidAutomatonException> {
+                                                     CStatementVisitor<ASTMatcher, InvalidAutomatonException>,
+                                                     CLeftHandSideVisitor<ASTMatcher, InvalidAutomatonException>{
 
     INSTANCE;
 

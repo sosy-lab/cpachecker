@@ -92,6 +92,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -1712,7 +1713,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category sideeffects
    */
   private CStatement createStatement(FileLocation fileLoc,
-      @Nullable CIdExpression leftHandSide, CRightHandSide rightHandSide) {
+      @Nullable CLeftHandSide leftHandSide, CRightHandSide rightHandSide) {
     rightHandSide.accept(checkBinding);
 
     if (leftHandSide != null) {

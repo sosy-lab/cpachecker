@@ -490,7 +490,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       // Assign the return value to the lValue of the functionCallAssignment
 
-      CExpression lValue = ((CFunctionCallAssignmentStatement) exprOnSummary).getLeftHandSide();
+      CExpression lValue = ((CFunctionCallAssignmentStatement) exprOnSummary).getLeftHandSide().getExpression();
 
       CType rValueType = getRealExpressionType(((CFunctionCallAssignmentStatement) exprOnSummary).getRightHandSide());
 
@@ -601,7 +601,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     if (cStmt instanceof CAssignment) {
       CAssignment cAssignment = (CAssignment) cStmt;
-      CExpression lValue = cAssignment.getLeftHandSide();
+      CExpression lValue = cAssignment.getLeftHandSide().getExpression();
       CRightHandSide rValue = cAssignment.getRightHandSide();
 
       newState = handleAssignment(pState, pCfaEdge, lValue, rValue);

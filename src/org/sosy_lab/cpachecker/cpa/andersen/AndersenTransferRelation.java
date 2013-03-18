@@ -132,7 +132,7 @@ public class AndersenTransferRelation implements TransferRelation {
   private AndersenState handleAssignment(AndersenState element, CAssignment assignExpression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException {
 
-    CExpression op1 = assignExpression.getLeftHandSide();
+    CExpression op1 = assignExpression.getLeftHandSide().getExpression();
     CRightHandSide op2 = assignExpression.getRightHandSide();
 
     if (op1 instanceof CIdExpression) {

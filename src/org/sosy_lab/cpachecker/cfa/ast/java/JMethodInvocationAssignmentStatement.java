@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class JMethodInvocationAssignmentStatement extends AFunctionCallAssignmentStatement implements JAssignment, JStatement, JMethodOrConstructorInvocation {
 
-  public JMethodInvocationAssignmentStatement(FileLocation pFileLocation, JExpression pLeftHandSide,
+  public JMethodInvocationAssignmentStatement(FileLocation pFileLocation, JLeftHandSide pLeftHandSide,
       JMethodInvocationExpression pRightHandSide) {
     super(pFileLocation, pLeftHandSide, pRightHandSide);
 
@@ -41,8 +41,8 @@ public class JMethodInvocationAssignmentStatement extends AFunctionCallAssignmen
   }
 
   @Override
-  public JExpression getLeftHandSide() {
-    return (JExpression) super.getLeftHandSide();
+  public JLeftHandSide getLeftHandSide() {
+    return (JLeftHandSide) super.getLeftHandSide();
   }
 
   @Override

@@ -194,7 +194,7 @@ class OctTransferRelation implements TransferRelation {
     //expression is an assignment operation, e.g. a = g(b);
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement binExp = ((CFunctionCallAssignmentStatement)exprOnSummary);
-      CExpression op1 = binExp.getLeftHandSide();
+      CExpression op1 = binExp.getLeftHandSide().getExpression();
 
       //we expect left hand side of the expression to be a variable
       if (op1 instanceof CIdExpression ||
@@ -848,7 +848,7 @@ class OctTransferRelation implements TransferRelation {
       CAssignment assignExpression, CFAEdge cfaEdge)
   throws UnrecognizedCCodeException {
 
-    CExpression op1 = assignExpression.getLeftHandSide();
+    CExpression op1 = assignExpression.getLeftHandSide().getExpression();
     CRightHandSide op2 = assignExpression.getRightHandSide();
 
     if (op1 instanceof CIdExpression) {

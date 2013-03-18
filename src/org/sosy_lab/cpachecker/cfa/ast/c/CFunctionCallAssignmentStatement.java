@@ -31,14 +31,14 @@ public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignm
                                                           implements CStatement, CAssignment, CFunctionCall {
 
   public CFunctionCallAssignmentStatement(FileLocation pFileLocation,
-                                             CExpression pLeftHandSide,
+                                             CLeftHandSide pLeftHandSide,
                                              CFunctionCallExpression pRightHandSide) {
     super(pFileLocation, pLeftHandSide, pRightHandSide);
   }
 
   @Override
-  public CExpression getLeftHandSide() {
-    return (CExpression)super.getLeftHandSide();
+  public CLeftHandSide getLeftHandSide() {
+    return (CLeftHandSide)super.getLeftHandSide();
   }
 
   @Override

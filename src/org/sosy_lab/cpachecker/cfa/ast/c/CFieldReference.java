@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CFieldReference extends AExpression implements CExpression {
+public final class CFieldReference extends AExpression implements CExpression, CLeftHandSide {
 
   private final String         name;
   private final CExpression owner;
@@ -74,6 +74,11 @@ public final class CFieldReference extends AExpression implements CExpression {
   }
 
   @Override
+  public <R, X extends Exception> R accept(CLeftHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
   public String toASTString() {
     String left = (owner instanceof CFieldReference) ? owner.toASTString() : owner.toParenthesizedASTString();
     String op = isPointerDereference ? "->" : ".";
@@ -113,6 +118,11 @@ public final class CFieldReference extends AExpression implements CExpression {
     return Objects.equals(other.isPointerDereference, isPointerDereference)
             && Objects.equals(other.name, name)
             && Objects.equals(other.owner, owner);
+  }
+
+  @Override
+  public CExpression getExpression() {
+    return this;
   }
 
 }

@@ -184,7 +184,7 @@ implements GenericAssumptionBuilder {
 
       CStatement stmt = stmtEdge.getStatement();
       if (stmt instanceof CAssignment) {
-        visit(((CAssignment)stmt).getLeftHandSide(), result);
+        visit(((CAssignment)stmt).getLeftHandSide().getExpression(), result);
       }
       break;
     case ReturnStatementEdge:

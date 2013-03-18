@@ -508,7 +508,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       String functionName = pCfaEdge.getPredecessor().getFunctionName();
 
       CAssignment assignment = (CAssignment)pStatement;
-      String varName = getLeftHandSide(assignment.getLeftHandSide(), pCfaEdge, functionName);
+      String varName = getLeftHandSide(assignment.getLeftHandSide().getExpression(), pCfaEdge, functionName);
 
       if (varName != null) {
         FunctionPointerTarget target = getValue(assignment.getRightHandSide(), pNewState, functionName);
@@ -581,7 +581,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     CFunctionCall funcCall = summaryEdge.getExpression();
     if (funcCall instanceof CFunctionCallAssignmentStatement) {
 
-      CExpression left = ((CFunctionCallAssignmentStatement)funcCall).getLeftHandSide();
+      CExpression left = ((CFunctionCallAssignmentStatement)funcCall).getLeftHandSide().getExpression();
 
       String callerFunction = summaryEdge.getSuccessor().getFunctionName();
       String varName = getLeftHandSide(left, summaryEdge, callerFunction);

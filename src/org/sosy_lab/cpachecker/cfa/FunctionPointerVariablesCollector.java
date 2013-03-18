@@ -109,7 +109,7 @@ public class FunctionPointerVariablesCollector extends CFATraversal.DefaultCFAVi
       CStatement s = statementEdge.getStatement();
       if (s instanceof CAssignment) {
         CAssignment assignment = (CAssignment)s;
-        collectVars(assignment.getLeftHandSide(), collectedVars);
+        collectVars(assignment.getLeftHandSide().getExpression(), collectedVars);
         collectVars(assignment.getRightHandSide(), collectedVars);
       } else if (s instanceof CExpressionStatement) {
         CExpressionStatement expr = (CExpressionStatement)s;

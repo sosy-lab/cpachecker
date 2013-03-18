@@ -330,7 +330,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     if (exprOnSummary instanceof AFunctionCallAssignmentStatement) {
       AFunctionCallAssignmentStatement assignExp = ((AFunctionCallAssignmentStatement)exprOnSummary);
-      IAExpression op1 = assignExp.getLeftHandSide();
+      IAExpression op1 = assignExp.getLeftHandSide().getExpression();
 
       // we expect left hand side of the expression to be a variable
 
@@ -507,7 +507,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
   private void handleAssignment(ExplicitState newElement, IAssignment assignExpression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException {
-    IAExpression op1    = assignExpression.getLeftHandSide();
+    IAExpression op1    = assignExpression.getLeftHandSide().getExpression();
     IARightHandSide op2 = assignExpression.getRightHandSide();
 
 

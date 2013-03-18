@@ -718,7 +718,7 @@ public class PointerTransferRelation implements TransferRelation {
     if (expression instanceof CFunctionCallAssignmentStatement) {
       // a = func()
       CFunctionCallAssignmentStatement assignExpression = (CFunctionCallAssignmentStatement)expression;
-      CExpression leftOperand = assignExpression.getLeftHandSide();
+      CExpression leftOperand = assignExpression.getLeftHandSide().getExpression();
 
       if (leftOperand instanceof CIdExpression) {
         Pointer leftPointer =
@@ -898,7 +898,7 @@ public class PointerTransferRelation implements TransferRelation {
       throws UnrecognizedCCodeException, InvalidPointerException {
 
     // left hand side
-    CExpression leftExpression = expression.getLeftHandSide();
+    CExpression leftExpression = expression.getLeftHandSide().getExpression();
     String leftVarName = null;
     Pointer leftPointer;
     boolean leftDereference;

@@ -312,7 +312,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                             CAssignment expression, CFAEdge cfaEdge)
                             throws UnrecognizedCCodeException {
 
-    CExpression op1 = expression.getLeftHandSide();
+    CExpression op1 = expression.getLeftHandSide().getExpression();
     CRightHandSide op2 = expression.getRightHandSide();
 
     if (op1 instanceof CIdExpression) {
@@ -520,7 +520,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
       if (exp instanceof CAssignment) {
 
-          CExpression op1 = ((CAssignment) exp).getLeftHandSide();
+          CExpression op1 = ((CAssignment) exp).getLeftHandSide().getExpression();
           CRightHandSide op2 = ((CAssignment) exp).getRightHandSide();
 
           String leftName = op1.toASTString();
