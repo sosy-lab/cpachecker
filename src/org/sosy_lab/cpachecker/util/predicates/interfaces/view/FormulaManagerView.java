@@ -1070,7 +1070,7 @@ public class FormulaManagerView implements FormulaManager {
   }
 
   public static final String BitwiseAndUfName = "_&_";
-  public static final String BitwiseOrUfName ="_|_";
+  public static final String BitwiseOrUfName ="_!!_"; // SMTInterpol does not allow "|" to be used
   public static final String BitwiseXorUfName ="_^_";
   public static final String BitwiseNotUfName ="_~_";
   public static final String MultUfName ="_*_";
