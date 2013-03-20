@@ -1,0 +1,526 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<benchmark tool="cpachecker" timelimit="600">
+<option name="-heap">3000M</option>
+<option name="-noout"/>
+<option name="-disable-java-assertions"/>
+<option name="-setprop">statistics.memory=false</option>
+<option name="-setprop">pcc.proofType = SET</option>
+
+<rundefinition name="ReachDef_ExplicitDF">
+	<option name="-reachingdef-explicit"/>
+	<option name="-setprop">cpa.explicit.merge=JOIN</option>
+	<option name="-setprop">analysis.traversal.order=BFS</option>
+		<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+</rundefinition>
+
+<rundefinition name="ReachDef_ExplicitJOINSEP">
+	<option name="-reachingdef-explicit"/>
+	<option name="-setprop">analysis.traversal.order=BFS</option>
+		<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+</rundefinition>
+
+<rundefinition name="ReachDef_ExplicitSEPJOIN">
+	<option name="-reachingdef-explicit"/>
+	<option name="-setprop">cpa.explicit.merge=JOIN</option>
+	<option name="-setprop">cpa.reachdef.merge=SEP</option>
+	<option name="-setprop">analysis.traversal.order=BFS</option>
+		<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+</rundefinition>
+
+<rundefinition name="ReachDef_ExplicitMC">
+	<option name="-reachingdef-explicit"/>
+	<option name="-setprop">cpa.reachdef.merge=SEP</option>
+	<option name="-setprop">analysis.traversal.order=DFS</option>
+		<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+</rundefinition>
+
+<rundefinition name="ReachDefDF">
+	<option name="-reachingdefinition"/>
+	<option name="-setprop">analysis.traversal.order=BFS</option>
+		<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+</rundefinition>
+
+<rundefinition name="ExplicitDF">
+	<option name="-explicit-trac-all"/>
+	<option name="-setprop">analysis.traversal.order=BFS</option>
+	<option name="-setprop">cpa.explicit.merge=JOIN</option>
+		<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+</sourcefiles>
+</rundefinition>
+
+<rundefinition name="StructureTest">
+	<option name="-reachingdef-explicit"/>
+	<option name="-setprop">cpa.explicit.merge=JOIN</option>
+	<option name="-setprop">analysis.traversal.order=BFS</option>
+		<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/nestedLocks/test_locks_while_seq_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/nestedLocks/test_locks_while_seq_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/nestedLocks/test_locks_while_mix_5_safe.c </include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/nestedLocks/test_locks_while_mix_5_safe.c </include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/nestedLocks/test_locks_while_nest_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/nestedLocks/test_locks_while_nest_5_safe.c</include>
+</sourcefiles>
+</rundefinition>
+
+<columns>
+<column title="Total time">Total time for CPAchecker</column>
+<column title="Set up time">Time for analysis setup</column>
+<column title="Read time">Time for reading in proof</column>
+<column title="Sort time">Time for preparing proof for checking</column>
+<column title="All time">Total time for proof check algorithm</column>
+<column title="Analysis time">Time for Analysis</column>
+<column title="Transfer time">Time for abstract successor checks</column>
+<column title="Stop time">Time for covering checks</column>
+<column title="#Elems">Number of iterations</column>
+</columns>
+</benchmark>
