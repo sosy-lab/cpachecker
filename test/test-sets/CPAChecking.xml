@@ -512,6 +512,95 @@
 </sourcefiles>
 </rundefinition>
 
+<rundefinition name="ReachDefDFCompare">
+	<option name="-reachingdefinition"/>
+	<option name="-setprop">analysis.traversal.order=BFS</option>
+		<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+</sourcefiles>
+<include>test/programs/benchmarks/locks/test_locks_8_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_8_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_9_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_9_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_10_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_10_safe.c</include>
+</sourcefiles>
+<include>test/programs/benchmarks/locks/test_locks_11_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_11_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_12_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_12_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_13_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_13_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_14_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_14_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>pcc.proofgen.doPCC = true</option>
+<include>test/programs/benchmarks/locks/test_locks_15_safe.c</include>
+</sourcefiles>
+<sourcefiles>
+<option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
+<include>test/programs/benchmarks/locks/test_locks_15_safe.c</include>
+</sourcefiles>
+</rundefinition>
+
 <columns>
 <column title="Total time">Total time for CPAchecker</column>
 <column title="Set up time">Time for analysis setup</column>
