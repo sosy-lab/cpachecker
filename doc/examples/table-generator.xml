@@ -23,7 +23,7 @@
   <column title="walltime"/>
   <column title="#iter">Number of iterations:</column>
   <column title="#refs">Number of refinements:</column>
-  <column title="#intpols">number of explicit interpolations:</column>
+  <column title="#intpols">Number of explicit interpolations:</column>
   <column title="#reached">Size of reached set:</column>
   <column title="#locs">Number of locations:</column>
 
