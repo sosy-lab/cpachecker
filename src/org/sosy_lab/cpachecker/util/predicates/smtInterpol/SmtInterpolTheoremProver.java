@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
@@ -43,7 +44,6 @@ import com.google.common.base.Preconditions;
 
 import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
-import de.uni_freiburg.informatik.ultimate.logic.Valuation;
 
 public class SmtInterpolTheoremProver implements ProverEnvironment {
 
@@ -129,7 +129,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
 
       assert importantTerms.length != 0 : "there is no valuation for zero important terms!";
 
-      Valuation val = allsatEnv.getValue(importantTerms);
+      Map<Term, Term> val = allsatEnv.getValue(importantTerms);
       for (int j = 0; j < importantTerms.length; j++) {
         Term valueOfT = val.get(importantTerms[j]);
         if (SmtInterpolUtil.isFalse(valueOfT)) {

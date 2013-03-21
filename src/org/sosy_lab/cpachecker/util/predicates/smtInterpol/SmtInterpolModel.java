@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import java.util.Map;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
@@ -39,7 +41,6 @@ import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
-import de.uni_freiburg.informatik.ultimate.logic.Valuation;
 
 public class SmtInterpolModel {
 
@@ -138,7 +139,7 @@ public class SmtInterpolModel {
 
     assert env.checkSat() != LBool.UNSAT:
             "model is not available for UNSAT"; // TODO expensive check?
-    Valuation val = env.getValue(keys);
+    Map<Term, Term> val = env.getValue(keys);
 
     Term modelFormula = env.term("true");
 

@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Level;
@@ -51,7 +52,6 @@ import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
-import de.uni_freiburg.informatik.ultimate.logic.Valuation;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.SMTInterpol;
 
 /** This is a Wrapper around SmtInterpol.
@@ -138,7 +138,7 @@ public class SmtInterpolEnvironment {
     }
 
     try {
-      script.setOption(":produce-proofs", true);
+      script.setOption(":produce-interpolants", true);
       script.setOption(":produce-models", true);
       script.setOption(":verbosity", new BigInteger("2"));
     } catch (SMTLIBException e) {
@@ -295,7 +295,7 @@ public class SmtInterpolEnvironment {
 
   /** This function returns a map,
    * that contains assignments term->term for all terms in terms. */
-  public Valuation getValue(Term[] terms) {
+  public Map<Term, Term> getValue(Term[] terms) {
     try {
       return script.getValue(terms);
     } catch (SMTLIBException e) {
