@@ -1264,7 +1264,7 @@ def executeBenchmarkInCloud(benchmark):
     toolpaths = benchmark.tool.getProgrammFiles(benchmark.executable)
     requirements = "2000\t1"  # TODO memory numerOfCpuCores
     cloudRunExecutorDir = os.path.abspath("./scripts")
-    outputDir = os.path.join(OUTPUT_PATH , benchmark.name + "." + benchmark.date + ".logfiles")
+    outputDir = benchmark.logFolder
     logging.debug("Output path: " + str(outputDir))
     absOutputDir = os.path.abspath(outputDir)
     if(not(os.access(absOutputDir, os.F_OK))):
@@ -1284,7 +1284,6 @@ def executeBenchmarkInCloud(benchmark):
         numOfRunDefLines += (len(runSet.runs) + 1)
         
         runSetHeadLine = str(len(runSet.runs)) + "\t" + \
-                        runSet.name + "\t" + \
                         str(benchmark.rlimits[TIMELIMIT]) + "\t" + \
                        str(benchmark.rlimits[MEMLIMIT]) + "\n"
          
@@ -1293,7 +1292,9 @@ def executeBenchmarkInCloud(benchmark):
         # iterate over runs
         for run in runSet.runs:
                 argString = " ".join(run.args)
-                runDefinitions += argString + "\t" + run.sourcefile + "\n"
+                logFile = os.path.relpath(run.logFile, outputDir)
+                runDefinitions += argString + "\t" + run.sourcefile + "\t" + \
+                                    logFile + "\n"
                 absSourceFiles.append(os.path.abspath(run.sourcefile))
     
     if(len(absSourceFiles)==0):
@@ -1353,11 +1354,7 @@ def executeBenchmarkInCloud(benchmark):
         outputHandler.outputBeforeRunSet(runSet)     
         for run in runSet.runs:
             outputHandler.outputBeforeRun(run)
-            (notUsed,sourceFileName) = os.path.split(run.sourcefile)
-            if(runSet.name == ""):
-                file = os.path.join(outputDir, sourceFileName + ".log")
-            else:
-                file = os.path.join(outputDir, runSet.name + "." + sourceFileName + ".log")
+            file = run.logFile
             (run.wallTime, run.cpuTime, run.memUsage, returnValue, output) = parseCloudResultFile(file)
             run.afterExecution(returnValue, output)
         outputHandler.outputAfterRunSet(runSet, None, None)
