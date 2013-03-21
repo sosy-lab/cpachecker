@@ -91,9 +91,9 @@ public class SMGState implements AbstractQueryableState {
     CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap);
   }
 
-  public String toDot(String name) {
+  public String toDot(String name, String location) {
     SMGPlotter plotter = new SMGPlotter();
-    return plotter.smgAsDot(heap, name);
+    return plotter.smgAsDot(heap, name, location);
   }
 
   @Override

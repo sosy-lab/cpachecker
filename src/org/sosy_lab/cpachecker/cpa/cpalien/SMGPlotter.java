@@ -37,11 +37,12 @@ public final class SMGPlotter {
 
   public SMGPlotter() {} /* utility class */
 
-  public String smgAsDot(CLangSMG smg, String name) {
+  public String smgAsDot(CLangSMG smg, String name, String location) {
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph gr_" + name.replace('-', '_') + "{\n");
     offset += 2;
+    sb.append(newLineWithOffset("label = \"Location: " + location + "\";"));
 
     addStackSubgraph(smg, sb);
 

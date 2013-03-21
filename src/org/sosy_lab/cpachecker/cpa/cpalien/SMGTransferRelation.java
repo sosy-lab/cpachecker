@@ -179,7 +179,7 @@ public class SMGTransferRelation implements TransferRelation {
             "calloc"
         }));
 
-    public void dumpSMGPlot(String name, SMGState currentState)
+    public void dumpSMGPlot(String name, SMGState currentState, String location)
     {
       if (exportSMGFilePattern != null) {
         if (name == null) {
@@ -191,7 +191,7 @@ public class SMGTransferRelation implements TransferRelation {
         }
         File outputFile = new File(String.format(exportSMGFilePattern.getAbsolutePath(), name));
         try {
-          Files.writeFile(outputFile, currentState.toDot(name));
+          Files.writeFile(outputFile, currentState.toDot(name, location));
         } catch (IOException e) {
           logger.logUserException(Level.WARNING, e, "Could not write SMG " + name + " to file");
         }
@@ -200,7 +200,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     public void evaluateVBPlot(CFunctionCallExpression functionCall, SMGState currentState) {
       String name = ((CStringLiteralExpression) functionCall.getParameterExpressions().get(0)).getContentString();
-      this.dumpSMGPlot(name, currentState);
+      this.dumpSMGPlot(name, currentState, functionCall.toString());
     }
 
     public Address evaluateMalloc(CFunctionCallExpression functionCall, SMGState currentState, CFAEdge cfaEdge)
@@ -419,7 +419,7 @@ public class SMGTransferRelation implements TransferRelation {
       successor = smgState;
     }
 
-    Collection<? extends AbstractState> result;
+    Collection<SMGState> result;
 
     if (successor == null) {
       result = Collections.emptySet();
@@ -438,7 +438,9 @@ public class SMGTransferRelation implements TransferRelation {
       return result;
     }
     else if ( this.exportSMG.equals("every")) {
-      builtins.dumpSMGPlot(null, smgState);
+      for (SMGState smg : result) {
+        builtins.dumpSMGPlot(null, smg, cfaEdge.getDescription());
+      }
     }
     return result;
   }
