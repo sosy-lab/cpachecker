@@ -13,75 +13,75 @@
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 		<sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 </rundefinition>
 
@@ -90,75 +90,75 @@
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 		<sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 </rundefinition>
 
@@ -169,75 +169,75 @@
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 		<sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 </rundefinition>
 
@@ -247,75 +247,75 @@
 	<option name="-setprop">analysis.traversal.order=DFS</option>
 		<sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 </rundefinition>
 
@@ -324,75 +324,75 @@
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 		<sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 </rundefinition>
 
@@ -402,75 +402,75 @@
 	<option name="-setprop">cpa.explicit.merge=JOIN</option>
 		<sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 </rundefinition>
 
@@ -480,11 +480,11 @@
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 		<sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
@@ -517,87 +517,87 @@
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 		<sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
-<include>test/programs/benchmarks/locks/test_locks_8_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_8_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_8_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_8_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_9_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_9_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_9_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_9_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_10_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_10_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_10_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_10_safe.c</include>
 </sourcefiles>
-<include>test/programs/benchmarks/locks/test_locks_11_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_11_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_11_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_11_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_12_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_12_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_12_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_12_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_13_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_13_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_13_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_13_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_14_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_14_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_14_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_14_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>pcc.proofgen.doPCC = true</option>
-<include>test/programs/benchmarks/locks/test_locks_15_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_15_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop"/>analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_15_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_15_safe.c</include>
 </sourcefiles>
 </rundefinition>
 
