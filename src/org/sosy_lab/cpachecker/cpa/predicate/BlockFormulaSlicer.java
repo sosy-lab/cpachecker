@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -310,54 +311,69 @@ public class BlockFormulaSlicer {
       Set<ARGState> block) {
 
     final List<ARGState> usedChildren = from(current.getChildren()).filter(in(block)).toList();
-
     assert usedChildren.size() > 0 : "no child for " + current.getStateId();
 
-    // there can be several children --> collect their vars and join them
-    final List<Collection<String>> iVars = new ArrayList<>(usedChildren.size());
-
-    for (ARGState child : usedChildren) {
-
-      // do not modify oldVars, they are used later for the second parent
-      final Collection<String> oldVars = s2v.get(child);
-      final Collection<String> newVars;
-
-      // if there is only one parent for the child, we re-use oldVars
-      // TODO better solution: if (allParentsExceptThisDone(child)) {
-      if (child.getParents().size() == 1) {
-        newVars = oldVars;
-      } else {
-        // copy oldVars, we need them again later
-        newVars = new LinkedHashSet<>();
-        newVars.addAll(oldVars);
-      }
-
-      iVars.add(newVars);
-
-      // do the hard work
-      final CFAEdge edge = current.getEdgeToChild(child);
-      final boolean isImportant = handleEdge(edge, newVars);
-
-      assert !importantEdges.containsEntry(current, child);
-
-      if (isImportant) {
-        importantEdges.put(current, child);
-        s2s.put(current, current);
-      } else {
-        s2s.putAll(current, s2s.get(child));
-      }
-
-      //      System.out.println("WORK   " + isImportant + "  \t" +
-      //          current.getStateId() + " -> " + child.getStateId() + "    \t" +
-      //          edge.getRawStatement() + "    \t" +
-      //          edge.getClass().toString().replace
-      //              ("class org.sosy_lab.cpachecker.cfa.model.", "") + "    \t" +
-      //          newVars
-      //          );
-    }
-
     // if we have an assumption, and the branches are completely unimportant,
-    // the assumption itself is unimportant.
+    // the assumption itself is unimportant, so we can ignore it
+    if (isAssumptionWithSameImpChild(usedChildren, current, s2s)) {
+
+      final ARGState child1 = usedChildren.get(0);
+      s2s.putAll(current, s2s.get(child1));
+
+      final Collection<String> iVars = new LinkedHashSet<>();
+      // vars from latest important child,
+      // we have to copy them, there could be another parent somewhere else
+      iVars.addAll(s2v.get(child1));
+      return iVars;
+
+    } else {
+      // there can be several children --> collect their vars and join them
+      // normally there is 1 or 2 children.
+      Collection<String> iVars = null;
+
+      for (ARGState child : usedChildren) {
+
+        final Collection<String> oldVars = s2v.get(child);
+        final Collection<String> newVars;
+
+        // if there is only one parent for the child, we re-use oldVars.
+        // TODO better solution: if (allParentsExceptThisDone(child)) {
+        if (child.getParents().size() == 1) {
+          newVars = oldVars;
+        } else {
+          // copy oldVars, they will be used later for a second parent
+          newVars = new LinkedHashSet<>();
+          newVars.addAll(oldVars);
+        }
+
+        // do the hard work
+        final CFAEdge edge = current.getEdgeToChild(child);
+        final boolean isImportant = handleEdge(edge, newVars);
+
+        assert !importantEdges.containsEntry(current, child);
+
+        if (isImportant) {
+          importantEdges.put(current, child);
+          s2s.put(current, current);
+        } else {
+          s2s.putAll(current, s2s.get(child));
+        }
+
+        if (iVars == null) {
+          iVars = newVars;
+        } else {
+          iVars.addAll(newVars);
+        }
+      }
+
+      Preconditions.checkNotNull(iVars);
+      return iVars;
+    }
+  }
+
+  /** checks, if an assumption has no important edge until the branches join. */
+  private boolean isAssumptionWithSameImpChild(final List<ARGState> usedChildren,
+      final ARGState current, final Multimap<ARGState, ARGState> s2s) {
     if (usedChildren.size() == 2) {
       final ARGState child1 = usedChildren.get(0);
       final ARGState child2 = usedChildren.get(1);
@@ -369,33 +385,13 @@ public class BlockFormulaSlicer {
         final CAssumeEdge assume1 = (CAssumeEdge) edge1;
         final CAssumeEdge assume2 = (CAssumeEdge) edge2;
 
-        if (assume1.getExpression() == assume2.getExpression()
-            && assume1.getTruthAssumption() != assume2.getTruthAssumption()) {
-
-          if (s2s.get(child1).equals(s2s.get(child2))) {
-            // we found an assumption with same important child,
-            // so we can ignore it
-
-            // System.out.println("ASSUMTION FOUND WITH SAME CHILD: "
-            //     + assume1.getRawStatement());
-
-            importantEdges.remove(current, child1);
-            importantEdges.remove(current, child2);
-
-            s2s.remove(current, current);
-            s2s.put(current, child1);
-          }
-        }
+        return (assume1.getExpression() == assume2.getExpression()
+            && assume1.getTruthAssumption() != assume2.getTruthAssumption()
+            && s2s.get(child1).equals(s2s.get(child2)));
       }
     }
-
-    Collection<String> joined = iVars.get(0);
-    for (int i = 1; i < iVars.size(); i++) {
-      joined.addAll(iVars.get(i));
-    }
-    return joined;
+    return false;
   }
-
 
   /** This function only forwards to the correct type of edge. */
   private boolean handleEdge(CFAEdge edge, Collection<String> importantVars) {
