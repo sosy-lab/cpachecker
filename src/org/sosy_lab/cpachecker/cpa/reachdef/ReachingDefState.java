@@ -171,7 +171,7 @@ public class ReachingDefState implements AbstractState, Serializable {
     boolean changed = false;
     for (String var : map1.keySet()) {
       unionResult = Sets.union(map1.get(var), map2.get(var)).immutableCopy();
-      if (unionResult.size() != map1.get(var).size()) {
+      if (unionResult.size() != map2.get(var).size()) {
         changed = true;
       }
       newMap.put(var, unionResult);
