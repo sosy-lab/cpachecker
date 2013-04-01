@@ -49,14 +49,14 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
   private final TType boolType;
   private final CreateBitType<TType> bittype;
   private final TType numberType;
-  private final TEnv mathsatEnv;
+  private final TEnv environment;
 
   public TEnv getEnv() {
-    return mathsatEnv;
+    return environment;
   }
 
   protected AbstractFormulaCreator(
-      TEnv mathsatEnv,
+      TEnv env,
       TType boolType,
       TType numberType,
       CreateBitType<TType> bittype
@@ -67,7 +67,7 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
     this.boolType = boolType;
     this.numberType = numberType;
     this.bittype = bittype;
-    this.mathsatEnv = mathsatEnv;
+    this.environment = env;
   }
 
   @SuppressWarnings("unchecked")

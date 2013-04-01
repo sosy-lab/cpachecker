@@ -1,0 +1,220 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2013  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.util.predicates.z3;
+
+import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
+import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
+
+import java.math.BigInteger;
+
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.Model.Function;
+import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
+import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+
+public class Z3Model {
+
+  private final Z3FormulaManager mgr;
+  private final long z3context;
+  private final long z3solver;
+
+  public Z3Model(Z3FormulaManager mgr, long z3context, long z3solver) {
+    this.mgr = mgr;
+    this.z3context = z3context;
+    this.z3solver = z3solver;
+    Preconditions.checkArgument(mgr.getContext() == z3context);
+  }
+
+  private TermType toZ3Type(long sort) {
+    int sortKind = get_sort_kind(z3context, sort);
+    switch (sortKind) {
+    case Z3_BOOL_SORT:
+      return TermType.Boolean;
+    case Z3_INT_SORT:
+      return TermType.Integer;
+    case Z3_REAL_SORT:
+      return TermType.Real;
+    default:
+      // TODO Uninterpreted; Bitvector;
+      throw new IllegalArgumentException("Given parameter cannot be converted to a TermType!");
+    }
+  }
+
+  private Variable toVariable(long expr) {
+    long decl = get_app_decl(z3context, expr);
+    long symbol = get_decl_name(z3context, decl);
+
+    Preconditions.checkArgument(get_symbol_kind(z3context, symbol) == Z3_STRING_SYMBOL,
+        "Given symbol of expression is no stringSymbol! (" + ast_to_string(z3context, expr) + ")");
+
+    String lName = get_symbol_string(z3context, symbol);
+    long sort = get_sort(z3context, expr);
+    TermType lType = toZ3Type(sort);
+
+    Pair<String, Integer> lSplitName = FormulaManagerView.parseName(lName);
+    return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
+  }
+
+
+  private Function toFunction(long expr) {
+    long decl = get_app_decl(z3context, expr);
+    long symbol = get_decl_name(z3context, decl);
+
+    Preconditions.checkArgument(get_symbol_kind(z3context, symbol) == Z3_STRING_SYMBOL,
+        "Given symbol of expression is no stringSymbol! (" + ast_to_string(z3context, expr) + ")");
+
+    String lName = get_symbol_string(z3context, symbol);
+    long sort = get_sort(z3context, expr);
+    TermType lType = toZ3Type(sort);
+
+    int lArity = get_app_num_args(z3context, expr);
+
+    // TODO we assume only constants (int/real) as parameters for now
+    Object[] lArguments = new Object[lArity];
+    for (int i = 0; i < lArity; i++) {
+      long arg = get_app_arg(z3context, expr, i);
+
+      Object lValue;
+      long argSort = get_sort(z3context, arg);
+      int sortKind = get_sort_kind(z3context, argSort);
+      switch (sortKind) {
+      case Z3_INT_SORT:
+        PointerToInt p = new PointerToInt();
+        boolean check = get_numeral_int(z3context, arg, p);
+        Preconditions.checkState(check);
+        lValue = p.value;
+        break;
+
+      case Z3_REAL_SORT:
+        long numerator = get_numerator(z3context, arg);
+        long denominator = get_denominator(z3context, arg);
+        BigInteger num = BigInteger.valueOf(numerator);
+        BigInteger den = BigInteger.valueOf(denominator);
+        lValue = num.divide(den);
+        break;
+
+      default:
+        throw new IllegalArgumentException(
+            "function " + ast_to_string(z3context, expr) + " with unhandled arg "
+                + ast_to_string(z3context, arg));
+      }
+
+      lArguments[i] = lValue;
+    }
+
+    return new Function(lName, lType, lArguments);
+  }
+
+
+  private AssignableTerm toAssignable(long expr) {
+    Preconditions.checkArgument(is_app(z3context, expr),
+        "Given expr is no application! (" + ast_to_string(z3context, expr) + ")");
+
+    if (get_app_num_args(z3context, expr) == 0) {
+      return toVariable(expr);
+    } else {
+      return toFunction(expr);
+    }
+  }
+
+  public Model createZ3Model() {
+    Preconditions.checkArgument(solver_check(z3context, z3solver) != Z3_L_FALSE,
+        "model is not available for UNSAT"); // TODO expensive check?
+
+    long z3model = solver_get_model(z3context, z3solver);
+    model_inc_ref(z3context, z3model);
+
+    ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
+
+    // TODO increment all ref-counters and decrement them later?
+    long modelFormula = mk_true(z3context);
+
+    int n = model_get_num_consts(z3context, z3model);
+    for (int i = 0; i < n; i++) {
+      long keyDecl = model_get_const_decl(z3context, z3model, i);
+
+      Preconditions.checkArgument(get_arity(z3context, keyDecl) == 0,
+          "declaration is no constant");
+
+      long var = mk_app(z3context, keyDecl);
+      long value = model_get_const_interp(z3context, z3model, keyDecl);
+
+      long equivalence = mk_eq(z3context, var, value);
+      // TODO why is there a problem without next line
+      inc_ref(z3context, equivalence);
+      modelFormula = mk_and(z3context, modelFormula, equivalence);
+
+      AssignableTerm lAssignable = toAssignable(var);
+
+      Object lValue;
+      switch (lAssignable.getType()) {
+      case Boolean:
+        lValue = (value == Z3_L_TRUE); // if IS_TRUE, true, else false. TODO IS_UNKNOWN ?
+        break;
+
+      case Integer:
+        PointerToInt p = new PointerToInt();
+        boolean check = get_numeral_int(z3context, value, p);
+        Preconditions.checkState(check);
+        lValue = p.value;
+        break;
+
+      case Real:
+        long numerator = get_numerator(z3context, value);
+        long denominator = get_denominator(z3context, value);
+        BigInteger num = BigInteger.valueOf(numerator);
+        BigInteger den = BigInteger.valueOf(denominator);
+        lValue = num.divide(den);
+        break;
+
+      //      case Bitvector:
+      //        lValue = fmgr.interpreteBitvector(lValueTerm);
+      //        break;
+
+      default:
+        throw new IllegalArgumentException("Z3 expr with unhandled type " + lAssignable.getType());
+      }
+
+      model.put(lAssignable, lValue);
+
+      // cleanup
+      dec_ref(z3context, keyDecl);
+      dec_ref(z3context, value);
+      dec_ref(z3context, var);
+    }
+
+    // cleanup
+    model_dec_ref(z3context, z3model);
+    return new Model(model.build(), mgr.encapsulate(BooleanFormula.class, modelFormula));
+  }
+
+}
