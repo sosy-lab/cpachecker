@@ -90,7 +90,8 @@ class PredicateCPAStatistics implements Statistics {
             name="invariants.export")
     private boolean exportInvariants = true;
 
-    @Option(description="export invariants as precision file?")
+    @Option(description="export invariants as precision file?",
+            name="invariants.exportAsPrecision")
     private boolean exportInvariantsAsPrecision = true;
 
     @Option(description="file for exporting final loop invariants",
@@ -98,7 +99,8 @@ class PredicateCPAStatistics implements Statistics {
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path invariantsFile = Paths.get("invariants.txt");
 
-    @Option(description="file for precision that consits of invariants.")
+    @Option(description="file for precision that consists of invariants.",
+            name="invariants.precisionFile")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path invariantPrecisionsFile = Paths.get("invariantPrecs.txt");
 
