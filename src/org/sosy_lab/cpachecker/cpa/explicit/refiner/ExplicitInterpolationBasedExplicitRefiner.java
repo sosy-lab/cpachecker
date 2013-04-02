@@ -142,7 +142,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
         for (String variableName : currentInterpolant.keySet()) {
           if (!isRedundant(extractPrecision(reachedSet, errorPath.get(i).getFirst()), currentEdge, variableName)) {
             increment.put(currentEdge.getSuccessor(), variableName);
-
+//System.out.println("adding " + variableName + " at " + currentEdge.getSuccessor());
             if (firstInterpolationPoint == null) {
               firstInterpolationPoint = errorPath.get(Math.max(1, i - 1)).getFirst();
               numberOfSuccessfulRefinements++;
@@ -182,7 +182,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   }
 
   private boolean isRedundant(ExplicitPrecision precision, CFAEdge currentEdge, String currentVariable) {
-    return precision.getCegarPrecision().allowsTrackingAt(currentEdge.getSuccessor(), currentVariable);
+    precision.setLocation(currentEdge.getSuccessor());
+//    System.out.println("prec " + precision.getRefinablePrecision().getClass().getSimpleName() + " says redundant: " + precision.getRefinablePrecision().contains(currentVariable));
+    return precision.getRefinablePrecision().contains(currentVariable);
   }
 
   /**

@@ -167,18 +167,12 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
 
-    Multimap<CFANode, String> precisionIncrement = null;
+    Multimap<CFANode, String> increment = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
+    ARGState interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
 
-    ARGState interpolationPoint = null;
-
-    precisionIncrement = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
-    interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
-
-    if (precisionIncrement.size() > 0) {
+    if (increment.size() > 0) {
       ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
-      explicitPrecision                   = new ExplicitPrecision(explicitPrecision);
-      explicitPrecision.getCegarPrecision().addToMapping(precisionIncrement);
-
+      explicitPrecision                   = new ExplicitPrecision(explicitPrecision, increment);
       reached.removeSubtree(interpolationPoint, explicitPrecision);
 
       return CounterexampleInfo.spurious();

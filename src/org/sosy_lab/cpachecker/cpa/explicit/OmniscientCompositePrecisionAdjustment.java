@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -263,7 +264,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
 
           // the path threshold precision is path sensitive, therefore, mutating a clone is mandatory
           if (modified == false) {
-            precision = new ExplicitPrecision(precision);
+            precision = new ExplicitPrecision(precision, HashMultimap.<CFANode, String>create());
             modified = true;
           }
 

@@ -26,11 +26,12 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -60,7 +61,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision.CegarPrecision;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -150,7 +150,11 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
   }
 
   private ExplicitPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
-    return new ExplicitPrecision(variableBlacklist, config, cfa.getVarClassification(), restoreMappingFromFile(cfa));
+    ExplicitPrecision prec = new ExplicitPrecision(variableBlacklist, config, cfa.getVarClassification(), restoreMappingFromFile(cfa));
+
+    prec = new ExplicitPrecision(prec, restoreMappingFromFile(cfa));
+
+    return prec;
   }
 
   private Multimap<CFANode, String> restoreMappingFromFile(CFA cfa) throws InvalidConfigurationException {
@@ -159,27 +163,40 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
       return mapping;
     }
 
-    List<String> variablesAtLocations = null;
+    List<String> contents = null;
     try {
-      variablesAtLocations = Files.readLines(initialPrecisionFile, Charset.defaultCharset());
+      contents = Files.readLines(initialPrecisionFile, Charset.defaultCharset());
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not read predicate map from file named " + initialPrecisionFile);
+      logger.logUserException(Level.WARNING, e, "Could not read precision from file named " + initialPrecisionFile);
       return mapping;
     }
 
     Map<Integer, CFANode> idToCfaNode = createMappingForCFANodes(cfa);
-    for (String variablesAtLocation : variablesAtLocations) {
-      String[] splits = variablesAtLocation.split("=");
+    final Pattern CFA_NODE_PATTERN = Pattern.compile("N([0-9][0-9]*)");
 
-      CFANode location = idToCfaNode.get(Integer.parseInt(splits[0].substring(1)));
+    CFANode location = getDefaultLocation(idToCfaNode);
+    for (String currentLine : contents) {
+      if(currentLine.trim().isEmpty()) {
+        continue;
+      }
 
-      if (location != null) {
-        String variables = splits[1].substring(1, splits[1].length() - 1);
-        mapping.putAll(location, Arrays.asList(variables.split(CegarPrecision.DELIMITER)));
+      else if(currentLine.endsWith(":")) {
+        String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
+        Matcher matcher = CFA_NODE_PATTERN.matcher(scopeSelectors);
+        if (matcher.matches()) {
+          location = idToCfaNode.get(Integer.parseInt(matcher.group(1)));
+        }
+      }
+
+      else {
+        mapping.put(location, currentLine);
       }
     }
-
     return mapping;
+  }
+
+  private CFANode getDefaultLocation(Map<Integer, CFANode> idToCfaNode) {
+    return idToCfaNode.values().iterator().next();
   }
 
   private Map<Integer, CFANode> createMappingForCFANodes(CFA cfa) {
