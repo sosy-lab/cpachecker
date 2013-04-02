@@ -1267,13 +1267,10 @@ def executeBenchmarkInCloud(benchmark):
             return
 
     requirements = "2000\t1"  # TODO memory numerOfCpuCores
-    cloudRunExecutorDir = os.path.abspath("./scripts")
+    cloudRunExecutorDir = os.path.abspath(os.path.dirname(__file__))
     outputDir = benchmark.logFolder
-    logging.debug("Output path: " + str(outputDir))
     absOutputDir = os.path.abspath(outputDir)
-    if(not(os.access(absOutputDir, os.F_OK))):
-        os.makedirs(absOutputDir)                   
-    
+
     runDefinitions = ""
     absSourceFiles = []
     numOfRunDefLines = 0
@@ -1300,26 +1297,21 @@ def executeBenchmarkInCloud(benchmark):
                 runDefinitions += argString + "\t" + run.sourcefile + "\t" + \
                                     logFile + "\n"
                 absSourceFiles.append(os.path.abspath(run.sourcefile))
-    
-    if(len(absSourceFiles)==0):
-        sys.exit("No source files given.")                              
-    
+
+    if not absSourceFiles:
+        logger.warning("Skipping benchmark without source files.")
+        return
+
     #preparing cloud input
-    absToolpaths = []
-    for toolpath in toolpaths:
-        absToolpaths.append(os.path.abspath(toolpath))
-    seperatedToolpaths = "\t".join(absToolpaths)
+    absToolpaths = map(os.path.abspath, toolpaths)
     sourceFilesBaseDir = os.path.commonprefix(absSourceFiles)
-    logging.debug("source files dir: " + sourceFilesBaseDir)
     toolPathsBaseDir = os.path.commonprefix(absToolpaths)
-    logging.debug("tool paths base dir: " + toolPathsBaseDir)
     baseDir = os.path.commonprefix([sourceFilesBaseDir, toolPathsBaseDir, cloudRunExecutorDir])
-    logging.debug("base dir: " + baseDir)
 
     if(baseDir == ""):
         sys.exit("No common base dir found.")
 
-    cloudInput = seperatedToolpaths + "\n" + \
+    cloudInput = "\t".join(absToolpaths) + "\n" + \
                 cloudRunExecutorDir + "\n" + \
                 baseDir + "\t" + absOutputDir + "\t" + absWorkingDir +"\n" + \
                 requirements + "\n" + \
