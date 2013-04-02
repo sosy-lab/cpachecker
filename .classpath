@@ -23,6 +23,6 @@
 	<classpathentry kind="lib" path="lib/JavaParser/org.eclipse.core.runtime_3.7.0.v20110110.jar"/>
 	<classpathentry kind="lib" path="lib/JavaParser/org.eclipse.equinox.preferences_3.4.2.v20120111-2020.jar"/>
 	<classpathentry kind="lib" path="lib/JavaParser/org.eclipse.jdt.core_3.7.3.v20120119-1537.jar"/>
-	<classpathentry kind="lib" path="/usr/share/java/objenesis.jar"/>
+  <classpathentry kind="lib" path="lib/java/test/objenesis.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
