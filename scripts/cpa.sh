@@ -10,8 +10,8 @@ DEFAULT_HEAP_SIZE="1200m"
 # From here on you should not need to change anything
 #------------------------------------------------------------------------------
 
-java_version="`$JAVA -version 2>&1 | grep "^java version" | cut -f2 -d\\\" | sed 's/\.//g' | cut -b1-2`"
-if [ -z "$java_version" -o "$java_version" -lt 17 ] ; then
+java_version="`$JAVA -Xmx5m -version 2>&1 | grep "^java version" | cut -f2 -d\\\" | sed 's/\.//g' | cut -b1-2`"
+if [ -z "$java_version" ] || [ "$java_version" -lt 17 ] ; then
   echo "Please install Java 1.7 or newer." 1>&2
   echo "For Ubuntu: sudo apt-get install openjdk-7-jre" 1>&2
   echo "If you have installed Java 7, but it is not in your PATH," 1>&2
