@@ -272,6 +272,7 @@ public class ExplicitPrecision implements Precision {
     @Override
     public void join(RefinablePrecision consolidatedPrecision) {
       assert(getClass().equals(consolidatedPrecision.getClass()));
+      this.rawPrecision.putAll(((LocalizedRefinablePrecision)consolidatedPrecision).rawPrecision);
     }
   }
 
@@ -312,24 +313,23 @@ public class ExplicitPrecision implements Precision {
       SortedSet<String> sortedPrecision = new TreeSet<>(rawPrecision);
 
       ArrayList<String> globals = new ArrayList<>();
-      String prevF = "";
+      String previousScope      = null;
       for(String variable : sortedPrecision) {
         if(variable.contains("::")) {
           String functionName = variable.substring(0, variable.indexOf("::"));
-          if(!functionName.equals(prevF)) {
+          if(!functionName.equals(previousScope)) {
             writer.write("\n" + functionName + ":\n");
           }
-
-          prevF = functionName;
-
           writer.write(variable + "\n");
+
+          previousScope = functionName;
         }
         else {
           globals.add(variable);
         }
       }
 
-      if(!prevF.equals("")) {
+      if(previousScope != null) {
         writer.write("\n");
       }
 
@@ -339,6 +339,7 @@ public class ExplicitPrecision implements Precision {
     @Override
     public void join(RefinablePrecision consolidatedPrecision) {
       assert(getClass().equals(consolidatedPrecision.getClass()));
+      this.rawPrecision.addAll(((ScopedRefinablePrecision)consolidatedPrecision).rawPrecision);
     }
   }
 

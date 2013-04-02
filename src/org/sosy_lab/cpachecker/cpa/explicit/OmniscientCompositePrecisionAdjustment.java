@@ -28,14 +28,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -61,8 +59,6 @@ import com.google.common.collect.ImmutableList;
 
 @Options(prefix="cpa.explicit.precisionAdjustment")
 public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAdjustment implements StatisticsProvider {
-  @Option(description="whether or not to only abstract variables that where updated in the foregoing post operation")
-  private boolean useDeltaPrecision = false;
 
   // statistics
   final Timer totalEnforceAbstraction         = new Timer();
@@ -199,12 +195,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    */
   private ExplicitState enforceAbstraction(ExplicitState explicitState, LocationState location, ExplicitPrecision explicitPrecision) {
     explicitPrecision.setLocation(location.getLocationNode());
-
-    for (String variableName : getVariablesToDrop(explicitState, explicitPrecision)) {
-      explicitState.forget(variableName);
-    }
-
-    explicitState.resetDelta();
+    explicitState.getConstantsMap().keySet().removeAll(getVariablesToDrop(explicitState, explicitPrecision));
 
     return explicitState;
   }
@@ -217,14 +208,11 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    * @return the variables to the dropped
    */
   private List<String> getVariablesToDrop(ExplicitState explicitState, ExplicitPrecision explicitPrecision) {
-    Set<String> candidates = useDeltaPrecision ? explicitState.getDelta() : explicitState.getTrackedVariableNames();
-
     List<String> toDrop = new ArrayList<>();
-    if (candidates != null) {
-      for (String variableName : candidates) {
-        if (!explicitPrecision.isTracking(variableName)) {
-          toDrop.add(variableName);
-        }
+
+    for(String variableName : explicitState.getTrackedVariableNames()) {
+      if(!explicitPrecision.isTracking(variableName)) {
+        toDrop.add(variableName);
       }
     }
 
