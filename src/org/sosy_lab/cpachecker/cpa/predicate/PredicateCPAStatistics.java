@@ -340,7 +340,10 @@ class PredicateCPAStatistics implements Statistics {
         CFANode loc = extractLocation(state);
         if (loc.isLoopStart()) {
           PredicateAbstractState predicateState = extractStateByType(state, PredicateAbstractState.class);
-          assert predicateState.isAbstractionState();
+          if (!predicateState.isAbstractionState()) {
+            cpa.getLogger().log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
+            return;
+          }
           Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
           region = rmgr.makeOr(region, predicateState.getAbstractionFormula().asRegion());
           regions.put(loc, region);
