@@ -19,6 +19,8 @@ class Tool(benchmark.tools.template.BaseTool):
     
     def getProgrammFiles(self,executable):
         executableDir = os.path.join(os.path.dirname(executable),"../")
+        if not os.path.isfile(os.path.join(executableDir, "cpachecker.jar")):
+            logging.warning("Run 'ant jar' to create JAR file for CPAchecker.")
         result = []
         result.append(os.path.join(executableDir, "lib"))
         result.append(os.path.join(executableDir, "scripts"))

@@ -1262,6 +1262,11 @@ def executeBenchmarkInCloud(benchmark):
     absWorkingDir = os.path.abspath(os.curdir)
     logging.debug("Working dir: " + absWorkingDir)
     toolpaths = benchmark.tool.getProgrammFiles(benchmark.executable)
+    for file in toolpaths:
+        if not os.path.exists(file):
+            logging.error("Missing file {0}, cannot run benchmark within cloud.".format(os.path.normpath(file)))
+            return
+
     requirements = "2000\t1"  # TODO memory numerOfCpuCores
     cloudRunExecutorDir = os.path.abspath("./scripts")
     outputDir = benchmark.logFolder
