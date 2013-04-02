@@ -1339,7 +1339,12 @@ def executeBenchmarkInCloud(benchmark):
     returnCode = cloud.wait()
     if(not returnCode == 0):
         logging.warn("Cloud return code: {0}".format(returnCode))
-    
+
+    if not os.path.isdir(outputDir) or not os.listdir(outputDir):
+        #outputDir does not exist or is empty
+        logging.warning("Cloud produced no results.")
+        return
+
     #Write worker host informations in xml
     filePath = os.path.join(outputDir, "hostInformation.txt")
     parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
