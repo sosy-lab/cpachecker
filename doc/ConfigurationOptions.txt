@@ -510,19 +510,14 @@ cpa.explicit.precision.path.defaultThreshold = -1
 cpa.explicit.precision.reachedSet.defaultThreshold = -1
 
 # whether or not to add newly-found variables only to the exact program
-# location or to the whole scope of the variable.
-cpa.explicit.precision.refinement.useScopedInterpolation = false
-
-# whether or not to only abstract variables that where updated in the
-# foregoing post operation
-cpa.explicit.precisionAdjustment.useDeltaPrecision = false
+# location or to the respective scope of the variable.
+cpa.explicit.precision.scope = "location-scope"
 
 # target file to hold the exported precision
 cpa.explicit.precisionFile = no default value
 
-# whether or not to always use the inital node as starting point for the next
-# re-exploration of the ARG
-cpa.explicit.refiner.useInitialNodeAsRestartingPoint = true
+# whether or not to do lazy-abstraction
+cpa.explicit.refiner.doLazyAbstraction = true
 
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"

@@ -59,10 +59,12 @@ import com.google.common.collect.Multimap;
 @Options(prefix="cpa.explicit.refiner")
 public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   /**
-   * whether or not to always use the initial node as starting point for the next re-exploration of the ARG
+   * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
+   * for the re-exploration of the ARG will be the node closest to the root
+   * where new information is made available through the current refinement
    */
-  @Option(description="whether or not to always use the inital node as starting point for the next re-exploration of the ARG")
-  private boolean useInitialNodeAsRestartingPoint = true;
+  @Option(description="whether or not to do lazy-abstraction")
+  private boolean doLazyAbstraction = true;
 
   /**
    * the ART element, from where to cut-off the subtree, and restart the analysis
@@ -194,14 +196,14 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * @return the new interpolation point
    */
   protected ARGState determineInterpolationPoint(ARGPath errorPath) {
-    // just use initial node of error path if the respective option is set
-    if (useInitialNodeAsRestartingPoint) {
-      return errorPath.get(1).getFirst();
+    // if doing lazy abstraction, use the node closest to the root node where new information is present
+    if (doLazyAbstraction) {
+      return firstInterpolationPoint;
     }
 
-    // otherwise, use the first node where new information is present
+    // otherwise, just use the root node
     else {
-      return firstInterpolationPoint;
+      return errorPath.get(1).getFirst();
     }
   }
 
