@@ -202,7 +202,6 @@ public class ExplicitPrecision implements Precision {
     return scope.equals("location-scope") ? new LocalizedRefinablePrecision() : new ScopedRefinablePrecision();
   }
 
-  @Options(prefix="cpa.explicit.precision.refinement")
   abstract public static class RefinablePrecision {
     public static final String DELIMITER = ", ";
 
@@ -235,7 +234,6 @@ public class ExplicitPrecision implements Precision {
      * the collection that determines which variables are tracked at a specific location - if it is null, all variables are tracked
      */
     private HashMultimap<CFANode, String> rawPrecision = HashMultimap.create();
-
 
     @Override
     public LocalizedRefinablePrecision refine(Multimap<CFANode, String> increment) {
