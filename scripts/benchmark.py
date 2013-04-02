@@ -1204,32 +1204,31 @@ def executeBenchmarkLocaly(benchmark):
 
 def parseCloudResultFile(filePath):
     
-    wallTime = 0.0
-    cpuTime = 0.0
+    wallTime = None
+    cpuTime = None
     memUsage = None
-    returnValue = 1
-    output = ""
+    returnValue = None
     
-    try:
-        file = open(filePath)
-            
-        command = file.readline()
-        wallTime = float(file.readline().split(":")[-1])
-        cpuTime = float(file.readline().split(":")[-1])
+    with open(filePath) as file:
+
+        try:
+            wallTime = float(file.readline().split(":")[-1])
+        except ValueError:
+            pass
+        try:
+            cpuTime = float(file.readline().split(":")[-1])
+        except ValueError:
+            pass
         try:
             memUsage = str(float(file.readline().split(":")[-1]));
         except ValueError:
-            memUsage = None
-        returnValue = int(file.readline().split(":")[-1])
+            pass
+        try:
+            returnValue = int(file.readline().split(":")[-1])
+        except ValueError:
+            pass
     
-        output = "".join(file.readlines())
-     
-        file.close
-            
-    except IOError:
-        logging.warning("Result file not found: " + filePath)
-    
-    return (wallTime, cpuTime, memUsage, returnValue, output)
+    return (wallTime, cpuTime, memUsage, returnValue)
 
 def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
 
@@ -1364,8 +1363,22 @@ def executeBenchmarkInCloud(benchmark):
         outputHandler.outputBeforeRunSet(runSet)     
         for run in runSet.runs:
             outputHandler.outputBeforeRun(run)
-            file = run.logFile
-            (run.wallTime, run.cpuTime, run.memUsage, returnValue, output) = parseCloudResultFile(file)
+
+            returnValue = 1
+            try:
+                stdoutFile = run.logFile + ".stdOut"
+                (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
+                os.remove(stdoutFile)
+            except EnvironmentError as e:
+                logging.warning("Cannot extract measured values from output: " + e.strerror)
+
+            output = ''
+            try:
+                with open(run.logFile) as f:
+                    output = f.read()
+            except IOError as e:
+                logging.warning("Cannot read log file: " + e.strerror)
+
             run.afterExecution(returnValue, output)
         outputHandler.outputAfterRunSet(runSet, None, None)
         
