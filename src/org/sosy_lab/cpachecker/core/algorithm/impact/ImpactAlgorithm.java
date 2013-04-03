@@ -114,9 +114,9 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       out.println("  Time for cover:                   " + coverTime);
       out.println("Time spent by solver for reasoning: " + solver.solverTime);
       out.println();
-      out.println("Number of implication checks:       " + solver.implicationChecks);
-      out.println("  trivial:                          " + solver.trivialImplicationChecks);
-      out.println("  cached:                           " + solver.cachedImplicationChecks);
+      out.println("Number of SMT sat checks:           " + solver.satChecks);
+      out.println("  trivial:                          " + solver.trivialSatChecks);
+      out.println("  cached:                           " + solver.cachedSatChecks);
       out.println("Number of refinements:              " + refinementTime.getNumberOfIntervals());
       if (useForcedCovering) {
         out.println("Number of forced coverings:         " + forceCoverTime.getNumberOfIntervals());

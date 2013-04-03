@@ -214,9 +214,9 @@ class PredicateCPAStatistics implements Statistics {
       if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Symbolic coverage check:         " + domain.symbolicCoverageCheckTimer.getNumberOfIntervals());
       }
-      out.println("Number of implication checks:      " + solver.implicationChecks);
-      out.println("  trivial:                         " + solver.trivialImplicationChecks);
-      out.println("  cached:                          " + solver.cachedImplicationChecks);
+      out.println("Number of SMT sat checks:          " + solver.satChecks);
+      out.println("  trivial:                         " + solver.trivialSatChecks);
+      out.println("  cached:                          " + solver.cachedSatChecks);
       out.println();
       out.println("Max ABE block size:                       " + prec.maxBlockSize);
       out.println("Number of predicates discovered:          " + allDistinctPreds);
