@@ -59,9 +59,13 @@ class PredicateMapWriter {
     fmgr = pCpa.getFormulaManager();
   }
 
+  PredicateMapWriter(FormulaManagerView pFmgr) {
+    fmgr = pFmgr;
+  }
+
   public void writePredicateMap(SetMultimap<CFANode, AbstractionPredicate> localPredicates,
       SetMultimap<String, AbstractionPredicate> functionPredicates, Set<AbstractionPredicate> globalPredicates,
-      Set<AbstractionPredicate> allPredicates, Appendable sb) throws IOException {
+      Collection<AbstractionPredicate> allPredicates, Appendable sb) throws IOException {
 
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)

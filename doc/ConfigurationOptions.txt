@@ -753,6 +753,12 @@ cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
+# After each refinement, dump the newly found predicates.
+cpa.predicate.refinement.dumpPredicates = false
+
+# File name for the predicates dumped after refinements.
+cpa.predicate.refinement.dumpPredicatesFile = "refinement%04d-predicates.prec"
+
 # apply deletion-filter to the abstract counterexample, to get a minimal set
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false

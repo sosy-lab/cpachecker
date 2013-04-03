@@ -26,7 +26,12 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,9 +39,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -61,6 +69,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
@@ -97,6 +106,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Option(description="During refinement, add all new predicates to the precisions " +
                       "of all abstract states in the reached set.")
   private boolean sharePredicates = false;
+
+  @Option(description="After each refinement, dump the newly found predicates.")
+  private boolean dumpPredicates = false;
+
+  @Option(description="File name for the predicates dumped after refinements.")
+  @FileOption(Type.OUTPUT_FILE)
+  private File dumpPredicatesFile = new File("refinement%04d-predicates.prec");
 
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
@@ -274,6 +290,20 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     assert basePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
     assert targetStatePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
+
+    if (dumpPredicates) {
+      Path precFile = Paths.get(String.format(dumpPredicatesFile.getPath(), precisionUpdate.getNumberOfIntervals()));
+      PredicateMapWriter precWriter = new PredicateMapWriter(fmgr);
+      try (Writer w = Files.openOutputFile(precFile)) {
+        precWriter.writePredicateMap(
+            ImmutableSetMultimap.copyOf(newPredicates),
+            ImmutableSetMultimap.<String, AbstractionPredicate>of(),
+            ImmutableSet.<AbstractionPredicate>of(),
+            newPredicates.values(), w);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not dump precision to file");
+      }
+    }
 
     precisionUpdate.stop();
 
