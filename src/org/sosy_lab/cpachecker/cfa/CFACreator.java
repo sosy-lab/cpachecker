@@ -116,6 +116,10 @@ public class CFACreator {
   @Deprecated
   private boolean completeEdges = true;
 
+  @Option(name="analysis.functionPointerCalls",
+      description="create all potential function pointer call edges")
+  private boolean fptrCallEdges = true;
+
   @Option(name="analysis.useGlobalVars",
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
@@ -300,6 +304,12 @@ public class CFACreator {
       // get loop information
       Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
 
+      if (language == Language.C && fptrCallEdges) {
+        CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, config, logger);
+        fptrResolver.collectDataRecursively();
+        fptrResolver.resolveFunctionPointers();
+      }
+
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
@@ -310,7 +320,6 @@ public class CFACreator {
         } else {
           spbuilder = new CFASecondPassBuilder(cfa, language, logger);
         }
-        spbuilder.collectDataRecursively();
         spbuilder.insertCallEdgesRecursively();
       }
 

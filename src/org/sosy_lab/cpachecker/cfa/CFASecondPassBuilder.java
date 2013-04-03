@@ -271,8 +271,6 @@ public class CFASecondPassBuilder {
     }
   }
 
-  public void collectDataRecursively() {}
-
   protected final boolean checkParamSizes(AFunctionCallExpression functionCallExpression,
       IAFunctionType functionType) {
     //get the parameter expression
