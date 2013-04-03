@@ -312,7 +312,7 @@ public class CFunctionPointerResolver {
   public void collectDataRecursively() {
     if (functionSets.contains(FunctionSet.USED_IN_CODE)) {
       for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
-        Set<String> vars = FunctionPointerVariablesCollector.collectVars(functionStartNode);
+        Set<String> vars = CFunctionPointerVariablesCollector.collectVars(functionStartNode);
         if (!vars.isEmpty()) {
           logger.log(Level.FINEST, "Functions whose address is taken in function",
               functionStartNode.getFunctionName() + ":", vars);

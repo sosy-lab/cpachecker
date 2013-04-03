@@ -64,13 +64,13 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 /**
  * Helper class that collects all <code>ReferencedVariable</code>s in a given set of nodes.
  */
-public class FunctionPointerVariablesCollector extends CFATraversal.DefaultCFAVisitor {
+public class CFunctionPointerVariablesCollector extends CFATraversal.DefaultCFAVisitor {
 
   private final Set<String> collectedVars = new HashSet<>();
 
   public static Set<String> collectVars(FunctionEntryNode initialNode) {
     // we use a worklist algorithm
-    FunctionPointerVariablesCollector collector = new FunctionPointerVariablesCollector();
+    CFunctionPointerVariablesCollector collector = new CFunctionPointerVariablesCollector();
     CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(initialNode, collector);
     return collector.collectedVars;
   }
