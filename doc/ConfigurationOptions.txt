@@ -221,13 +221,6 @@ bmc.invariantGenerationConfigFile = no default value
 # generate invariants for induction in parallel to the analysis
 bmc.parallelInvariantGeneration = false
 
-# depth of recursion bound
-callstack.depth = 0
-
-# Skip recursion. Treat function call as a statement (the same as for
-# functions without bodies)
-callstack.skipRecursion = false
-
 # file name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified.
 cbmc.dumpCBMCfile = no default value
@@ -401,6 +394,13 @@ cpa.bdd.trackIntAdd = true
 # track variables from cfa, that are only compared for equality, they are
 # tracked as (small) bitvectors
 cpa.bdd.trackIntEqual = true
+
+# depth of recursion bound
+cpa.callstack.depth = 0
+
+# Skip recursion. Treat function call as a statement (the same as for
+# functions without bodies)
+cpa.callstack.skipRecursion = false
 
 # which composite merge operator to use (plain or agree)
 # Both delegate to the component cpas, but agree only allows merging if all
@@ -885,14 +885,10 @@ parser.preprocessor = "cpp"
 # not the original input file.
 parser.usePreprocessor = false
 
-# file in which proof representation needed for proof checking is stored
-# file in which ARG representation needed for proof checking is stored
-pcc.proofFile = "arg.obj"
-
 # defines proof representation, either abstract reachability graph or set of
 # reachable abstract states
 pcc.proofType = "ARG"
-  allowed values: [ARG, SET]
+  allowed values: [ARG, SET, PSET]
 
 pcc.proofgen.doPCC = false
 
