@@ -186,7 +186,7 @@ public class FunctionPointerVariablesCollector extends CFATraversal.DefaultCFAVi
     @Override
     public Void visit(CFunctionCallExpression pE) {
 
-      if (CFASecondPassBuilderComplete.isRegularCall(pE)) {
+      if (CFASecondPassBuilder.isRegularCall(pE)) {
         //skip regular calls;
       } else {
         pE.getFunctionNameExpression().accept(this);

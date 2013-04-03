@@ -53,11 +53,6 @@ rootDirectory = "."
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
-# DEPRECATED: create all potential function call edges (e.g. for function
-# pointer analysis) and add summary call statement edges (e.g. for bounded
-# recursion analysis)
-analysis.completeEdges = true
-
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
 
