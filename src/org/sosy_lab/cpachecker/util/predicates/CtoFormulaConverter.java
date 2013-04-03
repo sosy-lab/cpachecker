@@ -2721,30 +2721,31 @@ public class CtoFormulaConverter {
           return makeFreshVariable(func, expType, ssa); // BUG when expType = void
         }
 
+        if (declaration.getType().takesVarArgs()) {
+          // Create a fresh variable instead of an UF for varargs functions.
+          // This is sound but slightly more imprecise (we loose the UF axioms).
+          return makeFreshVariable(func, expType, ssa);
+        }
+
         List<CType> paramTypes = declaration.getType().getParameters();
         func += "{" + paramTypes.size() + "}"; // add #arguments to function name to cope with varargs functions
+
+        if (paramTypes.size() != pexps.size()) {
+          throw new UnrecognizedCCodeException("Function " + declaration + " received " + pexps.size() + " parameters instead of the expected " + paramTypes.size(), edge, fexp);
+        }
 
         List<Formula> args = new ArrayList<>(pexps.size());
         Iterator<CType> it1 = paramTypes.iterator();
         Iterator<CExpression> it2 = pexps.iterator();
-        while (it1.hasNext()) {
+        while (it1.hasNext() && it2.hasNext()) {
 
           CType paramType= it1.next();
-          CExpression pexp;
-          if (it2.hasNext()) {
-            pexp  = it2.next();
-          } else {
-            throw new IllegalArgumentException("To the function " + declaration.toASTString() + " were given less Arguments than it has in its declaration!");
-          }
+          CExpression pexp = it2.next();
 
-           Formula arg = pexp.accept(this);
-           args.add(makeCast(pexp.getExpressionType(), paramType, arg));
+          Formula arg = pexp.accept(this);
+          args.add(makeCast(pexp.getExpressionType(), paramType, arg));
         }
-
-        if (it2.hasNext()) {
-          log(Level.WARNING, "Ignoring call to " + declaration.toASTString() + " because of varargs");
-          return makeFreshVariable(func, expType, ssa);
-        }
+        assert !it1.hasNext() && !it2.hasNext();
 
         CType returnType = getReturnType(fexp, edge);
         FormulaType<?> t = getFormulaTypeFromCType(returnType);
