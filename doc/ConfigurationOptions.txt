@@ -471,6 +471,12 @@ cpa.cpalien.exportSMGwhen = "never"
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
 
+# restrict abstractions to function calls/returns
+cpa.explicit.blk.alwaysAtFunctions = false
+
+# restrict abstractions to loop heads
+cpa.explicit.blk.alwaysAtLoops = false
+
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
 cpa.explicit.initAssumptionVars = false

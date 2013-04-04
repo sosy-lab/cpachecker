@@ -34,8 +34,10 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -57,8 +59,14 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 
-@Options(prefix="cpa.explicit.precisionAdjustment")
+@Options(prefix="cpa.explicit.blk")
 public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAdjustment implements StatisticsProvider {
+
+  @Option(description="restrict abstractions to loop heads")
+  private boolean alwaysAtLoops = false;
+
+  @Option(description="restrict abstractions to function calls/returns")
+  private boolean alwaysAtFunctions = false;
 
   // statistics
   final Timer totalEnforceAbstraction         = new Timer();
@@ -194,10 +202,46 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    * @param explicitPrecision the current precision
    */
   private ExplicitState enforceAbstraction(ExplicitState explicitState, LocationState location, ExplicitPrecision explicitPrecision) {
-    explicitPrecision.setLocation(location.getLocationNode());
-    explicitState.getConstantsMap().keySet().removeAll(getVariablesToDrop(explicitState, explicitPrecision));
+    if (abstractAtEachLocation()
+        || abstractAtFunction(location)
+        || abstractAtLoopHead(location)) {
+      explicitPrecision.setLocation(location.getLocationNode());
+      explicitState.getConstantsMap().keySet().removeAll(getVariablesToDrop(explicitState, explicitPrecision));
+    }
 
     return explicitState;
+  }
+
+  /**
+   * This method determines whether or not to abstract at each location.
+   *
+   * @return true, if an abstraction should be computed at each location, else false
+   */
+  private boolean abstractAtEachLocation() {
+    return !alwaysAtFunctions && !alwaysAtLoops;
+  }
+
+  /**
+   * This method determines whether or not the given location is a function entry or exit,
+   * and whether or not an abstraction shall be computed or not.
+   *
+   * @param location the current location
+   * @return true, if at the current location an abstraction shall be computed, else false
+   */
+  private boolean abstractAtFunction(LocationState location) {
+    return alwaysAtFunctions && (location.getLocationNode() instanceof FunctionEntryNode
+        || location.getLocationNode().getEnteringSummaryEdge() != null);
+  }
+
+  /**
+   * This method determines whether or not the given location is a loop head,
+   * and whether or not an abstraction shall be computed or not.
+   *
+   * @param location the current location
+   * @return true, if at the current location an abstraction shall be computed, else false
+   */
+  private boolean abstractAtLoopHead(LocationState location) {
+    return alwaysAtLoops && location.getLocationNode().isLoopStart();
   }
 
   /**
