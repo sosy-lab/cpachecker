@@ -348,7 +348,7 @@ public class CFACreator {
       stats.checkTime.stop();
 
       if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
-        exportCFA(immutableCFA);
+        exportCFAAsync(immutableCFA);
       }
 
       logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
@@ -587,11 +587,19 @@ public class CFACreator {
     }
   }
 
-  private void exportCFA(final CFA cfa) {
-    // We used to do this asynchronously.
-    // However, FunctionPointerCPA modifies the CFA during analysis, so this is
-    // no longer safe.
+  private void exportCFAAsync(final CFA cfa) {
+    // execute asynchronously, this may take several seconds for large programs on slow disks
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        // running the following in parallel is thread-safe
+        // because we don't modify the CFA from this point on
+        exportCFA(cfa);
+      }
+    }, "CFA export thread").start();
+  }
 
+  private void exportCFA(final CFA cfa) {
     stats.exportTime.start();
 
     // write CFA to file
