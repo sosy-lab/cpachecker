@@ -100,14 +100,12 @@ class FunctionPointerTransferRelation implements TransferRelation {
   private boolean trackInvalidFunctionPointers = false;
   private final FunctionPointerTarget invalidFunctionPointerTarget;
 
-  private final TransferRelation wrappedTransfer;
   private final LogManager logger;
 
   private final Set<List<String>> loggedMessages = new HashSet<>();
 
-  FunctionPointerTransferRelation(TransferRelation pWrappedTransfer, LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+  FunctionPointerTransferRelation(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-    wrappedTransfer = pWrappedTransfer;
     logger = pLogger;
 
     invalidFunctionPointerTarget = trackInvalidFunctionPointers
@@ -178,16 +176,11 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
 
     // now handle the edge
-    Collection<? extends AbstractState> newWrappedStates = wrappedTransfer.getAbstractSuccessors(oldState.getWrappedState(), pPrecision, pCfaEdge);
+    FunctionPointerState.Builder newState = oldState.createBuilder();
+    newState = handleEdge(newState, pCfaEdge);
 
-    for (AbstractState newWrappedState : newWrappedStates) {
-      FunctionPointerState.Builder newState = oldState.createBuilderWithNewWrappedState(newWrappedState);
-
-      newState = handleEdge(newState, pCfaEdge);
-
-      if (newState != null) {
-        results.add(newState.build());
-      }
+    if (newState != null) {
+      results.add(newState.build());
     }
   }
 
@@ -200,7 +193,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
         CBinaryExpression e = (CBinaryExpression)exp;
         BinaryOperator op = e.getOperator();
         if (op == BinaryOperator.EQUALS) {
-          FunctionPointerState.Builder newState = oldState.createBuilderWithNewWrappedState(oldState.getWrappedState());
+          FunctionPointerState.Builder newState = oldState.createBuilder();
           FunctionPointerTarget v1 = getValue(e.getOperand1(), newState, functionName);
           FunctionPointerTarget v2 = getValue(e.getOperand2(), newState, functionName);
           logger.log(Level.ALL, "Operand1 value is " + v1);

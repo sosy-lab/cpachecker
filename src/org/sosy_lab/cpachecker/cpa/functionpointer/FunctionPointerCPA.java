@@ -27,13 +27,15 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -42,7 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-public class FunctionPointerCPA extends AbstractSingleWrapperCPA implements ConfigurableProgramAnalysisWithABM {
+public class FunctionPointerCPA implements ConfigurableProgramAnalysisWithABM {
 
   private FunctionPointerDomain abstractDomain;
   private MergeOperator mergeOperator;
@@ -55,30 +57,15 @@ public class FunctionPointerCPA extends AbstractSingleWrapperCPA implements Conf
     return AutomaticCPAFactory.forType(FunctionPointerCPA.class);
   }
 
-  private FunctionPointerCPA(ConfigurableProgramAnalysis pCpa, LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
-    super(pCpa);
-    this.abstractDomain = new FunctionPointerDomain(pCpa.getAbstractDomain());
+  private FunctionPointerCPA(LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
+    this.abstractDomain = new FunctionPointerDomain();
 
-    MergeOperator wrappedMerge = getWrappedCpa().getMergeOperator();
-    if (wrappedMerge == MergeSepOperator.getInstance()) {
-      this.mergeOperator = MergeSepOperator.getInstance();
-    } else {
-      this.mergeOperator = new FunctionPointerMergeOperator(wrappedMerge);
-    }
+    this.mergeOperator = MergeSepOperator.getInstance();
 
-    this.stopOperator = new FunctionPointerStopOperator(pCpa.getStopOperator());
-    this.transferRelation = new FunctionPointerTransferRelation(pCpa.getTransferRelation(), pLogger, pConfig);
-    this.precisionAdjustment = new FunctionPointerPrecisionAdjustment(pCpa.getPrecisionAdjustment());
-    if (pCpa instanceof ConfigurableProgramAnalysisWithABM) {
-      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)pCpa).getReducer();
-      if (wrappedReducer != null) {
-        reducer = new FunctionPointerReducer(wrappedReducer);
-      } else {
-        reducer = null;
-      }
-    } else {
-      reducer = null;
-    }
+    this.stopOperator = new StopSepOperator(abstractDomain);
+    this.transferRelation = new FunctionPointerTransferRelation(pLogger, pConfig);
+    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    this.reducer = NoOpReducer.getInstance();
   }
 
   @Override
@@ -108,12 +95,12 @@ public class FunctionPointerCPA extends AbstractSingleWrapperCPA implements Conf
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return FunctionPointerState.createEmptyState(getWrappedCpa().getInitialState(pNode));
+    return FunctionPointerState.createEmptyState();
   }
 
   @Override
   public Precision getInitialPrecision(CFANode pNode) {
-    return getWrappedCpa().getInitialPrecision(pNode);
+    return SingletonPrecision.getInstance();
   }
 
   @Override
