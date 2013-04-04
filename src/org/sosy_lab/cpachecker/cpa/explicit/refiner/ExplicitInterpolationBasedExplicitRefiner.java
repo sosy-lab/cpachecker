@@ -62,7 +62,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * where new information is made available through the current refinement
    */
   @Option(description="whether or not to do lazy-abstraction")
-  private boolean doLazyAbstraction = true;
+  private boolean doLazyAbstraction = false;
 
   /**
    * the ART element, from where to cut-off the subtree, and restart the analysis
