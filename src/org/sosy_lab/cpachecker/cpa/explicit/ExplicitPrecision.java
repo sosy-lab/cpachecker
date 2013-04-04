@@ -71,7 +71,7 @@ public class ExplicitPrecision implements Precision {
   private RefinablePrecision refinablePrecision     = null;
 
   @Option(description = "whether or not to add newly-found variables only to the exact program location or to the respective scope of the variable.")
-  private String scope = "location-scope";
+  private String scope = "function-scope";
 
   @Option(description = "ignore boolean variables. if this option is used, "
       + "booleans from the cfa should tracked with another CPA, "
@@ -228,7 +228,9 @@ public class ExplicitPrecision implements Precision {
 
     abstract void join(RefinablePrecision consolidatedPrecision);
 
-    abstract public int getID();
+    public int getID() {
+      return System.identityHashCode(this);
+    }
   }
 
   public static class LocalizedRefinablePrecision extends RefinablePrecision {
@@ -239,12 +241,17 @@ public class ExplicitPrecision implements Precision {
 
     @Override
     public LocalizedRefinablePrecision refine(Multimap<CFANode, String> increment) {
-      LocalizedRefinablePrecision refinedPrecision = new LocalizedRefinablePrecision();
+      if(this.rawPrecision.entries().containsAll(increment.entries())) {
+        return this;
+      }
+      else {
+        LocalizedRefinablePrecision refinedPrecision = new LocalizedRefinablePrecision();
 
-      refinedPrecision.rawPrecision = HashMultimap.create(rawPrecision);
-      refinedPrecision.rawPrecision.putAll(increment);
+        refinedPrecision.rawPrecision = HashMultimap.create(rawPrecision);
+        refinedPrecision.rawPrecision.putAll(increment);
 
-      return refinedPrecision;
+        return refinedPrecision;
+      }
     }
 
     /**
@@ -274,11 +281,6 @@ public class ExplicitPrecision implements Precision {
       assert(getClass().equals(consolidatedPrecision.getClass()));
       this.rawPrecision.putAll(((LocalizedRefinablePrecision)consolidatedPrecision).rawPrecision);
     }
-
-    @Override
-    public int getID() {
-      return rawPrecision.hashCode();
-    }
   }
 
   public static class ScopedRefinablePrecision extends RefinablePrecision {
@@ -305,12 +307,17 @@ public class ExplicitPrecision implements Precision {
      */
     @Override
     public ScopedRefinablePrecision refine(Multimap<CFANode, String> increment) {
-      ScopedRefinablePrecision refinedPrecision = new ScopedRefinablePrecision();
+      if(this.rawPrecision.containsAll(increment.values())) {
+        return this;
+      }
+      else {
+        ScopedRefinablePrecision refinedPrecision = new ScopedRefinablePrecision();
 
-      refinedPrecision.rawPrecision = new HashSet<>(rawPrecision);
-      refinedPrecision.rawPrecision.addAll(increment.values());
+        refinedPrecision.rawPrecision = new HashSet<>(rawPrecision);
+        refinedPrecision.rawPrecision.addAll(increment.values());
 
-      return refinedPrecision;
+        return refinedPrecision;
+      }
     }
 
     @Override
@@ -346,11 +353,6 @@ public class ExplicitPrecision implements Precision {
       assert(getClass().equals(consolidatedPrecision.getClass()));
       this.rawPrecision.addAll(((ScopedRefinablePrecision)consolidatedPrecision).rawPrecision);
     }
-
-    @Override
-    public int getID() {
-      return rawPrecision.hashCode();
-    }
   }
 
   public static class FullPrecision extends RefinablePrecision {
@@ -378,11 +380,6 @@ public class ExplicitPrecision implements Precision {
     @Override
     public void join(RefinablePrecision consolidatedPrecision) {
       assert(getClass().equals(consolidatedPrecision.getClass()));
-    }
-
-    @Override
-    public int getID() {
-      return 0;
     }
   }
 

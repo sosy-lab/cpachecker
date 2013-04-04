@@ -178,7 +178,8 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     ARGState interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
 
     ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
-    if(interpolationPoint != null && !cexMap.containsEntry(explicitPrecision.getRefinablePrecision().getID(), errorPath.toString().hashCode())) {
+
+    if(!isRepeatedCex(errorPath, interpolationPoint, explicitPrecision)) {
       cexMap.put(explicitPrecision.getRefinablePrecision().getID(), errorPath.toString().hashCode());
 
       explicitPrecision = new ExplicitPrecision(explicitPrecision, increment);
@@ -193,6 +194,19 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     else {
       return predicatingRefiner.performRefinement(reached, errorPath);
     }
+  }
+
+  /**
+   * This method checks whether or not the error path denotes a repeated counterexample or not.
+   *
+   * @param errorPath the error path of the counterexample
+   * @param interpolationPoint the current interpolation point
+   * @param explicitPrecision the current precision
+   * @return true if the counterexample is a repeated counterexample, else false
+   */
+  private boolean isRepeatedCex(final ARGPath errorPath, ARGState interpolationPoint, ExplicitPrecision explicitPrecision) {
+    return (interpolationPoint == null)
+        || (cexMap.containsEntry(explicitPrecision.getRefinablePrecision().getID(), errorPath.toString().hashCode()));
   }
 
   @Override
