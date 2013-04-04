@@ -227,6 +227,8 @@ public class ExplicitPrecision implements Precision {
     abstract void serialize(Writer writer) throws IOException;
 
     abstract void join(RefinablePrecision consolidatedPrecision);
+
+    abstract public int getID();
   }
 
   public static class LocalizedRefinablePrecision extends RefinablePrecision {
@@ -271,6 +273,11 @@ public class ExplicitPrecision implements Precision {
     public void join(RefinablePrecision consolidatedPrecision) {
       assert(getClass().equals(consolidatedPrecision.getClass()));
       this.rawPrecision.putAll(((LocalizedRefinablePrecision)consolidatedPrecision).rawPrecision);
+    }
+
+    @Override
+    public int getID() {
+      return rawPrecision.hashCode();
     }
   }
 
@@ -339,6 +346,11 @@ public class ExplicitPrecision implements Precision {
       assert(getClass().equals(consolidatedPrecision.getClass()));
       this.rawPrecision.addAll(((ScopedRefinablePrecision)consolidatedPrecision).rawPrecision);
     }
+
+    @Override
+    public int getID() {
+      return rawPrecision.hashCode();
+    }
   }
 
   public static class FullPrecision extends RefinablePrecision {
@@ -366,6 +378,11 @@ public class ExplicitPrecision implements Precision {
     @Override
     public void join(RefinablePrecision consolidatedPrecision) {
       assert(getClass().equals(consolidatedPrecision.getClass()));
+    }
+
+    @Override
+    public int getID() {
+      return 0;
     }
   }
 

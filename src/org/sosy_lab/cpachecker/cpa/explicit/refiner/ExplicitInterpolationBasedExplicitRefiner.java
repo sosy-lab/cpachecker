@@ -46,11 +46,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 import com.google.common.collect.HashMultimap;
@@ -142,13 +140,11 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
         // add the current interpolant to the precision
         for (String variableName : currentInterpolant.keySet()) {
-          if (!isRedundant(extractPrecision(reachedSet, errorPath.get(i).getFirst()), currentEdge, variableName)) {
-            increment.put(currentEdge.getSuccessor(), variableName);
+          increment.put(currentEdge.getSuccessor(), variableName);
 //System.out.println("adding " + variableName + " at " + currentEdge.getSuccessor());
-            if (firstInterpolationPoint == null) {
-              firstInterpolationPoint = errorPath.get(Math.max(1, i - 1)).getFirst();
-              numberOfSuccessfulRefinements++;
-            }
+          if (firstInterpolationPoint == null) {
+            firstInterpolationPoint = errorPath.get(Math.max(1, i - 1)).getFirst();
+            numberOfSuccessfulRefinements++;
           }
         }
       }
@@ -177,16 +173,6 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     currentInterpolant.keySet().remove(toDrop);
 
     return currentInterpolant;
-  }
-
-  private ExplicitPrecision extractPrecision(UnmodifiableReachedSet reachedSet, ARGState currentArgState) {
-    return Precisions.extractPrecisionByType(reachedSet.getPrecision(currentArgState), ExplicitPrecision.class);
-  }
-
-  private boolean isRedundant(ExplicitPrecision precision, CFAEdge currentEdge, String currentVariable) {
-    precision.setLocation(currentEdge.getSuccessor());
-//    System.out.println("prec " + precision.getRefinablePrecision().getClass().getSimpleName() + " says redundant: " + precision.getRefinablePrecision().contains(currentVariable));
-    return precision.getRefinablePrecision().contains(currentVariable);
   }
 
   /**

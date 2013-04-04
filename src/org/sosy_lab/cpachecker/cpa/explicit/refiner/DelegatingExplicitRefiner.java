@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 /**
@@ -74,6 +75,12 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    * backup-refiner used for predicate refinement, when explicit refinement fails (due to lack of expressiveness)
    */
   private PredicateCPARefiner predicatingRefiner;
+
+  /**
+   * the mapping from precision identifiers to error trace identifiers,
+   * needed to check for repeated counterexamples, i.e., failed refinements
+   */
+  private Multimap<Integer, Integer> cexMap = HashMultimap.create();
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -170,11 +177,12 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     Multimap<CFANode, String> increment = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
     ARGState interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
 
-    if (increment.size() > 0) {
-      ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
-      explicitPrecision                   = new ExplicitPrecision(explicitPrecision, increment);
-      reached.removeSubtree(interpolationPoint, explicitPrecision);
+    ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
+    if(interpolationPoint != null && !cexMap.containsEntry(explicitPrecision.getRefinablePrecision().getID(), errorPath.toString().hashCode())) {
+      cexMap.put(explicitPrecision.getRefinablePrecision().getID(), errorPath.toString().hashCode());
 
+      explicitPrecision = new ExplicitPrecision(explicitPrecision, increment);
+      reached.removeSubtree(interpolationPoint, explicitPrecision);
       return CounterexampleInfo.spurious();
     }
 
