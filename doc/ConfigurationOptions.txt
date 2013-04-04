@@ -530,10 +530,6 @@ cpa.explicit.variableBlacklist = ""
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value
 
-# DEPRECATED: do not change CFA, just check equality expressions with
-# function pointers in assume edges
-cpa.functionpointer.immutableCFA = true
-
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false

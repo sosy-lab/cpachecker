@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -56,7 +55,7 @@ public class FunctionPointerCPA extends AbstractSingleWrapperCPA implements Conf
     return AutomaticCPAFactory.forType(FunctionPointerCPA.class);
   }
 
-  private FunctionPointerCPA(ConfigurableProgramAnalysis pCpa, CFA pCfa, LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
+  private FunctionPointerCPA(ConfigurableProgramAnalysis pCpa, LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
     super(pCpa);
     this.abstractDomain = new FunctionPointerDomain(pCpa.getAbstractDomain());
 
@@ -68,7 +67,7 @@ public class FunctionPointerCPA extends AbstractSingleWrapperCPA implements Conf
     }
 
     this.stopOperator = new FunctionPointerStopOperator(pCpa.getStopOperator());
-    this.transferRelation = new FunctionPointerTransferRelation(pCpa.getTransferRelation(), pCfa, pLogger, pConfig);
+    this.transferRelation = new FunctionPointerTransferRelation(pCpa.getTransferRelation(), pLogger, pConfig);
     this.precisionAdjustment = new FunctionPointerPrecisionAdjustment(pCpa.getPrecisionAdjustment());
     if (pCpa instanceof ConfigurableProgramAnalysisWithABM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithABM)pCpa).getReducer();
