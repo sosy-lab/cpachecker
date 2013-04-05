@@ -62,8 +62,7 @@ public class ReplacingFormulaManager implements FormulaManager {
         Function<FormulaType<?>, FormulaType<?>>() {
           @Override
           public FormulaType<?> apply(FormulaType<?> pArg0) {
-            Class<? extends Formula> clazz = pArg0.getInterfaceType();
-            if (clazz == BitvectorFormula.class) {
+            if (pArg0.isBitvectorType()) {
               if (replaceBitvectorWithRationalAndFunctions) {
                 return FormulaType.RationalType;
               }

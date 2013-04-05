@@ -1564,8 +1564,7 @@ public class CtoFormulaConverter {
       return fmgr.assignment(left, right);
     }
 
-    if ((Class<?>)tl.getInterfaceType() == BitvectorFormula.class &&
-        (Class<?>)tr.getInterfaceType() == BitvectorFormula.class) {
+    if (tl.isBitvectorType() && tr.isBitvectorType()) {
 
       BitvectorFormula leftBv = (BitvectorFormula) left;
       BitvectorFormula rightBv = (BitvectorFormula) right;
