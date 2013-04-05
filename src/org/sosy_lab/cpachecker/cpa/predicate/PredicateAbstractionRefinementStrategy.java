@@ -291,7 +291,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     assert basePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
     assert targetStatePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
 
-    if (dumpPredicates) {
+    if (dumpPredicates && dumpPredicatesFile != null) {
       Path precFile = Paths.get(String.format(dumpPredicatesFile.getPath(), precisionUpdate.getNumberOfIntervals()));
       PredicateMapWriter precWriter = new PredicateMapWriter(fmgr);
       try (Writer w = Files.openOutputFile(precFile)) {
