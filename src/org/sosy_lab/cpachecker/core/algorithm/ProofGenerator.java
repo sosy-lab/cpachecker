@@ -38,6 +38,7 @@ import java.util.zip.ZipOutputStream;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -56,8 +57,8 @@ public class ProofGenerator {
 
   @Option(name = "pcc.proofgen.doPCC", description = "")
   private boolean doPCC = false;
-  //@Option(name = "pcc.proofFile", description = "file in which proof representation needed for proof checking is stored")
-  //@FileOption(FileOption.Type.OUTPUT_FILE)
+  @Option(name = "pcc.proofFile", description = "file in which proof representation needed for proof checking is stored")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private File file = new File("arg.obj");
 
   @Option(name="pcc.proofType", description = "defines proof representation, either abstract reachability graph or set of reachable abstract states", values={"ARG", "SET", "PSET"})
@@ -74,6 +75,7 @@ public class ProofGenerator {
   public void generateProof(CPAcheckerResult pResult) {
     if (!doPCC) { return; }
     UnmodifiableReachedSet reached = pResult.getReached();
+
     // check result
     if (pResult.getResult() != Result.SAFE) {
       logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
