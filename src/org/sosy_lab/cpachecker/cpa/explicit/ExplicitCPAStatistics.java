@@ -84,8 +84,8 @@ public class ExplicitCPAStatistics implements Statistics {
     for (AbstractState currentAbstractState : reached) {
       ExplicitState currentState = AbstractStates.extractStateByType(currentAbstractState, ExplicitState.class);
 
-      int numberOfVariables         = currentState.getConstantsMap().size();
-      int numberOfGlobalVariables   = getNumberOfGlobalVariables(currentState);
+      int numberOfVariables         = currentState.getSize();
+      int numberOfGlobalVariables   = currentState.getNumberOfGlobalVariables();
 
       totalNumberOfVariables        = totalNumberOfGlobalVariables + numberOfVariables;
       totalNumberOfGlobalVariables  = totalNumberOfGlobalVariables + numberOfGlobalVariables;
@@ -139,17 +139,5 @@ public class ExplicitCPAStatistics implements Statistics {
       }
     }
     return joinedPrecision;
-  }
-
-  private int getNumberOfGlobalVariables(ExplicitState state) {
-    int numberOfGlobalVariables = 0;
-
-    for (String variableName : state.getConstantsMap().keySet()) {
-      if (variableName.contains("::")) {
-        numberOfGlobalVariables++;
-      }
-    }
-
-    return numberOfGlobalVariables;
   }
 }

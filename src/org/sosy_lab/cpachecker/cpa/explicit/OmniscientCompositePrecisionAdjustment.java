@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
@@ -206,7 +205,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
         || abstractAtFunction(location)
         || abstractAtLoopHead(location)) {
       explicitPrecision.setLocation(location.getLocationNode());
-      explicitState.getConstantsMap().keySet().removeAll(getVariablesToDrop(explicitState, explicitPrecision));
+      explicitState.removeAll(getVariablesToDrop(explicitState, explicitPrecision));
     }
 
     return explicitState;
@@ -251,8 +250,8 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    * @param explicitPrecision the current precision
    * @return the variables to the dropped
    */
-  private List<String> getVariablesToDrop(ExplicitState explicitState, ExplicitPrecision explicitPrecision) {
-    List<String> toDrop = new ArrayList<>();
+  private Collection<String> getVariablesToDrop(ExplicitState explicitState, ExplicitPrecision explicitPrecision) {
+    Collection<String> toDrop = new ArrayList<>();
 
     for(String variableName : explicitState.getTrackedVariableNames()) {
       if(!explicitPrecision.isTracking(variableName)) {
@@ -328,9 +327,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
     HashMultimap<String, Long> valueMapping = HashMultimap.create();
 
     for (AbstractState element : reachedSetAtLocation) {
-      for (Map.Entry<String, Long> entry : ((ExplicitState)element).getConstantsMap().entrySet()) {
-        valueMapping.put(entry.getKey(), entry.getValue());
-      }
+      valueMapping = ((ExplicitState)element).addToValueMapping(valueMapping);
     }
 
     return valueMapping;

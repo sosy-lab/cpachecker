@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 import static com.google.common.collect.Iterables.skip;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -109,7 +109,7 @@ public class ExplicitInterpolator {
       int offset,
       Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
     try {
-      ExplicitState initialState  = new ExplicitState(new HashMap<>(inputInterpolant));
+      ExplicitState initialState  = new ExplicitState(PathCopyingPersistentTreeMap.copyOf(inputInterpolant));
       ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
 
       Long currentVariableValue             = null;
