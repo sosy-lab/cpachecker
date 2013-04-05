@@ -1508,7 +1508,7 @@ def main(argv=None):
 
     # do this after logger has been configured
     if(not config.cloud):
-        runexecutor.init(config.limitCores)
+        runexecutor.init()
 
     for arg in config.files:
         if STOPPED_BY_INTERRUPT: break

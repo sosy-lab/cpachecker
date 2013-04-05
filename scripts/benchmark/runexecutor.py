@@ -49,7 +49,7 @@ _SUB_PROCESSES_LOCK = threading.Lock()
 # The list of available CPU cores
 _cpus = []
 
-def init(limitCpuCores=None):
+def init():
     """
     This function initializes the module.
     Please call it before any calls to executeRun(),
@@ -64,13 +64,12 @@ def init(limitCpuCores=None):
     if not _cgroups[MEMORY]:
         logging.warning('Cannot measure and limit memory consumption without memory cgroups.')
 
-    if limitCpuCores:
-        _initCgroup(CPUSET)
+    _initCgroup(CPUSET)
 
-        cgroupCpuset = _cgroups[CPUSET]
-        if not cgroupCpuset:
-            sys.exit("No cpuset cgroup hierarchy found, cannot limit CPU cores.")
-
+    cgroupCpuset = _cgroups[CPUSET]
+    if not cgroupCpuset:
+        logging.warning("Cannot limit the number of CPU curse without cpuset cgroup.")
+    else:
         # Read available cpus:
         global _cpus
         cpuStr = _readFile(cgroupCpuset, 'cpuset.cpus')
@@ -82,11 +81,9 @@ def init(limitCpuCores=None):
                 start, end = cpu
                 _cpus.extend(xrange(int(start), int(end)+1))
             else:
-                sys.exit("Could not read available cpu cores from kernel, failed to parse {0}.".format(cpuStr))
+                logging.warning("Could not read available CPU cores from kernel, failed to parse {0}.".format(cpuStr))
 
         logging.debug("List of available CPU cores is {0}.".format(_cpus))
-        if limitCpuCores > len(_cpus):
-            sys.exit("Cannot execute runs on {0} CPU cores, only {1} are available.".format(limitCpuCores, len(_cpus)))
 
 
 def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
@@ -122,17 +119,19 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
     # Setup cpuset cgroup if necessary to limit the CPU cores to be used.
     if myCpuCount is not None and myCpuIndex is not None:
         if not _cpus or CPUSET not in cgroups:
-            logging.warning("Cannot limit number of CPU cores because cgroups are not available.")
-        else:
-            cgroupCpuset = cgroups[CPUSET]
-            totalCpuCount = len(_cpus)
-            myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
-            myCpusEnd   = (myCpusStart + myCpuCount-1) % totalCpuCount
-            myCpus = ','.join(map(str, xrange(myCpusStart, myCpusEnd+1)))
-            _writeFile(myCpus, cgroupCpuset, 'cpuset.cpus')
+            sys.exit("Cannot limit number of CPU cores because cgroups are not available.")
+        if myCpuCount > len(_cpus):
+            sys.exit("Cannot execute runs on {0} CPU cores, only {1} are available.".format(myCpuCount, len(_cpus)))
 
-            myCpus = _readFile(cgroupCpuset, 'cpuset.cpus')
-            logging.debug('Executing {0} with cpu cores {1}.'.format(args, myCpus))
+        cgroupCpuset = cgroups[CPUSET]
+        totalCpuCount = len(_cpus)
+        myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
+        myCpusEnd   = (myCpusStart + myCpuCount-1) % totalCpuCount
+        myCpus = ','.join(map(str, xrange(myCpusStart, myCpusEnd+1)))
+        _writeFile(myCpus, cgroupCpuset, 'cpuset.cpus')
+
+        myCpus = _readFile(cgroupCpuset, 'cpuset.cpus')
+        logging.debug('Executing {0} with cpu cores {1}.'.format(args, myCpus))
 
     # Setup memory limit
     if MEMLIMIT in rlimits:
