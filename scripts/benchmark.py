@@ -1132,7 +1132,10 @@ class Worker(threading.Thread):
     def run(self):
         while not Worker.workingQueue.empty() and not STOPPED_BY_INTERRUPT:
             currentRun = Worker.workingQueue.get_nowait()
-            currentRun.execute(self.number)
+            try:
+                currentRun.execute(self.number)
+            except BaseException as e:
+                print(e)
             Worker.workingQueue.task_done()
             
 def executeBenchmarkLocaly(benchmark):
