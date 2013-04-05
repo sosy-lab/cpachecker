@@ -1,3 +1,10 @@
+<!--
+To be able to run the checking successfully the metadata for the two variables
+org.sosy_lab.cpachecker.core.algorithm.ProofGenerator.file and
+org.sosy_lab.cpachecker.core.algorithm.ProofCheckAlgorithm.file
+must be removed, otherwise no proof is written and no proof can be read because no other output files 
+should be produced due to performance issues. 
+-->
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="900">
@@ -144,14 +151,14 @@
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
- <sourcefiles>
+<sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
-</sourcefiles> 
+</sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
