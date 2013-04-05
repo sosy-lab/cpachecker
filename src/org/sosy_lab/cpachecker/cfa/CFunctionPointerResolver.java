@@ -109,7 +109,7 @@ public class CFunctionPointerResolver {
       description="potential targets for call edges created for function pointer calls")
   private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES);
 
-  private final Set<String> addressedFunctions = new HashSet<>();
+  private final Set<String> addressedFunctions;
 
   private final Predicate<Pair<CFunctionCallExpression, CFunctionType>> matchingFunctionCall;
 
@@ -123,6 +123,18 @@ public class CFunctionPointerResolver {
     config.inject(this);
 
     matchingFunctionCall = getFunctionSetPredicate(functionSets);
+
+    if (functionSets.contains(FunctionSet.USED_IN_CODE)) {
+      CFunctionPointerVariablesCollector varCollector = new CFunctionPointerVariablesCollector();
+      for (CFANode node : cfa.getAllNodes()) {
+        for (CFAEdge edge : leavingEdges(node)) {
+          varCollector.visitEdge(edge);
+        }
+      }
+      addressedFunctions = varCollector.getCollectedVars();
+    } else {
+      addressedFunctions = ImmutableSet.of();
+    }
   }
 
   private Predicate<Pair<CFunctionCallExpression, CFunctionType>> getFunctionSetPredicate(Collection<FunctionSet> pFunctionSets) {
@@ -306,19 +318,6 @@ public class CFunctionPointerResolver {
         CFACreationUtils.removeEdgeFromNodes(edge);
       }
       cfa.removeNode(rootNode);
-    }
-  }
-
-  public void collectDataRecursively() {
-    if (functionSets.contains(FunctionSet.USED_IN_CODE)) {
-      for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
-        Set<String> vars = CFunctionPointerVariablesCollector.collectVars(functionStartNode);
-        if (!vars.isEmpty()) {
-          logger.log(Level.FINEST, "Functions whose address is taken in function",
-              functionStartNode.getFunctionName() + ":", vars);
-          addressedFunctions.addAll(vars);
-        }
-      }
     }
   }
 

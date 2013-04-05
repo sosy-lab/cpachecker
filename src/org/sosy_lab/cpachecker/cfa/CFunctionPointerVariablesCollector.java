@@ -51,32 +51,25 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 
 /**
  * Helper class that collects all <code>ReferencedVariable</code>s in a given set of nodes.
  */
-public class CFunctionPointerVariablesCollector extends CFATraversal.DefaultCFAVisitor {
+public class CFunctionPointerVariablesCollector {
 
   private final Set<String> collectedVars = new HashSet<>();
 
-  public static Set<String> collectVars(FunctionEntryNode initialNode) {
-    // we use a worklist algorithm
-    CFunctionPointerVariablesCollector collector = new CFunctionPointerVariablesCollector();
-    CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(initialNode, collector);
-    return collector.collectedVars;
+  public Set<String> getCollectedVars() {
+    return collectedVars;
   }
 
-  @Override
-  public TraversalProcess visitEdge(CFAEdge edge) {
+  public void visitEdge(CFAEdge edge) {
     switch (edge.getEdgeType()) {
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge)edge;
@@ -127,8 +120,6 @@ public class CFunctionPointerVariablesCollector extends CFATraversal.DefaultCFAV
       assert false;
       break;
     }
-
-    return TraversalProcess.CONTINUE;
   }
 
   private static void collectVars(CRightHandSide pNode, Set<String> pCollectedVars) {

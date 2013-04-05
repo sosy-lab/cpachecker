@@ -298,7 +298,6 @@ public class CFACreator {
 
       if (language == Language.C && fptrCallEdges) {
         CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, config, logger);
-        fptrResolver.collectDataRecursively();
         fptrResolver.resolveFunctionPointers();
       }
 
