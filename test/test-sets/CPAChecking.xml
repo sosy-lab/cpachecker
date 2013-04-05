@@ -1,10 +1,3 @@
-<!--
-To be able to run the checking successfully the metadata for the two variables
-org.sosy_lab.cpachecker.core.algorithm.ProofGenerator.file and
-org.sosy_lab.cpachecker.core.algorithm.ProofCheckAlgorithm.file
-must be removed, otherwise no proof is written and no proof can be read because no other output files 
-should be produced due to performance issues. 
--->
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
 <benchmark tool="cpachecker" timelimit="900">
@@ -13,6 +6,8 @@ should be produced due to performance issues.
 <option name="-disable-java-assertions"/>
 <option name="-setprop">statistics.memory=false</option>
 <option name="-setprop">pcc.proofType = SET</option>
+<option name="-setprop">pcc.proofcheck.precision=false</option>
+<option name="-setprop">pcc.proofFile=arg.obj</option>
 
 <rundefinition name="ReachDef_ExplicitDF">
 	<option name="-reachingdef-explicit"/>
