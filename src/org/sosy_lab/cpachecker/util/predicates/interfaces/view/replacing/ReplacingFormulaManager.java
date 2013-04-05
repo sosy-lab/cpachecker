@@ -103,11 +103,11 @@ public class ReplacingFormulaManager implements FormulaManager {
   @SuppressWarnings("unchecked")
   public <T1 extends Formula, T2 extends Formula> T1 simpleWrap(FormulaType<T1> type, T2 toWrap) {
     Formula f;
-    if (FormulaType.isBitVectorType(type)) {
+    if (type.isBitvectorType()) {
       f = new WrappingBitvectorFormula<>((FormulaType<BitvectorFormula>)type, toWrap);
-    } else if (FormulaType.isRationalType(type)) {
+    } else if (type.isRationalType()) {
       f = new WrappingRationalFormula<>((FormulaType<RationalFormula>)type, toWrap);
-    } else if (FormulaType.isBooleanType(type)) {
+    } else if (type.isBooleanType()) {
       f = new WrappingBooleanFormula<>((FormulaType<BooleanFormula>)type, toWrap);
     } else {
       throw new IllegalArgumentException("cant wrap this type");
@@ -120,9 +120,9 @@ public class ReplacingFormulaManager implements FormulaManager {
   public <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> type, T2 toWrap) {
     Class<T2> toWrapClazz = getInterface(toWrap);
 
-    if (replacedBitvectorTheory && FormulaType.isBitVectorType(type)
-        || replacedBooleanTheory && FormulaType.isBooleanType(type)
-        || replacedRationalTheory && FormulaType.isRationalType(type)) {
+    if (replacedBitvectorTheory && type.isBitvectorType()
+        || replacedBooleanTheory && type.isBooleanType()
+        || replacedRationalTheory && type.isRationalType()) {
       return simpleWrap(type, toWrap);
     } else if (toWrapClazz == type.getInterfaceType()) {
       return (T1) toWrap;
