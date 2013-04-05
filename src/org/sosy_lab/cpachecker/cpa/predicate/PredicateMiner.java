@@ -65,14 +65,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 
-/**
- * Perform a (very) simple cone-of-influence reduction on the given CFA.
- * That is, get rid of all the nodes/edges that are not reachable from the
- * potential error states (according to the specification).
- *
- * In fact, this should probably *not* be called ConeOfInfluenceCFAReduction,
- * since it is *much* more trivial (and less powerful) than that.
- */
 @Options(prefix="predicate.mining")
 public class PredicateMiner {
 
