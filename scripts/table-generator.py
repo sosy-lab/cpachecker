@@ -321,6 +321,7 @@ class RunSetResult():
         attributes = {
                 'timelimit': None,
                 'memlimit':  None,
+                'cpuCores':  None,
                 'options':   ' ',
                 'benchmarkname': resultTag.get('benchmarkname'),
                 'name':      resultTag.get('name', resultTag.get('benchmarkname')),
@@ -646,7 +647,7 @@ def getTableHead(runSetResults, commonFileNamePrefix):
                                 content=list(zip(titles, runSetWidths1)))
 
     return {'tool':    getRow('Tool', '{tool} {version}', collapse=True),
-            'limit':   getRow('Limits', 'timelimit: {timelimit}, memlimit: {memlimit}', collapse=True),
+            'limit':   getRow('Limits', 'timelimit: {timelimit}, memlimit: {memlimit}, CPU core limit: {cpuCores}', collapse=True),
             'host':    getRow('Host', '{host}', collapse=True),
             'os':      getRow('OS', '{os}', collapse=True),
             'system':  getRow('System', 'CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}', collapse=True),

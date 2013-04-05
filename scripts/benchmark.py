@@ -555,14 +555,17 @@ class OutputHandler:
 
         memlimit = None
         timelimit = None
+        corelimit = None
         if MEMLIMIT in self.benchmark.rlimits:
             memlimit = str(self.benchmark.rlimits[MEMLIMIT]) + " MB"
         if TIMELIMIT in self.benchmark.rlimits:
             timelimit = str(self.benchmark.rlimits[TIMELIMIT]) + " s"
+        if CORELIMIT in self.benchmark.rlimits:
+            corelimit = str(self.benchmark.rlimits[CORELIMIT])
 
-        self.storeHeaderInXML(version, memlimit, timelimit, opSystem, cpuModel,
+        self.storeHeaderInXML(version, memlimit, timelimit, corelimit, opSystem, cpuModel,
                               numberOfCores, maxFrequency, memory, hostname)
-        self.writeHeaderToLog(version, memlimit, timelimit, opSystem, cpuModel,
+        self.writeHeaderToLog(version, memlimit, timelimit, corelimit, opSystem, cpuModel,
                               numberOfCores, maxFrequency, memory, hostname)
 
         self.XMLFileNames = []
@@ -579,18 +582,20 @@ class OutputHandler:
         systemInfo.append(ramElem)
         self.XMLHeader.append(systemInfo)
 
-    def storeHeaderInXML(self, version, memlimit, timelimit, opSystem,
+    def storeHeaderInXML(self, version, memlimit, timelimit, corelimit, opSystem,
                          cpuModel, numberOfCores, maxFrequency, memory, hostname):
 
         # store benchmarkInfo in XML
         self.XMLHeader = ET.Element("result",
                     {"benchmarkname": self.benchmark.name, "date": self.benchmark.dateISO,
                      "tool": self.benchmark.toolName, "version": version})
-        if memlimit is not None:
+        if memlimit:
             self.XMLHeader.set(MEMLIMIT, memlimit)
-        if timelimit is not None:
+        if timelimit:
             self.XMLHeader.set(TIMELIMIT, timelimit)
-            
+        if corelimit:
+            self.XMLHeader.set(CORELIMIT, corelimit)
+
         if(not config.cloud):
             # store systemInfo in XML
             self.storeSystemInfo(opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname)
@@ -615,7 +620,7 @@ class OutputHandler:
                         {"title": column.title, "value": ""}))
 
 
-    def writeHeaderToLog(self, version, memlimit, timelimit, opSystem,
+    def writeHeaderToLog(self, version, memlimit, timelimit, corelimit, opSystem,
                          cpuModel, numberOfCores, maxFrequency, memory, hostname):
         """
         This method writes information about benchmark and system into TXTFile.
@@ -630,10 +635,12 @@ class OutputHandler:
                 + "tool:".ljust(columnWidth) + self.benchmark.toolName\
                 + " " + version + "\n"
 
-        if memlimit is not None:
+        if memlimit:
             header += "memlimit:".ljust(columnWidth) + memlimit + "\n"
-        if timelimit is not None:
+        if timelimit:
             header += "timelimit:".ljust(columnWidth) + timelimit + "\n"
+        if corelimit:
+            header += "CPU cores used:".ljust(columnWidth) + corelimit + "\n"
         header += simpleLine
 
         systemInfo = "   SYSTEM INFORMATION\n"\
