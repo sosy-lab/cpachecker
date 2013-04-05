@@ -32,6 +32,7 @@ import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -56,6 +57,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -110,6 +112,11 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(name="pcc.proofType", description = "defines proof representation, either abstract reachability graph or set of reachable abstract states", values={"ARG", "SET", "PSET"})
   private String pccType = "ARG";
+
+  @Option(
+      name = "pcc.proofcheck.precision",
+      description = "Flag indicating if analysis which constructed proof adjusted precisions during computation.")
+  private boolean considerPrecisionAdjustment = true;
 
   private final Object proof;
   private Multimap<CFANode, AbstractState> statesPerLocation = null;
@@ -183,7 +190,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     try {
       if (pccType.equals("ARG")) {
-        if (!(cpa instanceof ProofChecker)) { throw new InvalidConfigurationException(
+        if (considerPrecisionAdjustment && !(cpa instanceof ProofChecker)) { throw new InvalidConfigurationException(
             "ProofCheckAlgorithm needs a CPA that implements the ProofChecker interface."); }
         if (!(pReadProof instanceof ARGState)) { throw new InvalidConfigurationException(
             "Proof Type requires ARG."); }
@@ -218,13 +225,24 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     boolean result = false;
 
     if (pccType.equals("ARG")) {
-      result = checkARG(reachedSet);
-    } else if (pccType.equals("SET")) {
-      result = checkReachedSet(reachedSet);
-    } else if (pccType.equals("PSET")) {
-      result = checkPartialReachedSet(reachedSet);
+      if (considerPrecisionAdjustment)
+        result = checkARG(reachedSet);
+      else
+        result = checkARG2(reachedSet);
+    } else if (considerPrecisionAdjustment) {
+      logger
+          .log(
+              Level.SEVERE,
+              "Analysis with precision adjustment changing the state or precision of an element",
+              "currently only supported for proof type ARG.");
     } else {
-      logger.log(Level.SEVERE, "Undefined proof format. No checking available.");
+      if (pccType.equals("SET")) {
+        result = checkReachedSet(reachedSet);
+      } else if (pccType.equals("PSET")) {
+        result = checkPartialReachedSet(reachedSet);
+      } else {
+        logger.log(Level.SEVERE, "Undefined proof format. No checking available.");
+      }
     }
 
     stats.totalTimer.stop();
@@ -349,6 +367,89 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     stats.totalTimer.stop();
 
     return waitingForUnexploredParents.isEmpty();
+  }
+
+  private boolean checkARG2(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+    ARGState rootState = (ARGState) proof;
+    StopOperator stop = ((ARGCPA) cpa).getWrappedCPAs().get(0).getStopOperator();
+
+    stats.totalTimer.start();
+
+    logger.log(Level.INFO, "Proof check algorithm started");
+
+    ARGState initialState = (ARGState) reachedSet.popFromWaitlist();
+    Precision initialPrecision = reachedSet.getPrecision(initialState);
+
+    logger.log(Level.FINE, "Checking root state");
+
+    if (!stop
+        .stop(initialState.getWrappedState(), Collections.singleton(rootState.getWrappedState()), initialPrecision)) {
+      stats.totalTimer.stop();
+      logger.log(Level.WARNING, "Root state of proof is invalid.");
+      return false;
+    }
+
+    reachedSet.add(rootState, initialPrecision);
+
+
+    while (reachedSet.hasWaitingState()) {
+      CPAchecker.stopIfNecessary();
+
+      stats.countIterations++;
+      ARGState state = (ARGState) reachedSet.popFromWaitlist();
+
+      logger.log(Level.FINE, "Looking at state", state);
+
+
+      if (state.isCovered()) {
+
+        logger.log(Level.FINER, "State is covered by another abstract state; checking coverage");
+        ARGState coveringState = state.getCoveringState();
+
+        if (!reachedSet.contains(coveringState)) {
+          reachedSet.add(coveringState, initialPrecision);
+        }
+
+        stats.stopTimer.start();
+        if (!isCoveringCycleFree(state)) {
+          stats.stopTimer.stop();
+          stats.totalTimer.stop();
+          logger.log(Level.WARNING, "Found cycle in covering relation for state", state);
+          return false;
+        }
+        if (!stop.stop(state.getWrappedState(), Collections.singleton(coveringState.getWrappedState()),
+            initialPrecision)) {
+          stats.stopTimer.stop();
+          stats.totalTimer.stop();
+          logger.log(Level.WARNING, "State", state, "is not covered by", coveringState);
+          return false;
+        }
+        stats.stopTimer.stop();
+      } else {
+        stats.transferTimer.start();
+        ArrayList<AbstractState> successors = new ArrayList<>(state.getChildren().size());
+        for (ARGState argS : state.getChildren()) {
+          successors.add(argS.getWrappedState());
+          reachedSet.add(argS, initialPrecision);
+        }
+        Collection<? extends AbstractState> computedSuccessors =
+            ((ARGCPA) cpa).getWrappedCPAs().get(0).getTransferRelation()
+                .getAbstractSuccessors(state.getWrappedState(), initialPrecision, null);
+        logger.log(Level.FINER, "Checking abstract successors", successors);
+        for (AbstractState succ : computedSuccessors) {
+          if (!stop.stop(succ, successors, initialPrecision)) {
+            stats.transferTimer.stop();
+            stats.totalTimer.stop();
+            logger.log(Level.WARNING, "State", state, "has other successors than", successors);
+            return false;
+          }
+        }
+        stats.transferTimer.stop();
+      }
+    }
+    stats.totalTimer.stop();
+
+    return true;
   }
 
   private boolean isCoveringCycleFree(ARGState pState) {
