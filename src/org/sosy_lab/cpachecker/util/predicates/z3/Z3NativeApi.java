@@ -312,7 +312,7 @@ public final class Z3NativeApi {
   public static native long app_to_ast(long context, long a1);
   public static native long get_app_decl(long context, long a1);
   public static native int get_app_num_args(long context, long a1);
-  public static native long get_app_arg(long context, long a1, int a2);
+  public static native long get_app_arg(long context, long a1, int index);
   public static native boolean is_eq_ast(long context, long a1, long a2);
   public static native int get_ast_id(long context, long a1);
   public static native int get_ast_hash(long context, long a1);
