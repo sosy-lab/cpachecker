@@ -58,6 +58,7 @@ import benchmark.util as Util
 
 MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
+CORELIMIT = runexecutor.CORELIMIT
 
 # colors for column status in terminal
 USE_COLORS = True
@@ -166,6 +167,8 @@ class Benchmark:
             self.rlimits[MEMLIMIT] = int(rootTag.get(MEMLIMIT))
         if TIMELIMIT in keys:
             self.rlimits[TIMELIMIT] = int(rootTag.get(TIMELIMIT))
+        if CORELIMIT in keys:
+            self.rlimits[CORELIMIT] = int(rootTag.get(CORELIMIT))
 
         # override limits from XML with values from command line
         if config.memorylimit != None:
@@ -183,6 +186,14 @@ class Benchmark:
                     self.rlimits.pop(TIMELIMIT)
             else:
                 self.rlimits[TIMELIMIT] = timelimit
+
+        if config.corelimit != None:
+            corelimit = int(config.corelimit)
+            if corelimit == -1: # infinity
+                if CORELIMIT in self.rlimits:
+                    self.rlimits.pop(CORELIMIT)
+            else:
+                self.rlimits[CORELIMIT] = corelimit
 
         # get number of threads, default value is 1
         self.numOfThreads = int(rootTag.get("threads")) if ("threads" in keys) else 1
@@ -485,7 +496,7 @@ class Run():
 
         rlimits = self.benchmark.rlimits
 
-        (self.wallTime, self.cpuTime, self.memUsage, returnvalue, output) = runexecutor.executeRun(self.args, rlimits, self.logFile, numberOfThread, config.limitCores)
+        (self.wallTime, self.cpuTime, self.memUsage, returnvalue, output) = runexecutor.executeRun(self.args, rlimits, self.logFile, numberOfThread)
 
         if STOPPED_BY_INTERRUPT:
             # If the run was interrupted, we ignore the result and cleanup.
@@ -1460,10 +1471,10 @@ def main(argv=None):
                             "(starting with 1).",
                       metavar=("a","b"))
 
-    parser.add_argument("-c", "--limitCores", dest="limitCores",
+    parser.add_argument("-c", "--limitCores", dest="corelimit",
                       type=int, default=None,
                       metavar="N",
-                      help="Limit each run of the tool to N CPU cores.")
+                      help="Limit each run of the tool to N CPU cores (-1 to disable).")
 
     parser.add_argument("--commit", dest="commit",
                       action="store_true",

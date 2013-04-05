@@ -13,6 +13,7 @@
 <!ATTLIST benchmark tool CDATA #REQUIRED>
 <!ATTLIST benchmark memlimit CDATA #IMPLIED>
 <!ATTLIST benchmark timelimit CDATA #IMPLIED>
+<!ATTLIST benchmark cpuCores CDATA #IMPLIED>
 <!ATTLIST benchmark threads CDATA #IMPLIED>
 <!ATTLIST sourcefiles name CDATA #IMPLIED>
 <!ATTLIST test name CDATA #IMPLIED>

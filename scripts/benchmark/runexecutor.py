@@ -37,6 +37,7 @@ import benchmark.util as Util
 
 MEMLIMIT = "memlimit"
 TIMELIMIT = "timelimit"
+CORELIMIT = "cpuCores"
 CPUACCT = 'cpuacct'
 CPUSET = 'cpuset'
 MEMORY = 'memory'
@@ -86,7 +87,7 @@ def init():
         logging.debug("List of available CPU cores is {0}.".format(_cpus))
 
 
-def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
+def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
     """
     This function executes a given command with resource limits,
     and writes the output to a file.
@@ -110,18 +111,21 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
 
     # Setup cgroups, need a single call to _createCgroup() for all subsystems
     subsystems = [CPUACCT, MEMORY]
-    if myCpuCount is not None and myCpuIndex is not None:
+    if CORELIMIT in rlimits and myCpuIndex is not None:
         subsystems.append(CPUSET)
     cgroups = _createCgroup(*subsystems)
 
     logging.debug("Executing {0} in cgroups {1}.".format(args, cgroups.values()))
 
     # Setup cpuset cgroup if necessary to limit the CPU cores to be used.
-    if myCpuCount is not None and myCpuIndex is not None:
+    if CORELIMIT in rlimits and myCpuIndex is not None:
+        myCpuCount = rlimits[CORELIMIT]
         if not _cpus or CPUSET not in cgroups:
             sys.exit("Cannot limit number of CPU cores because cgroups are not available.")
         if myCpuCount > len(_cpus):
             sys.exit("Cannot execute runs on {0} CPU cores, only {1} are available.".format(myCpuCount, len(_cpus)))
+        if myCpuCount <= 0:
+            sys.exit("Invalid number of CPU cores to use: {0}".format(myCpuCount))
 
         cgroupCpuset = cgroups[CPUSET]
         totalCpuCount = len(_cpus)

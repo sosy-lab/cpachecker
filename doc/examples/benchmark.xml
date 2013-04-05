@@ -9,6 +9,7 @@
 
   "timelimit" is an optional time limit in seconds.
   "memlimit" is an optional memory limit in megabytes.
+  "cpuCores" is an optional number of CPU cores to use per run (otherwise all available cores are used).
   "threads" is the number of parallel executions of verification runs.
   This values can be overriden on the command line when running benchmark.py
 -->
