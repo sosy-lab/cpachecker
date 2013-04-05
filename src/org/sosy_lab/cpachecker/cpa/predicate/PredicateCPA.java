@@ -98,6 +98,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Option(name="enableBlockreducer", description="Enable the possibility to precompute explicit abstraction locations.")
   private boolean enableBlockreducer = false;
 
+  @Option(description="Enable mining of predicates from the CFA (preprocessing).")
+  private boolean enablePrecisionMiner = false;
+
+
   @Option(name="merge", values={"SEP", "ABE"}, toUppercase=true,
       description="which merge operator to use for predicate cpa (usually ABE should be used)")
   private String mergeType = "ABE";
@@ -173,7 +177,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     prec = new PredicatePrecisionAdjustment(this);
     stop = new PredicateStopOperator(domain);
 
-    initialPrecision = readPredicatesFromFile(cfa);
+    initialPrecision = loadInitialPredicates(cfa);
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
     stats = new PredicateCPAStatistics(this, blk, regionManager, cfa);
@@ -181,7 +185,16 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
   }
 
-  private PredicatePrecision readPredicatesFromFile(CFA cfa) throws InvalidConfigurationException {
+
+  /**
+   * Read the (initial) precision (predicates to track) from a file.
+   *
+   * @param       cfa
+   * @return      Precision
+   * @throws      InvalidConfigurationException
+   * @throws CPATransferException
+   */
+  private PredicatePrecision loadInitialPredicates(CFA cfa) throws InvalidConfigurationException {
 
     Set<AbstractionPredicate> initialPredicates = checkBlockFeasibility
         ? Collections.<AbstractionPredicate>singleton(abstractionManager.makeFalsePredicate())
@@ -197,6 +210,14 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
         return PredicatePrecision.empty();
       } catch (PredicateMapParsingFailedException e) {
         logger.logUserException(Level.WARNING, e, "Could not read predicate map");
+        return PredicatePrecision.empty();
+      }
+    } else if (enablePrecisionMiner) {
+      try {
+        PredicateMiner precMiner = new PredicateMiner(config, logger, pathFormulaManager, formulaManager, abstractionManager);
+        return precMiner.minePrecisionFromCfa(cfa);
+      } catch (CPATransferException e) {
+        logger.logUserException(Level.WARNING, e, "Could not mine precision from CFA");
         return PredicatePrecision.empty();
       }
     }
