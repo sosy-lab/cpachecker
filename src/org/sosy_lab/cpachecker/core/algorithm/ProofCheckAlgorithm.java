@@ -97,7 +97,8 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       out.println("  Time for preparing proof for checking:          " + preparationTimer);
       out.println("  Time for abstract successor checks:     " + transferTimer + " (Calls: "
           + transferTimer.getNumberOfIntervals() + ")");
-      out.println("  Time for covering checks:               " + stopTimer + " (Calls: " + stopTimer.getNumberOfIntervals()
+      out.println("  Time for covering checks:               " + stopTimer + " (Calls: "
+          + stopTimer.getNumberOfIntervals()
           + ")");
     }
   }
@@ -110,7 +111,10 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   //@FileOption(FileOption.Type.OUTPUT_FILE)
   private File file = new File("arg.obj");
 
-  @Option(name="pcc.proofType", description = "defines proof representation, either abstract reachability graph or set of reachable abstract states", values={"ARG", "SET", "PSET"})
+  @Option(
+      name = "pcc.proofType",
+      description = "defines proof representation, either abstract reachability graph or set of reachable abstract states",
+      values = { "ARG", "SET", "PSET" })
   private String pccType = "ARG";
 
   @Option(
@@ -148,40 +152,40 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     InputStream fis = null;
     try {
 
-    fis = new FileInputStream(file);
-    ZipInputStream zis = new ZipInputStream(fis);
+      fis = new FileInputStream(file);
+      ZipInputStream zis = new ZipInputStream(fis);
 
-    ZipEntry entry = zis.getNextEntry();
-    assert entry.getName().equals("Proof");
-    zis.closeEntry();
+      ZipEntry entry = zis.getNextEntry();
+      assert entry.getName().equals("Proof");
+      zis.closeEntry();
 
-    entry = zis.getNextEntry();
-    assert entry.getName().equals("Helper");
-    ObjectInputStream o = new ObjectInputStream(zis);
-    //read helper storages
-    int numberOfStorages = o.readInt();
-    for (int i = 0; i < numberOfStorages; ++i) {
-      Serializable storage = (Serializable) o.readObject();
-      GlobalInfo.getInstance().addHelperStorage(storage);
+      entry = zis.getNextEntry();
+      assert entry.getName().equals("Helper");
+      ObjectInputStream o = new ObjectInputStream(zis);
+      //read helper storages
+      int numberOfStorages = o.readInt();
+      for (int i = 0; i < numberOfStorages; ++i) {
+        Serializable storage = (Serializable) o.readObject();
+        GlobalInfo.getInstance().addHelperStorage(storage);
+      }
+      zis.closeEntry();
+
+      o.close();
+      zis.close();
+      fis.close();
+
+      fis = new FileInputStream(file);
+      zis = new ZipInputStream(fis);
+      entry = zis.getNextEntry();
+      assert entry.getName().equals("Proof");
+      o = new ObjectInputStream(zis);
+      return o.readObject();
+
+    } finally {
+      fis.close();
+      stats.readTimer.stop();
+      stats.totalTimer.stop();
     }
-    zis.closeEntry();
-
-    o.close();
-    zis.close();
-    fis.close();
-
-    fis = new FileInputStream(file);
-    zis = new ZipInputStream(fis);
-    entry = zis.getNextEntry();
-    assert entry.getName().equals("Proof");
-    o = new ObjectInputStream(zis);
-    return o.readObject();
-
-  } finally {
-    fis.close();
-    stats.readTimer.stop();
-    stats.totalTimer.stop();
-  }
   }
 
   private Object prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
@@ -215,8 +219,8 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException{
-    if(proof == null)
+  public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+    if (proof == null)
       return false;
 
     stats.totalTimer.start();
@@ -250,7 +254,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     return result;
   }
 
-  private boolean checkARG(final ReachedSet reachedSet) throws CPAException, InterruptedException{
+  private boolean checkARG(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     ProofChecker checker = (ProofChecker) cpa;
     ARGState rootState = (ARGState) proof;
 
@@ -340,7 +344,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
           stats.transferTimer.stop();
           for (ARGState e : successors) {
             unexploredParent = false;
-            for (ARGState p:e.getParents()) {
+            for (ARGState p : e.getParents()) {
               if (!reachedSet.contains(p) || inWaitlist.contains(p)) {
                 waitingForUnexploredParents.add(e);
                 unexploredParent = true;
@@ -472,11 +476,11 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     // check if initial element covered
     AbstractState initialState = reachedSet.popFromWaitlist();
-    assert(initialState == reachedSet.getFirstState() && reachedSet.size()==1);
+    assert (initialState == reachedSet.getFirstState() && reachedSet.size() == 1);
 
     try {
       stats.stopTimer.start();
-      if (!stop.stop(initialState, statesPerLocation .get(AbstractStates.extractLocation(initialState)), initialPrec)) {
+      if (!stop.stop(initialState, statesPerLocation.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
         logger.log(Level.FINE, "Cannot check that initial element is covered by result.");
         return false;
       }
@@ -491,7 +495,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     // check if elements form transitive closure
     Collection<? extends AbstractState> successors;
     for (AbstractState state : certificate) {
-      // TODO here a check for property must be added
+      // TODO here a check for property must be added, may better on all elements
 
       CPAchecker.stopIfNecessary();
       stats.countIterations++;
@@ -556,7 +560,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     // check if elements form transitive closure
     Collection<? extends AbstractState> successors;
     while (!certificate.isEmpty()) {
-      // TODO here a check for property must be added
+      // TODO here a check for property must be added, may be better on all elements
 
       CPAchecker.stopIfNecessary();
       stats.countIterations++;
@@ -564,7 +568,8 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       try {
         stats.transferTimer.start();
         successors =
-            cpa.getTransferRelation().getAbstractSuccessors(certificate.remove(certificate.size()-1), initialPrec, null);
+            cpa.getTransferRelation().getAbstractSuccessors(certificate.remove(certificate.size() - 1), initialPrec,
+                null);
         stats.transferTimer.stop();
 
         for (AbstractState succ : successors) {
@@ -574,7 +579,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
               logger.log(Level.FINE, "Successor ", succ, " not in partial reached set.",
                   "Add to elements whose successors ",
                   "must be computed.");
-              if(AbstractStates.extractLocation(succ).getNumEnteringEdges()>1){
+              if (AbstractStates.extractLocation(succ).getNumEnteringEdges() > 1) {
                 stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec);
               }
               addElement(succ, certificate);
