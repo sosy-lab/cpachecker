@@ -62,7 +62,7 @@ def init(limitCpuCores=None):
 
     _initCgroup(MEMORY)
     if not _cgroups[MEMORY]:
-        logging.warning('Cannot measure memory consumption without memory cgroups.')
+        logging.warning('Cannot measure and limit memory consumption without memory cgroups.')
 
     if limitCpuCores:
         _initCgroup(CPUSET)
@@ -105,9 +105,6 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
 
         if TIMELIMIT in rlimits:
             resource.setrlimit(resource.RLIMIT_CPU, (rlimits[TIMELIMIT], rlimits[TIMELIMIT]))
-        if MEMLIMIT in rlimits:
-            memlimit = rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR # MB to Byte
-            resource.setrlimit(resource.RLIMIT_AS, (memlimit, memlimit))
 
         # put us into the cgroup(s)
         pid = os.getpid()
@@ -136,6 +133,18 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
 
             myCpus = _readFile(cgroupCpuset, 'cpuset.cpus')
             logging.debug('Executing {0} with cpu cores {1}.'.format(args, myCpus))
+
+    # Setup memory limit
+    if MEMLIMIT in rlimits:
+        if not MEMORY in cgroups:
+            sys.exit("Memory limit specified, but cannot be implemented without cgroup support.")
+        cgroupMemory = cgroups[MEMORY]
+        memlimit = str(rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR) # MB to Byte
+        _writeFile(memlimit, cgroupMemory, 'memory.limit_in_bytes')
+        _writeFile(memlimit, cgroupMemory, 'memory.memsw.limit_in_bytes')
+
+        memlimit = _readFile(cgroupMemory, 'memory.memsw.limit_in_bytes')
+        logging.debug('Executing {0} with memory limit {1} bytes.'.format(args, memlimit))
 
     outputFile = open(outputFileName, 'w') # override existing file
     outputFile.write(' '.join(args) + '\n\n\n' + '-'*80 + '\n\n\n')
