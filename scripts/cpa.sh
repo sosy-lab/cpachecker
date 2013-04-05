@@ -19,28 +19,7 @@ if [ -z "$java_version" ] || [ "$java_version" -lt 17 ] ; then
   exit 1
 fi
 
-# Find out architecture
-
-arch="`uname -m`"
 platform="`uname -s`"
-case "$arch-$platform" in
-  i686-Linux)
-    arch_platform="x86-linux"
-    ;;
-  x86_64-Linux)
-    arch_platform="x86_64-linux"
-    ;;
-  x86_64-Darwin)
-    arch_platform="x86_64-macosx"
-    ;;
-  i386-Darwin)
-    arch_platform="x86-macosx"
-    ;;
-  *)
-   echo "Failed to determine system type" 1>&2
-   exit 1
-   ;;
-esac
 
 # where the project directory is, relative to the location of this script
 case "$platform" in
@@ -62,10 +41,6 @@ if [ ! -e "$PATH_TO_CPACHECKER/bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class
 fi
 
 export CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin:$PATH_TO_CPACHECKER/cpachecker.jar:$PATH_TO_CPACHECKER/lib/*:$PATH_TO_CPACHECKER/lib/java/runtime/*:$PATH_TO_CPACHECKER/lib/JavaParser/*"
-
-# where to find the native binaries
-arch_platform_path="$PATH_TO_CPACHECKER/lib/native/$arch_platform/"
-export PATH="$PATH:$arch_platform_path"
 
 # loop over all input parameters and parse them
 declare -a OPTIONS
@@ -104,4 +79,4 @@ if [ ! -z "$CPACHECKER_ARGUMENTS" ]; then
 fi
 
 # run CPAchecker
-exec "$JAVA" $JAVA_VM_ARGUMENTS "-Djava.library.path=$arch_platform_path" -Xmx${JAVA_HEAP_SIZE:-$DEFAULT_HEAP_SIZE} $JAVA_ASSERTIONS org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS
+exec "$JAVA" $JAVA_VM_ARGUMENTS -Xmx${JAVA_HEAP_SIZE:-$DEFAULT_HEAP_SIZE} $JAVA_ASSERTIONS org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS
