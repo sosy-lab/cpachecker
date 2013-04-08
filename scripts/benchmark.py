@@ -1255,6 +1255,7 @@ def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
 
     try:
         file = open(filePath)
+        outputHandler.allCreatedFiles.append(filePath)
         
         complete = False
         while(not complete):
@@ -1320,7 +1321,7 @@ def executeBenchmarkInCloud(benchmark):
                 absSourceFiles.append(os.path.abspath(run.sourcefile))
 
     if not absSourceFiles:
-        logger.warning("Skipping benchmark without source files.")
+        logging.warning("Skipping benchmark without source files.")
         return
 
     #preparing cloud input
@@ -1396,6 +1397,10 @@ def executeBenchmarkInCloud(benchmark):
         outputHandler.outputAfterRunSet(runSet, None, None)
         
     outputHandler.outputAfterBenchmark()
+
+    if config.commit and not STOPPED_BY_INTERRUPT:
+        Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
+                                     config.commitMessage+'\n\n'+outputHandler.description)
 
 
 def executeBenchmark(benchmarkFile):
