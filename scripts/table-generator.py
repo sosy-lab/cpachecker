@@ -329,7 +329,7 @@ class RunSetResult():
 
         # Add system information if present
         systemTag = resultTag.find('systeminfo')
-        if systemTag:
+        if systemTag is not None:
             cpuTag = systemTag.find('cpu')
             attributes.update({
                 'os':        systemTag.find('os').get('name'),
