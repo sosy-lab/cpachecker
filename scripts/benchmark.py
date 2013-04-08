@@ -91,7 +91,6 @@ TIME_PRECISION = 2
 WORKER_THREADS = []
 STOPPED_BY_INTERRUPT = False
 
-
 """
 Naming conventions:
 
@@ -1353,9 +1352,13 @@ def executeBenchmarkInCloud(benchmark):
         logLevel = "INFO"
     libDir = os.path.abspath("./lib/java-benchmark")
     cloud = subprocess.Popen(["java", "-jar", libDir + "/vercip.jar", "benchmark", "--master", config.cloud, "--loglevel", logLevel], stdin=subprocess.PIPE)
-    (out, err) = cloud.communicate(cloudInput)
+    try:
+        (out, err) = cloud.communicate(cloudInput)
+    except KeyboardInterrupt:
+        killScript()
     returnCode = cloud.wait()
-    if(not returnCode == 0):
+
+    if returnCode and not STOPPED_BY_INTERRUPT:
         logging.warn("Cloud return code: {0}".format(returnCode))
 
     if not os.path.isdir(outputDir) or not os.listdir(outputDir):
@@ -1376,16 +1379,15 @@ def executeBenchmarkInCloud(benchmark):
 
         outputHandler.outputBeforeRunSet(runSet)     
         for run in runSet.runs:
-            outputHandler.outputBeforeRun(run)
-
-            returnValue = 1
             try:
                 stdoutFile = run.logFile + ".stdOut"
                 (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
                 os.remove(stdoutFile)
             except EnvironmentError as e:
-                logging.warning("Cannot extract measured values from output: " + e.strerror)
+                logging.warning("Cannot extract measured values from output for file {0}: {1}".format(run.sourcefile, e))
+                continue
 
+            outputHandler.outputBeforeRun(run)
             output = ''
             try:
                 with open(run.logFile) as f:
