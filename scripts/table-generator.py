@@ -316,9 +316,7 @@ class RunSetResult():
 
     @staticmethod
     def _extractAttributesFromResult(resultFile, resultTag):
-        systemTag = resultTag.find('systeminfo')
-        cpuTag = systemTag.find('cpu')
-        attributes = {
+        attributes = { # Defaults
                 'timelimit': None,
                 'memlimit':  None,
                 'cpuCores':  None,
@@ -326,14 +324,22 @@ class RunSetResult():
                 'benchmarkname': resultTag.get('benchmarkname'),
                 'name':      resultTag.get('name', resultTag.get('benchmarkname')),
                 'branch':    os.path.basename(resultFile).split('#')[0] if '#' in resultFile else '',
+                }
+        attributes.update(resultTag.attrib) # Update with real values
+
+        # Add system information if present
+        systemTag = resultTag.find('systeminfo')
+        if systemTag:
+            cpuTag = systemTag.find('cpu')
+            attributes.update({
                 'os':        systemTag.find('os').get('name'),
                 'cpu':       cpuTag.get('model'),
                 'cores':     cpuTag.get('cores'),
                 'freq':      cpuTag.get('frequency'),
                 'ram':       systemTag.find('ram').get('size'),
                 'host':      systemTag.get('hostname', 'unknown')
-                }
-        attributes.update(resultTag.attrib)
+                })
+
         return attributes
 
 
@@ -627,8 +633,15 @@ def getTableHead(runSetResults, commonFileNamePrefix):
     # It is used for calculating the column spans of the header cells.
     runSetWidths = [len(runSetResult.columns) for runSetResult in runSetResults]
 
-    def getRow(rowName, format, collapse=False):
-        values = [format.format(**runSetResult.attributes) for runSetResult in runSetResults]
+    def getRow(rowName, format, collapse=False, onlyIf=None):
+        def formatCell(attributes):
+            if onlyIf and not onlyIf in runSetResult.attributes:
+                formatStr = 'Unknown'
+            else:
+                formatStr = format
+            return formatStr.format(**attributes)
+
+        values = [formatCell(runSetResult.attributes) for runSetResult in runSetResults]
         if not any(values): return None # skip row without values completely
 
         valuesAndWidths = list(Util.collapseEqualValues(values, runSetWidths)) \
@@ -648,9 +661,9 @@ def getTableHead(runSetResults, commonFileNamePrefix):
 
     return {'tool':    getRow('Tool', '{tool} {version}', collapse=True),
             'limit':   getRow('Limits', 'timelimit: {timelimit}, memlimit: {memlimit}, CPU core limit: {cpuCores}', collapse=True),
-            'host':    getRow('Host', '{host}', collapse=True),
-            'os':      getRow('OS', '{os}', collapse=True),
-            'system':  getRow('System', 'CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}', collapse=True),
+            'host':    getRow('Host', '{host}', collapse=True, onlyIf='host'),
+            'os':      getRow('OS', '{os}', collapse=True, onlyIf='os'),
+            'system':  getRow('System', 'CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}', collapse=True, onlyIf='cpu'),
             'date':    getRow('Date of execution', '{date}', collapse=True),
             'runset':  getRow('Run set', '{name}' if allBenchmarkNamesEqual else '{benchmarkname}.{name}'),
             'branch':  getRow('Branch', '{branch}'),
