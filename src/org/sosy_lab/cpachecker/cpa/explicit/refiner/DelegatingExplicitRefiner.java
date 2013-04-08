@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
@@ -57,7 +58,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 /**
@@ -75,12 +75,6 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    * backup-refiner used for predicate refinement, when explicit refinement fails (due to lack of expressiveness)
    */
   private PredicateCPARefiner predicatingRefiner;
-
-  /**
-   * the mapping from precision identifiers to error trace identifiers,
-   * needed to check for repeated counterexamples, i.e., failed refinements
-   */
-  private Multimap<Integer, Integer> cexMap = HashMultimap.create();
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -171,42 +165,32 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
   protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath errorPath)
       throws CPAException, InterruptedException {
 
-    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
-    Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
+    // if path infeasible, refine the precision
+    if(!isPathFeasable(errorPath)) {
+      UnmodifiableReachedSet reachedSet = reached.asReachedSet();
+      Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
 
-    Multimap<CFANode, String> increment = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
-    ARGState interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
+      Multimap<CFANode, String> increment = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
+      ARGState interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
 
-    ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
-
-    if(!isRepeatedCex(errorPath, interpolationPoint, explicitPrecision)) {
-      cexMap.put(explicitPrecision.getRefinablePrecision().getID(), errorPath.toString().hashCode());
+      ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
 
       explicitPrecision = new ExplicitPrecision(explicitPrecision, increment);
       reached.removeSubtree(interpolationPoint, explicitPrecision);
+
       return CounterexampleInfo.spurious();
     }
 
-    else if (predicatingRefiner == null) {
-      return CounterexampleInfo.feasible(errorPath, null);
-    }
-
+    // if explicit analysis claims that path is feasible, refine predicate analysis if available
     else {
-      return predicatingRefiner.performRefinement(reached, errorPath);
-    }
-  }
+      if (predicatingRefiner == null) {
+        return CounterexampleInfo.feasible(errorPath, null);
+      }
 
-  /**
-   * This method checks whether or not the error path denotes a repeated counterexample or not.
-   *
-   * @param errorPath the error path of the counterexample
-   * @param interpolationPoint the current interpolation point
-   * @param explicitPrecision the current precision
-   * @return true if the counterexample is a repeated counterexample, else false
-   */
-  private boolean isRepeatedCex(final ARGPath errorPath, ARGState interpolationPoint, ExplicitPrecision explicitPrecision) {
-    return (interpolationPoint == null)
-        || (cexMap.containsEntry(explicitPrecision.getRefinablePrecision().getID(), errorPath.toString().hashCode()));
+      else {
+        return predicatingRefiner.performRefinement(reached, errorPath);
+      }
+    }
   }
 
   @Override
@@ -214,6 +198,25 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     pStatsCollection.add(explicitInterpolatingRefiner);
     if (predicatingRefiner != null) {
       predicatingRefiner.collectStatistics(pStatsCollection);
+    }
+  }
+
+  /**
+   * This method checks if the given path is feasible, when not tracking the given set of variables.
+   *
+   * @param path the path to check
+   * @return true, if the path is feasible, else false
+   * @throws CPAException if the path check gets interrupted
+   */
+  private boolean isPathFeasable(ARGPath path) throws CPAException {
+    try {
+      // create a new ExplicitPathChecker, which does not track any of the given variables
+      ExplictFeasibilityChecker checker = new ExplictFeasibilityChecker();
+
+      return checker.isFeasible(path);
+    }
+    catch (InterruptedException e) {
+      throw new CPAException("counterexample-check failed: ", e);
     }
   }
 }
