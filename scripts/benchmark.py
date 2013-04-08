@@ -482,7 +482,12 @@ class Run():
                 timeLimit = rlimits[TIMELIMIT] + 20
                 if self.wallTime > timeLimit or self.cpuTime > timeLimit:
                     self.status = "TIMEOUT"
-                    
+        if returnsignal == 9 \
+                and MEMLIMIT in rlimits \
+                and self.memUsage \
+                and self.memUsage >= (rlimits[MEMLIMIT] * 1024 * 1024):
+            status = 'OUT OF MEMORY'
+
         self.benchmark.outputHandler.outputAfterRun(self)
 
     def execute(self, numberOfThread):
