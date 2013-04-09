@@ -149,6 +149,19 @@ class FunctionScope implements Scope {
   }
 
   @Override
+  public String createScopedNameOf(String pName) {
+    return createQualifiedName(currentFunctionName, pName);
+  }
+
+  /**
+   * Take a name and return a name that is unconditionally qualified
+   * with the given function.
+   */
+  public static String createQualifiedName(String pFunction, String pName) {
+    return (pFunction + "::" + pName).intern();
+  }
+
+  @Override
   public void registerDeclaration(CSimpleDeclaration declaration) {
     assert declaration instanceof CVariableDeclaration
         || declaration instanceof CEnumerator

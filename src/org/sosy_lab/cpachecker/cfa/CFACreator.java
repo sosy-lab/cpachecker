@@ -575,6 +575,7 @@ public class CFACreator {
                                          v.getType(),
                                          v.getName(),
                                          v.getOrigName(),
+                                         v.getQualifiedName(),
                                          initializer);
 
             previouslyInitializedVariables.add(name);

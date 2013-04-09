@@ -36,9 +36,17 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 public abstract class CTypeDeclaration extends ADeclaration implements CDeclaration {
 
+  private final String qualifiedName;
+
   public CTypeDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
-      CType pType, String pName) {
+      CType pType, String pName, String pQualifiedName) {
     super(pFileLocation, pIsGlobal, pType, pName, pName);
+    qualifiedName = pQualifiedName;
+  }
+
+  @Override
+  public String getQualifiedName() {
+    return qualifiedName;
   }
 
   @Override

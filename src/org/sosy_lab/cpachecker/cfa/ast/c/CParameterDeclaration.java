@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 public final class CParameterDeclaration extends AParameterDeclaration implements CSimpleDeclaration {
 
+  private String qualifiedName;
+
   public CParameterDeclaration(FileLocation pFileLocation,
                                   CType pType,
                                   String pName) {
@@ -42,6 +44,15 @@ public final class CParameterDeclaration extends AParameterDeclaration implement
   }
 
 
+  public void setQualifiedName(String pQualifiedName) {
+    checkState(qualifiedName == null);
+    qualifiedName = checkNotNull(pQualifiedName);
+  }
+
+  @Override
+  public String getQualifiedName() {
+    return qualifiedName;
+  }
 
   @Override
   public CType getType() {

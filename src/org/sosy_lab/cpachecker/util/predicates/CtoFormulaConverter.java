@@ -364,12 +364,14 @@ public class CtoFormulaConverter {
       if (decl instanceof CDeclaration) {
         isGlobal = ((CDeclaration)decl).isGlobal();
       }
+      assert decl != null : exp;
       String simpleName;
       if (isGlobal) {
         simpleName = var.getName();
       } else {
         simpleName = scoped(var.getName(), function);
       }
+      assert simpleName.equals(decl.getQualifiedName());
       name = Variable.create(simpleName, exp.getExpressionType());
     } else if (exp instanceof CFieldReference) {
       CFieldReference fExp = (CFieldReference) exp;
@@ -1290,6 +1292,7 @@ public class CtoFormulaConverter {
     } else {
       varName = scoped(varNameWithoutFunction, function);
     }
+    assert varName.equals(decl.getQualifiedName());
 
     // if the var is unsigned, add the constraint that it should
     // be > 0
@@ -1463,6 +1466,7 @@ public class CtoFormulaConverter {
       Formula actualParam = buildTerm(paramExpression, edge, callerFunction, ssa, constraints);
 
       String varName = scoped(formalParamName, calledFunction);
+      assert varName.equals(formalParam.getQualifiedName());
       CType paramType = formalParam.getType();
       BooleanFormula eq =
           makeAssignment(
