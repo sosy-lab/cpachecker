@@ -29,6 +29,7 @@ import java.util.Map;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
+import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
@@ -135,7 +136,16 @@ abstract class AbstractEclipseCParser<T> implements CParser {
   private IASTTranslationUnit parse(T codeReader) throws CParserException {
     parseTimer.start();
     try {
-      return getASTTranslationUnit(codeReader);
+      IASTTranslationUnit result = getASTTranslationUnit(codeReader);
+
+      // Report the preprocessor problems.
+      // TODO this shows only the first problem
+      for (IASTProblem problem : result.getPreprocessorProblems()) {
+        throw new CFAGenerationRuntimeException(problem);
+      }
+
+      return result;
+
     } catch (CFAGenerationRuntimeException e) {
       // thrown by StubCodeReaderFactory
       throw new CParserException(e);
