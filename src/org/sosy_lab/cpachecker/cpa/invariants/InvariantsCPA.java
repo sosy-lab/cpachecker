@@ -42,7 +42,10 @@ public class InvariantsCPA extends AbstractCPA {
     @Option(values={"JOIN", "SEP"}, toUppercase=true,
         description="which merge operator to use for InvariantCPA")
     private String merge = "JOIN";
+
   }
+
+  private final int evaluationThreshold;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(InvariantsCPA.class).withOptions(InvariantsOptions.class);
@@ -50,10 +53,11 @@ public class InvariantsCPA extends AbstractCPA {
 
   public InvariantsCPA(InvariantsOptions options) {
     super(options.merge, "sep", InvariantsDomain.INSTANCE, InvariantsTransferRelation.INSTANCE);
+    this.evaluationThreshold = 2; // TODO config
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return new InvariantsState();
+    return new InvariantsState(this.evaluationThreshold);
   }
 }
