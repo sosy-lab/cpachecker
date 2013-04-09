@@ -979,6 +979,16 @@ public class CtoFormulaConverter {
       }
     }
 
+    if (pT1 instanceof CPointerType && pT2 instanceof CFunctionType) {
+      if (((CPointerType)pT1).getType() instanceof CFunctionType) {
+        return pT1;
+      }
+    } else if (pT2 instanceof CPointerType && pT1 instanceof CPointerType) {
+      if (((CPointerType)pT2).getType() instanceof CFunctionType) {
+        return pT2;
+      }
+    }
+
     if (pT1.equals(pT2)) {
       return pT1;
     }
