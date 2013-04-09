@@ -29,6 +29,7 @@ import java.util.Map;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
+import org.eclipse.cdt.core.dom.ast.IASTPreprocessorIncludeStatement;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
@@ -137,6 +138,11 @@ abstract class AbstractEclipseCParser<T> implements CParser {
     parseTimer.start();
     try {
       IASTTranslationUnit result = getASTTranslationUnit(codeReader);
+
+      IASTPreprocessorIncludeStatement[] includes = result.getIncludeDirectives();
+      if (includes.length > 0) {
+        throw new CParserException("File has #include directives and needs to be pre-processed.");
+      }
 
       // Report the preprocessor problems.
       // TODO this shows only the first problem
