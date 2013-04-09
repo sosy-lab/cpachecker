@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -57,9 +56,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -344,14 +343,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     String functionName = declEdge.getPredecessor().getFunctionName();
 
     // get name of declaration
-    String name = decl.getName();
-    if (name == null) {
-      // not a variable declaration
-      return;
-    }
-    if (!decl.isGlobal()) {
-      name = scoped(name, functionName);
-    }
+    String name = decl.getQualifiedName();
 
     // get initial value
     FunctionPointerTarget initialValue = invalidFunctionPointerTarget;
@@ -396,20 +388,19 @@ class FunctionPointerTransferRelation implements TransferRelation {
   private void handleFunctionCall(FunctionPointerState.Builder pNewState, CFunctionCallEdge callEdge) throws UnrecognizedCCodeException {
 
     CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
-    String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
-    List<String> paramNames = functionEntryNode.getFunctionParameterNames();
+    List<CParameterDeclaration> formalParams = functionEntryNode.getFunctionParameters();
     List<CExpression> arguments = callEdge.getArguments();
 
     if (functionEntryNode.getFunctionDefinition().getType().takesVarArgs()) {
-      if (paramNames.size() > arguments.size()) {
+      if (formalParams.size() > arguments.size()) {
         throw new UnrecognizedCCodeException("Number of parameters on function call does " +
             "not match function definition", callEdge);
       }
 
     } else {
-      if (paramNames.size() != arguments.size()) {
+      if (formalParams.size() != arguments.size()) {
         throw new UnrecognizedCCodeException("Number of parameters on function call does " +
             "not match function definition", callEdge);
       }
@@ -418,8 +409,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
     // used to get value in caller context
     ExpressionValueVisitor v = new ExpressionValueVisitor(pNewState, callerFunctionName, invalidFunctionPointerTarget);
 
-    for (int i=0; i < paramNames.size(); i++) {
-      String paramName = scoped(paramNames.get(i), calledFunctionName);
+    for (int i=0; i < formalParams.size(); i++) {
+      String paramName = formalParams.get(i).getQualifiedName();
       CExpression actualArgument = arguments.get(i);
 
       FunctionPointerTarget target = actualArgument.accept(v);
@@ -584,24 +575,9 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
   // looks up the variable in the current namespace
   private static String scopedIfNecessary(CIdExpression var, String function) {
-    CSimpleDeclaration decl = var.getDeclaration();
-    boolean isGlobal = false;
-    if (decl instanceof CDeclaration) {
-      isGlobal = ((CDeclaration)decl).isGlobal();
-    }
-
-    if (isGlobal) {
-      return var.getName();
-    } else {
-      return scoped(var.getName(), function);
-    }
+    return var.getDeclaration().getQualifiedName();
   }
 
-  // prefixes function to variable name
-  // Call only if you are sure you have a local variable!
-  private static String scoped(String var, String function) {
-    return function + "::" + var;
-  }
 
   @Override
   public Collection<? extends AbstractState> strengthen(
