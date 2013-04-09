@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 
-public class TooComplexVisitor implements CExpressionVisitor<Boolean, Exception> {
+public class TooComplexVisitor implements CExpressionVisitor<Boolean, RuntimeException> {
 
   private final boolean handleFieldAccess;
 
@@ -46,66 +46,66 @@ public class TooComplexVisitor implements CExpressionVisitor<Boolean, Exception>
   }
 
   @Override
-  public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws Exception {
+  public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
     return true;
   }
 
   @Override
-  public Boolean visit(CBinaryExpression pIastBinaryExpression) throws Exception {
+  public Boolean visit(CBinaryExpression pIastBinaryExpression) {
     return
         pIastBinaryExpression.getOperand1().accept(this) ||
         pIastBinaryExpression.getOperand2().accept(this);
   }
 
   @Override
-  public Boolean visit(CCastExpression pIastCastExpression) throws Exception {
+  public Boolean visit(CCastExpression pIastCastExpression) {
     return pIastCastExpression.getOperand().accept(this);
   }
 
   @Override
-  public Boolean visit(CFieldReference pIastFieldReference) throws Exception {
+  public Boolean visit(CFieldReference pIastFieldReference) {
     return
         handleFieldAccess &&
         CtoFormulaTypeUtils.getRealFieldOwner(pIastFieldReference).accept(this);
   }
 
   @Override
-  public Boolean visit(CIdExpression pIastIdExpression) throws Exception {
+  public Boolean visit(CIdExpression pIastIdExpression) {
     return false;
   }
 
   @Override
-  public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) throws Exception {
+  public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) {
     return false;
   }
 
   @Override
-  public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws Exception {
+  public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
     return false;
   }
 
   @Override
-  public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws Exception {
+  public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
     return false;
   }
 
   @Override
-  public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression) throws Exception {
+  public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression) {
     return false;
   }
 
   @Override
-  public Boolean visit(CTypeIdExpression pIastTypeIdExpression) throws Exception {
+  public Boolean visit(CTypeIdExpression pIastTypeIdExpression) {
     return false;
   }
 
   @Override
-  public Boolean visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws Exception {
+  public Boolean visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) {
     return false;
   }
 
   @Override
-  public Boolean visit(CUnaryExpression pIastUnaryExpression) throws Exception {
+  public Boolean visit(CUnaryExpression pIastUnaryExpression) {
     return pIastUnaryExpression.getOperand().accept(this);
   }
 

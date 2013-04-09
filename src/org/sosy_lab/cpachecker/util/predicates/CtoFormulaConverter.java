@@ -2150,16 +2150,11 @@ public class CtoFormulaConverter {
   }
 
   private boolean isTooComplexExpression(CExpression c) {
-    try {
-      if (!c.accept(tooComplexVisitor)) {
-        return false;
-      }
-
-      return CtoFormulaTypeUtils.getIndirectionLevel(c) > supportedIndirectionLevel;
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw new AssertionError("No idea what happened", e);
+    if (!c.accept(tooComplexVisitor)) {
+      return false;
     }
+
+    return CtoFormulaTypeUtils.getIndirectionLevel(c) > supportedIndirectionLevel;
   }
 
   private class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
