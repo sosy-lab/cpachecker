@@ -359,20 +359,7 @@ public class CtoFormulaConverter {
     Variable name;
     if (exp instanceof CIdExpression) {
       CIdExpression var = (CIdExpression) exp;
-      CSimpleDeclaration decl = var.getDeclaration();
-      boolean isGlobal = false;
-      if (decl instanceof CDeclaration) {
-        isGlobal = ((CDeclaration)decl).isGlobal();
-      }
-      assert decl != null : exp;
-      String simpleName;
-      if (isGlobal) {
-        simpleName = var.getName();
-      } else {
-        simpleName = scoped(var.getName(), function);
-      }
-      assert simpleName.equals(decl.getQualifiedName());
-      name = Variable.create(simpleName, exp.getExpressionType());
+      name = Variable.create(var.getDeclaration().getQualifiedName(), exp.getExpressionType());
     } else if (exp instanceof CFieldReference) {
       CFieldReference fExp = (CFieldReference) exp;
       CExpression owner = getRealFieldOwner(fExp);
@@ -452,6 +439,14 @@ public class CtoFormulaConverter {
   */
   private static String scoped(String var, String function) {
     return function + "::" + var;
+  }
+
+  /**
+   * Create a variable name that is used to store the return value of a function
+   * temporarily (between the return statement and the re-entrance in the caller function).
+   */
+  private static String getReturnVarName(String function) {
+    return scoped(VAR_RETURN_NAME, function);
   }
 
   /**
@@ -1284,15 +1279,7 @@ public class CtoFormulaConverter {
     }
 
     CVariableDeclaration decl = (CVariableDeclaration)edge.getDeclaration();
-
-    String varNameWithoutFunction = decl.getName();
-    String varName;
-    if (decl.isGlobal()) {
-      varName = varNameWithoutFunction;
-    } else {
-      varName = scoped(varNameWithoutFunction, function);
-    }
-    assert varName.equals(decl.getQualifiedName());
+    final String varName = decl.getQualifiedName();
 
     // if the var is unsigned, add the constraint that it should
     // be > 0
@@ -1361,7 +1348,7 @@ public class CtoFormulaConverter {
 
     } else if (retExp instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
-      String retVarName = scoped(VAR_RETURN_NAME, function);
+      String retVarName = getReturnVarName(function);
 
       CFunctionCallExpression funcCallExp = exp.getRightHandSide();
       CType retType = getReturnType(funcCallExp, ce);
@@ -1429,17 +1416,15 @@ public class CtoFormulaConverter {
     CFunctionEntryNode fn = edge.getSuccessor();
     List<CParameterDeclaration> formalParams = fn.getFunctionParameters();
 
-    String calledFunction = fn.getFunctionName();
-
     if (fn.getFunctionDefinition().getType().takesVarArgs()) {
       if (formalParams.size() > actualParams.size()) {
         throw new UnrecognizedCCodeException("Number of parameters on function call does " +
             "not match function definition", edge);
       }
 
-      if (!SAFE_VAR_ARG_FUNCTIONS.contains(calledFunction)) {
+      if (!SAFE_VAR_ARG_FUNCTIONS.contains(fn.getFunctionName())) {
         log(Level.WARNING, "Ignoring parameters passed as varargs to function "
-                           + calledFunction + " in line " + edge.getLineNumber());
+                           + fn.getFunctionName() + " in line " + edge.getLineNumber());
       }
 
     } else {
@@ -1452,21 +1437,16 @@ public class CtoFormulaConverter {
     int i = 0;
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (CParameterDeclaration formalParam : formalParams) {
-      // get formal parameter name
-      String formalParamName = formalParam.getName();
-      assert (!formalParamName.isEmpty()) : edge;
-
       if (formalParam.getType() instanceof CPointerType) {
         log(Level.WARNING, "Program contains pointer parameter; analysis is imprecise in case of aliasing.");
         logDebug("Ignoring the semantics of pointer for parameter "
-            + formalParamName, fn.getFunctionDefinition());
+            + formalParam.getName(), fn.getFunctionDefinition());
       }
       CExpression paramExpression = actualParams.get(i++);
       // get value of actual parameter
       Formula actualParam = buildTerm(paramExpression, edge, callerFunction, ssa, constraints);
 
-      String varName = scoped(formalParamName, calledFunction);
-      assert varName.equals(formalParam.getQualifiedName());
+      final String varName = formalParam.getQualifiedName();
       CType paramType = formalParam.getType();
       BooleanFormula eq =
           makeAssignment(
@@ -1492,7 +1472,7 @@ public class CtoFormulaConverter {
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
       Formula retval = buildTerm(rightExp, edge, function, ssa, constraints);
-      String retVarName = scoped(VAR_RETURN_NAME, function);
+      String retVarName = getReturnVarName(function);
 
       CType expressionType = rightExp.getExpressionType();
       CType returnType =
