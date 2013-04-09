@@ -512,13 +512,13 @@ cpa.explicit.precision.reachedSet.defaultThreshold = -1
 
 # whether or not to add newly-found variables only to the exact program
 # location or to the respective scope of the variable.
-cpa.explicit.precision.scope = "location-scope"
+cpa.explicit.precision.scope = "function-scope"
 
 # target file to hold the exported precision
 cpa.explicit.precisionFile = no default value
 
 # whether or not to do lazy-abstraction
-cpa.explicit.refiner.doLazyAbstraction = true
+cpa.explicit.refiner.doLazyAbstraction = false
 
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"
@@ -642,6 +642,9 @@ cpa.predicate.checkBlockFeasibility = false
 
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
+
+# Enable mining of predicates from the CFA (preprocessing).
+cpa.predicate.enablePrecisionMiner = false
 
 # Name of an external function that will be interpreted as if the function
 # call would be replaced by an externally defined expression over the program
@@ -888,12 +891,28 @@ parser.preprocessor = "cpp"
 # not the original input file.
 parser.usePreprocessor = false
 
+# file in which proof representation needed for proof checking is stored
+# file in which ARG representation needed for proof checking is stored
+pcc.proofFile = "arg.obj"
+
 # defines proof representation, either abstract reachability graph or set of
 # reachable abstract states
 pcc.proofType = "ARG"
   allowed values: [ARG, SET, PSET]
 
+# Flag indicating if analysis which constructed proof adjusted precisions
+# during computation.
+pcc.proofcheck.precision = true
+
+# Qualified name for class which checks that the computed abstraction adheres
+# to the desired property.
+pcc.proofcheck.propertychecker = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker"
+
 pcc.proofgen.doPCC = false
+
+# Max. depth of the scan for predicates backwards from a target (error)
+# location.
+predicate.mining.maxBackscanDepth = 5
 
 # print reached set to text file
 reachedSet.export = true
