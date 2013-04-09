@@ -30,7 +30,10 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -40,9 +43,11 @@ import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -56,6 +61,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -103,12 +109,14 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  private static final String CPA_CLASS_PREFIX ="org.sosy_lab.cpachecker";
+
   private final CPAStatistics stats = new CPAStatistics();
   private final ConfigurableProgramAnalysis cpa;
   private final LogManager logger;
 
-  //@Option(name = "pcc.proofFile", description = "file in which ARG representation needed for proof checking is stored")
-  //@FileOption(FileOption.Type.OUTPUT_FILE)
+  @Option(name = "pcc.proofFile", description = "file in which ARG representation needed for proof checking is stored")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
   private File file = new File("arg.obj");
 
   @Option(
@@ -122,8 +130,14 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       description = "Flag indicating if analysis which constructed proof adjusted precisions during computation.")
   private boolean considerPrecisionAdjustment = true;
 
+  @Option(
+      name = "pcc.proofcheck.propertychecker",
+      description = "Qualified name for class which checks that the computed abstraction adheres to the desired property.")
+  private String checkerClass = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker";
+
   private final Object proof;
-  private Multimap<CFANode, AbstractState> statesPerLocation = null;
+  private Multimap<CFANode, AbstractState> statesPerLocation;
+  private PropertyChecker propertyChecker;
 
 
   public ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig, LogManager logger)
@@ -192,6 +206,8 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     stats.totalTimer.start();
     stats.preparationTimer.start();
 
+    createPropertyChecker();
+
     try {
       if (pccType.equals("ARG")) {
         if (considerPrecisionAdjustment && !(cpa instanceof ProofChecker)) { throw new InvalidConfigurationException(
@@ -218,13 +234,41 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     return pReadProof;
   }
 
+  private void createPropertyChecker() throws InvalidConfigurationException {
+    if (checkerClass == null) { throw new InvalidConfigurationException(
+        "No property checker defined. Please specifiy a class which "); }
+
+    Class<?> propertyCheckerClass;
+    try {
+      propertyCheckerClass = Classes.forName(checkerClass, CPA_CLASS_PREFIX);
+    } catch (ClassNotFoundException e) {
+      throw new InvalidConfigurationException(
+          "Option pcc.proofcheck.propertychecker is set to unknown PropertyChecker " + checkerClass, e);
+    }
+
+    if (!PropertyChecker.class.isAssignableFrom(propertyCheckerClass)) { throw new InvalidConfigurationException(
+        "Option pcc.proofcheck.propertychecker must be set to a class implementing the PropertyChecker interface!"); }
+
+    // construct property checker instance
+    try {
+      Constructor<?> cons = propertyCheckerClass.getConstructor();
+      propertyChecker = (PropertyChecker) cons.newInstance((Object[]) null);
+    } catch (NoSuchMethodException | SecurityException e) {
+      throw new UnsupportedOperationException(
+          "Cannot create PropertyChecker if it does not provide the default constructor.");
+    } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+      throw new UnsupportedOperationException(
+          "Creation of specified PropertyChecker instance failed.", e);
+    }
+  }
+
   @Override
   public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     if (proof == null)
       return false;
 
     stats.totalTimer.start();
-
+// TODO put different check algorithms (methods) in own classes
     logger.log(Level.INFO, "Proof check algorithm started");
     boolean result = false;
 
@@ -305,7 +349,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
         logger.log(Level.FINE, "Looking at state", state);
 
-        if (state.isTarget()) { return false; }
+        if (propertyChecker.satisfiesProperty(state)) { return false; }
 
         if (state.isCovered()) {
 
@@ -376,7 +420,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   private boolean checkARG2(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     ARGState rootState = (ARGState) proof;
     StopOperator stop = ((ARGCPA) cpa).getWrappedCPAs().get(0).getStopOperator();
-
+// TODO include property checking
     stats.totalTimer.start();
 
     logger.log(Level.INFO, "Proof check algorithm started");
@@ -495,7 +539,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     // check if elements form transitive closure
     Collection<? extends AbstractState> successors;
     for (AbstractState state : certificate) {
-      // TODO here a check for property must be added, may better on all elements
 
       CPAchecker.stopIfNecessary();
       stats.countIterations++;
@@ -525,7 +568,8 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         return false;
       }
     }
-    return true;
+
+    return propertyChecker.satisfiesProperty(Arrays.asList(certificate));
   }
 
   private boolean checkPartialReachedSet(final ReachedSet reachedSet) throws CPAException, InterruptedException {
@@ -560,7 +604,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     // check if elements form transitive closure
     Collection<? extends AbstractState> successors;
     while (!certificate.isEmpty()) {
-      // TODO here a check for property must be added, may be better on all elements
 
       CPAchecker.stopIfNecessary();
       stats.countIterations++;
@@ -596,7 +639,8 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         return false;
       }
     }
-    return true;
+
+    return propertyChecker.satisfiesProperty(statesPerLocation.values());
   }
 
   private void addElement(AbstractState element, List<AbstractState> insertIn) {
