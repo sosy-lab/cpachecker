@@ -2657,7 +2657,6 @@ public class CtoFormulaConverter {
       if (fn instanceof CIdExpression) {
         func = ((CIdExpression)fn).getName();
         if (func.equals(ASSUME_FUNCTION_NAME) && pexps.size() == 1) {
-          System.out.println("Assume!");
           BooleanFormula condition = fmgr.toBooleanFormula(pexps.get(0).accept(this));
           constraints.addConstraint(condition);
 
