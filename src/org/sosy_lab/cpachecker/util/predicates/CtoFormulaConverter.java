@@ -179,6 +179,9 @@ public class CtoFormulaConverter {
      + " This will only work when all variables referenced by the dimacs file are global and declared before this function is called.")
   private String externModelFunctionName = "__VERIFIER_externModelSatisfied";
 
+  @Option(description="Name of function that takes a invariant that is valid (lemma) on the location of the function call.")
+  private String invariantAssumeFunctionName = "__VERIFIER_invariant";
+
   @Option(description = "Handle aliasing of pointers. "
         + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
   private boolean handlePointerAliasing = true;
@@ -189,6 +192,7 @@ public class CtoFormulaConverter {
       "malloc", "__kmalloc", "kzalloc"
       );
 
+  public static final String SCOPE_SEPARATOR = "::";
   private static final String ASSUME_FUNCTION_NAME = "__VERIFIER_assume";
 
   // list of functions that are pure (no side-effects)
@@ -438,7 +442,7 @@ public class CtoFormulaConverter {
   * Call only if you are sure you have a local variable!
   */
   private static String scoped(String var, String function) {
-    return function + "::" + var;
+    return function + SCOPE_SEPARATOR + var;
   }
 
   /**
@@ -2657,7 +2661,7 @@ public class CtoFormulaConverter {
       if (fn instanceof CIdExpression) {
         func = ((CIdExpression)fn).getName();
         if (func.equals(ASSUME_FUNCTION_NAME) && pexps.size() == 1) {
-
+          System.out.println("Assume!");
           BooleanFormula condition = fmgr.toBooleanFormula(pexps.get(0).accept(this));
           constraints.addConstraint(condition);
 
@@ -2681,6 +2685,18 @@ public class CtoFormulaConverter {
               fmgr.makeNumber(returnFormulaType, 0));
           return f;
 
+        } else if (invariantAssumeFunctionName.equals(func)){
+          assert (pexps.size()>0): "No assumption (invariant) given as argument!";
+//
+////          return makePredicate(assume.getExpression(), assume.getTruthAssumption(),
+////              assume, function, ssa, constraints);
+//          BooleanFormula externalModel = loadExternalFormula(modelFile);
+//          FormulaType<?> returnFormulaType = getFormulaTypeFromCType(fexp.getExpressionType());
+//          Formula f = bfmgr.ifThenElse(externalModel,
+//              fmgr.makeNumber(returnFormulaType, 1),
+//              fmgr.makeNumber(returnFormulaType, 0));
+//          return f;
+
         } else if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), edge, fexp);
 
@@ -2694,7 +2710,7 @@ public class CtoFormulaConverter {
         }
       } else {
         log(Level.WARNING, getLogMessage("Ignoring function call through function pointer", fexp));
-        func = "<func>{" + function + "::" + fn.toASTString() + "}";
+        func = "<func>{" + function + SCOPE_SEPARATOR + fn.toASTString() + "}";
       }
 
       if (pexps.isEmpty()) {
