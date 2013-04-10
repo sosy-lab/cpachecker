@@ -118,6 +118,7 @@ public final class Z3NativeApi {
   public static native long mk_eq(long context, long a1, long a2);
   private static native long mk_distinct(long context, int len, long[] as);
   public static native long mk_not(long context, long a1);
+  public static native long mk_interp(long context, long a1);
   public static native long mk_ite(long context, long a1, long a2, long a3);
   public static native long mk_iff(long context, long a1, long a2);
   public static native long mk_implies(long context, long a1, long a2);
@@ -619,4 +620,20 @@ public final class Z3NativeApi {
   public static native boolean stats_is_double(long context, long stats, int i);
   public static native int stats_get_uint_value(long context, long stats, int i);
   public static native double stats_get_double_value(long context, long stats, int i);
+
+  // INTERPOLATION
+  public static native long mk_interpolation_context(long config);
+  private static native int interpolate(long context, int num, long[] cnsts, int[] parents, long options, long[] interps, PointerToLong model, PointerToLong labels, int incremental, int num_theory, long[] theory);
+  private static native int interpolateSeq(long context, int num, long[] cnsts, long[] interps, PointerToLong model, PointerToLong labels, int incremental, int num_theory, long[] theory);
+
+  public static native String interpolation_profile(long context);
+
+  public static int interpolate(long context, long[] cnsts, int[] parents, long options, long[] interps, PointerToLong model, PointerToLong labels, int incremental, long[] theory) {
+    return interpolate(context, cnsts.length, cnsts, parents, options, interps, model, labels, incremental, theory.length, theory);
+  }
+
+  public static int interpolateSeq(long context, long[] cnsts, long[] interps, PointerToLong model, PointerToLong labels, int incremental, long[] theory) {
+    return interpolateSeq(context, cnsts.length, cnsts, interps, model, labels, incremental, theory.length, theory);
+  }
+
 }

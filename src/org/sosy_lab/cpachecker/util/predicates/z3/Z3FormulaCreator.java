@@ -51,6 +51,10 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
     return Z3FormulaManager.getZ3Expr(pT);
   }
 
+  public Formula encapsulateUnsafe(Long pTerm) {
+    return new Z3Formula(getEnv(), pTerm);
+  }
+
   @SuppressWarnings("unchecked")
   @Override
   public <T extends Formula> T encapsulate(Class<T> pClazz, Long pTerm) {
@@ -64,6 +68,6 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
     } else {
       throw new IllegalArgumentException("invalid interface type");
     }
-    return (T)f;
+    return (T) f;
   }
 }

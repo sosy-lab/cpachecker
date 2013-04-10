@@ -62,12 +62,30 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
   public static synchronized Z3FormulaManager create(LogManager logger, Configuration config, boolean useIntegers)
       throws InvalidConfigurationException {
 
+    /*
+    Following method is part of the file "api_interp.cpp" from Z3.
+    It returns a default context, only some params are set.
+    We assume, that if we set the same params in a default context,
+    interpolation should be possible with that context.
+    TODO check this
+
+    Z3_context Z3_mk_interpolation_context(Z3_config cfg){
+      if(!cfg) cfg = Z3_mk_config();
+      Z3_set_param_value(cfg, "PROOF", "true");
+      Z3_set_param_value(cfg, "MODEL", "true");
+      Z3_context ctx = Z3_mk_context(cfg);
+      Z3_del_config(cfg);
+      return ctx;
+    }
+    */
+
     long cfg = mk_config();
-    set_param_value(cfg, "MODEL", "true");
+    set_param_value(cfg, "MODEL", "true"); // this option is needed also without interpolation
+    set_param_value(cfg, "PROOF", "true");
     // TODO add some other params
 
     // we use the new reference-counting-context,
-    // because it will be default soon, 22.03.2013
+    // because it will be default sometimes in future, 22.03.2013
     final long context = mk_context_rc(cfg);
     del_config(cfg);
 
@@ -79,11 +97,19 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
       numeralSort = mk_real_sort(context);
     }
 
+    // we use those sorts multiple times and they are Z3_ASTs,
+    // so we need to increment their reference-counters.
+    // TODO really??
+    inc_ref(context, sort_to_ast(context, boolSort));
+    inc_ref(context, sort_to_ast(context, numeralSort));
+
     CreateBitType<Long> cbt = new CreateBitType<Long>() {
 
       @Override
       public Long fromSize(int pSize) {
-        return mk_bv_sort(context, pSize);
+        long bvSort = mk_bv_sort(context, pSize);
+        inc_ref(context, sort_to_ast(context, bvSort));
+        return bvSort;
       }
     };
 

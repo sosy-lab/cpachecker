@@ -4,14 +4,20 @@ DEBUG=False
 
 # filter comments and stuff
 
-text = open("z3/src/api/z3_api.h").read()
+text = open("z3_api.h").read()
+
 text = text[text.find("interface Z3 {")+15:]
+deprecatedBlock = False
 comment=False
 out1 = []
 for i,c in enumerate(text):
+
+  # skip deprecated functions
+  if text[i:i+17] == "@name Deprecated ": deprecatedBlock = True
+  if text[i:i+5] == "/*@}*": deprecatedBlock = False
   if text[i] == "/" and text[i+1] == "*": comment=True
   if text[i-1] == "/" and text[i-2] == "*": comment=False
-  if not comment: out1.append(c)
+  if not comment and not deprecatedBlock: out1.append(c)
 
 tmp1 = "".join(out1)
 if DEBUG: open("out1","w").write(tmp1)
@@ -48,9 +54,10 @@ for line in tmp2.splitlines():
     continue
   if extBlock: continue
   
-  if "Z3_mk_injective_function" in line: break # after that point, there are only deprecated functions
   if "fptr" in line: continue # functionpointers currently unsupported
   if "set_error_handler" in line: continue # not supported
+  if "_interpolation_problem" in line: continue # not supported
+  if "_check_interpolant" in line: continue # not supported
   if line.startswith("typedef"): continue
   line = line.replace(" Z3_API ", " ")
   line = line.replace("const ", " ")  
@@ -143,8 +150,16 @@ for line in tmp3.splitlines():
                 checkAndClean(inp, "ARG", i)
           
         # mod + type + pname[]
-        elif mod.startswith("__in_ecount("):
-            assert len(parts) == 3 and parts[2].endswith("[]")
+        elif mod.startswith("__in_ecount(") \
+                and len(parts) == 3 and parts[2].endswith("[]"):
+            typ = parts[1]
+            typs.append(getType(typ) + "_array")
+            inp = typ.replace("Z3_", "").upper()
+            checkAndClean(inp, "ARRAY_ARG", i)
+
+        # mod + type + * + pname --> in java we use an array
+        elif mod.startswith("__in_ecount("): 
+            assert len(parts) == 4 and parts[2] is "*"
             typ = parts[1]
             typs.append(getType(typ) + "_array")
             inp = typ.replace("Z3_", "").upper()
@@ -192,8 +207,22 @@ for line in tmp3.splitlines():
             cleanups.insert(0, "SET_" + inp + "_OUT_ARRAY_ARG(" + str(i+1) + ")")
       
         # "__out_ecount(num_sorts) Z3_sort sorts[]"
+        elif mod.startswith("__out_ecount(") \
+            and len(parts) == 3 and parts[2].endswith("[]"):
+            
+            #lenParam = mod[13 : -1] # value of __out_ecount()
+            #pnames = [p.split()[-1] for p in params]
+            #numLenParam = pnames.index(lenParam)
+
+            typ = parts[1]
+            typs.append(getType(typ) + "_array")
+            inp = typ.replace("Z3_", "").upper()
+            checkAndClean(inp, "OUT_ARRAY_ARG", i)
+            cleanups.insert(0, "SET_" + inp + "_OUT_ARRAY_ARG(" + str(i+1) + ")")
+        
+        # "__out_ecount(num_sorts) Z3_sort sorts[]"
         elif mod.startswith("__out_ecount("):
-            assert len(parts) == 3 and parts[2].endswith("[]")
+            assert len(parts) == 4 and parts[2] is "*"
             
             #lenParam = mod[13 : -1] # value of __out_ecount()
             #pnames = [p.split()[-1] for p in params]

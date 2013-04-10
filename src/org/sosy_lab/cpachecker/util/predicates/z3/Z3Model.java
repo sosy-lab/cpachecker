@@ -161,12 +161,16 @@ public class Z3Model {
     int n = model_get_num_consts(z3context, z3model);
     for (int i = 0; i < n; i++) {
       long keyDecl = model_get_const_decl(z3context, z3model, i);
+      inc_ref(z3context, keyDecl);
 
       Preconditions.checkArgument(get_arity(z3context, keyDecl) == 0,
           "declaration is no constant");
 
       long var = mk_app(z3context, keyDecl);
+      inc_ref(z3context, var);
+
       long value = model_get_const_interp(z3context, z3model, keyDecl);
+      inc_ref(z3context, value);
 
       long equivalence = mk_eq(z3context, var, value);
       // TODO why is there a problem without next line

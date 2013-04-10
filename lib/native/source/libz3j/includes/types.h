@@ -192,6 +192,11 @@ typedef jobject jJ_func_decl_pointer;
 #define SET_FUNC_DECL_POINTER_ARG(num) SET_LONG_POINTER_ARG(num)
 #define CLEAN_FUNC_DECL_POINTER_ARG(num) CLEAN_LONG_POINTER_ARG(num)
 
+typedef jobject jJ_literals_pointer;
+#define LITERALS_POINTER_ARG(num) STRUCT_POINTER_ARG(Z3_literals, num)
+#define SET_LITERALS_POINTER_ARG(num) SET_LONG_POINTER_ARG(num)
+#define CLEAN_LITERALS_POINTER_ARG(num) CLEAN_LONG_POINTER_ARG(num)
+
 typedef jobject junsigned_pointer;
 #define UNSIGNED_POINTER_ARG(num) STRUCT_POINTER_ARG(unsigned, num)
 #define SET_UNSIGNED_POINTER_ARG(num) SET_INT_POINTER_ARG(num)
@@ -208,6 +213,10 @@ typedef jobject junsigned_int64_pointer;
 #define CLEAN_UNSIGNED_INT64_POINTER_ARG(num) CLEAN_LONG_POINTER_ARG(num)
 
 typedef jobject jJ_model_pointer;
+#define MODEL_POINTER_ARG(num) STRUCT_POINTER_ARG(Z3_model, num)
+#define SET_MODEL_POINTER_ARG(num) SET_LONG_POINTER_ARG(num)
+#define CLEAN_MODEL_POINTER_ARG(num) CLEAN_LONG_POINTER_ARG(num)
+
 #define CONSTRUCTOR_LIST_RETURN_WITH_CONTEXT STRUCT_RETURN_WITH_CONTEXT
 
 
@@ -220,6 +229,9 @@ typedef jintArray junsigned_array;
 typedef jlongArray jJ_ast_array;
 #define AST_ARRAY_ARG(num) ARRAY_ARG(Z3_ast, num)
 #define CLEAN_AST_ARRAY_ARG(num) CLEAN_STRUCT_ARRAY_ARG(num)
+#define AST_OUT_ARRAY_ARG(num) AST_ARRAY_ARG(num)
+#define CLEAN_AST_OUT_ARRAY_ARG(num) CLEAN_AST_ARRAY_ARG(num)
+#define SET_AST_OUT_ARRAY_ARG(num) FILL_ARRAY_ARG(num)
 
 typedef jlongArray jJ_func_decl_array;
 #define FUNC_DECL_ARRAY_ARG(num) ARRAY_ARG(Z3_func_decl, num)

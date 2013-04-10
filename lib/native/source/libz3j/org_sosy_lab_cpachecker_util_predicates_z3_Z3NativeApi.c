@@ -7,6 +7,7 @@
 #include"includes/function.h"
 #include"includes/arguments.h"
 #include"includes/types.h"
+#include"includes/interpolation.h"
 
 DEFINE_FUNC(void, global_1param_1set) WITH_2_ARGS(J_string, J_string)
 STRING_ARG(1)
@@ -574,6 +575,14 @@ DEFINE_FUNC(J_ast, mk_1not) WITH_2_ARGS(J_context, J_ast)
 CONTEXT_ARG(1)
 AST_ARG(2)
 CALL2(Z3_ast, mk_not)
+CLEAN_AST_ARG(2)
+CLEAN_CONTEXT_ARG(1)
+AST_RETURN_WITH_CONTEXT
+
+DEFINE_FUNC(J_ast, mk_1interp) WITH_2_ARGS(J_context, J_ast)
+CONTEXT_ARG(1)
+AST_ARG(2)
+CALL2(Z3_ast, mk_interp)
 CLEAN_AST_ARG(2)
 CLEAN_CONTEXT_ARG(1)
 AST_RETURN_WITH_CONTEXT
@@ -4265,3 +4274,44 @@ CLEAN_UNSIGNED_ARG(3)
 CLEAN_STATS_ARG(2)
 CLEAN_CONTEXT_ARG(1)
 DOUBLE_RETURN
+
+DEFINE_FUNC(J_context, mk_1interpolation_1context) WITH_1_ARGS(J_config)
+CONFIG_ARG(1)
+CALL1(Z3_context, mk_interpolation_context)
+CLEAN_CONFIG_ARG(1)
+CONTEXT_RETURN
+
+DEFINE_FUNC(J_lbool, interpolate) WITH_11_ARGS(J_context, int, J_ast_array, unsigned_array, J_params, J_ast_array, J_model_pointer, J_literals_pointer, int, int, J_ast_array)
+CONTEXT_ARG(1)
+INT_ARG(2)
+AST_ARRAY_ARG(3)
+UNSIGNED_ARRAY_ARG(4)
+PARAMS_ARG(5)
+AST_OUT_ARRAY_ARG(6)
+MODEL_POINTER_ARG(7)
+LITERALS_POINTER_ARG(8)
+INT_ARG(9)
+INT_ARG(10)
+AST_ARRAY_ARG(11)
+CALL11(Z3_lbool, interpolate)
+CLEAN_AST_ARRAY_ARG(11)
+CLEAN_INT_ARG(10)
+CLEAN_INT_ARG(9)
+SET_LITERALS_POINTER_ARG(8)
+CLEAN_LITERALS_POINTER_ARG(8)
+SET_MODEL_POINTER_ARG(7)
+CLEAN_MODEL_POINTER_ARG(7)
+SET_AST_OUT_ARRAY_ARG(6)
+CLEAN_AST_OUT_ARRAY_ARG(6)
+CLEAN_PARAMS_ARG(5)
+CLEAN_UNSIGNED_ARRAY_ARG(4)
+CLEAN_AST_ARRAY_ARG(3)
+CLEAN_INT_ARG(2)
+CLEAN_CONTEXT_ARG(1)
+LBOOL_RETURN
+
+DEFINE_FUNC(J_string, interpolation_1profile) WITH_1_ARGS(J_context)
+CONTEXT_ARG(1)
+CALL1(Z3_string, interpolation_profile)
+CLEAN_CONTEXT_ARG(1)
+STRING_RETURN_WITH_CONTEXT

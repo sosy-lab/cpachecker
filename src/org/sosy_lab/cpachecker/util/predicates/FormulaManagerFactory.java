@@ -38,22 +38,23 @@ import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolTheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.z3.Z3InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3TheoremProver;
 
-@Options(prefix="cpa.predicate")
+@Options(prefix = "cpa.predicate")
 public class FormulaManagerFactory {
 
   private static final String MATHSAT5 = "MATHSAT5";
   private static final String SMTINTERPOL = "SMTINTERPOL";
   private static final String Z3 = "Z3";
 
-  @Option(name="solver.useIntegers",
-      description="Encode program variables as INTEGER variables, instead of "
-      + "using REALs. Not all solvers might support this.")
+  @Option(name = "solver.useIntegers",
+      description = "Encode program variables as INTEGER variables, instead of "
+          + "using REALs. Not all solvers might support this.")
   private boolean useIntegers = false;
 
-  @Option(values={MATHSAT5, SMTINTERPOL, Z3}, toUppercase=true,
-      description="Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver")
+  @Option(values = { MATHSAT5, SMTINTERPOL, Z3 }, toUppercase = true,
+      description = "Whether to use MathSAT 5, SmtInterpol or Z3 as SMT solver")
   private String solver = MATHSAT5;
 
   private final FormulaManager fmgr;
@@ -69,8 +70,6 @@ public class FormulaManagerFactory {
 
     case MATHSAT5:
       try {
-        assert solver.equals(MATHSAT5);
-
         lFmgr = Mathsat5FormulaManager.create(logger, config);
         if (useIntegers) { throw new InvalidConfigurationException(
             "Using integers for program variables is currently not implementted when MathSAT is used."); }
@@ -98,24 +97,28 @@ public class FormulaManagerFactory {
   }
 
   public ProverEnvironment newProverEnvironment(boolean generateModels) {
-    switch(solver){
+    switch (solver) {
     case SMTINTERPOL:
-      return new SmtInterpolTheoremProver((SmtInterpolFormulaManager)fmgr);
+      return new SmtInterpolTheoremProver((SmtInterpolFormulaManager) fmgr);
     case MATHSAT5:
-      return new Mathsat5TheoremProver((Mathsat5FormulaManager)fmgr, generateModels);
+      return new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr, generateModels);
     case Z3:
-      return new Z3TheoremProver((Z3FormulaManager)fmgr);
+      return new Z3TheoremProver((Z3FormulaManager) fmgr);
     default:
       throw new AssertionError("no solver selected");
     }
   }
 
   public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean shared) {
-    if (solver.equals(SMTINTERPOL)) {
+    switch (solver) {
+    case SMTINTERPOL:
       return new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) fmgr);
-    } else {
-      assert solver.equals(MATHSAT5);
+    case MATHSAT5:
       return new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
+    case Z3:
+      return new Z3InterpolatingProver((Z3FormulaManager) fmgr);
+    default:
+      throw new AssertionError("no solver selected");
     }
   }
 }
