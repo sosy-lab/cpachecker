@@ -179,9 +179,6 @@ public class CtoFormulaConverter {
      + " This will only work when all variables referenced by the dimacs file are global and declared before this function is called.")
   private String externModelFunctionName = "__VERIFIER_externModelSatisfied";
 
-  @Option(description="Name of function that takes a invariant that is valid (lemma) on the location of the function call.")
-  private String invariantAssumeFunctionName = "__VERIFIER_invariant";
-
   @Option(description = "Handle aliasing of pointers. "
         + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
   private boolean handlePointerAliasing = true;
@@ -2684,18 +2681,6 @@ public class CtoFormulaConverter {
               fmgr.makeNumber(returnFormulaType, 1),
               fmgr.makeNumber(returnFormulaType, 0));
           return f;
-
-        } else if (invariantAssumeFunctionName.equals(func)){
-          assert (pexps.size()>0): "No assumption (invariant) given as argument!";
-//
-////          return makePredicate(assume.getExpression(), assume.getTruthAssumption(),
-////              assume, function, ssa, constraints);
-//          BooleanFormula externalModel = loadExternalFormula(modelFile);
-//          FormulaType<?> returnFormulaType = getFormulaTypeFromCType(fexp.getExpressionType());
-//          Formula f = bfmgr.ifThenElse(externalModel,
-//              fmgr.makeNumber(returnFormulaType, 1),
-//              fmgr.makeNumber(returnFormulaType, 0));
-//          return f;
 
         } else if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), edge, fexp);
