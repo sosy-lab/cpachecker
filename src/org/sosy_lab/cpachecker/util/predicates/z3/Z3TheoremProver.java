@@ -145,21 +145,14 @@ public class Z3TheoremProver implements ProverEnvironment {
     }
 
     solveTime.start();
-    int numModels = 0;
     solver_push(z3context, z3solver);
 
     while (solver_check(z3context, z3solver) == Z3_L_TRUE) {
-      System.out.println(numModels);
-      // System.out.println("SOLVER::" + solver_to_string(z3context, z3solver));
       long[] valuesOfModel = new long[importantTerms.length];
-
       long z3model = solver_get_model(z3context, z3solver);
-//      System.out.println("MODEL::" + model_to_string(z3context, z3model));
 
       for (int j = 0; j < importantTerms.length; j++) {
         long funcDecl = get_app_decl(z3context, importantTerms[j]);
-        inc_ref(z3context, funcDecl);
-
         long valueOfExpr = model_get_const_interp(z3context, z3model, funcDecl);
 
         if (isOP(z3context, valueOfExpr, Z3_OP_FALSE)) {
@@ -173,10 +166,6 @@ public class Z3TheoremProver implements ProverEnvironment {
       result.callback(valuesOfModel);
 
       long negatedModel = mk_not(z3context, mk_and(z3context, valuesOfModel));
-      inc_ref(z3context, negatedModel);
-
-      numModels++;
-      //solver_push(z3context, z3solver);
       solver_assert(z3context, z3solver, negatedModel);
     }
 
@@ -187,7 +176,6 @@ public class Z3TheoremProver implements ProverEnvironment {
     }
 
     // we pushed some levels on assertionStack, remove them and delete solver
-    //  solver_pop(z3context, z3solver, numModels);
     solver_pop(z3context, z3solver, 1);
 
     System.out.println("        TP ALLSAT out");

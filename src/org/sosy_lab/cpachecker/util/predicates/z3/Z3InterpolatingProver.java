@@ -169,9 +169,8 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
     assert (z3context != 0);
     assert (z3solver != 0);
     assertedFormulas = null;
-    //solver_reset(z3context, z3solver);
+    //TODO solver_reset(z3context, z3solver);
     solver_dec_ref(z3context, z3solver);
-    // del_context(z3context); //TODO delete context? is it used somewhere else?
     z3context = 0;
     z3solver = 0;
 
