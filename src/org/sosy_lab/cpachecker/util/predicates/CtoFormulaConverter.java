@@ -189,7 +189,6 @@ public class CtoFormulaConverter {
       "malloc", "__kmalloc", "kzalloc"
       );
 
-  public static final String SCOPE_SEPARATOR = "::";
   private static final String ASSUME_FUNCTION_NAME = "__VERIFIER_assume";
 
   // list of functions that are pure (no side-effects)
@@ -439,7 +438,7 @@ public class CtoFormulaConverter {
   * Call only if you are sure you have a local variable!
   */
   private static String scoped(String var, String function) {
-    return function + SCOPE_SEPARATOR + var;
+    return function + "::" + var;
   }
 
   /**
@@ -2695,7 +2694,7 @@ public class CtoFormulaConverter {
         }
       } else {
         log(Level.WARNING, getLogMessage("Ignoring function call through function pointer", fexp));
-        func = "<func>{" + function + SCOPE_SEPARATOR + fn.toASTString() + "}";
+        func = "<func>{" + scoped(exprToVarName(fn), function) + "}";
       }
 
       if (pexps.isEmpty()) {
