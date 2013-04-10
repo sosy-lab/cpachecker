@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
+import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;

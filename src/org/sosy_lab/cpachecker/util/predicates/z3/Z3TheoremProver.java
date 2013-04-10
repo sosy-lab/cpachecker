@@ -134,9 +134,6 @@ public class Z3TheoremProver implements ProverEnvironment {
     checkNotNull(enumTime);
     Preconditions.checkArgument(z3context != 0);
 
-    long allSatZ3solver = z3solver; // mk_solver(allSatZ3context);
-    solver_inc_ref(z3context, allSatZ3solver);
-
     // create new allSatResult
     Z3AllSatResult result = new Z3AllSatResult(rmgr, solveTime, enumTime);
 
@@ -149,33 +146,38 @@ public class Z3TheoremProver implements ProverEnvironment {
 
     solveTime.start();
     int numModels = 0;
-    while (solver_check(z3context, allSatZ3solver) == Z3_L_TRUE) {
-      long[] model = new long[importantTerms.length];
+    solver_push(z3context, z3solver);
 
-      long z3model = solver_get_model(z3context, allSatZ3solver);
+    while (solver_check(z3context, z3solver) == Z3_L_TRUE) {
+      System.out.println(numModels);
+      // System.out.println("SOLVER::" + solver_to_string(z3context, z3solver));
+      long[] valuesOfModel = new long[importantTerms.length];
+
+      long z3model = solver_get_model(z3context, z3solver);
+//      System.out.println("MODEL::" + model_to_string(z3context, z3model));
+
       for (int j = 0; j < importantTerms.length; j++) {
         long funcDecl = get_app_decl(z3context, importantTerms[j]);
         inc_ref(z3context, funcDecl);
-        //        System.out.println(ast_to_string(z3context, funcDecl));
-        //        System.out.println("app");
 
         long valueOfExpr = model_get_const_interp(z3context, z3model, funcDecl);
-        //        System.out.println("val");
-        if (valueOfExpr == Z3_OP_FALSE) {
-          model[j] = mk_not(z3context, importantTerms[j]);
+
+        if (isOP(z3context, valueOfExpr, Z3_OP_FALSE)) {
+          valuesOfModel[j] = mk_not(z3context, importantTerms[j]);
         } else {
-          model[j] = importantTerms[j];
+          valuesOfModel[j] = importantTerms[j];
         }
       }
 
       // add model to BDD
-      result.callback(model);
+      result.callback(valuesOfModel);
 
-      long notTerm = mk_not(z3context, mk_and(z3context, model));
+      long negatedModel = mk_not(z3context, mk_and(z3context, valuesOfModel));
+      inc_ref(z3context, negatedModel);
 
       numModels++;
-      solver_push(z3context, allSatZ3solver);
-      solver_assert(z3context, allSatZ3solver, notTerm);
+      //solver_push(z3context, z3solver);
+      solver_assert(z3context, z3solver, negatedModel);
     }
 
     if (solveTime.isRunning()) {
@@ -185,14 +187,13 @@ public class Z3TheoremProver implements ProverEnvironment {
     }
 
     // we pushed some levels on assertionStack, remove them and delete solver
-    solver_pop(z3context, allSatZ3solver, numModels);
-    solver_dec_ref(z3context, allSatZ3solver);
+    //  solver_pop(z3context, z3solver, numModels);
+    solver_pop(z3context, z3solver, 1);
 
     System.out.println("        TP ALLSAT out");
 
     return result;
   }
-
 
   /**
    * this class is used to build the predicate abstraction of a formula

@@ -52,7 +52,7 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
 
   }
 
-  private final static Collection<Integer> atomicOpTypes =
+  private final static Collection<Integer> nonAtomicOpTypes =
       Sets.newHashSet(Z3_OP_AND, Z3_OP_OR, Z3_OP_IMPLIES, Z3_OP_ITE, Z3_OP_NOT);
 
   private final static Collection<Integer> expressionTypes =
@@ -66,7 +66,7 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
   @Override
   public boolean isAtom(Long t) {
     long decl = get_app_decl(z3context, t);
-    return atomicOpTypes.contains(get_decl_kind(z3context, decl));
+    return !nonAtomicOpTypes.contains(get_decl_kind(z3context, decl));
   }
 
   @Override

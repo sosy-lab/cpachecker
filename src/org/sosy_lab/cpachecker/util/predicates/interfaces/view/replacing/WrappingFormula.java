@@ -40,6 +40,14 @@ public abstract class WrappingFormula<TWrap extends Formula, TOut extends Formul
 
   public TWrap getWrapped() { return wrapped; }
   public FormulaType<TOut> getType() { return type; }
+  @Override
+  public String toString(){
+    return "Wrapped(" + getWrapped().toString() + ")";
+  }
+  @Override
+  public int hashCode(){
+    return getWrapped().hashCode();
+  }
 }
 
 class WrappingBitvectorFormula<TWrap extends Formula>

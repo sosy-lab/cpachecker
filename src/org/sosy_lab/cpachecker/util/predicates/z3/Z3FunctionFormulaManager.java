@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -85,13 +87,14 @@ public class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Lon
     FunctionFormulaType<T> formulaType
       = super.createFunction(pName, pReturnType, pArgs);
 
-    long symbol = Z3NativeApi.mk_string_symbol(z3context, pName);
+    long symbol = mk_string_symbol(z3context, pName);
     long[] sorts = new long[pArgs.size()];
     for (int i = 0; i < pArgs.size(); i++) {
       sorts[i] = toZ3Type(pArgs.get(i));
     }
     long returnType = toZ3Type(pReturnType);
-    long func = Z3NativeApi.mk_func_decl(z3context, symbol, sorts, returnType);
+    long func = mk_func_decl(z3context, symbol, sorts, returnType);
+    inc_ref(z3context, func);
     return new Z3FunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), func);
   }
 
