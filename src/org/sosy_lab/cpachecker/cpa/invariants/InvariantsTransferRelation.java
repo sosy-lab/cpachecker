@@ -270,6 +270,7 @@ enum InvariantsTransferRelation implements TransferRelation {
     return function + "::" + var;
   }
 
+  @SuppressWarnings("unused")
   private static class PushStateExpressionVisitor extends DefaultCExpressionVisitor<InvariantsState, UnrecognizedCCodeException> {
 
     private final ExpressionToStateVisitor expressionVisitor;
