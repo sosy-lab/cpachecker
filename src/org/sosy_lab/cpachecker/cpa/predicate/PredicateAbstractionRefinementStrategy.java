@@ -330,7 +330,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       PredicateMapWriter precWriter = new PredicateMapWriter(fmgr);
       try (Writer w = Files.openOutputFile(precFile)) {
         precWriter.writePredicateMap(
-            ImmutableSetMultimap.copyOf(mergePredicatesPerLocation(newPredicates)),
+            ImmutableSetMultimap.copyOf(newPredicates),
+            ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
             ImmutableSetMultimap.<String, AbstractionPredicate>of(),
             ImmutableSet.<AbstractionPredicate>of(),
             newPredicates.values(), w);

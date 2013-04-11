@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -63,7 +64,9 @@ class PredicateMapWriter {
     fmgr = pFmgr;
   }
 
-  public void writePredicateMap(SetMultimap<CFANode, AbstractionPredicate> localPredicates,
+  public void writePredicateMap(
+      SetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstancePredicates,
+      SetMultimap<CFANode, AbstractionPredicate> localPredicates,
       SetMultimap<String, AbstractionPredicate> functionPredicates, Set<AbstractionPredicate> globalPredicates,
       Collection<AbstractionPredicate> allPredicates, Appendable sb) throws IOException {
 
@@ -103,6 +106,13 @@ class PredicateMapWriter {
 
     for (Entry<CFANode, Collection<AbstractionPredicate>> e : localPredicates.asMap().entrySet()) {
       String key = e.getKey().getFunctionName() + " " + e.getKey().toString();
+      writeSetOfPredicates(sb, key, e.getValue(), predToString);
+    }
+
+    for (Entry<Pair<CFANode, Integer>, Collection<AbstractionPredicate>> e : locationInstancePredicates.asMap().entrySet()) {
+      CFANode loc = e.getKey().getFirst();
+      String key = loc.getFunctionName()
+           + " " + loc.toString() + "@" + e.getKey().getSecond();
       writeSetOfPredicates(sb, key, e.getValue(), predToString);
     }
   }

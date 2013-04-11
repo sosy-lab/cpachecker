@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.mergePredicatesPerLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.*;
 
@@ -144,11 +143,18 @@ class PredicateCPAStatistics implements Statistics {
           }
         };
 
+      private final SetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstance;
       private final SetMultimap<CFANode, AbstractionPredicate> location;
       private final SetMultimap<String, AbstractionPredicate> function;
       private final Set<AbstractionPredicate> global;
 
       private MutablePredicateSets() {
+        // Use special multimaps with set-semantics and an ordering only on keys (not on values)
+        this.locationInstance = Multimaps.newSetMultimap(
+            new TreeMap<Pair<CFANode, Integer>, Collection<AbstractionPredicate>>(
+                Pair.<CFANode, Integer>lexicographicalNaturalComparator()),
+            hashSetSupplier);
+
         this.location = Multimaps.newSetMultimap(new TreeMap<CFANode, Collection<AbstractionPredicate>>(), hashSetSupplier);
         this.function = Multimaps.newSetMultimap(new TreeMap<String, Collection<AbstractionPredicate>>(), hashSetSupplier);
         this.global = Sets.newHashSet();
@@ -171,12 +177,15 @@ class PredicateCPAStatistics implements Statistics {
       Preconditions.checkNotNull(predicates);
 
       Set<AbstractionPredicate> allPredicates = Sets.newHashSet(predicates.global);
-      allPredicates.addAll(predicates.location.values());
       allPredicates.addAll(predicates.function.values());
+      allPredicates.addAll(predicates.location.values());
+      allPredicates.addAll(predicates.location.values());
 
       try (Writer w = Files.openOutputFile(targetFile)) {
         PredicateMapWriter writer = new PredicateMapWriter(cpa);
-        writer.writePredicateMap(predicates.location, predicates.function, predicates.global, allPredicates, w);
+        writer.writePredicateMap(predicates.locationInstance,
+            predicates.location, predicates.function, predicates.global,
+            allPredicates, w);
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write predicate map to file");
       }
@@ -223,7 +232,7 @@ class PredicateCPAStatistics implements Statistics {
       for (Precision precision : reached.getPrecisions()) {
         if (precision instanceof WrapperPrecision) {
           PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
-          predicates.location.putAll(mergePredicatesPerLocation(preds.getLocationInstancePredicates()));
+          predicates.locationInstance.putAll(preds.getLocationInstancePredicates());
           predicates.location.putAll(preds.getLocalPredicates());
           predicates.function.putAll(preds.getFunctionPredicates());
           predicates.global.addAll(preds.getGlobalPredicates());
