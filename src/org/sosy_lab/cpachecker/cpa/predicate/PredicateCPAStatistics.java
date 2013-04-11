@@ -136,30 +136,29 @@ class PredicateCPAStatistics implements Statistics {
      */
     private static class MutablePredicateSets {
 
-      public final SetMultimap<CFANode, AbstractionPredicate> location;
-      public final SetMultimap<String, AbstractionPredicate> function;
-      public final Set<AbstractionPredicate> global;
-
-      public MutablePredicateSets() {
-        Supplier<Set<AbstractionPredicate>> hashSetSupplier = new Supplier<Set<AbstractionPredicate>>() {
+      private static Supplier<Set<AbstractionPredicate>> hashSetSupplier = new Supplier<Set<AbstractionPredicate>>() {
           @Override
           public Set<AbstractionPredicate> get() {
             return Sets.newHashSet();
           }
         };
 
+      private final SetMultimap<CFANode, AbstractionPredicate> location;
+      private final SetMultimap<String, AbstractionPredicate> function;
+      private final Set<AbstractionPredicate> global;
+
+      private MutablePredicateSets() {
         this.location = Multimaps.newSetMultimap(new TreeMap<CFANode, Collection<AbstractionPredicate>>(), hashSetSupplier);
         this.function = Multimaps.newSetMultimap(new TreeMap<String, Collection<AbstractionPredicate>>(), hashSetSupplier);
         this.global = Sets.newHashSet();
       }
 
-      @Override
-      protected MutablePredicateSets clone() {
+      private static MutablePredicateSets copyOf(MutablePredicateSets preds) {
         MutablePredicateSets result = new MutablePredicateSets();
 
-        result.location.putAll(this.location);
-        result.global.addAll(this.global);
-        result.function.putAll(this.function);
+        result.location.putAll(preds.location);
+        result.global.addAll(preds.global);
+        result.function.putAll(preds.function);
 
         return result;
       }
@@ -187,7 +186,7 @@ class PredicateCPAStatistics implements Statistics {
       Preconditions.checkNotNull(predicates);
       Preconditions.checkNotNull(sweeper);
 
-      MutablePredicateSets merged = predicates.clone();
+      MutablePredicateSets merged = MutablePredicateSets.copyOf(predicates);
 
       // Merge sweeped global predicates...
       for (AbstractionPredicate p : sweeper.getSweepedGlobalPredicates()) {
