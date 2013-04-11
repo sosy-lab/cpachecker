@@ -32,6 +32,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -98,7 +99,11 @@ public class ABMPredicateReducer implements Reducer {
 
       AbstractionFormula newAbstraction = pamgr.reduce(oldAbstraction, removePredicates, pathFormula.getSsa());
 
-      return PredicateAbstractState.mkAbstractionState(bfmgr, pathFormula, newAbstraction);
+      PersistentMap<CFANode, Integer> abstractionLocations = predicateElement.getAbstractionLocationsOnPath()
+                                                                             .empty();
+
+      return PredicateAbstractState.mkAbstractionState(bfmgr, pathFormula,
+          newAbstraction, abstractionLocations);
     } finally {
       reduceTimer.stop();
     }
@@ -146,8 +151,10 @@ public class ABMPredicateReducer implements Reducer {
       AbstractionFormula newAbstractionFormula =
           pamgr.expand(reducedAbstraction, rootAbstraction, relevantRootPredicates, newSSA);
 
+      PersistentMap<CFANode, Integer> abstractionLocations = rootState.getAbstractionLocationsOnPath();
+
       return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-          newAbstractionFormula);
+          newAbstractionFormula, abstractionLocations);
     } finally {
       expandTimer.stop();
     }
@@ -407,7 +414,9 @@ public class ABMPredicateReducer implements Reducer {
         pamgr.expand(reducedRegion, rootRegion, relevantRootPredicates, newSSA,
             reducedAbstraction.getBlockFormula());
 
+    PersistentMap<CFANode, Integer> abstractionLocations = rootState.getAbstractionLocationsOnPath();
+
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
-        newAbstractionFormula);
+        newAbstractionFormula, abstractionLocations);
   }
 }

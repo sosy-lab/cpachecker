@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -144,7 +145,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, pathFormulaManager, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);
 
-    topState = PredicateAbstractState.mkAbstractionState(formulaManager.getBooleanFormulaManager(), pathFormulaManager.makeEmptyPathFormula(), predicateManager.makeTrueAbstractionFormula(null));
+    topState = PredicateAbstractState.mkAbstractionState(
+        formulaManager.getBooleanFormulaManager(),
+        pathFormulaManager.makeEmptyPathFormula(),
+        predicateManager.makeTrueAbstractionFormula(null),
+        PathCopyingPersistentTreeMap.<CFANode, Integer>of());
     domain = new PredicateAbstractDomain(this);
 
     if (mergeType.equals("SEP")) {
