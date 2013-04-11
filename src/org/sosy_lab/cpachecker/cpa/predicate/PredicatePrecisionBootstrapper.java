@@ -100,7 +100,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       try {
         PredicateMapParser parser = new PredicateMapParser(config, cfa, logger, formulaManagerView, abstractionManager);
         PredicatePrecision result = parser.parsePredicates(predicatesFile, initialPredicates);
-        return enablePrecisionSweeper ? new PrecisionSweeper(logger, statistics).sweepPrecision(cfa, result) : result;
+        return enablePrecisionSweeper ? new PredicatePrecisionSweeper(logger, statistics).sweepPrecision(cfa, result) : result;
 
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not read predicate map from file");

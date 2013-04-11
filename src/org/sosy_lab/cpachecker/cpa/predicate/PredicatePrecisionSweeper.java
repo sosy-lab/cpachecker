@@ -51,14 +51,14 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 
-public class PrecisionSweeper {
+public class PredicatePrecisionSweeper {
 
   private final LogManager logger;
   private final AbstractStatistics statistics;
 
   private static final String FALSE_PREDICATE = "false";
 
-  public PrecisionSweeper(LogManager pLogger, AbstractStatistics pStatistics) {
+  public PredicatePrecisionSweeper(LogManager pLogger, AbstractStatistics pStatistics) {
     this.logger = pLogger;
     this.statistics = pStatistics;
   }
