@@ -502,13 +502,10 @@ cpa.explicit.precision.ignoreIntAdd = false
 # with BDDCPA.
 cpa.explicit.precision.ignoreIntEqual = false
 
-# threshold for amount of different values that are tracked for one variable
-# per path (-1 means infinitely)
-cpa.explicit.precision.path.defaultThreshold = -1
-
-# threshold for amount of different values that are tracked for one variable
-# within the reached set (-1 means infinitely)
-cpa.explicit.precision.reachedSet.defaultThreshold = -1
+# the threshold which controls whether or not variable valuations ought to be
+# abstracted once the specified number of valuations per variable is reached
+# in the set of reached states
+cpa.explicit.precision.reachedSetThreshold = -1
 
 # whether or not to add newly-found variables only to the exact program
 # location or to the respective scope of the variable.

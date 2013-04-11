@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedSet;
@@ -56,19 +55,12 @@ public class ExplicitPrecision implements Precision {
   private final Pattern blackListPattern;
 
   /**
-   * the component responsible for thresholds concerning the reached set
-   */
-  private ReachedSetThresholds reachedSetThresholds = null;
-
-  /**
-   * the component responsible for thresholds concerning paths
-   */
-  private PathThresholds pathThresholds             = null;
-
-  /**
    * the component responsible for variables that need to be tracked, according to refinement
    */
-  private RefinablePrecision refinablePrecision     = null;
+  private RefinablePrecision refinablePrecision = null;
+
+  @Option(description = "the threshold which controls whether or not variable valuations ought to be abstracted once the specified number of valuations per variable is reached in the set of reached states")
+  private int reachedSetThreshold = -1;
 
   @Option(description = "whether or not to add newly-found variables only to the exact program location or to the respective scope of the variable.")
   private String scope = "function-scope";
@@ -105,9 +97,6 @@ public class ExplicitPrecision implements Precision {
     else {
       refinablePrecision = new FullPrecision();
     }
-
-    reachedSetThresholds  = new ReachedSetThresholds(config);
-    pathThresholds        = new PathThresholds(config);
   }
 
   /**
@@ -117,22 +106,12 @@ public class ExplicitPrecision implements Precision {
    */
   public ExplicitPrecision(ExplicitPrecision original, Multimap<CFANode, String> increment) {
     refinablePrecision    = original.refinablePrecision.refine(increment);
-
     blackListPattern      = original.blackListPattern;
-    reachedSetThresholds  = new ReachedSetThresholds(original.reachedSetThresholds);
-    pathThresholds        = new PathThresholds(original.pathThresholds);
+    reachedSetThreshold   = original.reachedSetThreshold;
   }
 
   public RefinablePrecision getRefinablePrecision() {
     return refinablePrecision;
-  }
-
-  public ReachedSetThresholds getReachedSetThresholds() {
-    return reachedSetThresholds;
-  }
-
-  public PathThresholds getPathThresholds() {
-    return pathThresholds;
   }
 
   public void setLocation(CFANode node) {
@@ -141,6 +120,14 @@ public class ExplicitPrecision implements Precision {
 
   boolean isOnBlacklist(String variable) {
     return this.blackListPattern.matcher(variable).matches();
+  }
+
+  boolean variableExceedsReachedSetThreshold(int numberOfDifferentValues) {
+    return numberOfDifferentValues > reachedSetThreshold;
+  }
+
+  boolean isReachedSetThresholdActive() {
+    return reachedSetThreshold > -1;
   }
 
   /**
@@ -153,9 +140,7 @@ public class ExplicitPrecision implements Precision {
    * @return true, if the variable has to be tracked, else false
    */
   public boolean isTracking(String variable) {
-    boolean result = reachedSetThresholds.allowsTrackingOf(variable)
-            && pathThresholds.allowsTrackingOf(variable)
-            && refinablePrecision.contains(variable)
+    boolean result = refinablePrecision.contains(variable)
             && !isOnBlacklist(variable)
             && !isInIgnoredVarClass(variable);
 
@@ -380,125 +365,6 @@ public class ExplicitPrecision implements Precision {
     @Override
     public void join(RefinablePrecision consolidatedPrecision) {
       assert(getClass().equals(consolidatedPrecision.getClass()));
-    }
-  }
-
-  abstract class Thresholds {
-    /**
-     * the mapping of variable names to the threshold of the respective variable
-     *
-     * a value of null means, that the variable has reached its threshold and is no longer tracked
-     */
-    protected HashMap<String, Integer> thresholds = new HashMap<>();
-
-    /**
-     * This method decides whether or not a variable is being tracked by this precision.
-     *
-     * @param variable the scoped name of the variable for which to make the decision
-     * @return true, when the variable is allowed to be tracked, else false
-     */
-    boolean allowsTrackingOf(String variable) {
-      return !thresholds.containsKey(variable) || thresholds.get(variable) != null;
-    }
-
-    /**
-     * This method declares the given variable to have exceeded its threshold.
-     *
-     * @param variable the name of the variable
-     */
-    void setExceeded(String variable) {
-      thresholds.put(variable, null);
-    }
-  }
-
-  @Options(prefix="cpa.explicit.precision.reachedSet")
-  class ReachedSetThresholds extends Thresholds {
-
-    /**
-     * the default threshold
-     */
-    @Option(description="threshold for amount of different values that "
-        + "are tracked for one variable within the reached set (-1 means infinitely)")
-    protected Integer defaultThreshold = -1;
-
-    private ReachedSetThresholds(Configuration config) throws InvalidConfigurationException {
-      config.inject(this);
-    }
-
-    /**
-     * copy constructor
-     *
-     * @param original the ReachedSetThresholds to copy
-     */
-    private ReachedSetThresholds(ReachedSetThresholds original) {
-      defaultThreshold  = original.defaultThreshold;
-      thresholds        = new HashMap<>(original.thresholds);
-    }
-
-    /**
-     * This method decides if the given variable with the given count exceeds the threshold.
-     *
-     * @param variable the scoped name of the variable to check
-     * @param count the value count to compare to the threshold
-     * @return true, if the variable with the given count exceeds the threshold, else false
-     */
-    boolean exceeds(String variable, Integer count) {
-      if (defaultThreshold == -1) {
-        return false;
-      }
-
-      else if ((thresholds.containsKey(variable) && thresholds.get(variable) == null)
-          || (thresholds.containsKey(variable) && thresholds.get(variable) < count)
-          || (!thresholds.containsKey(variable) && defaultThreshold < count)) {
-        return true;
-      }
-
-      return false;
-    }
-  }
-
-  @Options(prefix="cpa.explicit.precision.path")
-  class PathThresholds extends Thresholds {
-    /**
-     * the default threshold
-     */
-    @Option(description="threshold for amount of different values that "
-        + "are tracked for one variable per path (-1 means infinitely)")
-    protected Integer defaultThreshold = -1;
-
-    private PathThresholds(Configuration config) throws InvalidConfigurationException {
-      config.inject(this);
-    }
-
-    /**
-     * copy constructor
-     *
-     * @param original the PathThresholds to copy
-     */
-    private PathThresholds(PathThresholds original) {
-      defaultThreshold  = original.defaultThreshold;
-      thresholds        = new HashMap<>(original.thresholds);
-    }
-
-    /**
-     * This method decides if the given variable with the given count exceeds the threshold.
-     *
-     * @param variable the scoped name of the variable to check
-     * @param count the value count to compare to the threshold
-     * @return true, if the variable with the given count exceeds the threshold, else false
-     */
-    boolean exceeds(String variable, Integer count) {
-      if (defaultThreshold == -1) {
-        return false;
-      }
-
-      else if ((thresholds.containsKey(variable) && thresholds.get(variable) == null)
-          || (thresholds.containsKey(variable) && thresholds.get(variable) < count)
-          || (!thresholds.containsKey(variable) && defaultThreshold < count)) {
-        return true;
-      }
-
-      return false;
     }
   }
 }

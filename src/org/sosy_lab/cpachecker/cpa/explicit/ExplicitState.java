@@ -47,9 +47,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 
 public class ExplicitState implements AbstractQueryableState, FormulaReportingState, Serializable {
   private static final long serialVersionUID = -3152134511524554357L;
@@ -409,7 +409,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @param valueMapping the mapping from variable name to the set of values of this variable
    * @return the new mapping
    */
-  HashMultimap<String, Long> addToValueMapping(HashMultimap<String, Long> valueMapping) {
+  public Multimap<String, Long> addToValueMapping(Multimap<String, Long> valueMapping) {
     for (Map.Entry<String, Long> entry : constantsMap.entrySet()) {
       valueMapping.put(entry.getKey(), entry.getValue());
     }
