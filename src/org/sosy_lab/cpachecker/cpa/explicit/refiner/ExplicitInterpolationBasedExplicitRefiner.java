@@ -63,8 +63,6 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   @Option(description="whether or not to do lazy-abstraction")
   private boolean doLazyAbstraction = false;
 
-  boolean isFeasible = false;
-
   /**
    * the ART element, from where to cut-off the subtree, and restart the analysis
    */
