@@ -31,8 +31,11 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Objects;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -159,6 +162,27 @@ public class PredicatePrecision implements Precision {
 
   /**
    * Create a new precision which is a copy of the current one with some
+   * additional function-specific predicates.
+   */
+  public PredicatePrecision addFunctionPredicates(Multimap<String, AbstractionPredicate> newPredicates) {
+    Multimap<String, AbstractionPredicate> predicates = ArrayListMultimap.create(getFunctionPredicates());
+    predicates.putAll(newPredicates);
+
+    // During lookup, we do not look into getGlobalPredicates(),
+    // if there is something for the key in predicates.
+    // Thus, we copy the relevant items into the predicates set here.
+    if (!getGlobalPredicates().isEmpty()) {
+      for (String function : newPredicates.keySet()) {
+        predicates.putAll(function, getGlobalPredicates());
+      }
+    }
+
+    return new PredicatePrecision(getLocationInstancePredicates(),
+        getLocalPredicates(), predicates, getGlobalPredicates());
+  }
+
+  /**
+   * Create a new precision which is a copy of the current one with some
    * additional location-specific predicates.
    */
   public PredicatePrecision addLocalPredicates(Multimap<CFANode, AbstractionPredicate> newPredicates) {
@@ -177,6 +201,32 @@ public class PredicatePrecision implements Precision {
 
     return new PredicatePrecision(getLocationInstancePredicates(),
         predicates, getFunctionPredicates(), getGlobalPredicates());
+  }
+
+  /**
+   * Create a new precision which is a copy of the current one with some
+   * additional location-instance-specific predicates.
+   */
+  public PredicatePrecision addLocationInstancePredicates(
+      Multimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates) {
+    Multimap<Pair<CFANode, Integer>, AbstractionPredicate> predicates = ArrayListMultimap.create(getLocationInstancePredicates());
+    predicates.putAll(newPredicates);
+
+    // During lookup, we do not look into getGlobalPredicates(),
+    // getFunctionPredicates(), and getLocalPredicates(),
+    // if there is something for the key in predicates.
+    // Thus, we copy the relevant items into the predicates set here.
+    if (!getGlobalPredicates().isEmpty() || !getFunctionPredicates().isEmpty() || !getLocalPredicates().isEmpty()) {
+      for (Pair<CFANode, Integer> key : newPredicates.keySet()) {
+        CFANode loc = key.getFirst();
+        predicates.putAll(key, getLocalPredicates().get(loc));
+        predicates.putAll(key, getFunctionPredicates().get(loc.getFunctionName()));
+        predicates.putAll(key, getGlobalPredicates());
+      }
+    }
+
+    return new PredicatePrecision(predicates, getLocalPredicates(),
+        getFunctionPredicates(), getGlobalPredicates());
   }
 
   /**
@@ -319,13 +369,27 @@ public class PredicatePrecision implements Precision {
     return id;
   }
 
+  static ListMultimap<String, AbstractionPredicate> mergePredicatesPerFunction(
+      Multimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates) {
+
+    return transformAndMergeKeys(newPredicates,
+        Functions.compose(CFAUtils.GET_FUNCTION,
+                          Pair.<CFANode>getProjectionToFirst()));
+  }
+
   static ListMultimap<CFANode, AbstractionPredicate> mergePredicatesPerLocation(
       Multimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates) {
 
-    ListMultimap<CFANode, AbstractionPredicate> locationSpecificPredicates = ArrayListMultimap.create();
-    for (Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate> entry : newPredicates.entries()) {
-      locationSpecificPredicates.put(entry.getKey().getFirst(), entry.getValue());
+    return transformAndMergeKeys(newPredicates, Pair.<CFANode>getProjectionToFirst());
+  }
+
+  private static <K1, K2, V> ListMultimap<K2, V> transformAndMergeKeys(Multimap<K1, V> input,
+      Function<? super K1, K2> transformFunction) {
+
+    ListMultimap<K2, V> result = ArrayListMultimap.create();
+    for (Map.Entry<K1, Collection<V>> entry : input.asMap().entrySet()) {
+      result.putAll(transformFunction.apply(entry.getKey()), entry.getValue());
     }
-    return locationSpecificPredicates;
+    return result;
   }
 }

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.*;
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.mergePredicatesPerLocation;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.File;
@@ -91,10 +91,22 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Option(description="split each arithmetic equality into two inequalities when extracting predicates from interpolants")
   private boolean splitItpAtoms = false;
 
-  @Option(description="refinement will add all discovered predicates "
-          + "to all the locations in the abstract trace")
+  @Option(description="Add all discovered predicates to all the locations in the abstract trace. "
+      + "DEPRECATED: use cpa.predicate.predicateSharing instead which offers more flexibility.")
+  @Deprecated
   private boolean addPredicatesGlobally = false;
- @Option(description="During refinement, keep predicates from all removed parts " +
+
+  @Option(description="Where to apply the found predicates to?")
+  private PredicateSharing predicateSharing = PredicateSharing.LOCATION;
+  private static enum PredicateSharing {
+    GLOBAL,            // at all locations
+    FUNCTION,          // at all locations in the respective function
+    LOCATION,          // at all occurrences of the respective location
+    LOCATION_INSTANCE, // at the n-th occurrence of the respective location in each path
+    ;
+  }
+
+  @Option(description="During refinement, keep predicates from all removed parts " +
                       "of the ARG. Otherwise, only predicates from the error path " +
                       "are kept.")
   private boolean keepAllPredicates = false;
@@ -152,6 +164,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     super(pFormulaManager.getBooleanFormulaManager());
 
     config.inject(this, PredicateAbstractionRefinementStrategy.class);
+    if (addPredicatesGlobally) {
+      predicateSharing = PredicateSharing.GLOBAL;
+    }
 
     logger = pLogger;
     amgr = pAbstractionManager;
@@ -288,10 +303,21 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     logger.log(Level.ALL, "New predicates are", newPredicates);
 
     PredicatePrecision newPrecision;
-    if (addPredicatesGlobally) {
+    switch (predicateSharing) {
+    case GLOBAL:
       newPrecision = basePrecision.addGlobalPredicates(newPredicates.values());
-    } else {
+      break;
+    case FUNCTION:
+      newPrecision = basePrecision.addFunctionPredicates(mergePredicatesPerFunction(newPredicates));
+      break;
+    case LOCATION:
       newPrecision = basePrecision.addLocalPredicates(mergePredicatesPerLocation(newPredicates));
+      break;
+    case LOCATION_INSTANCE:
+      newPrecision = basePrecision.addLocationInstancePredicates(newPredicates);
+      break;
+    default:
+      throw new AssertionError();
     }
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);

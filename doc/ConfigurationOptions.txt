@@ -508,8 +508,9 @@ cpa.explicit.precision.ignoreIntEqual = false
 cpa.explicit.precision.reachedSetThreshold = -1
 
 # whether or not to add newly-found variables only to the exact program
-# location or to the respective scope of the variable.
-cpa.explicit.precision.scope = "function-scope"
+# location (i.e. scoped=false) or to their respective scope (i.e.
+# scoped=true).
+cpa.explicit.precision.scoped = true
 
 # target file to hold the exported precision
 cpa.explicit.precisionFile = no default value
@@ -730,9 +731,11 @@ cpa.predicate.predmap.export = true
 
 # file for exporting final predicate map
 cpa.predicate.predmap.file = "predmap.txt"
+cpa.predicate.predmap.includeSwept = true
 
-# refinement will add all discovered predicates to all the locations in the
-# abstract trace
+# DEPRECATED: Add all discovered predicates to all the locations in the
+# abstract trace. DEPRECATED: use cpa.predicate.predicateSharing instead
+# which offers more flexibility.
 cpa.predicate.refinement.addPredicatesGlobally = false
 
 # refinement will try to build 'well-scoped' predicates, by cutting spurious
@@ -779,6 +782,10 @@ cpa.predicate.refinement.maxRefinementSize = 0
 # where to dump the counterexample formula in case the error location is
 # reached
 cpa.predicate.refinement.msatCexFile = "counterexample.msat"
+
+# Where to apply the found predicates to?
+cpa.predicate.refinement.predicateSharing = LOCATION
+  enum:     [GLOBAL, FUNCTION, LOCATION, LOCATION_INSTANCE]
 
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
