@@ -30,6 +30,7 @@ import java.util.Stack;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -59,6 +60,7 @@ public class PredicatePrecisionSweeper implements StatisticsProvider {
 
   private static final String FALSE_PREDICATE = "false";
 
+  private final Multimap<Pair<CFANode, Integer>, AbstractionPredicate> sweepedLocationInstancePredicates = ArrayListMultimap.create();
   private final Multimap<CFANode, AbstractionPredicate> sweepedLocationPredicates = ArrayListMultimap.create();
   private final Collection<AbstractionPredicate> sweepedGlobalPredicates = Lists.newArrayList();
   private final Multimap<String, AbstractionPredicate> sweepedFunctionPredicates = ArrayListMultimap.create();
@@ -135,6 +137,18 @@ public class PredicatePrecisionSweeper implements StatisticsProvider {
 
     Set<String> declaredVariables = getDeclaredVariables(cfa);
 
+    // Sweep location-instance-specific predicates ...
+    Multimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstancePredicates = ArrayListMultimap.create();
+    for (Pair<CFANode, Integer> key: pToSweep.getLocationInstancePredicates().keySet()) {
+      for (AbstractionPredicate p: pToSweep.getLocationInstancePredicates().get(key)) {
+        if (shouldSweepPredicate(declaredVariables, p)) {
+          sweepedLocationInstancePredicates.put(key, p);
+        } else {
+          locationInstancePredicates.put(key, p);
+        }
+      }
+    }
+
     // Sweep location predicates ...
     Multimap<CFANode, AbstractionPredicate> locationPredicates = ArrayListMultimap.create();
     for (CFANode u: pToSweep.getLocalPredicates().keySet()) {
@@ -174,7 +188,8 @@ public class PredicatePrecisionSweeper implements StatisticsProvider {
             + sweepedLocationPredicates.size()
             + sweepedGlobalPredicates.size());
 
-    return new PredicatePrecision(locationPredicates, functionPredicates, globalPredicates);
+    return new PredicatePrecision(locationInstancePredicates, locationPredicates,
+        functionPredicates, globalPredicates);
   }
 
 

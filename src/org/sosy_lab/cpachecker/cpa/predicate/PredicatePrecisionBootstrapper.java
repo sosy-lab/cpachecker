@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -126,6 +127,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     }
 
     return new PredicatePrecision(
+        ImmutableSetMultimap.<Pair<CFANode, Integer>, AbstractionPredicate>of(),
         ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
         ImmutableSetMultimap.<String, AbstractionPredicate>of(),
         initialPredicates);

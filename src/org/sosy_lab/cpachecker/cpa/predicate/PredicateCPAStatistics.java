@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.mergePredicatesPerLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.*;
 
@@ -222,6 +223,7 @@ class PredicateCPAStatistics implements Statistics {
       for (Precision precision : reached.getPrecisions()) {
         if (precision instanceof WrapperPrecision) {
           PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
+          predicates.location.putAll(mergePredicatesPerLocation(preds.getLocationInstancePredicates()));
           predicates.location.putAll(preds.getLocalPredicates());
           predicates.function.putAll(preds.getFunctionPredicates());
           predicates.global.addAll(preds.getGlobalPredicates());

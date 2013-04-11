@@ -228,7 +228,9 @@ public class ABMPredicateReducer implements Reducer {
 
 
     public ReducedPredicatePrecision(PredicatePrecision expandedPredicatePrecision, Block context) {
-      super(ImmutableSetMultimap.<CFANode, AbstractionPredicate> of(),
+      super(
+          ImmutableSetMultimap.<Pair<CFANode, Integer>, AbstractionPredicate> of(),
+          ImmutableSetMultimap.<CFANode, AbstractionPredicate> of(),
           ImmutableSetMultimap.<String, AbstractionPredicate> of(),
           ImmutableSet.<AbstractionPredicate> of());
 

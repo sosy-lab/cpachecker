@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -196,7 +197,9 @@ public class PredicateMiner {
 
     logger.log(Level.INFO, "Mining finished.");
 
-    return new PredicatePrecision(localPredicates, functionPredicates, globalPredicates);
+    return new PredicatePrecision(
+        ImmutableSetMultimap.<Pair<CFANode,Integer>, AbstractionPredicate>of(),
+        localPredicates, functionPredicates, globalPredicates);
   }
 
 }
