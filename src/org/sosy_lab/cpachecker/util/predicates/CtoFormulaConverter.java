@@ -2752,9 +2752,7 @@ public class CtoFormulaConverter {
       if (! pModelFile.getName().endsWith(".dimacs")) {
         throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
       }
-      BufferedReader br = null;
-      try {
-         br = new BufferedReader(new FileReader(pModelFile));
+      try (BufferedReader br = new BufferedReader(new FileReader(pModelFile))){
          ArrayList<String> predicates = new ArrayList<>(10000);
          //var ids in dimacs files start with 1, so we want the first var at position 1
          predicates.add("RheinDummyVar");
@@ -2825,12 +2823,6 @@ public class CtoFormulaConverter {
         return externalModel;
       } catch (IOException e) {
         throw new RuntimeException(e); //TODO: find the proper exception
-      } finally {
-        if (br!=null) {
-            try {
-              br.close();
-            } catch (IOException e) {}
-        }
       }
     }
   }
