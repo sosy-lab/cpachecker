@@ -643,6 +643,10 @@ cpa.predicate.enableBlockreducer = false
 # Enable mining of predicates from the CFA (preprocessing).
 cpa.predicate.enablePrecisionMiner = false
 
+# Enable sweeping the precision: remove predicates that make statements about
+# variables that do not exist in the CFA.
+cpa.predicate.enablePrecisionSweeper = false
+
 # Name of an external function that will be interpreted as if the function
 # call would be replaced by an externally defined expression over the program
 # variables. This will only work when all variables referenced by the dimacs

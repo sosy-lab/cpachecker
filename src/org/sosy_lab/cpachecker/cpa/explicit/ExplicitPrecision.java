@@ -62,8 +62,8 @@ public class ExplicitPrecision implements Precision {
   @Option(description = "the threshold which controls whether or not variable valuations ought to be abstracted once the specified number of valuations per variable is reached in the set of reached states")
   private int reachedSetThreshold = -1;
 
-  @Option(description = "whether or not to add newly-found variables only to the exact program location or to the respective scope of the variable.")
-  private String scope = "function-scope";
+  @Option(description = "whether or not to add newly-found variables only to the exact program location (i.e. scoped=false) or to their respective scope (i.e. scoped=true).")
+  private boolean scoped = true;
 
   @Option(description = "ignore boolean variables. if this option is used, "
       + "booleans from the cfa should tracked with another CPA, "
@@ -92,7 +92,7 @@ public class ExplicitPrecision implements Precision {
     this.varClass = vc;
 
     if (Boolean.parseBoolean(config.getProperty("analysis.useRefinement"))) {
-      refinablePrecision = createInstance(scope);
+      refinablePrecision = createInstance();
     }
     else {
       refinablePrecision = new FullPrecision();
@@ -183,8 +183,8 @@ public class ExplicitPrecision implements Precision {
     return Pair.of(function, varName);
   }
 
-  RefinablePrecision createInstance(String scope) {
-    return scope.equals("location-scope") ? new LocalizedRefinablePrecision() : new ScopedRefinablePrecision();
+  RefinablePrecision createInstance() {
+    return scoped ? new ScopedRefinablePrecision() : new LocalizedRefinablePrecision();
   }
 
   abstract public static class RefinablePrecision {
@@ -203,19 +203,37 @@ public class ExplicitPrecision implements Precision {
      */
     abstract public boolean contains(String variable);
 
+    /**
+     * This method refines the precision with the given increment.
+     *
+     * @param increment the increment to refine the precision with
+     * @return the refined precision
+     */
     abstract protected RefinablePrecision refine(Multimap<CFANode, String> increment);
 
+    /**
+     * This method sets the location for the refinable precision.
+     *
+     * @param node the location to be set
+     */
     private void setLocation(CFANode node) {
       location = node;
     }
 
+    /**
+     * This method transforms the precision and writes it using the given writer.
+     *
+     * @param writer the write to write the precision to
+     * @throws IOException
+     */
     abstract void serialize(Writer writer) throws IOException;
 
-    abstract void join(RefinablePrecision consolidatedPrecision);
-
-    public int getID() {
-      return System.identityHashCode(this);
-    }
+    /**
+     * This method joins this precision with another precision
+     *
+     * @param otherPrecision the precision to join with
+     */
+    abstract void join(RefinablePrecision otherPrecision);
   }
 
   public static class LocalizedRefinablePrecision extends RefinablePrecision {
@@ -239,12 +257,6 @@ public class ExplicitPrecision implements Precision {
       }
     }
 
-    /**
-     * This method decides whether or not a variable is being tracked by this precision.
-     *
-     * @param variable the scoped name of the variable for which to make the decision
-     * @return true, when the variable is allowed to be tracked, else false
-     */
     @Override
     public boolean contains(String variable) {
       return rawPrecision.containsEntry(location, variable);
@@ -274,22 +286,11 @@ public class ExplicitPrecision implements Precision {
      */
     private Set<String> rawPrecision = new HashSet<>();
 
-    /**
-     * This method decides whether or not a variable is being tracked by this precision.
-     *
-     * @param variable the scoped name of the variable for which to make the decision
-     * @return true, when the variable is allowed to be tracked, else false
-     */
     @Override
     public boolean contains(String variable) {
       return rawPrecision.contains(variable);
     }
 
-    /**
-     * This method adds the additional mapping to the current mapping, i.e., this precision can only grow in size, and never gets smaller.
-     *
-     * @param additionalMapping the additional mapping to be added to the current mapping
-     */
     @Override
     public ScopedRefinablePrecision refine(Multimap<CFANode, String> increment) {
       if(this.rawPrecision.containsAll(increment.values())) {
@@ -341,12 +342,6 @@ public class ExplicitPrecision implements Precision {
   }
 
   public static class FullPrecision extends RefinablePrecision {
-    /**
-     * This method decides whether or not a variable is being tracked by this precision.
-     *
-     * @param variable the scoped name of the variable for which to make the decision
-     * @return true, when the variable is allowed to be tracked, else false
-     */
     @Override
     public boolean contains(String variable) {
       return true;
