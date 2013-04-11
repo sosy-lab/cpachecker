@@ -41,26 +41,37 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.defaults.AbstractStatistics;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 
-public class PredicatePrecisionSweeper {
-
-  private final LogManager logger;
-  private final AbstractStatistics statistics;
+public class PredicatePrecisionSweeper implements StatisticsProvider {
 
   private static final String FALSE_PREDICATE = "false";
 
-  public PredicatePrecisionSweeper(LogManager pLogger, AbstractStatistics pStatistics) {
+  private final Multimap<CFANode, AbstractionPredicate> sweepedLocationPredicates = ArrayListMultimap.create();
+  private final Collection<AbstractionPredicate> sweepedGlobalPredicates = Lists.newArrayList();
+  private final Multimap<String, AbstractionPredicate> sweepedFunctionPredicates = ArrayListMultimap.create();
+
+  private final LogManager logger;
+  private final CFA cfa;
+
+  private class SweeperStatistics extends AbstractStatistics {}
+  private SweeperStatistics statistics = new SweeperStatistics();
+
+  public PredicatePrecisionSweeper(LogManager pLogger, CFA pCfa) {
     this.logger = pLogger;
-    this.statistics = pStatistics;
+    this.cfa = pCfa;
   }
 
   private Set<String> getDeclaredVariables(CFA pCFA) {
@@ -114,26 +125,24 @@ public class PredicatePrecisionSweeper {
     return Sets.intersection(predicateVariables, declaredVariables).isEmpty();
   }
 
-  public PredicatePrecision sweepPrecision(CFA pCFA, PredicatePrecision pToSweep) {
-    Preconditions.checkNotNull(pCFA);
+  public PredicatePrecision sweepPrecision(PredicatePrecision pToSweep) {
     Preconditions.checkNotNull(pToSweep);
 
-    if (pCFA.getLanguage() != Language.C) {
+    if (cfa.getLanguage() != Language.C) {
       logger.log(Level.WARNING, "Sweeping only supported for the C programming language!");
       return pToSweep;
     }
 
-    Set<AbstractionPredicate> sweepedPredicates = new HashSet<>();
-    Set<String> declaredVariables = getDeclaredVariables(pCFA);
+    Set<String> declaredVariables = getDeclaredVariables(cfa);
 
-    // Sweep local predicates ...
-    Multimap<CFANode, AbstractionPredicate> localPredicates = ArrayListMultimap.create();
+    // Sweep location predicates ...
+    Multimap<CFANode, AbstractionPredicate> locationPredicates = ArrayListMultimap.create();
     for (CFANode u: pToSweep.getLocalPredicates().keySet()) {
       for (AbstractionPredicate p: pToSweep.getLocalPredicates().get(u)) {
         if (shouldSweepPredicate(declaredVariables, p)) {
-          sweepedPredicates.add(p);
+          sweepedLocationPredicates.put(u, p);
         } else {
-          localPredicates.put(u, p);
+          locationPredicates.put(u, p);
         }
       }
     }
@@ -142,7 +151,7 @@ public class PredicatePrecisionSweeper {
     Collection<AbstractionPredicate> globalPredicates = Lists.newArrayList();
     for (AbstractionPredicate p: pToSweep.getGlobalPredicates()) {
       if (shouldSweepPredicate(declaredVariables, p)) {
-        sweepedPredicates.add(p);
+        sweepedGlobalPredicates.add(p);
       } else {
         globalPredicates.add(p);
       }
@@ -150,20 +159,40 @@ public class PredicatePrecisionSweeper {
 
     // Sweep function predicates ...
     Multimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
-    for (String f: pToSweep.getFunctionPredicates().keys()) {
+    for (String f: pToSweep.getFunctionPredicates().keySet()) {
       for (AbstractionPredicate p: pToSweep.getFunctionPredicates().get(f)) {
         if (shouldSweepPredicate(declaredVariables, p)) {
-          sweepedPredicates.add(p);
+          sweepedFunctionPredicates.put(f, p);
         } else {
           functionPredicates.put(f, p);
         }
       }
     }
 
-    statistics.addKeyValueStatistic("Sweeped predicates", sweepedPredicates.size());
-    logger.log(Level.FINE, "Sweeped", sweepedPredicates);
+    statistics.addKeyValueStatistic("Sweeped predicates",
+            sweepedFunctionPredicates.size()
+            + sweepedLocationPredicates.size()
+            + sweepedGlobalPredicates.size());
 
-    return new PredicatePrecision(localPredicates, functionPredicates, globalPredicates);
+    return new PredicatePrecision(locationPredicates, functionPredicates, globalPredicates);
+  }
+
+
+  public ImmutableMultimap<String, AbstractionPredicate> getSweepedFunctionPredicates() {
+    return ImmutableMultimap.copyOf(sweepedFunctionPredicates);
+  }
+
+  public ImmutableList<AbstractionPredicate> getSweepedGlobalPredicates() {
+    return ImmutableList.copyOf(sweepedGlobalPredicates);
+  }
+
+  public ImmutableMultimap<CFANode, AbstractionPredicate> getSweepedLocationPredicates() {
+    return ImmutableMultimap.copyOf(sweepedLocationPredicates);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(statistics);
   }
 
 }

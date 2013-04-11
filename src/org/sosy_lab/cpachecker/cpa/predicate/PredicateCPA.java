@@ -102,7 +102,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
   private final PredicateAbstractState topState;
-  private final PredicatePrecisionBootstrapper precisionInit;
+  private final PredicatePrecisionBootstrapper precisionBootstraper;
+  private final PredicatePrecisionSweeper precisionSweeper;
 
   protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk, CFA cfa) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
@@ -157,11 +158,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     prec = new PredicatePrecisionAdjustment(this);
     stop = new PredicateStopOperator(domain);
 
-    precisionInit = new PredicatePrecisionBootstrapper(config, logger, cfa, pathFormulaManager, abstractionManager, formulaManager);
-    initialPrecision = precisionInit.prepareInitialPredicates();
+    precisionSweeper = new PredicatePrecisionSweeper(logger, cfa);
+    precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, pathFormulaManager, abstractionManager, formulaManager, precisionSweeper);
+    initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    stats = new PredicateCPAStatistics(this, blk, regionManager, cfa);
+    stats = new PredicateCPAStatistics(this, blk, regionManager, cfa, precisionSweeper);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
   }
@@ -237,7 +239,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
-    precisionInit.collectStatistics(pStatsCollection);
+    precisionBootstraper.collectStatistics(pStatsCollection);
+    precisionSweeper.collectStatistics(pStatsCollection);
   }
 
   @Override

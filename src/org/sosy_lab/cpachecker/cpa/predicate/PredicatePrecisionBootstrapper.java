@@ -70,6 +70,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView formulaManagerView;
   private final AbstractionManager abstractionManager;
+  private final PredicatePrecisionSweeper sweeper;
 
   private final Configuration config;
   private final LogManager logger;
@@ -78,10 +79,13 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private class PrecisionBootstrapStatistics extends AbstractStatistics {}
   private final PrecisionBootstrapStatistics statistics = new PrecisionBootstrapStatistics();
 
-  public PredicatePrecisionBootstrapper(Configuration config, LogManager logger, CFA cfa, PathFormulaManager pathFormulaManager, AbstractionManager abstractionManager, FormulaManagerView formulaManagerView) throws InvalidConfigurationException {
+  public PredicatePrecisionBootstrapper(Configuration config, LogManager logger, CFA cfa,
+      PathFormulaManager pathFormulaManager, AbstractionManager abstractionManager, FormulaManagerView formulaManagerView,
+      PredicatePrecisionSweeper sweeper) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;
     this.cfa = cfa;
+    this.sweeper = sweeper;
 
     this.pathFormulaManager = pathFormulaManager;
     this.abstractionManager = abstractionManager;
@@ -100,7 +104,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       try {
         PredicateMapParser parser = new PredicateMapParser(config, cfa, logger, formulaManagerView, abstractionManager);
         PredicatePrecision result = parser.parsePredicates(predicatesFile, initialPredicates);
-        return enablePrecisionSweeper ? new PredicatePrecisionSweeper(logger, statistics).sweepPrecision(cfa, result) : result;
+        return enablePrecisionSweeper ? sweeper.sweepPrecision(result) : result;
 
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not read predicate map from file");
