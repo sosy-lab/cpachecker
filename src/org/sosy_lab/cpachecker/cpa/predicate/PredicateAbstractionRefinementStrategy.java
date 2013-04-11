@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.*;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.mergePredicatesPerLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.File;
@@ -41,6 +42,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -92,8 +94,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Option(description="refinement will add all discovered predicates "
           + "to all the locations in the abstract trace")
   private boolean addPredicatesGlobally = false;
-
-  @Option(description="During refinement, keep predicates from all removed parts " +
+ @Option(description="During refinement, keep predicates from all removed parts " +
                       "of the ARG. Otherwise, only predicates from the error path " +
                       "are kept.")
   private boolean keepAllPredicates = false;
@@ -158,7 +159,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     bfmgr = pFormulaManager.getBooleanFormulaManager();
   }
 
-  private ListMultimap<CFANode, AbstractionPredicate> newPredicates;
+  private ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates;
 
   @Override
   public void startRefinementOfPath() {
@@ -174,8 +175,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     predicateCreation.start();
     Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant);
     CFANode loc = AbstractStates.extractLocation(interpolationPoint);
+    int locInstance = AbstractStates.extractStateByType(interpolationPoint, PredicateAbstractState.class)
+                                    .getAbstractionLocationsOnPath().get(loc);
 
-    newPredicates.putAll(loc, localPreds);
+    newPredicates.putAll(Pair.of(loc, locInstance), localPreds);
     predicateCreation.stop();
 
     return false;
@@ -237,8 +240,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
     }
 
-    newPredicates.put(extractLocation(pUnreachableState), amgr.makeFalsePredicate());
-    pAffectedStates.add(pUnreachableState);
+    { // Add predicate "false" to unreachable location
+      CFANode loc = extractLocation(pUnreachableState);
+      int locInstance = AbstractStates.extractStateByType(pUnreachableState, PredicateAbstractState.class)
+                                       .getAbstractionLocationsOnPath().get(loc);
+      newPredicates.put(Pair.of(loc, locInstance), amgr.makeFalsePredicate());
+      pAffectedStates.add(pUnreachableState);
+    }
 
     // We have two different strategies for the refinement root: set it to
     // the first interpolation point or set it to highest location in the ARG
@@ -283,7 +291,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     if (addPredicatesGlobally) {
       newPrecision = basePrecision.addGlobalPredicates(newPredicates.values());
     } else {
-      newPrecision = basePrecision.addLocalPredicates(newPredicates);
+      newPrecision = basePrecision.addLocalPredicates(mergePredicatesPerLocation(newPredicates));
     }
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
@@ -296,7 +304,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       PredicateMapWriter precWriter = new PredicateMapWriter(fmgr);
       try (Writer w = Files.openOutputFile(precFile)) {
         precWriter.writePredicateMap(
-            ImmutableSetMultimap.copyOf(newPredicates),
+            ImmutableSetMultimap.copyOf(mergePredicatesPerLocation(newPredicates)),
             ImmutableSetMultimap.<String, AbstractionPredicate>of(),
             ImmutableSet.<AbstractionPredicate>of(),
             newPredicates.values(), w);

@@ -348,11 +348,13 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       openBlocks.push(partitioning.getMainBlock());
       for (ARGState pathElement : pPath) {
         CFANode currentNode = AbstractStates.extractLocation(pathElement);
+        Integer currentNodeInstance = AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class)
+                                                    .getAbstractionLocationsOnPath().get(currentNode);
         if (partitioning.isCallNode(currentNode)) {
           openBlocks.push(partitioning.getBlockForCallNode(currentNode));
         }
 
-        Collection<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode);
+        Collection<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode, currentNodeInstance);
         for (Block block : openBlocks) {
           for (AbstractionPredicate pred : localPreds) {
             relevantPredicatesComputer.considerPredicateAsRelevant(block, pred);

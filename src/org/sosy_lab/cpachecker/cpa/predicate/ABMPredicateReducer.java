@@ -235,6 +235,7 @@ public class ABMPredicateReducer implements Reducer {
           ImmutableSet.<AbstractionPredicate> of());
 
       assert expandedPredicatePrecision.getFunctionPredicates().isEmpty() : "TODO: need to handle function-specific predicates in ReducedPredicatePrecision";
+      assert expandedPredicatePrecision.getLocationInstancePredicates().isEmpty() : "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
 
       this.expandedPredicatePrecision = expandedPredicatePrecision;
       this.context = context;
@@ -272,8 +273,10 @@ public class ABMPredicateReducer implements Reducer {
                 : lExpandedPredicatePrecision.approximatePredicateMap().keySet();
         for (CFANode node : keySet) {
           if (context.getNodes().contains(node)) {
+            // TODO handle location-instance-specific predicates
+            // Without support for them, we can just pass 0 as locInstance parameter
             Collection<AbstractionPredicate> set =
-                relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(node));
+                relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(node, 0));
             pmapBuilder.putAll(node, set);
           }
         }
@@ -306,7 +309,7 @@ public class ABMPredicateReducer implements Reducer {
     }
 
     @Override
-    public Set<AbstractionPredicate> getPredicates(CFANode loc) {
+    public Set<AbstractionPredicate> getPredicates(CFANode loc, Integer locInstance) {
       if (!context.getNodes().contains(loc)) {
         logger.log(Level.WARNING, context, "was left in an unexpected way. Analysis might be unsound.");
       }
@@ -319,7 +322,7 @@ public class ABMPredicateReducer implements Reducer {
         return result;
       } else {
         Set<AbstractionPredicate> result =
-            relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(loc));
+            relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getPredicates(loc, locInstance));
         if (result.isEmpty()) {
           result = relevantComputer.getRelevantPredicates(context, rootPredicatePrecision.getGlobalPredicates());
         }

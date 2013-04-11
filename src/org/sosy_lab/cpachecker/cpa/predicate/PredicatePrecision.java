@@ -129,12 +129,14 @@ public class PredicatePrecision implements Precision {
 
   /**
    * Return all predicates for one specific location in this precision.
-   * Note that this may be difference from <code>getPredicateMap().get(loc)</code>
-   * if there are global predicates.
    * @param loc A CFA location.
+   * @param locInstance How often this location has appeared in the current path.
    */
-  public Set<AbstractionPredicate> getPredicates(CFANode loc) {
-    Set<AbstractionPredicate> result = getLocalPredicates().get(loc);
+  public Set<AbstractionPredicate> getPredicates(CFANode loc, Integer locInstance) {
+    Set<AbstractionPredicate> result = getLocationInstancePredicates().get(Pair.of(loc, locInstance));
+    if (result.isEmpty()) {
+      result = getLocalPredicates().get(loc);
+    }
     if (result.isEmpty()) {
       result = getFunctionPredicates().get(loc.getFunctionName());
     }
