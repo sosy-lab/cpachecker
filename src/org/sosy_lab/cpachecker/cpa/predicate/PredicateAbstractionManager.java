@@ -152,7 +152,14 @@ public class PredicateAbstractionManager {
   }
 
   /**
-   * Abstract post operation.
+   * Compute an abstraction of the conjunction of an AbstractionFormula and
+   * a PathFormula. The AbstractionFormula will be used in its instantiated form,
+   * so the indices there should match those from the PathFormula.
+   * @param abstractionFormula An AbstractionFormula that is used as input.
+   * @param pathFormula A PathFormula that is used as input.
+   * @param predicates The set of predicates used for abstraction.
+   * @return An AbstractionFormula instance representing an abstraction of
+   *          "abstractionFormula & pathFormula" with pathFormula as the block formula.
    */
   public AbstractionFormula buildAbstraction(
       AbstractionFormula abstractionFormula, PathFormula pathFormula,
@@ -247,6 +254,31 @@ public class PredicateAbstractionManager {
     }
 
     return result;
+  }
+
+  /**
+   * Compute an abstraction of a single boolean formula.
+   * @param f The formula to be abstracted. Needs to be instantiated
+   *         with the indices from <code>blockFormula.getSssa()</code>.
+   * @param blockFormula A path formula that is not used for the abstraction,
+   *         but will be used as the block formula in the resulting AbstractionFormula instance.
+   * @param predicates The set of predicates used for abstraction.
+   * @return An AbstractionFormula instance representing an abstraction of f
+   *          with blockFormula as the block formula.
+   */
+  public AbstractionFormula buildAbstraction(final BooleanFormula f,
+      final PathFormula blockFormula,
+      final Collection<AbstractionPredicate> predicates) {
+
+    PathFormula pf = new PathFormula(f, blockFormula.getSsa(), 0);
+
+    AbstractionFormula emptyAbstraction = makeTrueAbstractionFormula(null);
+    AbstractionFormula newAbstraction = buildAbstraction(emptyAbstraction, pf, predicates);
+
+    // fix block formula in result
+    return new AbstractionFormula(fmgr, newAbstraction.asRegion(),
+        newAbstraction.asFormula(), newAbstraction.asInstantiatedFormula(),
+        blockFormula);
   }
 
   private Region buildCartesianAbstraction(final BooleanFormula f, final SSAMap ssa,

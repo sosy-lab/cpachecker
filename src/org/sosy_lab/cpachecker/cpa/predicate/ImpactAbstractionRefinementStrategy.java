@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -42,10 +43,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -53,12 +54,20 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
  * Refinement strategy similar to {@link ImpactRefinementStrategy},
  * however it computes an abstraction before strengthening states with interpolants.
  * This enables the use of BDDs similar to predicate abstraction.
+ *
+ * There are two strategies available:
+ * 1) Compute an abstraction of the concrete block preceding each state.
+ * This is the same as predicate abstraction does during the forward analysis.
+ * 2) Compute an abstraction only of the generated interpolant.
  */
 @Options(prefix="cpa.predicate.refinement")
 class ImpactAbstractionRefinementStrategy extends RefinementStrategy {
 
   @Option(description="split each arithmetic equality into two inequalities when extracting predicates from interpolants")
   private boolean splitItpAtoms = false;
+
+  @Option(description="When computing an abstraction during refinement, use only the interpolant as input, not the concrete block.")
+  private boolean abstractInterpolantOnly = false;
 
   private class Stats implements Statistics {
 
@@ -127,31 +136,44 @@ class ImpactAbstractionRefinementStrategy extends RefinementStrategy {
       preds.add(amgr.makePredicate(atom));
     }
 
-    PredicateAbstractState predicateState = AbstractStates.extractStateByType(s, PredicateAbstractState.class);
-    AbstractionFormula oldAbs = predicateState.getAbstractionFormula();
+    PredicateAbstractState predicateState = extractStateByType(s, PredicateAbstractState.class);
 
-    // lastAbstraction is the one from the previous block.
-    // oldAbs is the abstraction from the current location that was computed before.
+    // lastAbstraction is the abstraction that was computed at the end
+    // of the previous block in the last call to this method.
+
+    // existingAbstraction is the abstraction from the current abstract state
+    // that was computed before.
+    final AbstractionFormula existingAbstraction = predicateState.getAbstractionFormula();
+
+    // blockFormula is the concrete formula representing the current block.
+    PathFormula blockFormula = existingAbstraction.getBlockFormula();
 
     // Compute an abstraction with the new predicates.
     stats.abstraction.start();
-    AbstractionFormula newAbs = predAbsMgr.buildAbstraction(lastAbstraction, oldAbs.getBlockFormula(), preds);
+    AbstractionFormula newAbstraction;
+    if (abstractInterpolantOnly) {
+      // Compute an abstraction of "itp"
+      newAbstraction = predAbsMgr.buildAbstraction(itp, blockFormula, preds);
+    } else {
+      // Compute an abstraction of "lastAbstraction & blockFormula"
+      newAbstraction = predAbsMgr.buildAbstraction(lastAbstraction, blockFormula, preds);
+    }
     stats.abstraction.stop();
 
     stats.itpCheck.start();
-    boolean isNewItp = !predAbsMgr.checkCoverage(oldAbs, newAbs);
+    boolean isNewItp = !predAbsMgr.checkCoverage(existingAbstraction, newAbstraction);
     stats.itpCheck.stop();
 
     if (isNewItp) {
       // newAbs is not entailed by oldAbs,
       // we need to strengthen the element
-      AbstractionFormula result = predAbsMgr.makeAnd(oldAbs, newAbs);
-      predicateState.setAbstraction(result);
-      lastAbstraction = result;
+      newAbstraction = predAbsMgr.makeAnd(existingAbstraction, newAbstraction);
+      predicateState.setAbstraction(newAbstraction);
+      lastAbstraction = newAbstraction;
 
     } else {
       // prepare for next call
-      lastAbstraction = oldAbs;
+      lastAbstraction = existingAbstraction;
     }
     return !isNewItp;
   }

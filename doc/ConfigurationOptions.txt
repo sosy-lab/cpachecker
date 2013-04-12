@@ -733,6 +733,10 @@ cpa.predicate.predmap.export = true
 cpa.predicate.predmap.file = "predmap.txt"
 cpa.predicate.predmap.includeSwept = true
 
+# When computing an abstraction during refinement, use only the interpolant
+# as input, not the concrete block.
+cpa.predicate.refinement.abstractInterpolantOnly = false
+
 # DEPRECATED: Add all discovered predicates to all the locations in the
 # abstract trace. DEPRECATED: use cpa.predicate.predicateSharing instead
 # which offers more flexibility.
