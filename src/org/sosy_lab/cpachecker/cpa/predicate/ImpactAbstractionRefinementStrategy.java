@@ -96,6 +96,7 @@ class ImpactAbstractionRefinementStrategy extends RefinementStrategy {
       final FormulaManagerView pFmgr, final AbstractionManager pAmgr,
       final PredicateAbstractionManager pPredAbsMgr) throws InvalidConfigurationException, CPAException {
     super(pFmgr.getBooleanFormulaManager());
+    config.inject(this);
 
     amgr = pAmgr;
     fmgr = pFmgr;
