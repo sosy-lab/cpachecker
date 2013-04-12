@@ -147,6 +147,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     formulaManager = pInterpolationManager;
     pfmgr = pPathFormulaManager;
     strategy = pStrategy;
+
+    logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
   }
 
   @Override
