@@ -47,60 +47,38 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
   private List<Long> assertedFormulas = new LinkedList<>();
 
   public Z3InterpolatingProver(Z3FormulaManager mgr) {
-    System.out.println("ITPP INIT in");
-
     this.mgr = mgr;
     this.z3context = mgr.getContext();
     this.z3solver = mk_solver(z3context);
     solver_inc_ref(z3context, z3solver);
-
-    System.out.println("ITPP INIT out");
-
-    // TODO check, that the context allows interpolation
   }
 
   @Override
   public Long push(BooleanFormula f) {
-    System.out.println("        ITPP PUSH in");
-
     long e = Z3FormulaManager.getZ3Expr(f);
     solver_push(z3context, z3solver);
     solver_assert(z3context, z3solver, e);
     assertedFormulas.add(e);
-
-    System.out.println("        ITPP PUSH out");
-
     return e;
   }
 
   @Override
   public void pop() {
-    System.out.println("        ITPP POP in");
-
     assertedFormulas.remove(assertedFormulas.size() - 1); // remove last
     solver_pop(z3context, z3solver, 1);
-
-    System.out.println("        ITPP POP out");
   }
 
   @Override
   public boolean isUnsat() {
-    System.out.println("        ITPP CHECK in");
-
     Preconditions.checkState(z3context != 0);
     Preconditions.checkState(z3solver != 0);
-
     int result = solver_check(z3context, z3solver);
-    assert (result != Z3_L_UNDEF);
-
-    System.out.println("        ITPP CHECK out");
-
+    Preconditions.checkState(result != Z3_L_UNDEF);
     return result == Z3_L_FALSE;
   }
 
   @Override
   public BooleanFormula getInterpolant(List<Long> formulasOfA) {
-    System.out.println("        ITPP ITP in");
 
     // calc difference: formulasOfB := assertedFormulas - formulasOfA
     List<Long> formulasOfB = new ArrayList<>();
@@ -126,22 +104,19 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
 
     PointerToLong labels = new PointerToLong();
     PointerToLong model = new PointerToLong();
+
+    // next lines are not needed due to a direct implementation in the C-code.
     //    long options = mk_params(z3context);
     //    inc_ref(z3context, options);
-    //    int[] parents = new int[0];
-    long[] theory = new long[0];
+    //    int[] parents = new int[0]; // this line is not working
+    long[] theory = new long[0]; // do we need a theory?
 
     // get interpolant of groups
-    System.out.println("        ITPP ITP ITP in");
     int isSat = interpolateSeq(
         z3context, new long[] { fA, fB }, itps, model, labels, 0, theory);
-    System.out.println("        ITPP ITP ITP out");
 
     assert isSat != Z3_L_TRUE;
     BooleanFormula f = mgr.encapsulate(BooleanFormula.class, itps[0]);
-
-    //    System.out.println("ITP::" + ast_to_string(z3context, itps[0]) + "::END");
-    System.out.println("        ITPP ITP out");
 
     // cleanup
     dec_ref(z3context, fA);
@@ -152,28 +127,18 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
 
   @Override
   public Model getModel() {
-    System.out.println("        ITPP MODEL in");
-
     Z3Model modelCreator = new Z3Model(mgr, z3context, z3solver);
-    Model m = modelCreator.createZ3Model();
-
-    System.out.println("        ITPP MODEL out");
-
-    return m;
+    return modelCreator.createZ3Model();
   }
 
   @Override
   public void close() {
-    System.out.println("ITPP CLOSE in");
-
-    assert (z3context != 0);
-    assert (z3solver != 0);
+    Preconditions.checkState(z3context != 0);
+    Preconditions.checkState(z3solver != 0);
     assertedFormulas = null;
     //TODO solver_reset(z3context, z3solver);
     solver_dec_ref(z3context, z3solver);
     z3context = 0;
     z3solver = 0;
-
-    System.out.println("ITPP CLOSE out");
   }
 }

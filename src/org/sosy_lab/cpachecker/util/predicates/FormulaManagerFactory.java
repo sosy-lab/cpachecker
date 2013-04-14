@@ -31,6 +31,9 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.logging.LoggingFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
@@ -47,6 +50,10 @@ public class FormulaManagerFactory {
   private static final String MATHSAT5 = "MATHSAT5";
   private static final String SMTINTERPOL = "SMTINTERPOL";
   private static final String Z3 = "Z3";
+
+  @Option(name = "solver.useLogger",
+      description = "log some solver actions, this may be slow!")
+  private boolean useLogger = false;
 
   @Option(name = "solver.useIntegers",
       description = "Encode program variables as INTEGER variables, instead of "
@@ -93,32 +100,56 @@ public class FormulaManagerFactory {
   }
 
   public FormulaManager getFormulaManager() {
-    return fmgr;
+    if (useLogger) {
+      return new LoggingFormulaManager(fmgr);
+    } else {
+      return fmgr;
+    }
   }
 
   public ProverEnvironment newProverEnvironment(boolean generateModels) {
+    ProverEnvironment pe;
     switch (solver) {
     case SMTINTERPOL:
-      return new SmtInterpolTheoremProver((SmtInterpolFormulaManager) fmgr);
+      pe = new SmtInterpolTheoremProver((SmtInterpolFormulaManager) fmgr);
+      break;
     case MATHSAT5:
-      return new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr, generateModels);
+      pe = new Mathsat5TheoremProver((Mathsat5FormulaManager) fmgr, generateModels);
+      break;
     case Z3:
-      return new Z3TheoremProver((Z3FormulaManager) fmgr);
+      pe = new Z3TheoremProver((Z3FormulaManager) fmgr);
+      break;
     default:
       throw new AssertionError("no solver selected");
+    }
+
+    if (useLogger) {
+      return new LoggingProverEnvironment(pe);
+    } else {
+      return pe;
     }
   }
 
   public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean shared) {
+    InterpolatingProverEnvironment<?> ipe;
     switch (solver) {
     case SMTINTERPOL:
-      return new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) fmgr);
+      ipe = new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) fmgr);
+      break;
     case MATHSAT5:
-      return new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
+      ipe = new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);
+      break;
     case Z3:
-      return new Z3InterpolatingProver((Z3FormulaManager) fmgr);
+      ipe = new Z3InterpolatingProver((Z3FormulaManager) fmgr);
+      break;
     default:
       throw new AssertionError("no solver selected");
+    }
+
+    if (useLogger) {
+      return new LoggingInterpolatingProverEnvironment<>(ipe);
+    } else {
+      return ipe;
     }
   }
 }

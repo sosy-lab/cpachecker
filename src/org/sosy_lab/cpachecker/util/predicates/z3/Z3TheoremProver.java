@@ -44,91 +44,58 @@ import com.google.common.base.Preconditions;
 
 public class Z3TheoremProver implements ProverEnvironment {
 
-  private static int counter = 0;
-  private int level = 0;
-
   private Z3FormulaManager mgr;
   long z3context;
   long z3solver;
 
   public Z3TheoremProver(Z3FormulaManager mgr) {
-    System.out.println("TP INIT in");
-
     this.mgr = mgr;
     this.z3context = mgr.getContext();
     this.z3solver = mk_solver(z3context);
     solver_inc_ref(z3context, z3solver);
-    System.out.println("TP INIT out");
   }
 
   @Override
   public void push(BooleanFormula pF) {
-    counter++;
-    level++;
-    System.out.println("        TP PUSH in, to LEVEL" + level);
-
     Preconditions.checkArgument(z3context != 0);
-
     solver_push(z3context, z3solver);
     long e = Z3FormulaManager.getZ3Expr(pF);
-    System.out.println("        TP ASSERT " + counter); //+ " " + ast_to_string(z3context, e));
-
     solver_assert(z3context, z3solver, e);
-    System.out.println("        TP PUSH out");
   }
 
   @Override
   public void pop() {
-    level--;
-    System.out.println("        TP POP in, from LEVEL" + level);
-
-    assert (solver_get_num_scopes(z3context, z3solver) >= 1);
+    Preconditions.checkArgument(solver_get_num_scopes(z3context, z3solver) >= 1);
     solver_pop(z3context, z3solver, 1);
-    System.out.println("        TP POP out");
   }
 
   @Override
   public boolean isUnsat() {
-    System.out.println("        TP CHECK in");
-
     int result = solver_check(z3context, z3solver);
-    assert (result != Z3_L_UNDEF);
-    System.out.println("        TP CHECK out");
-
+    Preconditions.checkArgument(result != Z3_L_UNDEF);
     return result == Z3_L_FALSE;
   }
 
   @Override
   public Model getModel() throws SolverException {
-    System.out.println("        TP MODEL in");
-
     Z3Model model = new Z3Model(mgr, z3context, z3solver);
     Model m = model.createZ3Model();
-
-    System.out.println("        TP MODEL out");
-
     return m;
   }
 
   @Override
   public void close() {
-    System.out.println("TP CLOSE in");
-
-    assert (z3context != 0);
-    assert (z3solver != 0);
+    Preconditions.checkArgument(z3context != 0);
+    Preconditions.checkArgument(z3solver != 0);
     //solver_reset(z3context, z3solver);
     solver_dec_ref(z3context, z3solver);
-    // del_context(z3context); //TODO delete context? is it used somewhere else?
     z3context = 0;
     z3solver = 0;
-    System.out.println("TP CLOSE out");
   }
 
   @Override
   public AllSatResult allSat(Collection<BooleanFormula> formulas,
       RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) {
-    System.out.println("        TP ALLSAT in");
-
     checkNotNull(rmgr);
     checkNotNull(solveTime);
     checkNotNull(enumTime);
@@ -177,9 +144,6 @@ public class Z3TheoremProver implements ProverEnvironment {
 
     // we pushed some levels on assertionStack, remove them and delete solver
     solver_pop(z3context, z3solver, 1);
-
-    System.out.println("        TP ALLSAT out");
-
     return result;
   }
 
