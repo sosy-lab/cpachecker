@@ -57,6 +57,11 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
   }
 
   @Override
+  public String getQualifiedName() {
+    return getName();
+  }
+
+  @Override
   public int hashCode() {
     int prime = 31;
     int result = 7;

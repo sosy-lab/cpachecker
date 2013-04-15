@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
-@Options(prefix="callstack")
+@Options(prefix="cpa.callstack")
 public class CallstackTransferRelation implements TransferRelation {
 
   @Option(name="depth", description = "depth of recursion bound")

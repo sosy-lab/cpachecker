@@ -237,6 +237,13 @@ public class CFAUtils {
     }
   };
 
+  public static Function<CFANode, String> GET_FUNCTION = new Function<CFANode, String>() {
+    @Override
+    public String apply(CFANode pInput) {
+      return pInput.getFunctionName();
+    }
+  };
+
   /**
    * A comparator for comparing {@link CFANode}s by their line numbers.
    */

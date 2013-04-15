@@ -24,9 +24,15 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.*;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,9 +40,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -61,6 +71,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
@@ -80,9 +91,20 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Option(description="split each arithmetic equality into two inequalities when extracting predicates from interpolants")
   private boolean splitItpAtoms = false;
 
-  @Option(description="refinement will add all discovered predicates "
-          + "to all the locations in the abstract trace")
+  @Option(description="Add all discovered predicates to all the locations in the abstract trace. "
+      + "DEPRECATED: use cpa.predicate.predicateSharing instead which offers more flexibility.")
+  @Deprecated
   private boolean addPredicatesGlobally = false;
+
+  @Option(description="Where to apply the found predicates to?")
+  private PredicateSharing predicateSharing = PredicateSharing.LOCATION;
+  private static enum PredicateSharing {
+    GLOBAL,            // at all locations
+    FUNCTION,          // at all locations in the respective function
+    LOCATION,          // at all occurrences of the respective location
+    LOCATION_INSTANCE, // at the n-th occurrence of the respective location in each path
+    ;
+  }
 
   @Option(description="During refinement, keep predicates from all removed parts " +
                       "of the ARG. Otherwise, only predicates from the error path " +
@@ -97,6 +119,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Option(description="During refinement, add all new predicates to the precisions " +
                       "of all abstract states in the reached set.")
   private boolean sharePredicates = false;
+
+  @Option(description="After each refinement, dump the newly found predicates.")
+  private boolean dumpPredicates = false;
+
+  @Option(description="File name for the predicates dumped after refinements.")
+  @FileOption(Type.OUTPUT_FILE)
+  private File dumpPredicatesFile = new File("refinement%04d-predicates.prec");
 
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
@@ -135,6 +164,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     super(pFormulaManager.getBooleanFormulaManager());
 
     config.inject(this, PredicateAbstractionRefinementStrategy.class);
+    if (addPredicatesGlobally) {
+      predicateSharing = PredicateSharing.GLOBAL;
+    }
 
     logger = pLogger;
     amgr = pAbstractionManager;
@@ -142,7 +174,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     bfmgr = pFormulaManager.getBooleanFormulaManager();
   }
 
-  private ListMultimap<CFANode, AbstractionPredicate> newPredicates;
+  private ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates;
 
   @Override
   public void startRefinementOfPath() {
@@ -158,8 +190,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     predicateCreation.start();
     Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant);
     CFANode loc = AbstractStates.extractLocation(interpolationPoint);
+    int locInstance = AbstractStates.extractStateByType(interpolationPoint, PredicateAbstractState.class)
+                                    .getAbstractionLocationsOnPath().get(loc);
 
-    newPredicates.putAll(loc, localPreds);
+    newPredicates.putAll(Pair.of(loc, locInstance), localPreds);
     predicateCreation.stop();
 
     return false;
@@ -221,8 +255,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
     }
 
-    newPredicates.put(extractLocation(pUnreachableState), amgr.makeFalsePredicate());
-    pAffectedStates.add(pUnreachableState);
+    { // Add predicate "false" to unreachable location
+      CFANode loc = extractLocation(pUnreachableState);
+      int locInstance = AbstractStates.extractStateByType(pUnreachableState, PredicateAbstractState.class)
+                                       .getAbstractionLocationsOnPath().get(loc);
+      newPredicates.put(Pair.of(loc, locInstance), amgr.makeFalsePredicate());
+      pAffectedStates.add(pUnreachableState);
+    }
 
     // We have two different strategies for the refinement root: set it to
     // the first interpolation point or set it to highest location in the ARG
@@ -264,16 +303,42 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     logger.log(Level.ALL, "New predicates are", newPredicates);
 
     PredicatePrecision newPrecision;
-    if (addPredicatesGlobally) {
+    switch (predicateSharing) {
+    case GLOBAL:
       newPrecision = basePrecision.addGlobalPredicates(newPredicates.values());
-    } else {
-      newPrecision = basePrecision.addLocalPredicates(newPredicates);
+      break;
+    case FUNCTION:
+      newPrecision = basePrecision.addFunctionPredicates(mergePredicatesPerFunction(newPredicates));
+      break;
+    case LOCATION:
+      newPrecision = basePrecision.addLocalPredicates(mergePredicatesPerLocation(newPredicates));
+      break;
+    case LOCATION_INSTANCE:
+      newPrecision = basePrecision.addLocationInstancePredicates(newPredicates);
+      break;
+    default:
+      throw new AssertionError();
     }
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
 
     assert basePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
     assert targetStatePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
+
+    if (dumpPredicates && dumpPredicatesFile != null) {
+      Path precFile = Paths.get(String.format(dumpPredicatesFile.getPath(), precisionUpdate.getNumberOfIntervals()));
+      PredicateMapWriter precWriter = new PredicateMapWriter(fmgr);
+      try (Writer w = Files.openOutputFile(precFile)) {
+        precWriter.writePredicateMap(
+            ImmutableSetMultimap.copyOf(newPredicates),
+            ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
+            ImmutableSetMultimap.<String, AbstractionPredicate>of(),
+            ImmutableSet.<AbstractionPredicate>of(),
+            newPredicates.values(), w);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not dump precision to file");
+      }
+    }
 
     precisionUpdate.stop();
 

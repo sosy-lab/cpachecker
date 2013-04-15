@@ -29,12 +29,9 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 import java.util.Arrays;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 
 import com.google.common.base.Function;
@@ -68,13 +65,12 @@ class Mathsat5FunctionFormulaManager extends AbstractFunctionFormulaManager<Long
   }
 
   public long toMathsatType(FormulaType<?> formulaType) {
-    Class<?> clazz = formulaType.getInterfaceType();
     long t;
-    if (clazz==BooleanFormula.class) {
+    if (formulaType.isBooleanType()) {
       t = creator.getBoolType();
-    } else if (clazz == RationalFormula.class) {
+    } else if (formulaType.isRationalType()) {
       t = creator.getNumberType();
-    } else if (clazz == BitvectorFormula.class) {
+    } else if (formulaType.isBitvectorType()) {
       FormulaType.BitvectorType bitPreciseType = (FormulaType.BitvectorType) formulaType;
       t = creator.getBittype(bitPreciseType.getSize());
     } else {

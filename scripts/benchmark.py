@@ -58,6 +58,7 @@ import benchmark.util as Util
 
 MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
+CORELIMIT = runexecutor.CORELIMIT
 
 # colors for column status in terminal
 USE_COLORS = True
@@ -89,7 +90,6 @@ TIME_PRECISION = 2
 # next lines are needed for stopping the script
 WORKER_THREADS = []
 STOPPED_BY_INTERRUPT = False
-
 
 """
 Naming conventions:
@@ -166,6 +166,8 @@ class Benchmark:
             self.rlimits[MEMLIMIT] = int(rootTag.get(MEMLIMIT))
         if TIMELIMIT in keys:
             self.rlimits[TIMELIMIT] = int(rootTag.get(TIMELIMIT))
+        if CORELIMIT in keys:
+            self.rlimits[CORELIMIT] = int(rootTag.get(CORELIMIT))
 
         # override limits from XML with values from command line
         if config.memorylimit != None:
@@ -183,6 +185,14 @@ class Benchmark:
                     self.rlimits.pop(TIMELIMIT)
             else:
                 self.rlimits[TIMELIMIT] = timelimit
+
+        if config.corelimit != None:
+            corelimit = int(config.corelimit)
+            if corelimit == -1: # infinity
+                if CORELIMIT in self.rlimits:
+                    self.rlimits.pop(CORELIMIT)
+            else:
+                self.rlimits[CORELIMIT] = corelimit
 
         # get number of threads, default value is 1
         self.numOfThreads = int(rootTag.get("threads")) if ("threads" in keys) else 1
@@ -472,7 +482,12 @@ class Run():
                 timeLimit = rlimits[TIMELIMIT] + 20
                 if self.wallTime > timeLimit or self.cpuTime > timeLimit:
                     self.status = "TIMEOUT"
-                    
+        if returnsignal == 9 \
+                and MEMLIMIT in rlimits \
+                and self.memUsage \
+                and self.memUsage >= (rlimits[MEMLIMIT] * 1024 * 1024):
+            status = 'OUT OF MEMORY'
+
         self.benchmark.outputHandler.outputAfterRun(self)
 
     def execute(self, numberOfThread):
@@ -485,7 +500,7 @@ class Run():
 
         rlimits = self.benchmark.rlimits
 
-        (self.wallTime, self.cpuTime, self.memUsage, returnvalue, output) = runexecutor.executeRun(self.args, rlimits, self.logFile, numberOfThread, config.limitCores)
+        (self.wallTime, self.cpuTime, self.memUsage, returnvalue, output) = runexecutor.executeRun(self.args, rlimits, self.logFile, numberOfThread)
 
         if STOPPED_BY_INTERRUPT:
             # If the run was interrupted, we ignore the result and cleanup.
@@ -544,14 +559,17 @@ class OutputHandler:
 
         memlimit = None
         timelimit = None
+        corelimit = None
         if MEMLIMIT in self.benchmark.rlimits:
             memlimit = str(self.benchmark.rlimits[MEMLIMIT]) + " MB"
         if TIMELIMIT in self.benchmark.rlimits:
             timelimit = str(self.benchmark.rlimits[TIMELIMIT]) + " s"
+        if CORELIMIT in self.benchmark.rlimits:
+            corelimit = str(self.benchmark.rlimits[CORELIMIT])
 
-        self.storeHeaderInXML(version, memlimit, timelimit, opSystem, cpuModel,
+        self.storeHeaderInXML(version, memlimit, timelimit, corelimit, opSystem, cpuModel,
                               numberOfCores, maxFrequency, memory, hostname)
-        self.writeHeaderToLog(version, memlimit, timelimit, opSystem, cpuModel,
+        self.writeHeaderToLog(version, memlimit, timelimit, corelimit, opSystem, cpuModel,
                               numberOfCores, maxFrequency, memory, hostname)
 
         self.XMLFileNames = []
@@ -568,18 +586,20 @@ class OutputHandler:
         systemInfo.append(ramElem)
         self.XMLHeader.append(systemInfo)
 
-    def storeHeaderInXML(self, version, memlimit, timelimit, opSystem,
+    def storeHeaderInXML(self, version, memlimit, timelimit, corelimit, opSystem,
                          cpuModel, numberOfCores, maxFrequency, memory, hostname):
 
         # store benchmarkInfo in XML
         self.XMLHeader = ET.Element("result",
                     {"benchmarkname": self.benchmark.name, "date": self.benchmark.dateISO,
                      "tool": self.benchmark.toolName, "version": version})
-        if memlimit is not None:
+        if memlimit:
             self.XMLHeader.set(MEMLIMIT, memlimit)
-        if timelimit is not None:
+        if timelimit:
             self.XMLHeader.set(TIMELIMIT, timelimit)
-            
+        if corelimit:
+            self.XMLHeader.set(CORELIMIT, corelimit)
+
         if(not config.cloud):
             # store systemInfo in XML
             self.storeSystemInfo(opSystem, cpuModel, numberOfCores, maxFrequency, memory, hostname)
@@ -604,7 +624,7 @@ class OutputHandler:
                         {"title": column.title, "value": ""}))
 
 
-    def writeHeaderToLog(self, version, memlimit, timelimit, opSystem,
+    def writeHeaderToLog(self, version, memlimit, timelimit, corelimit, opSystem,
                          cpuModel, numberOfCores, maxFrequency, memory, hostname):
         """
         This method writes information about benchmark and system into TXTFile.
@@ -619,10 +639,12 @@ class OutputHandler:
                 + "tool:".ljust(columnWidth) + self.benchmark.toolName\
                 + " " + version + "\n"
 
-        if memlimit is not None:
+        if memlimit:
             header += "memlimit:".ljust(columnWidth) + memlimit + "\n"
-        if timelimit is not None:
+        if timelimit:
             header += "timelimit:".ljust(columnWidth) + timelimit + "\n"
+        if corelimit:
+            header += "CPU cores used:".ljust(columnWidth) + corelimit + "\n"
         header += simpleLine
 
         systemInfo = "   SYSTEM INFORMATION\n"\
@@ -1132,7 +1154,10 @@ class Worker(threading.Thread):
     def run(self):
         while not Worker.workingQueue.empty() and not STOPPED_BY_INTERRUPT:
             currentRun = Worker.workingQueue.get_nowait()
-            currentRun.execute(self.number)
+            try:
+                currentRun.execute(self.number)
+            except BaseException as e:
+                print(e)
             Worker.workingQueue.task_done()
             
 def executeBenchmarkLocaly(benchmark):
@@ -1204,37 +1229,37 @@ def executeBenchmarkLocaly(benchmark):
 
 def parseCloudResultFile(filePath):
     
-    wallTime = 0.0
-    cpuTime = 0.0
+    wallTime = None
+    cpuTime = None
     memUsage = None
-    returnValue = 1
-    output = ""
+    returnValue = None
     
-    try:
-        file = open(filePath)
-            
-        command = file.readline()
-        wallTime = float(file.readline().split(":")[-1])
-        cpuTime = float(file.readline().split(":")[-1])
+    with open(filePath) as file:
+
+        try:
+            wallTime = float(file.readline().split(":")[-1])
+        except ValueError:
+            pass
+        try:
+            cpuTime = float(file.readline().split(":")[-1])
+        except ValueError:
+            pass
         try:
             memUsage = str(float(file.readline().split(":")[-1]));
         except ValueError:
-            memUsage = None
-        returnValue = int(file.readline().split(":")[-1])
+            pass
+        try:
+            returnValue = int(file.readline().split(":")[-1])
+        except ValueError:
+            pass
     
-        output = "".join(file.readlines())
-     
-        file.close
-            
-    except IOError:
-        logging.warning("Result file not found: " + filePath)
-    
-    return (wallTime, cpuTime, memUsage, returnValue, output)
+    return (wallTime, cpuTime, memUsage, returnValue)
 
 def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
 
     try:
         file = open(filePath)
+        outputHandler.allCreatedFiles.append(filePath)
         
         complete = False
         while(not complete):
@@ -1262,14 +1287,16 @@ def executeBenchmarkInCloud(benchmark):
     absWorkingDir = os.path.abspath(os.curdir)
     logging.debug("Working dir: " + absWorkingDir)
     toolpaths = benchmark.tool.getProgrammFiles(benchmark.executable)
+    for file in toolpaths:
+        if not os.path.exists(file):
+            logging.error("Missing file {0}, cannot run benchmark within cloud.".format(os.path.normpath(file)))
+            return
+
     requirements = "2000\t1"  # TODO memory numerOfCpuCores
-    cloudRunExecutorDir = os.path.abspath("./scripts")
+    cloudRunExecutorDir = os.path.abspath(os.path.dirname(__file__))
     outputDir = benchmark.logFolder
-    logging.debug("Output path: " + str(outputDir))
     absOutputDir = os.path.abspath(outputDir)
-    if(not(os.access(absOutputDir, os.F_OK))):
-        os.makedirs(absOutputDir)                   
-    
+
     runDefinitions = ""
     absSourceFiles = []
     numOfRunDefLines = 0
@@ -1296,26 +1323,21 @@ def executeBenchmarkInCloud(benchmark):
                 runDefinitions += argString + "\t" + run.sourcefile + "\t" + \
                                     logFile + "\n"
                 absSourceFiles.append(os.path.abspath(run.sourcefile))
-    
-    if(len(absSourceFiles)==0):
-        sys.exit("No source files given.")                              
-    
+
+    if not absSourceFiles:
+        logging.warning("Skipping benchmark without source files.")
+        return
+
     #preparing cloud input
-    absToolpaths = []
-    for toolpath in toolpaths:
-        absToolpaths.append(os.path.abspath(toolpath))
-    seperatedToolpaths = "\t".join(absToolpaths)
+    absToolpaths = map(os.path.abspath, toolpaths)
     sourceFilesBaseDir = os.path.commonprefix(absSourceFiles)
-    logging.debug("source files dir: " + sourceFilesBaseDir)
     toolPathsBaseDir = os.path.commonprefix(absToolpaths)
-    logging.debug("tool paths base dir: " + toolPathsBaseDir)
     baseDir = os.path.commonprefix([sourceFilesBaseDir, toolPathsBaseDir, cloudRunExecutorDir])
-    logging.debug("base dir: " + baseDir)
 
     if(baseDir == ""):
         sys.exit("No common base dir found.")
 
-    cloudInput = seperatedToolpaths + "\n" + \
+    cloudInput = "\t".join(absToolpaths) + "\n" + \
                 cloudRunExecutorDir + "\n" + \
                 baseDir + "\t" + absOutputDir + "\t" + absWorkingDir +"\n" + \
                 requirements + "\n" + \
@@ -1335,11 +1357,20 @@ def executeBenchmarkInCloud(benchmark):
         logLevel = "INFO"
     libDir = os.path.abspath("./lib/java-benchmark")
     cloud = subprocess.Popen(["java", "-jar", libDir + "/vercip.jar", "benchmark", "--master", config.cloud, "--loglevel", logLevel], stdin=subprocess.PIPE)
-    (out, err) = cloud.communicate(cloudInput)
+    try:
+        (out, err) = cloud.communicate(cloudInput)
+    except KeyboardInterrupt:
+        killScript()
     returnCode = cloud.wait()
-    if(not returnCode == 0):
+
+    if returnCode and not STOPPED_BY_INTERRUPT:
         logging.warn("Cloud return code: {0}".format(returnCode))
-    
+
+    if not os.path.isdir(outputDir) or not os.listdir(outputDir):
+        #outputDir does not exist or is empty
+        logging.warning("Cloud produced no results.")
+        return
+
     #Write worker host informations in xml
     filePath = os.path.join(outputDir, "hostInformation.txt")
     parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
@@ -1353,13 +1384,30 @@ def executeBenchmarkInCloud(benchmark):
 
         outputHandler.outputBeforeRunSet(runSet)     
         for run in runSet.runs:
+            try:
+                stdoutFile = run.logFile + ".stdOut"
+                (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
+                os.remove(stdoutFile)
+            except EnvironmentError as e:
+                logging.warning("Cannot extract measured values from output for file {0}: {1}".format(run.sourcefile, e))
+                continue
+
             outputHandler.outputBeforeRun(run)
-            file = run.logFile
-            (run.wallTime, run.cpuTime, run.memUsage, returnValue, output) = parseCloudResultFile(file)
+            output = ''
+            try:
+                with open(run.logFile) as f:
+                    output = f.read()
+            except IOError as e:
+                logging.warning("Cannot read log file: " + e.strerror)
+
             run.afterExecution(returnValue, output)
         outputHandler.outputAfterRunSet(runSet, None, None)
         
     outputHandler.outputAfterBenchmark()
+
+    if config.commit and not STOPPED_BY_INTERRUPT:
+        Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
+                                     config.commitMessage+'\n\n'+outputHandler.description)
 
 
 def executeBenchmark(benchmarkFile):
@@ -1442,10 +1490,10 @@ def main(argv=None):
                             "(starting with 1).",
                       metavar=("a","b"))
 
-    parser.add_argument("-c", "--limitCores", dest="limitCores",
+    parser.add_argument("-c", "--limitCores", dest="corelimit",
                       type=int, default=None,
                       metavar="N",
-                      help="Limit each run of the tool to N CPU cores.")
+                      help="Limit each run of the tool to N CPU cores (-1 to disable).")
 
     parser.add_argument("--commit", dest="commit",
                       action="store_true",
@@ -1490,7 +1538,7 @@ def main(argv=None):
 
     # do this after logger has been configured
     if(not config.cloud):
-        runexecutor.init(config.limitCores)
+        runexecutor.init()
 
     for arg in config.files:
         if STOPPED_BY_INTERRUPT: break

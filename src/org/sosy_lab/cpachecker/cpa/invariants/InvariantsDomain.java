@@ -24,11 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
 
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.MapDifference.ValueDifference;
@@ -43,21 +48,37 @@ enum InvariantsDomain implements AbstractDomain {
     InvariantsState element1 = (InvariantsState)pElement1;
     InvariantsState element2 = (InvariantsState)pElement2;
 
-    MapDifference<String, SimpleInterval> differences = Maps.difference(element1.getIntervals(), element2.getIntervals());
-
-    if (differences.areEqual()) {
-      return element2;
+    MapDifference<String, Integer> remainingEvaluationDifferences =
+        Maps.difference(element1.getRemainingEvaluations(), element2.getRemainingEvaluations());
+    Map<String, Integer> resultRemainingEvaluations =
+        new HashMap<>(element1.getRemainingEvaluations().size());
+    resultRemainingEvaluations.putAll(remainingEvaluationDifferences.entriesInCommon());
+    resultRemainingEvaluations.putAll(remainingEvaluationDifferences.entriesOnlyOnLeft());
+    resultRemainingEvaluations.putAll(remainingEvaluationDifferences.entriesOnlyOnRight());
+    for (Entry<String, ValueDifference<Integer>> entry : remainingEvaluationDifferences.entriesDiffering().entrySet()) {
+      ValueDifference<Integer> difference = entry.getValue();
+      int newValue = Math.min(difference.leftValue(), difference.rightValue());
+      resultRemainingEvaluations.put(entry.getKey(), newValue);
     }
 
-    Map<String, SimpleInterval> result = new HashMap<>(element1.getIntervals().size());
-    result.putAll(differences.entriesInCommon());
-
-    for (Entry<String, ValueDifference<SimpleInterval>> entry : differences.entriesDiffering().entrySet()) {
-      ValueDifference<SimpleInterval> values = entry.getValue();
-      result.put(entry.getKey(), SimpleInterval.span(values.leftValue(), values.rightValue()));
+    MapDifference<String, InvariantsFormula<CompoundState>> environmentDifferences =
+        Maps.difference(element1.getEnvironment(), element2.getEnvironment());
+    Map<String, InvariantsFormula<CompoundState>> resultEnvironment =
+        new HashMap<>(element1.getEnvironment().size());
+    resultEnvironment.putAll(environmentDifferences.entriesInCommon());
+    for (Entry<String, ValueDifference<InvariantsFormula<CompoundState>>> entry : environmentDifferences.entriesDiffering().entrySet()) {
+      InvariantsFormula<CompoundState> newValue =
+          InvariantsFormulaManager.INSTANCE.union(
+              entry.getValue().leftValue(), entry.getValue().rightValue());
+      resultEnvironment.put(entry.getKey(), newValue);
     }
 
-    return new InvariantsState(result);
+    Set<InvariantsFormula<CompoundState>> resultInvariants =
+        new HashSet<>(element1.getInvariants());
+        resultInvariants.addAll(element2.getInvariants());
+
+    int newThreshold = Math.min(element1.getEvaluationThreshold(), element2.getEvaluationThreshold());
+    return InvariantsState.from(resultRemainingEvaluations, newThreshold, resultInvariants, resultEnvironment);
   }
 
   @Override
@@ -66,10 +87,11 @@ enum InvariantsDomain implements AbstractDomain {
     InvariantsState element1 = (InvariantsState)pElement1;
     InvariantsState element2 = (InvariantsState)pElement2;
 
-    MapDifference<String, SimpleInterval> differences = Maps.difference(element1.getIntervals(), element2.getIntervals());
+    MapDifference<String, InvariantsFormula<CompoundState>> differences =
+        Maps.difference(element1.getEnvironment(), element2.getEnvironment());
 
     if (differences.areEqual()) {
-      return true;
+      return element2.getInvariants().containsAll(element1.getInvariants());
     }
 
     if (!differences.entriesOnlyOnRight().isEmpty()) {
@@ -77,14 +99,24 @@ enum InvariantsDomain implements AbstractDomain {
       return false;
     }
 
-    for (ValueDifference<SimpleInterval> values : differences.entriesDiffering().values()) {
-      if (!values.rightValue().contains(values.leftValue())) {
-        // right is more specific, so it has more information
-        return false;
+    for (ValueDifference<InvariantsFormula<CompoundState>> valueDifference : differences.entriesDiffering().values()) {
+      if (valueDifference.leftValue() instanceof Constant<?> && valueDifference.rightValue() instanceof Constant<?>) {
+        Constant<CompoundState> leftValue = (Constant<CompoundState>) valueDifference.leftValue();
+        Constant<CompoundState> rightValue = (Constant<CompoundState>) valueDifference.rightValue();
+        if (!rightValue.getValue().contains(leftValue.getValue())) {
+          return false;
+        }
+      } else {
+        // TODO better check if right value contains left value?
+        return false;/*
+        if (!values.rightValue().contains(values.leftValue())) {
+          // right is more specific, so it has more information
+          return false;
+        }*/
       }
     }
 
-    return true;
+    return element2.getInvariants().containsAll(element1.getInvariants());
   }
 
 }

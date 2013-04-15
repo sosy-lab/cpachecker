@@ -6,6 +6,8 @@
 <option name="-disable-java-assertions"/>
 <option name="-setprop">statistics.memory=false</option>
 <option name="-setprop">pcc.proofType = SET</option>
+<option name="-setprop">pcc.proofcheck.precision=false</option>
+<option name="-setprop">pcc.proofFile=arg.obj</option>
 
 <rundefinition name="ReachDef_ExplicitDF">
 	<option name="-reachingdef-explicit"/>
@@ -144,14 +146,14 @@
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
- <sourcefiles>
+<sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
-</sourcefiles> 
+</sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>

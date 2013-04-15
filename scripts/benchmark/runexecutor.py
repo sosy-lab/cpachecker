@@ -23,6 +23,7 @@ CPAchecker web page:
 """
 
 import logging
+import multiprocessing
 import os
 import resource
 import shutil
@@ -37,6 +38,7 @@ import benchmark.util as Util
 
 MEMLIMIT = "memlimit"
 TIMELIMIT = "timelimit"
+CORELIMIT = "cpuCores"
 CPUACCT = 'cpuacct'
 CPUSET = 'cpuset'
 MEMORY = 'memory'
@@ -49,7 +51,7 @@ _SUB_PROCESSES_LOCK = threading.Lock()
 # The list of available CPU cores
 _cpus = []
 
-def init(limitCpuCores=None):
+def init():
     """
     This function initializes the module.
     Please call it before any calls to executeRun(),
@@ -58,19 +60,18 @@ def init(limitCpuCores=None):
     """
     _initCgroup(CPUACCT)
     if not _cgroups[CPUACCT]:
-        logging.warning('Without cpuacct cgroups, cputime measurement might miss time consumed by subprocesses.')
+        logging.warning('Without cpuacct cgroups, cputime measurement and limit might not work correctly if subprocesses are started.')
 
     _initCgroup(MEMORY)
     if not _cgroups[MEMORY]:
-        logging.warning('Cannot measure memory consumption without memory cgroups.')
+        logging.warning('Cannot measure and limit memory consumption without memory cgroups.')
 
-    if limitCpuCores:
-        _initCgroup(CPUSET)
+    _initCgroup(CPUSET)
 
-        cgroupCpuset = _cgroups[CPUSET]
-        if not cgroupCpuset:
-            sys.exit("No cpuset cgroup hierarchy found, cannot limit CPU cores.")
-
+    cgroupCpuset = _cgroups[CPUSET]
+    if not cgroupCpuset:
+        logging.warning("Cannot limit the number of CPU curse without cpuset cgroup.")
+    else:
         # Read available cpus:
         global _cpus
         cpuStr = _readFile(cgroupCpuset, 'cpuset.cpus')
@@ -82,14 +83,12 @@ def init(limitCpuCores=None):
                 start, end = cpu
                 _cpus.extend(xrange(int(start), int(end)+1))
             else:
-                sys.exit("Could not read available cpu cores from kernel, failed to parse {0}.".format(cpuStr))
+                logging.warning("Could not read available CPU cores from kernel, failed to parse {0}.".format(cpuStr))
 
         logging.debug("List of available CPU cores is {0}.".format(_cpus))
-        if limitCpuCores > len(_cpus):
-            sys.exit("Cannot execute runs on {0} CPU cores, only {1} are available.".format(limitCpuCores, len(_cpus)))
 
 
-def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
+def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
     """
     This function executes a given command with resource limits,
     and writes the output to a file.
@@ -104,10 +103,8 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
         os.setpgrp() # make subprocess to group-leader
 
         if TIMELIMIT in rlimits:
+            # Also use ulimit for CPU time limit as a fallback if cgroups are not available
             resource.setrlimit(resource.RLIMIT_CPU, (rlimits[TIMELIMIT], rlimits[TIMELIMIT]))
-        if MEMLIMIT in rlimits:
-            memlimit = rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR # MB to Byte
-            resource.setrlimit(resource.RLIMIT_AS, (memlimit, memlimit))
 
         # put us into the cgroup(s)
         pid = os.getpid()
@@ -116,33 +113,55 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
 
     # Setup cgroups, need a single call to _createCgroup() for all subsystems
     subsystems = [CPUACCT, MEMORY]
-    if myCpuCount is not None and myCpuIndex is not None:
+    if CORELIMIT in rlimits and myCpuIndex is not None:
         subsystems.append(CPUSET)
     cgroups = _createCgroup(*subsystems)
 
     logging.debug("Executing {0} in cgroups {1}.".format(args, cgroups.values()))
 
-    # Setup cpuset cgroup if necessary to limit the CPU cores to be used.
-    if myCpuCount is not None and myCpuIndex is not None:
-        if not _cpus or CPUSET not in cgroups:
-            logging.warning("Cannot limit number of CPU cores because cgroups are not available.")
-        else:
-            cgroupCpuset = cgroups[CPUSET]
-            totalCpuCount = len(_cpus)
-            myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
-            myCpusEnd   = (myCpusStart + myCpuCount-1) % totalCpuCount
-            myCpus = ','.join(map(str, xrange(myCpusStart, myCpusEnd+1)))
-            _writeFile(myCpus, cgroupCpuset, 'cpuset.cpus')
+    try:
+        myCpuCount = multiprocessing.cpu_count()
+    except NotImplementedError:
+        myCpuCount = 1
 
-            myCpus = _readFile(cgroupCpuset, 'cpuset.cpus')
-            logging.debug('Executing {0} with cpu cores {1}.'.format(args, myCpus))
+    # Setup cpuset cgroup if necessary to limit the CPU cores to be used.
+    if CORELIMIT in rlimits and myCpuIndex is not None:
+        myCpuCount = rlimits[CORELIMIT]
+        if not _cpus or CPUSET not in cgroups:
+            sys.exit("Cannot limit number of CPU cores because cgroups are not available.")
+        if myCpuCount > len(_cpus):
+            sys.exit("Cannot execute runs on {0} CPU cores, only {1} are available.".format(myCpuCount, len(_cpus)))
+        if myCpuCount <= 0:
+            sys.exit("Invalid number of CPU cores to use: {0}".format(myCpuCount))
+
+        cgroupCpuset = cgroups[CPUSET]
+        totalCpuCount = len(_cpus)
+        myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
+        myCpusEnd   = (myCpusStart + myCpuCount-1) % totalCpuCount
+        myCpus = ','.join(map(str, xrange(myCpusStart, myCpusEnd+1)))
+        _writeFile(myCpus, cgroupCpuset, 'cpuset.cpus')
+
+        myCpus = _readFile(cgroupCpuset, 'cpuset.cpus')
+        logging.debug('Executing {0} with cpu cores {1}.'.format(args, myCpus))
+
+    # Setup memory limit
+    if MEMLIMIT in rlimits:
+        if not MEMORY in cgroups:
+            sys.exit("Memory limit specified, but cannot be implemented without cgroup support.")
+        cgroupMemory = cgroups[MEMORY]
+        memlimit = str(rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR) # MB to Byte
+        _writeFile(memlimit, cgroupMemory, 'memory.limit_in_bytes')
+        _writeFile(memlimit, cgroupMemory, 'memory.memsw.limit_in_bytes')
+
+        memlimit = _readFile(cgroupMemory, 'memory.memsw.limit_in_bytes')
+        logging.debug('Executing {0} with memory limit {1} bytes.'.format(args, memlimit))
 
     outputFile = open(outputFileName, 'w') # override existing file
     outputFile.write(' '.join(args) + '\n\n\n' + '-'*80 + '\n\n\n')
     outputFile.flush()
 
     registeredSubprocess = False
-    timer = None
+    timelimitThread = None
     wallTimeBefore = time.time()
 
     try:
@@ -157,12 +176,11 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
         finally:
             _SUB_PROCESSES_LOCK.release()
 
-        # if rlimit does not work, a separate Timer is started to kill the subprocess,
-        # Timer has 10 seconds 'overhead'
-        if TIMELIMIT in rlimits:
-          timelimit = rlimits[TIMELIMIT]
-          timer = threading.Timer(timelimit + 10, _killSubprocess, [p])
-          timer.start()
+        if TIMELIMIT in rlimits and CPUACCT in cgroups:
+            # Start a timer to periodically check timelimit with cgroup
+            # if the tool uses subprocesses and ulimit does not work.
+            timelimitThread = _TimelimitThread(cgroups[CPUACCT], rlimits[TIMELIMIT], p, myCpuCount)
+            timelimitThread.start()
 
         (pid, returnvalue, ru_child) = os.wait4(p.pid, 0)
     except OSError:
@@ -180,8 +198,8 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
             finally:
                 _SUB_PROCESSES_LOCK.release()
 
-        if timer and timer.isAlive():
-            timer.cancel()
+        if timelimitThread:
+            timelimitThread.cancel()
 
         outputFile.close() # normally subprocess closes file, we do this again
 
@@ -204,14 +222,12 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None, myCpuCount=None):
         # This has never happened except when interrupting the script with Ctrl+C,
         # but just try to be on the safe side here.
         cgroupCpuacct = cgroups[CPUACCT]
-        def readCpuTime():
-            return float(_readFile(cgroupCpuacct, 'cpuacct.usage'))/1000000000 # nano-seconds to seconds
-        tmp = readCpuTime()
+        tmp = _readCpuTime(cgroupCpuacct)
         tmp2 = None
         while tmp != tmp2:
             time.sleep(0.1)
             tmp2 = tmp
-            tmp = readCpuTime()
+            tmp = _readCpuTime(cgroupCpuacct)
         cpuTime2 = tmp
 
     memUsage = None
@@ -275,12 +291,45 @@ def _writeFile(value, *path):
     with open(os.path.join(*path), 'w') as f:
         return f.write(value)
 
+def _readCpuTime(cgroupCpuacct):
+    return float(_readFile(cgroupCpuacct, 'cpuacct.usage'))/1000000000 # nano-seconds to seconds
+
+
+class _TimelimitThread(threading.Thread):
+    """
+    Thread that periodically checks whether the given process has already
+    reached its timelimit. After this happens, the process is terminated.
+    """
+    def __init__(self, cgroupCpuacct, timelimit, process, cpuCount=1):
+        super(_TimelimitThread, self).__init__()
+        daemon = True
+        self.cgroupCpuacct = cgroupCpuacct
+        self.timelimit = timelimit
+        self.cpuCount = cpuCount
+        self.process = process
+        self.finished = threading.Event()
+
+    def run(self): 
+        while not self.finished.is_set():
+            usedTime = _readCpuTime(self.cgroupCpuacct)
+            if usedTime >= self.timelimit:
+                _killSubprocess(self.process)
+                self.finished.set()
+                return
+
+            remainingTime = self.timelimit - usedTime + 1 
+            self.finished.wait(remainingTime/self.cpuCount)
+
+    def cancel(self):
+        self.finished.set()
+
+
 def _killSubprocess(process):
     '''
     this function kills the process and the children in its group.
     '''
     try:
-        os.killpg(process.pid, signal.SIGTERM)
+        os.killpg(process.pid, signal.SIGKILL)
     except OSError: # process itself returned and exited before killing
         pass
 

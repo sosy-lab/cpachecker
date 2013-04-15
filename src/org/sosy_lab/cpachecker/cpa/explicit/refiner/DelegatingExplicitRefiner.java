@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
@@ -164,32 +165,31 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
   protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath errorPath)
       throws CPAException, InterruptedException {
 
-    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
-    Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
+    // if path infeasible, refine the precision
+    if(!isPathFeasable(errorPath)) {
+      UnmodifiableReachedSet reachedSet = reached.asReachedSet();
+      Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
 
-    Multimap<CFANode, String> precisionIncrement = null;
+      Multimap<CFANode, String> increment = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
+      ARGState interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
 
-    ARGState interpolationPoint = null;
-
-    precisionIncrement = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
-    interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
-
-    if (precisionIncrement.size() > 0) {
       ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
-      explicitPrecision                   = new ExplicitPrecision(explicitPrecision);
-      explicitPrecision.getCegarPrecision().addToMapping(precisionIncrement);
 
+      explicitPrecision = new ExplicitPrecision(explicitPrecision, increment);
       reached.removeSubtree(interpolationPoint, explicitPrecision);
 
       return CounterexampleInfo.spurious();
     }
 
-    else if (predicatingRefiner == null) {
-      return CounterexampleInfo.feasible(errorPath, null);
-    }
-
+    // if explicit analysis claims that path is feasible, refine predicate analysis if available
     else {
-      return predicatingRefiner.performRefinement(reached, errorPath);
+      if (predicatingRefiner == null) {
+        return CounterexampleInfo.feasible(errorPath, null);
+      }
+
+      else {
+        return predicatingRefiner.performRefinement(reached, errorPath);
+      }
     }
   }
 
@@ -198,6 +198,25 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     pStatsCollection.add(explicitInterpolatingRefiner);
     if (predicatingRefiner != null) {
       predicatingRefiner.collectStatistics(pStatsCollection);
+    }
+  }
+
+  /**
+   * This method checks if the given path is feasible, when not tracking the given set of variables.
+   *
+   * @param path the path to check
+   * @return true, if the path is feasible, else false
+   * @throws CPAException if the path check gets interrupted
+   */
+  private boolean isPathFeasable(ARGPath path) throws CPAException {
+    try {
+      // create a new ExplicitPathChecker, which does not track any of the given variables
+      ExplictFeasibilityChecker checker = new ExplictFeasibilityChecker();
+
+      return checker.isFeasible(path);
+    }
+    catch (InterruptedException e) {
+      throw new CPAException("counterexample-check failed: ", e);
     }
   }
 }

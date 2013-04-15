@@ -198,13 +198,12 @@ public class FormulaManagerView implements FormulaManager {
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeVariable(FormulaType<T> formulaType, String name) {
-    Class<T> clazz = formulaType.getInterfaceType();
     Formula t;
-    if (clazz==BooleanFormula.class) {
+    if (formulaType.isBooleanType()) {
       t = booleanFormulaManager.makeVariable(name);
-    } else if (clazz == RationalFormula.class) {
+    } else if (formulaType.isRationalType()) {
       t = rationalFormulaManager.makeVariable(name);
-    } else if (clazz == BitvectorFormula.class) {
+    } else if (formulaType.isBitvectorType()) {
       FormulaType.BitvectorType impl = (FormulaType.BitvectorType) formulaType;
       t = bitvectorFormulaManager.makeVariable(impl.getSize(), name);
     } else {
@@ -222,13 +221,12 @@ public class FormulaManagerView implements FormulaManager {
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeNumber(FormulaType<T> formulaType, long value) {
-    Class<T> clazz = formulaType.getInterfaceType();
     Formula t;
-    if (clazz==BooleanFormula.class) {
+    if (formulaType.isBooleanType()) {
       t = booleanFormulaManager.makeBoolean(value != 0);
-    } else if (clazz == RationalFormula.class) {
+    } else if (formulaType.isRationalType()) {
       t = rationalFormulaManager.makeNumber(value);
-    } else if (clazz == BitvectorFormula.class) {
+    } else if (formulaType.isBitvectorType()) {
       t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
     } else {
       throw new IllegalArgumentException("Not supported interface");

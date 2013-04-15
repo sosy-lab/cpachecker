@@ -34,7 +34,7 @@ public class PathFormula implements Serializable {
   private final SSAMap ssa;
   private final int length;
 
-  protected PathFormula(BooleanFormula pf, SSAMap ssa, int pLength) {
+  public PathFormula(BooleanFormula pf, SSAMap ssa, int pLength) {
     this.formula = pf;
     this.ssa = ssa;
     this.length = pLength;

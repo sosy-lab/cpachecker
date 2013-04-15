@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
 
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -63,8 +64,9 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
     private static final long serialVersionUID = 8341054099315063986L;
 
-    private AbstractionState(BooleanFormulaManager bfmgr, PathFormula pf, AbstractionFormula pA) {
-      super(pf, pA);
+    private AbstractionState(BooleanFormulaManager bfmgr, PathFormula pf,
+        AbstractionFormula pA, PersistentMap<CFANode, Integer> pAbstractionLocations) {
+      super(pf, pA, pAbstractionLocations);
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
       Preconditions.checkArgument(bfmgr.isTrue(pf.getFormula()));
@@ -100,8 +102,9 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
      */
     private transient PredicateAbstractState mergedInto = null;
 
-    private NonAbstractionState(PathFormula pF, AbstractionFormula pA) {
-      super(pF, pA);
+    private NonAbstractionState(PathFormula pF, AbstractionFormula pA,
+        PersistentMap<CFANode, Integer> pAbstractionLocations) {
+      super(pF, pA, pAbstractionLocations);
     }
 
     @Override
@@ -136,8 +139,9 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     private static final long serialVersionUID = -3961784113582993743L;
     private transient final CFANode location;
 
-    public ComputeAbstractionState(PathFormula pf, AbstractionFormula pA, CFANode pLoc) {
-      super(pf, pA);
+    public ComputeAbstractionState(PathFormula pf, AbstractionFormula pA,
+        CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations) {
+      super(pf, pA, pAbstractionLocations);
       location = pLoc;
     }
 
@@ -161,12 +165,16 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
-  static PredicateAbstractState mkAbstractionState(BooleanFormulaManager bfmgr, PathFormula pF, AbstractionFormula pA) {
-    return new AbstractionState(bfmgr, pF, pA);
+  static PredicateAbstractState mkAbstractionState(BooleanFormulaManager bfmgr,
+      PathFormula pF, AbstractionFormula pA,
+      PersistentMap<CFANode, Integer> pAbstractionLocations) {
+    return new AbstractionState(bfmgr, pF, pA, pAbstractionLocations);
   }
 
-  static PredicateAbstractState mkNonAbstractionState(PathFormula pF, AbstractionFormula pA) {
-    return new NonAbstractionState(pF, pA);
+  static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(PathFormula pF,
+      PredicateAbstractState oldState) {
+    return new NonAbstractionState(pF, oldState.getAbstractionFormula(),
+                                        oldState.getAbstractionLocationsOnPath());
   }
 
   /** The path formula for the path from the last abstraction node to this node.
@@ -177,9 +185,14 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
   /** The abstraction which is updated only on abstraction locations */
   private AbstractionFormula abstractionFormula;
 
-  private PredicateAbstractState(PathFormula pf, AbstractionFormula a) {
+  /** How often each abstraction location was visited on the path to the current state. */
+  private final PersistentMap<CFANode, Integer> abstractionLocations;
+
+  private PredicateAbstractState(PathFormula pf, AbstractionFormula a,
+      PersistentMap<CFANode, Integer> pAbstractionLocations) {
     this.pathFormula = pf;
     this.abstractionFormula = a;
+    this.abstractionLocations = pAbstractionLocations;
   }
 
   public abstract boolean isAbstractionState();
@@ -190,6 +203,10 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
   void setMergedInto(PredicateAbstractState pMergedInto) {
     throw new UnsupportedOperationException("Merging wrong PredicateAbstractStates!");
+  }
+
+  public PersistentMap<CFANode, Integer> getAbstractionLocationsOnPath() {
+    return abstractionLocations;
   }
 
   public AbstractionFormula getAbstractionFormula() {

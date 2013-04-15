@@ -30,6 +30,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -41,11 +42,14 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 @Options
@@ -57,7 +61,7 @@ public class ProofGenerator {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File file = new File("arg.obj");
 
-  @Option(name="pcc.proofType", description = "defines proof representation, either abstract reachability graph or set of reachable abstract states", values={"ARG", "SET"})
+  @Option(name="pcc.proofType", description = "defines proof representation, either abstract reachability graph or set of reachable abstract states", values={"ARG", "SET", "PSET"})
   private String pccType = "ARG";
 
   private final LogManager logger;
@@ -71,6 +75,7 @@ public class ProofGenerator {
   public void generateProof(CPAcheckerResult pResult) {
     if (!doPCC) { return; }
     UnmodifiableReachedSet reached = pResult.getReached();
+
     // check result
     if (pResult.getResult() != Result.SAFE) {
       logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
@@ -83,7 +88,7 @@ public class ProofGenerator {
 
     if (pccType.equals("ARG")) {
       writeARG(reached);
-    } else if (pccType.equals("SET")) {
+    } else if (pccType.equals("SET") || pccType.equals("PSET")) {
       writeReachedSet(reached);
     } else {
       logger.log(Level.SEVERE, "Undefined proof format. No proof will be written.");
@@ -139,6 +144,9 @@ public class ProofGenerator {
     }
   }
 
+  /*
+   * partial reached makes only sense for forward analysis
+   */
   private void writeReachedSet(UnmodifiableReachedSet pReached) {
     // saves the abstract states in reached set in specified file
     OutputStream fos = null;
@@ -152,8 +160,17 @@ public class ProofGenerator {
       ObjectOutputStream o = new ObjectOutputStream(zos);
       //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
       //write reached set
-      AbstractState[] reachedSet = new AbstractState[pReached.size()];
-      pReached.asCollection().toArray(reachedSet);
+      AbstractState[] reachedSet;
+
+      if (pccType.equals("SET")) {
+        reachedSet = new AbstractState[pReached.size()];
+        pReached.asCollection().toArray(reachedSet);
+      } else if (pccType.equals("PSET")) {
+        reachedSet = computePartialReachedSet(pReached);
+      } else {
+        return;
+      }
+
       o.writeObject(reachedSet);
       zos.closeEntry();
 
@@ -178,5 +195,22 @@ public class ProofGenerator {
       } catch (Exception e) {
       }
     }
+  }
+
+  private AbstractState[] computePartialReachedSet(UnmodifiableReachedSet pReached) {
+    ArrayList<AbstractState> result = new ArrayList<>();
+    CFANode node;
+    for (AbstractState state : pReached.asCollection()) {
+      node = AbstractStates.extractLocation(state);
+      if (node == null || node.getNumEnteringEdges() > 1 || (node.getNumLeavingEdges()>0 && node.getLeavingEdge(0).getEdgeType()==CFAEdgeType.FunctionCallEdge)) {
+        result.add(state);
+      }
+    }
+    if(!result.contains(pReached.getFirstState())){
+      result.add(pReached.getFirstState());
+    }
+    AbstractState[] arrayRep = new AbstractState[result.size()];
+    result.toArray(arrayRep);
+    return arrayRep;
   }
 }

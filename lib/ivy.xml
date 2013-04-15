@@ -24,7 +24,7 @@
 
     <dependencies>
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.249" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.258" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
@@ -76,6 +76,6 @@
         </dependency>
 
         <!-- VerifierCloud -->
-        <dependency org="org.sosy_lab" name="vercip" rev="0.1134" conf="benchmark->runtime"/>
+        <dependency org="org.sosy_lab" name="vercip" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
     </dependencies>
 </ivy-module>

@@ -173,16 +173,11 @@ public class ReachingDefTransferRelation implements TransferRelation {
     /* if a field is changed the whole variable the field is associated with is considered to be changed,
      * e.g. a.p.c = 110, then a should be considered
      */
-    String var;
-    try {
-      VariableExtractor varExtractor = new VariableExtractor(edge);
-      varExtractor.resetWarning();
-      var = left.accept(varExtractor);
-      if (varExtractor.getWarning() != null)
-        logger.log(Level.WARNING, varExtractor.getWarning());
-    } catch (Exception e) {
-      throw new CPATransferException("Cannot extract left operand from assignment.");
-    }
+    VariableExtractor varExtractor = new VariableExtractor(edge);
+    varExtractor.resetWarning();
+    String var = left.accept(varExtractor);
+    if (varExtractor.getWarning() != null)
+      logger.log(Level.WARNING, varExtractor.getWarning());
 
     if (var == null)
       return pState;
@@ -246,7 +241,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     return pState;
   }
 
-  private class VariableExtractor extends DefaultCExpressionVisitor<String, Exception> {
+  private class VariableExtractor extends DefaultCExpressionVisitor<String, UnsupportedCCodeException> {
 
     private CFAEdge edgeForExpression;
     private String warning;
@@ -269,18 +264,18 @@ public class ReachingDefTransferRelation implements TransferRelation {
     }
 
     @Override
-    public String visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws Exception {
+    public String visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws UnsupportedCCodeException {
       warning = "Analysis may be unsound in case of aliasing.";
       return pIastArraySubscriptExpression.getArrayExpression().accept(this);
     }
 
     @Override
-    public String visit(CCastExpression pIastCastExpression) throws Exception {
+    public String visit(CCastExpression pIastCastExpression) throws UnsupportedCCodeException {
       return pIastCastExpression.getOperand().accept(this);
     }
 
     @Override
-    public String visit(CFieldReference pIastFieldReference) throws Exception {
+    public String visit(CFieldReference pIastFieldReference) throws UnsupportedCCodeException {
       if (pIastFieldReference.isPointerDereference())
         throw new UnsupportedCCodeException(
             "Does not support assignment to dereferenced variable due to missing aliasing support", edgeForExpression,
@@ -290,12 +285,12 @@ public class ReachingDefTransferRelation implements TransferRelation {
     }
 
     @Override
-    public String visit(CIdExpression pIastIdExpression) throws Exception {
+    public String visit(CIdExpression pIastIdExpression) {
       return pIastIdExpression.getName();
     }
 
     @Override
-    public String visit(CUnaryExpression pIastUnaryExpression) throws Exception {
+    public String visit(CUnaryExpression pIastUnaryExpression) throws UnsupportedCCodeException {
       if (pIastUnaryExpression.getOperator() == UnaryOperator.STAR)
         throw new UnsupportedCCodeException(
             "Does not support assignment to dereferenced variable due to missing aliasing support", edgeForExpression,

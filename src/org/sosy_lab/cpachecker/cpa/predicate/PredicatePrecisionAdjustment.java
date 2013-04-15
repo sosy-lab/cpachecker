@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Objects.firstNonNull;
+
 import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -91,13 +94,15 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       PredicatePrecision precision) {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
+    PersistentMap<CFANode, Integer> abstractionLocations = element.getAbstractionLocationsOnPath();
     PathFormula pathFormula = element.getPathFormula();
     CFANode loc = element.getLocation();
+    Integer newLocInstance = firstNonNull(abstractionLocations.get(loc), 0) + 1;
 
     numAbstractions++;
-    logger.log(Level.FINEST, "Computing abstraction on node", loc);
+    logger.log(Level.FINEST, "Computing abstraction at instance", newLocInstance, "of node", loc, "in path.");
 
-    Collection<AbstractionPredicate> preds = precision.getPredicates(loc);
+    Collection<AbstractionPredicate> preds = precision.getPredicates(loc, newLocInstance);
 
     maxBlockSize = Math.max(maxBlockSize, pathFormula.getLength());
     maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());
@@ -120,7 +125,11 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // create new empty path formula
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
-    return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula, newAbstractionFormula);
+    // update abstraction locations map
+    abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
+
+    return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
+        newAbstractionFormula, abstractionLocations);
   }
 
   protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {

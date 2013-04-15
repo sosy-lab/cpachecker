@@ -52,24 +52,11 @@ public class EclipseCDT7Parser extends AbstractEclipseCParser<FileContent> {
 
   @Override
   protected IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws CParserException, CFAGenerationRuntimeException, CoreException {
-    try {
-      return language.getASTTranslationUnit(pCode,
-                                            StubScannerInfo.instance,
-                                            IncludeFileContentProvider.getSavedFilesProvider(),
-                                            null,
-                                            PARSER_OPTIONS,
-                                            parserLog);
-    } catch (NoClassDefFoundError e) {
-      if ("org/eclipse/core/runtime/jobs/ISchedulingRule".equals(e.getMessage())) {
-        // This error occurs if Eclipse finds an #include and tries to load that file.
-        // Unfortunately we have to catch it in this ugly way because we cannot
-        // use a stub implementation for the IncludeFileProvider.
-
-        throw new CParserException("#include is not supported");
-
-      } else {
-        throw e;
-      }
-    }
+    return language.getASTTranslationUnit(pCode,
+                                          StubScannerInfo.instance,
+                                          IncludeFileContentProvider.getEmptyFilesProvider(),
+                                          null,
+                                          PARSER_OPTIONS,
+                                          parserLog);
   }
 }

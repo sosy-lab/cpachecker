@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
@@ -275,7 +277,9 @@ public class PredicateMapParser {
       }
     }
 
-    return new PredicatePrecision(localPredicates, functionPredicates, globalPredicates);
+    return new PredicatePrecision(
+        ImmutableSetMultimap.<Pair<CFANode,Integer>, AbstractionPredicate>of(),
+        localPredicates, functionPredicates, globalPredicates);
   }
 
   private CFANode getCFANodeWithId(int id) {

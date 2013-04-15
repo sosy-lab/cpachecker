@@ -713,7 +713,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTProblem problem) {
-    throw new CFAGenerationRuntimeException(problem.getMessage(), problem);
+    throw new CFAGenerationRuntimeException(problem);
   }
 
 

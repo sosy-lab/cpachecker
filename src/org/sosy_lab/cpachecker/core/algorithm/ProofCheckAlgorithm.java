@@ -30,13 +30,20 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -50,15 +57,19 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.collect.HashMultimap;
@@ -92,10 +103,13 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       out.println("  Time for preparing proof for checking:          " + preparationTimer);
       out.println("  Time for abstract successor checks:     " + transferTimer + " (Calls: "
           + transferTimer.getNumberOfIntervals() + ")");
-      out.println("  Time for covering checks:               " + stopTimer + " (Calls: " + stopTimer.getNumberOfIntervals()
+      out.println("  Time for covering checks:               " + stopTimer + " (Calls: "
+          + stopTimer.getNumberOfIntervals()
           + ")");
     }
   }
+
+  private static final String CPA_CLASS_PREFIX ="org.sosy_lab.cpachecker";
 
   private final CPAStatistics stats = new CPAStatistics();
   private final ConfigurableProgramAnalysis cpa;
@@ -105,11 +119,25 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File file = new File("arg.obj");
 
-  @Option(name="pcc.proofType", description = "defines proof representation, either abstract reachability graph or set of reachable abstract states", values={"ARG", "SET"})
+  @Option(
+      name = "pcc.proofType",
+      description = "defines proof representation, either abstract reachability graph or set of reachable abstract states",
+      values = { "ARG", "SET", "PSET" })
   private String pccType = "ARG";
 
+  @Option(
+      name = "pcc.proofcheck.precision",
+      description = "Flag indicating if analysis which constructed proof adjusted precisions during computation.")
+  private boolean considerPrecisionAdjustment = true;
+
+  @Option(
+      name = "pcc.proofcheck.propertychecker",
+      description = "Qualified name for class which checks that the computed abstraction adheres to the desired property.")
+  private String checkerClass = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker";
+
   private final Object proof;
-  private Multimap<CFANode, AbstractState> statesPerLocation = null;
+  private Multimap<CFANode, AbstractState> statesPerLocation;
+  private PropertyChecker propertyChecker;
 
 
   public ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig, LogManager logger)
@@ -138,55 +166,63 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     InputStream fis = null;
     try {
 
-    fis = new FileInputStream(file);
-    ZipInputStream zis = new ZipInputStream(fis);
+      fis = new FileInputStream(file);
+      ZipInputStream zis = new ZipInputStream(fis);
 
-    ZipEntry entry = zis.getNextEntry();
-    assert entry.getName().equals("Proof");
-    zis.closeEntry();
+      ZipEntry entry = zis.getNextEntry();
+      assert entry.getName().equals("Proof");
+      zis.closeEntry();
 
-    entry = zis.getNextEntry();
-    assert entry.getName().equals("Helper");
-    ObjectInputStream o = new ObjectInputStream(zis);
-    //read helper storages
-    int numberOfStorages = o.readInt();
-    for (int i = 0; i < numberOfStorages; ++i) {
-      Serializable storage = (Serializable) o.readObject();
-      GlobalInfo.getInstance().addHelperStorage(storage);
+      entry = zis.getNextEntry();
+      assert entry.getName().equals("Helper");
+      ObjectInputStream o = new ObjectInputStream(zis);
+      //read helper storages
+      int numberOfStorages = o.readInt();
+      for (int i = 0; i < numberOfStorages; ++i) {
+        Serializable storage = (Serializable) o.readObject();
+        GlobalInfo.getInstance().addHelperStorage(storage);
+      }
+      zis.closeEntry();
+
+      o.close();
+      zis.close();
+      fis.close();
+
+      fis = new FileInputStream(file);
+      zis = new ZipInputStream(fis);
+      entry = zis.getNextEntry();
+      assert entry.getName().equals("Proof");
+      o = new ObjectInputStream(zis);
+      return o.readObject();
+
+    } finally {
+      fis.close();
+      stats.readTimer.stop();
+      stats.totalTimer.stop();
     }
-    zis.closeEntry();
-
-    o.close();
-    zis.close();
-    fis.close();
-
-    fis = new FileInputStream(file);
-    zis = new ZipInputStream(fis);
-    entry = zis.getNextEntry();
-    assert entry.getName().equals("Proof");
-    o = new ObjectInputStream(zis);
-    return o.readObject();
-
-  } finally {
-    fis.close();
-    stats.readTimer.stop();
-    stats.totalTimer.stop();
-  }
   }
 
   private Object prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
     stats.totalTimer.start();
     stats.preparationTimer.start();
 
+    createPropertyChecker();
+
     try {
       if (pccType.equals("ARG")) {
-        if (!(cpa instanceof ProofChecker)) { throw new InvalidConfigurationException(
+        if (considerPrecisionAdjustment && !(cpa instanceof ProofChecker)) { throw new InvalidConfigurationException(
             "ProofCheckAlgorithm needs a CPA that implements the ProofChecker interface."); }
         if (!(pReadProof instanceof ARGState)) { throw new InvalidConfigurationException(
             "Proof Type requires ARG."); }
       } else if (pccType.equals("SET")) {
         if (!(pReadProof instanceof AbstractState[])) { throw new InvalidConfigurationException(
             "Proof Type requires reached set as set of abstract states."); }
+        orderReachedSetByLocation((AbstractState[]) pReadProof);
+      } else if (pccType.equals("PSET")) {
+        if (!(pReadProof instanceof AbstractState[])) { throw new InvalidConfigurationException(
+            "Proof Type requires reached set as set of abstract states."); }
+        if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) != null) { throw new InvalidConfigurationException(
+            "Partial reached set not supported as certificate for backward analysis"); }
         orderReachedSetByLocation((AbstractState[]) pReadProof);
       }
 
@@ -198,22 +234,63 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     return pReadProof;
   }
 
+  private void createPropertyChecker() throws InvalidConfigurationException {
+    if (checkerClass == null) { throw new InvalidConfigurationException(
+        "No property checker defined. Please specifiy a class which "); }
+
+    Class<?> propertyCheckerClass;
+    try {
+      propertyCheckerClass = Classes.forName(checkerClass, CPA_CLASS_PREFIX);
+    } catch (ClassNotFoundException e) {
+      throw new InvalidConfigurationException(
+          "Option pcc.proofcheck.propertychecker is set to unknown PropertyChecker " + checkerClass, e);
+    }
+
+    if (!PropertyChecker.class.isAssignableFrom(propertyCheckerClass)) { throw new InvalidConfigurationException(
+        "Option pcc.proofcheck.propertychecker must be set to a class implementing the PropertyChecker interface!"); }
+
+    // construct property checker instance
+    try {
+      Constructor<?> cons = propertyCheckerClass.getConstructor();
+      propertyChecker = (PropertyChecker) cons.newInstance((Object[]) null);
+    } catch (NoSuchMethodException | SecurityException e) {
+      throw new UnsupportedOperationException(
+          "Cannot create PropertyChecker if it does not provide the default constructor.");
+    } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+      throw new UnsupportedOperationException(
+          "Creation of specified PropertyChecker instance failed.", e);
+    }
+  }
+
   @Override
-  public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException{
-    if(proof == null)
+  public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+    if (proof == null)
       return false;
 
     stats.totalTimer.start();
-
+// TODO put different check algorithms (methods) in own classes
     logger.log(Level.INFO, "Proof check algorithm started");
     boolean result = false;
 
     if (pccType.equals("ARG")) {
-      result = checkARG(reachedSet);
-    } else if (pccType.equals("SET")) {
-      result = checkReachedSet(reachedSet);
+      if (considerPrecisionAdjustment)
+        result = checkARG(reachedSet);
+      else
+        result = checkARG2(reachedSet);
+    } else if (considerPrecisionAdjustment) {
+      logger
+          .log(
+              Level.SEVERE,
+              "Analysis with precision adjustment changing the state or precision of an element",
+              "currently only supported for proof type ARG.");
     } else {
-      logger.log(Level.SEVERE, "Undefined proof format. No checking available.");
+      if (pccType.equals("SET")) {
+        result = checkReachedSet(reachedSet);
+      } else if (pccType.equals("PSET")) {
+        result = checkPartialReachedSet(reachedSet);
+      } else {
+        logger.log(Level.SEVERE, "Undefined proof format. No checking available.");
+      }
     }
 
     stats.totalTimer.stop();
@@ -221,7 +298,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     return result;
   }
 
-  private boolean checkARG(final ReachedSet reachedSet) throws CPAException, InterruptedException{
+  private boolean checkARG(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     ProofChecker checker = (ProofChecker) cpa;
     ARGState rootState = (ARGState) proof;
 
@@ -272,7 +349,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
         logger.log(Level.FINE, "Looking at state", state);
 
-        if (state.isTarget()) { return false; }
+        if (propertyChecker.satisfiesProperty(state)) { return false; }
 
         if (state.isCovered()) {
 
@@ -311,7 +388,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
           stats.transferTimer.stop();
           for (ARGState e : successors) {
             unexploredParent = false;
-            for (ARGState p:e.getParents()) {
+            for (ARGState p : e.getParents()) {
               if (!reachedSet.contains(p) || inWaitlist.contains(p)) {
                 waitingForUnexploredParents.add(e);
                 unexploredParent = true;
@@ -340,6 +417,89 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     return waitingForUnexploredParents.isEmpty();
   }
 
+  private boolean checkARG2(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+    ARGState rootState = (ARGState) proof;
+    StopOperator stop = ((ARGCPA) cpa).getWrappedCPAs().get(0).getStopOperator();
+// TODO include property checking
+    stats.totalTimer.start();
+
+    logger.log(Level.INFO, "Proof check algorithm started");
+
+    ARGState initialState = (ARGState) reachedSet.popFromWaitlist();
+    Precision initialPrecision = reachedSet.getPrecision(initialState);
+
+    logger.log(Level.FINE, "Checking root state");
+
+    if (!stop
+        .stop(initialState.getWrappedState(), Collections.singleton(rootState.getWrappedState()), initialPrecision)) {
+      stats.totalTimer.stop();
+      logger.log(Level.WARNING, "Root state of proof is invalid.");
+      return false;
+    }
+
+    reachedSet.add(rootState, initialPrecision);
+
+
+    while (reachedSet.hasWaitingState()) {
+      CPAchecker.stopIfNecessary();
+
+      stats.countIterations++;
+      ARGState state = (ARGState) reachedSet.popFromWaitlist();
+
+      logger.log(Level.FINE, "Looking at state", state);
+
+
+      if (state.isCovered()) {
+
+        logger.log(Level.FINER, "State is covered by another abstract state; checking coverage");
+        ARGState coveringState = state.getCoveringState();
+
+        if (!reachedSet.contains(coveringState)) {
+          reachedSet.add(coveringState, initialPrecision);
+        }
+
+        stats.stopTimer.start();
+        if (!isCoveringCycleFree(state)) {
+          stats.stopTimer.stop();
+          stats.totalTimer.stop();
+          logger.log(Level.WARNING, "Found cycle in covering relation for state", state);
+          return false;
+        }
+        if (!stop.stop(state.getWrappedState(), Collections.singleton(coveringState.getWrappedState()),
+            initialPrecision)) {
+          stats.stopTimer.stop();
+          stats.totalTimer.stop();
+          logger.log(Level.WARNING, "State", state, "is not covered by", coveringState);
+          return false;
+        }
+        stats.stopTimer.stop();
+      } else {
+        stats.transferTimer.start();
+        ArrayList<AbstractState> successors = new ArrayList<>(state.getChildren().size());
+        for (ARGState argS : state.getChildren()) {
+          successors.add(argS.getWrappedState());
+          reachedSet.add(argS, initialPrecision);
+        }
+        Collection<? extends AbstractState> computedSuccessors =
+            ((ARGCPA) cpa).getWrappedCPAs().get(0).getTransferRelation()
+                .getAbstractSuccessors(state.getWrappedState(), initialPrecision, null);
+        logger.log(Level.FINER, "Checking abstract successors", successors);
+        for (AbstractState succ : computedSuccessors) {
+          if (!stop.stop(succ, successors, initialPrecision)) {
+            stats.transferTimer.stop();
+            stats.totalTimer.stop();
+            logger.log(Level.WARNING, "State", state, "has other successors than", successors);
+            return false;
+          }
+        }
+        stats.transferTimer.stop();
+      }
+    }
+    stats.totalTimer.stop();
+
+    return true;
+  }
+
   private boolean isCoveringCycleFree(ARGState pState) {
     HashSet<ARGState> seen = new HashSet<>();
     seen.add(pState);
@@ -360,11 +520,11 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     // check if initial element covered
     AbstractState initialState = reachedSet.popFromWaitlist();
-    assert(initialState == reachedSet.getFirstState() && reachedSet.size()==1);
+    assert (initialState == reachedSet.getFirstState() && reachedSet.size() == 1);
 
     try {
       stats.stopTimer.start();
-      if (!stop.stop(initialState, statesPerLocation .get(AbstractStates.extractLocation(initialState)), initialPrec)) {
+      if (!stop.stop(initialState, statesPerLocation.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
         logger.log(Level.FINE, "Cannot check that initial element is covered by result.");
         return false;
       }
@@ -379,7 +539,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     // check if elements form transitive closure
     Collection<? extends AbstractState> successors;
     for (AbstractState state : certificate) {
-      // TODO here a check for property must be added
 
       CPAchecker.stopIfNecessary();
       stats.countIterations++;
@@ -409,7 +568,85 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         return false;
       }
     }
-    return true;
+
+    return propertyChecker.satisfiesProperty(Arrays.asList(certificate));
+  }
+
+  private boolean checkPartialReachedSet(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+    List<AbstractState> certificate = new ArrayList<>(((AbstractState[]) proof).length);
+    for (AbstractState elem : (AbstractState[]) proof) {
+      certificate.add(elem);
+    }
+
+    /*also restrict stop to elements of same location as analysis does*/
+    StopOperator stop = cpa.getStopOperator();
+    Precision initialPrec = reachedSet.getPrecision(reachedSet.getFirstState());
+
+    // check initial element
+    AbstractState initialState = reachedSet.popFromWaitlist();
+    assert (initialState == reachedSet.getFirstState() && reachedSet.size() == 1);
+
+    try {
+      stats.stopTimer.start();
+      if (!stop.stop(initialState, statesPerLocation.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
+        logger.log(Level.FINE, "Initial element not in partial reached set.", "Add to elements whose successors ",
+            "must be computed.");
+        addElement(initialState, certificate);
+      }
+    } catch (CPAException e) {
+      logger.logException(Level.FINE, e, "Stop check failed for initial element.");
+      return false;
+    } finally {
+      stats.stopTimer.stop();
+    }
+
+
+    // check if elements form transitive closure
+    Collection<? extends AbstractState> successors;
+    while (!certificate.isEmpty()) {
+
+      CPAchecker.stopIfNecessary();
+      stats.countIterations++;
+
+      try {
+        stats.transferTimer.start();
+        successors =
+            cpa.getTransferRelation().getAbstractSuccessors(certificate.remove(certificate.size() - 1), initialPrec,
+                null);
+        stats.transferTimer.stop();
+
+        for (AbstractState succ : successors) {
+          try {
+            stats.stopTimer.start();
+            if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
+              logger.log(Level.FINE, "Successor ", succ, " not in partial reached set.",
+                  "Add to elements whose successors ",
+                  "must be computed.");
+              if (AbstractStates.extractLocation(succ).getNumEnteringEdges() > 1) {
+                stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec);
+              }
+              addElement(succ, certificate);
+            }
+          } finally {
+            stats.stopTimer.stop();
+          }
+        }
+      } catch (CPATransferException | InterruptedException e) {
+        logger.logException(Level.FINE, e, "Computation of successors failed.");
+        return false;
+      } catch (CPAException e) {
+        logger.logException(Level.FINE, e, "Stop check failed for successor.");
+        return false;
+      }
+    }
+
+    return propertyChecker.satisfiesProperty(statesPerLocation.values());
+  }
+
+  private void addElement(AbstractState element, List<AbstractState> insertIn) {
+    insertIn.add(insertIn.size(), element);
+    CFANode node = AbstractStates.extractLocation(element);
+    statesPerLocation.put(node, element);
   }
 
   private void orderReachedSetByLocation(AbstractState[] pReached) {

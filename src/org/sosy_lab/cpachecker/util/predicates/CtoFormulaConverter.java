@@ -359,18 +359,7 @@ public class CtoFormulaConverter {
     Variable name;
     if (exp instanceof CIdExpression) {
       CIdExpression var = (CIdExpression) exp;
-      CSimpleDeclaration decl = var.getDeclaration();
-      boolean isGlobal = false;
-      if (decl instanceof CDeclaration) {
-        isGlobal = ((CDeclaration)decl).isGlobal();
-      }
-      String simpleName;
-      if (isGlobal) {
-        simpleName = var.getName();
-      } else {
-        simpleName = scoped(var.getName(), function);
-      }
-      name = Variable.create(simpleName, exp.getExpressionType());
+      name = Variable.create(var.getDeclaration().getQualifiedName(), exp.getExpressionType());
     } else if (exp instanceof CFieldReference) {
       CFieldReference fExp = (CFieldReference) exp;
       CExpression owner = getRealFieldOwner(fExp);
@@ -450,6 +439,14 @@ public class CtoFormulaConverter {
   */
   private static String scoped(String var, String function) {
     return function + "::" + var;
+  }
+
+  /**
+   * Create a variable name that is used to store the return value of a function
+   * temporarily (between the return statement and the re-entrance in the caller function).
+   */
+  private static String getReturnVarName(String function) {
+    return scoped(VAR_RETURN_NAME, function);
   }
 
   /**
@@ -982,6 +979,16 @@ public class CtoFormulaConverter {
       }
     }
 
+    if (pT1 instanceof CPointerType && pT2 instanceof CFunctionType) {
+      if (((CPointerType)pT1).getType() instanceof CFunctionType) {
+        return pT1;
+      }
+    } else if (pT2 instanceof CPointerType && pT1 instanceof CPointerType) {
+      if (((CPointerType)pT2).getType() instanceof CFunctionType) {
+        return pT2;
+      }
+    }
+
     if (pT1.equals(pT2)) {
       return pT1;
     }
@@ -1282,14 +1289,7 @@ public class CtoFormulaConverter {
     }
 
     CVariableDeclaration decl = (CVariableDeclaration)edge.getDeclaration();
-
-    String varNameWithoutFunction = decl.getName();
-    String varName;
-    if (decl.isGlobal()) {
-      varName = varNameWithoutFunction;
-    } else {
-      varName = scoped(varNameWithoutFunction, function);
-    }
+    final String varName = decl.getQualifiedName();
 
     // if the var is unsigned, add the constraint that it should
     // be > 0
@@ -1358,7 +1358,7 @@ public class CtoFormulaConverter {
 
     } else if (retExp instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
-      String retVarName = scoped(VAR_RETURN_NAME, function);
+      String retVarName = getReturnVarName(function);
 
       CFunctionCallExpression funcCallExp = exp.getRightHandSide();
       CType retType = getReturnType(funcCallExp, ce);
@@ -1426,17 +1426,15 @@ public class CtoFormulaConverter {
     CFunctionEntryNode fn = edge.getSuccessor();
     List<CParameterDeclaration> formalParams = fn.getFunctionParameters();
 
-    String calledFunction = fn.getFunctionName();
-
     if (fn.getFunctionDefinition().getType().takesVarArgs()) {
       if (formalParams.size() > actualParams.size()) {
         throw new UnrecognizedCCodeException("Number of parameters on function call does " +
             "not match function definition", edge);
       }
 
-      if (!SAFE_VAR_ARG_FUNCTIONS.contains(calledFunction)) {
+      if (!SAFE_VAR_ARG_FUNCTIONS.contains(fn.getFunctionName())) {
         log(Level.WARNING, "Ignoring parameters passed as varargs to function "
-                           + calledFunction + " in line " + edge.getLineNumber());
+                           + fn.getFunctionName() + " in line " + edge.getLineNumber());
       }
 
     } else {
@@ -1449,20 +1447,16 @@ public class CtoFormulaConverter {
     int i = 0;
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (CParameterDeclaration formalParam : formalParams) {
-      // get formal parameter name
-      String formalParamName = formalParam.getName();
-      assert (!formalParamName.isEmpty()) : edge;
-
       if (formalParam.getType() instanceof CPointerType) {
         log(Level.WARNING, "Program contains pointer parameter; analysis is imprecise in case of aliasing.");
         logDebug("Ignoring the semantics of pointer for parameter "
-            + formalParamName, fn.getFunctionDefinition());
+            + formalParam.getName(), fn.getFunctionDefinition());
       }
       CExpression paramExpression = actualParams.get(i++);
       // get value of actual parameter
       Formula actualParam = buildTerm(paramExpression, edge, callerFunction, ssa, constraints);
 
-      String varName = scoped(formalParamName, calledFunction);
+      final String varName = formalParam.getQualifiedName();
       CType paramType = formalParam.getType();
       BooleanFormula eq =
           makeAssignment(
@@ -1488,7 +1482,7 @@ public class CtoFormulaConverter {
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
       Formula retval = buildTerm(rightExp, edge, function, ssa, constraints);
-      String retVarName = scoped(VAR_RETURN_NAME, function);
+      String retVarName = getReturnVarName(function);
 
       CType expressionType = rightExp.getExpressionType();
       CType returnType =
@@ -1564,8 +1558,7 @@ public class CtoFormulaConverter {
       return fmgr.assignment(left, right);
     }
 
-    if ((Class<?>)tl.getInterfaceType() == BitvectorFormula.class &&
-        (Class<?>)tr.getInterfaceType() == BitvectorFormula.class) {
+    if (tl.isBitvectorType() && tr.isBitvectorType()) {
 
       BitvectorFormula leftBv = (BitvectorFormula) left;
       BitvectorFormula rightBv = (BitvectorFormula) right;
@@ -2157,16 +2150,11 @@ public class CtoFormulaConverter {
   }
 
   private boolean isTooComplexExpression(CExpression c) {
-    try {
-      if (!c.accept(tooComplexVisitor)) {
-        return false;
-      }
-
-      return CtoFormulaTypeUtils.getIndirectionLevel(c) > supportedIndirectionLevel;
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw new AssertionError("No idea what happened", e);
+    if (!c.accept(tooComplexVisitor)) {
+      return false;
     }
+
+    return CtoFormulaTypeUtils.getIndirectionLevel(c) > supportedIndirectionLevel;
   }
 
   private class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
@@ -2669,7 +2657,6 @@ public class CtoFormulaConverter {
       if (fn instanceof CIdExpression) {
         func = ((CIdExpression)fn).getName();
         if (func.equals(ASSUME_FUNCTION_NAME) && pexps.size() == 1) {
-
           BooleanFormula condition = fmgr.toBooleanFormula(pexps.get(0).accept(this));
           constraints.addConstraint(condition);
 
@@ -2706,7 +2693,7 @@ public class CtoFormulaConverter {
         }
       } else {
         log(Level.WARNING, getLogMessage("Ignoring function call through function pointer", fexp));
-        func = "<func>{" + function + "::" + fn.toASTString() + "}";
+        func = "<func>{" + scoped(exprToVarName(fn), function) + "}";
       }
 
       if (pexps.isEmpty()) {
@@ -2721,30 +2708,31 @@ public class CtoFormulaConverter {
           return makeFreshVariable(func, expType, ssa); // BUG when expType = void
         }
 
+        if (declaration.getType().takesVarArgs()) {
+          // Create a fresh variable instead of an UF for varargs functions.
+          // This is sound but slightly more imprecise (we loose the UF axioms).
+          return makeFreshVariable(func, expType, ssa);
+        }
+
         List<CType> paramTypes = declaration.getType().getParameters();
         func += "{" + paramTypes.size() + "}"; // add #arguments to function name to cope with varargs functions
+
+        if (paramTypes.size() != pexps.size()) {
+          throw new UnrecognizedCCodeException("Function " + declaration + " received " + pexps.size() + " parameters instead of the expected " + paramTypes.size(), edge, fexp);
+        }
 
         List<Formula> args = new ArrayList<>(pexps.size());
         Iterator<CType> it1 = paramTypes.iterator();
         Iterator<CExpression> it2 = pexps.iterator();
-        while (it1.hasNext()) {
+        while (it1.hasNext() && it2.hasNext()) {
 
           CType paramType= it1.next();
-          CExpression pexp;
-          if (it2.hasNext()) {
-            pexp  = it2.next();
-          } else {
-            throw new IllegalArgumentException("To the function " + declaration.toASTString() + " were given less Arguments than it has in its declaration!");
-          }
+          CExpression pexp = it2.next();
 
-           Formula arg = pexp.accept(this);
-           args.add(makeCast(pexp.getExpressionType(), paramType, arg));
+          Formula arg = pexp.accept(this);
+          args.add(makeCast(pexp.getExpressionType(), paramType, arg));
         }
-
-        if (it2.hasNext()) {
-          log(Level.WARNING, "Ignoring call to " + declaration.toASTString() + " because of varargs");
-          return makeFreshVariable(func, expType, ssa);
-        }
+        assert !it1.hasNext() && !it2.hasNext();
 
         CType returnType = getReturnType(fexp, edge);
         FormulaType<?> t = getFormulaTypeFromCType(returnType);
@@ -2764,9 +2752,7 @@ public class CtoFormulaConverter {
       if (! pModelFile.getName().endsWith(".dimacs")) {
         throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
       }
-      BufferedReader br = null;
-      try {
-         br = new BufferedReader(new FileReader(pModelFile));
+      try (BufferedReader br = new BufferedReader(new FileReader(pModelFile))){
          ArrayList<String> predicates = new ArrayList<>(10000);
          //var ids in dimacs files start with 1, so we want the first var at position 1
          predicates.add("RheinDummyVar");
@@ -2837,12 +2823,6 @@ public class CtoFormulaConverter {
         return externalModel;
       } catch (IOException e) {
         throw new RuntimeException(e); //TODO: find the proper exception
-      } finally {
-        if (br!=null) {
-            try {
-              br.close();
-            } catch (IOException e) {}
-        }
       }
     }
   }
