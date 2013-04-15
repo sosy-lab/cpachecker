@@ -60,6 +60,7 @@ public class Z3TheoremProver implements ProverEnvironment {
     Preconditions.checkArgument(z3context != 0);
     solver_push(z3context, z3solver);
     long e = Z3FormulaManager.getZ3Expr(pF);
+    //    e = simplify(z3context, e);
     solver_assert(z3context, z3solver, e);
   }
 
@@ -105,27 +106,27 @@ public class Z3TheoremProver implements ProverEnvironment {
     Z3AllSatResult result = new Z3AllSatResult(rmgr, solveTime, enumTime);
 
     // unpack formulas to terms
-    long[] importantTerms = new long[formulas.size()];
+    long[] importantFormulas = new long[formulas.size()];
     int i = 0;
     for (BooleanFormula impF : formulas) {
-      importantTerms[i++] = Z3FormulaManager.getZ3Expr(impF);
+      importantFormulas[i++] = Z3FormulaManager.getZ3Expr(impF);
     }
 
     solveTime.start();
     solver_push(z3context, z3solver);
 
     while (solver_check(z3context, z3solver) == Z3_L_TRUE) {
-      long[] valuesOfModel = new long[importantTerms.length];
+      long[] valuesOfModel = new long[importantFormulas.length];
       long z3model = solver_get_model(z3context, z3solver);
 
-      for (int j = 0; j < importantTerms.length; j++) {
-        long funcDecl = get_app_decl(z3context, importantTerms[j]);
+      for (int j = 0; j < importantFormulas.length; j++) {
+        long funcDecl = get_app_decl(z3context, importantFormulas[j]);
         long valueOfExpr = model_get_const_interp(z3context, z3model, funcDecl);
 
         if (isOP(z3context, valueOfExpr, Z3_OP_FALSE)) {
-          valuesOfModel[j] = mk_not(z3context, importantTerms[j]);
+          valuesOfModel[j] = mk_not(z3context, importantFormulas[j]);
         } else {
-          valuesOfModel[j] = importantTerms[j];
+          valuesOfModel[j] = importantFormulas[j];
         }
       }
 

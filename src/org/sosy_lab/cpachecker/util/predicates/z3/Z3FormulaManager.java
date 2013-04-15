@@ -79,6 +79,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     }
     */
 
+    open_log("z3output.log"); // dumps some log in a special z3-format
+
     long cfg = mk_config();
     set_param_value(cfg, "MODEL", "true"); // this option is needed also without interpolation
     set_param_value(cfg, "PROOF", "true");
@@ -172,6 +174,11 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
   protected Long getTerm(Formula pF) {
     // for visibility
     return super.getTerm(pF);
+  }
+
+  @Override
+  protected void finalize() {
+    close_log();
   }
 
 }

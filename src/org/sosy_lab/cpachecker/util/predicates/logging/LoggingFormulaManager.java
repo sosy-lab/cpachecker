@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.logging;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -36,9 +37,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 public class LoggingFormulaManager implements FormulaManager {
 
   private final FormulaManager wrapped;
+  private final LogManager logger;
 
-  public LoggingFormulaManager(FormulaManager lFmgr) {
-    wrapped = lFmgr;
+  public LoggingFormulaManager(LogManager logger, FormulaManager lFmgr) {
+    this.wrapped = lFmgr;
+    this.logger = logger;
   }
 
   @Override
@@ -89,16 +92,5 @@ public class LoggingFormulaManager implements FormulaManager {
   @Override
   public String getVersion() {
     return wrapped.getVersion();
-  }
-
-  /** log the message */
-  static void log(String m) {
-    // TODO use logger or file?
-    System.out.println(m);
-  }
-
-  /** log with indent */
-  static void logIndent(String m) {
-    log("    " + m);
   }
 }

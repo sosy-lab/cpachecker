@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.util.predicates.logging;
 
 import java.util.Collection;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -37,58 +39,52 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 public class LoggingProverEnvironment implements ProverEnvironment {
 
   private final ProverEnvironment wrapped;
+  LogManager logger;
   int level = 0;
 
-  public LoggingProverEnvironment(ProverEnvironment pe) {
-    wrapped = pe;
+  public LoggingProverEnvironment(LogManager logger, ProverEnvironment pe) {
+    this.wrapped = pe;
+    this.logger = logger;
   }
 
   @Override
   public void push(BooleanFormula f) {
-    LoggingFormulaManager.logIndent("TP PUSH in, to LEVEL" + level++);
+    logger.log(Level.FINE, "up to level " + level++);
+    logger.log(Level.FINE, "formula pushed:", f);
     wrapped.push(f);
-    LoggingFormulaManager.logIndent("TP PUSH out");
   }
 
   @Override
   public void pop() {
-    level--;
-    LoggingFormulaManager.logIndent("TP POP in, from LEVEL" + level);
+    logger.log(Level.FINER, "down to level " + level--);
     wrapped.pop();
-    LoggingFormulaManager.logIndent("TP POP out");
   }
 
   @Override
   public boolean isUnsat() {
-    LoggingFormulaManager.logIndent("TP CHECK in");
     boolean result = wrapped.isUnsat();
-    LoggingFormulaManager.logIndent("TP CHECK out");
+    logger.log(Level.FINE, "unsat-check returned:", result);
     return result;
   }
 
   @Override
   public Model getModel() throws SolverException {
-    LoggingFormulaManager.logIndent("TP MODEL in");
     Model m = wrapped.getModel();
-    LoggingFormulaManager.logIndent("TP MODEL: " + m.toString());
-    LoggingFormulaManager.logIndent("TP MODEL out");
+    logger.log(Level.FINE, "model", m);
     return m;
   }
 
   @Override
   public AllSatResult allSat(Collection<BooleanFormula> important,
       RegionCreator mgr, Timer solveTime, NestedTimer enumTime) {
-    LoggingFormulaManager.logIndent("TP ALLSAT in");
     AllSatResult asr = wrapped.allSat(important, mgr, solveTime, enumTime);
-    LoggingFormulaManager.logIndent("TP ALLSAT out");
+    logger.log(Level.FINE, "allsat-result:", asr);
     return asr;
   }
 
   @Override
   public void close() {
-    LoggingFormulaManager.log("TP CLOSE in");
     wrapped.close();
-    LoggingFormulaManager.log("TP CLOSE out");
+    logger.log(Level.FINER, "closed");
   }
-
 }

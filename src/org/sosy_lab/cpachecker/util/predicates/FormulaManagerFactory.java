@@ -54,6 +54,7 @@ public class FormulaManagerFactory {
   @Option(name = "solver.useLogger",
       description = "log some solver actions, this may be slow!")
   private boolean useLogger = false;
+  private final LogManager logger;
 
   @Option(name = "solver.useIntegers",
       description = "Encode program variables as INTEGER variables, instead of "
@@ -68,6 +69,7 @@ public class FormulaManagerFactory {
 
   public FormulaManagerFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
+    this.logger = logger;
 
     FormulaManager lFmgr;
     switch (solver) {
@@ -101,7 +103,7 @@ public class FormulaManagerFactory {
 
   public FormulaManager getFormulaManager() {
     if (useLogger) {
-      return new LoggingFormulaManager(fmgr);
+      return new LoggingFormulaManager(logger, fmgr);
     } else {
       return fmgr;
     }
@@ -124,7 +126,7 @@ public class FormulaManagerFactory {
     }
 
     if (useLogger) {
-      return new LoggingProverEnvironment(pe);
+      return new LoggingProverEnvironment(logger, pe);
     } else {
       return pe;
     }
@@ -147,7 +149,7 @@ public class FormulaManagerFactory {
     }
 
     if (useLogger) {
-      return new LoggingInterpolatingProverEnvironment<>(ipe);
+      return new LoggingInterpolatingProverEnvironment<>(logger, ipe);
     } else {
       return ipe;
     }

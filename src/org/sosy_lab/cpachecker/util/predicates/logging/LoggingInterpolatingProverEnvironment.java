@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.logging;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -34,55 +37,56 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnv
 public class LoggingInterpolatingProverEnvironment<T> implements InterpolatingProverEnvironment<T> {
 
   private final InterpolatingProverEnvironment<T> wrapped;
+  private final LogManager logger;
+  int level = 0;
 
-  public LoggingInterpolatingProverEnvironment(InterpolatingProverEnvironment<T> ipe) {
-    wrapped = ipe;
+  public LoggingInterpolatingProverEnvironment(LogManager logger, InterpolatingProverEnvironment<T> ipe) {
+    this.wrapped = ipe;
+    this.logger = logger;
   }
 
   @Override
   public T push(BooleanFormula f) {
-    LoggingFormulaManager.logIndent("ITPP PUSH in");
+    level++;
+    logger.log(Level.FINER, "up to level " + level);
+    logger.log(Level.FINE, "formula pushed:", f);
     T result = wrapped.push(f);
-    LoggingFormulaManager.logIndent("ITPP PUSH out");
     return result;
   }
 
   @Override
   public void pop() {
-    LoggingFormulaManager.logIndent("ITPP POP in");
+    level--;
+    logger.log(Level.FINER, "down to level " + level);
     wrapped.pop();
-    LoggingFormulaManager.logIndent("ITPP POP out");
   }
 
   @Override
   public boolean isUnsat() {
-    LoggingFormulaManager.logIndent("ITPP CHECK in");
     boolean result = wrapped.isUnsat();
-    LoggingFormulaManager.logIndent("ITPP CHECK out");
+    logger.log(Level.FINE, "unsat-check returned:", result);
     return result;
   }
 
   @Override
   public BooleanFormula getInterpolant(List<T> formulasOfA) {
-    LoggingFormulaManager.logIndent("ITPP ITP in");
+    logger.log(Level.FINE, "formulasOfA:", Arrays.toString(formulasOfA.toArray()));
     BooleanFormula bf = wrapped.getInterpolant(formulasOfA);
-    LoggingFormulaManager.logIndent("ITPP ITP out");
+    logger.log(Level.FINE, "interpolant:", bf);
     return bf;
   }
 
   @Override
   public Model getModel() throws SolverException {
-    LoggingFormulaManager.logIndent("ITPP MODEL in");
     Model m = wrapped.getModel();
-    LoggingFormulaManager.logIndent("ITPP MODEL out");
+    logger.log(Level.FINE, "model", m);
     return m;
   }
 
   @Override
   public void close() {
-    LoggingFormulaManager.log("ITPP CLOSE in");
     wrapped.close();
-    LoggingFormulaManager.log("ITPP CLOSE out");
+    logger.log(Level.FINER, "closed");
   }
 
 }
