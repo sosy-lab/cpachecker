@@ -68,7 +68,7 @@ public abstract class ImpactRefiner implements Refiner {
           config,
           logger,
           fmgr,
-          solver);
+          predicateCpa.getPredicateManager());
     } else if (initialRegion instanceof BDDRegion) {
       strategy = new ImpactAbstractionRefinementStrategy(
           config,
