@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -74,9 +75,9 @@ class ImpactRefinementStrategy extends RefinementStrategy {
   private final PredicateAbstractionManager predAbsMgr;
 
   protected ImpactRefinementStrategy(final Configuration config, final LogManager logger,
-      final FormulaManagerView pFmgr,
+      final FormulaManagerView pFmgr, final Solver pSolver,
       final PredicateAbstractionManager pPredAbsMgr) throws InvalidConfigurationException, CPAException {
-    super(pFmgr.getBooleanFormulaManager());
+    super(pFmgr.getBooleanFormulaManager(), pSolver);
 
     fmgr = pFmgr;
     predAbsMgr = pPredAbsMgr;

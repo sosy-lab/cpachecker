@@ -68,6 +68,7 @@ public abstract class ImpactRefiner implements Refiner {
           config,
           logger,
           fmgr,
+          predicateCpa.getSolver(),
           predicateCpa.getPredicateManager());
     } else if (initialRegion instanceof BDDRegion) {
       strategy = new ImpactAbstractionRefinementStrategy(
@@ -75,7 +76,8 @@ public abstract class ImpactRefiner implements Refiner {
           logger,
           fmgr,
           predicateCpa.getAbstractionManager(),
-          predicateCpa.getPredicateManager());
+          predicateCpa.getPredicateManager(),
+          predicateCpa.getSolver());
     } else {
       throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " cannot be used with configured abstraction representation.");
     }

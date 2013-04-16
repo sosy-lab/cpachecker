@@ -122,7 +122,8 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
           config,
           logger,
           formulaManager,
-          absManager);
+          absManager,
+          solver);
 
       backupRefiner = new PredicateCPARefiner(
           config,

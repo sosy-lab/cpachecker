@@ -99,15 +99,21 @@ public class Solver {
     }
 
     solverTime.start();
-    try (ProverEnvironment prover = newProverEnvironment()) {
-      prover.push(f);
-      result = prover.isUnsat();
+    try {
+      result = isUnsatUncached(f);
 
       unsatCache.put(f, result);
       return result;
 
     } finally {
       solverTime.stop();
+    }
+  }
+
+  private boolean isUnsatUncached(BooleanFormula f) {
+    try (ProverEnvironment prover = newProverEnvironment()) {
+      prover.push(f);
+      return prover.isUnsat();
     }
   }
 
@@ -130,5 +136,19 @@ public class Solver {
     BooleanFormula f = bfmgr.not(bfmgr.implication(a, b));
 
     return isUnsat(f);
+  }
+
+  /**
+   * Populate the cache for unsatisfiability queries with a formula
+   * that is known to be unsat.
+   * @param unsat An unsatisfiable formula.
+   */
+  public void addUnsatisfiableFormulaToCache(BooleanFormula unsat) {
+    if (unsatCache.containsKey(unsat) || bfmgr.isFalse(unsat)) {
+      return;
+    }
+    assert isUnsatUncached(unsat);
+
+    unsatCache.put(unsat, true);
   }
 }

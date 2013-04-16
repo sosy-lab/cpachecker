@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -160,8 +161,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   protected PredicateAbstractionRefinementStrategy(final Configuration config,
       final LogManager pLogger, final FormulaManagerView pFormulaManager,
-      final AbstractionManager pAbstractionManager) throws CPAException, InvalidConfigurationException {
-    super(pFormulaManager.getBooleanFormulaManager());
+      final AbstractionManager pAbstractionManager, final Solver pSolver) throws CPAException, InvalidConfigurationException {
+    super(pFormulaManager.getBooleanFormulaManager(), pSolver);
 
     config.inject(this, PredicateAbstractionRefinementStrategy.class);
     if (addPredicatesGlobally) {

@@ -61,7 +61,8 @@ public abstract class PredicateRefiner implements Refiner {
         config,
         logger,
         fmgr,
-        predicateCpa.getAbstractionManager());
+        predicateCpa.getAbstractionManager(),
+        solver);
 
     return new PredicateCPARefiner(
         config,

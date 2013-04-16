@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -103,8 +104,8 @@ class ImpactAbstractionRefinementStrategy extends RefinementStrategy {
 
   protected ImpactAbstractionRefinementStrategy(final Configuration config, final LogManager logger,
       final FormulaManagerView pFmgr, final AbstractionManager pAmgr,
-      final PredicateAbstractionManager pPredAbsMgr) throws InvalidConfigurationException, CPAException {
-    super(pFmgr.getBooleanFormulaManager());
+      final PredicateAbstractionManager pPredAbsMgr, final Solver pSolver) throws InvalidConfigurationException, CPAException {
+    super(pFmgr.getBooleanFormulaManager(), pSolver);
     config.inject(this);
 
     amgr = pAmgr;
