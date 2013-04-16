@@ -148,7 +148,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
       CStatement statement = ((CStatementEdge)edge).getStatement();
 
       if (statement instanceof CAssignment) {
-        currentState = currentState.getSuccessor(getAssignedVariable((CAssignment)statement));
+        currentState = currentState.getSuccessor(getAssignedVariable((CAssignment)statement, edge));
       }
     }
   }
@@ -157,12 +157,19 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
    * This method returns the name of the variable being assigned.
    *
    * @param assignment the assignment statement
+   * @param edge the assignment edge
    * @return the name of the variable being assigned
    */
-  private String getAssignedVariable(CAssignment assignment) {
+  private String getAssignedVariable(CAssignment assignment, CFAEdge edge) {
     CExpression leftHandSide = assignment.getLeftHandSide();
 
-    return ((CIdExpression)leftHandSide).getDeclaration().getQualifiedName();
+    // if expression is an identifier expression, get qualified name from there
+    if(leftHandSide instanceof CIdExpression) {
+      return ((CIdExpression)leftHandSide).getDeclaration().getQualifiedName();
+    }
+
+    // otherwise, construct qualified name manually
+    return edge.getPredecessor().getFunctionName() + "::" + leftHandSide.toASTString();
   }
 
   @Override
