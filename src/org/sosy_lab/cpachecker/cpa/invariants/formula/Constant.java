@@ -64,6 +64,12 @@ public class Constant<T> implements InvariantsFormula<T> {
     return pVisitor.visit(this);
   }
 
+  @Override
+  public <ReturnType, ParamType> ReturnType accept(
+      ParameterizedInvariantsFormulaVisitor<T, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+    return pVisitor.visit(this, pParameter);
+  }
+
   static <T> Constant<T> of(T pValue) {
     return new Constant<>(pValue);
   }

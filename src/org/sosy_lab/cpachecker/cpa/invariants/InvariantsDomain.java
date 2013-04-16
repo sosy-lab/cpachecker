@@ -48,6 +48,10 @@ enum InvariantsDomain implements AbstractDomain {
     InvariantsState element1 = (InvariantsState)pElement1;
     InvariantsState element2 = (InvariantsState)pElement2;
 
+    if (element1.equals(element2)) {
+      return element2;
+    }
+
     MapDifference<String, Integer> remainingEvaluationDifferences =
         Maps.difference(element1.getRemainingEvaluations(), element2.getRemainingEvaluations());
     Map<String, Integer> resultRemainingEvaluations =
@@ -75,10 +79,12 @@ enum InvariantsDomain implements AbstractDomain {
 
     Set<InvariantsFormula<CompoundState>> resultInvariants =
         new HashSet<>(element1.getInvariants());
-        resultInvariants.addAll(element2.getInvariants());
+    resultInvariants.retainAll(element2.getInvariants());
 
     int newThreshold = Math.min(element1.getEvaluationThreshold(), element2.getEvaluationThreshold());
-    return InvariantsState.from(resultRemainingEvaluations, newThreshold, resultInvariants, resultEnvironment);
+
+    return InvariantsState.from(resultRemainingEvaluations,
+        newThreshold, resultInvariants, resultEnvironment);
   }
 
   @Override

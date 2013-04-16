@@ -70,6 +70,12 @@ public class Multiply<ConstantType> implements InvariantsFormula<ConstantType> {
     return pVisitor.visit(this);
   }
 
+  @Override
+  public <ReturnType, ParamType> ReturnType accept(
+      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+    return pVisitor.visit(this, pParameter);
+  }
+
   static <ConstantType> Multiply<ConstantType> of(InvariantsFormula<ConstantType> pFactor1, InvariantsFormula<ConstantType> pFactor2) {
     return new Multiply<>(pFactor1, pFactor2);
   }

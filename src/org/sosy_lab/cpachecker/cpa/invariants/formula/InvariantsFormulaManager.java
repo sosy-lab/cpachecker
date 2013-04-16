@@ -63,7 +63,7 @@ public enum InvariantsFormulaManager {
   }
 
   public <T> InvariantsFormula<T> greaterThan(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {
-    return logicalNot(lessThanOrEqual(pOperand1, pOperand2));
+    return lessThan(pOperand2, pOperand1);
   }
 
   public <T> InvariantsFormula<T> greaterThanOrEqual(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {
@@ -75,7 +75,7 @@ public enum InvariantsFormulaManager {
   }
 
   public <T> InvariantsFormula<T> lessThanOrEqual(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {
-    return logicalOr(LessThan.of(pOperand1, pOperand2), equal(pOperand1, pOperand2));
+    return greaterThanOrEqual(pOperand2, pOperand1);
   }
 
   public <T> InvariantsFormula<T> logicalAnd(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {

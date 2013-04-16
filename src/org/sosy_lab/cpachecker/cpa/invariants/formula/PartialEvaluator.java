@@ -23,37 +23,76 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.math.BigInteger;
+import java.util.Map;
+
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
 
-public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, InvariantsFormula<CompoundState>> {
+public class PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<CompoundState, Map<? extends String, ? extends InvariantsFormula<CompoundState>>, InvariantsFormula<CompoundState>> {
 
-  INSTANCE;
+  private static final InvariantsFormula<CompoundState> TOP = InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.top());
+
+  private static final InvariantsFormula<CompoundState> BOTTOM = InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.bottom());
+
+  private final FormulaEvaluationVisitor<CompoundState> evaluationVisitor;
+
+  public PartialEvaluator(FormulaEvaluationVisitor<CompoundState> evaluationVisitor) {
+    this.evaluationVisitor = evaluationVisitor;
+  }
+
+  public FormulaEvaluationVisitor<CompoundState> getEvaluationVisitor() {
+    return this.evaluationVisitor;
+  }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(Add<CompoundState> pAdd) {
-    InvariantsFormula<CompoundState> summand1 = pAdd.getSummand1().accept(this);
-    InvariantsFormula<CompoundState> summand2 = pAdd.getSummand2().accept(this);
+  public InvariantsFormula<CompoundState> visit(Add<CompoundState> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> summand1 = pAdd.getSummand1().accept(this, pEnvironment);
+    InvariantsFormula<CompoundState> summand2 = pAdd.getSummand2().accept(this, pEnvironment);
+    // If both summands are constants, calculate a new constant
     if (summand1 instanceof Constant<?> && summand2 instanceof Constant<?>) {
-      Constant<CompoundState> c1 = (Constant<CompoundState>) summand1;
-      Constant<CompoundState> c2 = (Constant<CompoundState>) summand2;
-      CompoundState result = c1.getValue().add(c2.getValue());
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pAdd.accept(this.evaluationVisitor, pEnvironment));
     }
+    // If one of the summands is constant zero, return the other summand
+    // If one of the summands is top or bottom, return it
+    Constant<CompoundState> c = null;
+    InvariantsFormula<CompoundState> other = null;
+    if (summand1 instanceof Constant<?>) {
+      c = (Constant<CompoundState>) summand1;
+      other = summand2;
+    } else if (summand2 instanceof Constant<?>) {
+      c = (Constant<CompoundState>) summand2;
+      other = summand1;
+    }
+    if (c != null && other != null) {
+      CompoundState value = c.getValue();
+      if (value.isSingleton() && value.getValue().equals(BigInteger.ZERO)) {
+        return other;
+      }
+      if (value.isTop() || value.isBottom()) {
+        return c;
+      }
+      PushSummandVisitor<CompoundState> psv = new PushSummandVisitor<>(c, getEvaluationVisitor());
+      other = other.accept(psv, pEnvironment);
+      if (psv.isSummandConsumed()) {
+        other = other.accept(this, pEnvironment);
+      }
+      return other;
+    }
+    // If the summands did not change, return the original statement
     if (summand1 == pAdd.getSummand1() && summand2 == pAdd.getSummand2()) {
       return pAdd;
     }
+    // If one or both summands change but cannot be further evaluated,
+    // return a new addition formula for both
     return InvariantsFormulaManager.INSTANCE.add(summand1, summand2);
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(BinaryAnd<CompoundState> pAnd) {
-    InvariantsFormula<CompoundState> operand1 = pAnd.getOperand1().accept(this);
-    InvariantsFormula<CompoundState> operand2 = pAnd.getOperand2().accept(this);
+  public InvariantsFormula<CompoundState> visit(BinaryAnd<CompoundState> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> operand1 = pAnd.getOperand1().accept(this, pEnvironment);
+    InvariantsFormula<CompoundState> operand2 = pAnd.getOperand2().accept(this, pEnvironment);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      Constant<CompoundState> c1 = (Constant<CompoundState>) operand1;
-      Constant<CompoundState> c2 = (Constant<CompoundState>) operand2;
-      CompoundState result = c1.getValue().binaryAnd(c2.getValue());
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pAnd.accept(this.evaluationVisitor, pEnvironment));
     }
     if (operand1 == pAnd.getOperand1() && operand2 == pAnd.getOperand2()) {
       return pAnd;
@@ -62,12 +101,10 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(BinaryNot<CompoundState> pNot) {
-    InvariantsFormula<CompoundState> operand = pNot.getFlipped().accept(this);
+  public InvariantsFormula<CompoundState> visit(BinaryNot<CompoundState> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> operand = pNot.getFlipped().accept(this, pEnvironment);
     if (operand instanceof Constant<?>) {
-      Constant<CompoundState> c = (Constant<CompoundState>) operand;
-      CompoundState result = c.getValue().binaryNot();
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pNot.accept(this.evaluationVisitor, pEnvironment));
     }
     if (operand == pNot.getFlipped()) {
       return pNot;
@@ -76,14 +113,11 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(BinaryOr<CompoundState> pOr) {
-    InvariantsFormula<CompoundState> operand1 = pOr.getOperand1().accept(this);
-    InvariantsFormula<CompoundState> operand2 = pOr.getOperand2().accept(this);
+  public InvariantsFormula<CompoundState> visit(BinaryOr<CompoundState> pOr, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> operand1 = pOr.getOperand1().accept(this, pEnvironment);
+    InvariantsFormula<CompoundState> operand2 = pOr.getOperand2().accept(this, pEnvironment);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      Constant<CompoundState> c1 = (Constant<CompoundState>) operand1;
-      Constant<CompoundState> c2 = (Constant<CompoundState>) operand2;
-      CompoundState result = c1.getValue().binaryOr(c2.getValue());
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pOr.accept(this.evaluationVisitor, pEnvironment));
     }
     if (operand1 == pOr.getOperand1() && operand2 == pOr.getOperand2()) {
       return pOr;
@@ -92,14 +126,11 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(BinaryXor<CompoundState> pXor) {
-    InvariantsFormula<CompoundState> operand1 = pXor.getOperand1().accept(this);
-    InvariantsFormula<CompoundState> operand2 = pXor.getOperand2().accept(this);
+  public InvariantsFormula<CompoundState> visit(BinaryXor<CompoundState> pXor, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> operand1 = pXor.getOperand1().accept(this, pEnvironment);
+    InvariantsFormula<CompoundState> operand2 = pXor.getOperand2().accept(this, pEnvironment);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      Constant<CompoundState> c1 = (Constant<CompoundState>) operand1;
-      Constant<CompoundState> c2 = (Constant<CompoundState>) operand2;
-      CompoundState result = c1.getValue().binaryXor(c2.getValue());
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pXor.accept(this.evaluationVisitor, pEnvironment));
     }
     if (operand1 == pXor.getOperand1() && operand2 == pXor.getOperand2()) {
       return pXor;
@@ -108,19 +139,28 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(Constant<CompoundState> pConstant) {
+  public InvariantsFormula<CompoundState> visit(Constant<CompoundState> pConstant, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     return pConstant;
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(Divide<CompoundState> pDivide) {
-    InvariantsFormula<CompoundState> numerator = pDivide.getNumerator().accept(this);
-    InvariantsFormula<CompoundState> denominator = pDivide.getDenominator().accept(this);
+  public InvariantsFormula<CompoundState> visit(Divide<CompoundState> pDivide, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> numerator = pDivide.getNumerator().accept(this, pEnvironment);
+    InvariantsFormula<CompoundState> denominator = pDivide.getDenominator().accept(this, pEnvironment);
     if (numerator instanceof Constant<?> && denominator instanceof Constant<?>) {
-      Constant<CompoundState> c1 = (Constant<CompoundState>) numerator;
-      Constant<CompoundState> c2 = (Constant<CompoundState>) denominator;
-      CompoundState result = c1.getValue().divide(c2.getValue());
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pDivide.accept(this.evaluationVisitor, pEnvironment));
+    }
+    // Division by 1 yields the numerator, by -1 the negated numerator
+    if (denominator instanceof Constant<?>) {
+      Constant<CompoundState> c = (Constant<CompoundState>) denominator;
+      CompoundState value = c.getValue();
+      if (value.isSingleton()) {
+        if (value.getValue().equals(BigInteger.ONE)) {
+          return numerator;
+        } else if (value.getValue().equals(BigInteger.valueOf(-1))) {
+          return InvariantsFormulaManager.INSTANCE.negate(numerator);
+        }
+      }
     }
     if (numerator == pDivide.getNumerator() && denominator == pDivide.getDenominator()) {
       return pDivide;
@@ -129,14 +169,11 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(Equal<CompoundState> pEqual) {
-    InvariantsFormula<CompoundState> operand1 = pEqual.getOperand1().accept(this);
-    InvariantsFormula<CompoundState> operand2 = pEqual.getOperand2().accept(this);
+  public InvariantsFormula<CompoundState> visit(Equal<CompoundState> pEqual, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> operand1 = pEqual.getOperand1().accept(this, pEnvironment);
+    InvariantsFormula<CompoundState> operand2 = pEqual.getOperand2().accept(this, pEnvironment);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      Constant<CompoundState> c1 = (Constant<CompoundState>) operand1;
-      Constant<CompoundState> c2 = (Constant<CompoundState>) operand2;
-      CompoundState result = c1.getValue().logicalEquals(c2.getValue());
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pEqual.accept(this.evaluationVisitor, pEnvironment));
     }
     if (operand1 == pEqual.getOperand1() && operand2 == pEqual.getOperand2()) {
       return pEqual;
@@ -145,14 +182,11 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(LessThan<CompoundState> pLessThan) {
-    InvariantsFormula<CompoundState> operand1 = pLessThan.getOperand1().accept(this);
-    InvariantsFormula<CompoundState> operand2 = pLessThan.getOperand2().accept(this);
+  public InvariantsFormula<CompoundState> visit(LessThan<CompoundState> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> operand1 = pLessThan.getOperand1().accept(this, pEnvironment);
+    InvariantsFormula<CompoundState> operand2 = pLessThan.getOperand2().accept(this, pEnvironment);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      Constant<CompoundState> c1 = (Constant<CompoundState>) operand1;
-      Constant<CompoundState> c2 = (Constant<CompoundState>) operand2;
-      CompoundState result = c1.getValue().lessThan(c2.getValue());
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pLessThan.accept(this.evaluationVisitor, pEnvironment));
     }
     if (operand1 == pLessThan.getOperand1() && operand2 == pLessThan.getOperand2()) {
       return pLessThan;
@@ -161,14 +195,11 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(LogicalAnd<CompoundState> pAnd) {
-    InvariantsFormula<CompoundState> operand1 = pAnd.getOperand1().accept(this);
-    InvariantsFormula<CompoundState> operand2 = pAnd.getOperand2().accept(this);
+  public InvariantsFormula<CompoundState> visit(LogicalAnd<CompoundState> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> operand1 = pAnd.getOperand1().accept(this, pEnvironment);
+    InvariantsFormula<CompoundState> operand2 = pAnd.getOperand2().accept(this, pEnvironment);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      Constant<CompoundState> c1 = (Constant<CompoundState>) operand1;
-      Constant<CompoundState> c2 = (Constant<CompoundState>) operand2;
-      CompoundState result = c1.getValue().logicalAnd(c2.getValue());
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pAnd.accept(this.evaluationVisitor, pEnvironment));
     }
     if (operand1 == pAnd.getOperand1() && operand2 == pAnd.getOperand2()) {
       return pAnd;
@@ -177,12 +208,14 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(LogicalNot<CompoundState> pNot) {
-    InvariantsFormula<CompoundState> operand = pNot.getNegated().accept(this);
+  public InvariantsFormula<CompoundState> visit(LogicalNot<CompoundState> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> operand = pNot.getNegated().accept(this, pEnvironment);
     if (operand instanceof Constant<?>) {
-      Constant<CompoundState> c = (Constant<CompoundState>) operand;
-      CompoundState result = c.getValue().logicalNot();
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pNot.accept(this.evaluationVisitor, pEnvironment));
+    }
+    // The negation of a negation yields the inner operand
+    if (operand instanceof LogicalNot<?>) {
+      return ((LogicalNot<CompoundState>) operand).getNegated();
     }
     if (operand == pNot.getNegated()) {
       return pNot;
@@ -191,14 +224,20 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(Modulo<CompoundState> pModulo) {
-    InvariantsFormula<CompoundState> numerator = pModulo.getNumerator().accept(this);
-    InvariantsFormula<CompoundState> denominator = pModulo.getDenominator().accept(this);
+  public InvariantsFormula<CompoundState> visit(Modulo<CompoundState> pModulo, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> numerator = pModulo.getNumerator().accept(this, pEnvironment);
+    InvariantsFormula<CompoundState> denominator = pModulo.getDenominator().accept(this, pEnvironment);
     if (numerator instanceof Constant<?> && denominator instanceof Constant<?>) {
-      Constant<CompoundState> c1 = (Constant<CompoundState>) numerator;
-      Constant<CompoundState> c2 = (Constant<CompoundState>) denominator;
-      CompoundState result = c1.getValue().modulo(c2.getValue());
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pModulo.accept(this.evaluationVisitor, pEnvironment));
+    }
+    // If the denominator is 1 or -1, modulo must yield 0
+    if (denominator instanceof Constant<?>) {
+      Constant<CompoundState> c = (Constant<CompoundState>) denominator;
+      CompoundState value = c.getValue();
+      if (value.isSingleton() && (value.getValue().equals(BigInteger.ONE)
+          || value.getValue().equals(BigInteger.valueOf(-1)))) {
+        return InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.singleton(1));
+      }
     }
     if (numerator == pModulo.getNumerator() && denominator == pModulo.getDenominator()) {
       return pModulo;
@@ -207,14 +246,37 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(Multiply<CompoundState> pMultiply) {
-    InvariantsFormula<CompoundState> factor1 = pMultiply.getFactor1().accept(this);
-    InvariantsFormula<CompoundState> factor2 = pMultiply.getFactor2().accept(this);
+  public InvariantsFormula<CompoundState> visit(Multiply<CompoundState> pMultiply, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> factor1 = pMultiply.getFactor1().accept(this, pEnvironment);
+    InvariantsFormula<CompoundState> factor2 = pMultiply.getFactor2().accept(this, pEnvironment);
     if (factor1 instanceof Constant<?> && factor2 instanceof Constant<?>) {
-      Constant<CompoundState> c1 = (Constant<CompoundState>) factor1;
-      Constant<CompoundState> c2 = (Constant<CompoundState>) factor2;
-      CompoundState result = c1.getValue().multiply(c2.getValue());
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pMultiply.accept(this.evaluationVisitor, pEnvironment));
+    }
+    // Multiplication by 1 yields the other factor,
+    // by -1 the negated other factor, by 0 it yields 0.
+    Constant<CompoundState> c = null;
+    InvariantsFormula<CompoundState> otherFactor = null;
+    if (factor1 instanceof Constant<?>) {
+      c = (Constant<CompoundState>) factor1;
+      otherFactor = factor2;
+    } else if (factor2 instanceof Constant<?>) {
+      c = (Constant<CompoundState>) factor2;
+      otherFactor = factor1;
+    }
+    if (c != null && otherFactor != null) {
+      CompoundState state = c.getValue();
+      if (state.isSingleton()) {
+        BigInteger value = state.getValue();
+        if (value.equals(BigInteger.ONE)) {
+          return otherFactor;
+        }
+        if (value.equals(BigInteger.valueOf(-1))) {
+          return InvariantsFormulaManager.INSTANCE.negate(otherFactor);
+        }
+        if (value.equals(BigInteger.ZERO)) {
+          return InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.singleton(BigInteger.ZERO));
+        }
+      }
     }
     if (factor1 == pMultiply.getFactor1() && factor2 == pMultiply.getFactor2()) {
       return pMultiply;
@@ -223,12 +285,10 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(Negate<CompoundState> pNegate) {
-    InvariantsFormula<CompoundState> operand = pNegate.getNegated().accept(this);
+  public InvariantsFormula<CompoundState> visit(Negate<CompoundState> pNegate, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> operand = pNegate.getNegated().accept(this, pEnvironment);
     if (operand instanceof Constant<?>) {
-      Constant<CompoundState> c = (Constant<CompoundState>) operand;
-      CompoundState result = c.getValue().negate();
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pNegate.accept(this.evaluationVisitor, pEnvironment));
     }
     if (operand == pNegate.getNegated()) {
       return pNegate;
@@ -237,14 +297,18 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(ShiftLeft<CompoundState> pShiftLeft) {
-    InvariantsFormula<CompoundState> shifted = pShiftLeft.getShifted().accept(this);
-    InvariantsFormula<CompoundState> shiftDistance = pShiftLeft.getShiftDistance().accept(this);
+  public InvariantsFormula<CompoundState> visit(ShiftLeft<CompoundState> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> shifted = pShiftLeft.getShifted().accept(this, pEnvironment);
+    InvariantsFormula<CompoundState> shiftDistance = pShiftLeft.getShiftDistance().accept(this, pEnvironment);
     if (shifted instanceof Constant<?> && shiftDistance instanceof Constant<?>) {
-      Constant<CompoundState> c1 = (Constant<CompoundState>) shifted;
-      Constant<CompoundState> c2 = (Constant<CompoundState>) shiftDistance;
-      CompoundState result = c1.getValue().shiftLeft(c2.getValue());
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pShiftLeft.accept(this.evaluationVisitor, pEnvironment));
+    }
+    // If the shift distance is zero, return the left operand
+    if (shiftDistance instanceof Constant<?>) {
+      Constant<CompoundState> c = (Constant<CompoundState>) shiftDistance;
+      if (c.getValue().isSingleton() && c.getValue().getValue().equals(BigInteger.ZERO)) {
+        return shifted;
+      }
     }
     if (shifted == pShiftLeft.getShifted() && shiftDistance == pShiftLeft.getShiftDistance()) {
       return pShiftLeft;
@@ -253,14 +317,18 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(ShiftRight<CompoundState> pShiftRight) {
-    InvariantsFormula<CompoundState> shifted = pShiftRight.getShifted().accept(this);
-    InvariantsFormula<CompoundState> shiftDistance = pShiftRight.getShiftDistance().accept(this);
+  public InvariantsFormula<CompoundState> visit(ShiftRight<CompoundState> pShiftRight, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> shifted = pShiftRight.getShifted().accept(this, pEnvironment);
+    InvariantsFormula<CompoundState> shiftDistance = pShiftRight.getShiftDistance().accept(this, pEnvironment);
     if (shifted instanceof Constant<?> && shiftDistance instanceof Constant<?>) {
-      Constant<CompoundState> c1 = (Constant<CompoundState>) shifted;
-      Constant<CompoundState> c2 = (Constant<CompoundState>) shiftDistance;
-      CompoundState result = c1.getValue().shiftRight(c2.getValue());
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pShiftRight.accept(this.evaluationVisitor, pEnvironment));
+    }
+    // If the shift distance is zero, return the left operand
+    if (shiftDistance instanceof Constant<?>) {
+      Constant<CompoundState> c = (Constant<CompoundState>) shiftDistance;
+      if (c.getValue().isSingleton() && c.getValue().getValue().equals(BigInteger.ZERO)) {
+        return shifted;
+      }
     }
     if (shifted == pShiftRight.getShifted() && shiftDistance == pShiftRight.getShiftDistance()) {
       return pShiftRight;
@@ -269,14 +337,22 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(Union<CompoundState> pUnion) {
-    InvariantsFormula<CompoundState> operand1 = pUnion.getOperand1().accept(this);
-    InvariantsFormula<CompoundState> operand2 = pUnion.getOperand2().accept(this);
+  public InvariantsFormula<CompoundState> visit(Union<CompoundState> pUnion, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> operand1 = pUnion.getOperand1().accept(this, pEnvironment);
+    InvariantsFormula<CompoundState> operand2 = pUnion.getOperand2().accept(this, pEnvironment);
     if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      Constant<CompoundState> c1 = (Constant<CompoundState>) operand1;
-      Constant<CompoundState> c2 = (Constant<CompoundState>) operand2;
-      CompoundState result = c1.getValue().unionWith(c2.getValue());
-      return InvariantsFormulaManager.INSTANCE.asConstant(result);
+      return InvariantsFormulaManager.INSTANCE.asConstant(pUnion.accept(this.evaluationVisitor, pEnvironment));
+    }
+    // Union with top yields top
+    if (operand1.equals(TOP) || operand2.equals(TOP)) {
+      return TOP;
+    }
+    // Union with bottom yields the other operand
+    if (operand1.equals(BOTTOM)) {
+      return operand2;
+    }
+    if (operand2.equals(BOTTOM)) {
+      return operand1;
     }
     if (operand1 == pUnion.getOperand1() && operand2 == pUnion.getOperand2()) {
       return pUnion;
@@ -285,7 +361,7 @@ public enum PartialEvaluator implements InvariantsFormulaVisitor<CompoundState, 
   }
 
   @Override
-  public InvariantsFormula<CompoundState> visit(Variable<CompoundState> pVariable) {
+  public InvariantsFormula<CompoundState> visit(Variable<CompoundState> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     return pVariable;
   }
 

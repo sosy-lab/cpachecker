@@ -23,12 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.util.Map;
+public class WeakeningVisitor<T> extends DefaultFormulaVisitor<T, InvariantsFormula<T>> implements InvariantsFormulaVisitor<T, InvariantsFormula<T>> {
 
-public interface FormulaEvaluationVisitor<T> extends ParameterizedInvariantsFormulaVisitor<T, Map<? extends String, ? extends InvariantsFormula<T>>, T> {
+  @Override
+  public InvariantsFormula<T> visit(LessThan<T> pLessThan) {
+    return InvariantsFormulaManager.INSTANCE.lessThanOrEqual(pLessThan.getOperand1(), pLessThan.getOperand2());
+  }
 
-  T top();
+  @Override
+  protected InvariantsFormula<T> visitDefault(InvariantsFormula<T> pFormula) {
+    return pFormula;
+  }
 
-  T bottom();
+
 
 }

@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+
 public interface InvariantsFormula<ConstantType> {
 
-  <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> visitor);
+  <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor);
+
+  <ReturnType, ParamType> ReturnType accept(ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter);
 
 }

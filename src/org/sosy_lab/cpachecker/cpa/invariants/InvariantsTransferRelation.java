@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -39,9 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -122,7 +118,7 @@ enum InvariantsTransferRelation implements TransferRelation {
     InvariantsFormula<CompoundState> expressionFormula = expression.accept(getExpressionToFormulaVisitor(pEdge));
 
     // Evaluate the state of the assume edge expression
-    CompoundState expressionState = expressionFormula.accept(resolver);
+    CompoundState expressionState = expressionFormula.accept(resolver, pElement.getEnvironment());
     /*
      * If the expression definitely evaluates to false when truth is assumed or
      * the expression definitely evaluates to true when falsehood is assumed,
@@ -170,7 +166,7 @@ enum InvariantsTransferRelation implements TransferRelation {
       value = InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.top());
     }
 
-    return pElement.assign(varName, value);
+    return pElement.assign(varName, value, pEdge.toString());
   }
 
   private InvariantsState handleFunctionCall(InvariantsState pElement, CFunctionCallEdge pEdge) throws UnrecognizedCCodeException {
@@ -185,7 +181,7 @@ enum InvariantsTransferRelation implements TransferRelation {
       InvariantsFormula<CompoundState> value = actualParam.accept(getExpressionToFormulaVisitor(pEdge));
 
       String formalParam = scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
-      newElement = newElement.assign(formalParam, value);
+      newElement = newElement.assign(formalParam, value, pEdge.toString());
     }
 
     return newElement;
@@ -202,7 +198,7 @@ enum InvariantsTransferRelation implements TransferRelation {
 
         String varName = getVarName((CIdExpression)leftHandSide, pEdge);
         InvariantsFormula<CompoundState> value = assignment.getRightHandSide().accept(getExpressionToFormulaVisitor(pEdge));
-        return pElement.assign(varName, value);
+        return pElement.assign(varName, value, pEdge.toString());
       } else {
         throw new UnrecognizedCCodeException("unknown left-hand side of assignment", pEdge, leftHandSide);
       }
@@ -217,17 +213,17 @@ enum InvariantsTransferRelation implements TransferRelation {
     CExpression returnedExpression = pEdge.getExpression();
     InvariantsFormula<CompoundState> returnedState = returnedExpression.accept(getExpressionToFormulaVisitor(pEdge));
     String returnValueName = scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
-    return pElement.assign(returnValueName, returnedState);
+    return pElement.assign(returnValueName, returnedState, pEdge.toString());
   }
 
-  private InvariantsState handleFunctionReturn(InvariantsState element, CFunctionReturnEdge functionReturnEdge)
+  private InvariantsState handleFunctionReturn(InvariantsState pElement, CFunctionReturnEdge pFunctionReturnEdge)
       throws UnrecognizedCCodeException {
-      CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
+      CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSummaryEdge();
 
       CFunctionCall expression = summaryEdge.getExpression();
 
-      String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
-      String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
+      String callerFunctionName = pFunctionReturnEdge.getSuccessor().getFunctionName();
+      String calledFunctionName = pFunctionReturnEdge.getPredecessor().getFunctionName();
 
       String returnValueName = scope(RETURN_VARIABLE_BASE_NAME, calledFunctionName);
 
@@ -242,10 +238,10 @@ enum InvariantsTransferRelation implements TransferRelation {
         // left hand side of the expression has to be a variable
         if (operand1 instanceof CIdExpression) {
           final String varName = scope(((CIdExpression) operand1).getName(), callerFunctionName);
-          element = element.assign(varName, value);
+          pElement = pElement.assign(varName, value, pFunctionReturnEdge.toString());
         }
       }
-      return element;
+      return pElement;
   }
 
   static String getVarName(CIdExpression var, CFAEdge edge) throws UnrecognizedCCodeException {
@@ -268,265 +264,6 @@ enum InvariantsTransferRelation implements TransferRelation {
 
   private static String scope(String var, String function) {
     return function + "::" + var;
-  }
-
-  @SuppressWarnings("unused")
-  private static class PushStateExpressionVisitor extends DefaultCExpressionVisitor<InvariantsState, UnrecognizedCCodeException> {
-
-    private final ExpressionToStateVisitor expressionVisitor;
-
-    private final CompoundState stateToPush;
-
-    public PushStateExpressionVisitor(ExpressionToStateVisitor expressionVisitor, CompoundState stateToPush) {
-      this.expressionVisitor = expressionVisitor;
-      if (stateToPush.isBottom()) {
-        this.expressionVisitor.setBaseState(null);
-      }
-      this.stateToPush = stateToPush;
-    }
-
-    @Override
-    public InvariantsState visit(CIdExpression pE) throws UnrecognizedCCodeException {
-      if (!this.expressionVisitor.hasBaseState()) {
-        return null;
-      }
-      CompoundState varState = this.expressionVisitor.getVarState(pE);
-      varState = varState.intersectWith(this.stateToPush);
-      if (varState.isBottom()) {
-        return null;
-      }
-      return this.expressionVisitor.copyAndSetBaseState(pE, varState);
-    }
-
-    @Override
-    protected InvariantsState visitDefault(CExpression pExp) throws UnrecognizedCCodeException {
-      return this.expressionVisitor.getBaseState();
-    }
-
-    @Override
-    public InvariantsState visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
-      switch (pE.getOperator()) {
-      case MINUS:
-        return pE.getOperand().accept(new PushStateExpressionVisitor(this.expressionVisitor, this.stateToPush.negate()));
-      case NOT:
-        return pE.getOperand().accept(new PushStateExpressionVisitor(this.expressionVisitor, this.stateToPush.logicalNot()));
-      case PLUS:
-        return pE.getOperand().accept(this);
-      case TILDE:
-        return pE.getOperand().accept(new PushStateExpressionVisitor(this.expressionVisitor, this.stateToPush.binaryNot()));
-      default:
-        return visitDefault(null);
-      }
-    }
-
-    @Override
-    public InvariantsState visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
-      if (!this.expressionVisitor.hasBaseState()) {
-        return null;
-      }
-      CompoundState prevLhsState = pE.getOperand1().accept(this.expressionVisitor);
-      CompoundState prevRhsState = pE.getOperand2().accept(this.expressionVisitor);
-      CompoundState lhsState = null;
-      CompoundState rhsState = null;
-      while (!prevLhsState.equals(lhsState) || !prevRhsState.equals(rhsState)) {
-        lhsState = prevLhsState;
-        rhsState = prevRhsState;
-        CompoundState pushLhsState;
-        CompoundState pushRhsState;
-        switch (pE.getOperator()) {
-          case DIVIDE:
-            pushLhsState = this.stateToPush.multiply(rhsState);
-            pushRhsState = lhsState.divide(rhsState);
-            break;
-          case EQUALS:
-            if (this.stateToPush.equals(CompoundState.logicalTrue())) {
-              pushLhsState = pushRhsState = lhsState.intersectWith(rhsState);
-            } else if (this.stateToPush.equals(CompoundState.logicalFalse())) {
-              pushLhsState = rhsState.invert();
-              pushRhsState = lhsState.invert();
-            } else {
-              return this.expressionVisitor.getBaseState();
-            }
-            break;
-          case GREATER_EQUAL:
-            if (this.stateToPush.equals(CompoundState.logicalTrue())) {
-              if (rhsState.hasLowerBound()) {
-                pushLhsState = CompoundState.of(SimpleInterval.singleton(rhsState.getLowerBound()).extendToPositiveInfinity());
-              } else {
-                pushLhsState = rhsState;
-              }
-              if (lhsState.hasUpperBound()) {
-                pushRhsState = CompoundState.of(SimpleInterval.singleton(lhsState.getUpperBound()).extendToNegativeInfinity());
-              } else {
-                pushRhsState = lhsState;
-              }
-            } else if (this.stateToPush.equals(CompoundState.logicalFalse())) {
-              if (rhsState.hasLowerBound()) {
-                pushLhsState = CompoundState.of(SimpleInterval.singleton(rhsState.getLowerBound().subtract(BigInteger.ONE)).extendToNegativeInfinity());
-              } else {
-                pushLhsState = CompoundState.bottom();
-              }
-              if (lhsState.hasUpperBound()) {
-                pushRhsState = CompoundState.of(SimpleInterval.singleton(lhsState.getUpperBound().add(BigInteger.ONE)).extendToPositiveInfinity());
-              } else {
-                pushRhsState = CompoundState.bottom();
-              }
-            } else {
-              return this.expressionVisitor.getBaseState();
-            }
-            break;
-          case GREATER_THAN:
-            if (this.stateToPush.equals(CompoundState.logicalTrue())) {
-              if (rhsState.hasUpperBound()) {
-                pushLhsState = CompoundState.of(SimpleInterval.singleton(rhsState.getUpperBound().add(BigInteger.ONE)).extendToPositiveInfinity());
-              } else {
-                pushLhsState = CompoundState.bottom();
-              }
-              if (lhsState.hasLowerBound()) {
-                pushRhsState = CompoundState.of(SimpleInterval.singleton(lhsState.getLowerBound().subtract(BigInteger.ONE)).extendToNegativeInfinity());
-              } else {
-                pushRhsState = CompoundState.bottom();
-              }
-            } else if (this.stateToPush.equals(CompoundState.logicalFalse())) {
-              if (rhsState.hasUpperBound()) {
-                pushLhsState = CompoundState.of(SimpleInterval.singleton(rhsState.getUpperBound()).extendToNegativeInfinity());
-              } else {
-                pushLhsState = rhsState;
-              }
-              if (lhsState.hasLowerBound()) {
-                pushRhsState = CompoundState.of(SimpleInterval.singleton(lhsState.getLowerBound()).extendToPositiveInfinity());
-              } else {
-                pushRhsState = lhsState;
-              }
-            } else {
-              return this.expressionVisitor.getBaseState();
-            }
-            break;
-          case MINUS:
-            pushLhsState = this.stateToPush.add(rhsState);
-            pushRhsState = lhsState.add(this.stateToPush.negate());
-            break;
-          case MULTIPLY:
-            pushLhsState = this.stateToPush.divide(rhsState);
-            pushRhsState = this.stateToPush.divide(lhsState);
-            break;
-          case NOT_EQUALS:
-            if (this.stateToPush.equals(CompoundState.logicalTrue())) {
-              pushLhsState = rhsState.invert();
-              pushRhsState = lhsState.invert();
-            } else if (this.stateToPush.equals(CompoundState.logicalFalse())) {
-              pushLhsState = pushRhsState = lhsState.intersectWith(rhsState);
-            } else {
-              return this.expressionVisitor.getBaseState();
-            }
-            break;
-          case PLUS:
-            pushLhsState = this.stateToPush.add(rhsState.negate());
-            pushRhsState = this.stateToPush.add(lhsState.negate());
-            break;
-          case LESS_EQUAL:
-            if (this.stateToPush.equals(CompoundState.logicalTrue())) {
-              if (rhsState.hasUpperBound()) {
-                pushLhsState = CompoundState.of(SimpleInterval.singleton(rhsState.getUpperBound()).extendToNegativeInfinity());
-              } else {
-                pushLhsState = rhsState;
-              }
-              if (lhsState.hasLowerBound()) {
-                pushRhsState = CompoundState.of(SimpleInterval.singleton(lhsState.getLowerBound()).extendToPositiveInfinity());
-              } else {
-                pushRhsState = lhsState;
-              }
-            } else if (this.stateToPush.equals(CompoundState.logicalFalse())) {
-              if (rhsState.hasUpperBound()) {
-                pushLhsState = CompoundState.of(SimpleInterval.singleton(rhsState.getUpperBound().add(BigInteger.ONE)).extendToPositiveInfinity());
-              } else {
-                pushLhsState = CompoundState.bottom();
-              }
-              if (lhsState.hasLowerBound()) {
-                pushRhsState = CompoundState.of(SimpleInterval.singleton(lhsState.getLowerBound().subtract(BigInteger.ONE)).extendToNegativeInfinity());
-              } else {
-                pushRhsState = CompoundState.bottom();
-              }
-            } else {
-              return this.expressionVisitor.getBaseState();
-            }
-            break;
-          case LESS_THAN:
-            if (this.stateToPush.equals(CompoundState.logicalTrue())) {
-              if (rhsState.hasLowerBound()) {
-                pushLhsState = CompoundState.of(SimpleInterval.singleton(rhsState.getLowerBound().subtract(BigInteger.ONE)).extendToNegativeInfinity());
-              } else {
-                pushLhsState = CompoundState.bottom();
-              }
-              if (lhsState.hasUpperBound()) {
-                pushRhsState = CompoundState.of(SimpleInterval.singleton(lhsState.getUpperBound().add(BigInteger.ONE)).extendToPositiveInfinity());
-              } else {
-                pushRhsState = CompoundState.bottom();
-              }
-            } else if (this.stateToPush.equals(CompoundState.logicalFalse())) {
-              if (rhsState.hasLowerBound()) {
-                pushLhsState = CompoundState.of(SimpleInterval.singleton(rhsState.getLowerBound()).extendToPositiveInfinity());
-              } else {
-                pushLhsState = rhsState;
-              }
-            if (lhsState.hasUpperBound()) {
-              pushRhsState =
-                  CompoundState.of(SimpleInterval.singleton(lhsState.getUpperBound()).extendToNegativeInfinity());
-            } else {
-              pushRhsState = lhsState;
-            }
-          } else {
-            return this.expressionVisitor.getBaseState();
-          }
-          break;
-        case MODULO:
-          BigInteger lhsLowerBound = this.stateToPush.containsNegative() ? null : BigInteger.ZERO;
-          BigInteger lhsUpperBound = this.stateToPush.containsPositive() ? null : BigInteger.ZERO;
-          if (lhsLowerBound == null) {
-            if (lhsUpperBound == null) {
-              pushLhsState = CompoundState.top();
-            } else {
-              pushLhsState = CompoundState.of(SimpleInterval.singleton(lhsUpperBound).extendToNegativeInfinity());
-            }
-          } else {
-            if (lhsUpperBound == null) {
-              pushLhsState = CompoundState.of(SimpleInterval.singleton(lhsLowerBound).extendToPositiveInfinity());
-            } else {
-              pushLhsState = CompoundState.of(SimpleInterval.of(lhsLowerBound, lhsUpperBound));
-            }
-          }
-          BigInteger modValue =
-              this.stateToPush.hasLowerBound() ? this.stateToPush.getLowerBound().abs().add(BigInteger.ONE) : null;
-          if (this.stateToPush.hasUpperBound()) {
-            BigInteger modValueFromUpperBound = this.stateToPush.getUpperBound().abs().add(BigInteger.ONE);
-            if (modValue == null) {
-              modValue = modValueFromUpperBound;
-            } else if (modValueFromUpperBound != null) {
-              modValue = modValue.max(modValueFromUpperBound);
-            }
-          }
-          if (modValue == null) {
-            pushRhsState = CompoundState.top();
-          } else {
-            pushRhsState = CompoundState.of(SimpleInterval.of(modValue.negate(), BigInteger.ONE.negate()));
-            pushLhsState = pushRhsState.unionWith(SimpleInterval.of(BigInteger.ONE, modValue));
-          }
-          break;
-        default:
-          return this.expressionVisitor.getBaseState();
-        }
-        pushLhsState = pushLhsState.intersectWith(lhsState);
-        pushRhsState = pushRhsState.intersectWith(rhsState);
-        this.expressionVisitor.setBaseState(
-            pE.getOperand1().accept(new PushStateExpressionVisitor(this.expressionVisitor, lhsState)));
-        this.expressionVisitor.setBaseState(
-            pE.getOperand2().accept(new PushStateExpressionVisitor(this.expressionVisitor, rhsState)));
-        prevLhsState = pE.getOperand1().accept(this.expressionVisitor);
-        prevRhsState = pE.getOperand2().accept(this.expressionVisitor);
-      }
-      return this.expressionVisitor.getBaseState();
-    }
-
   }
 
   @Override

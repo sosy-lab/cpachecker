@@ -79,13 +79,15 @@ public class CompoundStateTest {
 
   @Test
   public void testIntersectWith() {
-    assertEquals(CompoundState.of(negInfToZeroInterval).intersectWith(zeroToPosInfInterval),
-        CompoundState.of(SimpleInterval.singleton(BigInteger.ZERO)));
-    assertEquals(CompoundState.of(negInfToZeroInterval).intersectWith(CompoundState.of(zeroToPosInfInterval)),
-        CompoundState.of(SimpleInterval.singleton(BigInteger.ZERO)));
+    assertEquals(CompoundState.of(SimpleInterval.singleton(BigInteger.ZERO)),
+        CompoundState.of(negInfToZeroInterval).intersectWith(zeroToPosInfInterval));
+    assertEquals(CompoundState.of(SimpleInterval.singleton(BigInteger.ZERO)),
+        CompoundState.of(negInfToZeroInterval).intersectWith(CompoundState.of(zeroToPosInfInterval)));
     assertTrue(CompoundState.bottom().intersectWith(CompoundState.top()).isBottom());
-    assertEquals(CompoundState.top().intersectWith(CompoundState.of(oneToTenInterval)),
-        (CompoundState.of(oneToTenInterval)));
+    assertEquals(CompoundState.of(oneToTenInterval), CompoundState.top().intersectWith(CompoundState.of(oneToTenInterval)));
+    SimpleInterval oneToTwo = SimpleInterval.of(BigInteger.valueOf(1), BigInteger.valueOf(2));
+    CompoundState notTwo = CompoundState.singleton(2).invert();
+    assertEquals(CompoundState.singleton(1), notTwo.intersectWith(CompoundState.of(oneToTwo)));
   }
 
   @Test

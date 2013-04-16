@@ -70,6 +70,12 @@ public class BinaryAnd<ConstantType> implements InvariantsFormula<ConstantType> 
     return pVisitor.visit(this);
   }
 
+  @Override
+  public <ReturnType, ParamType> ReturnType accept(
+      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+    return pVisitor.visit(this, pParameter);
+  }
+
   static <ConstantType> BinaryAnd<ConstantType> of(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
     return new BinaryAnd<>(pOperand1, pOperand2);
   }

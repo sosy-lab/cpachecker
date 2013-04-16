@@ -70,6 +70,12 @@ public class ShiftRight<ConstantType> implements InvariantsFormula<ConstantType>
     return pVisitor.visit(this);
   }
 
+  @Override
+  public <ReturnType, ParamType> ReturnType accept(
+      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+    return pVisitor.visit(this, pParameter);
+  }
+
   static <ConstantType> ShiftRight<ConstantType> of(InvariantsFormula<ConstantType> pToShift, InvariantsFormula<ConstantType> pShiftDistance) {
     return new ShiftRight<>(pToShift, pShiftDistance);
   }
