@@ -82,9 +82,9 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
 
   private final LogManager logger;
 
-  private FormulaManagerView fmgr;
-  private FormulaManagerFactory factory;
-  private ARGCPA argCpa;
+  private final FormulaManagerView fmgr;
+  private final FormulaManagerFactory factory;
+  private final ARGCPA argCpa;
   private final PredicateAbstractionManager predAbsMgr;
 
   // statistics
