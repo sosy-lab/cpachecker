@@ -122,16 +122,28 @@ public class SMGState implements AbstractQueryableState {
    * .
    * @return The predecessor state, i.e. one from which this one was copied
    */
-  public SMGState getPredecessor() {
+  final public SMGState getPredecessor() {
     return predecessor;
-  }
-
-  void addStackObject(SMGObject obj) {
-    heap.addStackObject(obj);
   }
 
   public void addValue(int pValue) {
     heap.addValue(Integer.valueOf(pValue));
+  }
+
+  public SMGObject addLocalVariable(CType pType, String pVarName) throws SMGInconsistentException {
+    int size = heap.getMachineModel().getSizeof(pType);
+    SMGObject new_object = new SMGObject(size, pVarName);
+
+    heap.addStackObject(new_object);
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    return new_object;
+  }
+
+  /**
+   * Get the object for current function return value
+   */
+  public SMGObject getFunctionReturnObject() {
+    return heap.getFunctionReturnObject();
   }
 
   /**

@@ -134,11 +134,6 @@ public class SMGTransferRelation implements TransferRelation {
    */
   private SMGState mallocFailState;
 
-  /**
-   * name for the special variable used as container for return values of functions
-   */
-  public static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
-
 
   /**
    * Determines, whether to search for a explicit Value for a symbolic one.
@@ -458,14 +453,7 @@ public class SMGTransferRelation implements TransferRelation {
         returnExp.toASTString());
 
     CType expType = getRealExpressionType(returnExp);
-
-    // Create a temporary variable for the value of the return statement.
-    SMGObject tmpFieldMemory = smgState.createObject(
-        machineModel.getSizeof(expType), FUNCTION_RETURN_VAR);
-
-    smgState.addStackObject(tmpFieldMemory);
-
-    tmpFieldMemory = smgState.getObjectForVisibleVariable(FUNCTION_RETURN_VAR);
+    SMGObject tmpFieldMemory = smgState.getFunctionReturnObject();
 
     return handleAssignmentToField(smgState, returnEdge, tmpFieldMemory, 0, expType, returnExp);
   }
@@ -518,7 +506,7 @@ public class SMGTransferRelation implements TransferRelation {
 
   private Integer getFunctionReturnValue(SMGState smgState, CType type) {
 
-    SMGObject tmpMemory = smgState.getObjectForVisibleVariable(FUNCTION_RETURN_VAR);
+    SMGObject tmpMemory = smgState.getFunctionReturnObject();
 
     return  smgState.readValue(tmpMemory, 0, type);
   }
@@ -1054,7 +1042,7 @@ public class SMGTransferRelation implements TransferRelation {
     return new Address(address, visitor.object, visitor.offset);
   }
 
-  private SMGState handleDeclaration(SMGState smgState, CDeclarationEdge edge) throws UnrecognizedCCodeException {
+  private SMGState handleDeclaration(SMGState smgState, CDeclarationEdge edge) throws UnrecognizedCCodeException, SMGInconsistentException {
     logger.log(Level.FINEST, ">>> Handling declaration");
     SMGState newState = new SMGState(smgState);
 
@@ -1066,11 +1054,11 @@ public class SMGTransferRelation implements TransferRelation {
       String varName = cVarDecl.getName();
       CType cType = getRealExpressionType(cVarDecl);
 
-      SMGObject newObject = smgState.createObject(machineModel.getSizeof(cType), varName);
-
       CInitializer newInitializer = cVarDecl.getInitializer();
+      SMGObject newObject;
 
       if (cVarDecl.isGlobal()) {
+        newObject = smgState.createObject(machineModel.getSizeof(cType), varName);
         logger.log(Level.FINEST, "Handling variable declaration: adding '", newObject, "' to global objects");
         newState.addGlobalObject(newObject);
 
@@ -1080,13 +1068,8 @@ public class SMGTransferRelation implements TransferRelation {
         }
 
       } else {
-
+        newObject = newState.addLocalVariable(cType, varName);
         logger.log(Level.FINEST, "Handling variable declaration: adding '", newObject, "' to current stack");
-        newState.addStackObject(newObject);
-
-        //Check whether variable was already declared, for example in loops
-        // TODO explicitly check this
-        newObject = newState.getObjectForVisibleVariable(newObject.getLabel());
       }
 
       if (newInitializer != null) {
