@@ -82,7 +82,7 @@ public class SMGState implements AbstractQueryableState {
    * {@link SMGRuntimeCheck.HALF} or {@link SMGRuntimeCheck.FULL}
    * @throws SMGInconsistentException
    */
-  public void setRuntimeCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
+  final public void setRuntimeCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
     runtimeCheckLevel = pLevel;
     if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.HALF)) {
       CLangSMG.setPerformChecks(true);
@@ -99,7 +99,7 @@ public class SMGState implements AbstractQueryableState {
    * @param pSMGState A state to set as a predecessor.
    * @throws SMGInconsistentException
    */
-  public void setPredecessor(SMGState pSMGState) throws SMGInconsistentException {
+  final public void setPredecessor(SMGState pSMGState) throws SMGInconsistentException {
     predecessor = pSMGState;
     this.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
@@ -113,7 +113,7 @@ public class SMGState implements AbstractQueryableState {
    *
    * @return The ID of this SMGState
    */
-  public int getId() {
+  final public int getId() {
     return id;
   }
 
