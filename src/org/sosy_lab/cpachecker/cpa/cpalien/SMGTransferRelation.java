@@ -512,7 +512,7 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
   private SMGState handleFunctionCall(SMGState smgState, CFunctionCallEdge callEdge)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCCodeException, SMGInconsistentException {
 
     CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
 
@@ -541,9 +541,7 @@ public class SMGTransferRelation implements TransferRelation {
       String varName = paramDecl.get(i).getName();
       CType cType = getRealExpressionType(paramDecl.get(i));
 
-      SMGObject newObject = newState.createObject(machineModel.getSizeof(cType), varName);
-
-      newState.addStackObject(newObject);
+      SMGObject newObject = newState.addLocalVariable(cType, varName);
 
       // We want to write a possible new Address in the new State, but
       // explore the old state for the parameters
