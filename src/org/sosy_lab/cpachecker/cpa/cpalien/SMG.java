@@ -46,101 +46,217 @@ public class SMG {
    * A special object representing NULL
    */
   final private static SMGObject nullObject = new SMGObject();
+
   /**
    * An address of the special object representing null
    */
   final private static int nullAddress = 0;
 
-  public SMG(MachineModel pMachineModel) {
+  /**
+   * Constructor.
+   *
+   * Consistent after call: yes.
+   *
+   * @param pMachineModel A machine model this SMG uses.
+   *
+   */
+  public SMG(final MachineModel pMachineModel) {
     SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
 
-    addObject(nullObject);
-    object_validity.put(nullObject, false);
+    this.addObject(nullObject);
+    this.object_validity.put(nullObject, false);
 
-    addValue(nullAddress);
-    addPointsToEdge(nullPointer);
+    this.addValue(nullAddress);
+    this.addPointsToEdge(nullPointer);
 
-    machine_model = pMachineModel;
+    this.machine_model = pMachineModel;
   }
 
-  public SMG(SMG pHeap) {
-    objects.addAll(pHeap.objects);
-    values.addAll(pHeap.values);
-    hv_edges.addAll(pHeap.hv_edges);
-    pt_edges.addAll(pHeap.pt_edges);
-    object_validity.putAll(pHeap.object_validity);
+  /**
+   * Copy constructor.
+   *
+   * Consistent after call: yes if pHeap is consistent, no otherwise.
+   *
+   * @param pHeap Original SMG.
+   */
+  public SMG(final SMG pHeap) {
+    this.objects.addAll(pHeap.objects);
+    this.values.addAll(pHeap.values);
+    this.hv_edges.addAll(pHeap.hv_edges);
+    this.pt_edges.addAll(pHeap.pt_edges);
 
-    machine_model = pHeap.machine_model;
+    this.object_validity.putAll(pHeap.object_validity);
+
+    this.machine_model = pHeap.machine_model;
   }
 
-  final public SMGObject getNullObject() {
-    return nullObject;
+  /**
+   * Add an object {@link pObj} to the SMG.
+   *
+   * Keeps consistency: no.
+   *
+   * @param pObj object to add.
+   *
+   */
+  final public void addObject(final SMGObject pObj) {
+    this.addObject(pObj, true);
   }
 
-  final public int getNullValue() {
-    return nullAddress;
-  }
-
-  final public void addObject(SMGObject pObj) {
-    addObject(pObj, true);
-  }
-
-  final public void addObject(SMGObject pObj, boolean validity) {
+  /**
+   * Add {@link pObj} object to the SMG, with validity set to {@link pValidity}.
+   *
+   * Keeps consistency: no.
+   *
+   * @param pObj      Object to add
+   * @param pValidity Validity of the newly added object.
+   *
+   */
+  final public void addObject(final SMGObject pObj, final boolean pValidity) {
     this.objects.add(pObj);
-    this.object_validity.put(pObj, validity);
+    this.object_validity.put(pObj, pValidity);
   }
 
+  /**
+   * Add {@link pValue} value to the SMG.
+   *
+   * Keeps consistency: no.
+   *
+   * @param pValue  Value to add.
+   */
   final public void addValue(int pValue) {
     this.values.add(Integer.valueOf(pValue));
   }
 
+  /**
+   * Add {@link pEdge} Points-To edge to the SMG.
+   *
+   * Keeps consistency: no.
+   *
+   * @param pEdge Points-To edge to add.
+   */
   final public void addPointsToEdge(SMGEdgePointsTo pEdge) {
     this.pt_edges.add(pEdge);
   }
 
-  final public void addHasValueEdge(SMGEdgeHasValue pNewEdge) {
-    this.hv_edges.add(pNewEdge);
-  }
-
-  final public String valuesToString() {
-    return "values=" + values.toString();
-  }
-
-  final public String hvToString() {
-    return "hasValue=" + hv_edges.toString();
-  }
-
-  final public String ptToString() {
-    return "pointsTo=" + pt_edges.toString();
-  }
-
-  final public Set<Integer> getValues() {
-    return Collections.unmodifiableSet(values);
-  }
-
-  final public Set<SMGObject> getObjects() {
-    return Collections.unmodifiableSet(objects);
-  }
-
-  final public Set<SMGEdgeHasValue> getHVEdges() {
-    return Collections.unmodifiableSet(hv_edges);
-  }
-
-  final public Set<SMGEdgePointsTo> getPTEdges() {
-    return Collections.unmodifiableSet(pt_edges);
+  /**
+   * Add {@link pEdge} Has-Value edge to the SMG.
+   *
+   * Keeps consistency: no
+   *
+   * @param pEdge Has-Value edge to add
+   */
+  final public void addHasValueEdge(SMGEdgeHasValue pEdge) {
+    this.hv_edges.add(pEdge);
   }
 
   /**
-   * @param value
-   * @return
+   * Sets the validity of the object {@link pObject} to {@link pValidity}.
+   * Throws {@link IllegalArgumentException} if {@link pObject} is
+   * not present in SMG.
    *
-   * TODO: More documentation
+   * Keeps consistency: no
+   *
+   * @param pObj An object.
+   * @param pValidity Validity to set.
+   */
+  public void setValidity(SMGObject pObject, boolean pValidity) {
+    if (this.objects.contains(pObject)) {
+      this.object_validity.put(pObject, pValidity);
+    } else {
+      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
+    }
+  }
+
+  /* ********************************************* */
+  /* Non-modifying functions: getters and the like */
+  /* ********************************************* */
+
+  /**
+   * Getter for obtaining designated NULL object. Constant.
+   * @return An object guaranteed to be the only NULL object in the SMG
+   */
+  final public SMGObject getNullObject() {
+    return SMG.nullObject;
+  }
+
+  /**
+   * Getter for obtaining designated zero value. Constant.
+   * @return A value guaranteed to be the only zero value in the SMG
+   */
+  final public int getNullValue() {
+    return SMG.nullAddress;
+  }
+
+  /**
+   * Getter for obtaining string representation of values set. Constant.
+   * @return String representation of values set
+   */
+  final public String valuesToString() {
+    return "values=" + this.values.toString();
+  }
+
+  /**
+   * Getter for obtaining string representation of has-value edges set. Constant.
+   * @return String representation of has-value edges set
+   */
+  final public String hvToString() {
+    return "hasValue=" + this.hv_edges.toString();
+  }
+
+  /**
+   * Getter for obtaining string representation of points-to edges set. Constant.
+   * @return String representation of points-to edges set
+   */
+  final public String ptToString() {
+    return "pointsTo=" + this.pt_edges.toString();
+  }
+
+  /**
+   * Getter for obtaining unmodifiable view on values set. Constant.
+   * @return Unmodifiable view on values set.
+   */
+  final public Set<Integer> getValues() {
+    return Collections.unmodifiableSet(this.values);
+  }
+
+  /**
+   * Getter for obtaining unmodifiable view on objects set. Constant.
+   * @return Unmodifiable view on objects set.
+   */
+  final public Set<SMGObject> getObjects() {
+    return Collections.unmodifiableSet(this.objects);
+  }
+
+  /**
+   * Getter for obtaining unmodifiable view on Has-Value edges set. Constatnt.
+   * @return Unmodifiable view on Has-Value edges set.
+   */
+  final public Set<SMGEdgeHasValue> getHVEdges() {
+    return Collections.unmodifiableSet(this.hv_edges);
+  }
+
+  /**
+   * Getter for obtaining unmodifiable view on Points-To edges set. Constant.
+   * @return Unmodifiable view on Points-To edges set.
+   */
+  final public Set<SMGEdgePointsTo> getPTEdges() {
+    return Collections.unmodifiableSet(this.pt_edges);
+  }
+
+  /**
+   * Getter for obtaining an object, pointed by a value {@link pValue}. Constant.
+   *
+   * @param pValue An origin value.
+   * @return The object pointed by the value {@link pValue}, if such exists.
+   * Null, if {@link pValue} is not present in the SMG or does not point to any
+   * object.
+   *
    * TODO: Test
    * TODO: Consistency check: no value can point to more objects
    */
-  final public SMGObject getObjectPointedBy(Integer value) {
-    for (SMGEdgePointsTo edge: pt_edges) {
-      if (value == edge.getValue()) {
+  final public SMGObject getObjectPointedBy(Integer pValue) {
+    for (SMGEdgePointsTo edge: this.pt_edges) {
+      if (pValue == edge.getValue()) {
         return edge.getObject();
       }
     }
@@ -148,43 +264,81 @@ public class SMG {
     return null;
   }
 
-  final private HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, Integer pOffset) {
+  /**
+   * Back-end method for other flavors of getValuesForObject. Constant.
+   * Throws {@link IllegalArgumentException} if {@link pObject} is
+   * not present in the SMG.
+   *
+   * @param pObject An origin object.
+   * @param pOffset Requested object offset, or null
+   * @return An unmodifiable set of Has-Value edges leading from object
+   * {@link pObject}. If {@link} pOffset is not null, only the edges with
+   * offset=={@link pOffset} are included in the set.
+   */
+  final private Set<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, Integer pOffset) {
+    if ( ! this.objects.contains(pObject)){
+      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
+    }
+
     HashSet<SMGEdgeHasValue> toReturn = new HashSet<>();
-    for (SMGEdgeHasValue edge: hv_edges) {
+    for (SMGEdgeHasValue edge: this.hv_edges) {
       if (edge.getObject() == pObject && (pOffset == null || edge.getOffset() == pOffset)) {
         toReturn.add(edge);
       }
     }
 
-    return toReturn;
+    return Collections.unmodifiableSet(toReturn);
   }
 
-  final public HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject) {
+  /**
+   * Getter for obtaining all Has-Value edges leading from object {@link pObject}
+   * Throws {@link IllegalArgumentException} if {@link pObject} is
+   * not present in the SMG.
+   *
+   * @param pObject An origin object
+   * @return An unmodifiable set of all Has-Value edges leading from {@link pObject}
+   */
+  final public Set<SMGEdgeHasValue> getValuesForObject(SMGObject pObject) {
     return getValuesForObject(pObject, null);
   }
 
-  final public HashSet<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, int pOffset) {
+  /**
+   * Getter for obtaining Has-Value edges leading from object {@link pObject}
+   * at offset {@link pOffset}. Constant.
+   * Throws {@link IllegalArgumentException} if {@link pObject} is
+   * not present in the SMG.
+   *
+   * @param pObject Origin object.
+   * @param pOffset Requested offset.
+   * @return An unmodifiable set of all Has-Value edges leading from
+   * {@link pObject} at the offset {
+   */
+  final public Set<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, int pOffset) {
     return getValuesForObject(pObject, Integer.valueOf(pOffset));
   }
 
-  public void setValidity(SMGObject obj, boolean value) {
-    if (this.objects.contains(obj)) {
-      this.object_validity.put(obj, value);
-    } else {
-      throw new IllegalArgumentException("Object [" + obj + "] not in SMG");
+  /**
+   * Getter for determining if the object {@link pObject} is valid. Constant.
+   * Throws {@link IllegalArgumentException} if {@link pObject} is
+   * not present in the SMG.
+   *
+   * @param pObject An object.
+   * @return True if {@link pObject} is valid, False if it is invalid.
+   */
+  final public boolean isObjectValid(SMGObject pObject) {
+    if ( ! this.objects.contains(pObject)) {
+      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
     }
+
+    return this.object_validity.get(pObject).booleanValue();
   }
 
-  public boolean isObjectValid(SMGObject obj) {
-    if (this.objects.contains(obj)) {
-      return object_validity.get(obj).booleanValue();
-    } else {
-      throw new IllegalArgumentException("Object [" + obj + "] not in SMG");
-    }
-  }
-
-  public MachineModel getMachineModel() {
-    return machine_model;
+  /**
+   * Getter for obtaining SMG machine model. Constant.
+   * @return SMG machine model
+   */
+  final public MachineModel getMachineModel() {
+    return this.machine_model;
   }
 }
 
