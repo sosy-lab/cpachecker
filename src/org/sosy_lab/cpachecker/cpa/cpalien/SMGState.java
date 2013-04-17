@@ -40,6 +40,14 @@ public class SMGState implements AbstractQueryableState {
 
   private SMGRuntimeCheck runtimeCheckLevel;
 
+  /**
+   * Constructor.
+   *
+   * Keeps consistency: yes
+   *
+   * @param pLogger A logger to log any messages
+   * @param pMachineModel A machine model for the underlying SMGs
+   */
   public SMGState(LogManager pLogger, MachineModel pMachineModel) {
     heap = new CLangSMG(pMachineModel);
     logger = pLogger;
@@ -48,6 +56,15 @@ public class SMGState implements AbstractQueryableState {
     runtimeCheckLevel = SMGRuntimeCheck.NONE;
   }
 
+  /**
+   * Copy constructor.
+   *
+   * Keeps consistency: yes
+   *
+   * @param pOriginalState Original state. Will be the predecessor of the
+   * new state
+   * @throws SMGInconsistentException
+   */
   public SMGState(SMGState pOriginalState) {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
@@ -56,6 +73,15 @@ public class SMGState implements AbstractQueryableState {
     id = id_counter++;
   }
 
+  /**
+   * Sets a level of runtime checks performed.
+   *
+   * Keeps consistency: yes
+   *
+   * @param pLevel One of {@link SMGRuntimeCheck.NONE},
+   * {@link SMGRuntimeCheck.HALF} or {@link SMGRuntimeCheck.FULL}
+   * @throws SMGInconsistentException
+   */
   public void setRuntimeCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
     runtimeCheckLevel = pLevel;
     if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.HALF)) {
@@ -67,15 +93,35 @@ public class SMGState implements AbstractQueryableState {
     this.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
+  /**
+   * Constant.
+   *
+   * @param pSMGState A state to set as a predecessor.
+   * @throws SMGInconsistentException
+   */
   public void setPredecessor(SMGState pSMGState) throws SMGInconsistentException {
     predecessor = pSMGState;
     this.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
+  /* ********************************************* */
+  /* Non-modifying functions: getters and the like */
+  /* ********************************************* */
+
+  /**
+   * Constant.
+   *
+   * @return The ID of this SMGState
+   */
   public int getId() {
     return id;
   }
 
+  /**
+   * Constant.
+   * .
+   * @return The predecessor state, i.e. one from which this one was copied
+   */
   public SMGState getPredecessor() {
     return predecessor;
   }
