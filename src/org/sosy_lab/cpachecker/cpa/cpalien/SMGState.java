@@ -136,28 +136,40 @@ public class SMGState implements AbstractQueryableState {
   }
 
   /**
-   * Get the object for current function return value
+   * Constant.
+   *
+   * @return A {@link SMGObject} for current function return value storage.
    */
-  public SMGObject getFunctionReturnObject() {
+  final public SMGObject getFunctionReturnObject() {
     return heap.getFunctionReturnObject();
   }
 
   /**
-   * Get memory of variable with the given Name. This method is used for
-   * the temporary function return variable.
+   * Get memory of variable with the given name.
    *
-   * @param variableName
-   * @return
+   * @param pVariableName A name of the desired variable
+   * @return An object corresponding to the variable name
    */
-  public SMGObject getObjectForVisibleVariable(String variableName) {
-    return this.heap.getObjectForVisibleVariable(variableName);
+  public SMGObject getObjectForVisibleVariable(String pVariableName) {
+    return this.heap.getObjectForVisibleVariable(pVariableName);
   }
 
   public void addHVEdge(SMGEdgeHasValue pNewEdge) {
     heap.addHasValueEdge(pNewEdge);
   }
 
-  public void performConsistencyCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
+  /**
+   * Based on the current setting of runtime check level, it either performs
+   * a full consistency check or not. If the check is performed and the
+   * state is deemed inconsistent, a {@link SMGInconsistentException} is thrown.
+   *
+   * Constant.
+   *
+   * @param pLevel A level of the check request. When e.g. HALF is passed, it
+   * means "perform the check if the setting is HALF or finer.
+   * @throws SMGInconsistentException
+   */
+  final public void performConsistencyCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
     if (this.runtimeCheckLevel.isFinerOrEqualThan(pLevel)) {
       if ( ! CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap) ){
         throw new SMGInconsistentException("SMG was found inconsistent during a check");
@@ -165,11 +177,23 @@ public class SMGState implements AbstractQueryableState {
     }
   }
 
-  public String toDot(String name, String location) {
+  /**
+   * Returns a DOT representation of the SMGState.
+   *
+   * Constant.
+   *
+   * @param pName A name of the graph.
+   * @param pLocation A location in the program.
+   * @return String containing a DOT graph corresponding to the SMGState.
+   */
+  public String toDot(String pName, String pLocation) {
     SMGPlotter plotter = new SMGPlotter();
-    return plotter.smgAsDot(heap, name, location);
+    return plotter.smgAsDot(heap, pName, pLocation);
   }
 
+  /**
+   * @return A string representation of the SMGState.
+   */
   @Override
   public String toString() {
     if ( this.getPredecessor() != null) {
@@ -206,7 +230,7 @@ public class SMGState implements AbstractQueryableState {
    * @param value value to be written into field.
    * @param machineModel Currently used Machine Model
    */
-  public void writeValue(SMGObject object, int offset, CType type, Integer value, MachineModel machineModel) {
+  public void writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
 
   }
