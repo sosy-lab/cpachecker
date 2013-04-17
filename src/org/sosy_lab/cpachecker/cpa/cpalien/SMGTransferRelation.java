@@ -214,17 +214,11 @@ public class SMGTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("Not able to compute allocation size", cfaEdge);
       }
 
-      SMGObject newObject =
-          currentState.createObject(value.intValue(),
-              "malloc_ID" + SMGValueFactory.getNewValue()
-              + "_Line:" + functionCall.getFileLocation().getStartingLineNumber());
-
-      currentState.addHeapObject(newObject);
-      Integer newAddressValue = SMGValueFactory.getNewValue();
-      currentState.addAddress(newObject, 0, newAddressValue);
+      String allocation_label = "malloc_ID" + SMGValueFactory.getNewValue() + "_Line:" + functionCall.getFileLocation().getStartingLineNumber();
+      SMGEdgePointsTo new_pointer = currentState.addNewHeapAllocation(value.intValue(), allocation_label);
 
       possibleMallocFail = true;
-      return new Address(newAddressValue, newObject, 0);
+      return new Address(new_pointer.getValue(), new_pointer.getObject(), 0);
     }
 
     public Address evaluateMemset(CFunctionCallExpression functionCall,
@@ -301,25 +295,11 @@ public class SMGTransferRelation implements TransferRelation {
         return null;
       }
 
-      SMGObject newObject =
-          currentState.createObject(num.intValue() * size.intValue(),
-              "Calloc_ID" + SMGValueFactory.getNewValue() +
-              "_Line:" + functionCall.getFileLocation().getStartingLineNumber());
-
-      currentState.addHeapObject(newObject);
-      Integer newAddressValue = SMGValueFactory.getNewValue();
-      currentState.addAddress(newObject, 0, newAddressValue);
-
-      //TODO Create mock types
-      CSimpleType charType = new CSimpleType(false, false, CBasicType.CHAR,
-          false, false, false, false, false, false, false);
-      CType newType = new CArrayType(false, false, charType,
-          new CIntegerLiteralExpression(null, null, BigInteger.valueOf(size.intValue())));
-
-      currentState.writeValue(newObject, 0, newType, 0, machineModel);
+      String allocation_label = "Calloc_ID" + SMGValueFactory.getNewValue() + "_Line:" + functionCall.getFileLocation().getStartingLineNumber();
+      SMGEdgePointsTo new_pointer = currentState.addNewHeapAllocation(num.intValue() * size.intValue(), allocation_label);
 
       possibleMallocFail = true;
-      return new Address(newAddressValue, newObject, 0);
+      return new Address(new_pointer.getValue(), new_pointer.getObject(), 0);
     }
 
     public void evaluateFree(CFunctionCallExpression pFunctionCall, SMGState currentState,

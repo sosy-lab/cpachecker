@@ -330,8 +330,16 @@ public class SMGState implements AbstractQueryableState {
     return  heap.getGlobalObjects().containsValue(heap.getObjectForVisibleVariable(variable));
   }
 
-  public void addHeapObject(SMGObject pNewObject) {
-    heap.addHeapObject(pNewObject);
+  public SMGEdgePointsTo addNewHeapAllocation(int pSize, String pLabel) throws SMGInconsistentException {
+    SMGObject new_object = new SMGObject(pSize, pLabel);
+    int new_value = SMGValueFactory.getNewValue();
+    SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
+    heap.addHeapObject(new_object);
+    heap.addValue(new_value);
+    heap.addPointsToEdge(points_to);
+
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    return points_to;
   }
 
   public void addPVEdge(SMGEdgePointsTo pNewPVEdge) {

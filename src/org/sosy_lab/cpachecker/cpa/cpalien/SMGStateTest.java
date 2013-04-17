@@ -38,15 +38,13 @@ public class SMGStateTest {
   private SMGState inconsistent_state;
 
   @Before
-  public void setUp() {
+  public void setUp() throws SMGInconsistentException {
     consistent_state = new SMGState(logger, MachineModel.LINUX64);
     inconsistent_state = new SMGState(logger, MachineModel.LINUX64);
-    SMGObject obj = new SMGObject(8, "label");
+    SMGEdgePointsTo pt = inconsistent_state.addNewHeapAllocation(8, "label");
 
-    consistent_state.addGlobalObject(obj);
-    inconsistent_state.addGlobalObject(obj);
-
-    inconsistent_state.addHeapObject(obj);
+    consistent_state.addGlobalObject(pt.getObject());
+    inconsistent_state.addGlobalObject(pt.getObject());
   }
 
   /*
