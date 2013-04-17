@@ -256,6 +256,7 @@ public class SMG {
    *
    * TODO: Test
    * TODO: Consistency check: no value can point to more objects
+   * TODO: Long search (iteration) can be a performance problem
    */
   final public SMGObject getObjectPointedBy(Integer pValue) {
     if ( ! this.values.contains(pValue)) {
@@ -273,6 +274,7 @@ public class SMG {
 
   /**
    * Back-end method for other flavors of getValuesForObject. Constant.
+   *
    * Throws {@link IllegalArgumentException} if {@link pObject} is
    * not present in the SMG.
    *
@@ -281,6 +283,8 @@ public class SMG {
    * @return An unmodifiable set of Has-Value edges leading from object
    * {@link pObject}. If {@link} pOffset is not null, only the edges with
    * offset=={@link pOffset} are included in the set.
+   *
+   * TODO: Long search (iteration) can be a performance problem
    */
   final private Set<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, Integer pOffset) {
     if ( ! this.objects.contains(pObject)){
@@ -298,7 +302,9 @@ public class SMG {
   }
 
   /**
-   * Getter for obtaining all Has-Value edges leading from object {@link pObject}
+   * Getter for obtaining all Has-Value edges leading from object {@link pObject}.
+   * Constant.
+   *
    * Throws {@link IllegalArgumentException} if {@link pObject} is
    * not present in the SMG.
    *
@@ -312,6 +318,7 @@ public class SMG {
   /**
    * Getter for obtaining Has-Value edges leading from object {@link pObject}
    * at offset {@link pOffset}. Constant.
+   *
    * Throws {@link IllegalArgumentException} if {@link pObject} is
    * not present in the SMG.
    *
@@ -352,11 +359,26 @@ public class SMG {
 class SMGConsistencyVerifier {
   private SMGConsistencyVerifier() {} /* utility class */
 
+  /**
+   * Simply log a message about a result of a single check.
+   *
+   * @param pResult A result of the check
+   * @param pLogger A logger instance to which the message will be sent
+   * @param pMessage A message to log
+   * @return True, if the check was successful (equivalent to { @link pResult }
+   */
   static private boolean verifySMGProperty(boolean pResult, LogManager pLogger, String pMessage) {
     pLogger.log(Level.FINEST, "Checking SMG consistency: ", pMessage, ":", pResult);
     return pResult;
   }
 
+  /**
+   * A consistency checks related to the NULL object
+   *
+   * @param pLogger A logger to record results
+   * @param pSmg A SMG to verify
+   * @return True, if {@link pSmg} satisfies all consistency criteria
+   */
   static private boolean verifyNullObject(LogManager pLogger, SMG pSmg) {
     Integer null_value = null;
 
@@ -407,6 +429,14 @@ class SMGConsistencyVerifier {
     return true;
   }
 
+  /**
+   * Verifies that invalid regions do not have any Has-Value edges, as this
+   * is forbidden in consistent SMGs
+   *
+   * @param pLogger A logger to record results
+   * @param pSmg A SMG to verify
+   * @return True, if {@link pSmg} satisfies all consistency criteria.
+   */
   static private boolean verifyInvalidRegionsHaveNoHVEdges(LogManager pLogger, SMG pSmg) {
     for (SMGObject obj : pSmg.getObjects()) {
       if (pSmg.isObjectValid(obj)) {
@@ -422,6 +452,15 @@ class SMGConsistencyVerifier {
     return true;
   }
 
+  /**
+   * Verifies that any fields (as designated by Has-Value edges) do not
+   * exceed the boundary of the object.
+   *
+   * @param pLogger A logger to record results
+   * @param pObject An object to verify
+   * @param pSmg A SMG to verify
+   * @return True, if {@link pObject} in {@link pSmg} satisfies all consistency criteria. False otherwise.
+   */
   static private boolean checkSingleFieldConsistency(LogManager pLogger, SMGObject pObject, SMG pSmg) {
 
     // For all fields in the object, verify that sizeof(type)+field_offset < object_size
@@ -436,6 +475,12 @@ class SMGConsistencyVerifier {
     return true;
   }
 
+  /**
+   * Verify all objects satisfy the Field Consistency criteria
+   * @param pLogger A logger to record results
+   * @param pSmg A SMG to verify
+   * @return True, if {@link pSmg} satisfies all consistency criteria. False otherwise.
+   */
   static private boolean verifyFieldConsistency(LogManager pLogger, SMG pSmg) {
     for (SMGObject obj : pSmg.getObjects()) {
       if (! checkSingleFieldConsistency(pLogger, obj, pSmg)) {
@@ -446,6 +491,14 @@ class SMGConsistencyVerifier {
     return true;
   }
 
+  /**
+   * Verify that the edges are consistent in the SMG
+   *
+   * @param pLogger A logger to record results
+   * @param pSmg A SMG to verify
+   * @param pEdges A set of edges for consistency verification
+   * @return True, if all edges in {@link pEdges} satisfy consistency criteria. False otherwise.
+   */
   static private boolean verifyEdgeConsistency(LogManager pLogger, SMG pSmg, Set<? extends SMGEdge> pEdges) {
     ArrayList<SMGEdge> to_verify = new ArrayList<>();
     to_verify.addAll(pEdges);
@@ -454,18 +507,30 @@ class SMGConsistencyVerifier {
       SMGEdge edge = to_verify.get(0);
       to_verify.remove(0);
 
+      // Verify that the object assigned to the edge exists in the SMG
       if (!pSmg.getObjects().contains(edge.getObject())) {
         pLogger.log(Level.SEVERE, "SMG inconsistent: Edge from a nonexistent object");
         pLogger.log(Level.SEVERE, "Edge :", edge);
         return false;
       }
 
+      // Verify that the value assigned to the edge exists in the SMG
       if (! pSmg.getValues().contains(edge.getValue())) {
         pLogger.log(Level.SEVERE, "SMG inconsistent: Edge to a nonexistent value");
         pLogger.log(Level.SEVERE, "Edge :", edge);
         return false;
       }
 
+      // Verify that the edge is consistent to all remaining edges
+      //  - edges of different type are inconsistent
+      //  - two Has-Value edges are inconsistent iff:
+      //    - leading from the same object AND
+      //    - have same type AND
+      //    - have same offset AND
+      //    - leading to DIFFERENT values
+      //  - two Points-To edges are inconsistent iff:
+      //    - different values point to same place (object, offse)
+      //    - same values do not point to the same place
       for (SMGEdge other_edge : to_verify) {
         if (! edge.isConsistentWith(other_edge)) {
           pLogger.log(Level.SEVERE, "SMG inconsistent: inconsistent edges");
@@ -478,6 +543,12 @@ class SMGConsistencyVerifier {
     return true;
   }
 
+  /**
+   * Verify a single SMG if it meets all consistency criteria.
+   * @param pLogger A logger to record results
+   * @param pSmg A SMG to verify
+   * @return True, if {@link pSmg} satisfies all consistency criteria
+   */
   static public boolean verifySMG(LogManager pLogger, SMG pSmg) {
     boolean toReturn = true;
     pLogger.log(Level.FINEST, "Starting constistency check of a SMG");
