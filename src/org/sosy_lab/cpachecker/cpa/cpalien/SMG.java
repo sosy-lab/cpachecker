@@ -248,13 +248,20 @@ public class SMG {
    *
    * @param pValue An origin value.
    * @return The object pointed by the value {@link pValue}, if such exists.
-   * Null, if {@link pValue} is not present in the SMG or does not point to any
+   * Null, if {@link pValue} does not point to any
    * object.
+   *
+   * Throws {@link IllegalArgumentException} if {@link pValue} is
+   * not present in the SMG.
    *
    * TODO: Test
    * TODO: Consistency check: no value can point to more objects
    */
   final public SMGObject getObjectPointedBy(Integer pValue) {
+    if ( ! this.values.contains(pValue)) {
+      throw new IllegalArgumentException("Value [" + pValue + "] not in SMG");
+    }
+
     for (SMGEdgePointsTo edge: this.pt_edges) {
       if (pValue == edge.getValue()) {
         return edge.getObject();
