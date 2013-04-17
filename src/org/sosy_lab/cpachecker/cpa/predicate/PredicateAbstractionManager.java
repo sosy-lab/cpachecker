@@ -281,6 +281,25 @@ public class PredicateAbstractionManager {
         blockFormula);
   }
 
+  /**
+   * Create an abstraction from a single boolean formula without actually
+   * doing any abstraction computation. The formula is just converted into a
+   * region, but the result is equivalent to the input.
+   * This can be used to simply view the formula as a region.
+   * If BDDs are used, the result of this method is a minimized form of the input.
+   * @param f The formula to be converted to a region. Must NOT be instantiated!
+   * @param blockFormula A path formula that is not used for the abstraction,
+   *         but will be used as the block formula in the resulting AbstractionFormula instance.
+   *         Also it's SSAMap will be used for instantiating the result.
+   * @return An AbstractionFormula instance representing f
+   *          with blockFormula as the block formula.
+   */
+  public AbstractionFormula buildAbstraction(final BooleanFormula f,
+      final PathFormula blockFormula) {
+    Region r = amgr.buildRegionFromFormula(f);
+    return makeAbstractionFormula(r, blockFormula.getSsa(), blockFormula);
+  }
+
   private Region buildCartesianAbstraction(final BooleanFormula f, final SSAMap ssa,
       Collection<AbstractionPredicate> predicates) {
     final RegionCreator rmgr = amgr.getRegionCreator();

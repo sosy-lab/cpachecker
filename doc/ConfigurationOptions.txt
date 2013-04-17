@@ -758,6 +758,10 @@ cpa.predicate.refinement.atomicPredicates = true
 cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
   enum:     [FORWARDS, BACKWARDS, ZIGZAG]
 
+# Actually compute an abstraction, otherwise just convert the interpolants to
+# BDDs as they are.
+cpa.predicate.refinement.doAbstractionComputation = true
+
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
@@ -922,9 +926,13 @@ pcc.proofcheck.propertychecker = "org.sosy_lab.cpachecker.pcc.propertychecker.De
 
 pcc.proofgen.doPCC = false
 
-# Max. depth of the scan for predicates backwards from a target (error)
+# Apply mined predicates on the corresponding scope. false = add them to the
+# global precision.
+predicate.mining.applyScoped = true
+
+# Collect at most n assumes allong a path backwards from a target (error)
 # location.
-predicate.mining.maxBackscanDepth = 5
+predicate.mining.maxBackscanPathAssumes = 1
 
 # print reached set to text file
 reachedSet.export = true

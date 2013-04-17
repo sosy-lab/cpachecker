@@ -70,6 +70,9 @@ class ImpactAbstractionRefinementStrategy extends RefinementStrategy {
   @Option(description="When computing an abstraction during refinement, use only the interpolant as input, not the concrete block.")
   private boolean abstractInterpolantOnly = false;
 
+  @Option(description="Actually compute an abstraction, otherwise just convert the interpolants to BDDs as they are.")
+  private boolean doAbstractionComputation = true;
+
   private class Stats implements Statistics {
 
     private final Timer abstraction = new Timer();
@@ -152,9 +155,14 @@ class ImpactAbstractionRefinementStrategy extends RefinementStrategy {
     // Compute an abstraction with the new predicates.
     stats.abstraction.start();
     AbstractionFormula newAbstraction;
-    if (abstractInterpolantOnly) {
+    if (!doAbstractionComputation) {
+      // Only create a BDD from itp without abstraction computation.
+      newAbstraction = predAbsMgr.buildAbstraction(fmgr.uninstantiate(itp), blockFormula);
+
+    } else if (abstractInterpolantOnly) {
       // Compute an abstraction of "itp"
       newAbstraction = predAbsMgr.buildAbstraction(itp, blockFormula, preds);
+
     } else {
       // Compute an abstraction of "lastAbstraction & blockFormula"
       newAbstraction = predAbsMgr.buildAbstraction(lastAbstraction, blockFormula, preds);
