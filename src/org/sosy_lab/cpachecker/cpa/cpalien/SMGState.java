@@ -38,18 +38,26 @@ public class SMGState implements AbstractQueryableState {
   private SMGState predecessor;
   private final int id;
 
+  private SMGRuntimeCheck runtimeCheckLevel;
+
   public SMGState(LogManager pLogger, MachineModel pMachineModel) {
     heap = new CLangSMG(pMachineModel);
     logger = pLogger;
     predecessor = null;
     id = id_counter++;
+    runtimeCheckLevel = SMGRuntimeCheck.NONE;
   }
 
   public SMGState(SMGState originalState) {
     heap = new CLangSMG(originalState.heap);
     logger = originalState.logger;
     predecessor = originalState.predecessor;
+    runtimeCheckLevel = originalState.runtimeCheckLevel;
     id = id_counter++;
+  }
+
+  public void setRuntimeCheck(SMGRuntimeCheck pLevel) {
+    runtimeCheckLevel = pLevel;
   }
 
   public int getId() {
@@ -87,8 +95,10 @@ public class SMGState implements AbstractQueryableState {
     heap.addHasValueEdge(pNewEdge);
   }
 
-  public void performConsistencyCheck() {
-    CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap);
+  public void performConsistencyCheck(SMGRuntimeCheck pLevel) {
+    if (this.runtimeCheckLevel.isFinerOrEqualThan(pLevel)) {
+      CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap);
+    }
   }
 
   public String toDot(String name, String location) {
@@ -224,7 +234,6 @@ public class SMGState implements AbstractQueryableState {
 
  public void insertNewHasValueEdge(SMGEdgeHasValue pNewEdge) {
    heap.addHasValueEdge(pNewEdge);
-   performConsistencyCheck();
  }
 
  public boolean containsValue(int value) {
