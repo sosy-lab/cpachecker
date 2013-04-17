@@ -126,10 +126,6 @@ public class SMGState implements AbstractQueryableState {
     return predecessor;
   }
 
-  public void addValue(int pValue) {
-    heap.addValue(Integer.valueOf(pValue));
-  }
-
   public SMGObject addLocalVariable(CType pType, String pVarName) throws SMGInconsistentException {
     int size = heap.getMachineModel().getSizeof(pType);
     SMGObject new_object = new SMGObject(size, pVarName);
