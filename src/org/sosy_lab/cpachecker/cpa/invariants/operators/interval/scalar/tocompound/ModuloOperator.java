@@ -73,7 +73,7 @@ enum ModuloOperator implements ISCOperator {
         }
         negRange = apply(negPart.negate(), pValue).negate();
       }
-      result.unionWith(negRange);
+      result = result.unionWith(negRange);
     }
     if (pFirstOperand.containsPositive()) {
       CompoundState posRange = CompoundState.of(SimpleInterval.of(BigInteger.ZERO, largestPossibleValue));
