@@ -95,9 +95,11 @@ public class SMGState implements AbstractQueryableState {
     heap.addHasValueEdge(pNewEdge);
   }
 
-  public void performConsistencyCheck(SMGRuntimeCheck pLevel) {
+  public void performConsistencyCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
     if (this.runtimeCheckLevel.isFinerOrEqualThan(pLevel)) {
-      CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap);
+      if ( ! CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap) ){
+        throw new SMGInconsistentException("SMG was found inconsistent during a check");
+      }
     }
   }
 

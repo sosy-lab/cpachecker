@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.util.logging.Level;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -123,12 +125,25 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
   @Override
   public AbstractState getInitialState(CFANode pNode) {
     SMGState initState = new SMGState(logger, machineModel);
+
     initState.setRuntimeCheck(runtimeCheck);
-    initState.performConsistencyCheck(SMGRuntimeCheck.HALF);
+
+    try {
+      initState.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    }
+    catch(SMGInconsistentException exc) {
+      logger.log(Level.SEVERE, exc.getMessage());
+    }
 
     CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
     initState.addStackFrame(functionNode.getFunctionDefinition());
-    initState.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    try {
+      initState.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    }
+    catch(SMGInconsistentException exc) {
+      logger.log(Level.SEVERE, exc.getMessage());
+    }
+
     return initState;
   }
 
