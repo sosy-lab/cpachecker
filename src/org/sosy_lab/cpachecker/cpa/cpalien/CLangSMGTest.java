@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.*;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -64,13 +63,14 @@ public class CLangSMGTest {
   @Before
   public void setUp() {
     when(mockType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
+    CLangSMG.setPerformChecks(true);
   }
 
   @Test
   public void CLangStackFrameConstructorTest() {
 
     // Normal constructor
-    HashMap<String, SMGObject> variables = sf.getVariables();
+    Map<String, SMGObject> variables = sf.getVariables();
     Assert.assertEquals("CLangStackFrame contains no variables after creation",
                         variables.size(), 0);
     Assert.assertFalse(sf.containsVariable("foo"));
@@ -88,7 +88,7 @@ public class CLangSMGTest {
     sf.addStackVariable("fooVar", new SMGObject(8, "fooVarObject"));
     Assert.assertTrue("Added variable is present", sf.containsVariable("fooVar"));
 
-    HashMap<String, SMGObject> variables = sf.getVariables();
+    Map<String, SMGObject> variables = sf.getVariables();
     Assert.assertEquals("Variables set is nonempty after variable addition",
                         variables.size(), 1);
     SMGObject smg_object = variables.get("fooVar");
