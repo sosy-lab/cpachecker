@@ -102,4 +102,25 @@ public class SMGStateTest {
     consistent_state.setRuntimeCheck(SMGRuntimeCheck.NONE);
     consistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
+
+  @Test
+  public void PredecessorsTest() throws SMGInconsistentException {
+    SMGState original = new SMGState(logger, MachineModel.LINUX64);
+    SMGState second = new SMGState(logger, MachineModel.LINUX64);
+    Assert.assertNull(original.getPredecessor());
+    Assert.assertNull(second.getPredecessor());
+    Assert.assertNotEquals(original.getId(), second.getId());
+
+    SMGState copy = new SMGState(original);
+    Assert.assertNull(copy.getPredecessor());
+    Assert.assertNotEquals(copy.getId(), original.getId());
+    Assert.assertNotEquals(copy.getId(), second.getId());
+    Assert.assertNotEquals(original.getId(), second.getId());
+
+    second.setPredecessor(original);
+    Assert.assertSame(second.getPredecessor(), original);
+    Assert.assertNotEquals(copy.getId(), original.getId());
+    Assert.assertNotEquals(copy.getId(), second.getId());
+    Assert.assertNotEquals(original.getId(), second.getId());
+  }
 }
