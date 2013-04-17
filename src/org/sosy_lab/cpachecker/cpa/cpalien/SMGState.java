@@ -180,10 +180,6 @@ public class SMGState implements AbstractQueryableState {
     return this.heap.getObjectForVisibleVariable(pVariableName);
   }
 
-  public void addHVEdge(SMGEdgeHasValue pNewEdge) {
-    heap.addHasValueEdge(pNewEdge);
-  }
-
   /**
    * Based on the current setting of runtime check level, it either performs
    * a full consistency check or not. If the check is performed and the
@@ -263,16 +259,6 @@ public class SMGState implements AbstractQueryableState {
   }
 
   /**
-   * Computes the next unused identifier for a symbolic Value.
-   *
-   * @return the next unused symbolic Value.
-   */
-  public Integer nextFreeValue() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  /**
    * Computes the join of this abstract State and the reached abstract State.
    *
    * @param reachedState the abstract state this state will be joined to.
@@ -345,10 +331,6 @@ public class SMGState implements AbstractQueryableState {
 
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
     return points_to;
-  }
-
-  public void addPVEdge(SMGEdgePointsTo pNewPVEdge) {
-    heap.addPointsToEdge(pNewPVEdge);
   }
 
   public void setMemLeak() {
