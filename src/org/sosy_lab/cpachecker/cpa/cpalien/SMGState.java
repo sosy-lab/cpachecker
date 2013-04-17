@@ -247,8 +247,9 @@ public class SMGState implements AbstractQueryableState {
    * @param type type of field written into.
    * @param value value to be written into field.
    * @param machineModel Currently used Machine Model
+   * @throws SMGInconsistentException
    */
-  public void writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) {
+  public void writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
     SMGEdgeHasValue new_edge = new SMGEdgeHasValue(pType, pOffset, pObject, pValue);
     if ( ! heap.getValues().contains(pValue) ){

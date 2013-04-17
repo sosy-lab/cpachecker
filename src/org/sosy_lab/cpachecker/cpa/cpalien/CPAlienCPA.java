@@ -138,8 +138,8 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
     }
 
     CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
-    initState.addStackFrame(functionNode.getFunctionDefinition());
     try {
+      initState.addStackFrame(functionNode.getFunctionDefinition());
       initState.performConsistencyCheck(SMGRuntimeCheck.HALF);
     }
     catch(SMGInconsistentException exc) {
