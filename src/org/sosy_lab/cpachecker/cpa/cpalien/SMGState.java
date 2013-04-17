@@ -104,6 +104,19 @@ public class SMGState implements AbstractQueryableState {
     this.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
+  /**
+   * Adds a new frame for the function.
+   *
+   * Keeps consistency: yes
+   *
+   * @param pFunctionDefinition A function for which to create a new stack frame
+   * @throws SMGInconsistentException
+   */
+  public void addStackFrame(CFunctionDeclaration pFunctionDefinition) throws SMGInconsistentException {
+    heap.addStackFrame(pFunctionDefinition);
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+  }
+
   /* ********************************************* */
   /* Non-modifying functions: getters and the like */
   /* ********************************************* */
@@ -201,10 +214,6 @@ public class SMGState implements AbstractQueryableState {
     } else {
       return "SMGState [" + this.getId() + "] <-- no parent, initial state\n" + heap.toString();
     }
-  }
-
-  public void addStackFrame(CFunctionDeclaration pFunctionDefinition) {
-    heap.addStackFrame(pFunctionDefinition);
   }
 
   /**
