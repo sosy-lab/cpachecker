@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 enum SMGRuntimeCheck {
+  FORCED(-1),
   NONE(0),
   HALF(1),
   FULL(2);
