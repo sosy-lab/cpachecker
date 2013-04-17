@@ -105,6 +105,28 @@ public class SMGState implements AbstractQueryableState {
   }
 
   /**
+   * Makes SMGState create a new object and put it into the current stack
+   * frame.
+   *
+   * Keeps consistency: yes
+   *
+   * @param pType Type of the new object
+   * @param pVarName Name of the local variable
+   * @return Newly created object
+   *
+   * @throws SMGInconsistentException when resulting SMGState is inconsistent
+   * and the checks are enabled
+   */
+  public SMGObject addLocalVariable(CType pType, String pVarName) throws SMGInconsistentException {
+    int size = heap.getMachineModel().getSizeof(pType);
+    SMGObject new_object = new SMGObject(size, pVarName);
+
+    heap.addStackObject(new_object);
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    return new_object;
+  }
+
+  /**
    * Adds a new frame for the function.
    *
    * Keeps consistency: yes
@@ -137,15 +159,6 @@ public class SMGState implements AbstractQueryableState {
    */
   final public SMGState getPredecessor() {
     return predecessor;
-  }
-
-  public SMGObject addLocalVariable(CType pType, String pVarName) throws SMGInconsistentException {
-    int size = heap.getMachineModel().getSizeof(pType);
-    SMGObject new_object = new SMGObject(size, pVarName);
-
-    heap.addStackObject(new_object);
-    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return new_object;
   }
 
   /**
