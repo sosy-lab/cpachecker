@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import static org.mockito.Mockito.mock;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;

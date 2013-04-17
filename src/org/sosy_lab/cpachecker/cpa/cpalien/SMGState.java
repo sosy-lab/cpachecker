@@ -48,15 +48,15 @@ public class SMGState implements AbstractQueryableState {
     runtimeCheckLevel = SMGRuntimeCheck.NONE;
   }
 
-  public SMGState(SMGState originalState) {
-    heap = new CLangSMG(originalState.heap);
-    logger = originalState.logger;
-    predecessor = originalState.predecessor;
-    runtimeCheckLevel = originalState.runtimeCheckLevel;
+  public SMGState(SMGState pOriginalState) {
+    heap = new CLangSMG(pOriginalState.heap);
+    logger = pOriginalState.logger;
+    predecessor = pOriginalState.predecessor;
+    runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
     id = id_counter++;
   }
 
-  public void setRuntimeCheck(SMGRuntimeCheck pLevel) {
+  public void setRuntimeCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
     runtimeCheckLevel = pLevel;
     if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.HALF)) {
       CLangSMG.setPerformChecks(true);
@@ -64,6 +64,12 @@ public class SMGState implements AbstractQueryableState {
     else {
       CLangSMG.setPerformChecks(false);
     }
+    this.performConsistencyCheck(SMGRuntimeCheck.FULL);
+  }
+
+  public void setPredecessor(SMGState pSMGState) throws SMGInconsistentException {
+    predecessor = pSMGState;
+    this.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   public int getId() {
@@ -72,10 +78,6 @@ public class SMGState implements AbstractQueryableState {
 
   public SMGState getPredecessor() {
     return predecessor;
-  }
-
-  public void setPredecessor(SMGState pSMGState) {
-    predecessor = pSMGState;
   }
 
   void addStackObject(SMGObject obj) {

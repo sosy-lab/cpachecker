@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
-import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 
-public class SMGInconsistentException extends CPAException {
+public class SMGInconsistentException extends CPATransferException {
   private static final long serialVersionUID = -1677699207895867889L;
 
   public SMGInconsistentException(String msg) {

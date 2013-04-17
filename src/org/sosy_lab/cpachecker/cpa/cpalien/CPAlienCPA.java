@@ -127,11 +127,10 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
   public AbstractState getInitialState(CFANode pNode) {
     SMGState initState = new SMGState(logger, machineModel);
 
-    initState.setRuntimeCheck(runtimeCheck);
-    //TODO: Just for debugging, remove later
-    initState.setRuntimeCheck(SMGRuntimeCheck.FULL);
-
     try {
+      initState.setRuntimeCheck(runtimeCheck);
+      //TODO: Just for debugging, remove later
+      initState.setRuntimeCheck(SMGRuntimeCheck.FULL);
       initState.performConsistencyCheck(SMGRuntimeCheck.HALF);
     }
     catch(SMGInconsistentException exc) {
