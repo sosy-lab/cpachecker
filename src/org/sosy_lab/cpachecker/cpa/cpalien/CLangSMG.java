@@ -75,7 +75,23 @@ public class CLangSMG extends SMG {
   private boolean has_leaks = false;
 
   /**
-   * Constructor
+   * A flag setting if the class should perform additional consistency checks.
+   * It should be useful only during debugging, when is should find bad
+   * external calls closer to their origin. We probably do not want t
+   * run the checks in the production build.
+   */
+  static private boolean perform_checks = false;
+
+  static public void setPerformChecks(boolean pSetting) {
+    CLangSMG.perform_checks = pSetting;
+  }
+
+  static public boolean performChecks() {
+    return CLangSMG.perform_checks;
+  }
+
+  /**
+   * Constructor.
    *
    * Newly constructed CLangSMG contains a single nullObject with an address
    * pointing to it, and is empty otherwise.
@@ -108,11 +124,11 @@ public class CLangSMG extends SMG {
    * Adds an object to the heap.
    */
   public void addHeapObject(SMGObject pObject) {
-    if (this.heap_objects.contains(pObject)) {
+    if (CLangSMG.performChecks() && this.heap_objects.contains(pObject)) {
       throw new IllegalArgumentException("Heap object already in the SMG: [" + pObject + "]");
     }
     this.heap_objects.add(pObject);
-    super.addObject(pObject);
+    this.addObject(pObject);
   }
 
   /**
@@ -121,12 +137,14 @@ public class CLangSMG extends SMG {
    * Adds a global object
    */
   public void addGlobalObject(SMGObject pObject) {
-    if (this.global_objects.values().contains(pObject)) {
+    if (CLangSMG.performChecks() && this.global_objects.values().contains(pObject)) {
       throw new IllegalArgumentException("Global object already in the SMG: [" + pObject + "]");
     }
-    if (this.global_objects.containsKey(pObject.getLabel())) {
+
+    if (CLangSMG.performChecks() && this.global_objects.containsKey(pObject.getLabel())) {
       throw new IllegalArgumentException("Global object with label [" + pObject.getLabel() + "] already in the SMG");
     }
+
     this.global_objects.put(pObject.getLabel(), pObject);
     super.addObject(pObject);
   }

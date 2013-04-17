@@ -58,6 +58,12 @@ public class SMGState implements AbstractQueryableState {
 
   public void setRuntimeCheck(SMGRuntimeCheck pLevel) {
     runtimeCheckLevel = pLevel;
+    if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.HALF)) {
+      CLangSMG.setPerformChecks(true);
+    }
+    else {
+      CLangSMG.setPerformChecks(false);
+    }
   }
 
   public int getId() {

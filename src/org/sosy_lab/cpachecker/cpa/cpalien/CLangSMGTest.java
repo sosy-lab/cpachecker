@@ -193,6 +193,17 @@ public class CLangSMGTest {
   }
 
   @Test
+  public void CLangSMGaddHeapObjectTwiceWithoutChecksTest() {
+    CLangSMG.setPerformChecks(false);
+    CLangSMG smg = getNewCLangSMG64();
+    SMGObject obj = new SMGObject(8, "label");
+
+    smg.addHeapObject(obj);
+    smg.addHeapObject(obj);
+    Assert.assertTrue("Asserting the test finished without exception", true);
+  }
+
+  @Test
   public void CLangSMGaddGlobalObjectTest() {
     CLangSMG smg = getNewCLangSMG64();
     SMGObject obj1 = new SMGObject(8, "label");
