@@ -194,7 +194,9 @@ public class CLangSMG extends SMG {
    * @param pFunctionDeclaration A function for which to create a new stack frame
    */
   public void addStackFrame(CFunctionDeclaration pFunctionDeclaration) {
-    CLangStackFrame newFrame = new CLangStackFrame(pFunctionDeclaration);
+    CLangStackFrame newFrame = new CLangStackFrame(pFunctionDeclaration, this.getMachineModel());
+
+    super.addObject(newFrame.getReturnObject());
     stack_objects.push(newFrame);
   }
 
@@ -290,12 +292,22 @@ public class CLangSMG extends SMG {
     //       after unassigned malloc call result, so we know that immediately.
     return has_leaks;
   }
+
+  /**
+   * Constant.
+   *
+   * @return a {@link SMGObject} for current function return value
+   */
+  public SMGObject getFunctionReturnObject() {
+    return stack_objects.peek().getReturnObject();
+  }
 }
 
 /**
  * Represents a C language stack frame
  */
 final class CLangStackFrame {
+  public static String RETVAL_LABEL = "___cpa_temp_result_var_";
 
   /**
    * Function to which this stack frame belongs
@@ -309,14 +321,22 @@ final class CLangStackFrame {
   final HashMap <String, SMGObject> stack_variables = new HashMap<>();
 
   /**
+   * An object to store function return value
+   */
+  final SMGObject returnValueObject;
+
+  /**
    * Constructor. Creates an empty frame.
    *
-   * @param pFunctionDeclaration Function for which the frame is created
+   * @param pDeclaration Function for which the frame is created
    *
    * TODO: [PARAMETERS] Create objects for function parameters
    */
-  public CLangStackFrame(CFunctionDeclaration pFunctionDeclaration) {
-    stack_function = pFunctionDeclaration;
+  public CLangStackFrame(CFunctionDeclaration pDeclaration, MachineModel pMachineModel) {
+    stack_function = pDeclaration;
+
+    int return_value_size = pMachineModel.getSizeof(pDeclaration.getType());
+    returnValueObject = new SMGObject(return_value_size, CLangStackFrame.RETVAL_LABEL);
   }
 
   /**
@@ -327,6 +347,7 @@ final class CLangStackFrame {
   public CLangStackFrame(CLangStackFrame pFrame) {
     stack_function = pFrame.stack_function;
     stack_variables.putAll(pFrame.stack_variables);
+    returnValueObject = pFrame.returnValueObject;
   }
 
 
@@ -407,6 +428,24 @@ final class CLangStackFrame {
   public Map<String, SMGObject> getVariables() {
     return Collections.unmodifiableMap(stack_variables);
   }
+
+  /**
+   * @return a set of all objects: return value object, variables, parameters
+   */
+  public Set<SMGObject> getAllObjects() {
+    HashSet<SMGObject> retset = new HashSet<>();
+    retset.addAll(this.stack_variables.values());
+    retset.add(this.returnValueObject);
+
+    return Collections.unmodifiableSet(retset);
+  }
+
+  /**
+   * @return an {@link SMGObject} reserved for function return value
+   */
+  public SMGObject getReturnObject() {
+    return this.returnValueObject;
+  }
 }
 
 class CLangSMGConsistencyVerifier {
@@ -457,7 +496,7 @@ class CLangSMGConsistencyVerifier {
     Set<SMGObject> stack = new HashSet<>();
 
     for (CLangStackFrame frame: stack_frames) {
-      stack.addAll(frame.stack_variables.values());
+      stack.addAll(frame.getAllObjects());
     }
     Set<SMGObject> heap = pSmg.getHeapObjects();
 
@@ -482,7 +521,7 @@ class CLangSMGConsistencyVerifier {
     Set<SMGObject> stack = new HashSet<>();
 
     for (CLangStackFrame frame: stack_frames) {
-      stack.addAll(frame.stack_variables.values());
+      stack.addAll(frame.getAllObjects());
     }
     Map<String, SMGObject> globals = pSmg.getGlobalObjects();
 
@@ -509,7 +548,7 @@ class CLangSMGConsistencyVerifier {
     object_union.addAll(pSmg.getGlobalObjects().values());
 
     for (CLangStackFrame frame : pSmg.getStackFrames()) {
-      object_union.addAll(frame.getVariables().values());
+      object_union.addAll(frame.getAllObjects());
     }
 
     boolean toReturn = object_union.containsAll(pSmg.getObjects()) &&
@@ -553,7 +592,7 @@ class CLangSMGConsistencyVerifier {
 
     // Verify there is no NULL object in the stack object set
     for (CLangStackFrame frame: pSmg.getStackFrames()) {
-      for (SMGObject obj: frame.getVariables().values()) {
+      for (SMGObject obj: frame.getAllObjects()) {
         if (! obj.notNull()) {
           pLogger.log(Level.SEVERE, "CLangSMG inconsistent: null object in stack object set [" + obj + "]");
           return false;
@@ -601,7 +640,7 @@ class CLangSMGConsistencyVerifier {
     HashSet<SMGObject> stack_objects = new HashSet<>();
 
     for (CLangStackFrame frame : pSmg.getStackFrames()) {
-      for (SMGObject object : frame.getVariables().values()) {
+      for (SMGObject object : frame.getAllObjects()) {
         if (stack_objects.contains(object)) {
           pLogger.log(Level.SEVERE, "CLangSMG inconsistent: object [" + object + "] present multiple times in the stack");
           return false;

@@ -46,10 +46,10 @@ import com.google.common.collect.ImmutableList;
 
 public class CLangSMGTest {
 
-  CType mockType = mock(CType.class);
+  private CType mockType = mock(CType.class);
   private CFunctionType functionType = mock(CFunctionType.class);
   private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
-  private CLangStackFrame sf =  new CLangStackFrame(functionDeclaration);
+  private CLangStackFrame sf;
   private LogManager logger = mock(LogManager.class);
   private CIdExpression id_expression = new CIdExpression(null, null, "label", null);
 
@@ -63,6 +63,9 @@ public class CLangSMGTest {
   @Before
   public void setUp() {
     when(mockType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
+    when(functionType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
+
+    sf = new CLangStackFrame(functionDeclaration, MachineModel.LINUX64);
     CLangSMG.setPerformChecks(true);
   }
 
@@ -99,6 +102,24 @@ public class CLangSMGTest {
     smg_object = sf.getVariable("fooVar");
     Assert.assertEquals("Correct variable is returned: label", smg_object.getLabel(), "fooVarObject");
     Assert.assertEquals("Correct variable is returned: size", smg_object.getSizeInBytes(), 8);
+  }
+
+  @Test
+  public void CLangGetObjectsTest() {
+    Set<SMGObject> objects = sf.getAllObjects();
+    // Test that there is an return value object at
+    Assert.assertEquals(1, objects.size());
+
+    sf.addStackVariable("fooVar", new SMGObject(8, "fooVarObject"));
+    objects = sf.getAllObjects();
+    Assert.assertEquals(2, objects.size());
+  }
+
+  //TODO: Test void functions
+  @Test
+  public void CLangReturnValueTest() {
+    SMGObject retval = sf.getReturnObject();
+    Assert.assertEquals(4, retval.getSizeInBytes());
   }
 
   @Test(expected=IllegalArgumentException.class)

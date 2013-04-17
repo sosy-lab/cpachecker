@@ -92,7 +92,11 @@ public final class SMGPlotter {
     pSb.append(newLineWithOffset("fontcolor=blue;"));
     pSb.append(newLineWithOffset("label=\"" + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
 
-    pSb.append(newLineWithOffset(smgScopeFrameAsDot(pStackFrame.getVariables(), String.valueOf(pIndex))));
+    HashMap<String, SMGObject> to_print = new HashMap<>();
+    to_print.putAll(pStackFrame.getVariables());
+    to_print.put(CLangStackFrame.RETVAL_LABEL, pStackFrame.getReturnObject());
+
+    pSb.append(newLineWithOffset(smgScopeFrameAsDot(to_print, String.valueOf(pIndex))));
 
     offset -= 2;
     pSb.append(newLineWithOffset("}"));
