@@ -198,6 +198,7 @@ public class SMGTransferRelation implements TransferRelation {
       this.dumpSMGPlot(name, currentState, functionCall.toString());
     }
 
+    // TODO: Seems like there is large code sharing with evaluate calloc
     public Address evaluateMalloc(CFunctionCallExpression functionCall, SMGState currentState, CFAEdge cfaEdge)
         throws CPATransferException {
       CRightHandSide sizeExpr;
@@ -2364,6 +2365,8 @@ public class SMGTransferRelation implements TransferRelation {
   /**
    * A class to represent an Address. This class is mainly used
    * to store Address Information.
+   *
+   * TODO: Seems pretty much identical to SMGEdgePointsTo
    */
   private static class Address {
 
