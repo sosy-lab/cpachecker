@@ -477,7 +477,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       if (memoryOfField != null && offset != null && rValueType != null && rValue != null) {
         // Assignment of explicit Value to symbolic Value already happened in handleExitFromFunction
-        newState.writeValue(memoryOfField, offset, rValueType, rValue, machineModel);
+        newState.writeValue(memoryOfField, offset, rValueType, rValue);
       }
     }
 
@@ -531,7 +531,7 @@ public class SMGTransferRelation implements TransferRelation {
         value = SMGValueFactory.getNewValue();
       }
 
-      newState.writeValue(newObject, 0, cType, value, machineModel);
+      newState.writeValue(newObject, 0, cType, value);
     }
 
     //TODO  take missing explicit values into Consideration
@@ -905,7 +905,7 @@ public class SMGTransferRelation implements TransferRelation {
     if (possibleMallocFail) {
       possibleMallocFail = false;
       SMGState otherState = new SMGState(state);
-      otherState.writeValue(memoryOfField, fieldOffset, fieldType, 0, machineModel);
+      otherState.writeValue(memoryOfField, fieldOffset, fieldType, 0);
       mallocFailState = otherState;
     }
 
@@ -918,7 +918,7 @@ public class SMGTransferRelation implements TransferRelation {
       }
     }
 
-    newState.writeValue(memoryOfField, fieldOffset, fieldType, value, machineModel);
+    newState.writeValue(memoryOfField, fieldOffset, fieldType, value);
 
     return newState;
   }
@@ -1042,7 +1042,7 @@ public class SMGTransferRelation implements TransferRelation {
 
         if (newInitializer == null) {
           // global variables without initializer are set to 0 in C
-          newState.writeValue(newObject, 0, cType, 0, machineModel);
+          newState.writeValue(newObject, 0, cType, 0);
         }
 
       } else {

@@ -254,7 +254,12 @@ public class SMGState implements AbstractQueryableState {
    */
   public void writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
-
+    SMGEdgeHasValue new_edge = new SMGEdgeHasValue(pType, pOffset, pObject, pValue);
+    if ( ! heap.getValues().contains(pValue) ){
+      heap.addValue(pValue);
+    }
+    heap.addHasValueEdge(new_edge);
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /**
