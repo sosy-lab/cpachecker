@@ -71,6 +71,8 @@ public class CLangSMG extends SMG {
 
   /**
    * A flag signifying the edge leading to this state caused memory to be leaked
+   * TODO: Seems pretty arbitrary: perhaps we should have a more general solution,
+   *       like a container with (type, message) error witness kind of thing?
    */
   private boolean has_leaks = false;
 
@@ -93,6 +95,8 @@ public class CLangSMG extends SMG {
   /**
    * Constructor.
    *
+   * Keeps consistency: yes
+   *
    * Newly constructed CLangSMG contains a single nullObject with an address
    * pointing to it, and is empty otherwise.
    */
@@ -102,13 +106,16 @@ public class CLangSMG extends SMG {
   }
 
   /**
-   * @param pHeap original CLangSMG
-   *
    * Copy constructor.
+   *
+   * Keeps consistency: yes
+   *
+   * @param pHeap The original CLangSMG
    */
   public CLangSMG(CLangSMG pHeap) {
     super(pHeap);
 
+    //TODO: Does this keep the stack layout order? Investigate.
     for (CLangStackFrame stack_frame : pHeap.stack_objects) {
       CLangStackFrame new_frame = new CLangStackFrame(stack_frame);
       stack_objects.push(new_frame);
@@ -119,9 +126,14 @@ public class CLangSMG extends SMG {
   }
 
   /**
-   * @param pObject
+   * Add a object to the heap.
    *
-   * Adds an object to the heap.
+   * Keeps consistency: no
+   *
+   * With checks: throws {@link IllegalArgumentException} when asked to add
+   * an object already present.
+   *
+   * @param pObject Object to add.
    */
   public void addHeapObject(SMGObject pObject) {
     if (CLangSMG.performChecks() && this.heap_objects.contains(pObject)) {
@@ -132,9 +144,15 @@ public class CLangSMG extends SMG {
   }
 
   /**
-   * @param pObject
+   * Add a global object to the SMG
    *
-   * Adds a global object
+   * Keeps consistency: no
+   *
+   * With checks: throws {@link IllegalArgumentException} when asked to add
+   * an object already present, or an global object with a label identifying
+   * different object
+
+   * @param pObject Object to add
    */
   public void addGlobalObject(SMGObject pObject) {
     if (CLangSMG.performChecks() && this.global_objects.values().contains(pObject)) {
@@ -150,10 +168,11 @@ public class CLangSMG extends SMG {
   }
 
   /**
-   * @param pObject
-   * @throws IllegalAccessException
-   *
    * Adds an object to the current stack frame
+   *
+   * Keeps consistency: no
+   *
+   * @param pObject Object to add
    *
    * TODO: [SCOPES] Scope visibility vs. stack frame issues: handle cases where a variable is visible
    * but is is allowed to override (inner blocks)
@@ -167,11 +186,24 @@ public class CLangSMG extends SMG {
     stack_objects.peek().addStackVariable(pObject.getLabel(), pObject);
   }
 
+  /**
+   * Add a new stack frame for the passed function.
+   *
+   * Keeps consistency: yes
+   *
+   * @param pFunctionDeclaration A function for which to create a new stack frame
+   */
   public void addStackFrame(CFunctionDeclaration pFunctionDeclaration) {
     CLangStackFrame newFrame = new CLangStackFrame(pFunctionDeclaration);
     stack_objects.push(newFrame);
   }
 
+  /**
+   * Sets a flag indicating this SMG is a successor over the edge causing a
+   * memory leak.
+   *
+   * Keeps consistency: yes
+   */
   public void setMemoryLeak() {
     has_leaks = true;
   }
@@ -180,6 +212,11 @@ public class CLangSMG extends SMG {
   /* Non-modifying functions: getters and the like */
   /* ********************************************* */
 
+  /**
+   * Getter for obtaining a string representation of the CLangSMG. Constant.
+   *
+   * @return String representation of the CLangSMG
+   */
   @Override
   public String toString() {
     return "CLangSMG [\n stack_objects=" + stack_objects + "\n heap_objects=" + heap_objects + "\n global_objects="
@@ -187,12 +224,12 @@ public class CLangSMG extends SMG {
   }
 
   /**
-   * @param pVariableName
-   * @return
-   *
    * Returns an SMGObject tied to the variable name. The name must be visible in
    * the current scope: it needs to be visible either in the current frame, or it
-   * is a global variable.
+   * is a global variable. Constant.
+   *
+   * @param pVariableName A name of the variable
+   * @return An object tied to the name, if such exists in the visible scope. Null otherwise.
    *
    * TODO: [SCOPES] Test for getting visible local object hiding other local object
    */
@@ -203,6 +240,8 @@ public class CLangSMG extends SMG {
         return stack_objects.peek().getVariable(pVariableName);
       }
     }
+
+    // Look in the global scope
     if (global_objects.containsKey(pVariableName)) {
       return global_objects.get(pVariableName);
     }
@@ -210,9 +249,9 @@ public class CLangSMG extends SMG {
   }
 
   /**
-   * @return
+   * Returns the (modifiable) stack of frames containing objects. Constant.
    *
-   * Returns the (modifiable) stack of frames containing objects.
+   * @return Stack of frames
    */
   public ArrayDeque<CLangStackFrame> getStackFrames() {
     //TODO: [FRAMES-STACK-STRUCTURE] This still allows modification, as queues
@@ -222,27 +261,27 @@ public class CLangSMG extends SMG {
   }
 
   /**
-   * @return
+   * Constant.
    *
-   * Returns an unmodifiable set of objects on the heap.
+   * @return Unmodifiable view of the set of the heap objects
    */
   public Set<SMGObject> getHeapObjects() {
     return Collections.unmodifiableSet(heap_objects);
   }
 
   /**
-   * @return
+   * Constant.
    *
-   * Returns an unmodifiable map from variable names to global objects.
+   * @return Unmodifiable map from variable names to global objects.
    */
   public Map<String, SMGObject> getGlobalObjects() {
     return Collections.unmodifiableMap(global_objects);
   }
 
   /**
-   * @return
+   * Constant.
    *
-   * Returns true if the SMG is a successor over the edge causing some memory
+   * @return True if the SMG is a successor over the edge causing some memory
    * to be leaked. Returns false otherwise.
    */
   public boolean hasMemoryLeaks() {
@@ -283,7 +322,7 @@ final class CLangStackFrame {
   /**
    * Copy constructor.
    *
-   * @param origFrame
+   * @param pFrame Original frame
    */
   public CLangStackFrame(CLangStackFrame pFrame) {
     stack_function = pFrame.stack_function;
@@ -291,6 +330,15 @@ final class CLangStackFrame {
   }
 
 
+  /**
+   * Adds a SMG object pObj to a stack frame, representing variable pVariableName
+   *
+   * Throws {@link IllegalArgumentException} when some object is already
+   * present with the name {@link pVariableName}
+   *
+   * @param pVariableName A name of the variable
+   * @param pObject An object to put into the stack frame
+   */
   public void addStackVariable(String pVariableName, SMGObject pObject) {
     if (stack_variables.containsKey(pVariableName)) {
       throw new IllegalArgumentException("Stack frame for function '" +
@@ -319,6 +367,10 @@ final class CLangStackFrame {
   }
 
   /**
+   * Getter for obtaining an object corresponding to a variable name
+   *
+   * Throws {@link NoSuchElementException} when passed a name not present
+   *
    * @param pName Variable name
    * @return SMG object corresponding to pName in the frame
    */
@@ -360,11 +412,26 @@ final class CLangStackFrame {
 class CLangSMGConsistencyVerifier {
   private CLangSMGConsistencyVerifier() {} /* utility class */
 
+  /**
+   * Records a result of a single check to a logger along with a message
+   *
+   * @param pResult Result of the check
+   * @param pLogger Logger to log the message
+   * @param pMessage Message to be logged
+   * @return The result of the check, i.e. equivalent to pResult
+   */
   static private boolean verifyCLangSMGProperty(boolean pResult, LogManager pLogger, String pMessage) {
     pLogger.log(Level.FINEST, pMessage, ":", pResult);
     return pResult;
   }
 
+  /**
+   * Verifies that heap and global object sets are disjunct
+   *
+   * @param pLogger Logger to log the message
+   * @param pSmg SMG to check
+   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   */
   static private boolean verifyDisjunctHeapAndGlobal(LogManager pLogger, CLangSMG pSmg) {
     Map<String, SMGObject> globals = pSmg.getGlobalObjects();
     Set<SMGObject> heap = pSmg.getHeapObjects();
@@ -378,6 +445,13 @@ class CLangSMGConsistencyVerifier {
     return toReturn;
   }
 
+  /**
+   * Verifies that heap and stack object sets are disjunct
+   *
+   * @param pLogger Logger to log the message
+   * @param pSmg SMG to check
+   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   */
   static private boolean verifyDisjunctHeapAndStack(LogManager pLogger, CLangSMG pSmg) {
     ArrayDeque<CLangStackFrame> stack_frames = pSmg.getStackFrames();
     Set<SMGObject> stack = new HashSet<>();
@@ -396,6 +470,13 @@ class CLangSMGConsistencyVerifier {
     return toReturn;
   }
 
+  /**
+   * Verifies that global and stack object sets are disjunct
+   *
+   * @param pLogger Logger to log the message
+   * @param pSmg SMG to check
+   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   */
   static private boolean verifyDisjunctGlobalAndStack(LogManager pLogger, CLangSMG pSmg) {
     ArrayDeque<CLangStackFrame> stack_frames = pSmg.getStackFrames();
     Set<SMGObject> stack = new HashSet<>();
@@ -414,6 +495,13 @@ class CLangSMGConsistencyVerifier {
     return toReturn;
   }
 
+  /**
+   * Verifies that heap, global and stack union is equal to the set of all objects
+   *
+   * @param pLogger Logger to log the message
+   * @param pSmg SMG to check
+   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   */
   static private boolean verifyStackGlobalHeapUnion(LogManager pLogger, CLangSMG pSmg) {
     HashSet<SMGObject> object_union = new HashSet<>();
 
@@ -434,6 +522,13 @@ class CLangSMGConsistencyVerifier {
     return toReturn;
   }
 
+  /**
+   * Verifies several NULL object-related properties
+   * @param pLogger Logger to log the message
+   * @param pSmg SMG to check
+   *
+   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   */
   static private boolean verifyNullObjectCLangProperties(LogManager pLogger, CLangSMG pSmg) {
     // Verify that there is no NULL object in global scope
     for (SMGObject obj: pSmg.getGlobalObjects().values()) {
@@ -456,6 +551,7 @@ class CLangSMGConsistencyVerifier {
       }
     }
 
+    // Verify there is no NULL object in the stack object set
     for (CLangStackFrame frame: pSmg.getStackFrames()) {
       for (SMGObject obj: frame.getVariables().values()) {
         if (! obj.notNull()) {
@@ -465,6 +561,7 @@ class CLangSMGConsistencyVerifier {
       }
     }
 
+    // Verify there is at least one NULL object
     if (firstNull == null) {
       pLogger.log(Level.SEVERE, "CLangSMG inconsistent: no null object");
       return false;
@@ -473,6 +570,14 @@ class CLangSMGConsistencyVerifier {
     return true;
   }
 
+  /**
+   * Verify the global scope is consistent: each record points to an
+   * appropriately labeled object
+   *
+   * @param pLogger Logger to log the message
+   * @param pSmg SMG to check
+   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   */
   static private boolean verifyGlobalNamespace(LogManager pLogger, CLangSMG pSmg) {
     for (String label: pSmg.getGlobalObjects().keySet()) {
       if (pSmg.getGlobalObjects().get(label).getLabel() != label) {
@@ -484,6 +589,14 @@ class CLangSMGConsistencyVerifier {
     return true;
   }
 
+  /**
+   * Verify the stack name space: each record points to an appropriately
+   * labeled object
+   *
+   * @param pLogger Logger to log the message
+   * @param pSmg
+   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   */
   static private boolean verifyStackNamespaces(LogManager pLogger, CLangSMG pSmg) {
     HashSet<SMGObject> stack_objects = new HashSet<>();
 
@@ -500,6 +613,13 @@ class CLangSMGConsistencyVerifier {
     return true;
   }
 
+  /**
+   * Verify all the consistency properties related to CLangSMG
+   *
+   * @param pLogger Logger to log results
+   * @param pSmg SMG to check
+   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   */
   static public boolean verifyCLangSMG(LogManager pLogger, CLangSMG pSmg) {
     boolean toReturn = SMGConsistencyVerifier.verifySMG(pLogger, pSmg);
 
