@@ -37,6 +37,10 @@ public final class SMGPlotter {
 
   public SMGPlotter() {} /* utility class */
 
+  private String convertToValidDot(String original){
+    return original.replaceAll("[:]", "_");
+  }
+
   public String smgAsDot(CLangSMG smg, String name, String location) {
     StringBuilder sb = new StringBuilder();
 
@@ -133,11 +137,11 @@ public final class SMGPlotter {
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()) + "[label=\"+" + pEdge.getOffset() + "b\"];";
+    return "value_" + pEdge.getValue() + " -> " + convertToValidDot(objectIndex.get(pEdge.getObject())) + "[label=\"+" + pEdge.getOffset() + "b\"];";
   }
 
-  private static String smgObjectAsDot(SMGObject pObject) {
-    return pObject.getLabel() + " [ shape=rectangle, label = \"" + pObject.toString() + "\"];";
+  private String smgObjectAsDot(SMGObject pObject) {
+    return this.convertToValidDot(pObject.getLabel()) + " [ shape=rectangle, label = \"" + pObject.toString() + "\"];";
   }
 
   private static String smgValueAsDot(int value) {
