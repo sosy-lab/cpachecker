@@ -77,7 +77,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private final LogManager logger;
   private final CFA cfa;
 
-  private class PrecisionBootstrapStatistics extends AbstractStatistics {}
+  private static class PrecisionBootstrapStatistics extends AbstractStatistics {}
   private final PrecisionBootstrapStatistics statistics = new PrecisionBootstrapStatistics();
 
   public PredicatePrecisionBootstrapper(Configuration config, LogManager logger, CFA cfa,

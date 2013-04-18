@@ -232,7 +232,9 @@ public class CFASecondPassBuilder {
     FunctionCallEdge callEdge = null;
 
     // create new edges
-    if (language == Language.C) {
+
+    switch (language) {
+    case C:
       if (summaryEdges) {
         CFunctionSummaryStatementEdge summaryStatementEdge =
             new CFunctionSummaryStatementEdge(edge.getRawStatement(),
@@ -249,15 +251,19 @@ public class CFASecondPassBuilder {
       callEdge = new CFunctionCallEdge(edge.getRawStatement(),
           lineNumber, predecessorNode,
           (CFunctionEntryNode) fDefNode, (CFunctionCall) functionCall,  (CFunctionSummaryEdge) calltoReturnEdge);
+      break;
 
-    } else if (language == Language.JAVA) {
-
+    case JAVA:
       calltoReturnEdge = new JMethodSummaryEdge(edge.getRawStatement(),
           lineNumber, predecessorNode, successorNode, (JMethodOrConstructorInvocation) functionCall);
 
       callEdge = new JMethodCallEdge(edge.getRawStatement(),
           lineNumber, predecessorNode,
           (JMethodEntryNode)fDefNode, (JMethodOrConstructorInvocation) functionCall, (JMethodSummaryEdge) calltoReturnEdge);
+      break;
+
+    default:
+      throw new AssertionError();
     }
 
     predecessorNode.addLeavingSummaryEdge(calltoReturnEdge);
@@ -275,12 +281,17 @@ public class CFASecondPassBuilder {
 
     } else {
 
-      FunctionReturnEdge returnEdge = null;
+      FunctionReturnEdge returnEdge;
 
-      if (language == Language.C) {
+      switch (language) {
+      case C:
         returnEdge = new CFunctionReturnEdge(lineNumber, fExitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
-      } else if (language == Language.JAVA) {
+        break;
+      case JAVA:
         returnEdge = new JMethodReturnEdge(lineNumber, fExitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);
+        break;
+      default:
+        throw new AssertionError();
       }
 
       fExitNode.addLeavingEdge(returnEdge);

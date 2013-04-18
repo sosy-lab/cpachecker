@@ -1315,11 +1315,6 @@ public class ExplicitTransferRelation implements TransferRelation {
 
       return null;
     }
-
-    @Override
-    public Long visit(JUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-        return super.visit(unaryExpression);
-    }
   }
 
   private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {

@@ -256,7 +256,7 @@ public class ReachingDefState implements AbstractState, Serializable {
     }
   }
 
-  public class ProgramDefinitionPoint implements DefinitionPoint, Serializable {
+  public static class ProgramDefinitionPoint implements DefinitionPoint, Serializable {
 
     private static final long serialVersionUID = -7601382286840053882L;
     private transient CFANode entry;

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks;
 
+import com.google.common.base.Objects;
+
 /**
  * Represents a reference to a variable in the CFA.
  */
@@ -64,7 +66,7 @@ public class ReferencedVariable {
     }
 
     ReferencedVariable rhs = (ReferencedVariable)o;
-    return ident.equals(rhs.ident) && occursInCondition == rhs.occursInCondition && occursOnLhs == rhs.occursOnLhs && (lhsVariable == null && rhs.lhsVariable == null || lhsVariable.equals(rhs.lhsVariable));
+    return ident.equals(rhs.ident) && occursInCondition == rhs.occursInCondition && occursOnLhs == rhs.occursOnLhs && Objects.equal(lhsVariable, rhs.lhsVariable);
   }
 
   @Override

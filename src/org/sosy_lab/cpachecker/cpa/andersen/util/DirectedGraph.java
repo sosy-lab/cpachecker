@@ -179,7 +179,7 @@ public class DirectedGraph {
    * The <code>Edge</code> represents an edge in the corresponding graph. This class only
    * encapsulates two nodes and is note directly used in the {@link DirectedGraph}.
    */
-  public class Edge {
+  public static class Edge {
 
     /** The source {@link DirectedGraph.Node} of this {@link DirectedGraph.Edge}. */
     public final DirectedGraph.Node src;
@@ -207,7 +207,9 @@ public class DirectedGraph {
       if (other == this) {
         return true;
       }
-
+      if (other == null) {
+        return false;
+      }
       if (!other.getClass().equals(this.getClass())) {
         return false;
       }

@@ -68,7 +68,7 @@ public class PredicatePrecisionSweeper implements StatisticsProvider {
   private final LogManager logger;
   private final CFA cfa;
 
-  private class SweeperStatistics extends AbstractStatistics {}
+  private static class SweeperStatistics extends AbstractStatistics {}
   private SweeperStatistics statistics = new SweeperStatistics();
 
   public PredicatePrecisionSweeper(LogManager pLogger, CFA pCfa) {

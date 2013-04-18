@@ -76,7 +76,7 @@ import com.google.common.collect.Lists;
  */
 public class PredicateForcedCovering implements ForcedCovering, StatisticsProvider {
 
-  private final class FCStatistics implements Statistics {
+  private static final class FCStatistics implements Statistics {
 
     private int attemptedForcedCoverings = 0;
     private int successfulForcedCoverings = 0;

@@ -1130,7 +1130,7 @@ public class SMGTransferRelation implements TransferRelation {
     return expression;
   }
 
-  private class IsNotZeroVisitor extends DefaultCExpressionVisitor<Boolean, UnrecognizedCCodeException>
+  private static class IsNotZeroVisitor extends DefaultCExpressionVisitor<Boolean, UnrecognizedCCodeException>
   implements CRightHandSideVisitor<Boolean, UnrecognizedCCodeException> {
 
     //TODO Refactor, this visitor should not be neccessary
@@ -1872,7 +1872,7 @@ public class SMGTransferRelation implements TransferRelation {
 
         case MINUS:
         case MODULO:
-          isZero = (lVal == rVal);
+          isZero = (lVal.equals(rVal));
           return (isZero) ? 0 : null;
 
         case DIVIDE:

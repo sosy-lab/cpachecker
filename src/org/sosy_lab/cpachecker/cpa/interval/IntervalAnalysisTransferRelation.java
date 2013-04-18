@@ -577,7 +577,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
 
         // if this is a global variable, add it to the list of global variables
         if (decl.isGlobal()) {
-          globalVars.add(decl.getName().toString());
+          globalVars.add(decl.getName());
 
           Interval interval;
 
@@ -592,7 +592,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
             interval = new Interval(0L);
           }
 
-          String varName = constructVariableName(decl.getName().toString(), "");
+          String varName = constructVariableName(decl.getName(), "");
 
           newElement.addInterval(varName, interval, this.threshold);
         }
