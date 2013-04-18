@@ -43,7 +43,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
-@Options
+@Options(prefix = "cpa.predicate.solver.z3")
 public class Z3SmtLogger {
 
   @Option(name = "logfile", description = "Export solver queries in Smtlib2 format.")

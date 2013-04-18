@@ -61,6 +61,12 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
 
     long e = Z3FormulaManager.getZ3Expr(f);
     solver_push(z3context, z3solver);
+
+    if (mgr.simplifyFormulas) {
+      e = simplify(z3context, e);
+      inc_ref(z3context, e);
+    }
+
     solver_assert(z3context, z3solver, e);
     assertedFormulas.add(e);
 

@@ -28,6 +28,8 @@ import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
@@ -40,7 +42,11 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
 import com.google.common.base.Preconditions;
 
+@Options(prefix = "cpa.predicate.solver.z3")
 public class Z3FormulaManager extends AbstractFormulaManager<Long> {
+
+  @Option(description = "simplify formulas when they are asserted in a solver.")
+  boolean simplifyFormulas = false;
 
   private final long z3context;
   private final Z3FormulaCreator creator;
@@ -52,9 +58,12 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
       AbstractBooleanFormulaManager<Long> pBooleanManager,
       AbstractRationalFormulaManager<Long> pNumericManager,
       AbstractBitvectorFormulaManager<Long> pBitpreciseManager,
-      Z3SmtLogger smtLogger) {
+      Z3SmtLogger smtLogger, Configuration config) throws InvalidConfigurationException {
 
     super(pUnsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);
+
+    config.inject(this);
+
     this.creator = (Z3FormulaCreator) getFormulaCreator();
     assert creator != null;
     this.z3context = creator.getEnv();
@@ -80,11 +89,14 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     }
     */
 
-    open_log("z3output.log"); // dumps some log in a special z3-format
+    //    open_log("z3output.log"); // dumps some log in a special z3-format
 
     long cfg = mk_config();
     set_param_value(cfg, "MODEL", "true"); // this option is needed also without interpolation
     set_param_value(cfg, "PROOF", "true");
+
+    //    set_param_value(cfg, "trace", "true");
+    //    set_param_value(cfg, "trace_file_name", "z3_internal.log");
 
     // TODO add some other params, memory-limit?
 
@@ -143,7 +155,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
 
     Z3FormulaManager instance = new Z3FormulaManager(
         unsafeManager, functionTheory, booleanTheory,
-        rationalTheory, bitvectorTheory, smtLogger);
+        rationalTheory, bitvectorTheory, smtLogger, config);
     return instance;
   }
 
@@ -204,10 +216,10 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     return super.getTerm(pF);
   }
 
-  @Override
-  protected void finalize() {
-    close_log();
-  }
+  //  @Override
+  //  protected void finalize() {
+  //    close_log();
+  //  }
 
   /** returns a new logger with a new logfile. */
   public Z3SmtLogger getSmtLogger() {

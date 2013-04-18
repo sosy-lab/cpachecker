@@ -59,13 +59,18 @@ public class Z3TheoremProver implements ProverEnvironment {
   }
 
   @Override
-  public void push(BooleanFormula pF) {
+  public void push(BooleanFormula f) {
     level++;
 
     Preconditions.checkArgument(z3context != 0);
     solver_push(z3context, z3solver);
-    long e = Z3FormulaManager.getZ3Expr(pF);
-    //    e = simplify(z3context, e);
+    long e = Z3FormulaManager.getZ3Expr(f);
+
+    if (mgr.simplifyFormulas) {
+      e = simplify(z3context, e);
+      inc_ref(z3context, e);
+    }
+
     solver_assert(z3context, z3solver, e);
 
     smtLogger.logPush(1);
