@@ -246,33 +246,40 @@ public class PredicateMiner {
     }
 
     // backwards search to determine all relevant edges
-    for (CFANode n : targetNodes) {
+    for (CFANode targetNode : targetNodes) {
 
       Deque<Pair<CFANode, Integer>> queue = new ArrayDeque<>();
-      queue.add(Pair.of(n, 0));
-      Set<CFANode> visited = new HashSet<>();
+      queue.add(Pair.of(targetNode, 0));
+      Set<CFANode> explored = new HashSet<>();
 
       while (!queue.isEmpty()) {
+        // Take the next node that should be explored from the queue
         Pair<CFANode, Integer> v = queue.pop();
 
+        // Each node that enters node v
         for (CFAEdge e: CFAUtils.enteringEdges(v.getFirst())) {
           CFANode u = e.getPredecessor();
 
           boolean isAssumeEdge = (e instanceof AssumeEdge);
+          int depthIncrease = isAssumeEdge ? 1 : 0;
+
           if (isAssumeEdge) {
             AssumeEdge assume = (AssumeEdge) e;
-            result.put(n, assume);
+            if (v.getSecond() < maxBackscanPathAssumes) {
+              if (assume.getTruthAssumption()) {
+                result.put(targetNode, assume);
+              }
+            } else {
+              continue;
+            }
           }
 
-          if (!visited.contains(u)) {
-        	  if (v.getSecond() < maxBackscanPathAssumes) {
-        		  int depthIncrease = isAssumeEdge ? 1 : 0;
-        		  queue.add(Pair.of(u, v.getSecond() + depthIncrease));
-        	  }
+          if (!explored.contains(u)) {
+            queue.add(Pair.of(u, v.getSecond() + depthIncrease));
           }
         }
 
-        visited.add(v.getFirst());
+        explored.add(v.getFirst());
       }
 
     }
@@ -352,7 +359,7 @@ public class PredicateMiner {
               // Apply the predicate in function scope
               // as soon one of the variable the assumption talks about is local.
               applyGlobal = false;
-              logger.log(Level.FINE, "Local scoped variable mined", function, var);
+              logger.log(Level.INFO, "Local scoped variable mined", function, var);
               break;
             }
           }
@@ -363,11 +370,11 @@ public class PredicateMiner {
         }
 
         if (applyGlobal) {
-          logger.log(Level.FINE, "Global predicate mined", predicate);
+          logger.log(Level.INFO, "Global predicate mined", predicate);
           globalPredicates.add(predicate);
         }
 
-        logger.log(Level.FINE, "Mining result", "Function:", function, "Predicate:", predicate);
+        logger.log(Level.INFO, "Mining result", "Function:", function, "Predicate:", predicate);
       }
     }
 
