@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 public class ARGTransferRelation implements TransferRelation {
@@ -86,7 +87,7 @@ public class ARGTransferRelation implements TransferRelation {
   boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, ProofChecker wrappedProofChecker) throws CPATransferException, InterruptedException {
     ARGState element = (ARGState)pElement;
 
-    assert element.getChildren().equals(pSuccessors);
+    assert Iterables.elementsEqual(element.getChildren(), pSuccessors);
 
     AbstractState wrappedState = element.getWrappedState();
     Multimap<CFAEdge, AbstractState> wrappedSuccessors = HashMultimap.create();
