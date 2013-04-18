@@ -151,7 +151,7 @@ public class ABMPredicateReducer implements Reducer {
       AbstractionFormula newAbstractionFormula =
           pamgr.expand(reducedAbstraction, rootAbstraction, relevantRootPredicates, newSSA);
 
-      PersistentMap<CFANode, Integer> abstractionLocations = rootState.getAbstractionLocationsOnPath();
+      PersistentMap<CFANode, Integer> abstractionLocations = reducedState.getAbstractionLocationsOnPath();
 
       return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
           newAbstractionFormula, abstractionLocations);
