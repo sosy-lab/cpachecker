@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
+import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
 
@@ -66,9 +66,9 @@ class Z3BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Long> {
 
 
   @Override
-  public Long makeVariableImpl(int length, String var) {
-    long bvType = creator.getBittype(length);
-    return creator.makeVariable(bvType, var);
+  public Long makeVariableImpl(int length, String varName) {
+    long type = creator.getBittype(length);
+    return creator.makeVariable(type, varName);
   }
 
   /**

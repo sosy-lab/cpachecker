@@ -23,26 +23,27 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
+import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
 
 
 public class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long> {
 
-  private long z3context;
+  private final long z3context;
+  private final Z3FormulaCreator creator;
 
-  protected Z3BooleanFormulaManager(Z3FormulaCreator pCreator) {
-    super(pCreator);
-    this.z3context = pCreator.getEnv();
+  protected Z3BooleanFormulaManager(Z3FormulaCreator creator) {
+    super(creator);
+    this.creator = creator;
+    this.z3context = creator.getEnv();
   }
 
   @Override
   protected Long makeVariableImpl(String varName) {
-    long symbol = mk_string_symbol(z3context, varName);
-    long sort = mk_bool_sort(z3context);
-    return mk_const(z3context, symbol, sort);
+    long type = creator.getBoolType();
+    return creator.makeVariable(type, varName);
   }
 
   @Override

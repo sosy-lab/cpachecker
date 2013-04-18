@@ -49,7 +49,6 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
     super(pCreator);
     this.creator = pCreator;
     this.z3context = pCreator.getEnv();
-
   }
 
   private final static Collection<Integer> nonAtomicOpTypes =
@@ -130,6 +129,9 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
       long symbol = mk_string_symbol(z3context, pNewName);
       long retSort = get_sort(z3context, t);
       long newFunc = mk_func_decl(z3context, symbol, sorts, retSort);
+
+//      creator.getSmtLogger().logDeclaration(newFunc, retSort, sorts); // TODO necessary???
+
       return createUIFCallImpl(newFunc, args);
 
     } else {

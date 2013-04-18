@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -31,19 +33,27 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractForm
 
 public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
 
+  private final Z3SmtLogger smtLogger;
+
   public Z3FormulaCreator(
       long pEnv,
       long pBoolType,
       long pNumberType,
-      AbstractFormulaCreator.CreateBitType<Long> pBittype) {
+      AbstractFormulaCreator.CreateBitType<Long> pBittype, Z3SmtLogger smtLogger) {
     super(pEnv, pBoolType, pNumberType, pBittype);
+
+    this.smtLogger = smtLogger;
   }
 
   @Override
   public Long makeVariable(Long type, String varName) {
-    long context = getEnv();
-    long symbol = Z3NativeApi.mk_string_symbol(context, varName);
-    return Z3NativeApi.mk_const(context, symbol, type);
+    long z3context = getEnv();
+    long symbol = mk_string_symbol(z3context, varName);
+    long var = mk_const(z3context, symbol, type);
+
+    smtLogger.logDeclaration(var, type);
+
+    return var;
   }
 
   @Override

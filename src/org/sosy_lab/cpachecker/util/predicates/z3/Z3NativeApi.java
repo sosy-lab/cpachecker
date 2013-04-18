@@ -441,10 +441,26 @@ public final class Z3NativeApi {
 
 
   // PARSER INTERFACE
-  public static native long parse_smtlib2_string(long context, String str, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
-  public static native long parse_smtlib2_file(long context, String filename, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
-  public static native void parse_smtlib_string(long context, String str, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
-  public static native void parse_smtlib_file(long context, String filename, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
+  private static native long parse_smtlib2_string(long context, String str, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
+  private static native long parse_smtlib2_file(long context, String filename, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
+  private static native void parse_smtlib_string(long context, String str, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
+  private static native void parse_smtlib_file(long context, String filename, int len1, long[] sort_symbols, long[] sorts, int len2, long[] decl_symbols, long[] decls);
+
+  public static long parse_smtlib2_string(long context, String str, long[] sort_symbols, long[] sorts, long[] decl_symbols, long[] decls) {
+    return parse_smtlib2_string(context, str, sort_symbols.length, sort_symbols, sorts, decl_symbols.length, decl_symbols, decls);
+  }
+
+  public static long parse_smtlib2_file(long context, String filename, long[] sort_symbols, long[] sorts, long[] decl_symbols, long[] decls) {
+    return parse_smtlib2_file(context, filename, sort_symbols.length, sort_symbols, sorts, decl_symbols.length, decl_symbols, decls);
+  }
+
+  public static void parse_smtlib_string(long context, String str, long[] sort_symbols, long[] sorts, long[] decl_symbols, long[] decls) {
+    parse_smtlib_string(context, str, sort_symbols.length, sort_symbols, sorts, decl_symbols.length, decl_symbols, decls);
+  }
+
+  public static void parse_smtlib_file(long context, String filename, long[] sort_symbols, long[] sorts, long[] decl_symbols, long[] decls) {
+    parse_smtlib_string(context, filename, sort_symbols.length, sort_symbols, sorts, decl_symbols.length, decl_symbols, decls);
+  }
 
   public static native int get_smtlib_num_formulas(long context);
   public static native long get_smtlib_formula(long context, int i);

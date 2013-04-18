@@ -45,35 +45,50 @@ import com.google.common.base.Preconditions;
 public class Z3TheoremProver implements ProverEnvironment {
 
   private Z3FormulaManager mgr;
-  long z3context;
-  long z3solver;
+  private long z3context;
+  private long z3solver;
+  private final Z3SmtLogger smtLogger;
+  private int level = 0;
 
   public Z3TheoremProver(Z3FormulaManager mgr) {
     this.mgr = mgr;
     this.z3context = mgr.getContext();
     this.z3solver = mk_solver(z3context);
     solver_inc_ref(z3context, z3solver);
+    this.smtLogger = mgr.getSmtLogger();
   }
 
   @Override
   public void push(BooleanFormula pF) {
+    level++;
+
     Preconditions.checkArgument(z3context != 0);
     solver_push(z3context, z3solver);
     long e = Z3FormulaManager.getZ3Expr(pF);
     //    e = simplify(z3context, e);
     solver_assert(z3context, z3solver, e);
+
+    smtLogger.logPush(1);
+    smtLogger.logAssert(e);
   }
 
   @Override
   public void pop() {
+    level--;
+
     Preconditions.checkArgument(solver_get_num_scopes(z3context, z3solver) >= 1);
     solver_pop(z3context, z3solver, 1);
+
+    smtLogger.logPop(1);
   }
 
   @Override
   public boolean isUnsat() {
     int result = solver_check(z3context, z3solver);
     Preconditions.checkArgument(result != Z3_L_UNDEF);
+
+    smtLogger.logCheck();
+
     return result == Z3_L_FALSE;
   }
 
@@ -88,6 +103,12 @@ public class Z3TheoremProver implements ProverEnvironment {
   public void close() {
     Preconditions.checkArgument(z3context != 0);
     Preconditions.checkArgument(z3solver != 0);
+    Preconditions.checkArgument(solver_get_num_scopes(z3context, z3solver) >= 1);
+
+    while (level > 0) {
+      pop();
+    }
+
     //solver_reset(z3context, z3solver);
     solver_dec_ref(z3context, z3solver);
     z3context = 0;
@@ -114,10 +135,14 @@ public class Z3TheoremProver implements ProverEnvironment {
 
     solveTime.start();
     solver_push(z3context, z3solver);
+    smtLogger.logPush(1);
+    smtLogger.logCheck();
 
     while (solver_check(z3context, z3solver) == Z3_L_TRUE) {
       long[] valuesOfModel = new long[importantFormulas.length];
       long z3model = solver_get_model(z3context, z3solver);
+
+      smtLogger.logGetModel();
 
       for (int j = 0; j < importantFormulas.length; j++) {
         long funcDecl = get_app_decl(z3context, importantFormulas[j]);
@@ -135,6 +160,9 @@ public class Z3TheoremProver implements ProverEnvironment {
 
       long negatedModel = mk_not(z3context, mk_and(z3context, valuesOfModel));
       solver_assert(z3context, z3solver, negatedModel);
+
+      smtLogger.logAssert(negatedModel);
+      smtLogger.logCheck();
     }
 
     if (solveTime.isRunning()) {
@@ -145,6 +173,8 @@ public class Z3TheoremProver implements ProverEnvironment {
 
     // we pushed some levels on assertionStack, remove them and delete solver
     solver_pop(z3context, z3solver, 1);
+    smtLogger.logPop(1);
+
     return result;
   }
 

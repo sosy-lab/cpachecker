@@ -40,23 +40,25 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
 import com.google.common.base.Preconditions;
 
-
 public class Z3FormulaManager extends AbstractFormulaManager<Long> {
 
-  private long z3context;
-  private Z3FormulaCreator creator;
+  private final long z3context;
+  private final Z3FormulaCreator creator;
+  private final Z3SmtLogger z3smtLogger;
 
   private Z3FormulaManager(
       AbstractUnsafeFormulaManager<Long> pUnsafeManager,
       AbstractFunctionFormulaManager<Long> pFunctionManager,
       AbstractBooleanFormulaManager<Long> pBooleanManager,
       AbstractRationalFormulaManager<Long> pNumericManager,
-      AbstractBitvectorFormulaManager<Long> pBitpreciseManager) {
+      AbstractBitvectorFormulaManager<Long> pBitpreciseManager,
+      Z3SmtLogger smtLogger) {
 
     super(pUnsafeManager, pFunctionManager, pBooleanManager, pNumericManager, pBitpreciseManager);
     this.creator = (Z3FormulaCreator) getFormulaCreator();
     assert creator != null;
     this.z3context = creator.getEnv();
+    this.z3smtLogger = smtLogger;
   }
 
   public static synchronized Z3FormulaManager create(LogManager logger, Configuration config, boolean useIntegers)
@@ -65,9 +67,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     /*
     Following method is part of the file "api_interp.cpp" from Z3.
     It returns a default context, only some params are set.
-    We assume, that if we set the same params in a default context,
-    interpolation should be possible with that context.
-    TODO check this
+    We set the same params in a default context,
+    so that interpolation is possible.
 
     Z3_context Z3_mk_interpolation_context(Z3_config cfg){
       if(!cfg) cfg = Z3_mk_config();
@@ -84,7 +85,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     long cfg = mk_config();
     set_param_value(cfg, "MODEL", "true"); // this option is needed also without interpolation
     set_param_value(cfg, "PROOF", "true");
-    // TODO add some other params
+
+    // TODO add some other params, memory-limit?
 
     // we use the new reference-counting-context,
     // because it will be default sometimes in future, 22.03.2013
@@ -101,7 +103,6 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
 
     // we use those sorts multiple times and they are Z3_ASTs,
     // so we need to increment their reference-counters.
-    // TODO really??
     inc_ref(context, sort_to_ast(context, boolSort));
     inc_ref(context, sort_to_ast(context, numeralSort));
 
@@ -115,7 +116,23 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
       }
     };
 
-    Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, numeralSort, cbt);
+
+    // create logger for variables and set initial options in this logger,
+    // note: logger for the solvers are created later,
+    // they will not contain variable-declaration!
+    Z3SmtLogger smtLogger = new Z3SmtLogger(context, config);
+
+    // this options should match the option set above!
+    //    smtLogger.logOption("model", "true");
+    //    smtLogger.logOption("proof", "true");
+
+    // mathsat wants those 2 flags, they are ignored by other solvers
+    smtLogger.logOption("produce-models", "true");
+    smtLogger.logOption("produce-interpolants", "true");
+    smtLogger.logBracket("set-logic QF_UFLRA");
+
+
+    Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, numeralSort, cbt, smtLogger);
 
     // Create managers
     Z3UnsafeFormulaManager unsafeManager = new Z3UnsafeFormulaManager(creator);
@@ -126,13 +143,24 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
 
     Z3FormulaManager instance = new Z3FormulaManager(
         unsafeManager, functionTheory, booleanTheory,
-        rationalTheory, bitvectorTheory);
+        rationalTheory, bitvectorTheory, smtLogger);
     return instance;
   }
 
   @Override
-  public <T extends Formula> T parse(Class<T> pClazz, String pS) throws IllegalArgumentException {
-    throw new AssertionError("not implemented");
+  public <T extends Formula> T parse(Class<T> pClazz, String str) throws IllegalArgumentException {
+
+    // TODO do we need sorts or decls?
+    // the context should know them already,
+    // TODO check this
+    long[] sort_symbols = new long[0];
+    long[] sorts = new long[0];
+    long[] decl_symbols = new long[0];
+    long[] decls = new long[0];
+
+    long e = parse_smtlib2_string(z3context, str, sort_symbols, sorts, decl_symbols, decls);
+
+    return encapsulate(pClazz, e);
   }
 
 
@@ -179,6 +207,11 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
   @Override
   protected void finalize() {
     close_log();
+  }
+
+  /** returns a new logger with a new logfile. */
+  public Z3SmtLogger getSmtLogger() {
+    return new Z3SmtLogger(z3smtLogger);
   }
 
 }

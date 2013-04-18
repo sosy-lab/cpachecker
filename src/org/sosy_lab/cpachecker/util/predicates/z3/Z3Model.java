@@ -153,6 +153,8 @@ public class Z3Model {
     long z3model = solver_get_model(z3context, z3solver);
     model_inc_ref(z3context, z3model);
 
+    mgr.getSmtLogger().logGetModel();
+
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
 
     // TODO increment all ref-counters and decrement them later?

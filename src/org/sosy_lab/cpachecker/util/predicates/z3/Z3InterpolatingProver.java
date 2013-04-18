@@ -43,7 +43,8 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
   private final Z3FormulaManager mgr;
   private long z3context;
   private long z3solver;
-
+  private final Z3SmtLogger smtLogger;
+  private int level = 0;
   private List<Long> assertedFormulas = new LinkedList<>();
 
   public Z3InterpolatingProver(Z3FormulaManager mgr) {
@@ -51,21 +52,32 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
     this.z3context = mgr.getContext();
     this.z3solver = mk_solver(z3context);
     solver_inc_ref(z3context, z3solver);
+    this.smtLogger = mgr.getSmtLogger();
   }
 
   @Override
   public Long push(BooleanFormula f) {
+    level++;
+
     long e = Z3FormulaManager.getZ3Expr(f);
     solver_push(z3context, z3solver);
     solver_assert(z3context, z3solver, e);
     assertedFormulas.add(e);
+
+    smtLogger.logPush(1);
+    smtLogger.logInterpolationAssert(e);
+
     return e;
   }
 
   @Override
   public void pop() {
+    level--;
+
     assertedFormulas.remove(assertedFormulas.size() - 1); // remove last
     solver_pop(z3context, z3solver, 1);
+
+    smtLogger.logPop(1);
   }
 
   @Override
@@ -73,6 +85,9 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
     Preconditions.checkState(z3context != 0);
     Preconditions.checkState(z3solver != 0);
     int result = solver_check(z3context, z3solver);
+
+    smtLogger.logCheck();
+
     Preconditions.checkState(result != Z3_L_UNDEF);
     return result == Z3_L_FALSE;
   }
@@ -111,9 +126,13 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
     //    int[] parents = new int[0]; // this line is not working
     long[] theory = new long[0]; // do we need a theory?
 
+    long[] interpolationFormulas = new long[] { fA, fB };
+
     // get interpolant of groups
     int isSat = interpolateSeq(
-        z3context, new long[] { fA, fB }, itps, model, labels, 0, theory);
+        z3context, interpolationFormulas, itps, model, labels, 0, theory);
+
+    smtLogger.logInterpolation(formulasOfA);
 
     assert isSat != Z3_L_TRUE;
     BooleanFormula f = mgr.encapsulate(BooleanFormula.class, itps[0]);
@@ -135,6 +154,11 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
   public void close() {
     Preconditions.checkState(z3context != 0);
     Preconditions.checkState(z3solver != 0);
+
+    while (level > 0) {
+      pop();
+    }
+
     assertedFormulas = null;
     //TODO solver_reset(z3context, z3solver);
     solver_dec_ref(z3context, z3solver);

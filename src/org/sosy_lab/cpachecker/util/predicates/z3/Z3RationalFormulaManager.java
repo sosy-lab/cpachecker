@@ -38,12 +38,12 @@ import com.google.common.collect.ImmutableList;
 
 public class Z3RationalFormulaManager extends AbstractRationalFormulaManager<Long> {
 
-  private long z3context;
-  private Z3FormulaCreator creator;
-  private Z3FunctionType<RationalFormula> multUfDecl;
-  private Z3FunctionType<RationalFormula> divUfDecl;
-  private Z3FunctionType<RationalFormula> modUfDecl;
-  private Z3FunctionFormulaManager functionManager;
+  private final long z3context;
+  private final Z3FormulaCreator creator;
+  private final Z3FunctionType<RationalFormula> multUfDecl;
+  private final Z3FunctionType<RationalFormula> divUfDecl;
+  private final Z3FunctionType<RationalFormula> modUfDecl;
+  private final Z3FunctionFormulaManager functionManager;
 
   public Z3RationalFormulaManager(
       Z3FormulaCreator pCreator,
@@ -56,7 +56,6 @@ public class Z3RationalFormulaManager extends AbstractRationalFormulaManager<Lon
     multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
     divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
     modUfDecl = functionManager.createFunction(ModUfName, formulaType, formulaType, formulaType);
-
   }
 
   @Override
@@ -67,8 +66,8 @@ public class Z3RationalFormulaManager extends AbstractRationalFormulaManager<Lon
 
   @Override
   protected Long makeVariableImpl(String varName) {
-    long t = creator.getNumberType();
-    return creator.makeVariable(t, varName);
+    long type = creator.getNumberType();
+    return creator.makeVariable(type, varName);
   }
 
   private Long makeUf(FunctionFormulaType<RationalFormula> decl, Long t1, Long t2) {
