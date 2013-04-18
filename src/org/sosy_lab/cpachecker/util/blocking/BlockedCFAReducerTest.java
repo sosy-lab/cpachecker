@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 @SuppressWarnings("unused")
 public class BlockedCFAReducerTest {
 
-  public class ReducerUnderTest extends BlockedCFAReducer {
+  public static class ReducerUnderTest extends BlockedCFAReducer {
 
     public ReducerUnderTest(Configuration pConfig) throws InvalidConfigurationException {
       super(pConfig);

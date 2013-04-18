@@ -62,6 +62,12 @@ public class BinaryNot<ConstantType> implements InvariantsFormula<ConstantType> 
     return pVisitor.visit(this);
   }
 
+  @Override
+  public <ReturnType, ParamType> ReturnType accept(
+      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+    return pVisitor.visit(this, pParameter);
+  }
+
   static <ConstantType> BinaryNot<ConstantType> of(InvariantsFormula<ConstantType> pToFlip) {
     return new BinaryNot<>(pToFlip);
   }

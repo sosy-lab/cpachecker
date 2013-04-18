@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -553,23 +552,20 @@ public class BlockFormulaSlicer {
    * The FUNCTION_RETURN_VARIABLE is equal to the right side ("x"). */
   private boolean handleReturnStatement(CReturnStatementEdge edge,
       Collection<String> importantVars) {
-    CRightHandSide rhs = edge.getExpression();
+    CExpression rhs = edge.getExpression();
 
     if (rhs == null) {
       return false;
 
-    } else if (rhs instanceof CExpression) {
+    } else {
 
       String functionName = edge.getPredecessor().getFunctionName();
       if (importantVars.remove(buildVarName(functionName, FUNCTION_RETURN_VARIABLE))) {
-        addAllVarsFromExpr((CExpression) rhs, functionName, importantVars);
+        addAllVarsFromExpr(rhs, functionName, importantVars);
         return true;
       } else {
         return false;
       }
-
-    } else {
-      throw new AssertionError(edge.getRawStatement());
     }
   }
 

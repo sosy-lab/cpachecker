@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.div;
 
 import java.io.PrintStream;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 
@@ -66,9 +68,11 @@ public abstract class RefinementStrategy {
 
 
   private final BooleanFormulaManagerView bfmgr;
+  private final Solver solver;
 
-  public RefinementStrategy(BooleanFormulaManagerView pBfmgr) {
+  public RefinementStrategy(BooleanFormulaManagerView pBfmgr, Solver pSolver) {
     bfmgr = pBfmgr;
+    solver = pSolver;
   }
 
 
@@ -86,6 +90,7 @@ public abstract class RefinementStrategy {
 
     List<ARGState> changedElements = new ArrayList<>();
     ARGState infeasiblePartOfART = lastElement;
+    boolean previousItpWasTrue = true;
     for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(pInterpolants, path)) {
       totalPathLengthToInfeasibility++;
       BooleanFormula itp = interpolationPoint.getFirst();
@@ -94,15 +99,25 @@ public abstract class RefinementStrategy {
       if (bfmgr.isTrue(itp)) {
         // do nothing
         totalUnchangedPrefixLength++;
+        previousItpWasTrue =  true;
         continue;
       }
 
       if (bfmgr.isFalse(itp)) {
         // we have reached the part of the path that is infeasible
         infeasiblePartOfART = w;
+        if (previousItpWasTrue) {
+          // If the previous itp was true, and the current one is false,
+          // this means that the code block between them is in itself infeasible.
+          // We can add this information to the cache to speed up later sat checks.
+          PredicateAbstractState s = extractStateByType(w, PredicateAbstractState.class);
+          BooleanFormula blockFormula = s.getAbstractionFormula().getBlockFormula().getFormula();
+          solver.addUnsatisfiableFormulaToCache(blockFormula);
+        }
         break;
       }
       totalNumberOfStatesWithNonTrivialInterpolant++;
+      previousItpWasTrue = false;
 
       if (!performRefinementForState(itp, w)) {
         changedElements.add(w);

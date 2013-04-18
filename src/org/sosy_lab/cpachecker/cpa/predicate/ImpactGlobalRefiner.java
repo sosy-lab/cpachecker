@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.Collections.unmodifiableList;
-import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.*;
+import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.strengthenStateWithInterpolant;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.div;
 
@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -83,10 +82,10 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
 
   private final LogManager logger;
 
-  private FormulaManagerView fmgr;
-  private Solver solver;
-  private FormulaManagerFactory factory;
-  private ARGCPA argCpa;
+  private final FormulaManagerView fmgr;
+  private final FormulaManagerFactory factory;
+  private final ARGCPA argCpa;
+  private final PredicateAbstractionManager predAbsMgr;
 
   // statistics
   private int refinementCalls = 0;
@@ -138,19 +137,19 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
                                     predicateCpa.getLogger(),
                                     (ARGCPA)pCpa,
                                     predicateCpa.getFormulaManager(),
-                                    predicateCpa.getSolver(),
-                                    predicateCpa.getFormulaManagerFactory());
+                                    predicateCpa.getFormulaManagerFactory(),
+                                    predicateCpa.getPredicateManager());
   }
 
   private ImpactGlobalRefiner(Configuration config, LogManager pLogger,
-      ARGCPA pArgCpa, FormulaManagerView pFmgr, Solver pSolver,
-      FormulaManagerFactory pFactory) {
+      ARGCPA pArgCpa, FormulaManagerView pFmgr,
+      FormulaManagerFactory pFactory, PredicateAbstractionManager pPredAbsMgr) {
 
     logger = pLogger;
     argCpa = pArgCpa;
     fmgr = pFmgr;
-    solver = pSolver;
     factory = pFactory;
+    predAbsMgr = pPredAbsMgr;
   }
 
   @Override
@@ -401,23 +400,15 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
   private boolean performRefinementForState(BooleanFormula interpolant,
       ARGState state) {
 
-    interpolant = fmgr.uninstantiate(interpolant);
-
-    BooleanFormula stateFormula = getStateFormula(state);
-
     interpolantCheckTime.start();
-    boolean isNewItp = !solver.implies(stateFormula, interpolant);
+    boolean stateChanged = strengthenStateWithInterpolant(interpolant, state,
+                                                          fmgr, predAbsMgr);
     interpolantCheckTime.stop();
 
-    if (isNewItp) {
-      addFormulaToState(interpolant, state, fmgr);
-      return false;
-    } else {
-      // If the currentItp is implied by the stateFormula,
-      // then we don't need any of the interpolants between the ARG root
-      // and this state.
-      return true;
-    }
+    // If the interpolant is implied by the current state formula,
+    // then we don't need any of the interpolants between the ARG root
+    // and this state.
+    return !stateChanged;
   }
 
   /**

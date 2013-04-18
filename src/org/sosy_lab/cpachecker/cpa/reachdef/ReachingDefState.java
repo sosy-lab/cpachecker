@@ -33,6 +33,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefinitionStorage;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -41,13 +42,15 @@ public class ReachingDefState implements AbstractState, Serializable {
 
   private static final long serialVersionUID = -7715698130795640052L;
 
+  private static final SerialProxyReach proxy = new SerialProxyReach();
+
   public static final ReachingDefState topElement = new ReachingDefState();
 
   private ReachingDefState stateOnLastFunctionCall;
 
-  private Map<String, Set<DefinitionPoint>> localReachDefs;
+  private transient Map<String, Set<DefinitionPoint>> localReachDefs;
 
-  private Map<String, Set<DefinitionPoint>> globalReachDefs;
+  private transient Map<String, Set<DefinitionPoint>> globalReachDefs;
 
   private ReachingDefState() {}
 
@@ -181,6 +184,46 @@ public class ReachingDefState implements AbstractState, Serializable {
     return map1;
   }
 
+  private Object writeReplace() throws ObjectStreamException {
+    if(this==topElement){
+      return proxy;
+    }else{
+      return this;
+
+    }
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+
+    out.writeInt(ReachingDefinitionStorage.getInstance().saveMap(localReachDefs));
+    out.writeInt(ReachingDefinitionStorage.getInstance().saveMap(globalReachDefs));
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+
+    int id;
+
+    id = in.readInt();
+    localReachDefs = ReachingDefinitionStorage.getInstance().getMap(id);
+
+    id = in.readInt();
+    globalReachDefs = ReachingDefinitionStorage.getInstance().getMap(id);
+  }
+
+
+  private static class SerialProxyReach implements Serializable {
+
+    private static final long serialVersionUID = 2843708585446089623L;
+
+    public SerialProxyReach() {}
+
+    private Object readResolve() throws ObjectStreamException {
+      return topElement;
+    }
+  }
+
   public interface DefinitionPoint {
 
   }
@@ -213,7 +256,7 @@ public class ReachingDefState implements AbstractState, Serializable {
     }
   }
 
-  public class ProgramDefinitionPoint implements DefinitionPoint, Serializable {
+  public static class ProgramDefinitionPoint implements DefinitionPoint, Serializable {
 
     private static final long serialVersionUID = -7601382286840053882L;
     private transient CFANode entry;
@@ -264,13 +307,11 @@ public class ReachingDefState implements AbstractState, Serializable {
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-      out.defaultWriteObject();
       out.writeInt(entry.getNodeNumber());
       out.writeInt(exit.getNodeNumber());
     }
 
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-      in.defaultReadObject();
       int nodeNumber = in.readInt();
       entry = GlobalInfo.getInstance().getCFAInfo().getNodeByNodeNumber(nodeNumber);
       nodeNumber = in.readInt();

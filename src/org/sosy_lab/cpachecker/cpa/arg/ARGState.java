@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.*;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.ArrayDeque;
@@ -41,7 +42,6 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 
 public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState> {
@@ -277,13 +277,15 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   private final Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
-    return Iterables.transform(elements, new Function<ARGState, Integer>() {
-      @Override
-      public Integer apply(ARGState pInput) {
-        return pInput.stateId;
-      }
-    });
+    return from(elements).transform(TO_STATE_ID);
   }
+
+  private static final Function<ARGState, Integer> TO_STATE_ID = new Function<ARGState, Integer>() {
+    @Override
+    public Integer apply(ARGState pInput) {
+      return pInput.stateId;
+    }
+  };
 
   // removal from ARG
 

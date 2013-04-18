@@ -115,12 +115,20 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public Region makeAnd(Region pF1, Region pF2) {
-    throw new UnsupportedOperationException();
+    SymbolicRegion r1 = (SymbolicRegion)pF1;
+    SymbolicRegion r2 = (SymbolicRegion)pF2;
+    assert r1.bfmgr == r2.bfmgr;
+
+    return new SymbolicRegion(r1.bfmgr, r1.bfmgr.and(r1.f, r2.f));
   }
 
   @Override
   public Region makeOr(Region pF1, Region pF2) {
-    throw new UnsupportedOperationException();
+    SymbolicRegion r1 = (SymbolicRegion)pF1;
+    SymbolicRegion r2 = (SymbolicRegion)pF2;
+    assert r1.bfmgr == r2.bfmgr;
+
+    return new SymbolicRegion(r1.bfmgr, r1.bfmgr.or(r1.f, r2.f));
   }
 
   @Override

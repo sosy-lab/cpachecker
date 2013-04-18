@@ -24,9 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -155,15 +154,11 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * @return the current interpolant with the respective variables removed
    */
   private Map<String, Long> clearInterpolant(Map<String, Long> currentInterpolant, String functionName) {
-    List<String> toDrop = new ArrayList<>();
-
-    for (String variableName : currentInterpolant.keySet()) {
-      if (variableName.startsWith(functionName + "::")) {
-        toDrop.add(variableName);
+    for (Iterator<String> variableNames = currentInterpolant.keySet().iterator(); variableNames.hasNext(); ) {
+      if (variableNames.next().startsWith(functionName + "::")) {
+        variableNames.remove();
       }
     }
-
-    currentInterpolant.keySet().remove(toDrop);
 
     return currentInterpolant;
   }

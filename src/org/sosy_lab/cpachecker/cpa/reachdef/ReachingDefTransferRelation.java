@@ -241,7 +241,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     return pState;
   }
 
-  private class VariableExtractor extends DefaultCExpressionVisitor<String, UnsupportedCCodeException> {
+  private static class VariableExtractor extends DefaultCExpressionVisitor<String, UnsupportedCCodeException> {
 
     private CFAEdge edgeForExpression;
     private String warning;

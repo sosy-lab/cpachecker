@@ -116,7 +116,7 @@ public class RTTTransferRelation implements TransferRelation {
       JExpression exp = (JExpression) assumeEdge.getExpression();
 
       successor =
-          handleAssumption(rttState.clone(),
+          handleAssumption(RTTState.copyOf(rttState),
               exp, cfaEdge,
               assumeEdge.getTruthAssumption());
       break;
@@ -136,7 +136,7 @@ public class RTTTransferRelation implements TransferRelation {
       break;
 
     default:
-      successor = rttState.clone();
+      successor = RTTState.copyOf(rttState);
       handleSimpleEdge(successor, cfaEdge);
     }
 
@@ -433,7 +433,7 @@ public class RTTTransferRelation implements TransferRelation {
     FunctionSummaryEdge summaryEdge    = functionReturnEdge.getSummaryEdge();
     JMethodOrConstructorInvocation exprOnSummary  = (JMethodOrConstructorInvocation) summaryEdge.getExpression();
 
-    RTTState newElement  = element.clone();
+    RTTState newElement  = RTTState.copyOf(element);
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
 
@@ -478,7 +478,7 @@ public class RTTTransferRelation implements TransferRelation {
   private RTTState handleFunctionCall(RTTState element, FunctionCallEdge callEdge)
       throws UnrecognizedCCodeException {
 
-    RTTState newElement = element.clone();
+    RTTState newElement = RTTState.copyOf(element);
 
     FunctionEntryNode functionEntryNode = callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();

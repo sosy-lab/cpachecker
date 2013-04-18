@@ -176,9 +176,9 @@ public class CompoundState {
   public CompoundState intersectWith(CompoundState pOther) {
     if (isBottom() || pOther.isTop() || this == pOther) { return this; }
     if (isTop() || pOther.isBottom()) { return pOther; }
-    CompoundState result = this;
+    CompoundState result = bottom();
     for (SimpleInterval otherInterval : pOther.intervals) {
-      result = result.intersectWith(otherInterval);
+      result = result.unionWith(intersectWith(otherInterval));
     }
     return result;
   }
@@ -516,6 +516,18 @@ public class CompoundState {
    */
   public CompoundState add(final BigInteger pValue) {
     return applyOperationToAllAndUnite(ISCOperator.ADD_OPERATOR, pValue);
+  }
+
+  /**
+   * Computes the state resulting from adding the given value to this
+   * state.
+   *
+   * @param pValue the value to add to this state.
+   * @return the state resulting from adding the given value to this
+   * state.
+   */
+  public CompoundState add(final long pValue) {
+    return add(BigInteger.valueOf(pValue));
   }
 
   /**

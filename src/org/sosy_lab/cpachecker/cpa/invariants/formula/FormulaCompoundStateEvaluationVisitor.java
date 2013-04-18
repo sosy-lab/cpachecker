@@ -29,104 +29,98 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
 
 public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationVisitor<CompoundState> {
 
-  private final Map<String, InvariantsFormula<CompoundState>> environment;
-
-  public FormulaCompoundStateEvaluationVisitor(Map<String, InvariantsFormula<CompoundState>> environment) {
-    this.environment = environment;
+  @Override
+  public CompoundState visit(Add<CompoundState> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pAdd.getSummand1().accept(this, pEnvironment).add(pAdd.getSummand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(Add<CompoundState> pAdd) {
-    return pAdd.getSummand1().accept(this).add(pAdd.getSummand2().accept(this));
+  public CompoundState visit(BinaryAnd<CompoundState> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pAnd.getOperand1().accept(this, pEnvironment).binaryAnd(pAnd.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(BinaryAnd<CompoundState> pAnd) {
-    return pAnd.getOperand1().accept(this).binaryAnd(pAnd.getOperand2().accept(this));
+  public CompoundState visit(BinaryNot<CompoundState> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pNot.getFlipped().accept(this, pEnvironment).binaryNot();
   }
 
   @Override
-  public CompoundState visit(BinaryNot<CompoundState> pNot) {
-    return pNot.getFlipped().accept(this).binaryNot();
+  public CompoundState visit(BinaryOr<CompoundState> pOr, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pOr.getOperand1().accept(this, pEnvironment).binaryOr(pOr.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(BinaryOr<CompoundState> pOr) {
-    return pOr.getOperand1().accept(this).binaryOr(pOr.getOperand2().accept(this));
+  public CompoundState visit(BinaryXor<CompoundState> pXor, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pXor.getOperand1().accept(this, pEnvironment).binaryXor(pXor.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(BinaryXor<CompoundState> pXor) {
-    return pXor.getOperand1().accept(this).binaryXor(pXor.getOperand2().accept(this));
-  }
-
-  @Override
-  public CompoundState visit(Constant<CompoundState> pConstant) {
+  public CompoundState visit(Constant<CompoundState> pConstant, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     return pConstant.getValue();
   }
 
   @Override
-  public CompoundState visit(Divide<CompoundState> pDivide) {
-    return pDivide.getNumerator().accept(this).divide(pDivide.getDenominator().accept(this));
+  public CompoundState visit(Divide<CompoundState> pDivide, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pDivide.getNumerator().accept(this, pEnvironment).divide(pDivide.getDenominator().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(Equal<CompoundState> pEqual) {
-    return pEqual.getOperand1().accept(this).logicalEquals(pEqual.getOperand2().accept(this));
+  public CompoundState visit(Equal<CompoundState> pEqual, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pEqual.getOperand1().accept(this, pEnvironment).logicalEquals(pEqual.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(LessThan<CompoundState> pLessThan) {
-    return pLessThan.getOperand1().accept(this).lessThan(pLessThan.getOperand2().accept(this));
+  public CompoundState visit(LessThan<CompoundState> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pLessThan.getOperand1().accept(this, pEnvironment).lessThan(pLessThan.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(LogicalAnd<CompoundState> pAnd) {
-    return pAnd.getOperand1().accept(this).logicalAnd(pAnd.getOperand2().accept(this));
+  public CompoundState visit(LogicalAnd<CompoundState> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pAnd.getOperand1().accept(this, pEnvironment).logicalAnd(pAnd.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(LogicalNot<CompoundState> pNot) {
-    return pNot.getNegated().accept(this).logicalNot();
+  public CompoundState visit(LogicalNot<CompoundState> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pNot.getNegated().accept(this, pEnvironment).logicalNot();
   }
 
   @Override
-  public CompoundState visit(Modulo<CompoundState> pModulo) {
-    return pModulo.getNumerator().accept(this).modulo(pModulo.getDenominator().accept(this));
+  public CompoundState visit(Modulo<CompoundState> pModulo, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pModulo.getNumerator().accept(this, pEnvironment).modulo(pModulo.getDenominator().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(Multiply<CompoundState> pMultiply) {
-    return pMultiply.getFactor1().accept(this).multiply(pMultiply.getFactor2().accept(this));
+  public CompoundState visit(Multiply<CompoundState> pMultiply, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pMultiply.getFactor1().accept(this, pEnvironment).multiply(pMultiply.getFactor2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(Negate<CompoundState> pNegate) {
-    return pNegate.accept(this).negate();
+  public CompoundState visit(Negate<CompoundState> pNegate, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pNegate.accept(this, pEnvironment).negate();
   }
 
   @Override
-  public CompoundState visit(ShiftLeft<CompoundState> pShiftLeft) {
-    return pShiftLeft.getShifted().accept(this).shiftLeft(pShiftLeft.getShiftDistance().accept(this));
+  public CompoundState visit(ShiftLeft<CompoundState> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pShiftLeft.getShifted().accept(this, pEnvironment).shiftLeft(pShiftLeft.getShiftDistance().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(ShiftRight<CompoundState> pShiftRight) {
-    return pShiftRight.getShifted().accept(this).shiftRight(pShiftRight.getShiftDistance().accept(this));
+  public CompoundState visit(ShiftRight<CompoundState> pShiftRight, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pShiftRight.getShifted().accept(this, pEnvironment).shiftRight(pShiftRight.getShiftDistance().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(Union<CompoundState> pUnion) {
-    return pUnion.getOperand1().accept(this).unionWith(pUnion.getOperand2().accept(this));
+  public CompoundState visit(Union<CompoundState> pUnion, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    return pUnion.getOperand1().accept(this, pEnvironment).unionWith(pUnion.getOperand2().accept(this, pEnvironment));
   }
 
   @Override
-  public CompoundState visit(Variable<CompoundState> pVariable) {
-    InvariantsFormula<CompoundState> varState = environment.get(pVariable.getName());
+  public CompoundState visit(Variable<CompoundState> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    InvariantsFormula<CompoundState> varState = pEnvironment.get(pVariable.getName());
     if (varState == null) {
       return CompoundState.top();
     }
-    return varState.accept(this);
+    return varState.accept(this, pEnvironment);
   }
 
   @Override

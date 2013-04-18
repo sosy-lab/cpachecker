@@ -170,7 +170,7 @@ public class SMGTest {
   }
 
   @Test
-  public void ConsistencyViolationInvalidRegionHasValue() {
+  public void ConsistencyViolationInvalidRegionHasValueTest() {
     smg.setValidity(obj1, false);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
     smg.setValidity(obj2, false);

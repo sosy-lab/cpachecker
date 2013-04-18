@@ -30,12 +30,12 @@ public class Interval {
   /**
    * the lower bound of the interval
    */
-  protected Long low;
+  private final Long low;
 
   /**
    * the upper bound of the interval
    */
-  protected Long high;
+  private final Long high;
 
   /**
    * an interval representing a false value
@@ -50,7 +50,10 @@ public class Interval {
   /**
    * This method acts as constructor for an empty interval.
    */
-  private Interval() { }
+  private Interval() {
+    this.low = null;
+    this.high = null;
+  }
 
   /**
    * This method acts as constructor for a single-value interval.
@@ -144,14 +147,6 @@ public class Interval {
     result = 31 * result + high.hashCode();
 
     return result;
-  }
-
-  /* (non-Javadoc)
-   * @see java.lang.Object#clone()
-   */
-  @Override
-  public Interval clone() {
-    return new Interval(low, high);
   }
 
   /**

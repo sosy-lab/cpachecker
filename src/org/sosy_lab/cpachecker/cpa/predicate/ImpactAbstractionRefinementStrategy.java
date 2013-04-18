@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -68,6 +69,9 @@ class ImpactAbstractionRefinementStrategy extends RefinementStrategy {
 
   @Option(description="When computing an abstraction during refinement, use only the interpolant as input, not the concrete block.")
   private boolean abstractInterpolantOnly = false;
+
+  @Option(description="Actually compute an abstraction, otherwise just convert the interpolants to BDDs as they are.")
+  private boolean doAbstractionComputation = true;
 
   private class Stats implements Statistics {
 
@@ -103,8 +107,8 @@ class ImpactAbstractionRefinementStrategy extends RefinementStrategy {
 
   protected ImpactAbstractionRefinementStrategy(final Configuration config, final LogManager logger,
       final FormulaManagerView pFmgr, final AbstractionManager pAmgr,
-      final PredicateAbstractionManager pPredAbsMgr) throws InvalidConfigurationException, CPAException {
-    super(pFmgr.getBooleanFormulaManager());
+      final PredicateAbstractionManager pPredAbsMgr, final Solver pSolver) throws InvalidConfigurationException, CPAException {
+    super(pFmgr.getBooleanFormulaManager(), pSolver);
     config.inject(this);
 
     amgr = pAmgr;
@@ -151,9 +155,14 @@ class ImpactAbstractionRefinementStrategy extends RefinementStrategy {
     // Compute an abstraction with the new predicates.
     stats.abstraction.start();
     AbstractionFormula newAbstraction;
-    if (abstractInterpolantOnly) {
+    if (!doAbstractionComputation) {
+      // Only create a BDD from itp without abstraction computation.
+      newAbstraction = predAbsMgr.buildAbstraction(fmgr.uninstantiate(itp), blockFormula);
+
+    } else if (abstractInterpolantOnly) {
       // Compute an abstraction of "itp"
       newAbstraction = predAbsMgr.buildAbstraction(itp, blockFormula, preds);
+
     } else {
       // Compute an abstraction of "lastAbstraction & blockFormula"
       newAbstraction = predAbsMgr.buildAbstraction(lastAbstraction, blockFormula, preds);

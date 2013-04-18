@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-public interface FormulaEvaluationVisitor<T> extends InvariantsFormulaVisitor<T, T> {
+import java.util.Map;
+
+public interface FormulaEvaluationVisitor<T> extends ParameterizedInvariantsFormulaVisitor<T, Map<? extends String, ? extends InvariantsFormula<T>>, T> {
 
   T top();
 

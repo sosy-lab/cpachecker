@@ -27,9 +27,9 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
@@ -40,26 +40,51 @@ class ImpactUtils {
   private ImpactUtils() {}
 
   /**
-   * Extract the (uninstantiated) state formula from an ARG state.
+   * Create an AbstractionFormula instance without actually computing an abstraction.
+   * @param uninstantiatedStateFormula The state formula (without SSA indices).
+   * @param instantiatedStateFormula The state formula (with SSA indices matching those of blockFormula).
+   * @param blockFormula The block formula.
+   * @param fmgr The formula manager.
+   * @return An AbstractionFormula instance with a SymbolicRegion
    */
-  static BooleanFormula getStateFormula(ARGState pARGState) {
-    return AbstractStates.extractStateByType(pARGState, PredicateAbstractState.class).getAbstractionFormula().asFormula();
+  private static AbstractionFormula createFakeAbstraction(
+      BooleanFormula uninstantiatedStateFormula,
+      BooleanFormula instantiatedStateFormula,
+      PathFormula blockFormula, FormulaManagerView fmgr) {
+
+    return new AbstractionFormula(fmgr,
+        new SymbolicRegionManager.SymbolicRegion(fmgr.getBooleanFormulaManager(), uninstantiatedStateFormula),
+        uninstantiatedStateFormula, instantiatedStateFormula, blockFormula);
   }
 
   /**
-   * Conjunctively add a formula to the state formula of an ARG state.
-   * @param f The (uninstantiated) formula to add.
-   * @param argState The state where to add the formula.
+   * Given a state and a valid interpolant for this state,
+   * strengthen the state by conjunctively adding the interpolant.
+   * This method does nothing if the interpolant is already implied
+   * by the state's state formula.
+   * @param itp The interpolant (with indices matching those of the state's abstraction).
+   * @param s The abstract state.
    * @param fmgr The formula manager.
+   * @param solver The SMT solver.
+   * @param predAbsMgr The predicate abstraction manager.
+   * @return True if the state was actually changed
+   * (i.e., the interpolant was not already implied by the state's state formula).
    */
-  static void addFormulaToState(BooleanFormula f, ARGState argState, FormulaManagerView fmgr) {
-    PredicateAbstractState predState = AbstractStates.extractStateByType(argState, PredicateAbstractState.class);
-    AbstractionFormula af = predState.getAbstractionFormula();
-    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
-    BooleanFormula newFormula = bfmgr.and(f, af.asFormula());
-    BooleanFormula instantiatedNewFormula = fmgr.instantiate(newFormula, predState.getPathFormula().getSsa());
-    AbstractionFormula newAF = new AbstractionFormula(fmgr, new SymbolicRegionManager.SymbolicRegion(bfmgr, newFormula), newFormula, instantiatedNewFormula, af.getBlockFormula());
-    predState.setAbstraction(newAF);
-  }
+  static boolean strengthenStateWithInterpolant(final BooleanFormula itp,
+      final ARGState s, final FormulaManagerView fmgr,
+      final PredicateAbstractionManager predAbsMgr) {
 
+    final PredicateAbstractState predState = AbstractStates.extractStateByType(s, PredicateAbstractState.class);
+
+    final BooleanFormula uninstantiatedItp = fmgr.uninstantiate(itp);
+    AbstractionFormula newAbstraction = ImpactUtils.createFakeAbstraction(uninstantiatedItp, itp, predState.getAbstractionFormula().getBlockFormula(), fmgr);
+
+    boolean isNewItp = !predAbsMgr.checkCoverage(predState.getAbstractionFormula(), newAbstraction);
+
+    if (isNewItp) {
+      newAbstraction = predAbsMgr.makeAnd(predState.getAbstractionFormula(), newAbstraction);
+      predState.setAbstraction(newAbstraction);
+    }
+    return isNewItp;
+  }
 }

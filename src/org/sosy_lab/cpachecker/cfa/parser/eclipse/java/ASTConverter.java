@@ -1352,7 +1352,7 @@ public class ASTConverter {
 
 
 
-    List<JClassType> subClassTypes = null;
+    List<JClassType> subClassTypes;
 
     if (instanceCompatible instanceof JInterfaceType) {
 
@@ -1370,6 +1370,9 @@ public class ASTConverter {
 
       firstCond = convertClassRunTimeCompileTimeAccord(fileloc, referenceVariable, instanceCompatible);
       if (subClassTypes.isEmpty()) { return firstCond; }
+
+    } else {
+      throw new AssertionError();
     }
 
     JBinaryExpression firstOrConnection;

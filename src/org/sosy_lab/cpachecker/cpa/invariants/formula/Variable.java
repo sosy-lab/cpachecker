@@ -62,8 +62,14 @@ public class Variable<ConstantType> implements InvariantsFormula<ConstantType> {
     return pVisitor.visit(this);
   }
 
+  @Override
+  public <ReturnType, ParamType> ReturnType accept(
+      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+    return pVisitor.visit(this, pParameter);
+  }
+
+
   static <ConstantType> Variable<ConstantType> of(String name) {
     return new Variable<>(name);
   }
-
 }

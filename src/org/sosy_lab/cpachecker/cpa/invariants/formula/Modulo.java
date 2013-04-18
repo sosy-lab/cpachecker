@@ -70,6 +70,12 @@ public class Modulo<ConstantType> implements InvariantsFormula<ConstantType> {
     return pVisitor.visit(this);
   }
 
+  @Override
+  public <ReturnType, ParamType> ReturnType accept(
+      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+    return pVisitor.visit(this, pParameter);
+  }
+
   static <ConstantType> Modulo<ConstantType> of(InvariantsFormula<ConstantType> pNumerator, InvariantsFormula<ConstantType> pDenominator) {
     return new Modulo<>(pNumerator, pDenominator);
   }

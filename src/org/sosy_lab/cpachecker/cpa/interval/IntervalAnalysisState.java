@@ -221,21 +221,17 @@ public class IntervalAnalysisState implements AbstractState {
     return true;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#clone()
-   */
-  @Override
-  public IntervalAnalysisState clone() {
-    IntervalAnalysisState newElement = new IntervalAnalysisState(previousState);
+  public static IntervalAnalysisState copyOf(IntervalAnalysisState old) {
+    IntervalAnalysisState newElement = new IntervalAnalysisState(old.previousState);
 
     // clone the intervals ...
-    for (String variableName : intervals.keySet()) {
-      newElement.intervals.put(variableName, getInterval(variableName).clone());
+    for (String variableName : old.intervals.keySet()) {
+      newElement.intervals.put(variableName, old.getInterval(variableName));
     }
 
     // ... and clone the reference count
-    for (String variableName : referenceCounts.keySet()) {
-      newElement.referenceCounts.put(variableName, getReferenceCount(variableName));
+    for (String variableName : old.referenceCounts.keySet()) {
+      newElement.referenceCounts.put(variableName, old.getReferenceCount(variableName));
     }
 
     return newElement;

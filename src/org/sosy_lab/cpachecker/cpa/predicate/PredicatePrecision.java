@@ -315,6 +315,8 @@ public class PredicatePrecision implements Precision {
   public boolean equals(Object pObj) {
     if (pObj == this) {
       return true;
+    } else if (pObj == null) {
+      return false;
     } else if (!(pObj.getClass().equals(PredicatePrecision.class))) {
       return false;
     } else {

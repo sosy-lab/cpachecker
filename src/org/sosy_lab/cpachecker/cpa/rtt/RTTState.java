@@ -291,12 +291,11 @@ public class RTTState extends AbstractAppender implements AbstractState {
 
 
 
-  @Override
-  public RTTState clone() {
+  public static RTTState copyOf(RTTState old) {
       Stack<String> newClassObjectStack = new Stack<>();
-      newClassObjectStack.addAll(classObjectStack);
+      newClassObjectStack.addAll(old.classObjectStack);
       //TODO Investigate if this works
-    return new RTTState(new HashMap<>(constantsMap), new HashMap<>(identificationMap), new HashMap<>(classTypeMap), classObjectScope, newClassObjectStack);
+    return new RTTState(new HashMap<>(old.constantsMap), new HashMap<>(old.identificationMap), new HashMap<>(old.classTypeMap), old.classObjectScope, newClassObjectStack);
   }
 
   @Override

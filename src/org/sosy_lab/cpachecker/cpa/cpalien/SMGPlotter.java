@@ -37,6 +37,10 @@ public final class SMGPlotter {
 
   public SMGPlotter() {} /* utility class */
 
+  private String convertToValidDot(String original){
+    return original.replaceAll("[:]", "_");
+  }
+
   public String smgAsDot(CLangSMG smg, String name, String location) {
     StringBuilder sb = new StringBuilder();
 
@@ -92,7 +96,11 @@ public final class SMGPlotter {
     pSb.append(newLineWithOffset("fontcolor=blue;"));
     pSb.append(newLineWithOffset("label=\"" + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
 
-    pSb.append(newLineWithOffset(smgScopeFrameAsDot(pStackFrame.getVariables(), String.valueOf(pIndex))));
+    HashMap<String, SMGObject> to_print = new HashMap<>();
+    to_print.putAll(pStackFrame.getVariables());
+    to_print.put(CLangStackFrame.RETVAL_LABEL, pStackFrame.getReturnObject());
+
+    pSb.append(newLineWithOffset(smgScopeFrameAsDot(to_print, String.valueOf(pIndex))));
 
     offset -= 2;
     pSb.append(newLineWithOffset("}"));
@@ -129,11 +137,11 @@ public final class SMGPlotter {
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()) + "[label=\"+" + pEdge.getOffset() + "b\"];";
+    return "value_" + pEdge.getValue() + " -> " + convertToValidDot(objectIndex.get(pEdge.getObject())) + "[label=\"+" + pEdge.getOffset() + "b\"];";
   }
 
-  private static String smgObjectAsDot(SMGObject pObject) {
-    return pObject.getLabel() + " [ shape=rectangle, label = \"" + pObject.toString() + "\"];";
+  private String smgObjectAsDot(SMGObject pObject) {
+    return this.convertToValidDot(pObject.getLabel()) + " [ shape=rectangle, label = \"" + pObject.toString() + "\"];";
   }
 
   private static String smgValueAsDot(int value) {

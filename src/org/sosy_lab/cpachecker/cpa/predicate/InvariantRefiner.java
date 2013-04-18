@@ -102,7 +102,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
 
     //prover = predicateCpa.getTheoremProver();
 
-    predicateRefinementStrategy = new PredicateAbstractionRefinementStrategy(config, logger, emgr, amgr);
+    predicateRefinementStrategy = new PredicateAbstractionRefinementStrategy(config, logger, emgr, amgr, predicateCpa.getSolver());
   }
 
   public static InvariantRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.*;
+import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.strengthenStateWithInterpolant;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -72,14 +72,15 @@ class ImpactRefinementStrategy extends RefinementStrategy {
   private final Stats stats = new Stats();
 
   private final FormulaManagerView fmgr;
-  private final Solver solver;
+  private final PredicateAbstractionManager predAbsMgr;
 
   protected ImpactRefinementStrategy(final Configuration config, final LogManager logger,
-      final FormulaManagerView pFmgr, final Solver pSolver) throws InvalidConfigurationException, CPAException {
-    super(pFmgr.getBooleanFormulaManager());
+      final FormulaManagerView pFmgr, final Solver pSolver,
+      final PredicateAbstractionManager pPredAbsMgr) throws InvalidConfigurationException, CPAException {
+    super(pFmgr.getBooleanFormulaManager(), pSolver);
 
-    solver = pSolver;
     fmgr = pFmgr;
+    predAbsMgr = pPredAbsMgr;
   }
 
   @Override
@@ -94,17 +95,10 @@ class ImpactRefinementStrategy extends RefinementStrategy {
   protected boolean performRefinementForState(BooleanFormula itp,
       ARGState w) {
 
-    itp = fmgr.uninstantiate(itp);
-    BooleanFormula stateFormula = getStateFormula(w);
-
     stats.itpCheck.start();
-    boolean isNewItp = !solver.implies(stateFormula, itp);
+    boolean stateChanged = strengthenStateWithInterpolant(itp, w, fmgr, predAbsMgr);
     stats.itpCheck.stop();
-
-    if (isNewItp) {
-      addFormulaToState(itp, w, fmgr);
-    }
-    return !isNewItp;
+    return !stateChanged;
   }
 
   /**

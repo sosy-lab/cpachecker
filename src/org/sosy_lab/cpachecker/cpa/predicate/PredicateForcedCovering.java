@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.strengthenStateWithInterpolant;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.toPercent;
 
@@ -54,9 +55,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager.SymbolicRegion;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -77,7 +76,7 @@ import com.google.common.collect.Lists;
  */
 public class PredicateForcedCovering implements ForcedCovering, StatisticsProvider {
 
-  private final class FCStatistics implements Statistics {
+  private static final class FCStatistics implements Statistics {
 
     private int attemptedForcedCoverings = 0;
     private int successfulForcedCoverings = 0;
@@ -105,7 +104,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
 
   private final FormulaManagerView fmgr;
   private final InterpolationManager imgr;
-  private final Solver solver;
+  private final PredicateAbstractionManager predAbsMgr;
 
   public PredicateForcedCovering(Configuration config, LogManager pLogger,
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -128,7 +127,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
                                                    predicateCpa.getFormulaManagerFactory(),
                                                    config, pLogger);
     fmgr = predicateCpa.getFormulaManager();
-    solver = predicateCpa.getSolver();
+    predAbsMgr = predicateCpa.getPredicateManager();
   }
 
   @Override
@@ -241,17 +240,9 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
             continue;
           }
 
-          itp = fmgr.uninstantiate(itp);
+          boolean stateChanged = strengthenStateWithInterpolant(itp, element, fmgr, predAbsMgr);
 
-          PredicateAbstractState predElement = getPredicateState(element);
-          AbstractionFormula af = predElement.getAbstractionFormula();
-          if (!solver.implies(af.asFormula(), itp)) {
-
-            BooleanFormula newFormula = bfmgr.and(itp, af.asFormula());
-            BooleanFormula instantiatedNewFormula = fmgr.instantiate(newFormula, predElement.getPathFormula().getSsa());
-            AbstractionFormula newAF = new AbstractionFormula(fmgr, new SymbolicRegion(bfmgr, newFormula), newFormula, instantiatedNewFormula, af.getBlockFormula());
-            predElement.setAbstraction(newAF);
-
+          if (stateChanged) {
             arg.removeCoverageOf(element);
           }
         }

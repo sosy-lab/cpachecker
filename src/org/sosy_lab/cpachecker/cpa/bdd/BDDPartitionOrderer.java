@@ -141,7 +141,7 @@ public class BDDPartitionOrderer {
   /** This Visitor collects all edges reachable from the a node
    * until a split-point (assumption) is reached.
    * The leaving edges of the splitpoint are cllected, too. */
-  private class CFAUntilSplitCollector implements CFAVisitor {
+  private static class CFAUntilSplitCollector implements CFAVisitor {
 
     private Set<CFAEdge> edges = new LinkedHashSet<>();
 

@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.util.logging.Level;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -46,12 +49,30 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
+enum SMGRuntimeCheck {
+  FORCED(-1),
+  NONE(0),
+  HALF(1),
+  FULL(2);
+
+  private final int id;
+  SMGRuntimeCheck(int id) { this.id = id; }
+  public int getValue() { return id; }
+
+  public boolean isFinerOrEqualThan(SMGRuntimeCheck other) {
+    return this.id >= other.id;
+  }
+}
+
 @Options(prefix="cpa.cpalien")
 public class CPAlienCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(CPAlienCPA.class);
   }
+
+  @Option(name="runtimeCheck", description = "Sets the level of runtime checking: NONE, HALF, FULL")
+  private SMGRuntimeCheck runtimeCheck = SMGRuntimeCheck.NONE;
 
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
@@ -67,12 +88,10 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
     machineModel = cfa.getMachineModel();
     logger = pLogger;
 
-    SMGDomain domain = new SMGDomain(); //TODO: Need to actually implement SMGDomain
-
-    abstractDomain = domain;
+    abstractDomain = new SMGDomain();
     mergeOperator = MergeSepOperator.getInstance();
-    stopOperator = new StopSepOperator(domain);
-    transferRelation = new SMGTransferRelation(config, logger, machineModel); //TODO: Implement transfer relation
+    stopOperator = new StopSepOperator(abstractDomain);
+    transferRelation = new SMGTransferRelation(config, logger, machineModel);
   }
 
   public MachineModel getMachineModel() {
@@ -107,8 +126,26 @@ public class CPAlienCPA implements ConfigurableProgramAnalysis {
   @Override
   public AbstractState getInitialState(CFANode pNode) {
     SMGState initState = new SMGState(logger, machineModel);
+
+    try {
+      initState.setRuntimeCheck(runtimeCheck);
+      //TODO: Just for debugging, remove later
+      initState.setRuntimeCheck(SMGRuntimeCheck.FULL);
+      initState.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    }
+    catch(SMGInconsistentException exc) {
+      logger.log(Level.SEVERE, exc.getMessage());
+    }
+
     CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
-    initState.addStackFrame(functionNode.getFunctionDefinition());
+    try {
+      initState.addStackFrame(functionNode.getFunctionDefinition());
+      initState.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    }
+    catch(SMGInconsistentException exc) {
+      logger.log(Level.SEVERE, exc.getMessage());
+    }
+
     return initState;
   }
 

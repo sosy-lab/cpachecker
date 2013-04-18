@@ -230,14 +230,14 @@ public class CFAUtils {
   /**
    * A predicate delegating to {@link CFANode#isLoopStart()}.
    */
-  public static Predicate<CFANode> IS_LOOP_NODE = new Predicate<CFANode>() {
+  public static final Predicate<CFANode> IS_LOOP_NODE = new Predicate<CFANode>() {
     @Override
     public boolean apply(@Nullable CFANode pInput) {
       return pInput.isLoopStart();
     }
   };
 
-  public static Function<CFANode, String> GET_FUNCTION = new Function<CFANode, String>() {
+  public static final Function<CFANode, String> GET_FUNCTION = new Function<CFANode, String>() {
     @Override
     public String apply(CFANode pInput) {
       return pInput.getFunctionName();
@@ -247,7 +247,7 @@ public class CFAUtils {
   /**
    * A comparator for comparing {@link CFANode}s by their line numbers.
    */
-  public static Comparator<CFANode> LINE_NUMBER_COMPARATOR = new Comparator<CFANode>() {
+  public static final Comparator<CFANode> LINE_NUMBER_COMPARATOR = new Comparator<CFANode>() {
     @Override
     public int compare(CFANode pO1, CFANode pO2) {
       return Ints.compare(pO1.getLineNumber(), pO2.getLineNumber());
