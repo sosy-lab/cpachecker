@@ -117,7 +117,7 @@ public class CompositeState implements AbstractWrapperState, Targetable, Partiti
         return true;
       }
 
-      if (CompositePartitionKey.class != pObj.getClass()) {
+      if (!(pObj instanceof CompositePartitionKey)) {
         return false;
       }
 

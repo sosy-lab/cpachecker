@@ -164,7 +164,7 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
 
   @Override
   public Boolean visit(Modulo<CompoundState> pModulo, InvariantsFormula<CompoundState> pOther) {
-    if (pOther instanceof Divide<?>) {
+    if (pOther instanceof Modulo<?>) {
       Modulo<CompoundState> other = (Modulo<CompoundState>) pOther;
       return visitNonCommutative(pModulo.getNumerator(), pModulo.getDenominator(),
           other.getNumerator(), other.getDenominator());

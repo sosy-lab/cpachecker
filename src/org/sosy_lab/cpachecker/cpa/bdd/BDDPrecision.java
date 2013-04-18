@@ -60,7 +60,7 @@ public class BDDPrecision implements Precision {
   public BDDPrecision(Configuration config, Optional<VariableClassification> vc)
       throws InvalidConfigurationException {
     config.inject(this);
-    if (forceTrackingPatternStr != "") {
+    if (!forceTrackingPatternStr.isEmpty()) {
       this.forceTrackingPattern = Pattern.compile(forceTrackingPatternStr);
     } else {
       this.forceTrackingPattern = null;
