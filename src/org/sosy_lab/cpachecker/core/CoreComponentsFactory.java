@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -89,6 +90,9 @@ public class CoreComponentsFactory {
 
   @Option(description="use a proof check algorithm to validate a previously generated proof")
   private boolean useProofCheckAlgorithm = false;
+
+  @Option(description = "do analysis and then check analysis result")
+  private boolean useResultCheckAlgorithm = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -148,6 +152,10 @@ public class CoreComponentsFactory {
 
       if (useAdjustableConditions) {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (useResultCheckAlgorithm) {
+        algorithm = new ResultCheckAlgorithm(algorithm, cpa, cfa, config, logger);
       }
     }
 
