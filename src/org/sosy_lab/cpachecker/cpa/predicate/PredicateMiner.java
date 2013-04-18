@@ -266,9 +266,7 @@ public class PredicateMiner {
           if (isAssumeEdge) {
             AssumeEdge assume = (AssumeEdge) e;
             if (v.getSecond() < maxBackscanPathAssumes) {
-              if (assume.getTruthAssumption()) {
-                result.put(targetNode, assume);
-              }
+              result.put(targetNode, assume);
             } else {
               continue;
             }
