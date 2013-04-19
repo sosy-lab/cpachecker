@@ -485,7 +485,7 @@ class Run():
         if returnsignal == 9 \
                 and MEMLIMIT in rlimits \
                 and self.memUsage \
-                and self.memUsage >= (rlimits[MEMLIMIT] * 1024 * 1024):
+                and int(self.memUsage) >= (rlimits[MEMLIMIT] * 1024 * 1024):
             self.status = 'OUT OF MEMORY'
 
         self.benchmark.outputHandler.outputAfterRun(self)
