@@ -27,8 +27,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -38,24 +36,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 class ImpactUtils {
 
   private ImpactUtils() {}
-
-  /**
-   * Create an AbstractionFormula instance without actually computing an abstraction.
-   * @param uninstantiatedStateFormula The state formula (without SSA indices).
-   * @param instantiatedStateFormula The state formula (with SSA indices matching those of blockFormula).
-   * @param blockFormula The block formula.
-   * @param fmgr The formula manager.
-   * @return An AbstractionFormula instance with a SymbolicRegion
-   */
-  private static AbstractionFormula createFakeAbstraction(
-      BooleanFormula uninstantiatedStateFormula,
-      BooleanFormula instantiatedStateFormula,
-      PathFormula blockFormula, FormulaManagerView fmgr) {
-
-    return new AbstractionFormula(fmgr,
-        new SymbolicRegionManager.SymbolicRegion(fmgr.getBooleanFormulaManager(), uninstantiatedStateFormula),
-        uninstantiatedStateFormula, instantiatedStateFormula, blockFormula);
-  }
 
   /**
    * Given a state and a valid interpolant for this state,
@@ -77,7 +57,7 @@ class ImpactUtils {
     final PredicateAbstractState predState = AbstractStates.extractStateByType(s, PredicateAbstractState.class);
 
     final BooleanFormula uninstantiatedItp = fmgr.uninstantiate(itp);
-    AbstractionFormula newAbstraction = ImpactUtils.createFakeAbstraction(uninstantiatedItp, itp, predState.getAbstractionFormula().getBlockFormula(), fmgr);
+    AbstractionFormula newAbstraction = predAbsMgr.buildAbstraction(uninstantiatedItp, predState.getAbstractionFormula().getBlockFormula());
 
     boolean isNewItp = !predAbsMgr.checkCoverage(predState.getAbstractionFormula(), newAbstraction);
 

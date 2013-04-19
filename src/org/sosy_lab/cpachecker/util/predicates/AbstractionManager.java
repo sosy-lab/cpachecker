@@ -281,6 +281,11 @@ public final class AbstractionManager {
   }
 
   public Region buildRegionFromFormula(BooleanFormula pF) {
+    if (rmgr instanceof SymbolicRegionManager) {
+      // optimization shortcut
+      return ((SymbolicRegionManager)rmgr).fromFormula(pF);
+    }
+
     // expect that pF is uninstantiated
     if (bfmgr.isFalse(pF)) {
       return getRegionCreator().makeFalse();

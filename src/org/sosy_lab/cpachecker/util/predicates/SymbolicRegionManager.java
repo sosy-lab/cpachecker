@@ -46,7 +46,7 @@ public class SymbolicRegionManager implements RegionManager {
     private final BooleanFormula f;
     private final BooleanFormulaManager bfmgr;
 
-    public SymbolicRegion(BooleanFormulaManager bfmgr, BooleanFormula pF) {
+    private SymbolicRegion(BooleanFormulaManager bfmgr, BooleanFormula pF) {
       f = checkNotNull(pF);
       this.bfmgr = bfmgr;
     }
@@ -78,6 +78,7 @@ public class SymbolicRegionManager implements RegionManager {
     }
   }
 
+  private final BooleanFormulaManager bfmgr;
   private final Solver solver;
 
   private final SymbolicRegion trueRegion;
@@ -85,9 +86,13 @@ public class SymbolicRegionManager implements RegionManager {
 
   public SymbolicRegionManager(FormulaManager fmgr, Solver pSolver) {
     solver = pSolver;
-    BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
     trueRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(true));
     falseRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(false));
+  }
+
+  Region fromFormula(BooleanFormula f) {
+    return new SymbolicRegion(bfmgr, f);
   }
 
   @Override
