@@ -251,14 +251,39 @@ public class SMGState implements AbstractQueryableState {
    * @param machineModel Currently used Machine Model
    * @throws SMGInconsistentException
    */
-  public void writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
+  public SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
+
+    if (pValue == null) {
+      pValue = heap.getNullValue();
+    }
+
     SMGEdgeHasValue new_edge = new SMGEdgeHasValue(pType, pOffset, pObject, pValue);
+
+    // Check if the edge is  not present already
+    Set<SMGEdgeHasValue> edges = heap.getValuesForObject(pObject);
+    if (edges.contains(new_edge)){
+      this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+      return new_edge;
+    }
+
+    // If the value is not in the SMG, we need to add it
     if ( ! heap.getValues().contains(pValue) ){
       heap.addValue(pValue);
     }
+
+    // We need to remove all non-zero overlapping edges
+    for (SMGEdgeHasValue hv : edges){
+      if (hv.getValue() != heap.getNullValue() && new_edge.overlapsWith(hv, heap.getMachineModel())){
+        heap.removeHasValueEdge(hv);
+      }
+    }
+
+    //TODO: Shrink overlapping zero edges
     heap.addHasValueEdge(new_edge);
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+
+    return new_edge;
   }
 
   /**
