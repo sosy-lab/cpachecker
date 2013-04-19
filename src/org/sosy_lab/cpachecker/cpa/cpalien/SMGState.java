@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.util.Set;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -257,6 +259,19 @@ public class SMGState implements AbstractQueryableState {
     }
     heap.addHasValueEdge(new_edge);
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+  }
+
+  /**
+   * Returns an unmodifiable set of {@link SMGEdgeHasValue} objects leading from
+   * {@link pObject}.
+   *
+   * Constant.
+   *
+   * @param pObject A source object
+   * @return A set of edges leading from an object.
+   */
+  public Set<SMGEdgeHasValue> getValuesForObject(SMGObject pObject) {
+    return heap.getValuesForObject(pObject);
   }
 
   /**
