@@ -171,6 +171,10 @@ public final class AbstractionManager {
    * to the BDD, in which each predicate is replaced with its definition)
    */
   public BooleanFormula toConcrete(Region af) {
+    if (rmgr instanceof SymbolicRegionManager) {
+      // optimization shortcut
+      return ((SymbolicRegionManager)rmgr).toFormula(af);
+    }
 
     Map<Region, BooleanFormula> cache;
     if (useCache) {

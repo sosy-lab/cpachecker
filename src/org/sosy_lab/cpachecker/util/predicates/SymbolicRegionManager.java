@@ -84,6 +84,8 @@ public class SymbolicRegionManager implements RegionManager {
   private final SymbolicRegion trueRegion;
   private final SymbolicRegion falseRegion;
 
+  private int predicateCount = 0;
+
   public SymbolicRegionManager(FormulaManager fmgr, Solver pSolver) {
     solver = pSolver;
     bfmgr = fmgr.getBooleanFormulaManager();
@@ -93,6 +95,10 @@ public class SymbolicRegionManager implements RegionManager {
 
   Region fromFormula(BooleanFormula f) {
     return new SymbolicRegion(bfmgr, f);
+  }
+
+  BooleanFormula toFormula(Region r) {
+    return ((SymbolicRegion)r).f;
   }
 
   @Override
@@ -115,7 +121,8 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public Region makeNot(Region pF) {
-    throw new UnsupportedOperationException();
+    SymbolicRegion r = (SymbolicRegion)pF;
+    return new SymbolicRegion(r.bfmgr, r.bfmgr.not(r.f));
   }
 
   @Override
@@ -158,7 +165,8 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public Region createPredicate() {
-    throw new UnsupportedOperationException();
+    return new SymbolicRegion(bfmgr,
+        bfmgr.makeVariable("__PREDICATE__" + predicateCount++));
   }
 
   @Override
