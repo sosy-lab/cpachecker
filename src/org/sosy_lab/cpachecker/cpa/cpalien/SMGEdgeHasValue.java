@@ -67,4 +67,44 @@ public class SMGEdgeHasValue extends SMGEdge {
 
     return true;
   }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + offset;
+    // "Do not use a hashCode() of CType"
+    // result = prime * result + ((type == null) ? 0 : type.hashCode());
+    // TODO: Ugly, ugly, ugly!
+    // I cannot obtain a hashcode of a type, therefore I cannot obtain hashcode
+    // of the Has-Value edge. *Seems* to work not, but is likely to cause
+    // problems in the future. Tread lightly.
+    result = prime * result + ((type == null) ? 0 : System.identityHashCode(type));
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (!super.equals(obj))
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    SMGEdgeHasValue other = (SMGEdgeHasValue) obj;
+    if (offset != other.offset)
+      return false;
+    if (type == null) {
+      if (other.type != null)
+        return false;
+     } else if (!type.equals(other.type))
+      return false;
+    return true;
+  }
 }
