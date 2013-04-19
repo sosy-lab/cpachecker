@@ -982,7 +982,7 @@ class OutputHandler:
         runElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeStr}))
         runElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeStr}))
         if run.memUsage is not None:
-            runElem.append(ET.Element("column", {"title": "memUsage", "value": run.memUsage}))
+            runElem.append(ET.Element("column", {"title": "memUsage", "value": str(run.memUsage)}))
 
         for column in run.columns:
             runElem.append(ET.Element("column",
@@ -1245,7 +1245,7 @@ def parseCloudResultFile(filePath):
         except ValueError:
             pass
         try:
-            memUsage = str(float(file.readline().split(":")[-1]));
+            memUsage = int(file.readline().split(":")[-1]);
         except ValueError:
             pass
         try:
