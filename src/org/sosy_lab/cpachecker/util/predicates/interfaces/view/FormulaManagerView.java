@@ -1176,7 +1176,7 @@ public class FormulaManagerView implements FormulaManager {
 
 
   public Collection<BooleanFormula> extractAtoms(BooleanFormula pFormula) {
-    return extractAtoms(pFormula, false, true);
+    return extractAtoms(pFormula, false, false);
   }
 
   public <T extends Formula> BooleanFormula toBooleanFormula(T pF) {

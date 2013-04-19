@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.NotSerializableException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -134,6 +135,8 @@ public class ProofGenerator {
       o.flush();
       zos.closeEntry();
       zos.close();
+    } catch (NotSerializableException eS){
+      logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage() + " does not implement Serializable interface");
     } catch (IOException e) {
       throw new RuntimeException(e);
     } finally {

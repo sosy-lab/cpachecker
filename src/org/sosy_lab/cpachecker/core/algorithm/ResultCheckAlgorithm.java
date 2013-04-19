@@ -68,7 +68,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
       if (checkTimer.getSumTime() != 0) {
         pOut.println("Speed up checking:        " + ((float) analysisTimer.getSumTime()) / checkTimer.getSumTime());
-        System.out.println(((float) analysisTimer.getSumTime()) / checkTimer.getSumTime());//TODO remove
+        //System.out.println(((float) analysisTimer.getSumTime()) / checkTimer.getSumTime());//TODO remove
       }
 
     }
