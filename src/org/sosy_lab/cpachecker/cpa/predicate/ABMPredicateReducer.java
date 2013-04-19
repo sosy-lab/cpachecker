@@ -388,10 +388,9 @@ public class ABMPredicateReducer implements Reducer {
     AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
 
     // create region predicates for every atom in formula
-    pamgr.extractPredicates(reducedAbstraction.asFormula());
+    pamgr.extractPredicates(reducedAbstraction.asInstantiatedFormula());
 
-
-    Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asFormula());
+    Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asInstantiatedFormula());
     Collection<AbstractionPredicate> relevantRootPredicates =
         relevantComputer.getRelevantPredicates(pReducedContext, rootPredicates);
     //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
