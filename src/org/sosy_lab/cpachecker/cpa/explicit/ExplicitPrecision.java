@@ -99,15 +99,27 @@ public class ExplicitPrecision implements Precision {
     }
   }
 
+
   /**
-   * copy constructor
+   * This constructor is used for refining the refinable component precision with the given increment.
    *
-   * @param original the ExplicitPrecision to copy
+   * @param original the ExplicitPrecision to refine
+   * @param increment the increment to refine with
    */
   public ExplicitPrecision(ExplicitPrecision original, Multimap<CFANode, String> increment) {
+    // refine the refinable component precision with the given increment
     refinablePrecision    = original.refinablePrecision.refine(increment);
+
+    // copy remaining fields from original
     blackListPattern      = original.blackListPattern;
     reachedSetThreshold   = original.reachedSetThreshold;
+
+    scoped                = original.scoped;
+
+    varClass              = original.varClass;
+    ignoreBoolean         = original.ignoreBoolean;
+    ignoreIntEqual        = original.ignoreIntEqual;
+    ignoreIntAdd          = original.ignoreIntAdd;
   }
 
   public RefinablePrecision getRefinablePrecision() {
