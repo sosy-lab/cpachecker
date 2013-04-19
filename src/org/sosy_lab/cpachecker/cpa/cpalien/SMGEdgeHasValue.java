@@ -68,6 +68,28 @@ public class SMGEdgeHasValue extends SMGEdge {
     return true;
   }
 
+  public boolean overlapsWith(SMGEdgeHasValue other, MachineModel pModel) {
+    if (this.object != other.object) {
+      throw new IllegalArgumentException("Call of overlapsWith() on Has-Value edges pair not originating from the same object");
+    }
+
+    int myStart = offset;
+    int otStart = other.getOffset();
+
+    int myEnd = myStart + pModel.getSizeof(type);
+    int otEnd = otStart + pModel.getSizeof(other.getType());
+
+    if (myStart < otStart) {
+      return (myEnd > otStart);
+
+    } else if ( otStart < myStart ) {
+      return (otEnd > myStart);
+    }
+
+    // Start offsets are equal, always overlap
+    return true;
+  }
+
   /* (non-Javadoc)
    * @see java.lang.Object#hashCode()
    */
