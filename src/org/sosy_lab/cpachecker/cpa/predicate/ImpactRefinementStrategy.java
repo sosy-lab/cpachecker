@@ -119,6 +119,12 @@ class ImpactRefinementStrategy extends RefinementStrategy {
     super(pFmgr.getBooleanFormulaManager(), pSolver);
     config.inject(this, ImpactRefinementStrategy.class);
 
+    if (!doAbstractionComputation && abstractInterpolantOnly) {
+      throw new InvalidConfigurationException(
+          "Setting cpa.predicate.refinement.abstractInterpolantOnly=true " +
+          "is not possible without cpa.predicate.refinement.doAbstractionComputation=true.");
+    }
+
     amgr = pAmgr;
     fmgr = pFmgr;
     predAbsMgr = pPredAbsMgr;
