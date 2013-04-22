@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.PrintStream;
@@ -80,6 +80,7 @@ class ImpactRefinementStrategy extends RefinementStrategy {
 
   private final Stats stats = new Stats();
 
+  private final FormulaManagerView fmgr;
   private final PredicateAbstractionManager predAbsMgr;
   private final ImpactUtility impact;
 
@@ -96,6 +97,7 @@ class ImpactRefinementStrategy extends RefinementStrategy {
           throws InvalidConfigurationException, CPAException {
     super(pFmgr.getBooleanFormulaManager(), pSolver);
 
+    fmgr = pFmgr;
     predAbsMgr = pPredAbsMgr;
     impact = new ImpactUtility(config, pAmgr, pFmgr, pPredAbsMgr);
   }
@@ -115,6 +117,8 @@ class ImpactRefinementStrategy extends RefinementStrategy {
   @Override
   protected boolean performRefinementForState(BooleanFormula itp,
       ARGState s) {
+    checkArgument(!fmgr.getBooleanFormulaManager().isTrue(itp));
+    checkArgument(!fmgr.getBooleanFormulaManager().isFalse(itp));
 
     boolean stateChanged = impact.strengthenStateWithInterpolant(
                                                        itp, s, lastAbstraction);

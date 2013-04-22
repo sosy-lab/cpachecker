@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.util.ArrayList;
@@ -116,15 +116,20 @@ final class ImpactUtility {
    */
   boolean strengthenStateWithInterpolant(final BooleanFormula itp,
       final ARGState s, final AbstractionFormula lastAbstraction) {
-    checkArgument(!fmgr.getBooleanFormulaManager().isTrue(itp));
-    checkArgument(!fmgr.getBooleanFormulaManager().isFalse(itp));
     checkState(lastAbstraction != null);
+
+    if (fmgr.getBooleanFormulaManager().isTrue(itp)) {
+      return false;
+    }
 
     // Extract predicates from interpolants.
     Collection<BooleanFormula> atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
     List<AbstractionPredicate> preds = new ArrayList<>(atoms.size());
     for (BooleanFormula atom : atoms) {
       preds.add(amgr.makePredicate(atom));
+    }
+    if (fmgr.getBooleanFormulaManager().isFalse(itp)) {
+      preds.add(amgr.makeFalsePredicate());
     }
 
     PredicateAbstractState predicateState = extractStateByType(s, PredicateAbstractState.class);

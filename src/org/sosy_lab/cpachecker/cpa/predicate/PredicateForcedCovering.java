@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.strengthenStateWithInterpolant;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.toPercent;
 
@@ -56,8 +55,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager.SymbolicRegion;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -104,6 +103,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   private final FormulaManagerView fmgr;
   private final InterpolationManager imgr;
   private final PredicateAbstractionManager predAbsMgr;
+  private final ImpactUtility impact;
 
   public PredicateForcedCovering(Configuration config, LogManager pLogger,
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -127,6 +127,8 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
                                                    config, pLogger);
     fmgr = predicateCpa.getFormulaManager();
     predAbsMgr = predicateCpa.getPredicateManager();
+    impact = new ImpactUtility(config, predicateCpa.getAbstractionManager(),
+        fmgr, predAbsMgr);
   }
 
   @Override
@@ -143,9 +145,6 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     }
 
     final PredicateAbstractState predicateElement = getPredicateState(pState);
-    if (!(predicateElement.getAbstractionFormula().asRegion() instanceof SymbolicRegion)) {
-      throw new CPAException("Cannot use PredicateForcedCovering with non-symbolic abstractions");
-    }
     if (!predicateElement.isAbstractionState()) {
       return false;
     }
@@ -182,21 +181,21 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         assert parentList.get(commonParentIdx).equals(candidateParentList.get(commonParentIdx)) : "Common prefix does not end with same element";
 
         final ARGState commonParent = parentList.get(commonParentIdx);
-        final List<ARGState> path = parentList.subList(commonParentIdx, parentList.size());
+        final List<ARGState> path = parentList.subList(commonParentIdx+1, parentList.size());
 
         // path is now the list of abstraction elements from the common ancestor
-        // of coveringCandidate and argState to argState (both states including):
-        // path = [commonParent; argState]
+        // of coveringCandidate and argState (excluding) to argState (including):
+        // path = ]commonParent; argState]
 
         // B) create list of formulas:
         // 1) state formula of commonParent instantiated with indices of commonParent
-        // 2) block formulas between commonParent to argState
+        // 2) block formulas between commonParent and argState
         // 3) negated state formula of reachedState instantiated with indices of argState
         List<BooleanFormula> formulas = new ArrayList<>(path.size()+1);
         {
           formulas.add(getPredicateState(commonParent).getAbstractionFormula().asInstantiatedFormula());
 
-          for (AbstractState pathElement : from(path).skip(1)) { // skip commonParent
+          for (AbstractState pathElement : path) {
             formulas.add(getPredicateState(pathElement).getAbstractionFormula().getBlockFormula().getFormula());
           }
 
@@ -205,7 +204,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
           assert !bfmgr.isTrue(stateFormula) : "Existing state with abstraction true would cover anyway, no forced covering needed";
           formulas.add(bfmgr.not(fmgr.instantiate(stateFormula, ssaMap)));
         }
-        assert formulas.size() == path.size() + 1;
+        assert formulas.size() == path.size() + 2;
 
         // C) Compute interpolants
         CounterexampleTraceInfo interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet());
@@ -222,20 +221,26 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         List<BooleanFormula> interpolants = interpolantInfo.getInterpolants();
         assert interpolants.size() == formulas.size() - 1 : "Number of interpolants is wrong";
 
+        // As the first interpolant is implied by the first formula,
+        // which is the state formula of commonParent,
+        // we do not need to strengthen the commonParent with the first interpolant.
+        interpolants = interpolants.subList(1, interpolants.size());
+
+        // This is always the abstraction of the abstraction state before the "current" one.
+        AbstractionFormula lastAbstraction = getPredicateState(commonParent).getAbstractionFormula();
+
         // D) update ARG
         for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(interpolants, path)) {
           BooleanFormula itp = interpolationPoint.getFirst();
           ARGState element = interpolationPoint.getSecond();
 
-          if (bfmgr.isTrue(itp)) {
-            continue;
-          }
-
-          boolean stateChanged = strengthenStateWithInterpolant(itp, element, fmgr, predAbsMgr);
-
+          boolean stateChanged = impact.strengthenStateWithInterpolant(
+                                                itp, element, lastAbstraction);
           if (stateChanged) {
             arg.removeCoverageOf(element);
           }
+
+          lastAbstraction = getPredicateState(element).getAbstractionFormula();
         }
 
         // For debugging, run stop operator on this element.
