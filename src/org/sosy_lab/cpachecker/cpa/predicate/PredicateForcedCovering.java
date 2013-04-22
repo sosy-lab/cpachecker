@@ -131,18 +131,19 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   }
 
   @Override
-  public boolean tryForcedCovering(AbstractState pElement, Precision pPrecision, ReachedSet pReached)
+  public boolean tryForcedCovering(final AbstractState pState,
+      final Precision pPrecision, final ReachedSet pReached)
       throws CPAException, InterruptedException {
-    ARGState argElement = (ARGState)pElement;
-    if (argElement.isCovered()) {
+    final ARGState argState = (ARGState)pState;
+    if (argState.isCovered()) {
       return false;
     }
 
-    if (pReached.getReached(pElement).size() <= 1) {
+    if (pReached.getReached(pState).size() <= 1) {
       return false;
     }
 
-    PredicateAbstractState predicateElement = getPredicateState(pElement);
+    final PredicateAbstractState predicateElement = getPredicateState(pState);
     if (!(predicateElement.getAbstractionFormula().asRegion() instanceof SymbolicRegion)) {
       throw new CPAException("Cannot use PredicateForcedCovering with non-symbolic abstractions");
     }
@@ -152,33 +153,33 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
 
     BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
     logger.log(Level.FINER, "Starting interpolation-based forced covering.");
-    logger.log(Level.ALL, "Attempting to force-cover", argElement);
+    logger.log(Level.ALL, "Attempting to force-cover", argState);
 
     ARGReachedSet arg = new ARGReachedSet(pReached);
 
-    List<ARGState> parentList = ImmutableList.copyOf(getParentAbstractionStates(argElement)).reverse();
+    List<ARGState> parentList = ImmutableList.copyOf(getParentAbstractionStates(argState)).reverse();
     Set<ARGState> parentSet = ImmutableSet.copyOf(parentList);
-    for (AbstractState reachedState : pReached.getReached(pElement)) {
-      if (pElement == reachedState) {
+    for (final AbstractState coveringCandidate : pReached.getReached(pState)) {
+      if (pState == coveringCandidate) {
         continue;
       }
 
-      if (stop.stop(argElement, Collections.singleton(reachedState), pPrecision)
-          || argElement.isCovered()) {
+      if (stop.stop(argState, Collections.singleton(coveringCandidate), pPrecision)
+          || argState.isCovered()) {
         stats.wasAlreadyCovered++;
-        logger.log(Level.FINER, "Element was covered by another element without strengthening");
+        logger.log(Level.FINER, "State was covered by another state without strengthening");
         return true;
       }
 
-      if (stop.isForcedCoveringPossible(pElement, reachedState, pPrecision)) {
+      if (stop.isForcedCoveringPossible(pState, coveringCandidate, pPrecision)) {
         stats.attemptedForcedCoverings++;
-        logger.log(Level.ALL, "Candidate for forced-covering is", reachedState);
+        logger.log(Level.ALL, "Candidate for forced-covering is", coveringCandidate);
 
-        List<ARGState> reachedParentList = ImmutableList.copyOf(getParentAbstractionStates((ARGState)reachedState)).reverse();
-        ARGState commonParent = Iterables.find(
-            reachedParentList,
+        List<ARGState> candidateParentList = ImmutableList.copyOf(getParentAbstractionStates((ARGState)coveringCandidate)).reverse();
+        final ARGState commonParent = Iterables.find(
+            candidateParentList,
             Predicates.in(parentSet));
-        assert commonParent != null : "Elements do not have common parent, but are in the same reached set";
+        assert commonParent != null : "States do not have common parent, but are in the same reached set";
 
 
         List<ARGState> path = new ArrayList<>();
@@ -190,16 +191,16 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         }
         path = Lists.reverse(path);
 
-        assert path.get(path.size()-1) == argElement : "Path does not end in the current element";
+        assert path.get(path.size()-1) == argState : "Path does not end in the current state";
 
         // path is now the list of abstraction elements from the common ancestor
-        // of reachedState and argElement (excluding) to argElement (including):
-        // path = ]commonParent; argElement]
+        // of coveringCandidate and argState (excluding) to argState (including):
+        // path = ]commonParent; argState]
 
         // create list of formulas:
         // 1) state formula of commonParent instantiated with indices of commonParent
-        // 2) block formulas from commonParent to argElement
-        // 3) negated state formula of reachedState instantiated with indices of argElement
+        // 2) block formulas from commonParent to argState
+        // 3) negated state formula of reachedState instantiated with indices of argState
         List<BooleanFormula> formulas = new ArrayList<>(path.size()+2);
         {
           formulas.add(getPredicateState(commonParent).getAbstractionFormula().asInstantiatedFormula());
@@ -208,13 +209,13 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
             formulas.add(getPredicateState(pathElement).getAbstractionFormula().getBlockFormula().getFormula());
           }
 
-          SSAMap ssaMap = getPredicateState(argElement).getPathFormula().getSsa().withDefault(1);
-          BooleanFormula stateFormula = getPredicateState(reachedState).getAbstractionFormula().asFormula();
-          assert !bfmgr.isTrue(stateFormula) : "Existing element with state true would cover anyway, no forced covering needed";
+          SSAMap ssaMap = getPredicateState(argState).getPathFormula().getSsa().withDefault(1);
+          BooleanFormula stateFormula = getPredicateState(coveringCandidate).getAbstractionFormula().asFormula();
+          assert !bfmgr.isTrue(stateFormula) : "Existing state with abstraction true would cover anyway, no forced covering needed";
           formulas.add(bfmgr.not(fmgr.instantiate(stateFormula, ssaMap)));
         }
 
-        path.add(0, commonParent); // now path is [commonParent; argElement] (including x and v)
+        path.add(0, commonParent); // now path is [commonParent; argState] (including both states)
         assert formulas.size() == path.size() + 1;
 
         CounterexampleTraceInfo interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet());
@@ -250,14 +251,14 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         // For debugging, run stop operator on this element.
         // However, ARGStopSep may return false although it is covered,
         // thus the second check.
-        assert stop.stop(argElement, Collections.singleton(reachedState), pPrecision)
-            || argElement.isCovered()
-            : "Forced covering did not cover element\n" + argElement + "\nwith\n" + reachedState;
+        assert stop.stop(argState, Collections.singleton(coveringCandidate), pPrecision)
+            || argState.isCovered()
+            : "Forced covering did not cover element\n" + argState + "\nwith\n" + coveringCandidate;
 
-        if (!argElement.isCovered()) {
-          argElement.setCovered((ARGState)reachedState);
+        if (!argState.isCovered()) {
+          argState.setCovered((ARGState)coveringCandidate);
         } else {
-          assert argElement.getCoveringState() == reachedState;
+          assert argState.getCoveringState() == coveringCandidate;
         }
 
         return true;
