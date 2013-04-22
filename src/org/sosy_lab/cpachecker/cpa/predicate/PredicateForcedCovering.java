@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.strengthenStateWithInterpolant;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.toPercent;
@@ -31,8 +32,8 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -63,11 +64,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 /**
  * An implementation of {@link ForcedCovering} which works with
@@ -157,8 +156,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
 
     ARGReachedSet arg = new ARGReachedSet(pReached);
 
-    List<ARGState> parentList = ImmutableList.copyOf(getParentAbstractionStates(argState)).reverse();
-    Set<ARGState> parentSet = ImmutableSet.copyOf(parentList);
+    List<ARGState> parentList = getAbstractionPathTo(argState);
     for (final AbstractState coveringCandidate : pReached.getReached(pState)) {
       if (pState == coveringCandidate) {
         continue;
@@ -175,37 +173,30 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         stats.attemptedForcedCoverings++;
         logger.log(Level.ALL, "Candidate for forced-covering is", coveringCandidate);
 
-        List<ARGState> candidateParentList = ImmutableList.copyOf(getParentAbstractionStates((ARGState)coveringCandidate)).reverse();
-        final ARGState commonParent = Iterables.find(
-            candidateParentList,
-            Predicates.in(parentSet));
-        assert commonParent != null : "States do not have common parent, but are in the same reached set";
+        // A) find common parent of argState and coveringCandidate
+        List<ARGState> candidateParentList = getAbstractionPathTo((ARGState)coveringCandidate);
+        final int commonParentIdx =
+            findLengthOfCommonPrefix(parentList, candidateParentList) - 1;
 
+        assert commonParentIdx >= 0 : "States do not have common parent, but are in the same reached set";
+        assert parentList.get(commonParentIdx).equals(candidateParentList.get(commonParentIdx)) : "Common prefix does not end with same element";
 
-        List<ARGState> path = new ArrayList<>();
-        for (ARGState pathElement : parentList) {
-          if (pathElement == commonParent) {
-            break;
-          }
-          path.add(pathElement);
-        }
-        path = Lists.reverse(path);
-
-        assert path.get(path.size()-1) == argState : "Path does not end in the current state";
+        final ARGState commonParent = parentList.get(commonParentIdx);
+        final List<ARGState> path = parentList.subList(commonParentIdx, parentList.size());
 
         // path is now the list of abstraction elements from the common ancestor
-        // of coveringCandidate and argState (excluding) to argState (including):
-        // path = ]commonParent; argState]
+        // of coveringCandidate and argState to argState (both states including):
+        // path = [commonParent; argState]
 
-        // create list of formulas:
+        // B) create list of formulas:
         // 1) state formula of commonParent instantiated with indices of commonParent
-        // 2) block formulas from commonParent to argState
+        // 2) block formulas between commonParent to argState
         // 3) negated state formula of reachedState instantiated with indices of argState
-        List<BooleanFormula> formulas = new ArrayList<>(path.size()+2);
+        List<BooleanFormula> formulas = new ArrayList<>(path.size()+1);
         {
           formulas.add(getPredicateState(commonParent).getAbstractionFormula().asInstantiatedFormula());
 
-          for (AbstractState pathElement : path) {
+          for (AbstractState pathElement : from(path).skip(1)) { // skip commonParent
             formulas.add(getPredicateState(pathElement).getAbstractionFormula().getBlockFormula().getFormula());
           }
 
@@ -214,10 +205,9 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
           assert !bfmgr.isTrue(stateFormula) : "Existing state with abstraction true would cover anyway, no forced covering needed";
           formulas.add(bfmgr.not(fmgr.instantiate(stateFormula, ssaMap)));
         }
-
-        path.add(0, commonParent); // now path is [commonParent; argState] (including both states)
         assert formulas.size() == path.size() + 1;
 
+        // C) Compute interpolants
         CounterexampleTraceInfo interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet());
 
         if (!interpolantInfo.isSpurious()) {
@@ -231,8 +221,8 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
 
         List<BooleanFormula> interpolants = interpolantInfo.getInterpolants();
         assert interpolants.size() == formulas.size() - 1 : "Number of interpolants is wrong";
-        assert interpolants.size() == path.size();
 
+        // D) update ARG
         for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(interpolants, path)) {
           BooleanFormula itp = interpolationPoint.getFirst();
           ARGState element = interpolationPoint.getSecond();
@@ -268,14 +258,42 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     return false;
   }
 
-  private Iterable<ARGState> getParentAbstractionStates(ARGState argElement) {
-    ARGPath pathToRoot = ARGUtils.getOnePathTo(argElement);
+  /**
+   * Return a list with all abstraction states on the path from the ARG root
+   * to the given element.
+   */
+  private ImmutableList<ARGState> getAbstractionPathTo(ARGState argState) {
+    ARGPath pathFromRoot = ARGUtils.getOnePathTo(argState);
 
-    return Iterables.filter(
-            Iterables.transform(pathToRoot, Pair.<ARGState>getProjectionToFirst()),
-        Predicates.compose(
-            PredicateAbstractState.FILTER_ABSTRACTION_STATES,
-            AbstractStates.toState(PredicateAbstractState.class)));
+    return from(pathFromRoot)
+        .transform(Pair.<ARGState>getProjectionToFirst())
+        .filter(Predicates.compose(
+                PredicateAbstractState.FILTER_ABSTRACTION_STATES,
+                AbstractStates.toState(PredicateAbstractState.class)))
+        .toList();
+  }
+
+  /**
+   * Given two Iterables, return the length of the common prefix of both Iterables.
+   * If there are no common elements in the beginning of the Iterables,
+   * 0 is returned.
+   * If one of the Iterables is fully contained in the other,
+   * the length of the shorter element is returned.
+   * @param i1 An Iterable.
+   * @param i2 An Iterable.
+   * @return A non-negative int giving a length.
+   */
+  private static int findLengthOfCommonPrefix(Iterable<?> i1, Iterable<?> i2) {
+    int i = 0;
+    Iterator<?> it1 = i1.iterator();
+    Iterator<?> it2 = i2.iterator();
+    while (it1.hasNext() && it2.hasNext()) {
+      if (!Objects.equal(it1.next(), it2.next())) {
+        break;
+      }
+      i++;
+    }
+    return i;
   }
 
   private static PredicateAbstractState getPredicateState(AbstractState pElement) {
