@@ -54,9 +54,6 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
   private final static Collection<Integer> nonAtomicOpTypes =
       Sets.newHashSet(Z3_OP_AND, Z3_OP_OR, Z3_OP_IMPLIES, Z3_OP_ITE, Z3_OP_NOT);
 
-  private final static Collection<Integer> expressionTypes =
-      Sets.newHashSet(Z3_APP_AST, Z3_NUMERAL_AST, Z3_QUANTIFIER_AST, Z3_VAR_AST);
-
   @Override
   public Formula encapsulateUnsafe(Long pL) {
     return creator.encapsulateUnsafe(pL);
@@ -80,8 +77,9 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
 
   @Override
   public boolean isVariable(Long t) {
-    long astKind = get_ast_kind(z3context, t);
-    return expressionTypes.contains(astKind) && (getArity(t) == 0);
+    if (isOP(z3context, t, Z3_OP_TRUE) || isOP(z3context, t, Z3_OP_FALSE)) { return false; }
+    int astKind = get_ast_kind(z3context, t);
+    return (astKind == Z3_APP_AST) && (getArity(t) == 0);
   }
 
   @Override
