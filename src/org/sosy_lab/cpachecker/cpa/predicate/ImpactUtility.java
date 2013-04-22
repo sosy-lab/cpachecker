@@ -138,6 +138,16 @@ final class ImpactUtility {
       return false;
     }
 
+    // Extract predicates from interpolants.
+    Collection<BooleanFormula> atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
+    List<AbstractionPredicate> preds = new ArrayList<>(atoms.size());
+    for (BooleanFormula atom : atoms) {
+      preds.add(amgr.makePredicate(atom));
+    }
+    if (fmgr.getBooleanFormulaManager().isFalse(itp)) {
+      preds.add(amgr.makeFalsePredicate());
+    }
+
     // Compute an abstraction with the new predicates.
     abstractionTime.start();
     AbstractionFormula newAbstraction;
@@ -145,25 +155,13 @@ final class ImpactUtility {
       // Only create a region from itp without abstraction computation.
       newAbstraction = predAbsMgr.buildAbstraction(fmgr.uninstantiate(itp), blockFormula);
 
+    } else if (abstractInterpolantOnly) {
+      // Compute an abstraction of "itp"
+      newAbstraction = predAbsMgr.buildAbstraction(itp, blockFormula, preds);
+
     } else {
-      // Extract predicates from interpolants.
-      Collection<BooleanFormula> atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
-      List<AbstractionPredicate> preds = new ArrayList<>(atoms.size());
-      for (BooleanFormula atom : atoms) {
-        preds.add(amgr.makePredicate(atom));
-      }
-      if (fmgr.getBooleanFormulaManager().isFalse(itp)) {
-        preds.add(amgr.makeFalsePredicate());
-      }
-
-      if (abstractInterpolantOnly) {
-        // Compute an abstraction of "itp"
-        newAbstraction = predAbsMgr.buildAbstraction(itp, blockFormula, preds);
-
-      } else {
-        // Compute an abstraction of "lastAbstraction & blockFormula"
-        newAbstraction = predAbsMgr.buildAbstraction(lastAbstraction, blockFormula, preds);
-      }
+      // Compute an abstraction of "lastAbstraction & blockFormula"
+      newAbstraction = predAbsMgr.buildAbstraction(lastAbstraction, blockFormula, preds);
     }
     abstractionTime.stop();
 
