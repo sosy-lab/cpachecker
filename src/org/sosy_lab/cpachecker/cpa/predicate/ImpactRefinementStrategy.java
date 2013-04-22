@@ -23,20 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -45,8 +41,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -55,30 +49,15 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
  * Refinement strategy similar based on the general idea of McMillan's Impact
  * algorithm: do not create a precision and remove parts from ARG,
  * but instead directly strengthen the states in the ARG using interpolants.
- * For the details on how to use the interpolants, there are three different
- * strategies that are explained in the description for
- * {@link #performRefinementForState(BooleanFormula, ARGState)}.
+ * There are different ways on how to use the interpolants,
+ * these are documented in the description of {@link ImpactUtility}.
  *
  * This class can be used both with and without BDDs.
  */
-@Options(prefix="cpa.predicate.refinement")
 class ImpactRefinementStrategy extends RefinementStrategy {
-
-  @Option(description="split each arithmetic equality into two inequalities when extracting predicates from interpolants")
-  private boolean splitItpAtoms = false;
-
-  @Option(description="If an abstraction is computed during refinement, "
-      + "use only the interpolant as input, not the concrete block.")
-  private boolean abstractInterpolantOnly = false;
-
-  @Option(description="Actually compute an abstraction, "
-      + "otherwise just convert the interpolants to BDDs as they are.")
-  private boolean doAbstractionComputation = false;
 
   private class Stats implements Statistics {
 
-    private final Timer abstraction = new Timer();
-    private final Timer itpCheck  = new Timer();
     private final Timer coverTime = new Timer();
     private final Timer argUpdate = new Timer();
 
@@ -89,21 +68,20 @@ class ImpactRefinementStrategy extends RefinementStrategy {
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      out.println("  Computing abstraction of itp:       " + abstraction);
-      out.println("  Checking whether itp is new:        " + itpCheck);
+      out.println("  Computing abstraction of itp:       " + impact.abstractionTime);
+      out.println("  Checking whether itp is new:        " + impact.itpCheckTime);
       out.println("  Coverage checks:                    " + coverTime);
       out.println("  ARG update:                         " + argUpdate);
       out.println();
-      out.println("Number of abstractions during refinements:  " + abstraction.getNumberOfIntervals());
+      out.println("Number of abstractions during refinements:  " + impact.abstractionTime.getNumberOfIntervals());
       ImpactRefinementStrategy.this.printStatistics(out);
     }
   }
 
   private final Stats stats = new Stats();
 
-  private final AbstractionManager amgr;
-  private final FormulaManagerView fmgr;
   private final PredicateAbstractionManager predAbsMgr;
+  private final ImpactUtility impact;
 
   // During the refinement of a single path,
   // a reference to the abstraction of the last state we have seen
@@ -117,17 +95,9 @@ class ImpactRefinementStrategy extends RefinementStrategy {
       final AbstractionManager pAmgr)
           throws InvalidConfigurationException, CPAException {
     super(pFmgr.getBooleanFormulaManager(), pSolver);
-    config.inject(this, ImpactRefinementStrategy.class);
 
-    if (!doAbstractionComputation && abstractInterpolantOnly) {
-      throw new InvalidConfigurationException(
-          "Setting cpa.predicate.refinement.abstractInterpolantOnly=true " +
-          "is not possible without cpa.predicate.refinement.doAbstractionComputation=true.");
-    }
-
-    amgr = pAmgr;
-    fmgr = pFmgr;
     predAbsMgr = pPredAbsMgr;
+    impact = new ImpactUtility(config, pAmgr, pFmgr, pPredAbsMgr);
   }
 
   @Override
@@ -139,83 +109,21 @@ class ImpactRefinementStrategy extends RefinementStrategy {
   /**
    * For each interpolant, we strengthen the corresponding state by
    * conjunctively adding the interpolant to its state formula.
-   *
-   * There are several strategies for handling the interpolant:
-   * 1) Do nothing, just convert it into a Region
-   * 2) Compute an abstraction of the interpolant.
-   * 3) Compute an abstraction of the preceding block using the predicates
-   *    from the interpolant just like predicate abstraction would do.
-   *
-   * All strategies can in principle be applied both with and without using BDDs,
-   * although some combinations will not make sense (especially 2) and 3)
-   * should be used only with BDDs).
-   * Strategy 1 without BDDs is exactly what Impact does and is very cheap.
-   * Strategy 3 with BDDs is similar to predicate abstraction,
-   * but the abstractions are computed during refinement instead of during the
-   * forward analysis.
-   *
-   * Note that the decision whether to use BDDs or not is not in the scope
-   * of this class.
+   * This is all implemented in
+   * {@link ImpactUtility#strengthenStateWithInterpolant(BooleanFormula, ARGState, AbstractionFormula)}.
    */
   @Override
   protected boolean performRefinementForState(BooleanFormula itp,
       ARGState s) {
-    checkArgument(!fmgr.getBooleanFormulaManager().isTrue(itp));
-    checkArgument(!fmgr.getBooleanFormulaManager().isFalse(itp));
-    checkState(lastAbstraction != null);
 
-    // Extract predicates from interpolants.
-    Collection<BooleanFormula> atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
-    List<AbstractionPredicate> preds = new ArrayList<>(atoms.size());
-    for (BooleanFormula atom : atoms) {
-      preds.add(amgr.makePredicate(atom));
-    }
+    boolean stateChanged = impact.strengthenStateWithInterpolant(
+                                                       itp, s, lastAbstraction);
 
-    PredicateAbstractState predicateState = extractStateByType(s, PredicateAbstractState.class);
+    // Get the abstraction formula of the current state
+    // (whether changed or not) to have it ready for the next call to this method).
+    lastAbstraction = extractStateByType(s, PredicateAbstractState.class).getAbstractionFormula();
 
-    // lastAbstraction is the abstraction that was computed at the end
-    // of the previous block in the last call to this method.
-
-    // existingAbstraction is the abstraction from the current abstract state
-    // that was computed before.
-    final AbstractionFormula existingAbstraction = predicateState.getAbstractionFormula();
-
-    // blockFormula is the concrete formula representing the current block.
-    PathFormula blockFormula = existingAbstraction.getBlockFormula();
-
-    // Compute an abstraction with the new predicates.
-    stats.abstraction.start();
-    AbstractionFormula newAbstraction;
-    if (!doAbstractionComputation) {
-      // Only create a BDD from itp without abstraction computation.
-      newAbstraction = predAbsMgr.buildAbstraction(fmgr.uninstantiate(itp), blockFormula);
-
-    } else if (abstractInterpolantOnly) {
-      // Compute an abstraction of "itp"
-      newAbstraction = predAbsMgr.buildAbstraction(itp, blockFormula, preds);
-
-    } else {
-      // Compute an abstraction of "lastAbstraction & blockFormula"
-      newAbstraction = predAbsMgr.buildAbstraction(lastAbstraction, blockFormula, preds);
-    }
-    stats.abstraction.stop();
-
-    stats.itpCheck.start();
-    boolean isNewItp = !predAbsMgr.checkCoverage(existingAbstraction, newAbstraction);
-    stats.itpCheck.stop();
-
-    if (isNewItp) {
-      // newAbs is not entailed by oldAbs,
-      // we need to strengthen the element
-      newAbstraction = predAbsMgr.makeAnd(existingAbstraction, newAbstraction);
-      predicateState.setAbstraction(newAbstraction);
-      lastAbstraction = newAbstraction;
-
-    } else {
-      // prepare for next call
-      lastAbstraction = existingAbstraction;
-    }
-    return !isNewItp;
+    return !stateChanged; // Careful: this method requires negated return value.
   }
 
   /**
