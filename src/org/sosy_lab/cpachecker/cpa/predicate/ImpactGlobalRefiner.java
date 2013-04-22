@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.Collections.unmodifiableList;
 import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.strengthenStateWithInterpolant;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.div;
 
 import java.io.PrintStream;
@@ -211,7 +211,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
       ARGState currentState = currentAbstractionState;
       do {
         currentState = currentState.getParents().iterator().next();
-      } while (!extractStateByType(currentState, PredicateAbstractState.class).isAbstractionState());
+      } while (!getPredicateState(currentState).isAbstractionState());
 
       if (!currentState.getParents().isEmpty()
           && !predecessors.containsKey(currentState)) {
@@ -281,7 +281,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
       assert succ.getChildren().isEmpty() == targets.contains(succ);
       assert succ.mayCover();
 
-      BooleanFormula blockFormula = extractStateByType(succ, PredicateAbstractState.class).getAbstractionFormula().getBlockFormula().getFormula();
+      BooleanFormula blockFormula = getPredicateState(succ).getAbstractionFormula().getBlockFormula().getFormula();
       itpStack.add(itpProver.push(blockFormula));
       try {
         satCheckTime.start();

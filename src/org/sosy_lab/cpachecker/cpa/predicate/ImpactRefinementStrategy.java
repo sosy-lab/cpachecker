@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.*;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -125,7 +125,7 @@ class ImpactRefinementStrategy extends RefinementStrategy {
 
     // Get the abstraction formula of the current state
     // (whether changed or not) to have it ready for the next call to this method).
-    lastAbstraction = extractStateByType(s, PredicateAbstractState.class).getAbstractionFormula();
+    lastAbstraction = getPredicateState(s).getAbstractionFormula();
 
     return !stateChanged; // Careful: this method requires negated return value.
   }

@@ -24,8 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
+
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -54,7 +55,7 @@ class ImpactUtils {
       final ARGState s, final FormulaManagerView fmgr,
       final PredicateAbstractionManager predAbsMgr) {
 
-    final PredicateAbstractState predState = AbstractStates.extractStateByType(s, PredicateAbstractState.class);
+    final PredicateAbstractState predState = getPredicateState(s);
 
     final BooleanFormula uninstantiatedItp = fmgr.uninstantiate(itp);
     AbstractionFormula newAbstraction = predAbsMgr.buildAbstraction(uninstantiatedItp, predState.getAbstractionFormula().getBlockFormula());

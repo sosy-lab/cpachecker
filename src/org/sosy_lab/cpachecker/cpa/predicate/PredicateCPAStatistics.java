@@ -25,7 +25,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.*;
 
 import java.io.IOException;
@@ -380,7 +381,7 @@ class PredicateCPAStatistics implements Statistics {
       for (AbstractState state : reached) {
         CFANode loc = extractLocation(state);
         if (loc.isLoopStart()) {
-          PredicateAbstractState predicateState = extractStateByType(state, PredicateAbstractState.class);
+          PredicateAbstractState predicateState = getPredicateState(state);
           if (!predicateState.isAbstractionState()) {
             cpa.getLogger().log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
             return;
@@ -428,7 +429,7 @@ class PredicateCPAStatistics implements Statistics {
       for (AbstractState state : reached) {
         CFANode loc = extractLocation(state);
         if (loc.isLoopStart()) {
-          PredicateAbstractState predicateState = extractStateByType(state, PredicateAbstractState.class);
+          PredicateAbstractState predicateState = getPredicateState(state);
           if (!predicateState.isAbstractionState()) {
             cpa.getLogger().log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
             return;

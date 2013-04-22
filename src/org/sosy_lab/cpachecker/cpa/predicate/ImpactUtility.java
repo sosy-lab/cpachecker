@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkState;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -122,8 +122,7 @@ final class ImpactUtility {
       return false;
     }
 
-    final PredicateAbstractState predicateState =
-        extractStateByType(s, PredicateAbstractState.class);
+    final PredicateAbstractState predicateState = getPredicateState(s);
 
     // lastAbstraction is the abstraction that was computed at the end
     // of the previous block in the last call to this method.

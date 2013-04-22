@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.getOnlyElement;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.PrintStream;
@@ -350,8 +351,8 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       openBlocks.push(partitioning.getMainBlock());
       for (ARGState pathElement : pPath) {
         CFANode currentNode = AbstractStates.extractLocation(pathElement);
-        Integer currentNodeInstance = AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class)
-                                                    .getAbstractionLocationsOnPath().get(currentNode);
+        Integer currentNodeInstance = getPredicateState(pathElement)
+                                      .getAbstractionLocationsOnPath().get(currentNode);
         if (partitioning.isCallNode(currentNode)) {
           openBlocks.push(partitioning.getBlockForCallNode(currentNode));
         }

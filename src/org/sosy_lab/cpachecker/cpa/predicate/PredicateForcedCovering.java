@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.toPercent;
 
 import java.io.PrintStream;
@@ -299,10 +299,6 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
       i++;
     }
     return i;
-  }
-
-  private static PredicateAbstractState getPredicateState(AbstractState pElement) {
-    return extractStateByType(pElement, PredicateAbstractState.class);
   }
 
   @Override

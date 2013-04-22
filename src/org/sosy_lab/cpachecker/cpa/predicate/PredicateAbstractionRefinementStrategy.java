@@ -24,8 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.*;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.*;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.io.File;
 import java.io.IOException;
@@ -191,7 +192,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     predicateCreation.start();
     Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant);
     CFANode loc = AbstractStates.extractLocation(interpolationPoint);
-    int locInstance = AbstractStates.extractStateByType(interpolationPoint, PredicateAbstractState.class)
+    int locInstance = getPredicateState(interpolationPoint)
                                     .getAbstractionLocationsOnPath().get(loc);
 
     newPredicates.putAll(Pair.of(loc, locInstance), localPreds);
@@ -258,7 +259,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     { // Add predicate "false" to unreachable location
       CFANode loc = extractLocation(pUnreachableState);
-      int locInstance = AbstractStates.extractStateByType(pUnreachableState, PredicateAbstractState.class)
+      int locInstance = getPredicateState(pUnreachableState)
                                        .getAbstractionLocationsOnPath().get(loc);
       newPredicates.put(Pair.of(loc, locInstance), amgr.makeFalsePredicate());
       pAffectedStates.add(pUnreachableState);
@@ -389,7 +390,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       while (!current.getParents().isEmpty()) {
         current = Iterables.get(current.getParents(), 0);
 
-        if (extractStateByType(current, PredicateAbstractState.class).isAbstractionState()) {
+        if (getPredicateState(current).isAbstractionState()) {
           CFANode loc = AbstractStates.extractLocation(current);
           if (loc.equals(firstInterpolationPointLocation)) {
             firstInterpolationPoint = current;
