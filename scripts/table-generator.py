@@ -502,7 +502,7 @@ class RunResult:
             for line in lines:
                 if identifier in line:
                     startPosition = line.find(':') + 1
-                    endPosition = line.find('(') # bracket maybe not found -> (-1)
+                    endPosition = line.find('(', startPosition) # bracket maybe not found -> (-1)
                     if (endPosition == -1):
                         return line[startPosition:].strip()
                     else:
