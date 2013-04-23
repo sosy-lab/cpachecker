@@ -113,7 +113,8 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     return ((Mathsat5Formula)pT).getTerm();
   }
 
-  public static synchronized Mathsat5FormulaManager create(LogManager logger, Configuration config) throws InvalidConfigurationException {
+  public static synchronized Mathsat5FormulaManager create(LogManager logger,
+      Configuration config, boolean useIntegers) throws InvalidConfigurationException {
     if (instance != null) {
       return instance;
     }
@@ -135,7 +136,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     final long msatEnv = msat_create_env(msatConf);
 
     // Create Mathsat5FormulaCreator
-    Mathsat5FormulaCreator creator = new Mathsat5FormulaCreator(msatEnv);
+    Mathsat5FormulaCreator creator = new Mathsat5FormulaCreator(msatEnv, useIntegers);
 
     // Create managers
     Mathsat5UnsafeFormulaManager unsafeManager = new Mathsat5UnsafeFormulaManager(creator);

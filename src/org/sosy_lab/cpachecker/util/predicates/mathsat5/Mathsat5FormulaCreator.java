@@ -34,10 +34,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractForm
 
 class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
 
-  public Mathsat5FormulaCreator(final Long msatEnv) {
+  public Mathsat5FormulaCreator(final Long msatEnv, final boolean useIntegers) {
     super(msatEnv,
         msat_get_bool_type(msatEnv),
-        msat_get_rational_type(msatEnv));
+        useIntegers ? msat_get_integer_type(msatEnv) : msat_get_rational_type(msatEnv));
   }
 
   @Override
