@@ -46,13 +46,17 @@ class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaManager<T
   private final SmtInterpolFunctionType<RationalFormula> modUfDecl;
   private final SmtInterpolFunctionFormulaManager functionManager;
 
+  private final boolean useIntegers;
+
   SmtInterpolRationalFormulaManager(
       SmtInterpolFormulaCreator pCreator,
-      SmtInterpolFunctionFormulaManager pFunctionManager) {
+      SmtInterpolFunctionFormulaManager pFunctionManager,
+      boolean pUseIntegers) {
     super(pCreator);
     creator = pCreator;
     env = pCreator.getEnv();
     functionManager = pFunctionManager;
+    useIntegers = pUseIntegers;
 
     FormulaType<RationalFormula> formulaType = FormulaType.RationalType;
     multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
@@ -62,7 +66,11 @@ class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaManager<T
 
   @Override
   protected Term makeNumberImpl(long i) {
-    return env.decimal(Long.toString(i));
+    if (useIntegers) {
+      return env.numeral(Long.toString(i));
+    } else {
+      return env.decimal(Long.toString(i));
+    }
   }
 
   @Override

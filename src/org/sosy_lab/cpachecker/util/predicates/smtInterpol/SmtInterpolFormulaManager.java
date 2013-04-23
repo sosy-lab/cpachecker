@@ -72,7 +72,7 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
     SmtInterpolUnsafeFormulaManager unsafeManager = new SmtInterpolUnsafeFormulaManager(creator);
     SmtInterpolFunctionFormulaManager functionTheory = new SmtInterpolFunctionFormulaManager(creator, unsafeManager);
     SmtInterpolBooleanFormulaManager booleanTheory = SmtInterpolBooleanFormulaManager.create(creator);
-    SmtInterpolRationalFormulaManager rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory);
+    SmtInterpolRationalFormulaManager rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory, pUseIntegers);
     return new SmtInterpolFormulaManager(unsafeManager, functionTheory, booleanTheory, rationalTheory);
   }
 
