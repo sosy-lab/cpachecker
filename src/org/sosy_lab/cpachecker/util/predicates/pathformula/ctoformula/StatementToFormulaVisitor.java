@@ -30,16 +30,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements CStatementVisitor<BooleanFormula, UnrecognizedCCodeException> {
 
-  public StatementToFormulaVisitor(CtoFormulaConverter pCtoFormulaConverter, String pFunction, SSAMapBuilder pSsa, Constraints pConstraints, CFAEdge edge) {
-    super(pCtoFormulaConverter, pFunction, pSsa, pConstraints, edge);
+  public StatementToFormulaVisitor(ExpressionToFormulaVisitor pDelegate) {
+    super(pDelegate);
   }
 
   @Override

@@ -56,13 +56,13 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
   protected final SSAMapBuilder ssa;
   protected final Constraints   constraints;
 
-  public RightHandSideToFormulaVisitor(CtoFormulaConverter pCtoFormulaConverter, String pFunction, SSAMapBuilder pSsa, Constraints pCo, CFAEdge pEdge) {
-    super(pCtoFormulaConverter.getCExpressionVisitor(pEdge, pFunction, pSsa, pCo));
-    conv = pCtoFormulaConverter;
-    edge = pEdge;
-    function = pFunction;
-    ssa = pSsa;
-    constraints = pCo;
+  public RightHandSideToFormulaVisitor(ExpressionToFormulaVisitor pDelegate) {
+    super(pDelegate);
+    conv = pDelegate.conv;
+    edge = pDelegate.edge;
+    function = pDelegate.function;
+    ssa = pDelegate.ssa;
+    constraints = pDelegate.constraints;
   }
 
   @Override

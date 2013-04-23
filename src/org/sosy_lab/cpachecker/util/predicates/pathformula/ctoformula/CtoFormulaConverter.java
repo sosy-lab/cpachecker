@@ -1191,12 +1191,7 @@ public class CtoFormulaConverter {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       CStatementEdge statementEdge = (CStatementEdge) edge;
-      StatementToFormulaVisitor v;
-      if (handlePointerAliasing) {
-        v = new StatementToFormulaVisitorPointers(this, function, ssa, constraints, edge);
-      } else {
-        v = new StatementToFormulaVisitor(this, function, ssa, constraints, edge);
-      }
+      StatementToFormulaVisitor v = getStatementVisitor(edge, function, ssa, constraints);
       return statementEdge.getStatement().accept(v);
     }
 
@@ -1308,12 +1303,7 @@ public class CtoFormulaConverter {
             decl.getFileLocation(),
             new CIdExpression(decl.getFileLocation(), decl.getType(), decl.getName(), decl),
             init);
-    StatementToFormulaVisitor v;
-    if (handlePointerAliasing) {
-      v = new StatementToFormulaVisitorPointers(this, function, ssa, constraints, edge);
-    } else {
-      v = new StatementToFormulaVisitor(this, function, ssa, constraints, edge);
-    }
+    StatementToFormulaVisitor v = getStatementVisitor(edge, function, ssa, constraints);
     return assign.accept(v);
   }
 
@@ -1795,7 +1785,17 @@ public class CtoFormulaConverter {
     return bfmgr.and(f, constraints.get());
   }
 
-  ExpressionToFormulaVisitor getCExpressionVisitor(CFAEdge pEdge, String pFunction,
+  private StatementToFormulaVisitor getStatementVisitor(CFAEdge pEdge, String pFunction,
+      SSAMapBuilder pSsa, Constraints pConstraints) {
+    ExpressionToFormulaVisitor ev = getCExpressionVisitor(pEdge, pFunction, pSsa, pConstraints);
+    if (handlePointerAliasing) {
+      return new StatementToFormulaVisitorPointers(ev);
+    } else {
+      return new StatementToFormulaVisitor(ev);
+    }
+  }
+
+  private ExpressionToFormulaVisitor getCExpressionVisitor(CFAEdge pEdge, String pFunction,
       SSAMapBuilder pSsa, Constraints pCo) {
     if (lvalsAsUif) {
       return new ExpressionToFormulaVisitorUIF(this, pEdge, pFunction, pSsa, pCo);

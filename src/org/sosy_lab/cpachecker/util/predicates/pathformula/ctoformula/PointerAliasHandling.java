@@ -141,9 +141,8 @@ class ExpressionToFormulaVisitorPointers extends ExpressionToFormulaVisitor {
 
 class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
 
-  public StatementToFormulaVisitorPointers(CtoFormulaConverter pCtoFormulaConverter, String pFunction,
-      SSAMapBuilder pSsa, Constraints pConstraints, CFAEdge edge) {
-    super(pCtoFormulaConverter, pFunction, pSsa, pConstraints, edge);
+  public StatementToFormulaVisitorPointers(ExpressionToFormulaVisitor pDelegate) {
+    super(pDelegate);
   }
 
   @Override
