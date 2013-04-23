@@ -106,17 +106,29 @@ final class ImpactUtility {
     predAbsMgr = pPredAbsMgr;
   }
 
+  boolean requiresPreviousBlockAbstraction() {
+    // If we compute an abstraction of the current block,
+    // we do need the abstraction from the start of the block.
+    return doAbstractionComputation && !abstractInterpolantOnly;
+  }
+
   /**
    * Strengthen a state given a (non-trivial) interpolant
    * by conjunctively adding the interpolant to the state's state formula.
    *
    * @param interpolant The interpolant.
    * @param state The state.
+   * @param lastAbstraction The abstraction that was computed at the beginning
+   *         of the current block (so it is not the abstraction of s,
+   *         but the abstraction of the last predecessor of s that
+   *         is an abstraction state).
+   *         This may be null if {@link #requiresPreviousBlockAbstraction()} returns false.
    * @return True if the state was actually changed.
    */
   boolean strengthenStateWithInterpolant(final BooleanFormula itp,
       final ARGState s, final AbstractionFormula lastAbstraction) {
-    checkState(lastAbstraction != null);
+    checkState(!requiresPreviousBlockAbstraction()
+        || lastAbstraction != null);
 
     if (fmgr.getBooleanFormulaManager().isTrue(itp)) {
       return false;

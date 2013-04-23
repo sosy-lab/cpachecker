@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.Collections.unmodifiableList;
-import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.strengthenStateWithInterpolant;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.div;
 
@@ -55,12 +54,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -85,7 +83,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
   private final FormulaManagerView fmgr;
   private final FormulaManagerFactory factory;
   private final ARGCPA argCpa;
-  private final PredicateAbstractionManager predAbsMgr;
+  private final ImpactUtility impact;
 
   // statistics
   private int refinementCalls = 0;
@@ -98,7 +96,6 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
   private final Timer totalTime = new Timer();
   private final Timer satCheckTime = new Timer();
   private final Timer getInterpolantTime = new Timer();
-  private final Timer interpolantCheckTime  = new Timer();
   private final Timer coverTime = new Timer();
   private final Timer argUpdate = new Timer();
 
@@ -114,7 +111,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
       out.println("Total time for predicate refinement:  " + totalTime);
       out.println("  Refinement sat check:               " + satCheckTime);
       out.println("  Interpolant computation:            " + getInterpolantTime);
-      out.println("  Checking whether itp is new:        " + interpolantCheckTime);
+      out.println("  Checking whether itp is new:        " + impact.itpCheckTime);
       out.println("  Coverage checks:                    " + coverTime);
       out.println("  ARG update:                         " + argUpdate);
     }
@@ -128,28 +125,32 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
       throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    Region initialRegion = predicateCpa.getInitialState(null).getAbstractionFormula().asRegion();
-    if (!(initialRegion instanceof SymbolicRegionManager.SymbolicRegion)) {
-      throw new InvalidConfigurationException(ImpactGlobalRefiner.class.getSimpleName() + " works only with a PredicateCPA configured to store abstractions as formulas (cpa.predicate.abstraction.type=FORMULA)");
-    }
-
     return new ImpactGlobalRefiner(predicateCpa.getConfiguration(),
                                     predicateCpa.getLogger(),
                                     (ARGCPA)pCpa,
                                     predicateCpa.getFormulaManager(),
+                                    predicateCpa.getAbstractionManager(),
                                     predicateCpa.getFormulaManagerFactory(),
                                     predicateCpa.getPredicateManager());
   }
 
   private ImpactGlobalRefiner(Configuration config, LogManager pLogger,
-      ARGCPA pArgCpa, FormulaManagerView pFmgr,
-      FormulaManagerFactory pFactory, PredicateAbstractionManager pPredAbsMgr) {
+      ARGCPA pArgCpa, FormulaManagerView pFmgr, AbstractionManager pAmgr,
+      FormulaManagerFactory pFactory, PredicateAbstractionManager pPredAbsMgr)
+          throws InvalidConfigurationException {
 
     logger = pLogger;
     argCpa = pArgCpa;
     fmgr = pFmgr;
     factory = pFactory;
-    predAbsMgr = pPredAbsMgr;
+    impact = new ImpactUtility(config, pAmgr, pFmgr, pPredAbsMgr);
+
+    if (impact.requiresPreviousBlockAbstraction()) {
+      // With global refinements, we go backwards through the trace,
+      // and thus can't supply the abstraction of the previous block.
+      throw new InvalidConfigurationException("Computing block abstractions" +
+          "during refinement is not supported when using global refinements.");
+    }
   }
 
   @Override
@@ -392,7 +393,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    * For each interpolant, we strengthen the corresponding state by
    * conjunctively adding the interpolant to its state formula.
    *
-   * @param interpolant The interpolant.
+   * @param interpolant The interpolant (with SSA indices).
    * @param state The state.
    * @return True if no refinement was necessary (this implies that refinement
    *          on all of the state's parents is also not necessary)
@@ -400,10 +401,10 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
   private boolean performRefinementForState(BooleanFormula interpolant,
       ARGState state) {
 
-    interpolantCheckTime.start();
-    boolean stateChanged = strengthenStateWithInterpolant(interpolant, state,
-                                                          fmgr, predAbsMgr);
-    interpolantCheckTime.stop();
+    // Passing null as lastAbstraction is ok because
+    // we check for impact.requirePreviousBlockAbstraction() in the constructor.
+    boolean stateChanged = impact.strengthenStateWithInterpolant(
+                                                    interpolant, state, null);
 
     // If the interpolant is implied by the current state formula,
     // then we don't need any of the interpolants between the ARG root
