@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils;
 
 import com.google.common.collect.ImmutableList;
 
@@ -111,7 +112,7 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
       f2 = conv.makeCast(promT2, implicitType, f2);
     }
 
-    boolean signed = conv.isSignedType(implicitType);
+    boolean signed = CtoFormulaTypeUtils.isSignedType(implicitType);
 
     Formula ret;
     switch (op) {

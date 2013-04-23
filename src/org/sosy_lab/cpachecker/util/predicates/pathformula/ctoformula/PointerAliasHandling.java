@@ -291,7 +291,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
     // We need r to be one level lower than we support, as we need its pointer mask for a deep update
     if (r instanceof CExpression &&
         conv.isSupportedExpression((CExpression) r, 1) &&
-        conv.hasRepresentableDereference((CExpression) r)) {
+        CtoFormulaConverter.hasRepresentableDereference((CExpression) r)) {
       rVarName = conv.scopedIfNecessary((CExpression) r, ssa, function);
       rPtrVar = conv.makeVariable(CtoFormulaConverter.makePointerMask(rVarName, ssa), ssa);
       doDeepUpdate = true;
@@ -356,7 +356,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
         Variable varName = getVariableFromMemoryAddress(memAddress.getKey(), memAddress.getValue());
         //String varName = getVariableNameFromMemoryAddress(memAddress.getName());
 
-        if (!varName.equals(lVarName) && conv.hasRepresentableDereference(varName)) {
+        if (!varName.equals(lVarName) && CtoFormulaConverter.hasRepresentableDereference(varName)) {
           // we assume that cases like the following are illegal and do not occur
           // (gcc 4.6 gives an error):
           // p = &p;
@@ -464,7 +464,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
       for (Map.Entry<String, CType> memAddress : memAddresses) {
         Variable varName = getVariableFromMemoryAddress(memAddress.getKey(), memAddress.getValue());
 
-        if (varName.equals(lVarName) || !conv.hasRepresentableDereference(varName)) {
+        if (varName.equals(lVarName) || !CtoFormulaConverter.hasRepresentableDereference(varName)) {
           continue;
         }
         // *m_old

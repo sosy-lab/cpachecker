@@ -80,7 +80,7 @@ class ExpressionToFormulaVisitorUIF extends ExpressionToFormulaVisitor {
     CExpression owner = getRealFieldOwner(fexp);
     Formula term = owner.accept(this);
 
-    String tpname = conv.getTypeName(owner.getExpressionType());
+    String tpname = CtoFormulaConverter.getTypeName(owner.getExpressionType());
     String ufname = ".{" + tpname + "," + field + "}";
 
     // see above for the case of &x and *x
@@ -168,14 +168,14 @@ class LvalueVisitorUIF extends LvalueVisitor {
       CExpression owner = getRealFieldOwner(fexp);
       Formula term = conv.buildTerm(owner, edge, function, ssa, constraints);
 
-      String tpname = conv.getTypeName(owner.getExpressionType());
+      String tpname = CtoFormulaConverter.getTypeName(owner.getExpressionType());
       String ufname = ".{" + tpname + "," + field + "}";
       FormulaList args = new AbstractFormulaList(term);
 
 
       CType expType = fexp.getExpressionType();
       FormulaType<?> formulaType = conv.getFormulaTypeFromCType(expType);
-      int idx = conv.makeLvalIndex(ufname, expType, args, ssa);
+      int idx = CtoFormulaConverter.makeLvalIndex(ufname, expType, args, ssa);
 
       // see above for the case of &x and *x
       return conv.ffmgr.createFuncAndCall(
@@ -197,7 +197,7 @@ class LvalueVisitorUIF extends LvalueVisitor {
     FormulaList args = new AbstractFormulaList(aterm, sterm);
     CType expType = aexp.getExpressionType();
     FormulaType<?> formulaType = conv.getFormulaTypeFromCType(expType);
-    int idx = conv.makeLvalIndex(ufname, expType, args, ssa);
+    int idx = CtoFormulaConverter.makeLvalIndex(ufname, expType, args, ssa);
 
     return conv.ffmgr.createFuncAndCall(
         ufname, idx, formulaType, ImmutableList.of(aterm, sterm));

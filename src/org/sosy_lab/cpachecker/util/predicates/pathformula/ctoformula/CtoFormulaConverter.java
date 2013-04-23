@@ -274,13 +274,13 @@ public class CtoFormulaConverter {
     logDebug("Unhandled expression treated as free variable", exp);
   }
 
-  String getLogMessage(String msg, CAstNode astNode) {
+  static String getLogMessage(String msg, CAstNode astNode) {
     return "Line " + astNode.getFileLocation().getStartingLineNumber()
             + ": " + msg
             + ": " + astNode.toASTString();
   }
 
-  private String getLogMessage(String msg, CFAEdge edge) {
+  private static String getLogMessage(String msg, CFAEdge edge) {
     return "Line " + edge.getLineNumber()
             + ": " + msg
             + ": " + edge.getDescription();
@@ -388,19 +388,11 @@ public class CtoFormulaConverter {
     return efmgr.getFormulaType(byteSize * bitsPerByte);
   }
 
-  @SuppressWarnings("unused") boolean isSignedType(CType pType) {
-    if (pType instanceof CSimpleType) {
-      return !((CSimpleType)pType).isUnsigned();
-    }
-    // Default behaviour, structs for example
-    return false;
-  }
-
-  boolean hasRepresentableDereference(Variable v) {
+  static boolean hasRepresentableDereference(Variable v) {
     return isRepresentableType(dereferencedType(v.getType()));
   }
 
-  boolean hasRepresentableDereference(CExpression e) {
+  static boolean hasRepresentableDereference(CExpression e) {
     return isRepresentableType(dereferencedType(e.getExpressionType()));
   }
 
@@ -430,7 +422,7 @@ public class CtoFormulaConverter {
     return e.toASTString().replaceAll("[ \n\t]", "");
   }
 
-  String getTypeName(final CType tp) {
+  static String getTypeName(final CType tp) {
 
     if (tp instanceof CPointerType) {
       return getTypeName(((CPointerType)tp).getType());
@@ -545,7 +537,7 @@ public class CtoFormulaConverter {
    * Produces a fresh new SSA index for the left-hand side of an assignment
    * and updates the SSA map.
    */
-  int makeLvalIndex(String varName, CType type, FormulaList args, SSAMapBuilder ssa) {
+  static int makeLvalIndex(String varName, CType type, FormulaList args, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(varName, args);
     if (idx > 0) {
       idx = idx+1;
@@ -2023,7 +2015,7 @@ public class CtoFormulaConverter {
     return exp;
   }
 
-  private CAstNode removeCast(CAstNode exp) {
+  private static CAstNode removeCast(CAstNode exp) {
     if (exp instanceof CCastExpression) {
       return removeCast(((CCastExpression) exp).getOperand());
     }
