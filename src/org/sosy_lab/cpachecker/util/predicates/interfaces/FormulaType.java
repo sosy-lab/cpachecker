@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -94,7 +94,7 @@ public abstract class FormulaType<T extends Formula> {
     private BitvectorType(int size) {
       this.size = (size);
     }
-    private static Map<Integer, FormulaType<BitvectorFormula>> table = new Hashtable<>();
+    private static Map<Integer, FormulaType<BitvectorFormula>> table = new HashMap<>();
     /**
      * Gets the Raw Bitvector-Type with the given size.
      * Never call this method directly, always call the BitvectorFormulaManager.getFormulaType(int) method.

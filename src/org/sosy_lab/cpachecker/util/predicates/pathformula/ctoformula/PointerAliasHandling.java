@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.*;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -986,7 +986,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
         // Read comment below.
         if (expType instanceof CCompositeType) {
           CCompositeType structType = (CCompositeType)expType;
-          memberMaskMap = new Hashtable<>();
+          memberMaskMap = new HashMap<>();
           for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
             // TODO: check if we can omit member with a maybePointer call.
             // I think we can't because even when the current member was not used as pointer
