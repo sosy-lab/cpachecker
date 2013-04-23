@@ -62,8 +62,7 @@ public abstract class ImpactRefiner implements Refiner {
         logger,
         fmgr,
         predicateCpa.getSolver(),
-        predicateCpa.getPredicateManager(),
-        predicateCpa.getAbstractionManager());
+        predicateCpa.getPredicateManager());
 
     return new PredicateCPARefiner(
         config,

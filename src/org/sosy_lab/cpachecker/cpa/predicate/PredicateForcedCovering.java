@@ -127,8 +127,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
                                                    config, pLogger);
     fmgr = predicateCpa.getFormulaManager();
     predAbsMgr = predicateCpa.getPredicateManager();
-    impact = new ImpactUtility(config, predicateCpa.getAbstractionManager(),
-        fmgr, predAbsMgr);
+    impact = new ImpactUtility(config, fmgr, predAbsMgr);
   }
 
   @Override

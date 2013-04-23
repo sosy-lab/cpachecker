@@ -114,14 +114,18 @@ class PredicateCPAStatistics implements Statistics {
     private final PredicateCPA cpa;
     private final BlockOperator blk;
     private final RegionManager rmgr;
+    private final AbstractionManager absmgr;
     private final CFA cfa;
     private final PredicatePrecisionSweeper sweeper;
 
     public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
-        RegionManager pRmgr, CFA pCfa, PredicatePrecisionSweeper pSweeper) throws InvalidConfigurationException {
+        RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
+        PredicatePrecisionSweeper pSweeper)
+            throws InvalidConfigurationException {
       cpa = pCpa;
       blk = pBlk;
       rmgr = pRmgr;
+      absmgr = pAbsmgr;
       cfa = pCfa;
       sweeper = pSweeper;
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
@@ -258,7 +262,6 @@ class PredicateCPAStatistics implements Statistics {
       int totPredsUsed = predicates.location.size();
       int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
 
-      AbstractionManager absmgr = cpa.getAbstractionManager();
       int allDistinctPreds = absmgr.getNumberOfPredicates();
 
       if (result == Result.SAFE && exportInvariants && invariantsFile != null) {
@@ -392,7 +395,6 @@ class PredicateCPAStatistics implements Statistics {
         }
       }
 
-      AbstractionManager absmgr = cpa.getAbstractionManager();
       FormulaManagerView fmgr = cpa.getFormulaManager();
       try (Writer invariants = Files.openOutputFile(invariantsFile)) {
         for (CFANode loc : from(cfa.getAllNodes())
@@ -444,7 +446,6 @@ class PredicateCPAStatistics implements Statistics {
       StringBuilder defs = new StringBuilder();
       StringBuilder asserts = new StringBuilder();
 
-      AbstractionManager absmgr = cpa.getAbstractionManager();
       FormulaManagerView fmgr = cpa.getFormulaManager();
 
       try (Writer invariants = Files.openOutputFile(invariantPrecisionsFile)) {

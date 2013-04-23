@@ -26,9 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,7 +35,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
@@ -72,9 +69,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 @Options(prefix="cpa.predicate.refinement")
 final class ImpactUtility {
 
-  @Option(description="split each arithmetic equality into two inequalities when extracting predicates from interpolants")
-  private boolean splitItpAtoms = false;
-
   @Option(description="If an abstraction is computed during refinement, "
       + "use only the interpolant as input, not the concrete block.")
   private boolean abstractInterpolantOnly = false;
@@ -86,11 +80,10 @@ final class ImpactUtility {
   final Timer abstractionTime = new Timer();
   final Timer itpCheckTime  = new Timer();
 
-  private final AbstractionManager amgr;
   private final FormulaManagerView fmgr;
   private final PredicateAbstractionManager predAbsMgr;
 
-  ImpactUtility(Configuration config, AbstractionManager pAmgr,
+  ImpactUtility(Configuration config,
       FormulaManagerView pFmgr, PredicateAbstractionManager pPredAbsMgr)
           throws InvalidConfigurationException {
     config.inject(this);
@@ -101,7 +94,6 @@ final class ImpactUtility {
           "is not possible without cpa.predicate.refinement.doAbstractionComputation=true.");
     }
 
-    amgr = pAmgr;
     fmgr = pFmgr;
     predAbsMgr = pPredAbsMgr;
   }
@@ -151,14 +143,7 @@ final class ImpactUtility {
     }
 
     // Extract predicates from interpolants.
-    Collection<BooleanFormula> atoms = fmgr.extractAtoms(itp, splitItpAtoms, false);
-    List<AbstractionPredicate> preds = new ArrayList<>(atoms.size());
-    for (BooleanFormula atom : atoms) {
-      preds.add(amgr.makePredicate(atom));
-    }
-    if (fmgr.getBooleanFormulaManager().isFalse(itp)) {
-      preds.add(amgr.makeFalsePredicate());
-    }
+    Collection<AbstractionPredicate> preds = predAbsMgr.extractPredicates(itp);
 
     // Compute an abstraction with the new predicates.
     abstractionTime.start();

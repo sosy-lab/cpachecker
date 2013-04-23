@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -136,7 +135,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
                                           predicateCpa,
                                           predicateCpa.getFormulaManager(),
                                           predicateCpa.getSolver(),
-                                          predicateCpa.getAbstractionManager());
+                                          predicateCpa.getPredicateManager());
 
     this.refiner = new ExtendedPredicateRefiner(
                                           predicateCpa.getConfiguration(),
@@ -282,9 +281,10 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     private ABMPredicateAbstractionRefinementStrategy(final Configuration config, final LogManager logger,
         final ABMPredicateCPA predicateCpa,
         final FormulaManagerView pFormulaManager, final Solver pSolver,
-        final AbstractionManager pAbstractionManager) throws CPAException, InvalidConfigurationException {
+        final PredicateAbstractionManager pPredAbsMgr)
+            throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pFormulaManager, pAbstractionManager, pSolver);
+      super(config, logger, pFormulaManager, pPredAbsMgr, pSolver);
 
       RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
       if (relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {

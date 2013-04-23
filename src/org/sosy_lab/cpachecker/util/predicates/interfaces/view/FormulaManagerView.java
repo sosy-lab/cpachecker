@@ -1174,11 +1174,6 @@ public class FormulaManagerView implements FormulaManager {
     return wrapInView(myCreatePredicateVariable(pName));
   }
 
-
-  public Collection<BooleanFormula> extractAtoms(BooleanFormula pFormula) {
-    return extractAtoms(pFormula, false, false);
-  }
-
   public <T extends Formula> BooleanFormula toBooleanFormula(T pF) {
     T zero = makeNumber(getFormulaType(pF), 0);
     return booleanFormulaManager.not(makeEqual(pF, zero));

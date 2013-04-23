@@ -99,7 +99,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final FormulaManagerFactory formulaManagerFactory;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
-  private final AbstractionManager abstractionManager;
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
   private final PredicateAbstractState topState;
@@ -140,7 +139,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 
-    abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
+    AbstractionManager abstractionManager = new AbstractionManager(regionManager, formulaManager, config, logger);
 
     predicateManager = new PredicateAbstractionManager(abstractionManager, formulaManager, pathFormulaManager, solver, config, logger);
     transfer = new PredicateTransferRelation(this, blk);
@@ -168,7 +167,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    stats = new PredicateCPAStatistics(this, blk, regionManager, cfa, precisionSweeper);
+    stats = new PredicateCPAStatistics(this, blk, regionManager,
+        abstractionManager, cfa, precisionSweeper);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
   }
@@ -192,10 +192,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public StopOperator getStopOperator() {
     return stop;
-  }
-
-  public AbstractionManager getAbstractionManager() {
-    return abstractionManager;
   }
 
   public PredicateAbstractionManager getPredicateManager() {

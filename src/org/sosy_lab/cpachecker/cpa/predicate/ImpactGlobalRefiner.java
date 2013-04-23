@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -129,13 +128,12 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
                                     predicateCpa.getLogger(),
                                     (ARGCPA)pCpa,
                                     predicateCpa.getFormulaManager(),
-                                    predicateCpa.getAbstractionManager(),
                                     predicateCpa.getFormulaManagerFactory(),
                                     predicateCpa.getPredicateManager());
   }
 
   private ImpactGlobalRefiner(Configuration config, LogManager pLogger,
-      ARGCPA pArgCpa, FormulaManagerView pFmgr, AbstractionManager pAmgr,
+      ARGCPA pArgCpa, FormulaManagerView pFmgr,
       FormulaManagerFactory pFactory, PredicateAbstractionManager pPredAbsMgr)
           throws InvalidConfigurationException {
 
@@ -143,7 +141,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
     argCpa = pArgCpa;
     fmgr = pFmgr;
     factory = pFactory;
-    impact = new ImpactUtility(config, pAmgr, pFmgr, pPredAbsMgr);
+    impact = new ImpactUtility(config, pFmgr, pPredAbsMgr);
 
     if (impact.requiresPreviousBlockAbstraction()) {
       // With global refinements, we go backwards through the trace,
