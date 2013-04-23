@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
  */
 public class SymbolicRegionManager implements RegionManager {
 
-  public static class SymbolicRegion implements Region {
+  private static class SymbolicRegion implements Region {
 
     private final BooleanFormula f;
     private final BooleanFormulaManager bfmgr;
