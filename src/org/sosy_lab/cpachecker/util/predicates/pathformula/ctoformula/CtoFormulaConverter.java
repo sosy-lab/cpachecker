@@ -92,6 +92,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -104,6 +105,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CFieldTrackType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.CtoFormulaSizeofVisitor;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -202,6 +204,7 @@ public class CtoFormulaConverter {
   private int expands = 0;
 
   private static final String FIELD_VARIABLE = "__field_of__";
+  @VisibleForTesting
   static final Predicate<String> IS_FIELD_VARIABLE = startsWith(FIELD_VARIABLE);
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
@@ -213,21 +216,23 @@ public class CtoFormulaConverter {
 
   private final Set<String> printedWarnings = new HashSet<>();
 
-  final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<>();
-  int nextStringLitIndex = 0;
+  private final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<>();
+  private int nextStringLitIndex = 0;
 
   final MachineModel machineModel;
   private final CtoFormulaSizeofVisitor sizeofVisitor;
 
-  protected final FormulaManagerView fmgr;
-  protected final  BooleanFormulaManagerView bfmgr;
-  protected final  RationalFormulaManagerView nfmgr;
-  protected final  BitvectorFormulaManagerView efmgr;
-  protected final  FunctionFormulaManagerView ffmgr;
-  protected final LogManager logger;
+  final FormulaManagerView fmgr;
+  final BooleanFormulaManagerView bfmgr;
+  private final RationalFormulaManagerView nfmgr;
+  final BitvectorFormulaManagerView efmgr;
+  final FunctionFormulaManagerView ffmgr;
+  final LogManager logger;
 
   static final int                 VARIABLE_UNSET          = -1;
   static final int                 VARIABLE_UNINITIALIZED  = 2;
+
+  private final FunctionFormulaType<BitvectorFormula> stringUfDecl;
 
   CtoFormulaConverter(Configuration config, FormulaManagerView fmgr,
       MachineModel pMachineModel, LogManager logger)
@@ -244,6 +249,11 @@ public class CtoFormulaConverter {
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = logger;
     nondetFunctionsPattern = Pattern.compile(nondetFunctionsRegexp);
+
+    FormulaType<BitvectorFormula> pointerType =
+        efmgr.getFormulaType(machineModel.getSizeofPtr() * machineModel.getSizeofCharInBits());
+    stringUfDecl = ffmgr.createFunction(
+            "__string__", pointerType, FormulaType.RationalType);
   }
 
   private void warnUnsafeVar(CExpression exp) {
@@ -613,6 +623,20 @@ public class CtoFormulaConverter {
     return Pair.of(name, Pair.of(Integer.parseInt(splits[0]), Integer.parseInt(splits[1])));
   }
 
+
+  BitvectorFormula makeStringLiteral(String literal) {
+    BitvectorFormula result = stringLitToFormula.get(literal);
+
+    if (result == null) {
+      // generate a new string literal. We generate a new UIf
+      int n = nextStringLitIndex++;
+      result = ffmgr.createUninterpretedFunctionCall(
+          stringUfDecl, ImmutableList.of(nfmgr.makeNumber(n)));
+      stringLitToFormula.put(literal, result);
+    }
+
+    return result;
+  }
 
   /**
    * makes a fresh variable out of the varName and assigns the rightHandSide to it

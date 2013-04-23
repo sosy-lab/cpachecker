@@ -46,15 +46,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils;
-
-import com.google.common.collect.ImmutableList;
 
 class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
 
@@ -270,31 +266,11 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     return conv.fmgr.makeNumber(t, fExp.getValue().longValue());
   }
 
-  private FunctionFormulaType<BitvectorFormula> stringUfDecl;
   @Override
   public Formula visit(CStringLiteralExpression lexp) throws UnrecognizedCCodeException {
     // we create a string constant representing the given
     // string literal
-    String literal = lexp.getValue();
-    BitvectorFormula result = conv.stringLitToFormula.get(literal);
-
-    if (result == null) {
-      if (stringUfDecl == null) {
-        FormulaType<BitvectorFormula> pointerType =
-            conv.efmgr.getFormulaType(conv.machineModel.getSizeofPtr() * conv.machineModel.getSizeofCharInBits());
-        stringUfDecl =
-            conv.ffmgr.createFunction(
-                "__string__", pointerType, FormulaType.RationalType);
-      }
-
-      // generate a new string literal. We generate a new UIf
-      int n = conv.nextStringLitIndex++;
-      result = conv.ffmgr.createUninterpretedFunctionCall(
-          stringUfDecl, ImmutableList.of(conv.nfmgr.makeNumber(n)));
-      conv.stringLitToFormula.put(literal, result);
-    }
-
-    return result;
+    return conv.makeStringLiteral(lexp.getValue());
   }
 
   @Override
