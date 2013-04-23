@@ -329,8 +329,7 @@ public class CtoFormulaConverter {
         : "Can only handle supported expressions";
     Variable name;
     if (exp instanceof CIdExpression) {
-      CIdExpression var = (CIdExpression) exp;
-      name = Variable.create(var.getDeclaration().getQualifiedName(), exp.getExpressionType());
+      name = scopedIfNecessary((CIdExpression)exp, ssa, function);
     } else if (exp instanceof CFieldReference) {
       CFieldReference fExp = (CFieldReference) exp;
       CExpression owner = getRealFieldOwner(fExp);
@@ -369,6 +368,10 @@ public class CtoFormulaConverter {
       throw new AssertionError("Can't create more complex Variables for Fieldaccess");
     }
     return name;
+  }
+
+  Variable scopedIfNecessary(CIdExpression var, SSAMapBuilder ssa, String function) {
+    return Variable.create(var.getDeclaration().getQualifiedName(), var.getExpressionType());
   }
 
   Variable makeFieldVariable(Variable pName, CFieldReference fExp, SSAMapBuilder ssa) {
