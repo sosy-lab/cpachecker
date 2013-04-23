@@ -99,7 +99,6 @@ public class ExplicitPrecision implements Precision {
     }
   }
 
-
   /**
    * This constructor is used for refining the refinable component precision with the given increment.
    *
@@ -140,6 +139,10 @@ public class ExplicitPrecision implements Precision {
 
   boolean isReachedSetThresholdActive() {
     return reachedSetThreshold > -1;
+  }
+
+  public int getSize() {
+    return refinablePrecision.getSize();
   }
 
   /**
@@ -224,6 +227,12 @@ public class ExplicitPrecision implements Precision {
     abstract protected RefinablePrecision refine(Multimap<CFANode, String> increment);
 
     /**
+     * This method returns the size of the refinable precision, i.e., the number of elements contained.
+     * @return
+     */
+    abstract int getSize();
+
+    /**
      * This method sets the location for the refinable precision.
      *
      * @param node the location to be set
@@ -290,6 +299,11 @@ public class ExplicitPrecision implements Precision {
       assert(getClass().equals(consolidatedPrecision.getClass()));
       this.rawPrecision.putAll(((LocalizedRefinablePrecision)consolidatedPrecision).rawPrecision);
     }
+
+    @Override
+    int getSize() {
+      return rawPrecision.get(location).size();
+    }
   }
 
   public static class ScopedRefinablePrecision extends RefinablePrecision {
@@ -313,7 +327,6 @@ public class ExplicitPrecision implements Precision {
 
         refinedPrecision.rawPrecision = new HashSet<>(rawPrecision);
         refinedPrecision.rawPrecision.addAll(increment.values());
-
         return refinedPrecision;
       }
     }
@@ -351,6 +364,11 @@ public class ExplicitPrecision implements Precision {
       assert(getClass().equals(consolidatedPrecision.getClass()));
       this.rawPrecision.addAll(((ScopedRefinablePrecision)consolidatedPrecision).rawPrecision);
     }
+
+    @Override
+    int getSize() {
+      return rawPrecision.size();
+    }
   }
 
   public static class FullPrecision extends RefinablePrecision {
@@ -372,6 +390,11 @@ public class ExplicitPrecision implements Precision {
     @Override
     public void join(RefinablePrecision consolidatedPrecision) {
       assert(getClass().equals(consolidatedPrecision.getClass()));
+    }
+
+    @Override
+    int getSize() {
+      return -1;
     }
   }
 }

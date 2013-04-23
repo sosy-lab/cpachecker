@@ -76,6 +76,11 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    */
   private PredicateCPARefiner predicatingRefiner;
 
+  /**
+   * the hash code of the previous error path
+   */
+  private int previousErrorPathID = -1;
+
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(DelegatingExplicitRefiner.class.getSimpleName() + " could not find the ExplicitCPA");
@@ -165,33 +170,68 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
   @Override
   protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath errorPath)
       throws CPAException, InterruptedException {
-
-    // if path infeasible, refine the precision
-    if(!isPathFeasable(errorPath)) {
-      UnmodifiableReachedSet reachedSet = reached.asReachedSet();
-      Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
-
-      Multimap<CFANode, String> increment = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
-      ARGState interpolationPoint = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
-
-      ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
-
-      explicitPrecision = new ExplicitPrecision(explicitPrecision, increment);
-      reached.removeSubtree(interpolationPoint, explicitPrecision);
-
-      return CounterexampleInfo.spurious();
+    // if path is infeasible, try to refine the precision
+    if (!isPathFeasable(errorPath)) {
+      if(performExplicitRefinement(reached, errorPath)) {
+        return CounterexampleInfo.spurious();
+      }
     }
 
-    // if explicit analysis claims that path is feasible, refine predicate analysis if available
+    // if explicit analysis claims that path is feasible, or if explicit refinement failed,
+    // refine with predicate analysis if available
+    if (predicatingRefiner == null) {
+      return CounterexampleInfo.feasible(errorPath, null);
+    }
     else {
-      if (predicatingRefiner == null) {
-        return CounterexampleInfo.feasible(errorPath, null);
-      }
-
-      else {
-        return predicatingRefiner.performRefinement(reached, errorPath);
-      }
+      return predicatingRefiner.performRefinement(reached, errorPath);
     }
+  }
+
+  /**
+   * This method performs an explicit refinement.
+   *
+   * @param reached the current reached set
+   * @param errorPath the current error path
+   * @throws CPAException when explicit interpolation fails
+   */
+  private boolean performExplicitRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException {
+    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
+    Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
+
+    Multimap<CFANode, String> increment = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
+    ARGState interpolationPoint         = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
+
+    ExplicitPrecision explicitPrecision         = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
+    ExplicitPrecision refinedExplicitPrecision  = new ExplicitPrecision(explicitPrecision, increment);
+
+    if(refinementSuccessful(errorPath, explicitPrecision, refinedExplicitPrecision)) {
+      reached.removeSubtree(interpolationPoint, refinedExplicitPrecision);
+      return true;
+    }
+    else {
+      return false;
+    }
+  }
+
+  /**
+   * This helper method checks if the refinement was successful, i.e.,
+   * that either the counterexample is not a repeated counterexample, or that the precision did grow.
+   *
+   * Repeated counterexamples might occur when combining the analysis with thresholding,
+   * or when ignoring variable classes, i.e. when combined with BDD analysis (i.e. cpa.explicit.precision.ignoreBoolean).
+   *
+   * @param errorPath the current error path
+   * @param explicitPrecision the previous precision
+   * @param refinedExplicitPrecision the refined precision
+   */
+  private boolean refinementSuccessful(ARGPath errorPath, ExplicitPrecision explicitPrecision, ExplicitPrecision refinedExplicitPrecision){
+    // new error path or precision refined -> success
+    boolean success = (errorPath.toString().hashCode() != previousErrorPathID)
+        || (refinedExplicitPrecision.getSize() > explicitPrecision.getSize());
+
+    previousErrorPathID = errorPath.toString().hashCode();
+
+    return success;
   }
 
   @Override
