@@ -21,63 +21,56 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * We use this type to be able to track the type of structs
  */
-class CFieldTrackType extends CtoFormulaCType {
+class CFieldDereferenceTrackType extends CtoFormulaCType {
 
-  private final CType structType;
-  private final CType structTypeRepectingCasts;
   private final CType fieldType;
+  private final CType fieldPtrType;
 
 
-  public CFieldTrackType(CType pFieldType, CType pStructType, CType pStructTypeRepectingCasts) {
-    structType = pStructType;
-    fieldType = pFieldType;
-    structTypeRepectingCasts = pStructTypeRepectingCasts;
+  public CFieldDereferenceTrackType(CType pFieldPtrType, CType fieldType) {
+    fieldPtrType = pFieldPtrType;
+    this.fieldType = fieldType;
   }
 
   @Override
   public String toASTString(String pDeclarator) {
-    return fieldType.toASTString(pDeclarator);
+    return fieldPtrType.toASTString(pDeclarator);
   }
 
   @Override
   public boolean isConst() {
-    return fieldType.isConst();
+    return fieldPtrType.isConst();
   }
 
   @Override
   public boolean isVolatile() {
-    return fieldType.isVolatile();
+    return fieldPtrType.isVolatile();
   }
 
   public CType getType() {
+    return fieldPtrType;
+  }
+
+  public CType getReferencingFieldType() {
     return fieldType;
   }
 
-  public CType getStructType() {
-    return structType;
-  }
-
-  public CType getStructTypeRepectingCasts() {
-    return structTypeRepectingCasts;
-  }
-
-
   @Override
   public String toString() {
-    return fieldType.toString();
+    return fieldPtrType.toString();
   }
 
   @Override
   public <R, X extends Exception> R accept(CtoFormulaTypeVisitor<R, X> pVisitor) throws X {
     // We do not really want to participate
-    return fieldType.accept(pVisitor);
+    return fieldPtrType.accept(pVisitor);
   }
 
 }

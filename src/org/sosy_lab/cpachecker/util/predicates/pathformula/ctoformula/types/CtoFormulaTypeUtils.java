@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
-class CtoFormulaTypeUtils {
+public class CtoFormulaTypeUtils {
 
   private static final CtoFormulaTypeVisitor<CType, RuntimeException> simplifyType = new CtoFormulaCTypeSimplifyVisitor();
   public static class CtoFormulaCTypeSimplifyVisitor
@@ -248,12 +248,6 @@ class CtoFormulaTypeUtils {
 
   public static boolean isPointerType(CType pType) {
     return pType instanceof CPointerType;
-  }
-
-  private static final IndirectionVisitor indirectionVisitor = new IndirectionVisitor();
-
-  public static int getIndirectionLevel(CExpression c) {
-    return c.accept(indirectionVisitor);
   }
 
   private static final RepresentabilityCTypeVisitor representabilityCTypeVisitor

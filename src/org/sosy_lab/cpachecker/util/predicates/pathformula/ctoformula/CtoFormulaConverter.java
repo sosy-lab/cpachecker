@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.*;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -132,7 +132,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.CtoFormulaSizeofVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CFieldTrackType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.CtoFormulaSizeofVisitor;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -1806,7 +1808,7 @@ public class CtoFormulaConverter {
   private BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
       String function, SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
 
-    if (getIndirectionLevel(exp) > supportedIndirectionLevel) {
+    if (IndirectionVisitor.getIndirectionLevel(exp) > supportedIndirectionLevel) {
       warnToComplex(exp);
     }
 
@@ -2154,7 +2156,7 @@ public class CtoFormulaConverter {
       return false;
     }
 
-    return CtoFormulaTypeUtils.getIndirectionLevel(c) > supportedIndirectionLevel;
+    return IndirectionVisitor.getIndirectionLevel(c) > supportedIndirectionLevel;
   }
 
   private class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
