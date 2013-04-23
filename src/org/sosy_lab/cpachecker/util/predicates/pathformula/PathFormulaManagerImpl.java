@@ -37,9 +37,12 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -54,7 +57,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 
 import com.google.common.base.Function;
@@ -68,16 +74,74 @@ import com.google.common.collect.Maps;
  *
  * This class inherits from CtoFormulaConverter to import the stuff there.
  */
-public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathFormulaManager {
+@Options(prefix="cpa.predicate")
+public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
 
+  private static final String NONDET_VARIABLE = "__nondet__";
+  private static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
+  private static final CType NONDET_TYPE = CNumericTypes.INT;
+  private final FormulaType<?> NONDET_FORMULA_TYPE;
+
+  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
+  private final FunctionFormulaManagerView ffmgr;
+  private final CtoFormulaConverter converter;
+  private final LogManager logger;
+
+  @Option(description="add special information to formulas about non-deterministic functions")
+  private boolean useNondetFlags = false;
+
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, MachineModel pMachineModel)
           throws InvalidConfigurationException {
-    super(config, pFmgr, pMachineModel, pLogger);
+    config.inject(this, PathFormulaManagerImpl.class);
+
+    converter = CtoFormulaConverter.create(config, pFmgr, pMachineModel, pLogger);
+    fmgr = pFmgr;
+    bfmgr = fmgr.getBooleanFormulaManager();
+    ffmgr = fmgr.getFunctionFormulaManager();
+    logger = pLogger;
+
+    NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
+  }
+
+  @Override
+  public PathFormula makeAnd(final PathFormula pOldFormula,
+      final CFAEdge pEdge) throws CPATransferException {
+    PathFormula result = converter.makeAnd(pOldFormula, pEdge);
+
+    if (useNondetFlags) {
+      SSAMapBuilder ssa = result.getSsa().builder();
+
+      int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
+      int lFlagIndex = ssa.getIndex(NONDET_FLAG_VARIABLE);
+
+      if (lNondetIndex != lFlagIndex) {
+        if (lFlagIndex < 0) {
+          lFlagIndex = 1; // ssa indices start with 2, so next flag that is generated also uses index 2
+        }
+
+        BooleanFormula edgeFormula = result.getFormula();
+
+        for (int lIndex = lFlagIndex + 1; lIndex <= lNondetIndex; lIndex++) {
+          Formula nondetVar = fmgr.makeVariable(NONDET_FORMULA_TYPE, NONDET_FLAG_VARIABLE, lIndex);
+          BooleanFormula lAssignment = fmgr.assignment(nondetVar, fmgr.makeNumber(NONDET_FORMULA_TYPE, 1));
+          edgeFormula = bfmgr.and(edgeFormula, lAssignment);
+        }
+
+        // update ssa index of nondet flag
+        //setSsaIndex(ssa, Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
+        ssa.setIndex(NONDET_FLAG_VARIABLE, NONDET_TYPE, lNondetIndex);
+
+        result = new PathFormula(edgeFormula, ssa.build(), result.getLength());
+      }
+    }
+
+    return result;
   }
 
   @Override
@@ -155,7 +219,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         // => need correction term for i2
         BooleanFormula t;
 
-        if (useNondetFlags && name.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+        if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE)) {
           t = makeNondetFlagMerger(Math.max(i2, 1), i1);
         } else {
           t = makeSSAMerger(name, resultSSA.getType(name), Math.max(i2, 1), i1);
@@ -169,7 +233,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
         // => need correction term for i1
         BooleanFormula t;
 
-        if (useNondetFlags && name.equals(CtoFormulaConverter.NONDET_FLAG_VARIABLE)) {
+        if (useNondetFlags && name.equals(NONDET_FLAG_VARIABLE)) {
           t = makeNondetFlagMerger(Math.max(i1, 1), i2);
         } else {
           t = makeSSAMerger(name, resultSSA.getType(name), Math.max(i1, 1), i2);
@@ -203,7 +267,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   }
 
   private BooleanFormula makeNondetFlagMerger(int iSmaller, int iBigger) {
-    return makeMerger(CtoFormulaConverter.NONDET_FLAG_VARIABLE, iSmaller, iBigger, fmgr.makeNumber(NONDET_FORMULA_TYPE, 0));
+    return makeMerger(NONDET_FLAG_VARIABLE, iSmaller, iBigger, fmgr.makeNumber(NONDET_FORMULA_TYPE, 0));
   }
 
   private BooleanFormula makeMerger(String var, int iSmaller, int iBigger, Formula pInitialValue) {
@@ -224,7 +288,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
   // creates the mathsat terms
   // (var@iSmaller = var@iSmaller+1; ...; var@iSmaller = var@iBigger)
   private BooleanFormula makeSSAMerger(String name, CType type, int iSmaller, int iBigger) {
-    FormulaType<?> t = getFormulaTypeFromCType(type);
+    FormulaType<?> t = converter.getFormulaTypeFromCType(type);
     return makeMerger(name, iSmaller, iBigger,
         fmgr.makeVariable(t, name, iSmaller));
   }
@@ -233,7 +297,7 @@ public class PathFormulaManagerImpl extends CtoFormulaConverter implements PathF
       FormulaList args, int iSmaller, int iBigger) {
     assert iSmaller < iBigger;
 
-    FormulaType<?> t = getFormulaTypeFromCType(var.getType());
+    FormulaType<?> t = converter.getFormulaTypeFromCType(var.getType());
     Formula initialFunc = ffmgr.createFuncAndCall(var.getName(), iSmaller, t, fromList(args));
     //BooleanFormula intialFunc = fmgr.makeUIF(name, args, iSmaller);
     BooleanFormula result = bfmgr.makeBoolean(true);

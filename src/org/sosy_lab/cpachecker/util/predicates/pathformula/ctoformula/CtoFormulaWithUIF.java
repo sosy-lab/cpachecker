@@ -45,6 +45,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 import com.google.common.collect.ImmutableList;
 
+class CtoFormulaWithUIF {
+  private CtoFormulaWithUIF() {}
+
+  static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
+  static final String OP_STAR_NAME = "__ptrStar__";
+  static final String OP_ARRAY_SUBSCRIPT = "__array__";
+}
+
 class ExpressionToFormulaVisitorUIF extends ExpressionToFormulaVisitor {
 
   public ExpressionToFormulaVisitorUIF(CtoFormulaConverter pCtoFormulaConverter, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
@@ -70,7 +78,7 @@ class ExpressionToFormulaVisitorUIF extends ExpressionToFormulaVisitor {
     Formula aterm = arrexp.accept(this);
     Formula sterm = subexp.accept(this);
 
-    String ufname = CtoFormulaConverter.OP_ARRAY_SUBSCRIPT;
+    String ufname = CtoFormulaWithUIF.OP_ARRAY_SUBSCRIPT;
     return makeUIF(ufname, aexp.getExpressionType(), ssa, aterm, sterm);
   }
 
@@ -95,9 +103,9 @@ class ExpressionToFormulaVisitorUIF extends ExpressionToFormulaVisitor {
     case STAR:
       String opname;
       if (op == UnaryOperator.AMPER) {
-        opname = CtoFormulaConverter.OP_ADDRESSOF_NAME;
+        opname = CtoFormulaWithUIF.OP_ADDRESSOF_NAME;
       } else {
-        opname = CtoFormulaConverter.OP_STAR_NAME;
+        opname = CtoFormulaWithUIF.OP_STAR_NAME;
       }
       Formula term = exp.getOperand().accept(this);
 
@@ -134,11 +142,11 @@ class LvalueVisitorUIF extends LvalueVisitor {
     CType result;
     switch (op) {
     case AMPER:
-      opname = CtoFormulaConverter.OP_ADDRESSOF_NAME;
+      opname = CtoFormulaWithUIF.OP_ADDRESSOF_NAME;
       result = new CPointerType(false, false, opType);
       break;
     case STAR:
-      opname = CtoFormulaConverter.OP_STAR_NAME;
+      opname = CtoFormulaWithUIF.OP_STAR_NAME;
       CPointerType opTypeP = (CPointerType)opType;
       result = opTypeP.getType();
       break;
@@ -193,7 +201,7 @@ class LvalueVisitorUIF extends LvalueVisitor {
     Formula aterm = conv.buildTerm(arrexp, edge, function, ssa, constraints);
     Formula sterm = conv.buildTerm(subexp, edge, function, ssa, constraints);
 
-    String ufname = CtoFormulaConverter.OP_ARRAY_SUBSCRIPT;
+    String ufname = CtoFormulaWithUIF.OP_ARRAY_SUBSCRIPT;
     FormulaList args = new AbstractFormulaList(aterm, sterm);
     CType expType = aexp.getExpressionType();
     FormulaType<?> formulaType = conv.getFormulaTypeFromCType(expType);

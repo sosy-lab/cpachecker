@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.*;
 
 import java.util.HashMap;
@@ -109,7 +108,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 
 /**
  * Class containing all the code that converts C code into a formula.
@@ -117,8 +115,26 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.predicate")
 public class CtoFormulaConverter {
 
-  @Option(description="add special information to formulas about non-deterministic functions")
-  protected boolean useNondetFlags = false;
+  @Options(prefix="cpa.predicate")
+  private static class CtoFormulaConverterSelector {
+    @Option(description = "Handle aliasing of pointers. "
+          + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
+    private boolean handlePointerAliasing = true;
+  }
+
+  public static CtoFormulaConverter create(Configuration config,
+      FormulaManagerView pFmgr, MachineModel pMachineModel, LogManager pLogger)
+          throws InvalidConfigurationException {
+
+    CtoFormulaConverterSelector options = new CtoFormulaConverterSelector();
+    config.inject(options);
+
+    if (options.handlePointerAliasing) {
+      return new PointerAliasHandling(config, pFmgr, pMachineModel, pLogger);
+    } else {
+      return new CtoFormulaConverter(config, pFmgr, pMachineModel, pLogger);
+    }
+  }
 
   @Option(description="initialize all variables to 0 when they are declared")
   private boolean initAllVars = false;
@@ -150,10 +166,6 @@ public class CtoFormulaConverter {
      + " This will only work when all variables referenced by the dimacs file are global and declared before this function is called.")
   String externModelFunctionName = "__VERIFIER_externModelSatisfied";
 
-  @Option(description = "Handle aliasing of pointers. "
-        + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
-  private boolean handlePointerAliasing = true;
-
   @Option(description = "list of functions that provide new memory on the heap."
     + " This is only used, when handling of pointers is enabled.")
   Set<String> memoryAllocationFunctions = ImmutableSet.of(
@@ -174,7 +186,7 @@ public class CtoFormulaConverter {
   static final Map<String, String> UNSUPPORTED_FUNCTIONS
       = ImmutableMap.of("pthread_create", "threads");
 
-  private static Predicate<String> startsWith(final String pPrefix) {
+  static Predicate<String> startsWith(final String pPrefix) {
     return new Predicate<String>() {
         @Override
         public boolean apply(String pVariable) {
@@ -185,34 +197,12 @@ public class CtoFormulaConverter {
 
   //names for special variables needed to deal with functions
   private static final String VAR_RETURN_NAME = "__retval__";
-  static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
-  static final String OP_STAR_NAME = "__ptrStar__";
-  static final String OP_ARRAY_SUBSCRIPT = "__array__";
-  static final String NONDET_VARIABLE = "__nondet__";
-  static final String EXPAND_VARIABLE = "__expandVariable__";
-  protected static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
-  private static final CType NONDET_TYPE = CNumericTypes.INT;
-  protected final FormulaType<?> NONDET_FORMULA_TYPE;
 
-  private static final String POINTER_VARIABLE = "__content_of__";
-  static final Predicate<String> IS_POINTER_VARIABLE = startsWith(POINTER_VARIABLE);
+  private static final String EXPAND_VARIABLE = "__expandVariable__";
+  private int expands = 0;
 
   private static final String FIELD_VARIABLE = "__field_of__";
   static final Predicate<String> IS_FIELD_VARIABLE = startsWith(FIELD_VARIABLE);
-
-  /** The prefix used for variables representing memory locations. */
-  static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "__address_of__";
-  private static final Predicate<String> IS_MEMORY_ADDRESS_VARIABLE = startsWith(MEMORY_ADDRESS_VARIABLE_PREFIX);
-
-  /**
-   * The prefix used for memory locations derived from malloc calls.
-   * (Must start with {@link #MEMORY_ADDRESS_VARIABLE_PREFIX}.)
-   */
-  static final String MALLOC_VARIABLE_PREFIX =
-      MEMORY_ADDRESS_VARIABLE_PREFIX + "#";
-
-  /** The variable name that's used to store the malloc counter in the SSAMap. */
-  static final String MALLOC_COUNTER_VARIABLE_NAME = "#malloc";
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
       "printf", "printk"
@@ -220,12 +210,6 @@ public class CtoFormulaConverter {
 
   @Option(description = "Handle field access via extract and concat instead of new variables.")
   boolean handleFieldAccess = false;
-
-  @Option(description = "Handle field aliasing formulas.")
-  boolean handleFieldAliasing = false;
-
-  @Option(description = "Handle field aliasing formulas.")
-  boolean omitNonPointerInFieldAliasing = true;
 
   private final Set<String> printedWarnings = new HashSet<>();
 
@@ -245,21 +229,14 @@ public class CtoFormulaConverter {
   static final int                 VARIABLE_UNSET          = -1;
   static final int                 VARIABLE_UNINITIALIZED  = 2;
 
-  private final TooComplexVisitor tooComplexVisitor;
-
-  public CtoFormulaConverter(Configuration config, FormulaManagerView fmgr,
+  CtoFormulaConverter(Configuration config, FormulaManagerView fmgr,
       MachineModel pMachineModel, LogManager logger)
           throws InvalidConfigurationException {
     config.inject(this, CtoFormulaConverter.class);
 
-    if (handleFieldAliasing && !handleFieldAccess) {
-      throw new InvalidConfigurationException("Enabling field-aliasing when field-access is disabled is unsupported!");
-    }
-
     this.fmgr = fmgr;
     this.machineModel = pMachineModel;
     this.sizeofVisitor = new CtoFormulaSizeofVisitor(pMachineModel);
-    this.tooComplexVisitor = new TooComplexVisitor(handleFieldAccess);
 
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.nfmgr = fmgr.getRationalFormulaManager();
@@ -267,7 +244,6 @@ public class CtoFormulaConverter {
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = logger;
     nondetFunctionsPattern = Pattern.compile(nondetFunctionsRegexp);
-    NONDET_FORMULA_TYPE = getFormulaTypeFromCType(NONDET_TYPE);
   }
 
   private void warnUnsafeVar(CExpression exp) {
@@ -322,54 +298,6 @@ public class CtoFormulaConverter {
     return size;
   }
 
-  /** Looks up the variable name in the current namespace. */
-  Variable scopedIfNecessary(CExpression exp, SSAMapBuilder ssa, String function) {
-    assert
-        isSupportedExpression(exp)
-        : "Can only handle supported expressions";
-    Variable name;
-    if (exp instanceof CIdExpression) {
-      name = scopedIfNecessary((CIdExpression)exp, ssa, function);
-    } else if (exp instanceof CFieldReference) {
-      CFieldReference fExp = (CFieldReference) exp;
-      CExpression owner = getRealFieldOwner(fExp);
-
-      // Now we have the struct
-      name = scopedIfNecessary(owner, ssa, function);
-
-      // name is now the struct:
-      // for example for a pointer to a struct __content_of__ptr__at__2__end
-
-      // construct the field
-      name = makeFieldVariable(name, fExp, ssa);
-    } else if (exp instanceof CUnaryExpression) {
-      CUnaryExpression unary = (CUnaryExpression) exp;
-      name = scopedIfNecessary(unary.getOperand(), ssa, function);
-      switch (unary.getOperator()) {
-      case STAR:
-        name = makePointerMask(name, ssa);
-        break;
-      case AMPER:
-        name = makeMemoryLocationVariable(name);
-        break;
-      case PLUS:
-      case MINUS:
-      case TILDE:
-      case NOT:
-      case SIZEOF:
-        default:
-          throw new AssertionError("Operator not supported in scopedIfNecessary");
-      }
-    } else if (exp instanceof CCastExpression) {
-      // Just ignore
-      CCastExpression cast = (CCastExpression) exp;
-      name = scopedIfNecessary(cast.getOperand(), ssa, function);
-    } else {
-      throw new AssertionError("Can't create more complex Variables for Fieldaccess");
-    }
-    return name;
-  }
-
   Variable scopedIfNecessary(CIdExpression var, SSAMapBuilder ssa, String function) {
     return Variable.create(var.getDeclaration().getQualifiedName(), var.getExpressionType());
   }
@@ -383,7 +311,7 @@ public class CtoFormulaConverter {
         new CFieldTrackType(fExp.getExpressionType(), pName.getType(), getRealFieldOwner(fExp).getExpressionType()));
   }
 
-  protected FormulaType<?> getFormulaTypeFromCType(CType type) {
+  public FormulaType<?> getFormulaTypeFromCType(CType type) {
     int byteSize = getSizeof(type);
 
     int bitsPerByte = machineModel.getSizeofCharInBits();
@@ -410,7 +338,7 @@ public class CtoFormulaConverter {
    * Create a variable name that is used to store the return value of a function
    * temporarily (between the return statement and the re-entrance in the caller function).
    */
-  private static String getReturnVarName(String function) {
+  static String getReturnVarName(String function) {
     return scoped(VAR_RETURN_NAME, function);
   }
 
@@ -657,33 +585,6 @@ public class CtoFormulaConverter {
     return resolveFields(name, type, ssa, true);
   }
 
-  /** Takes a (scoped) variable name and returns the pointer variable name. */
-  static String makePointerMaskName(String scopedId, SSAMapBuilder ssa) {
-    return POINTER_VARIABLE + scopedId + "__at__" + ssa.getIndex(scopedId) + "__end";
-  }
-
-  static Variable makePointerMask(Variable pointerVar, SSAMapBuilder ssa) {
-    Variable ptrMask = Variable.create(makePointerMaskName(pointerVar.getName(), ssa), dereferencedType(pointerVar.getType()));
-    if (isDereferenceType(ptrMask.getType())) {
-      // lookup in ssa map: Maybe we assigned a size to this current variable
-      CType savedVarType = ssa.getType(ptrMask.getName());
-      if (savedVarType != null) {
-        ptrMask = ptrMask.withType(savedVarType);
-        assert isDereferenceType(savedVarType)
-            : "The savedVar should also be a DereferenceType!";
-      }
-    }
-    return ptrMask;
-  }
-  /**
-   * Takes a pointer variable name and returns the name of the associated
-   * variable.
-   */
-  static String removePointerMask(String pointerVariable) {
-    assert (IS_POINTER_VARIABLE.apply(pointerVariable));
-
-    return pointerVariable.substring(POINTER_VARIABLE.length(), pointerVariable.lastIndexOf("__at__"));
-  }
 
   /** Takes a (scoped) struct variable name and returns the field variable name. */
   static String makeFieldVariableName(String scopedId, Pair<Integer, Integer> msb_lsb, SSAMapBuilder ssa) {
@@ -712,21 +613,6 @@ public class CtoFormulaConverter {
     return Pair.of(name, Pair.of(Integer.parseInt(splits[0]), Integer.parseInt(splits[1])));
   }
 
-
-
-  static Variable removePointerMaskVariable(String pointerVar, CType type) {
-    return Variable.create(removePointerMask(pointerVar), makePointerType(type));
-  }
-
-  /**Returns the concatenation of MEMORY_ADDRESS_VARIABLE_PREFIX and varName */
-  private static String makeMemoryLocationVariableName(String varName) {
-    return MEMORY_ADDRESS_VARIABLE_PREFIX + varName;
-  }
-
-  /**Returns the concatenation of MEMORY_ADDRESS_VARIABLE_PREFIX and varName */
-  static Variable makeMemoryLocationVariable(Variable varName) {
-    return Variable.create(makeMemoryLocationVariableName(varName.getName()), makePointerType(varName.getType()));
-  }
 
   /**
    * makes a fresh variable out of the varName and assigns the rightHandSide to it
@@ -1137,27 +1023,6 @@ public class CtoFormulaConverter {
 
     BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints);
 
-    if (useNondetFlags) {
-      int lNondetIndex = ssa.getIndex(NONDET_VARIABLE);
-      int lFlagIndex = ssa.getIndex(NONDET_FLAG_VARIABLE);
-
-      if (lNondetIndex != lFlagIndex) {
-        if (lFlagIndex < 0) {
-          lFlagIndex = 1; // ssa indices start with 2, so next flag that is generated also uses index 2
-        }
-
-        for (int lIndex = lFlagIndex + 1; lIndex <= lNondetIndex; lIndex++) {
-          Formula nondetVar = fmgr.makeVariable(NONDET_FORMULA_TYPE, NONDET_FLAG_VARIABLE, lIndex);
-          BooleanFormula lAssignment = fmgr.assignment(nondetVar, fmgr.makeNumber(NONDET_FORMULA_TYPE, 1));
-          edgeFormula = bfmgr.and(edgeFormula, lAssignment);
-        }
-
-        // update ssa index of nondet flag
-        //setSsaIndex(ssa, Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
-        ssa.setIndex(NONDET_FLAG_VARIABLE, NONDET_TYPE, lNondetIndex);
-      }
-    }
-
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
 
     SSAMap newSsa = ssa.build();
@@ -1303,7 +1168,7 @@ public class CtoFormulaConverter {
   }
 
 
-  private BooleanFormula makeExitFunction(CFunctionSummaryEdge ce, String function,
+  protected BooleanFormula makeExitFunction(CFunctionSummaryEdge ce, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
     CFunctionCall retExp = ce.getExpression();
@@ -1326,16 +1191,7 @@ public class CtoFormulaConverter {
       retVar = makeCast(retType, e.getExpressionType(), retVar);
       BooleanFormula assignments = fmgr.assignment(outvarFormula, retVar);
 
-      if (handlePointerAliasing) {
-        CExpression left = removeCast(e);
-        if (left instanceof CIdExpression) {
-          BooleanFormula ptrAssignment = buildDirectReturnSecondLevelAssignment(
-              e, Variable.create(retVarName, retType), function, ssa);
-          assignments = bfmgr.and(assignments, ptrAssignment);
-        }
-      }
-
-       return assignments;
+      return assignments;
     } else {
       throw new UnrecognizedCCodeException("Unknown function exit expression", ce, retExp.asStatement());
     }
@@ -1425,7 +1281,7 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  private BooleanFormula makeReturn(CExpression rightExp, CReturnStatementEdge edge, String function,
+  protected BooleanFormula makeReturn(CExpression rightExp, CReturnStatementEdge edge, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
     if (rightExp == null) {
       // this is a return from a void function, do nothing
@@ -1448,13 +1304,6 @@ public class CtoFormulaConverter {
       BooleanFormula assignments = makeAssignment(retVarName, returnType,
           expressionType, retval, ssa);
 
-      if (handlePointerAliasing) {
-        // if the value to be returned may be a pointer, act accordingly
-        BooleanFormula rightAssignment = buildDirectSecondLevelAssignment(
-            Variable.create(retVarName, returnType), rightExp, function, constraints, ssa);
-        assignments = bfmgr.and(assignments, rightAssignment);
-      }
-
       return assignments;
     }
   }
@@ -1476,35 +1325,6 @@ public class CtoFormulaConverter {
     return exp.accept(getLvalueVisitor(edge, function, ssa, constraints));
   }
 
-  private BooleanFormula buildDirectReturnSecondLevelAssignment(CExpression leftId,
-      Variable retVarName, String function, SSAMapBuilder ssa) {
-
-    // include aliases if the left or right side may be a pointer a pointer
-    // We only can write *l = *r if the types after dereference have some formula
-    // type correspondence (e.g. boolean, real, bit vector etc.)
-    // Types of unknown sizes, e.g. CProblemType, can't be represented and would
-    // otherwise cause throwing exceptions
-    Variable leftVar = scopedIfNecessary(leftId, ssa, function);
-    if ((maybePointer(leftVar, ssa)
-        || maybePointer(retVarName, ssa)) &&
-        hasRepresentableDereference(leftId) &&
-        hasRepresentableDereference(retVarName)) {
-      // we assume that either the left or the right hand side is a pointer
-      // so we add the equality: *l = *r
-      Variable leftPtrMask = makePointerMask(leftVar, ssa);
-      Formula lPtrVar =  makeVariable(leftPtrMask, ssa);
-      Variable retPtrVarName = makePointerMask(retVarName, ssa);
-
-      Formula retPtrVar = makeVariable(retPtrVarName, ssa);
-      return makeNondetAssignment(lPtrVar, retPtrVar);
-
-    } else {
-      // we can assume, that no pointers are affected in this assignment
-      return bfmgr.makeBoolean(true);
-    }
-  }
-
-  private int expands = 0;
   BooleanFormula makeNondetAssignment(Formula left, Formula right) {
     BitvectorFormulaManagerView bitvectorFormulaManager = efmgr;
     FormulaType<Formula> tl = fmgr.getFormulaType(left);
@@ -1544,220 +1364,6 @@ public class CtoFormulaConverter {
     }
   }
 
-  BooleanFormula buildDirectSecondLevelAssignment(
-      Variable lVarName,
-      CRightHandSide pRight, String function,
-      Constraints constraints, SSAMapBuilder ssa) {
-
-    if (!hasRepresentableDereference(lVarName)) {
-      // The left side is a type that should not be dereferenced, so no 2nd level assignment
-      return bfmgr.makeBoolean(true);
-    }
-
-    if (!(pRight instanceof CExpression)) {
-      // The right side is something strange
-      log(Level.FINEST, "Not a CExpression on the right side, ignoring aliasing: " + pRight.toASTString());
-      return bfmgr.makeBoolean(true);
-    }
-
-    CExpression right = (CExpression)pRight;
-    if (!isSupportedExpression(right)) {
-      if (isTooComplexExpression(right)) {
-        // The right side is too complex
-        warnToComplex(right);
-      }
-      // If it is not too complex we probably need no 2nd level
-      // TODO: Check the statement above.
-      return bfmgr.makeBoolean(true);
-    }
-
-    Formula lVar = makeVariable(lVarName, ssa);
-
-    Variable lPtrVarName = makePointerMask(lVarName, ssa);
-    CType leftPtrType = lPtrVarName.getType();
-    if (right instanceof CIdExpression ||
-        (handleFieldAccess && right instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)right))) {
-      // C statement like: s1 = s2; OR s1 = s2.d;
-
-      // include aliases if the left or right side may be a pointer a pointer
-      // Assume no pointers affected if unrepresentable values are assigned
-      Variable rightVar = scopedIfNecessary(right, ssa, function);
-      if ((maybePointer(lVarName, ssa) || maybePointer(rightVar, ssa)) &&
-          hasRepresentableDereference(right)) {
-        // we assume that either the left or the right hand side is a pointer
-        // so we add the equality: *l = *r
-        Variable rPtrVarName = makePointerMask(rightVar, ssa);
-
-        boolean leftT, rightT;
-        if ((leftT = isDereferenceType(leftPtrType)) |
-            (rightT = isDereferenceType(rPtrVarName.getType()))) {
-          // One of those types is no pointer so try to guess dereferenced type.
-
-          if (leftT) {
-            if (rightT) {
-              // Right is actually no pointer but was used as pointer before, so we can use its type.
-            }
-
-            // OK left is no pointer, but right is, for example:
-            // l = r; // l is unsigned int and r is *long
-            // now we assign *l to the type of *r if *l was not assigned before
-            CType currentGuess = getGuessedType(leftPtrType);
-            if (currentGuess == null) {
-              lPtrVarName =
-                  lPtrVarName.withType(setGuessedType(leftPtrType, rPtrVarName.getType()));
-            } else {
-              if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
-                log(Level.WARNING, "Second assignment of an variable that is no pointer with different size");
-              }
-            }
-          } else {
-            assert rightT : "left and right side are no pointers, however maybePointer was true for one side!";
-            // OK right is no pointer, but left is, for example:
-            // l = r; // l is unsigned long* and r is unsigned int
-
-            // r was probably assigned with a pointer before and should have a size
-            if (!(right.getExpressionType() instanceof CFunctionType)) {
-              // ignore function pointer assignments
-              CType currentGuess = getGuessedType(rPtrVarName.getType());
-              if (currentGuess == null) {
-                // TODO: This currently happens when assigning a function to a function pointer.
-                // NOTE: Should we set the size of r in this case?
-                log(Level.FINEST, "Pointer " + lVarName.getName() + " is assigned the value of variable " +
-                    right.toASTString() + " which contains a non-pointer value in line " +
-                    right.getFileLocation().getStartingLineNumber());
-              } else {
-                if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
-                  log(Level.WARNING, "Assignment of a pointer from a variable that was assigned by a pointer with different size!");
-                }
-              }
-            }
-          }
-        }
-
-        Formula lPtrVar = makeVariable(lPtrVarName, ssa);
-        Formula rPtrVar = makeVariable(rPtrVarName, ssa);
-
-        return makeNondetAssignment(lPtrVar, rPtrVar);
-      } else {
-        // we can assume, that no pointers are affected in this assignment
-        return bfmgr.makeBoolean(true);
-      }
-
-    } else if ((right instanceof CUnaryExpression &&
-                   ((CUnaryExpression) right).getOperator() == UnaryOperator.STAR) ||
-               (handleFieldAccess && right instanceof CFieldReference && isIndirectFieldReference((CFieldReference)right))) {
-      // C statement like: s1 = *s2;
-      // OR s1 = *(s.b)
-      // OR s1 = s->b
-
-      if (isDereferenceType(leftPtrType)) {
-        // We have an assignment to a non-pointer type
-        CType guess = getGuessedType(leftPtrType);
-        if (guess == null) {
-          // We have to guess the size of the dereferenced type here
-          // but there is no good guess.
-          // TODO: if right side is a **(pointer of a pointer) type use it.
-        }
-      }
-
-      makeFreshIndex(lPtrVarName.getName(), lPtrVarName.getType(), ssa);
-      removeOldPointerVariablesFromSsaMap(lPtrVarName.getName(), ssa);
-
-      Formula lPtrVar = makeVariable(lPtrVarName, ssa);
-
-      if (!(isSupportedExpression(right)) ||
-          !(hasRepresentableDereference(right))) {
-        // these are statements like s1 = *(s2->f)
-        warnToComplex(right);
-        return bfmgr.makeBoolean(true);
-      }
-
-      Variable rPtrVarName = scopedIfNecessary(right, ssa, function);
-      Formula rPtrVar = makeVariable(rPtrVarName, ssa);
-      //Formula rPtrVar = makePointerVariable(rRawExpr, function, ssa);
-
-      // the dealiased address of the right hand side may be a pointer itself.
-      // to ensure tracking, we need to set the left side
-      // equal to the dealiased right side or update the pointer
-      // r is the right hand side variable, l is the left hand side variable
-      // ∀p ∈ maybePointer: (p = *r) ⇒ (l = p ∧ *l = *p)
-      // Note: l = *r holds because of current statement
-      for (final Map.Entry<String, CType> ptrVarName : getAllPointerVariablesFromSsaMap(ssa)) {
-        Variable varName = removePointerMaskVariable(ptrVarName.getKey(), ptrVarName.getValue());
-
-        if (!varName.equals(lVarName)) {
-
-          Formula var = makeVariable(varName, ssa);
-          Formula ptrVar = makeVariable(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
-
-          // p = *r. p is a pointer but *r can be anything
-          BooleanFormula ptr = makeNondetAssignment(rPtrVar, var);
-          // l = p. p is a pointer but l can be anything.
-          BooleanFormula dirEq = makeNondetAssignment(lVar, var);
-
-          // *l = *p. Both can be anything.
-          BooleanFormula indirEq =
-              makeNondetAssignment(lPtrVar, ptrVar);
-
-          BooleanFormula consequence = bfmgr.and(dirEq, indirEq);
-          BooleanFormula constraint = bfmgr.implication(ptr, consequence);
-          constraints.addConstraint(constraint);
-        }
-      }
-
-      // no need to add a second level assignment
-      return bfmgr.makeBoolean(true);
-
-    } else if (isMemoryLocation(right)) {
-      // s = &x
-      // OR s = (&x).t
-      // need to update the pointer on the left hand side
-      if (right instanceof CUnaryExpression
-          && ((CUnaryExpression) right).getOperator() == UnaryOperator.AMPER) {
-
-        CExpression rOperand =
-            removeCast(((CUnaryExpression) right).getOperand());
-        if (rOperand instanceof CIdExpression &&
-            hasRepresentableDereference(lVarName)) {
-          Variable rVarName = scopedIfNecessary(rOperand, ssa, function);
-          Formula rVar = makeVariable(rVarName, ssa);
-
-          if (isDereferenceType(leftPtrType)) {
-            // s is no pointer and if *s was not guessed jet we can use the type of x.
-            CType guess = getGuessedType(leftPtrType);
-            if (guess == null) {
-              lPtrVarName =
-                  lPtrVarName.withType(setGuessedType(leftPtrType, rOperand.getExpressionType()));
-            } else {
-              if (getSizeof(guess) != getSizeof(rOperand.getExpressionType())) {
-                log(Level.WARNING, "Size of an old guess doesn't match with the current guess: " + lPtrVarName.getName());
-              }
-            }
-          }
-          Formula lPtrVar = makeVariable(lPtrVarName, ssa);
-
-          return makeNondetAssignment(lPtrVar, rVar);
-        }
-      } else if (right instanceof CFieldReference) {
-        // Weird Case
-        log(Level.WARNING, "Strange MemoryLocation: " + right.toASTString());
-      }
-
-      // s = malloc()
-      // has been handled already
-      return bfmgr.makeBoolean(true);
-
-    } else {
-      // s = someFunction()
-      // s = a + b
-      // s = a[i]
-
-      // no second level assignment necessary
-      return bfmgr.makeBoolean(true);
-    }
-  }
-
-
   private BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
       String function, SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
 
@@ -1780,62 +1386,27 @@ public class CtoFormulaConverter {
     return bfmgr.and(f, constraints.get());
   }
 
-  private StatementToFormulaVisitor getStatementVisitor(CFAEdge pEdge, String pFunction,
+  protected StatementToFormulaVisitor getStatementVisitor(CFAEdge pEdge, String pFunction,
       SSAMapBuilder pSsa, Constraints pConstraints) {
     ExpressionToFormulaVisitor ev = getCExpressionVisitor(pEdge, pFunction, pSsa, pConstraints);
-    if (handlePointerAliasing) {
-      return new StatementToFormulaVisitorPointers(ev);
-    } else {
-      return new StatementToFormulaVisitor(ev);
-    }
+    return new StatementToFormulaVisitor(ev);
   }
 
-  private ExpressionToFormulaVisitor getCExpressionVisitor(CFAEdge pEdge, String pFunction,
+  protected ExpressionToFormulaVisitor getCExpressionVisitor(CFAEdge pEdge, String pFunction,
       SSAMapBuilder pSsa, Constraints pCo) {
     if (lvalsAsUif) {
       return new ExpressionToFormulaVisitorUIF(this, pEdge, pFunction, pSsa, pCo);
-    } else if (handlePointerAliasing) {
-      return new ExpressionToFormulaVisitorPointers(this, pEdge, pFunction, pSsa, pCo);
     } else {
       return new ExpressionToFormulaVisitor(this, pEdge, pFunction, pSsa, pCo);
     }
   }
 
-  private LvalueVisitor getLvalueVisitor(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
+  protected LvalueVisitor getLvalueVisitor(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
     if (lvalsAsUif) {
       return new LvalueVisitorUIF(this, pEdge, pFunction, pSsa, pCo);
-    } else if (handlePointerAliasing) {
-      return new LvalueVisitorPointers(this, pEdge, pFunction, pSsa, pCo);
     } else {
       return new LvalueVisitor(this, pEdge, pFunction, pSsa, pCo);
     }
-  }
-
-  private boolean isMemoryLocation(CAstNode exp) {
-    exp = removeCast(exp);
-
-    // memory allocating function?
-    if (exp instanceof CFunctionCall) {
-      CExpression fn =
-          ((CFunctionCall) exp).getFunctionCallExpression().getFunctionNameExpression();
-
-      if (fn instanceof CIdExpression) {
-        String functionName = ((CIdExpression) fn).getName();
-        if (memoryAllocationFunctions.contains(functionName)) {
-          return true;
-        }
-      }
-
-    // explicit heap/stack address?
-    } else if (exp instanceof CUnaryExpression
-        && ((CUnaryExpression) exp).getOperator() == UnaryOperator.AMPER) {
-      return true;
-    } else if (exp instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)exp)) {
-      return isMemoryLocation(((CFieldReference)exp).getFieldOwner());
-    }
-
-
-    return false;
   }
 
   /**
@@ -1947,63 +1518,6 @@ public class CtoFormulaConverter {
       throw new AssertionError("field " + fieldName + " was not found in " + structType);
   }
 
-  private static boolean maybePointer(Variable var, SSAMapBuilder ssa) {
-    if (var.getType() instanceof CPointerType) {
-      return true;
-    }
-
-    // check if it has been used as a pointer before
-    String expPtrVarName = makePointerMaskName(var.getName(), ssa);
-    return ssa.getType(expPtrVarName) != null;
-  }
-
-  /**
-   * Returns a list of all variable names representing memory locations in
-   * the SSAMap. These memory locations are those previously used.
-   *
-   * Stored memory locations are prefixed with
-   * {@link #MEMORY_ADDRESS_VARIABLE_PREFIX}.
-   */
-  static Set<Map.Entry<String, CType>> getAllMemoryLocationsFromSsaMap(SSAMapBuilder ssa) {
-    return Sets.filter(ssa.allVariablesWithTypes(), liftToVariable(IS_MEMORY_ADDRESS_VARIABLE));
-  }
-
-  private static Predicate<Map.Entry<String, CType>> liftToVariable(final Predicate<? super String> stringPred) {
-    return new Predicate<Map.Entry<String, CType>>() {
-      @Override
-      public boolean apply(Map.Entry<String, CType> pInput) {
-        return stringPred.apply(pInput.getKey());
-      }};
-  }
-
-  /**
-   * Returns a list of all pointer variables stored in the SSAMap.
-   */
-  static Set<Map.Entry<String, CType>> getAllPointerVariablesFromSsaMap(SSAMapBuilder ssa) {
-    return Sets.filter(ssa.allVariablesWithTypes(), liftToVariable(IS_POINTER_VARIABLE));
-  }
-
-  /**
-   * Removes all pointer variables belonging to a given variable from a given
-   * SSAMapBuilderthat are no longer valid. Validity of an entry expires,
-   * when the pointer variable belongs to a variable with an old index.
-   *
-   * @param newPVar The variable name of the new pointer variable.
-   * @param ssa The SSAMapBuilder from which the variables are to be deleted
-   */
-  static void removeOldPointerVariablesFromSsaMap(String newPVar,
-      SSAMapBuilder ssa) {
-
-    String newVar = removePointerMask(newPVar);
-
-    for (String ptrVarName : from(ssa.allVariables()).filter(IS_POINTER_VARIABLE)) {
-      String oldVar = removePointerMask(ptrVarName);
-      if (!ptrVarName.equals(newPVar) && oldVar.equals(newVar)) {
-        ssa.deleteVariable(ptrVarName);
-      }
-    }
-  }
-
   static CExpression removeCast(CExpression exp) {
     if (exp instanceof CCastExpression) {
       return removeCast(((CCastExpression) exp).getOperand());
@@ -2018,20 +1532,12 @@ public class CtoFormulaConverter {
     return exp;
   }
 
-  private static CAstNode removeCast(CAstNode exp) {
-    if (exp instanceof CCastExpression) {
-      return removeCast(((CCastExpression) exp).getOperand());
-    }
-    return exp;
-  }
-
-
   /**
    * Indicates which level of indirection is supported.
    * This should stay 1 unless you know what you are doing.
    * The main reason for this limit is that we would have to emit a lot more formulas for every additional level.
    */
-  private int supportedIndirectionLevel = 1;
+  protected final int supportedIndirectionLevel = 1;
 
   /**
    * Returns true when we are able to produce a variable<CType> from this expression.
@@ -2094,14 +1600,5 @@ public class CtoFormulaConverter {
 
     String var = scoped(exprToVarName(exp), function);
     return makeVariable(var, exp.getExpressionType(), ssa, makeFresh);
-  }
-
-
-  private boolean isTooComplexExpression(CExpression c) {
-    if (!c.accept(tooComplexVisitor)) {
-      return false;
-    }
-
-    return IndirectionVisitor.getIndirectionLevel(c) > supportedIndirectionLevel;
   }
 }
