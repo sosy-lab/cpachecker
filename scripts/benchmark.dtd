@@ -1,4 +1,4 @@
-<!ELEMENT benchmark ((rundefinition | option | sourcefiles | requiredfiles)*, columns?)>
+<!ELEMENT benchmark ((rundefinition | option | sourcefiles | requiredfiles | require )*, columns?)>
 <!ELEMENT rundefinition (sourcefiles | option)*>
 
 <!ELEMENT sourcefiles (include | includesfile | exclude | option)*>
@@ -7,6 +7,7 @@
 <!ELEMENT exclude (#PCDATA)>
 
 <!ELEMENT requiredfiles (#PCDATA)>
+<!ELEMENT require>
 
 <!ELEMENT option (#PCDATA)>
 <!ELEMENT columns (column*)>
@@ -17,7 +18,13 @@
 <!ATTLIST benchmark timelimit CDATA #IMPLIED>
 <!ATTLIST benchmark cpuCores CDATA #IMPLIED>
 <!ATTLIST benchmark threads CDATA #IMPLIED>
+
 <!ATTLIST sourcefiles name CDATA #IMPLIED>
+
+<!ATTLIST require cpuModel CDATA #IMPLIED>
+<!ATTLIST require cpuCores CDATA "1">
+<!ATTLIST require memory   CDATA "1">
+
 <!ATTLIST test name CDATA #IMPLIED>
 <!ATTLIST option name CDATA #REQUIRED>
 <!ATTLIST column title CDATA #IMPLIED

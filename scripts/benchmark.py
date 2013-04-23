@@ -221,9 +221,17 @@ class Benchmark:
         self.requiredFiles = self.tool.getProgrammFiles(self.executable)
         baseDir = os.path.dirname(self.benchmarkFile)
         for requiredFilesTag in rootTag.findall('requiredfiles'):
-            print(requiredFilesTag.text)
             requiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, baseDir)
             self.requiredFiles.extend(requiredFiles)
+
+        # get requirements
+        self.requirements = Requirements()
+        for requireTag in rootTag.findall("require"):
+            requirements = Requirements(requireTag.get('cpuModel', None),
+                                        requireTag.get('cpuCores', None),
+                                        requireTag.get('memory',   None)
+                                        )
+            self.requirements = Requirements.merge(self.requirements, requirements)
 
         # get benchmarks
         self.runSets = []
@@ -534,6 +542,55 @@ class Column:
         self.title = title
         self.numberOfDigits = numOfDigits
         self.value = ""
+
+
+class Requirements:
+    def __init__(self, cpuModel=None, cpuCores=None, memory=None):
+        self._cpuModel = cpuModel
+        self._cpuCores = int(cpuCores) if cpuCores is not None else None
+        self._memory   = int(memory) if memory is not None else None
+
+        if self.cpuCores <= 0:
+            raise Exception('Invalid value for required CPU cores.')
+
+        if self.cpuCores <= 0:
+            raise Exception('Invalid value for required memory.')
+
+    def cpuModel(self):
+        return self._cpuModel or ""
+
+    def cpuCores(self):
+        return self._cpuCores or 1
+
+    def memory(self):
+        return self._memory or 1
+
+    @classmethod
+    def merge(cls, r1, r2):
+        if r1._cpuModel is not None and r2._cpuModel is not None:
+            raise Exception('Double specification of required CPU model.')
+        if r1._cpuCores and r2._cpuCores:
+            raise Exception('Double specification of required CPU cores.')
+        if r1._memory and r2._memory:
+            raise Exception('Double specification of required memory.')
+
+        return cls(r1._cpuModel if r1._cpuModel is not None else r2._cpuModel,
+                   r1._cpuCores or r2._cpuCores,
+                   r1._memory or r2._memory)
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__, self.__dict__)
+
+    def __str__(self):
+        s = ""
+        if self._cpuModel:
+            s += " CPU='" + self._cpuModel + "'"
+        if self._cpuCores:
+            s += " Cores=" + str(self._cpuCores)
+        if self._memory:
+            s += " Memory=" + str(self._memory) + "MB"
+
+        return "Requirements:" + (s if s else " None")
 
 
 class OutputHandler:
@@ -1291,6 +1348,9 @@ def executeBenchmarkInCloud(benchmark):
             logging.error("Missing file {0}, cannot run benchmark within cloud.".format(os.path.normpath(file)))
             return
 
+    requirements = str(benchmark.requirements)
+    # TODO
+    print('Ignoring specified ' + requirements)
     requirements = "2000\t1"  # TODO memory numerOfCpuCores
     cloudRunExecutorDir = os.path.abspath(os.path.dirname(__file__))
     outputDir = benchmark.logFolder
