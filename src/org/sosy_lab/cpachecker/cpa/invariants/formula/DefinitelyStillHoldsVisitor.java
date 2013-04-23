@@ -26,26 +26,59 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.ChangeAnalyzeVisitor.Result;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.ComparisonVisitor.Result;
 
-
+/**
+ * Instances of this class are parameterized visitors used to determine if an
+ * assumption over compound state invariants formulae definitely still holds
+ * after a variable changed.
+ */
 public class DefinitelyStillHoldsVisitor extends DefaultParameterizedFormulaVisitor<CompoundState, Map<? extends String, ? extends InvariantsFormula<CompoundState>>, Boolean> implements ParameterizedInvariantsFormulaVisitor<CompoundState, Map<? extends String, ? extends InvariantsFormula<CompoundState>>, Boolean> {
 
+  /**
+   * The visitor used to check if a formula contains a specified variable.
+   */
+  private static final ContainsVarVisitor<CompoundState> CONTAINS_VAR_VISITOR = new ContainsVarVisitor<>();
+
+  /**
+   * The formula representing the new value of the changed variable.
+   */
   private final InvariantsFormula<CompoundState> newValue;
 
+  /**
+   * The evaluation visitor used to evaluate compound state invariants formulae
+   * to compound states.
+   */
   private final FormulaEvaluationVisitor<CompoundState> evaluationVisitor;
 
-  private final ContainsVarVisitor<CompoundState> containsVarVisitor;
+  /**
+   * The name of the changed variable.
+   */
+  private final String changedVariableName;
 
-  private final ChangeAnalyzeVisitor changeAnalyzeVisitor;
+  /**
+   * The visitor used to compare compound state invariants formulae.
+   */
+  private final ComparisonVisitor changeAnalyzeVisitor;
 
-  public DefinitelyStillHoldsVisitor(InvariantsFormula<CompoundState> pNewValue,
-      FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor,
-      ContainsVarVisitor<CompoundState> containsVarVisitor) {
+  /**
+   * Creates a new visitor used to visit compound state invariants formulae to
+   * check if they, considered as assumptions, still hold after the variable
+   * with the given name is assigned the given new value.
+   *
+   * @param pChangedVariableName the name of the newly assigned variable.
+   * @param pNewValue the formula representing the expression assigned to the
+   * variable.
+   * @param pEvaluationVisitor the evaluation visitor used to evaluate compound
+   * state invariants formulae to compound states.
+   */
+  public DefinitelyStillHoldsVisitor(String pChangedVariableName,
+      InvariantsFormula<CompoundState> pNewValue,
+      FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor) {
     this.newValue = pNewValue;
     this.evaluationVisitor = pEvaluationVisitor;
-    this.containsVarVisitor = containsVarVisitor;
-    this.changeAnalyzeVisitor = new ChangeAnalyzeVisitor(newValue, evaluationVisitor);
+    this.changedVariableName = pChangedVariableName;
+    this.changeAnalyzeVisitor = new ComparisonVisitor(newValue, evaluationVisitor);
   }
 
   @Override
@@ -53,11 +86,11 @@ public class DefinitelyStillHoldsVisitor extends DefaultParameterizedFormulaVisi
     if (visitDefault(pEqual, pEnvironment)) {
       return true;
     }
-    boolean leftContains = pEqual.getOperand1().accept(containsVarVisitor);
-    boolean rightContains = pEqual.getOperand2().accept(containsVarVisitor);
+    boolean leftContains = containsChangedVariable(pEqual.getOperand1());
+    boolean rightContains = containsChangedVariable(pEqual.getOperand2());
     if (leftContains) {
       if (rightContains) {
-        ChangeAnalyzeVisitor cav = new ChangeAnalyzeVisitor(pEqual.getOperand1(), evaluationVisitor);
+        ComparisonVisitor cav = new ComparisonVisitor(pEqual.getOperand1(), evaluationVisitor);
         return pEqual.getOperand2().accept(cav, pEnvironment) == Result.EQUAL;
       }
       return pEqual.getOperand1().accept(changeAnalyzeVisitor, pEnvironment) == Result.EQUAL;
@@ -73,11 +106,11 @@ public class DefinitelyStillHoldsVisitor extends DefaultParameterizedFormulaVisi
     if (visitDefault(pLessThan, pEnvironment)) {
       return true;
     }
-    boolean leftContains = pLessThan.getOperand1().accept(containsVarVisitor);
-    boolean rightContains = pLessThan.getOperand2().accept(containsVarVisitor);
+    boolean leftContains = containsChangedVariable(pLessThan.getOperand1());
+    boolean rightContains = containsChangedVariable(pLessThan.getOperand2());
     if (leftContains) {
       if (rightContains) {
-        ChangeAnalyzeVisitor cav = new ChangeAnalyzeVisitor(pLessThan.getOperand1(), evaluationVisitor);
+        ComparisonVisitor cav = new ComparisonVisitor(pLessThan.getOperand1(), evaluationVisitor);
         return pLessThan.getOperand2().accept(cav, pEnvironment) == Result.LESS_THAN;
       }
       Result compLeftToNew = pLessThan.getOperand1().accept(changeAnalyzeVisitor, pEnvironment);
@@ -105,6 +138,29 @@ public class DefinitelyStillHoldsVisitor extends DefaultParameterizedFormulaVisi
   @Override
   protected Boolean visitDefault(InvariantsFormula<CompoundState> pFormula, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     return pFormula.accept(evaluationVisitor, pEnvironment).isDefinitelyTrue();
+  }
+
+  /**
+   * Checks if the given formula contains the changed variable.
+   *
+   * @param pFormula the formula to check.
+   * @return <code>true</code> if the given formula contains the changed
+   * variable, <code>false</code> otherwise.
+   */
+  private boolean containsChangedVariable(InvariantsFormula<CompoundState> pFormula) {
+    return containsVariable(pFormula, changedVariableName);
+  }
+
+  /**
+   * Checks if the given formula contains the variable with the given name.
+   *
+   * @param pFormula the formula to check.
+   * @param pVarName the name of the variable in question.
+   * @return <code>true</code> if the given formula contains the  variable,
+   * <code>false</code> otherwise.
+   */
+  private static boolean containsVariable(InvariantsFormula<CompoundState> pFormula, String pVarName) {
+    return pFormula.accept(CONTAINS_VAR_VISITOR, pVarName);
   }
 
 }

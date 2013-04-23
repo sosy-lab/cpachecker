@@ -23,22 +23,49 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
+/**
+ * Instances of this class represent unions of other invariants formulae.
+ *
+ * @param <ConstantType> the type of the constants used in the formulae.
+ */
 public class Union<ConstantType> implements InvariantsFormula<ConstantType> {
 
+  /**
+   * The first operand of the union.
+   */
   private final InvariantsFormula<ConstantType> operand1;
 
+  /**
+   * The second operand of the union.
+   */
   private final InvariantsFormula<ConstantType> operand2;
 
-  private Union(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
+  /**
+   * Creates a new union of the given formulae.
+   *
+   * @param pOperand1 the first operand of the union.
+   * @param pOperand2 the second operand of the union.
+   */
+  private Union(InvariantsFormula<ConstantType> pOperand1,
+      InvariantsFormula<ConstantType> pOperand2) {
     this.operand1 = pOperand1;
     this.operand2 = pOperand2;
   }
 
+  /**
+   * Gets the first operand of the union.
+   *
+   * @return the first operand of the union.
+   */
   public InvariantsFormula<ConstantType> getOperand1() {
     return this.operand1;
   }
 
+  /**
+   * Gets the second operand of the union.
+   *
+   * @return the second operand of the union.
+   */
   public InvariantsFormula<ConstantType> getOperand2() {
     return this.operand2;
   }
@@ -77,7 +104,18 @@ public class Union<ConstantType> implements InvariantsFormula<ConstantType> {
     return pVisitor.visit(this, pParameter);
   }
 
-  public static <ConstantType> Union<ConstantType> of(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
+  /**
+   * Gets an invariants formula representing the union of the given invariants
+   * formulae.
+   *
+   * @param pOperand1 the first operand.
+   * @param pOperand2 the second operand.
+   *
+   * @return an invariants formula representing the union of the given invariants
+   * formulae.
+   */
+  public static <ConstantType> Union<ConstantType> of(InvariantsFormula<ConstantType> pOperand1,
+      InvariantsFormula<ConstantType> pOperand2) {
     return new Union<>(pOperand1, pOperand2);
   }
 

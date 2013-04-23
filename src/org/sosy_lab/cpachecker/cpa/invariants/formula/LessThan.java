@@ -23,22 +23,50 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
+/**
+ * Instances of this class represent less-than inequations over invariants
+ * formulae.
+ *
+ * @param <ConstantType> the type of the constants used in the formula.
+ */
 public class LessThan<ConstantType> implements InvariantsFormula<ConstantType> {
 
+  /**
+   * The left operand of the inequation.
+   */
   private final InvariantsFormula<ConstantType> operand1;
 
+  /**
+   * The right operand of the inequation.
+   */
   private final InvariantsFormula<ConstantType> operand2;
 
-  private LessThan(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
+  /**
+   * Creates a new less-than inequation over the given operands.
+   *
+   * @param pOperand1 the left operand of the inequation.
+   * @param pOperand2 the right operand of the inequation.
+   */
+  private LessThan(InvariantsFormula<ConstantType> pOperand1,
+      InvariantsFormula<ConstantType> pOperand2) {
     this.operand1 = pOperand1;
     this.operand2 = pOperand2;
   }
 
+  /**
+   * Gets the left operand of the inequation.
+   *
+   * @return the left operand of the inequation.
+   */
   public InvariantsFormula<ConstantType> getOperand1() {
     return this.operand1;
   }
 
+  /**
+   * Gets the right operand of the inequation.
+   *
+   * @return the right operand of the inequation.
+   */
   public InvariantsFormula<ConstantType> getOperand2() {
     return this.operand2;
   }
@@ -50,7 +78,8 @@ public class LessThan<ConstantType> implements InvariantsFormula<ConstantType> {
     }
     if (o instanceof LessThan) {
       LessThan<?> other = (LessThan<?>) o;
-      return getOperand1().equals(other.getOperand1()) && getOperand2().equals(other.getOperand2()) || getOperand1().equals(other.getOperand2()) && getOperand2().equals(other.getOperand1());
+      return getOperand1().equals(other.getOperand1())
+          && getOperand2().equals(other.getOperand2());
     }
     return false;
   }
@@ -76,6 +105,16 @@ public class LessThan<ConstantType> implements InvariantsFormula<ConstantType> {
     return pVisitor.visit(this, pParameter);
   }
 
+  /**
+   * Gets an invariants formula representing a less-than inequation over the
+   * given operands.
+   *
+   * @param pOperand1 the left operand of the inequation.
+   * @param pOperand2 the right operand of the inequation.
+   *
+   * @return an invariants formula representing a less-than inequation over the
+   * given operands.
+   */
   static <ConstantType> LessThan<ConstantType> of(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
     return new LessThan<>(pOperand1, pOperand2);
   }

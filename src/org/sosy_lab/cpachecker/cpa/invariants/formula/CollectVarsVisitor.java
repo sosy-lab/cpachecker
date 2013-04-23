@@ -27,8 +27,20 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Instances of this class are visitors that are used to collect the variables
+ * used in the given formulae. Possible environments are ignored by these
+ * visitors, thus variables are not evaluated any further. This means, that in
+ * a formula ((x + y) * z) only the variables x, y and z are found, even if for
+ * example an environment exists that states that x = a + b.
+ *
+ * @param <T> the type of the constants used in the formulae.
+ */
 public class CollectVarsVisitor<T> implements InvariantsFormulaVisitor<T, Set<String>> {
 
+  /**
+   * The empty set of strings.
+   */
   private static final Set<String> EMPTY_SET = Collections.emptySet();
 
   @Override
@@ -121,29 +133,56 @@ public class CollectVarsVisitor<T> implements InvariantsFormulaVisitor<T, Set<St
     return Collections.singleton(pVariable.getName());
   }
 
+  /**
+   * Concatenates the given sets.
+   *
+   * @param a the first set.
+   * @param b the second set.
+   *
+   * @return the concatenation of the given sets.
+   */
   private Set<String> concat(Set<String> a, Set<String> b) {
+    // If one of the sets is empty, return the other one
     if (a.isEmpty()) {
       return b;
     }
     if (b.isEmpty()) {
       return a;
     }
+    // If both sets are equal, return any one of the sets
     if (a.equals(b)) {
       return a;
     }
+    /*
+     * At this point, both sets are guaranteed to be different. A set of size
+     * one might be a singleton set that is unmodifiable, thus if both sets
+     * are of size one, a new modifiable set is created for the result.
+     */
     if (a.size() == 1 && b.size() == 1) {
       Set<String> result = new HashSet<>(a);
       result.addAll(b);
       return result;
     }
+    /*
+     * If a contains only one element, b must be larger and thus a modifiable
+     * set in the context of this class, so the element of a is added to it.
+     */
     if (a.size() == 1) {
       b.addAll(a);
       return b;
     }
+    /*
+     * If b contains only one element, a must be larger and thus a modifiable
+     * set in the context of this class, so the element of b is added to it.
+     */
     if (b.size() == 1) {
       a.addAll(b);
       return a;
     }
+    /*
+     * Both sets are contain multiple values and are modifiable, so add all
+     * values of one of the sets to the other set and return the latter one.
+     */
     a.addAll(b);
     return a;
   }

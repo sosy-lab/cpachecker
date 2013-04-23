@@ -27,7 +27,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-
+/**
+ * Instances of this class are invariants formula visitors used to split the
+ * visited formulae on their outer conjunctions into lists of the conjunction
+ * operands. This is done recursively so that nested conjunctions are split
+ * as well.
+ *
+ * @param <T> the type of the constants used in the formulae.
+ */
 public class SplitConjunctionsVisitor<T> implements InvariantsFormulaVisitor<T, List<InvariantsFormula<T>>> {
 
   @Override
@@ -77,7 +84,8 @@ public class SplitConjunctionsVisitor<T> implements InvariantsFormulaVisitor<T, 
 
   @Override
   public List<InvariantsFormula<T>> visit(LogicalAnd<T> pAnd) {
-    return concat(pAnd.getOperand1().accept(this), pAnd.getOperand2().accept(this));
+    return concat(pAnd.getOperand1().accept(this),
+        pAnd.getOperand2().accept(this));
   }
 
   @Override
@@ -120,29 +128,47 @@ public class SplitConjunctionsVisitor<T> implements InvariantsFormulaVisitor<T, 
     return Collections.<InvariantsFormula<T>>singletonList(pVariable);
   }
 
+  /**
+   * Concatenates two lists with respect to the types of lists occurring within
+   * this visitor class.
+   *
+   * @param a the first list.
+   * @param b the second list.
+   *
+   * @return a list containing all elements from both lists.
+   */
   private static <T> List<T> concat(List<T> a, List<T> b) {
+    // If one of the lists is empty, return the other one
     if (a.isEmpty()) {
       return b;
     }
     if (b.isEmpty()) {
       return a;
     }
-    if (a.equals(b)) {
-      return a;
-    }
+    /*
+     * If both lists contain exactly one element, they might both be singleton
+     * lists and thus immutable, so the elements of both lists are added to a
+     * new one.
+     */
     if (a.size() == 1 && b.size() == 1) {
       List<T> result = new ArrayList<>(a);
       result.addAll(b);
       return result;
     }
+    /*
+     * At this point, only one of the lists can be a singleton list. The
+     * element of a list containing just one element is added to the other
+     * list.
+     */
     if (a.size() == 1) {
       b.addAll(a);
       return b;
     }
-    if (b.size() == 1) {
-      a.addAll(b);
-      return a;
-    }
+    /*
+     * At least the first list contains more than one element and is mutable at
+     * this point, so all elements of one list are simple added to the other
+     * one.
+     */
     a.addAll(b);
     return a;
   }

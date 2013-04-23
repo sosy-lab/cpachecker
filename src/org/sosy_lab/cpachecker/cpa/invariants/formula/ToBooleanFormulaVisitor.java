@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -33,18 +35,51 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
 
+/**
+ * Instances of this class are compound state invariants visitors used to
+ * convert the visited invariants formulae into boolean formulae. This visitor
+ * always coexists with an instance of {@link ToRationalFormulaVisitor}.
+ */
 public class ToBooleanFormulaVisitor implements ParameterizedInvariantsFormulaVisitor<CompoundState, Map<? extends String, ? extends InvariantsFormula<CompoundState>>, BooleanFormula> {
 
+  /**
+   * The boolean formula manager used.
+   */
   private final BooleanFormulaManager bfmgr;
 
+  /**
+   * The rational formula manager used.
+   */
   private final RationalFormulaManager rfmgr;
 
+  /**
+   * The rational formula representing the value zero.
+   */
   private final RationalFormula zero;
 
+  /**
+   * The corresponding compound state invariants formula visitor used to
+   * convert visited formulae into rational formulae.
+   */
   private final ToRationalFormulaVisitor toRationalFormulaVisitor;
 
+  /**
+   * The formula evaluation visitor used to evaluate compound state invariants
+   * formulae to compound states.
+   */
   private final FormulaEvaluationVisitor<CompoundState> evaluationVisitor;
 
+  private boolean isCurrentFormulaNegated = false;
+
+  /**
+   * Creates a new visitor for converting compound state invariants formulae to
+   * boolean formulae by using the given formula manager and evaluation
+   * visitor.
+   *
+   * @param pFmgr the formula manager used.
+   * @param evaluationVisitor the evaluation visitor used to evaluate compound
+   * state invariants formulae to compound states.
+   */
   public ToBooleanFormulaVisitor(FormulaManager pFmgr,
       FormulaEvaluationVisitor<CompoundState> evaluationVisitor) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();
@@ -54,11 +89,31 @@ public class ToBooleanFormulaVisitor implements ParameterizedInvariantsFormulaVi
     this.toRationalFormulaVisitor = new ToRationalFormulaVisitor(pFmgr, this, evaluationVisitor);
   }
 
+  /**
+   * Gets the corresponding visitor for converting compound state invariants
+   * formulae to rational formulae.
+   *
+   * @return a visitor for converting compound state invariants formulae to
+   * rational formulae.
+   */
   public ToRationalFormulaVisitor getToRationalFormulaVisitor() {
     return this.toRationalFormulaVisitor;
   }
 
-  private BooleanFormula fromRationalFormula(InvariantsFormula<CompoundState> pRationalFormula, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+  /**
+   * Interprets the given rational invariants formula as a boolean formula or
+   * <code>null</code> if it was not possible to interpret the formula as a
+   * boolean formula.
+   *
+   * @param pRationalFormula the rational invariants formula to interpret.
+   * @param pEnvironment the environment used to evaluate the given formula or
+   * parts of it in if necessary.
+   *
+   * @return a boolean interpretation of the given rational invariants formula
+   * or <code>null</code> if it was not possible to interpret the formula as a
+   * boolean formula.
+   */
+  private @Nullable BooleanFormula fromRationalFormula(InvariantsFormula<CompoundState> pRationalFormula, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     RationalFormula rationalFormula = pRationalFormula.accept(this.toRationalFormulaVisitor, pEnvironment);
     if (rationalFormula == null) {
       return evaluateAsBoolean(pRationalFormula, pEnvironment);
@@ -66,13 +121,39 @@ public class ToBooleanFormulaVisitor implements ParameterizedInvariantsFormulaVi
     return fromRationalFormula(rationalFormula);
   }
 
-  private BooleanFormula fromRationalFormula(RationalFormula pRationalFormula) {
+  /**
+   * Interprets the given rational formula as a boolean formula or
+   * <code>null</code> if the given formula was <code>null</code>.
+   *
+   * @param pRationalFormula the rational formula to interpret.
+   * @return a boolean interpretation of the given rational formula or
+   * <code>null</code> if the given formula was <code>null</code>.
+   */
+  private @Nullable BooleanFormula fromRationalFormula(@Nullable RationalFormula pRationalFormula) {
     if (pRationalFormula == null) {
       return null;
     }
+    /*
+     * Zero stands for false, everything else for true, so a rational formula
+     * r can be represented as a boolean formula as (r != zero) or
+     * (!(r == zero)).
+     */
     return this.bfmgr.not(this.rfmgr.equal(pRationalFormula, this.zero));
   }
 
+  /**
+   * Tries to evaluate the given compound state invariants formula as a boolean
+   * value, which means that the formula is evaluated using the evaluation
+   * visitor and if it represents definitely either <code>true</code> or
+   * <code>false</code>, the corresponding boolean formula is returned;
+   * otherwise <code>null</code> is returned.
+   *
+   * @param pRationalFormula the compound state invariants formula to evaluate.
+   * @param pEnvironment the environment to evaluate the formula in.
+   * @return a boolean formula representing the evaluated formula or
+   * <code>null</code> if the evaluated formula does not clearly represent
+   * either <code>true</code> or <code>false</code>.
+   */
   private BooleanFormula evaluateAsBoolean(InvariantsFormula<CompoundState> pRationalFormula, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     CompoundState value = pRationalFormula.accept(this.evaluationVisitor, pEnvironment);
     if (value.isDefinitelyFalse()) {
@@ -163,6 +244,18 @@ public class ToBooleanFormulaVisitor implements ParameterizedInvariantsFormulaVi
 
   @Override
   public BooleanFormula visit(LessThan<CompoundState> pLessThan, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    /*
+     * In integer arithmetics, x < 1 means x <= 0. In rational arithmetics,
+     * however, x < 1 would allow 0.5 as a possible value for x which is
+     * clearly not less or equal to 0. Compound states work on integer values,
+     * but the resulting rational formulae work on rational values, of course.
+     * Therefore op1 < op2 must be encoded as op1 <= (op2 - 1) by this visitor,
+     * so the information provided by the integer arithmetics the formula was
+     * created in is not lost in this conversion.
+     * However, if this formula occurs in a negated formula, every "x < y" is
+     * actually a "y <= x" already when evaluated, so in that case, the operator
+     * should be translated in the straightforward way.
+     */
     RationalFormula operand1 = pLessThan.getOperand1().accept(this.toRationalFormulaVisitor, pEnvironment);
     RationalFormula operand2 = pLessThan.getOperand2().accept(this.toRationalFormulaVisitor, pEnvironment);
     if (operand1 == null && operand2 == null) {
@@ -187,15 +280,25 @@ public class ToBooleanFormulaVisitor implements ParameterizedInvariantsFormulaVi
       }
       if (lessThan) {
         if (rightValue.hasUpperBound()) {
-          return this.rfmgr.lessThan(left, this.rfmgr.makeNumber(rightValue.getUpperBound().longValue()));
+          if (this.isCurrentFormulaNegated) {
+            return this.rfmgr.lessThan(left, this.rfmgr.makeNumber(rightValue.getUpperBound().longValue()));
+          }
+          return this.rfmgr.lessOrEquals(left, this.rfmgr.makeNumber(rightValue.getUpperBound().longValue() - 1));
         }
       } else {
-        if (rightValue.hasUpperBound()) {
-          return this.rfmgr.greaterThan(left, this.rfmgr.makeNumber(rightValue.getLowerBound().longValue()));
+        if (rightValue.hasLowerBound()) {
+          if (this.isCurrentFormulaNegated) {
+            return this.rfmgr.greaterThan(left, this.rfmgr.makeNumber(rightValue.getLowerBound().longValue()));
+          }
+          return this.rfmgr.greaterOrEquals(left, this.rfmgr.makeNumber(rightValue.getLowerBound().longValue() + 1));
         }
       }
+      return null;
     }
-    return this.rfmgr.lessThan(operand1, operand2);
+    if (this.isCurrentFormulaNegated) {
+      return this.rfmgr.lessThan(operand1, operand2);
+    }
+    return this.rfmgr.lessOrEquals(operand1, rfmgr.subtract(operand2, rfmgr.makeNumber(1)));
   }
 
   @Override
@@ -210,7 +313,9 @@ public class ToBooleanFormulaVisitor implements ParameterizedInvariantsFormulaVi
 
   @Override
   public BooleanFormula visit(LogicalNot<CompoundState> pNot, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
+    this.isCurrentFormulaNegated = !this.isCurrentFormulaNegated;
     BooleanFormula operand = pNot.getNegated().accept(this, pEnvironment);
+    this.isCurrentFormulaNegated = !this.isCurrentFormulaNegated;
     if (operand == null) {
       return evaluateAsBoolean(pNot, pEnvironment);
     }

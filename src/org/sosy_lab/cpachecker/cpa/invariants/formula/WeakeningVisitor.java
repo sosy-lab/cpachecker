@@ -23,18 +23,60 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-public class WeakeningVisitor<T> extends DefaultFormulaVisitor<T, InvariantsFormula<T>> implements InvariantsFormulaVisitor<T, InvariantsFormula<T>> {
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * Instances of this class are invariants formula visitors used to guess
+ * assumptions similar to visited assumptions.
+ *
+ * @param <T> the type of the constants used in the formulae.
+ */
+public class WeakeningVisitor<T> extends DefaultFormulaVisitor<T, Set<InvariantsFormula<T>>> {
 
   @Override
-  public InvariantsFormula<T> visit(LessThan<T> pLessThan) {
-    return InvariantsFormulaManager.INSTANCE.lessThanOrEqual(pLessThan.getOperand1(), pLessThan.getOperand2());
+  public Set<InvariantsFormula<T>> visit(LessThan<T> pLessThan) {
+    return Collections.singleton(
+        InvariantsFormulaManager.INSTANCE.lessThanOrEqual(pLessThan.getOperand1(), pLessThan.getOperand2()));
   }
 
   @Override
-  protected InvariantsFormula<T> visitDefault(InvariantsFormula<T> pFormula) {
-    return pFormula;
+  public Set<InvariantsFormula<T>> visit(Equal<T> pEqual) {
+    InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
+    Set<InvariantsFormula<T>> result = new HashSet<>();
+    result.add(ifm.lessThanOrEqual(pEqual.getOperand1(), pEqual.getOperand2()));
+    result.add(ifm.greaterThanOrEqual(pEqual.getOperand1(), pEqual.getOperand2()));
+    return result;
   }
 
+  @Override
+  public Set<InvariantsFormula<T>> visit(LogicalAnd<T> pAnd) {
+    Set<InvariantsFormula<T>> result = new HashSet<>();
+    result.addAll(pAnd.getOperand1().accept(this));
+    result.addAll(pAnd.getOperand2().accept(this));
+    return result;
+  }
 
+  @Override
+  public Set<InvariantsFormula<T>> visit(LogicalNot<T> pNot) {
+    Set<InvariantsFormula<T>> result = new HashSet<>();
+    InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
+    for (InvariantsFormula<T> similarInner : pNot.getNegated().accept(this)) {
+      InvariantsFormula<T> negatedSimilarInner = ifm.logicalNot(similarInner);
+      if (!(negatedSimilarInner instanceof LogicalNot<?>)) {
+        result.addAll(similarInner.accept(this));
+      } else {
+        result.add(similarInner);
+      }
+    }
+    result.add(pNot.getNegated());
+    return result;
+  }
+
+  @Override
+  protected Set<InvariantsFormula<T>> visitDefault(InvariantsFormula<T> pFormula) {
+    return Collections.singleton(pFormula);
+  }
 
 }

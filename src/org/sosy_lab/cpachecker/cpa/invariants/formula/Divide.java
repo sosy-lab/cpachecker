@@ -23,22 +23,50 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
+/**
+ * Instances of this class are invariants formulae representing division
+ * operations over other invariants formulae.
+ *
+ * @param <ConstantType> the type of the constants used in the formula.
+ */
 public class Divide<ConstantType> implements InvariantsFormula<ConstantType> {
 
+  /**
+   * The numerator of the fraction.
+   */
   private final InvariantsFormula<ConstantType> numerator;
 
+  /**
+   * The denominator of the fraction.
+   */
   private final InvariantsFormula<ConstantType> denominator;
 
+  /**
+   * Creates a new fraction invariants formula for the given numerator and
+   * denominator.
+   *
+   * @param pNumerator the numerator of the fraction.
+   * @param pDenominator the denominator of the fraction.
+   */
   private Divide(InvariantsFormula<ConstantType> pNumerator, InvariantsFormula<ConstantType> pDenominator) {
     this.numerator = pNumerator;
     this.denominator = pDenominator;
   }
 
+  /**
+   * Gets the numerator of the fraction.
+   *
+   * @return the numerator of the fraction.
+   */
   public InvariantsFormula<ConstantType> getNumerator() {
     return this.numerator;
   }
 
+  /**
+   * Gets the denominator of the fraction.
+   *
+   * @return the denominator of the fraction.
+   */
   public InvariantsFormula<ConstantType> getDenominator() {
     return this.denominator;
   }
@@ -76,6 +104,16 @@ public class Divide<ConstantType> implements InvariantsFormula<ConstantType> {
     return pVisitor.visit(this, pParameter);
   }
 
+  /**
+   * Gets an invariants formula representing the division of the given
+   * numerator formula by the given denominator formula.
+   *
+   * @param pNumerator the numerator of the fraction.
+   * @param pDenominator the denominator of the fraction.
+   *
+   * @return an invariants formula representing the division of the given
+   * numerator formula by the given denominator formula.
+   */
   static <ConstantType> Divide<ConstantType> of(InvariantsFormula<ConstantType> pNumerator, InvariantsFormula<ConstantType> pDenominator) {
     return new Divide<>(pNumerator, pDenominator);
   }

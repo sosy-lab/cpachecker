@@ -23,9 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
+/**
+ * Instances of extending classes are visitors for invariants formulae which
+ * use a generic visit method that can be used to handle general cases while
+ * special cases can be overridden.
+ *
+ * @param <ConstantType> the type of the constants used in the visited
+ * formulae.
+ * @param <ReturnType> the type of the visit return values.
+ */
 public abstract class DefaultFormulaVisitor<ConstantType, ReturnType> implements InvariantsFormulaVisitor<ConstantType, ReturnType> {
 
+  /**
+   * Provides a generic visit method that can be applied to any invariants
+   * formula type.
+   *
+   * @param pFormula the visited formula.
+   *
+   * @return the result of the generic visit.
+   */
   protected abstract ReturnType visitDefault(InvariantsFormula<ConstantType> pFormula);
 
   @Override

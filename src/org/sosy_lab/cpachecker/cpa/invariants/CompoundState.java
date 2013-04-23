@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Queue;
 
 import javax.annotation.Nullable;
@@ -438,9 +437,8 @@ public class CompoundState {
   public CompoundState negate() {
     if (isTop() || isBottom()) { return this; }
     CompoundState result = new CompoundState();
-    ListIterator<SimpleInterval> intervalIterator = this.intervals.listIterator(this.intervals.size());
-    while (intervalIterator.hasNext()) {
-      result.intervals.add(intervalIterator.next().negate());
+    for (SimpleInterval simpleInterval : this.intervals) {
+      result = result.unionWith(simpleInterval.negate());
     }
     return result;
   }

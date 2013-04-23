@@ -23,9 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
+/**
+ * Instances of extending classes traverse a structure of invariants formula
+ * in post order.
+ *
+ * @param <T>
+ */
 public abstract class RecursiveDefaultFormulaVisitor<T> implements InvariantsFormulaVisitor<T, InvariantsFormula<T>> {
 
+  /**
+   * Visits the (possibly modified) formula after its child formulae were
+   * visited by this visitor.
+   *
+   * @param pFormula the formula to visit.
+   * @return the (possible modified) visited formula.
+   */
   protected abstract InvariantsFormula<T> visitPost(InvariantsFormula<T> pFormula);
 
   @Override

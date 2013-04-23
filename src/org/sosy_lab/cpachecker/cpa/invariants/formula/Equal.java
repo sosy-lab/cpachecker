@@ -23,22 +23,49 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
+/**
+ * Instances of this class represent equations over invariants formulae.
+ *
+ * @param <ConstantType> the type of the constants used in the formula.
+ */
 public class Equal<ConstantType> implements InvariantsFormula<ConstantType> {
 
+  /**
+   * The first operand of the equation.
+   */
   private final InvariantsFormula<ConstantType> operand1;
 
+  /**
+   * The second operand of the equation.
+   */
   private final InvariantsFormula<ConstantType> operand2;
 
-  private Equal(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
+  /**
+   * Creates a new equation over the given operands.
+   *
+   * @param pOperand1 the first operand of the equation.
+   * @param pOperand2 the first operand of the equation.
+   */
+  private Equal(InvariantsFormula<ConstantType> pOperand1,
+      InvariantsFormula<ConstantType> pOperand2) {
     this.operand1 = pOperand1;
     this.operand2 = pOperand2;
   }
 
+  /**
+   * Gets the first operand of the equation.
+   *
+   * @return the first operand of the equation.
+   */
   public InvariantsFormula<ConstantType> getOperand1() {
     return this.operand1;
   }
 
+  /**
+   * Gets the second operand of the equation.
+   *
+   * @return the second operand of the equation.
+   */
   public InvariantsFormula<ConstantType> getOperand2() {
     return this.operand2;
   }
@@ -76,6 +103,16 @@ public class Equal<ConstantType> implements InvariantsFormula<ConstantType> {
     return pVisitor.visit(this, pParameter);
   }
 
+  /**
+   * Gets an invariants formula representing the equation over the given
+   * formulae.
+   *
+   * @param pOperand1 the first operand of the equation.
+   * @param pOperand2 the second operand of the equation.
+   *
+   * @return an invariants formula representing the equation of the given
+   * operands.
+   */
   static <ConstantType> Equal<ConstantType> of(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
     return new Equal<>(pOperand1, pOperand2);
   }

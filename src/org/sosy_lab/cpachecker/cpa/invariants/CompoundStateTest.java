@@ -124,4 +124,15 @@ public class CompoundStateTest {
     assertEquals(zeroToThree.unionWith(six).negate(), sixToTen.negate().modulo(BigInteger.valueOf(7).negate()));
   }
 
+  @Test
+  public void testNegate() {
+    CompoundState one = CompoundState.singleton(1);
+    assertEquals(CompoundState.singleton(-1), one.negate());
+    CompoundState twoToFour = CompoundState.of(SimpleInterval.of(BigInteger.valueOf(2), BigInteger.valueOf(4)));
+    CompoundState negTwoToNegOne = CompoundState.of(SimpleInterval.of(BigInteger.valueOf(-2), BigInteger.valueOf(-1)));
+    CompoundState negFourToNegTwo = CompoundState.of(SimpleInterval.of(BigInteger.valueOf(-4), BigInteger.valueOf(-2)));
+    CompoundState oneToTwo = CompoundState.of(SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(2)));
+    assertEquals(oneToTwo.unionWith(negFourToNegTwo), negTwoToNegOne.unionWith(twoToFour).negate());
+  }
+
 }

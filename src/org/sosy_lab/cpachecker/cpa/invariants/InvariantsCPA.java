@@ -23,6 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -30,6 +36,13 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.PartialEvaluator;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.ToBooleanFormulaVisitor;;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 
 /**
  * This is a CPA for collecting simple syntactic invariants about integer variables.
@@ -51,9 +64,9 @@ public class InvariantsCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(InvariantsCPA.class).withOptions(InvariantsOptions.class);
   }
 
-  public InvariantsCPA(InvariantsOptions options) {
+  public InvariantsCPA(Configuration config, LogManager logger, InvariantsOptions options) throws InvalidConfigurationException {
     super(options.merge, "sep", InvariantsDomain.INSTANCE, InvariantsTransferRelation.INSTANCE);
-    this.evaluationThreshold = 2; // TODO config
+    this.evaluationThreshold = 1; // TODO config
   }
 
   @Override
