@@ -38,7 +38,6 @@ except ImportError: # Queue was renamed to queue in Python 3
   import queue as Queue
 
 import time
-import glob
 import logging
 import argparse
 import os
@@ -218,6 +217,14 @@ class Benchmark:
         # get global source files, they are used in all run sets
         globalSourcefilesTags = rootTag.findall("sourcefiles")
 
+        # get required files
+        self.requiredFiles = self.tool.getProgrammFiles(self.executable)
+        baseDir = os.path.dirname(self.benchmarkFile)
+        for requiredFilesTag in rootTag.findall('requiredfiles'):
+            print(requiredFilesTag.text)
+            requiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, baseDir)
+            self.requiredFiles.extend(requiredFiles)
+
         # get benchmarks
         self.runSets = []
         i = 1
@@ -387,22 +394,14 @@ class RunSet:
         assert len(expandedPattern) == 1
         expandedPattern = expandedPattern[0]
 
-        # 'join' ignores baseDir, if expandedPattern is absolute.
-        # 'normpath' replaces 'A/foo/../B' with 'A/B', for pretty printing only
-        expandedPattern = os.path.normpath(os.path.join(baseDir, expandedPattern))
+        if expandedPattern != pattern:
+            logging.debug("Expanded variables in expression {0} to {1}."
+                .format(repr(pattern), repr(expandedPattern)))
 
-        # expand tilde and variables
-        expandedPattern = os.path.expandvars(os.path.expanduser(expandedPattern))
-
-        # expand wildcards
-        fileList = glob.glob(expandedPattern)
+        fileList = Util.expandFileNamePattern(expandedPattern, baseDir)
 
         # sort alphabetical,
         fileList.sort()
-
-        if expandedPattern != pattern:
-            logging.debug("Expanded tilde and/or shell variables in expression {0} to {1}."
-                .format(repr(pattern), repr(expandedPattern)))
 
         if not fileList and baseDir:
             # try fallback for old syntax of run definitions
@@ -1286,7 +1285,7 @@ def executeBenchmarkInCloud(benchmark):
 
     absWorkingDir = os.path.abspath(os.curdir)
     logging.debug("Working dir: " + absWorkingDir)
-    toolpaths = benchmark.tool.getProgrammFiles(benchmark.executable)
+    toolpaths = benchmark.requiredFiles
     for file in toolpaths:
         if not os.path.exists(file):
             logging.error("Missing file {0}, cannot run benchmark within cloud.".format(os.path.normpath(file)))

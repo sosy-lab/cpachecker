@@ -12,4 +12,6 @@
     <option name="-config">test/config/alwaysTopAnalysis.properties</option>
   </rundefinition>
 
+  <requiredfiles>../config/alwaysTopAnalysis.properties</requiredfiles>
+
 </benchmark>
