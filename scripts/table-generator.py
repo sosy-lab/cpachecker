@@ -36,6 +36,7 @@ import os.path
 import glob
 import json
 import argparse
+import subprocess
 import time
 import tempita
 
@@ -810,7 +811,7 @@ def getCounts(rows): # for options.dumpCounts
     return countsList
 
 
-def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, outputFilePattern, libUrl):
+def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, outputFilePattern, options):
     '''
     create tables and write them to files
     '''
@@ -851,10 +852,17 @@ def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, out
                         foot=stats,
                         runSets=runSetsData,
                         columns=runSetsColumns,
-                        lib_url=libUrl,
+                        lib_url=options.libUrl,
                         baseDir=outputPath,
                         ))
 
+            if options.showTable and format == 'html':
+                try:
+                    with open(os.devnull, 'w') as devnull:
+                        subprocess.Popen(['xdg-open', outfile],
+                                         stdout=devnull, stderr=devnull)
+                except OSError:
+                    pass
 
     # write normal tables
     writeTable("table", name, rows)
@@ -913,6 +921,10 @@ def main(args=None):
         const=LIB_URL_OFFLINE,
         default=LIB_URL,
         help="Don't insert links to http://www.sosy-lab.org, instead expect JS libs in libs/javascript."
+    )
+    parser.add_argument("--show",
+        action="store_true", dest="showTable",
+        help="Open the produced HTML table(s) in the default browser."
     )
 
     options = parser.parse_args(args[1:])
@@ -985,7 +997,7 @@ def main(args=None):
 
     print ('generating table ...')
     if not os.path.isdir(outputPath): os.makedirs(outputPath)
-    createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, outputFilePattern, options.libUrl)
+    createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, outputFilePattern, options)
 
     print ('done')
 
