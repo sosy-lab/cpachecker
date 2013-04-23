@@ -42,7 +42,8 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 /** This is a Class similiar to Mathsat-NativeApi,
  *  it contains some useful functions. */
-public class SmtInterpolUtil {
+class SmtInterpolUtil {
+  private SmtInterpolUtil() { }
 
   /** A Term is an Atom, iff its function is no element of {"And", "Or", "Not"}.*/
   public static boolean isAtom(Term t) {

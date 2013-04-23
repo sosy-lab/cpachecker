@@ -51,8 +51,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
     private static final String prefix = "term_"; // for termnames
     private static int counter = 0; // for different termnames // TODO static?
 
-    public SmtInterpolInterpolatingProver(
-        SmtInterpolFormulaManager pMgr) {
+    public SmtInterpolInterpolatingProver(SmtInterpolFormulaManager pMgr) {
       mgr = pMgr;
       env = mgr.createEnvironment();
       assertedFormulas = new ArrayList<>();

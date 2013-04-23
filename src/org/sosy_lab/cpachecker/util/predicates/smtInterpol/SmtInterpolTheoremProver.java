@@ -51,8 +51,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
   private SmtInterpolEnvironment env;
   private final List<Term> assertedTerms;
 
-  public SmtInterpolTheoremProver(
-      SmtInterpolFormulaManager pMgr) {
+  public SmtInterpolTheoremProver(SmtInterpolFormulaManager pMgr) {
     this.mgr = pMgr;
 
     assertedTerms = new ArrayList<>();

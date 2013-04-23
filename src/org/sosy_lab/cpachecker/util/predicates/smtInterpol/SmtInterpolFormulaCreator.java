@@ -28,10 +28,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractForm
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
+class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtInterpolEnvironment> {
 
-public class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtInterpolEnvironment> {
-
-  public SmtInterpolFormulaCreator(
+  SmtInterpolFormulaCreator(
       SmtInterpolEnvironment pMathsatEnv,
       Sort pBoolType,
       Sort pNumberType,

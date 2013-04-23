@@ -37,14 +37,13 @@ import com.google.common.collect.Lists;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-
-public class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<Term> {
+class SmtInterpolFunctionFormulaManager extends AbstractFunctionFormulaManager<Term> {
 
   private final SmtInterpolFormulaCreator creator;
   private final SmtInterpolUnsafeFormulaManager unsafeManager;
   private final SmtInterpolEnvironment env;
 
-  public SmtInterpolFunctionFormulaManager(
+  SmtInterpolFunctionFormulaManager(
       SmtInterpolFormulaCreator creator,
       SmtInterpolUnsafeFormulaManager unsafeManager) {
     super(creator, unsafeManager);

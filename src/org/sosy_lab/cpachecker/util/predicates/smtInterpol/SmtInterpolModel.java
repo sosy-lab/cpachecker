@@ -42,7 +42,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-public class SmtInterpolModel {
+class SmtInterpolModel {
 
   private static TermType toSmtInterpolType(Sort sort) {
 
@@ -130,7 +130,7 @@ public class SmtInterpolModel {
     }
   }
 
-  public static Model createSmtInterpolModel(SmtInterpolFormulaManager mgr, Iterable<Term> terms) {
+  static Model createSmtInterpolModel(SmtInterpolFormulaManager mgr, Iterable<Term> terms) {
     SmtInterpolEnvironment env = mgr.getEnv();
     // model can only return values for keys, not for terms
     Term[] keys = SmtInterpolUtil.getVars(terms);

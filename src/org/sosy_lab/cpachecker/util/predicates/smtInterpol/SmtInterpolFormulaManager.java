@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.StringReader;
 
 import org.sosy_lab.common.LogManager;
@@ -37,33 +39,26 @@ import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-
 public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
-  private SmtInterpolEnvironment env;
-  private SmtInterpolFormulaCreator creator;
+  private final SmtInterpolEnvironment env;
+  private final SmtInterpolFormulaCreator creator;
 
-  public SmtInterpolFormulaManager(
+  private SmtInterpolFormulaManager(
       SmtInterpolUnsafeFormulaManager pUnsafeManager,
       SmtInterpolFunctionFormulaManager pFunctionManager,
       SmtInterpolBooleanFormulaManager pBooleanManager,
       SmtInterpolRationalFormulaManager pNumericManager) {
     super(pUnsafeManager, pFunctionManager, pBooleanManager, pNumericManager, null);
-    this.creator = (SmtInterpolFormulaCreator)getFormulaCreator();
-    assert creator != null;
+    this.creator = checkNotNull((SmtInterpolFormulaCreator)getFormulaCreator());
     this.env = creator.getEnv();
   }
 
-
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
 
-    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config);
+    Logics logic = pUseIntegers ? Logics.QF_UFLIA : Logics.QF_UFLRA;
+    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logic);
     Type type = pUseIntegers ? Type.INT : Type.REAL;
-    if (pUseIntegers) {
-      env.setLogic(Logics.QF_UFLIA);
-    } else {
-      env.setLogic(Logics.QF_UFLRA);
-    }
     final Sort t = env.sort(type);
     CreateBitType<Sort> bitTypeCreator = new CreateBitType<Sort>() {
       @Override
@@ -77,7 +72,7 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
     SmtInterpolUnsafeFormulaManager unsafeManager = new SmtInterpolUnsafeFormulaManager(creator);
     SmtInterpolFunctionFormulaManager functionTheory = new SmtInterpolFunctionFormulaManager(creator, unsafeManager);
     SmtInterpolBooleanFormulaManager booleanTheory = SmtInterpolBooleanFormulaManager.create(creator);
-    SmtInterpolRationalFormulaManager rationalTheory = SmtInterpolRationalFormulaManager.create(creator, functionTheory);
+    SmtInterpolRationalFormulaManager rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory);
     return new SmtInterpolFormulaManager(unsafeManager, functionTheory, booleanTheory, rationalTheory);
   }
 
