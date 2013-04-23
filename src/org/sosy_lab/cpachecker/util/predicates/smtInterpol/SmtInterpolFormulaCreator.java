@@ -33,9 +33,8 @@ class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtIn
   SmtInterpolFormulaCreator(
       SmtInterpolEnvironment pMathsatEnv,
       Sort pBoolType,
-      Sort pNumberType,
-      AbstractFormulaCreator.CreateBitType<Sort> pBittype) {
-    super(pMathsatEnv, pBoolType, pNumberType, pBittype);
+      Sort pNumberType) {
+    super(pMathsatEnv, pBoolType, pNumberType);
   }
 
   @Override
@@ -43,5 +42,10 @@ class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtIn
     SmtInterpolEnvironment env = getEnv();
     env.declareFun(varName, new Sort[]{}, type);
     return env.term(varName);
+  }
+
+  @Override
+  public Sort getBittype(int pBitwidth) {
+    throw new UnsupportedOperationException("Bitvector theory is not supported by SmtInterpol");
   }
 }

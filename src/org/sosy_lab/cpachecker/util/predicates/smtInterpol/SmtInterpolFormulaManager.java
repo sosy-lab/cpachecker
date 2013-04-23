@@ -31,7 +31,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator.CreateBitType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
@@ -58,15 +57,10 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
     Logics logic = pUseIntegers ? Logics.QF_UFLIA : Logics.QF_UFLRA;
     SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logic);
+
     Type type = pUseIntegers ? Type.INT : Type.REAL;
     final Sort t = env.sort(type);
-    CreateBitType<Sort> bitTypeCreator = new CreateBitType<Sort>() {
-      @Override
-      public Sort fromSize(int pSize) {
-        return t;
-      }};
-
-    SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env, env.sort(Type.BOOL), t, bitTypeCreator);
+    SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env, env.sort(Type.BOOL), t);
 
     // Create managers
     SmtInterpolUnsafeFormulaManager unsafeManager = new SmtInterpolUnsafeFormulaManager(creator);

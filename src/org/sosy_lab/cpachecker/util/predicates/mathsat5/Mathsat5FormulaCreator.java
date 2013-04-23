@@ -34,17 +34,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractForm
 
 class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
 
-  public Mathsat5FormulaCreator(
-      final Long msatEnv) {
+  public Mathsat5FormulaCreator(final Long msatEnv) {
     super(msatEnv,
         msat_get_bool_type(msatEnv),
-        msat_get_rational_type(msatEnv),
-        new AbstractFormulaCreator.CreateBitType<Long>() {
-          @Override
-          public Long fromSize(int pSize) {
-            return msat_get_bv_type(msatEnv, pSize);
-          }
-        });
+        msat_get_rational_type(msatEnv));
   }
 
   @Override
@@ -56,6 +49,11 @@ class Mathsat5FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
   @Override
   public Long extractInfo(Formula pT) {
     return Mathsat5FormulaManager.getMsatTerm(pT);
+  }
+
+  @Override
+  public Long getBittype(int pBitwidth) {
+    return msat_get_bv_type(getEnv(), pBitwidth);
   }
 
   public Formula encapsulateUnsafe(Long pTerm) {
