@@ -84,6 +84,7 @@ HEADER = '''// this file is build automatically, do not change
 #include"includes/function.h"
 #include"includes/arguments.h"
 #include"includes/types.h"
+#include"includes/interpolation.h"
 '''
 
 out4=[HEADER]
