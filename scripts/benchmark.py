@@ -1348,10 +1348,14 @@ def executeBenchmarkInCloud(benchmark):
             logging.error("Missing file {0}, cannot run benchmark within cloud.".format(os.path.normpath(file)))
             return
 
-    requirements = str(benchmark.requirements)
+    requirements = str(benchmark.requirements.memory()) + "\t" + \
+                str(benchmark.requirements.cpuCores())
+                    
+    if(benchmark.requirements.cpuModel() is not ""):
+        requirements += "\t" + benchmark.requirements.cpuModel()                         
+                            
     # TODO
     print('Ignoring specified ' + requirements)
-    requirements = "2000\t1"  # TODO memory numerOfCpuCores
     cloudRunExecutorDir = os.path.abspath(os.path.dirname(__file__))
     outputDir = benchmark.logFolder
     absOutputDir = os.path.abspath(outputDir)
