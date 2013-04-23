@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 
 /**
  * This class tracks constraints which are created during AST traversal but
@@ -31,20 +32,20 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
  */
 class Constraints {
 
-  private final CtoFormulaConverter conv;
+  private final BooleanFormulaManagerView bfmgr;
 
   private BooleanFormula constraints;
 
   /**
    * @param pCtoFormulaConverter
    */
-  Constraints(CtoFormulaConverter pCtoFormulaConverter) {
-    conv = pCtoFormulaConverter;
-    constraints = conv.bfmgr.makeBoolean(true);
+  Constraints(BooleanFormulaManagerView pBfmgr) {
+    bfmgr = pBfmgr;
+    constraints = bfmgr.makeBoolean(true);
   }
 
   void addConstraint(BooleanFormula pCo) {
-    constraints = conv.bfmgr.and(constraints, pCo);
+    constraints = bfmgr.and(constraints, pCo);
   }
 
   public BooleanFormula get() {

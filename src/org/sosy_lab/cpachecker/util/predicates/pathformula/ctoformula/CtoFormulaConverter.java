@@ -1043,7 +1043,7 @@ public class CtoFormulaConverter {
                           ? edge.getPredecessor().getFunctionName() : null;
 
     SSAMapBuilder ssa = oldFormula.getSsa().builder();
-    Constraints constraints = new Constraints(this);
+    Constraints constraints = new Constraints(bfmgr);
 
     BooleanFormula edgeFormula = createFormulaForEdge(edge, function, ssa, constraints);
 
@@ -1405,7 +1405,7 @@ public class CtoFormulaConverter {
   }
 
   public BooleanFormula makePredicate(CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
-    Constraints constraints = new Constraints(this);
+    Constraints constraints = new Constraints(bfmgr);
     BooleanFormula f = makePredicate(exp, true, edge, function, ssa, constraints);
     return bfmgr.and(f, constraints.get());
   }
