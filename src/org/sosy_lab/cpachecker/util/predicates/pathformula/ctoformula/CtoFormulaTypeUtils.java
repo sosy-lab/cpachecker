@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.ctoformulahelper;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -35,9 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
-
-
-public class CtoFormulaTypeUtils {
+class CtoFormulaTypeUtils {
 
   private static final CtoFormulaTypeVisitor<CType, RuntimeException> simplifyType = new CtoFormulaCTypeSimplifyVisitor();
   public static class CtoFormulaCTypeSimplifyVisitor

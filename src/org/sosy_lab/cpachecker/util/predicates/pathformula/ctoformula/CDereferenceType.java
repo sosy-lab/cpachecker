@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.ctoformulahelper;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * (For example we could create a formula like *l = *r
  * when the right side is actually no pointer then we use CDereferenceType(typeof(r)))
  */
-public final class CDereferenceType extends CtoFormulaCType {
+final class CDereferenceType extends CtoFormulaCType {
 
   private final CType type;
   private final boolean   isConst;

@@ -21,11 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.ctoformulahelper;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 
-
-public interface CtoFormulaTypeVisitor<R, X extends Exception> extends CTypeVisitor<R, X> {
+interface CtoFormulaTypeVisitor<R, X extends Exception> extends CTypeVisitor<R, X> {
   R visit(CDereferenceType pCDereferenceType) throws X;
 }

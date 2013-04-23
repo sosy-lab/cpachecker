@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates;
+package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
@@ -83,7 +83,7 @@ public class SSAMap implements Serializable {
     private Multiset<Pair<String, FormulaList>> funcsBuilder = null;
     private Map<Pair<String, FormulaList>, CType> funcTypesBuilder = null;
 
-    protected SSAMapBuilder(SSAMap ssa) {
+    private SSAMapBuilder(SSAMap ssa) {
       this.ssa = ssa;
       this.vars = ssa.vars;
       this.varTypes = ssa.varTypes;

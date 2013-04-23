@@ -21,16 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 public class CtoFormulaConverterTest {
 
-  static SSAMapBuilder emptyMap = new SSAMapBuilder(SSAMap.emptySSAMap());
+  static SSAMapBuilder emptyMap = SSAMap.emptySSAMap().builder();
 
   private String rawFieldTest(String name, Pair<Integer, Integer> msb_lsb) {
 

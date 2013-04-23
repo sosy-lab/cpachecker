@@ -21,10 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CtoFormulaTypeUtils.*;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -116,11 +116,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CFieldTrackType;
-import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CtoFormulaTypeUtils;
-import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.CtoFormulaTypeUtils.CtoFormulaSizeofVisitor;
-import org.sosy_lab.cpachecker.util.predicates.ctoformulahelper.TooComplexVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -133,6 +128,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.RationalFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.CtoFormulaSizeofVisitor;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -219,9 +219,9 @@ public class CtoFormulaConverter {
   private static final String OP_ARRAY_SUBSCRIPT = "__array__";
   static final String NONDET_VARIABLE = "__nondet__";
   static final String EXPAND_VARIABLE = "__expandVariable__";
-  static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
+  protected static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
   private static final CType NONDET_TYPE = CNumericTypes.INT;
-  final FormulaType<?> NONDET_FORMULA_TYPE;
+  protected final FormulaType<?> NONDET_FORMULA_TYPE;
 
   private static final String POINTER_VARIABLE = "__content_of__";
   static final Predicate<String> IS_POINTER_VARIABLE = startsWith(POINTER_VARIABLE);
