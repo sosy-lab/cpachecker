@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -160,6 +159,7 @@ public class ExplicitPrecision implements Precision {
         variableNames.remove();
       }
     }
+    System.out.println("removing " + candidates);
     state.removeAll(candidates);
 
     return state;
@@ -178,6 +178,10 @@ public class ExplicitPrecision implements Precision {
     boolean result = refinablePrecision.contains(variable)
             && !isOnBlacklist(variable)
             && !isInIgnoredVarClass(variable);
+
+    System.out.println(variable + " is tracked? " + (refinablePrecision.contains(variable)
+            && !isOnBlacklist(variable)
+            && !isInIgnoredVarClass(variable)));
 
     return result;
   }
@@ -439,7 +443,7 @@ public class ExplicitPrecision implements Precision {
 
     @Override
     protected Collection<String> getAbstractionCandidates(ExplicitState state) {
-      return Collections.emptySet();
+      return new HashSet<>(state.getDelta());
     }
   }
 }
