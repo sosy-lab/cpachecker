@@ -98,7 +98,7 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
   @Override
   public String dumpFormula(Term t) {
-    return "(assert " + t.toStringDirect() + ")";
+    return "(assert " + t.toString() + ")";
   }
 
   @Override
