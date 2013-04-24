@@ -178,13 +178,14 @@ public class Z3Model {
       // TODO why is there a problem without next line
       inc_ref(z3context, equivalence);
       modelFormula = mk_and(z3context, modelFormula, equivalence);
+      inc_ref(z3context, modelFormula);
 
       AssignableTerm lAssignable = toAssignable(var);
 
       Object lValue;
       switch (lAssignable.getType()) {
       case Boolean:
-        lValue = (value == Z3_L_TRUE); // if IS_TRUE, true, else false. TODO IS_UNKNOWN ?
+        lValue = isOP(z3context, value, Z3_OP_TRUE); // if IS_TRUE, true, else false. TODO IS_UNKNOWN ?
         break;
 
       case Integer:
