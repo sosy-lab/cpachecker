@@ -159,7 +159,6 @@ public class ExplicitPrecision implements Precision {
         variableNames.remove();
       }
     }
-    System.out.println("removing " + candidates);
     state.removeAll(candidates);
 
     return state;
@@ -178,10 +177,6 @@ public class ExplicitPrecision implements Precision {
     boolean result = refinablePrecision.contains(variable)
             && !isOnBlacklist(variable)
             && !isInIgnoredVarClass(variable);
-
-    System.out.println(variable + " is tracked? " + (refinablePrecision.contains(variable)
-            && !isOnBlacklist(variable)
-            && !isInIgnoredVarClass(variable)));
 
     return result;
   }
