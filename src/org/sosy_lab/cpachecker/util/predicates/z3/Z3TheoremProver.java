@@ -155,6 +155,7 @@ public class Z3TheoremProver implements ProverEnvironment {
 
         if (isOP(z3context, valueOfExpr, Z3_OP_FALSE)) {
           valuesOfModel[j] = mk_not(z3context, importantFormulas[j]);
+          inc_ref(z3context, valuesOfModel[j]);
         } else {
           valuesOfModel[j] = importantFormulas[j];
         }
@@ -164,6 +165,7 @@ public class Z3TheoremProver implements ProverEnvironment {
       result.callback(valuesOfModel);
 
       long negatedModel = mk_not(z3context, mk_and(z3context, valuesOfModel));
+      inc_ref(z3context, negatedModel);
       solver_assert(z3context, z3solver, negatedModel);
 
       smtLogger.logAssert(negatedModel);
