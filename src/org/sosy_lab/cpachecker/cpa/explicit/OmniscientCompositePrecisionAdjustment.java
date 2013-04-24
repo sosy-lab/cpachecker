@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 
 import org.sosy_lab.common.Pair;
@@ -72,6 +71,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   final Timer totalEnforceReachedSetThreshold = new Timer();
   final Timer totalComposite                  = new Timer();
   final Timer total                           = new Timer();
+  int abstractions                           = 0;
 
   private Statistics stats  = null;
   private boolean modified = false;
@@ -95,6 +95,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
         pOut.println("Total time for abstraction: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceAbstraction);
         pOut.println("Total time for reached set: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceReachedSetThreshold);
         pOut.println("Total time for path:        " + OmniscientCompositePrecisionAdjustment.this.totalEnforcePathThreshold);
+        pOut.println("abstractions:        " + OmniscientCompositePrecisionAdjustment.this.abstractions);
       }
 
       @Override
@@ -143,6 +144,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
         // compute the abstraction for CEGAR
         totalEnforceAbstraction.start();
         explicitState = enforceAbstraction(explicitState, location, explicitPrecision);
+        abstractions++;
         totalEnforceAbstraction.stop();
 
         // compute the abstraction for reached set thresholds
@@ -203,8 +205,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
     if (abstractAtEachLocation()
         || abstractAtFunction(location)
         || abstractAtLoopHead(location)) {
-      precision.setLocation(location.getLocationNode());
-      state.removeAll(getVariablesToDrop(state, precision));
+      state = precision.computeAbstraction(state, location.getLocationNode());
     }
 
     return state;
@@ -240,25 +241,6 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    */
   private boolean abstractAtLoopHead(LocationState location) {
     return alwaysAtLoops && location.getLocationNode().isLoopStart();
-  }
-
-  /**
-   * This method return the set of variables to be dropped according to the current precision.
-   *
-   * @param state the current state
-   * @param precision the current precision
-   * @return the variables to the dropped
-   */
-  private Collection<String> getVariablesToDrop(ExplicitState state, ExplicitPrecision precision) {
-    Collection<String> toDrop = new ArrayList<>();
-
-    for(String variableName : state.getTrackedVariableNames()) {
-      if(!precision.isTracking(variableName)) {
-        toDrop.add(variableName);
-      }
-    }
-
-    return toDrop;
   }
 
   /**

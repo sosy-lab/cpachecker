@@ -59,6 +59,11 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    */
   private PersistentMap<String, Long> constantsMap;
 
+  /**
+   * the current delta of this state to the previous state
+   */
+  private Set<String> delta;
+
   public ExplicitState() {
     constantsMap = PathCopyingPersistentTreeMap.of();
   }
@@ -77,10 +82,20 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     constantsMap = constantsMap.putAndCopy(checkNotNull(variableName), checkNotNull(value));
   }
 
+  /**
+   * This method removes a variable and its value from the underlying map.
+   *
+   * @param variableName the name of the variable to be removed
+   */
   public void forget(String variableName) {
     constantsMap = constantsMap.removeAndCopy(variableName);
   }
 
+  /**
+   * This method removes all variables and their respective values from the underlying map.
+   *
+   * @param variableNames the names of the variables to be removed
+   */
   void removeAll(Collection<String> variableNames) {
     for(String variableName : variableNames) {
       constantsMap = constantsMap.removeAndCopy(variableName);
@@ -383,7 +398,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   }
 
   /**
-   * This method determines the set of variable names that are in this state but not in the other,
+   * This method determines the set of variable names that are in the other state but not in this,
    * or that are in both, but differ in their value.
    *
    * @param other the other state for which to get the difference
@@ -401,6 +416,33 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     }
 
     return difference;
+  }
+
+  /**
+   * This method returns the current delta of this state.
+   *
+   * @return the current delta of this state
+   */
+  Collection<String> getDelta() {
+    return ImmutableSet.copyOf(delta);
+  }
+
+  /**
+   * This method sets the delta of this state, in relation to the given other state.
+   *
+   * This is used for a more efficient abstraction computation, where only the delta of a state is considered.
+   *
+   * @param other the state to which to compute the delta
+   */
+  void setDelta(ExplicitState other) {
+    delta = other.getDifference(this);
+  }
+
+  /**
+   * This method resets the delta of this state.
+   */
+  void clearDelta() {
+    delta = null;
   }
 
   /**

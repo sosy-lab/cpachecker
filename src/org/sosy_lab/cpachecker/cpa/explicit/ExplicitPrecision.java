@@ -26,7 +26,10 @@ package org.sosy_lab.cpachecker.cpa.explicit;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -125,10 +128,6 @@ public class ExplicitPrecision implements Precision {
     return refinablePrecision;
   }
 
-  public void setLocation(CFANode node) {
-    refinablePrecision.setLocation(node);
-  }
-
   boolean isOnBlacklist(String variable) {
     return this.blackListPattern.matcher(variable).matches();
   }
@@ -143,6 +142,27 @@ public class ExplicitPrecision implements Precision {
 
   public int getSize() {
     return refinablePrecision.getSize();
+  }
+
+  /**
+   * This method computes the abstraction of a given state.
+   *
+   * @param state the state to compute the abstraction for
+   * @param location the current location
+   * @return the abstraction of the given state
+   */
+  ExplicitState computeAbstraction(ExplicitState state, CFANode location) {
+    refinablePrecision.setLocation(location);
+
+    Collection<String> candidates = refinablePrecision.getAbstractionCandidates(state);
+    for (Iterator<String> variableNames = candidates.iterator(); variableNames.hasNext(); ) {
+      if (isTracking(variableNames.next())) {
+        variableNames.remove();
+      }
+    }
+    state.removeAll(candidates);
+
+    return state;
   }
 
   /**
@@ -211,6 +231,15 @@ public class ExplicitPrecision implements Precision {
     CFANode location = null;
 
     /**
+     * This method sets the location for the refinable precision.
+     *
+     * @param node the location to be set
+     */
+    private void setLocation(CFANode node) {
+      location = node;
+    }
+
+    /**
      * This method decides whether or not a variable is being tracked by this precision.
      *
      * @param variable the scoped name of the variable for which to make the decision
@@ -233,15 +262,6 @@ public class ExplicitPrecision implements Precision {
     abstract int getSize();
 
     /**
-     * This method sets the location for the refinable precision.
-     *
-     * @param node the location to be set
-     */
-    private void setLocation(CFANode node) {
-      location = node;
-    }
-
-    /**
      * This method transforms the precision and writes it using the given writer.
      *
      * @param writer the write to write the precision to
@@ -255,6 +275,16 @@ public class ExplicitPrecision implements Precision {
      * @param otherPrecision the precision to join with
      */
     abstract void join(RefinablePrecision otherPrecision);
+
+    /**
+     * This method returns a set of variables that are candidates for being abstracted.
+     *
+     * The size (from empty to delta of state to whole state) of the set of candidates depend on the instance of the refinable precision.
+     *
+     * @param state the state for which to compute the abstraction candidates
+     * @return the set of the abstraction candidates
+     */
+    abstract protected Collection<String> getAbstractionCandidates(ExplicitState state);
   }
 
   public static class LocalizedRefinablePrecision extends RefinablePrecision {
@@ -303,6 +333,11 @@ public class ExplicitPrecision implements Precision {
     @Override
     int getSize() {
       return rawPrecision.get(location).size();
+    }
+
+    @Override
+    protected Collection<String> getAbstractionCandidates(ExplicitState state) {
+      return new HashSet<>(state.getTrackedVariableNames());
     }
   }
 
@@ -369,6 +404,11 @@ public class ExplicitPrecision implements Precision {
     int getSize() {
       return rawPrecision.size();
     }
+
+    @Override
+    protected Collection<String> getAbstractionCandidates(ExplicitState state) {
+      return new HashSet<>(state.getDelta());
+    }
   }
 
   public static class FullPrecision extends RefinablePrecision {
@@ -395,6 +435,11 @@ public class ExplicitPrecision implements Precision {
     @Override
     int getSize() {
       return -1;
+    }
+
+    @Override
+    protected Collection<String> getAbstractionCandidates(ExplicitState state) {
+      return Collections.emptySet();
     }
   }
 }
