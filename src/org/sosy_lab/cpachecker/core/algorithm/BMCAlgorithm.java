@@ -169,7 +169,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description="dump counterexample formula to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File dumpCounterexampleFormula = new File("counterexample.msat");
+  private File dumpCounterexampleFormula = new File("counterexample.smt2");
 
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
@@ -332,7 +332,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
 
       // replay error path for a more precise satisfying assignment
-      BooleanFormula pathFormula = pmgr.makeFormulaForPath(targetPath.asEdgesList()).getFormula();
+      final BooleanFormula pathFormula = pmgr.makeFormulaForPath(targetPath.asEdgesList()).getFormula();
       prover.pop(); // remove program formula
 
       prover.push(pathFormula);
@@ -352,7 +352,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // create and store CounterexampleInfo object
       CounterexampleInfo counterexample = CounterexampleInfo.feasible(targetPath, model);
       if (pathFormula != null) {
-        counterexample.addFurtherInformation(pathFormula, dumpCounterexampleFormula);
+        counterexample.addFurtherInformation(
+            // lazily call dumpFormula(pathFormula)
+            new Object() {
+              @Override
+              public String toString() {
+                return fmgr.dumpFormula(pathFormula);
+              }
+            }, dumpCounterexampleFormula);
       }
 
       ((ARGCPA)cpa).setCounterexample(counterexample);

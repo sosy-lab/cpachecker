@@ -111,7 +111,7 @@ public class FormulaManagerView implements FormulaManager {
 
   @Option(name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File formulaDumpFile = new File("%s%04d-%s%03d.msat");
+  private File formulaDumpFile = new File("%s%04d-%s%03d.smt2");
   private String formulaDumpFilePattern;
 
   @Option(description="try to add some useful static-learning-like axioms for "

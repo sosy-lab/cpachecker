@@ -85,10 +85,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @Option(description="slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
 
-  @Option(name="msatCexFile",
+  @Option(
       description="where to dump the counterexample formula in case the error location is reached")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File dumpCexFile = new File("counterexample.msat");
+  private File dumpCounterexampleFile = new File("counterexample.smt2");
 
 
   class Stats implements Statistics {
@@ -223,7 +223,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         public String toString() {
           return formulaManager.dumpCounterexample(preciseCounterexample);
         }
-      }, dumpCexFile);
+      }, dumpCounterexampleFile);
 
       totalRefinement.stop();
       return cex;

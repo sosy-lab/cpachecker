@@ -212,7 +212,7 @@ bmc.boundingAssertions = true
 bmc.checkTargetStates = true
 
 # dump counterexample formula to file
-bmc.dumpCounterexampleFormula = "counterexample.msat"
+bmc.dumpCounterexampleFormula = "counterexample.smt2"
 
 # try using induction to verify programs with loops
 bmc.induction = false
@@ -666,7 +666,7 @@ cpa.predicate.enablePrecisionSweeper = false
 cpa.predicate.externModelFunctionName = "__VERIFIER_externModelSatisfied"
 
 # where to dump interpolation and abstraction problems (format string)
-cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.msat"
+cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
 
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false
@@ -773,6 +773,10 @@ cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
 
+# where to dump the counterexample formula in case the error location is
+# reached
+cpa.predicate.refinement.dumpCounterexampleFile = "counterexample.smt2"
+
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
@@ -797,10 +801,6 @@ cpa.predicate.refinement.keepAllPredicates = false
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
-
-# where to dump the counterexample formula in case the error location is
-# reached
-cpa.predicate.refinement.msatCexFile = "counterexample.msat"
 
 # Where to apply the found predicates to?
 cpa.predicate.refinement.predicateSharing = LOCATION
