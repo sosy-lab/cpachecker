@@ -792,8 +792,7 @@ public final class InterpolationManager {
   private void dumpInterpolationProblem(List<BooleanFormula> f) {
     int k = 0;
     for (BooleanFormula formula : f) {
-      File dumpFile = formatFormulaOutputFile("formula", k++);
-      fmgr.dumpFormulaToFile(formula, dumpFile);
+      dumpFormulaToFile("formula", formula, k++);
     }
   }
 

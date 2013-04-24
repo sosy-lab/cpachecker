@@ -64,10 +64,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractForm
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.ReplacingFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
-
 @Options(prefix="cpa.predicate")
 public class FormulaManagerView implements FormulaManager {
 
@@ -574,25 +570,6 @@ public class FormulaManagerView implements FormulaManager {
     return makeVariable(formulaType, makeName(name, idx));
   }
 
-  private static final Joiner LINE_JOINER = Joiner.on('\n');
-  public void printFormulasToFile(Iterable<BooleanFormula> f, File outputFile) {
-    if (outputFile != null) {
-      try {
-        Files.writeFile(outputFile,
-            LINE_JOINER.join(
-                FluentIterable.from(f)
-                  .transform(
-                      new Function<BooleanFormula, String>() {
-                      @Override
-                      public String apply(BooleanFormula pArg0) {
-                        return dumpFormula(pArg0);
-                      }}).iterator()));
-
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
-      }
-    }
-  }
   @Override
   public RationalFormulaManagerView getRationalFormulaManager() {
     return rationalFormulaManager;
