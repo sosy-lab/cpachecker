@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -979,7 +980,7 @@ public class FormulaManagerView implements FormulaManager {
   }
 
   @Override
-  public String dumpFormula(Formula pT) {
+  public Appender dumpFormula(Formula pT) {
     return manager.dumpFormula(extractFromView(pT));
   }
 

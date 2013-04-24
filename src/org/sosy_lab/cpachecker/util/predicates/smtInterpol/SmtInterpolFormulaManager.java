@@ -25,8 +25,11 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
 import java.io.StringReader;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,7 +37,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
+import de.uni_freiburg.informatik.ultimate.logic.FormulaLet;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
+import de.uni_freiburg.informatik.ultimate.logic.PrintTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
@@ -97,8 +102,22 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
 
   @Override
-  public String dumpFormula(Term t) {
-    return "(assert " + t.toString() + ")";
+  public Appender dumpFormula(final Term t) {
+    return new Appenders.AbstractAppender() {
+
+      @Override
+      public void appendTo(Appendable pAppendable) throws IOException {
+        pAppendable.append("(assert ");
+
+        // This is the same as t.toString() does,
+        // but directly uses the Appendable for better performance
+        // and less memory consumption.
+        Term letted = (new FormulaLet()).let(t);
+        new PrintTerm().append(pAppendable, letted);
+
+        pAppendable.append(")");
+      }
+    };
   }
 
   @Override

@@ -407,7 +407,7 @@ class PredicateCPAStatistics implements Statistics {
           invariants.append("__");
           invariants.append(""+loc.getLineNumber());
           invariants.append(":\n");
-          invariants.append(fmgr.dumpFormula(formula));
+          fmgr.dumpFormula(formula).appendTo(invariants);
           invariants.append('\n');
         }
       } catch (IOException e) {
@@ -416,7 +416,7 @@ class PredicateCPAStatistics implements Statistics {
     }
 
     private Pair<String, List<String>> splitFormula(FormulaManagerView pV, BooleanFormula pF) {
-      String s = pV.dumpFormula(pF).trim();
+      String s = pV.dumpFormula(pF).toString().trim();
       List<String> lines = Lists.newArrayList(s.split("\n"));
       assert !lines.isEmpty() : "Formula " + pF + " has empty string representation";
       String predString = lines.get(lines.size()-1);

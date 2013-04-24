@@ -28,6 +28,8 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi
 import java.io.File;
 import java.util.Map;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -162,8 +164,15 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
   }
 
   @Override
-  public String dumpFormula(Long f) {
-    return msat_to_smtlib2(mathsatEnv, f);
+  public Appender dumpFormula(final Long f) {
+    // Lazy invocation of msat_to_smtlib2 wrapped in an Appender.
+    return Appenders.fromToStringMethod(
+        new Object() {
+          @Override
+          public String toString() {
+            return msat_to_smtlib2(mathsatEnv, f);
+          }
+        });
   }
 
 

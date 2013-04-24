@@ -352,14 +352,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // create and store CounterexampleInfo object
       CounterexampleInfo counterexample = CounterexampleInfo.feasible(targetPath, model);
       if (pathFormula != null) {
-        counterexample.addFurtherInformation(
-            // lazily call dumpFormula(pathFormula)
-            new Object() {
-              @Override
-              public String toString() {
-                return fmgr.dumpFormula(pathFormula);
-              }
-            }, dumpCounterexampleFormula);
+        counterexample.addFurtherInformation(fmgr.dumpFormula(pathFormula),
+            dumpCounterexampleFormula);
       }
 
       ((ARGCPA)cpa).setCounterexample(counterexample);

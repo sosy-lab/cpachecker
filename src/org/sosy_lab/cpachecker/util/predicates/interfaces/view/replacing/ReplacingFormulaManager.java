@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -199,7 +200,7 @@ public class ReplacingFormulaManager implements FormulaManager {
   }
 
   @Override
-  public String dumpFormula(Formula pT) {
+  public Appender dumpFormula(Formula pT) {
     if (pT instanceof WrappingFormula<?, ?>) {
       pT = unwrap(pT);
     }
