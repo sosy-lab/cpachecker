@@ -71,8 +71,11 @@ public class BDDRegionManager implements RegionManager {
   @Option(description="Initial size of the BDD node table.")
   private int initBddNodeTableSize = 10000;
 
-  @Option(description="Initial size of the BDD cache.")
-  private int initBddCacheSize = 1000;
+  @Option(description="Size of the BDD cache if cache ratio is not used.")
+  private int bddCacheSize = 1000;
+
+  @Option(description="Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD cache size).")
+  private double bddCacheRatio = 0.1;
 
   private final LogManager logger;
   private final BDDFactory factory;
@@ -85,7 +88,7 @@ public class BDDRegionManager implements RegionManager {
   private BDDRegionManager(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
-    factory = BDDFactory.init(bddPackage, initBddNodeTableSize, initBddCacheSize);
+    factory = BDDFactory.init(bddPackage, initBddNodeTableSize, bddCacheSize);
 
     // register callbacks for logging
     try {
@@ -116,6 +119,8 @@ public class BDDRegionManager implements RegionManager {
     }
 
     factory.setVarNum(varcount);
+    factory.setCacheRatio(bddCacheRatio);
+
     trueFormula = new BDDRegion(factory.one());
     falseFormula = new BDDRegion(factory.zero());
   }
@@ -168,8 +173,12 @@ public class BDDRegionManager implements RegionManager {
       out.println("Number of BDD nodes:                 " + factory.getNodeNum());
       out.println("Size of BDD node table:              " + factory.getNodeTableSize());
 
-      // cache size is currently always 1000
+      // Cache size is currently always equal to bddCacheSize,
+      // unfortunately the library does not update it on cache resizes.
       //out.println("Size of BDD cache:                   " + factory.getCacheSize());
+
+      // Cache stats are disabled in JFactory (CACHESTATS = false)
+      out.println(factory.getCacheStats());
 
       BDDFactory.GCStats stats = factory.getGCStats();
       out.println("Time for BDD garbage collection:     " + Timer.formatTime(stats.sumtime) + " (in " + stats.num + " runs)");

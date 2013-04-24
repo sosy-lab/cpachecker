@@ -164,8 +164,12 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 assumptions.export = true
 assumptions.file = "assumptions.txt"
 
-# Initial size of the BDD cache.
-bdd.initBddCacheSize = 1000
+# Size of the BDD cache in relation to the node table size (set to 0 to use
+# fixed BDD cache size).
+bdd.bddCacheRatio = 0.1
+
+# Size of the BDD cache if cache ratio is not used.
+bdd.bddCacheSize = 1000
 
 # Initial size of the BDD node table.
 bdd.initBddNodeTableSize = 10000
