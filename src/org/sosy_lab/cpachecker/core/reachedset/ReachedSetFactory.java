@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.WaitAtMeetOrderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
@@ -55,6 +56,11 @@ public class ReachedSetFactory {
       + "a secondary strategy that is used if there are two states with the same reverse postorder id. "
       + "The secondary strategy is selected with 'analysis.traversal.order'.")
   boolean useReversePostorder = false;
+
+  @Option(name = "traversal.useWaitAtMeetOrder",
+      description = "Use an implementation of wait-at-meet order strategy that allows to select "
+      + "a secondary strategy that is used if there are two states with the same wait-at-meet order id.")
+  boolean useWaitAtMeetOrder = false;
 
   @Option(name = "traversal.useTopsort",
       description="This option was renamed to analysis.traversal.useReversePostorder and will soon get removed.")
@@ -82,6 +88,9 @@ public class ReachedSetFactory {
     WaitlistFactory waitlistFactory = traversalMethod;
     if (useReversePostorder || useTopsort) {
       waitlistFactory = ReversePostorderSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useWaitAtMeetOrder) {
+      waitlistFactory = WaitAtMeetOrderSortedWaitlist.factory(waitlistFactory);
     }
     if (useCallstack) {
       waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);

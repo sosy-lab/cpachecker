@@ -53,6 +53,9 @@ public class CFANode implements Comparable<CFANode> {
   // reverse postorder sort id, smaller if it appears later in sorting
   private int reversePostorderId = 0;
 
+  // wait-at-meet order id, smaller if it appears later in sorting
+  private int waitAtMeetOrderId = 0;
+
   public CFANode(int pLineNumber, String pFunctionName) {
     assert !pFunctionName.isEmpty();
 
@@ -191,5 +194,13 @@ public class CFANode implements Comparable<CFANode> {
   @Override
   public int compareTo(CFANode pOther) {
     return Ints.compare(this.nodeNumber, pOther.nodeNumber);
+  }
+
+  public int getWaitAtMeetOrderId() {
+    return waitAtMeetOrderId;
+  }
+
+  public void setWaitAtMeetOrderId(int pWaitAtMeetOrderId) {
+    this.waitAtMeetOrderId = pWaitAtMeetOrderId;
   }
 }

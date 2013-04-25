@@ -287,10 +287,13 @@ public class CFACreator {
 
       stats.processingTime.start();
 
-      // annotate CFA nodes with reverse postorder information for later use
+      // annotate CFA nodes with reverse postorder and wait-at-meet order information for later use
+      CFAReversePostorder reversePostorder = new CFAReversePostorder();
+      CFAWaitAtMeetOrder waitAtMeetOrder = new CFAWaitAtMeetOrder();
+
       for (FunctionEntryNode function : cfa.getAllFunctionHeads()) {
-        CFAReversePostorder sorter = new CFAReversePostorder();
-        sorter.assignSorting(function);
+        waitAtMeetOrder.assignSorting(function);
+        reversePostorder.assignSorting(function);
       }
 
       // get loop information
