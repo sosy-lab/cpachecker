@@ -50,12 +50,10 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.PushAssumptionToEnvironmen
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ReplaceVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.SplitConjunctionsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ToBooleanFormulaVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.ToRationalFormulaVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
 
 import com.google.common.base.Joiner;
 
@@ -81,24 +79,31 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   private final Map<String, Integer> remainingEvaluations;
 
-  public InvariantsState(int pEvaluationThreshold) {
+  private final boolean useBitvectors;
+
+  public InvariantsState(int pEvaluationThreshold,
+      boolean pUseBitvectors) {
     this.evaluationThreshold = pEvaluationThreshold;
     this.remainingEvaluations = new HashMap<>();
     this.assumptions = new HashSet<>();
     this.environment = new HashMap<>();
     this.candidateAssumptions = new HashSet<>();
+    this.useBitvectors = pUseBitvectors;
   }
 
   public static InvariantsState copy(InvariantsState pToCopy) {
     return from(pToCopy.remainingEvaluations, pToCopy.evaluationThreshold,
-        pToCopy.assumptions, pToCopy.environment, pToCopy.candidateAssumptions);
+        pToCopy.assumptions, pToCopy.environment, pToCopy.candidateAssumptions,
+        pToCopy.useBitvectors);
   }
 
   public static InvariantsState from(Map<String, Integer> pRemainingEvaluations,
       int pEvaluationThreshold,
       Collection<InvariantsFormula<CompoundState>> pInvariants,
-      Map<String, InvariantsFormula<CompoundState>> pEnvironment, Set<InvariantsFormula<CompoundState>> pCandidateAssumptions) {
-    InvariantsState result = new InvariantsState(pEvaluationThreshold);
+      Map<String, InvariantsFormula<CompoundState>> pEnvironment,
+      Set<InvariantsFormula<CompoundState>> pCandidateAssumptions,
+      boolean pUseBitvectors) {
+    InvariantsState result = new InvariantsState(pEvaluationThreshold, pUseBitvectors);
     if (!result.assumeInternal(pInvariants, result.getFormulaResolver())) {
       return null;
     }
@@ -173,7 +178,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
        * This deliberately omits almost all previous environment information but
        * allows for recording exactly how a loop modifies the environment.
        */
-      result = new InvariantsState(evaluationThreshold);
+      result = new InvariantsState(evaluationThreshold, useBitvectors);
       // Transfer environment and record detailed values in a shadow environment
       Map<String, InvariantsFormula<CompoundState>> shadowEnvironment = new HashMap<>();
       for (Map.Entry<String, InvariantsFormula<CompoundState>> entry : this.environment.entrySet()) {
@@ -261,7 +266,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       InvariantsFormula<CompoundState> variable = ifm.asVariable(pVarName);
       ReplaceVisitor<CompoundState> replaceVisitor;
       InvariantsFormula<CompoundState> previousValue = getEnvironmentValue(pVarName);
-      result = new InvariantsState(this.evaluationThreshold);
+      result = new InvariantsState(evaluationThreshold, useBitvectors);
       replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
       InvariantsFormula<CompoundState> newSubstitutedValue = pValue.accept(replaceVisitor).accept(PartialEvaluator.INSTANCE, getFormulaResolver(pEdge));
 
@@ -515,39 +520,28 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManager pManager) {
     FormulaEvaluationVisitor<CompoundState> evaluationVisitor = getFormulaResolver();
-    ToBooleanFormulaVisitor toBooleanFormulaVisitor =
-        new ToBooleanFormulaVisitor(pManager, evaluationVisitor);
-    ToRationalFormulaVisitor toRationalFormulaVisitor =
-        toBooleanFormulaVisitor.getToRationalFormulaVisitor();
     BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
-    RationalFormulaManager nfmgr = pManager.getRationalFormulaManager();
     BooleanFormula result = bfmgr.makeBoolean(true);
+    InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
+    ToFormulaVisitor<CompoundState, BooleanFormula> toBooleanFormulaVisitor =
+        ToBooleanFormulaVisitor.getVisitor(pManager, evaluationVisitor, useBitvectors);
 
     for (Entry<String, InvariantsFormula<CompoundState>> entry
         : environment.entrySet()) {
-      RationalFormula var = nfmgr.makeVariable(entry.getKey());
+      InvariantsFormula<CompoundState> var = ifm.asVariable(entry.getKey());
       InvariantsFormula<CompoundState> value = entry.getValue();
-      RationalFormula valueFormula = value.accept(toRationalFormulaVisitor, getEnvironment());
-      if (valueFormula != null ) {
-        result = bfmgr.and(result, nfmgr.equal(var, valueFormula));
+      InvariantsFormula<CompoundState> equation = ifm.equal(var, value);
+      BooleanFormula equationFormula = equation.accept(toBooleanFormulaVisitor, getEnvironment());
+      if (equationFormula != null ) {
+        result = bfmgr.and(result, equationFormula);
       }
       CompoundState compoundState = value.accept(evaluationVisitor, getEnvironment());
-      for (SimpleInterval interval : compoundState.getIntervals()) {
-        if (interval.isSingleton()) {
-          RationalFormula bound = nfmgr.makeNumber(interval.getLowerBound().longValue());
-          BooleanFormula f = nfmgr.equal(var, bound);
-          result = bfmgr.and(result, f);
-        } else {
-          if (interval.hasLowerBound()) {
-            RationalFormula bound = nfmgr.makeNumber(interval.getLowerBound().longValue());
-            BooleanFormula f = nfmgr.greaterOrEquals(var, bound);
-            result = bfmgr.and(result, f);
-          }
-          if (interval.hasUpperBound()) {
-            RationalFormula bound = nfmgr.makeNumber(interval.getUpperBound().longValue());
-            BooleanFormula f = nfmgr.lessOrEquals(var, bound);
-            result = bfmgr.and(result, f);
-          }
+      InvariantsFormula<CompoundState> evaluatedValue = ifm.asConstant(compoundState);
+      if (!evaluatedValue.equals(value)) {
+        equation = ifm.equal(var, evaluatedValue);
+        equationFormula = equation.accept(toBooleanFormulaVisitor, getEnvironment());
+        if (equationFormula != null ) {
+          result = bfmgr.and(result, equationFormula);
         }
       }
     }
@@ -619,6 +613,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   public Collection<? extends InvariantsFormula<CompoundState>> getCandidateAssumptions() {
     return Collections.unmodifiableSet(candidateAssumptions);
+  }
+
+  public boolean getUseBitvectors() {
+    return useBitvectors;
   }
 
 }

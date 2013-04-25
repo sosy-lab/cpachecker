@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager
  * always coexists with an instance of {@link ToBooleanFormulaVisitor}, which
  * should also be used to obtain an instance of this visitor.
  */
-public class ToRationalFormulaVisitor implements ParameterizedInvariantsFormulaVisitor<CompoundState, Map<? extends String, ? extends InvariantsFormula<CompoundState>>, RationalFormula> {
+public class ToRationalFormulaVisitor implements ToFormulaVisitor<CompoundState, RationalFormula> {
 
   /**
    * The boolean formula manager used.
@@ -66,7 +66,7 @@ public class ToRationalFormulaVisitor implements ParameterizedInvariantsFormulaV
    * The corresponding compound state invariants formula visitor used to
    * convert visited formulae into boolean formulae.
    */
-  private final ToBooleanFormulaVisitor toBooleanFormulaVisitor;
+  private final ToFormulaVisitor<CompoundState, BooleanFormula> toBooleanFormulaVisitor;
 
   /**
    * The formula evaluation visitor used to evaluate compound state invariants
@@ -86,7 +86,7 @@ public class ToRationalFormulaVisitor implements ParameterizedInvariantsFormulaV
    * compound state invariants formulae to compound states.
    */
   ToRationalFormulaVisitor(FormulaManager pFmgr,
-      ToBooleanFormulaVisitor pToBooleanFormulaVisitor,
+      ToFormulaVisitor<CompoundState, BooleanFormula> pToBooleanFormulaVisitor,
       FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();
     this.rfmgr = pFmgr.getRationalFormulaManager();
@@ -235,7 +235,7 @@ public class ToRationalFormulaVisitor implements ParameterizedInvariantsFormulaV
     if (factor1 == null || factor2 == null) {
       return evaluate(pMultiply, pEnvironment);
     }
-    return this.rfmgr.modulo(factor1, factor2);
+    return this.rfmgr.multiply(factor1, factor2);
   }
 
   @Override
@@ -265,6 +265,41 @@ public class ToRationalFormulaVisitor implements ParameterizedInvariantsFormulaV
   @Override
   public RationalFormula visit(Variable<CompoundState> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     return rfmgr.makeVariable(pVariable.getName());
+  }
+
+  @Override
+  public RationalFormula getZero() {
+    return zero;
+  }
+
+  @Override
+  public RationalFormula getOne() {
+    return one;
+  }
+
+  @Override
+  public BooleanFormula lessThan(RationalFormula pOp1, RationalFormula pOp2) {
+    return this.rfmgr.lessThan(pOp1, pOp2);
+  }
+
+  @Override
+  public BooleanFormula equal(RationalFormula pOp1, RationalFormula pOp2) {
+    return this.rfmgr.equal(pOp1, pOp2);
+  }
+
+  @Override
+  public BooleanFormula greaterThan(RationalFormula pOp1, RationalFormula pOp2) {
+    return this.rfmgr.greaterThan(pOp1, pOp2);
+  }
+
+  @Override
+  public BooleanFormula lessOrEqual(RationalFormula pOp1, RationalFormula pOp2) {
+    return this.rfmgr.lessOrEquals(pOp1, pOp2);
+  }
+
+  @Override
+  public BooleanFormula greaterOrEqual(RationalFormula pOp1, RationalFormula pOp2) {
+    return this.rfmgr.greaterOrEquals(pOp1, pOp2);
   }
 
 }
