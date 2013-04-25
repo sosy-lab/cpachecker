@@ -104,6 +104,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final PredicatePrecisionSweeper precisionSweeper;
+  private final PredicateMiner predicateMiner;
 
   protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk, CFA cfa) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
@@ -162,8 +163,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     prec = new PredicatePrecisionAdjustment(this);
     stop = new PredicateStopOperator(domain);
 
+    predicateMiner = new PredicateMiner(config, logger, pfMgr, formulaManager, abstractionManager, cfa);
     precisionSweeper = new PredicatePrecisionSweeper(logger, cfa);
-    precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, pathFormulaManager, abstractionManager, formulaManager, precisionSweeper);
+    precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, pathFormulaManager, abstractionManager, formulaManager, precisionSweeper, predicateMiner);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
@@ -261,5 +263,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     } else {
       return false;
     }
+  }
+
+  public PredicateMiner getMiner() {
+    return predicateMiner;
   }
 }

@@ -68,10 +68,10 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   @Option(description="Enable sweeping the precision: remove predicates that make statements about variables that do not exist in the CFA.")
   private boolean enablePrecisionSweeper = false;
 
-  private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView formulaManagerView;
   private final AbstractionManager abstractionManager;
   private final PredicatePrecisionSweeper sweeper;
+  private final PredicateMiner miner;
 
   private final Configuration config;
   private final LogManager logger;
@@ -82,13 +82,13 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
   public PredicatePrecisionBootstrapper(Configuration config, LogManager logger, CFA cfa,
       PathFormulaManager pathFormulaManager, AbstractionManager abstractionManager, FormulaManagerView formulaManagerView,
-      PredicatePrecisionSweeper sweeper) throws InvalidConfigurationException {
+      PredicatePrecisionSweeper sweeper, PredicateMiner miner) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;
     this.cfa = cfa;
     this.sweeper = sweeper;
+    this.miner = miner;
 
-    this.pathFormulaManager = pathFormulaManager;
     this.abstractionManager = abstractionManager;
     this.formulaManagerView = formulaManagerView;
 
@@ -117,8 +117,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       }
     } else if (enablePrecisionMiner) {
       try {
-        PredicateMiner precMiner = new PredicateMiner(config, logger, pathFormulaManager, formulaManagerView, abstractionManager);
-        return precMiner.minePrecisionFromCfa(cfa);
+        return miner.minePrecisionFromCfa();
 
       } catch (CPATransferException e) {
         logger.logUserException(Level.WARNING, e, "Could not mine precision from CFA");

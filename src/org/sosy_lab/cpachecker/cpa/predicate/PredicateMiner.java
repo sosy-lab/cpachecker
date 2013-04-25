@@ -96,6 +96,7 @@ public class PredicateMiner {
 
   private final Configuration config;
   private final LogManager logger;
+  private final CFA cfa;
 
   private final CExpressionVisitor<List<String>, CPATransferException> referencedVariablesVisitor = new CExpressionVisitor<List<String>, CPATransferException>() {
     @Override
@@ -165,12 +166,14 @@ public class PredicateMiner {
 
   };
 
-  public PredicateMiner(Configuration config, LogManager logger, PathFormulaManager pathFormulaManager, FormulaManagerView formulaManagerView, AbstractionManager abstractionManager) throws InvalidConfigurationException {
+
+  public PredicateMiner(Configuration config, LogManager logger, PathFormulaManager pathFormulaManager, FormulaManagerView formulaManagerView, AbstractionManager abstractionManager, CFA cfa) throws InvalidConfigurationException {
     this.logger = logger;
     this.config = config;
     this.pathFormulaManager = pathFormulaManager;
     this.formulaManagerView = formulaManagerView;
     this.abstractionManager = abstractionManager;
+    this.cfa = cfa;
 
     config.inject(this);
 
@@ -330,16 +333,16 @@ public class PredicateMiner {
     }
   }
 
-  public PredicatePrecision minePrecisionFromCfa(CFA pCfa) throws CPATransferException {
+  public PredicatePrecision minePrecisionFromCfa() throws CPATransferException {
     logger.log(Level.INFO, "Mining precision from CFA...");
 
     Multimap<CFANode, AbstractionPredicate> localPredicates = ArrayListMultimap.create();
     Multimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
     Collection<AbstractionPredicate> globalPredicates = Lists.newArrayList();
 
-    VariableScopeProvider scopeProvider = new VariableScopeProvider(pCfa);
+    VariableScopeProvider scopeProvider = new VariableScopeProvider(cfa);
 
-    ListMultimap<CFANode, AssumeEdge> locAssumes = getTargetLocationAssumes(pCfa);
+    ListMultimap<CFANode, AssumeEdge> locAssumes = getTargetLocationAssumes(cfa);
 
     for (CFANode targetLocation : locAssumes.keySet()) {
       for (AssumeEdge assume : locAssumes.get(targetLocation)) {

@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.PredicateMap;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateMiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -59,9 +60,10 @@ class PredicatingExplicitRefinementStrategy extends PredicateAbstractionRefineme
       LogManager pLogger,
       final FormulaManagerView pFormulaManager,
       final PredicateAbstractionManager pPredAbsMgr,
-      final Solver pSolver)
+      final Solver pSolver,
+      final PredicateMiner pMiner)
           throws CPAException, InvalidConfigurationException {
-    super(pConfig, pLogger, pFormulaManager, pPredAbsMgr, pSolver);
+    super(pConfig, pLogger, pFormulaManager, pPredAbsMgr, pSolver, pMiner);
   }
 
   @Override

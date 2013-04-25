@@ -48,6 +48,8 @@ public abstract class PredicateRefiner implements Refiner {
     FormulaManagerView fmgr = predicateCpa.getFormulaManager();
     PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
     Solver solver = predicateCpa.getSolver();
+    PredicateMiner miner = predicateCpa.getMiner();
+    PredicateAbstractionManager amgr = predicateCpa.getPredicateManager();
 
     InterpolationManager manager = new InterpolationManager(
         fmgr,
@@ -61,8 +63,9 @@ public abstract class PredicateRefiner implements Refiner {
         config,
         logger,
         fmgr,
-        predicateCpa.getPredicateManager(),
-        solver);
+        amgr,
+        solver,
+        miner);
 
     return new PredicateCPARefiner(
         config,

@@ -134,8 +134,9 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
                                           logger,
                                           predicateCpa,
                                           predicateCpa.getFormulaManager(),
+                                          predicateCpa.getPredicateManager(),
                                           predicateCpa.getSolver(),
-                                          predicateCpa.getPredicateManager());
+                                          predicateCpa.getMiner());
 
     this.refiner = new ExtendedPredicateRefiner(
                                           predicateCpa.getConfiguration(),
@@ -278,13 +279,14 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
     private List<Region> lastAbstractions = null;
     private boolean refinedLastRelevantPredicatesComputer = false;
 
-    private ABMPredicateAbstractionRefinementStrategy(final Configuration config, final LogManager logger,
+    private ABMPredicateAbstractionRefinementStrategy(final Configuration config,
+        final LogManager pLogger,
         final ABMPredicateCPA predicateCpa,
-        final FormulaManagerView pFormulaManager, final Solver pSolver,
-        final PredicateAbstractionManager pPredAbsMgr)
-            throws CPAException, InvalidConfigurationException {
+        final FormulaManagerView pFormulaManager,
+        final PredicateAbstractionManager pPredAbsMgr, final Solver pSolver,
+        final PredicateMiner pMiner) throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pFormulaManager, pPredAbsMgr, pSolver);
+      super(config, pLogger, pFormulaManager, pPredAbsMgr, pSolver, pMiner);
 
       RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
       if (relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {

@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateMiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -111,6 +112,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       FormulaManagerFactory factory               = predicateCpa.getFormulaManagerFactory();
       FormulaManagerView formulaManager           = predicateCpa.getFormulaManager();
       Solver solver                               = predicateCpa.getSolver();
+      PredicateMiner miner                        = predicateCpa.getMiner();
       pathFormulaManager                          = predicateCpa.getPathFormulaManager();
 
       InterpolationManager manager = new InterpolationManager(
@@ -126,7 +128,8 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
           logger,
           formulaManager,
           predicateCpa.getPredicateManager(),
-          solver);
+          solver,
+          miner);
 
       backupRefiner = new PredicateCPARefiner(
           config,
