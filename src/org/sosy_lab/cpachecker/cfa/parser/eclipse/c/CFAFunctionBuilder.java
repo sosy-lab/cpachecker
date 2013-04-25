@@ -1321,13 +1321,16 @@ class CFAFunctionBuilder extends ASTVisitor {
     // leave switch
     final CFANode lastNodeInSwitch = locStack.pop();
     final CFANode lastNotCaseNode = switchCaseStack.pop();
-    switchExprStack.pop(); // switchExpr is not needed after this point
+    final CFANode defaultCaseNode = switchDefaultStack.pop();
 
-    assert postSwitchNode == loopNextStack.pop();
+    switchExprStack.pop();
+
+    assert postSwitchNode == loopNextStack.peek();
     assert postSwitchNode == locStack.peek();
     assert switchExprStack.size() == switchCaseStack.size();
 
-    final CFANode defaultCaseNode = switchDefaultStack.pop();
+    loopNextStack.pop();
+
     if (defaultCaseNode == null) {
       // no default case
       final BlankEdge blankEdge = new BlankEdge("", lastNotCaseNode.getLineNumber(),
