@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -136,6 +137,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   // Data structure for handling switch-statements
   private final Deque<CExpression> switchExprStack = new ArrayDeque<>();
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
+  private final Deque<CFANode> switchDefaultStack = new LinkedList<>(); // ArrayDeque not possible because it does not allow null
 
   // Data structures for handling goto
   private final Map<String, CLabelNode> labelMap = new HashMap<>();
@@ -1311,6 +1313,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     locStack.push(new CFANode(fileloc.getStartingLineNumber(),
         cfa.getFunctionName()));
 
+    switchDefaultStack.push(null);
+
     // visit only body, getBody() != getChildren()
     statement.getBody().accept(this);
 
@@ -1323,10 +1327,21 @@ class CFAFunctionBuilder extends ASTVisitor {
     assert postSwitchNode == locStack.peek();
     assert switchExprStack.size() == switchCaseStack.size();
 
-    final BlankEdge blankEdge = new BlankEdge("", lastNotCaseNode.getLineNumber(),
-        lastNotCaseNode, postSwitchNode, "");
-    addToCFA(blankEdge);
+    final CFANode defaultCaseNode = switchDefaultStack.pop();
+    if (defaultCaseNode == null) {
+      // no default case
+      final BlankEdge blankEdge = new BlankEdge("", lastNotCaseNode.getLineNumber(),
+          lastNotCaseNode, postSwitchNode, "");
+      addToCFA(blankEdge);
 
+    } else {
+      // blank edge connecting rootNode with defaultCaseNode
+      final BlankEdge defaultEdge = new BlankEdge(statement.getRawSignature(),
+          defaultCaseNode.getLineNumber(), lastNotCaseNode, defaultCaseNode, "default");
+      addToCFA(defaultEdge);
+    }
+
+    // fall-through of last case
     final BlankEdge blankEdge2 = new BlankEdge("", lastNodeInSwitch.getLineNumber(),
         lastNodeInSwitch, postSwitchNode, "");
     addToCFA(blankEdge2);
@@ -1386,10 +1401,19 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     final int filelocStart = fileloc.getStartingLineNumber();
 
-    // build blank edge to caseNode with "default", no edge to notCaseNode
-    final CFANode rootNode = switchCaseStack.pop();
-    final CFANode caseNode = newCFANode(filelocStart);
-    final CFANode notCaseNode = newCFANode(filelocStart);
+    // hack: use label node to mark node as reachable
+    // (otherwise the following edges won't get added because it has
+    // no incoming edges
+    CLabelNode caseNode = new CLabelNode(fileloc.getStartingLineNumber(),
+        cfa.getFunctionName(), "__switch__default__");
+    cfaNodes.add(caseNode);
+
+    // Update switchDefaultStack with the new node
+    final CFANode oldDefaultNode = switchDefaultStack.pop();
+    if (oldDefaultNode != null) {
+      throw new CFAGenerationRuntimeException("Duplicate default statement in switch", statement);
+    }
+    switchDefaultStack.push(caseNode);
 
     // fall-through (case before has no "break")
     final CFANode oldNode = locStack.pop();
@@ -1399,13 +1423,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       addToCFA(blankEdge);
     }
 
-    switchCaseStack.push(notCaseNode); // for later cases, only reachable through jumps
     locStack.push(caseNode);
-
-    // blank edge connecting rootNode with caseNode
-    final BlankEdge trueEdge =
-        new BlankEdge(statement.getRawSignature(), filelocStart, rootNode, caseNode, "default");
-    addToCFA(trueEdge);
   }
 
 
