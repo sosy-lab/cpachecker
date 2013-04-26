@@ -206,7 +206,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     ExplicitPrecision refinedExplicitPrecision  = new ExplicitPrecision(explicitPrecision, increment);
 
     if(refinementSuccessful(errorPath, explicitPrecision, refinedExplicitPrecision)) {
-      reached.removeSubtree(interpolationPoint, refinedExplicitPrecision);
+      reached.removeSubtree(interpolationPoint, refinedExplicitPrecision, ExplicitPrecision.class);
       return true;
     }
     else {
