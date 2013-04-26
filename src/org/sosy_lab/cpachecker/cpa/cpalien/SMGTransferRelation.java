@@ -951,23 +951,7 @@ public class SMGTransferRelation implements TransferRelation {
     CType expressionType = getRealExpressionType(rValue);
 
     if (expressionType instanceof CPointerType) {
-
-      Address address = evaluateAddress(smgState, cfaEdge, rValue);
-
-      if (address == null) {
-        return null;
-      }
-
-      // This method may only be called, if the result,
-      // if there is a result, is written into the SMG.
-      // Otherwise, we would add an Address to the SMG
-      // without a necessary Has-Value-Edge to the address value.
-
-      if (!newState.containsValue(address.getValue())) {
-        newState.addAddress(address.getObject(), address.getOffset(), address.getValue());
-      }
-
-      return address.getValue();
+      return evaluateSMGValue(newState, cfaEdge, rValue);
 
     } else {
       return evaluateNonAddressValue(smgState, cfaEdge, rValue);
@@ -1000,6 +984,11 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     return symbolicValue;
+  }
+
+  private Integer evaluateSMGValue(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(cfaEdge, newState);
+    return rValue.accept(visitor);
   }
 
   private Integer evaluateAssumptionValue(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue)
