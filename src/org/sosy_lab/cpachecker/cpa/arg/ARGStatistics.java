@@ -140,7 +140,8 @@ public class ARGStatistics implements Statistics {
       errorPathSourceFile = null;
     }
     if (errorPathAssignment == null && errorPathCoreFile == null && errorPathFile == null
-        && errorPathGraphFile == null && errorPathJson == null && errorPathSourceFile == null) {
+        && errorPathGraphFile == null && errorPathJson == null && errorPathSourceFile == null
+        && errorPathAutomatonFile == null) {
       exportErrorPath = false;
     }
   }
