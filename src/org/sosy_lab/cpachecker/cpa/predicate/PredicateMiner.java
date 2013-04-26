@@ -333,7 +333,7 @@ public class PredicateMiner {
     }
   }
 
-  public PredicatePrecision minePrecisionFromCfa() throws CPATransferException {
+  public HeuristicPredicatePrecision minePrecisionFromCfa() throws CPATransferException {
     logger.log(Level.INFO, "Mining precision from CFA...");
 
     Multimap<CFANode, AbstractionPredicate> localPredicates = ArrayListMultimap.create();
@@ -381,7 +381,7 @@ public class PredicateMiner {
 
     logger.log(Level.INFO, "Mining finished.");
 
-    return new PredicatePrecision(
+    return new HeuristicPredicatePrecision(
         ImmutableSetMultimap.<Pair<CFANode,Integer>, AbstractionPredicate>of(),
         localPredicates, functionPredicates, globalPredicates);
   }

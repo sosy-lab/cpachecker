@@ -313,6 +313,9 @@ cpa.abm.gatherCacheMissStatistics = false
 # export one variable assignment for error path to file, if one is found
 cpa.arg.errorPath.assignment = "ErrorPathAssignment.txt"
 
+# export error path to file as an automaton
+cpa.arg.errorPath.automaton = "ErrorPath.spc"
+
 # export error path to file, if one is found
 cpa.arg.errorPath.core = "ErrorPathCore.txt"
 cpa.arg.errorPath.export = true
@@ -802,9 +805,15 @@ cpa.predicate.refinement.keepAllPredicates = false
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
+# Run predicate mining on first refinement?
+cpa.predicate.refinement.minePredicatesOnFirstRefinement = false
+cpa.predicate.refinement.minePredicatesOnRefinement = false
+
 # Where to apply the found predicates to?
 cpa.predicate.refinement.predicateSharing = LOCATION
   enum:     [GLOBAL, FUNCTION, LOCATION, LOCATION_INSTANCE]
+
+cpa.predicate.refinement.pruneHeuristicPredicatesOnRefinement = false
 
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.

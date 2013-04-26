@@ -191,8 +191,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     // build the counterexample
     final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath, refineUsingInterpolation);
 
-    logger.log(Level.INFO, "REFINEMENT!!");
-
     // if error is spurious refine
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
@@ -205,10 +203,11 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         ARGState root = (ARGState)reached.getFirstState();
         ARGState refinementRoot = Iterables.getLast(root.getChildren());
 
-        PredicatePrecision minedPrecision = miner.minePrecisionFromCfa();
-        miningCount++;
+        HeuristicPredicatePrecision heuristicPrecision = miner.minePrecisionFromCfa();
 
-        pReached.removeSubtree(refinementRoot, minedPrecision);
+        pReached.removeSubtree(refinementRoot, heuristicPrecision);
+
+        miningCount++;
       } else {
         strategy.performRefinement(pReached, path, counterexample.getInterpolants(), repeatedCounterexample);
       }

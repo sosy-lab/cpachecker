@@ -128,6 +128,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Option(description="Run predicate mining on first refinement?")
   private boolean minePredicatesOnRefinement = false;
 
+  @Option(description="")
+  private boolean pruneHeuristicPredicatesOnRefinement = false;
+
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
   protected final LogManager logger;
@@ -278,7 +281,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     precisionUpdate.start();
     PredicatePrecision basePrecision;
     if (keepAllPredicates) {
-      basePrecision = findAllPredicatesFromSubgraph(refinementRoot, reached);
+      basePrecision = findAllPredicatesFromSubgraph(refinementRoot, reached, pruneHeuristicPredicatesOnRefinement);
     } else {
       basePrecision = targetStatePrecision;
     }
@@ -389,7 +392,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    * @return a new precision with all these predicates.
    */
   private PredicatePrecision findAllPredicatesFromSubgraph(
-      ARGState refinementRoot, UnmodifiableReachedSet reached) {
+      ARGState refinementRoot, UnmodifiableReachedSet reached,
+      boolean ignoreHeuristicPredicates) {
 
     PredicatePrecision newPrecision = PredicatePrecision.empty();
 
@@ -398,7 +402,11 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     for (ARGState state : refinementRoot.getSubgraph()) {
       if (!state.isCovered()) {
         // covered states are not in reached set
-        precisions.add(reached.getPrecision(state));
+        Precision statePrecision = reached.getPrecision(state);
+        if (!ignoreHeuristicPredicates
+         || !(statePrecision instanceof HeuristicPredicatePrecision)) {
+          precisions.add(statePrecision);
+        }
       }
     }
 
