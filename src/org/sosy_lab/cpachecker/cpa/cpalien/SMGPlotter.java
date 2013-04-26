@@ -54,7 +54,7 @@ public final class SMGPlotter {
     for (SMGObject heapObject : smg.getHeapObjects()) {
       //if (heapObject.notNull()){
         sb.append(newLineWithOffset(smgObjectAsDot(heapObject)));
-        objectIndex.put(heapObject, heapObject.getLabel());
+        objectIndex.put(heapObject, convertToValidDot(heapObject.getLabel()));
       //}
     }
 
