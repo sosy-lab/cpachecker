@@ -485,7 +485,7 @@ public class SMGTransferRelation implements TransferRelation {
     return newState;
   }
 
-  private Integer getFunctionReturnValue(SMGState smgState, CType type) {
+  private Integer getFunctionReturnValue(SMGState smgState, CType type) throws SMGInconsistentException {
 
     SMGObject tmpMemory = smgState.getFunctionReturnObject();
 
@@ -699,13 +699,13 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public SMGObject visit(CFieldReference lValue) throws UnrecognizedCCodeException {
+    public SMGObject visit(CFieldReference lValue) throws CPATransferException {
       // a->b = ...
       return handleAssignmentToFieldReference(lValue);
     }
 
     private SMGObject handleAssignmentToFieldReference(CFieldReference fieldReference)
-        throws UnrecognizedCCodeException {
+        throws CPATransferException {
       logger.log(Level.FINEST, ">>> Handling statement: assignment to field reference");
 
       CType ownerType = getRealExpressionType(fieldReference.getFieldOwner());
@@ -800,7 +800,7 @@ public class SMGTransferRelation implements TransferRelation {
     return Pair.of(memoryOfArray, offset);
   }
 
-  private SMGObject getMemoryOfField(SMGState smgState, CFAEdge cfaEdge, CFieldReference fieldReference) {
+  private SMGObject getMemoryOfField(SMGState smgState, CFAEdge cfaEdge, CFieldReference fieldReference) throws SMGInconsistentException {
 
     CExpression fieldOwner = fieldReference.getFieldOwner();
 
@@ -1199,7 +1199,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public Integer visit(CIdExpression idExpression) throws UnrecognizedCCodeException {
+    public Integer visit(CIdExpression idExpression) throws CPATransferException {
 
       Integer address = super.visit(idExpression);
 
@@ -1271,7 +1271,7 @@ public class SMGTransferRelation implements TransferRelation {
       }
     }
 
-    private Integer createAddressOfField(CFieldReference lValue) {
+    private Integer createAddressOfField(CFieldReference lValue) throws SMGInconsistentException {
 
       SMGObject memoryOfField = getMemoryOfField(smgState, cfaEdge, lValue);
       Field field = getField(getRealExpressionType(lValue.getFieldOwner()), lValue.getFieldName());
@@ -1437,7 +1437,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public Integer visit(CFieldReference fieldReference) throws UnrecognizedCCodeException {
+    public Integer visit(CFieldReference fieldReference) throws CPATransferException {
 
       Integer address = super.visit(fieldReference);
 
@@ -1592,7 +1592,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public SMGObject visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+    public SMGObject visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
       return null;
     }
 
@@ -1602,7 +1602,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public SMGObject visit(CFieldReference fieldReference) throws UnrecognizedCCodeException {
+    public SMGObject visit(CFieldReference fieldReference) throws CPATransferException {
 
       SMGObject memoryOfField = getMemoryOfField(smgState, cfaEdge, fieldReference);
       Field field = getField(getRealExpressionType(fieldReference.getFieldOwner()), fieldReference.getFieldName());
@@ -1734,7 +1734,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public Integer visit(CFieldReference fieldReference) throws UnrecognizedCCodeException {
+    public Integer visit(CFieldReference fieldReference) throws CPATransferException {
 
       SMGObject memoryOfField = getMemoryOfField(smgState, cfaEdge, fieldReference);
       Field field = getField(getRealExpressionType(fieldReference.getFieldOwner()), fieldReference.getFieldName());
@@ -1749,7 +1749,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public Integer visit(CIdExpression idExpression) throws UnrecognizedCCodeException {
+    public Integer visit(CIdExpression idExpression) throws CPATransferException {
 
       Integer value = null;
 

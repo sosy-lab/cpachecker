@@ -234,18 +234,21 @@ public class SMGState implements AbstractQueryableState {
    * @param pOffset offset of field being read.
    * @param pType type of field
    * @return
+   * @throws SMGInconsistentException
    */
-  public Integer readValue(SMGObject pObject, int pOffset, CType pType) {
+  public Integer readValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
     SMGEdgeHasValue edge = new SMGEdgeHasValue(pType, pOffset, pObject, 0);
     Set<SMGEdgeHasValue> edges = heap.getValuesForObject(pObject, pOffset);
 
     for (SMGEdgeHasValue object_edge : edges) {
       if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())){
+        this.performConsistencyCheck(SMGRuntimeCheck.HALF);
         return object_edge.getValue();
       }
     }
 
     // TODO: Nullified blocks coverage interpretation
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
     return null;
   }
 
