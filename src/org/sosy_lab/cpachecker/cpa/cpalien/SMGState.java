@@ -227,6 +227,16 @@ public class SMGState implements AbstractQueryableState {
     }
   }
 
+  public SMGEdgePointsTo getPointerFromValue(Integer pValue) throws SMGInconsistentException {
+    for (SMGEdgePointsTo edge : heap.getPTEdges()){
+      if (edge.getValue() == pValue) {
+        return edge;
+      }
+    }
+
+    throw new SMGInconsistentException("Asked for a Points-To edge for a non-pointer value");
+  }
+
   /**
    * Read Value in field (object, type) of an Object.
    *
