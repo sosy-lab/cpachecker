@@ -313,6 +313,9 @@ cpa.abm.gatherCacheMissStatistics = false
 # export one variable assignment for error path to file, if one is found
 cpa.arg.errorPath.assignment = "ErrorPathAssignment.txt"
 
+# export error path to file as an automaton
+cpa.arg.errorPath.automaton = "ErrorPath.spc"
+
 # export error path to file, if one is found
 cpa.arg.errorPath.core = "ErrorPathCore.txt"
 cpa.arg.errorPath.export = true

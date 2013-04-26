@@ -118,6 +118,11 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path errorPathGraphFile = Paths.get("ErrorPath.dot");
 
+  @Option(name="errorPath.automaton",
+      description="export error path to file as an automaton")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path errorPathAutomatonFile = Paths.get("ErrorPath.spc");
+
   private final ARGCPA cpa;
 
   private Writer refinementGraphUnderlyingWriter = null;
@@ -249,6 +254,13 @@ public class ARGStatistics implements Statistics {
               ARGUtils.CHILDREN_OF_STATE,
               Predicates.in(pathElements),
               isTargetPathEdge);
+        }
+      });
+
+      writeErrorPathFile(errorPathAutomatonFile, new Appender() {
+        @Override
+        public void appendTo(Appendable pAppendable) throws IOException {
+          ARGUtils.producePathAutomaton(pAppendable, rootState, pathElements);
         }
       });
 
