@@ -135,8 +135,7 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
                                           predicateCpa,
                                           predicateCpa.getFormulaManager(),
                                           predicateCpa.getPredicateManager(),
-                                          predicateCpa.getSolver(),
-                                          predicateCpa.getMiner());
+                                          predicateCpa.getSolver());
 
     this.refiner = new ExtendedPredicateRefiner(
                                           predicateCpa.getConfiguration(),
@@ -145,7 +144,8 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
                                           manager,
                                           predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
-                                          strategy);
+                                          strategy,
+                                          predicateCpa.getMiner());
   }
 
   @Override
@@ -170,9 +170,10 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         final InterpolationManager pInterpolationManager,
         final FormulaManagerView pFormulaManager,
         final PathFormulaManager pPathFormulaManager,
-        final RefinementStrategy strategy) throws CPAException, InvalidConfigurationException {
+        final RefinementStrategy strategy,
+        final PredicateMiner miner) throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pCpa, pInterpolationManager, pFormulaManager, pPathFormulaManager, strategy);
+      super(config, logger, pCpa, pInterpolationManager, pFormulaManager, pPathFormulaManager, strategy, miner);
 
       pfmgr = pPathFormulaManager;
     }
@@ -283,10 +284,10 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         final LogManager pLogger,
         final ABMPredicateCPA predicateCpa,
         final FormulaManagerView pFormulaManager,
-        final PredicateAbstractionManager pPredAbsMgr, final Solver pSolver,
-        final PredicateMiner pMiner) throws CPAException, InvalidConfigurationException {
+        final PredicateAbstractionManager pPredAbsMgr, final Solver pSolver)
+            throws CPAException, InvalidConfigurationException {
 
-      super(config, pLogger, pFormulaManager, pPredAbsMgr, pSolver, pMiner);
+      super(config, pLogger, pFormulaManager, pPredAbsMgr, pSolver);
 
       RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
       if (relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {

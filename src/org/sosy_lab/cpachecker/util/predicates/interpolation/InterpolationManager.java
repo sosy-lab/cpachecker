@@ -206,12 +206,13 @@ public final class InterpolationManager {
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
       final List<BooleanFormula> pFormulas,
-      final Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
+      final Set<ARGState> elementsOnPath,
+      final boolean computeInterpolants) throws CPAException, InterruptedException {
 
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
       try (InterpolatingProverEnvironment<?> itpProver = factory.newProverEnvironmentWithInterpolation(false)) {
-        return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
+        return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver, computeInterpolants);
       }
     }
 
@@ -221,7 +222,7 @@ public final class InterpolationManager {
       @Override
       public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
         try (InterpolatingProverEnvironment<?> itpProver = factory.newProverEnvironmentWithInterpolation(false)) {
-          return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
+          return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver, computeInterpolants);
         }
       }
     };
@@ -254,7 +255,8 @@ public final class InterpolationManager {
    * @throws CPAException
    */
   private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
-      List<BooleanFormula> pFormulas, Set<ARGState> elementsOnPath, InterpolatingProverEnvironment<T> pItpProver) throws CPAException, InterruptedException {
+      List<BooleanFormula> pFormulas, Set<ARGState> elementsOnPath,
+      InterpolatingProverEnvironment<T> pItpProver, boolean computeInterpolants) throws CPAException, InterruptedException {
 
     logger.log(Level.FINEST, "Building counterexample trace");
     cexAnalysisTimer.start();
@@ -322,19 +324,23 @@ public final class InterpolationManager {
       CounterexampleTraceInfo info;
       if (spurious) {
 
-        List<BooleanFormula> interpolants = getInterpolants(pItpProver, itpGroupsIds);
-        if (verifyInterpolants) {
-          verifyInterpolants(interpolants, f, pItpProver);
-        }
-
-        if (logger.wouldBeLogged(Level.ALL)) {
-          int i = 1;
-          for (BooleanFormula itp : interpolants) {
-            logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
+        if (computeInterpolants) {
+          List<BooleanFormula> interpolants = getInterpolants(pItpProver, itpGroupsIds);
+          if (verifyInterpolants) {
+            verifyInterpolants(interpolants, f, pItpProver);
           }
-        }
 
-        info = CounterexampleTraceInfo.infeasible(interpolants);
+          if (logger.wouldBeLogged(Level.ALL)) {
+            int i = 1;
+            for (BooleanFormula itp : interpolants) {
+              logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
+            }
+          }
+
+          info = CounterexampleTraceInfo.infeasible(interpolants);
+        } else {
+          info = CounterexampleTraceInfo.infeasibleNoItp();
+        }
 
       } else {
         // this is a real bug

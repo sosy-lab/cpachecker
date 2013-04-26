@@ -128,8 +128,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
           logger,
           formulaManager,
           predicateCpa.getPredicateManager(),
-          solver,
-          miner);
+          solver);
 
       backupRefiner = new PredicateCPARefiner(
           config,
@@ -138,7 +137,8 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
           manager,
           formulaManager,
           pathFormulaManager,
-          backupRefinementStrategy);
+          backupRefinementStrategy,
+          miner);
 
     } else {
       FormulaManagerFactory factory         = new FormulaManagerFactory(config, logger);

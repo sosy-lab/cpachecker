@@ -71,6 +71,7 @@ public abstract class ImpactRefiner implements Refiner {
         manager,
         fmgr,
         pfmgr,
-        strategy);
+        strategy,
+        predicateCpa.getMiner());
     }
 }

@@ -64,8 +64,7 @@ public abstract class PredicateRefiner implements Refiner {
         logger,
         fmgr,
         amgr,
-        solver,
-        miner);
+        solver);
 
     return new PredicateCPARefiner(
         config,
@@ -74,6 +73,7 @@ public abstract class PredicateRefiner implements Refiner {
         manager,
         fmgr,
         pfmgr,
-        strategy);
+        strategy,
+        miner);
   }
 }

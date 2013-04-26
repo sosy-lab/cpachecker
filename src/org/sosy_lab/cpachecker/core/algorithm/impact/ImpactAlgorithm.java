@@ -202,7 +202,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       List<BooleanFormula> pathFormulas = new ArrayList<>(path.size());
       addPathFormulasToList(path, pathFormulas);
 
-      CounterexampleTraceInfo cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARGState>emptySet());
+      CounterexampleTraceInfo cex = imgr.buildCounterexampleTrace(pathFormulas, Collections.<ARGState>emptySet(), true);
 
       if (!cex.isSpurious()) {
         return Collections.emptyList(); // real counterexample
@@ -326,7 +326,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     path.add(0, x); // now path is [x; v] (including x and v)
     assert formulas.size() == path.size() + 1;
 
-    CounterexampleTraceInfo interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet());
+    CounterexampleTraceInfo interpolantInfo = imgr.buildCounterexampleTrace(formulas, Collections.<ARGState>emptySet(), true);
 
     if (!interpolantInfo.isSpurious()) {
       logger.log(Level.FINER, "Forced covering unsuccessful.");

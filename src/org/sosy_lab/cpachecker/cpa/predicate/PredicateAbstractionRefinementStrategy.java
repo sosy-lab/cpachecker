@@ -128,14 +128,11 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Option(description="Run predicate mining on first refinement?")
   private boolean minePredicatesOnRefinement = false;
 
-
   private int refinementCount = 0; // this is modulo restartAfterRefinements
-  private int miningCount = 0;
 
   protected final LogManager logger;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final PredicateMiner miner;
   private final PredicateAbstractionManager predAbsMgr;
 
   private class Stats implements Statistics {
@@ -164,8 +161,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   protected PredicateAbstractionRefinementStrategy(final Configuration config,
       final LogManager pLogger, final FormulaManagerView pFormulaManager,
-      final PredicateAbstractionManager pPredAbsMgr, final Solver pSolver,
-      final PredicateMiner pMiner) throws CPAException, InvalidConfigurationException {
+      final PredicateAbstractionManager pPredAbsMgr, final Solver pSolver)
+          throws CPAException, InvalidConfigurationException {
     super(pFormulaManager.getBooleanFormulaManager(), pSolver);
 
     config.inject(this, PredicateAbstractionRefinementStrategy.class);
@@ -176,8 +173,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     logger = pLogger;
     fmgr = pFormulaManager;
     bfmgr = pFormulaManager.getBooleanFormulaManager();
-
-    miner = pMiner;
     predAbsMgr = pPredAbsMgr;
   }
 
@@ -308,18 +303,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     default:
       throw new AssertionError();
     }
-
-    if (minePredicatesOnRefinement) {
-      if (miningCount == 0) {
-        PredicatePrecision minedPrecision = miner.minePrecisionFromCfa();
-        newPrecision = newPrecision
-            .addFunctionPredicates(minedPrecision.getFunctionPredicates())
-            .addGlobalPredicates(minedPrecision.getGlobalPredicates())
-            .addLocalPredicates(minedPrecision.getLocalPredicates());
-        miningCount++;
-      }
-    }
-
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
 

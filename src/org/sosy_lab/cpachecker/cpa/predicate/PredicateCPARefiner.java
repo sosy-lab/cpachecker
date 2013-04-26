@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -68,6 +69,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -90,6 +92,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File dumpCounterexampleFile = new File("counterexample.smt2");
 
+  @Option(description="Run predicate mining on first refinement?")
+  private boolean minePredicatesOnFirstRefinement = false;
+
+  private int miningCount = 0;
 
   class Stats implements Statistics {
 
@@ -127,7 +133,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final PathFormulaManager pfmgr;
   private final InterpolationManager formulaManager;
   private final RefinementStrategy strategy;
-
+  private final PredicateMiner miner;
 
   // the previously analyzed counterexample to detect repeated counterexamples
   private List<BooleanFormula> lastErrorPath = null;
@@ -137,7 +143,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       final InterpolationManager pInterpolationManager,
       final FormulaManagerView pFormulaManager,
       final PathFormulaManager pPathFormulaManager,
-      final RefinementStrategy pStrategy) throws CPAException, InvalidConfigurationException {
+      final RefinementStrategy pStrategy,
+      final PredicateMiner pMiner) throws CPAException, InvalidConfigurationException {
 
     super(pCpa);
 
@@ -147,6 +154,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     formulaManager = pInterpolationManager;
     pfmgr = pPathFormulaManager;
     strategy = pStrategy;
+    miner = pMiner;
 
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
   }
@@ -178,8 +186,12 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     final List<BooleanFormula> formulas = getFormulasForPath(path, pPath.getFirst().getFirst());
     assert path.size() == formulas.size();
 
+    boolean refineUsingInterpolation = (!minePredicatesOnFirstRefinement) || (miningCount > 0);
+
     // build the counterexample
-    final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath);
+    final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath, refineUsingInterpolation);
+
+    logger.log(Level.INFO, "REFINEMENT!!");
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -188,7 +200,18 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       boolean repeatedCounterexample = formulas.equals(lastErrorPath);
       lastErrorPath = formulas;
 
-      strategy.performRefinement(pReached, path, counterexample.getInterpolants(), repeatedCounterexample);
+      if (minePredicatesOnFirstRefinement && miningCount == 0) {
+        UnmodifiableReachedSet reached = pReached.asReachedSet();
+        ARGState root = (ARGState)reached.getFirstState();
+        ARGState refinementRoot = Iterables.getLast(root.getChildren());
+
+        PredicatePrecision minedPrecision = miner.minePrecisionFromCfa();
+        miningCount++;
+
+        pReached.removeSubtree(refinementRoot, minedPrecision);
+      } else {
+        strategy.performRefinement(pReached, path, counterexample.getInterpolants(), repeatedCounterexample);
+      }
 
       totalRefinement.stop();
       return CounterexampleInfo.spurious();
