@@ -326,12 +326,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     argUpdate.start();
 
-    pReached.removeSubtree(refinementRoot, newPrecision);
+    pReached.removeSubtree(refinementRoot, newPrecision, PredicatePrecision.class);
 
     assert (refinementCount > 0) || reached.size() == 1;
 
     if (sharePredicates) {
-      pReached.updatePrecisionGlobally(newPrecision);
+      pReached.updatePrecisionGlobally(newPrecision, PredicatePrecision.class);
     }
 
     argUpdate.stop();

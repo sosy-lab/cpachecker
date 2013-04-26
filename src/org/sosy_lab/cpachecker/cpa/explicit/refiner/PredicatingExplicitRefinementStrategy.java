@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.PredicateMap;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -76,15 +77,15 @@ class PredicatingExplicitRefinementStrategy extends PredicateAbstractionRefineme
     UnmodifiableReachedSet reached = pReached.asReachedSet();
     Precision oldPrecision = reached.getPrecision(reached.getLastState());
 
-    Pair<ARGState, Precision> result = performRefinement(reached, oldPrecision, errorPath, pInterpolants);
+    Pair<ARGState, PredicatePrecision> result = performRefinement(reached, oldPrecision, errorPath, pInterpolants);
 
     ARGState root = result.getFirst();
     logger.log(Level.FINEST, "Found spurious counterexample,",
         "trying strategy 1: remove everything below", root, "from ART.");
-    pReached.removeSubtree(root, result.getSecond());
+    pReached.removeSubtree(root, result.getSecond(), PredicatePrecision.class);
   }
 
-  private Pair<ARGState, Precision> performRefinement(
+  private Pair<ARGState, PredicatePrecision> performRefinement(
       UnmodifiableReachedSet reachedSet,
       Precision oldPrecision,
       List<ARGState> errorPath,
@@ -99,7 +100,7 @@ class PredicatingExplicitRefinementStrategy extends PredicateAbstractionRefineme
     // create the mapping of CFA nodes to predicates, based on the counter example trace info
     PredicateMap predicateMap = new PredicateMap(newPreds, errorPath);
 
-    Precision precision = extractPredicatePrecision(oldPrecision)
+    PredicatePrecision precision = extractPredicatePrecision(oldPrecision)
         .addLocalPredicates(predicateMap.getPredicateMapping());
     ARGState interpolationPoint = predicateMap.firstInterpolationPoint.getFirst();
 
