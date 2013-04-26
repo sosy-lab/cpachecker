@@ -41,16 +41,15 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options(prefix="counterexample.checker")
 public class CounterexampleCPAChecker implements CounterexampleChecker {
@@ -82,7 +81,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     try (DeleteOnCloseFile automatonFile = Files.createTempFile("automaton", ".txt")) {
 
       try (Writer w = Files.openOutputFile(automatonFile.toPath())) {
-        produceGuidingAutomaton(w, pRootState, pErrorPathStates);
+        ARGUtils.producePathAutomaton(w, pRootState, pErrorPathStates);
       }
 
       return checkCounterexample(pRootState, automatonFile.toPath());
@@ -121,59 +120,4 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     }
   }
 
-  private void produceGuidingAutomaton(Appendable sb, ARGState pRootState,
-      Set<ARGState> pPathStates) throws IOException {
-    sb.append("CONTROL AUTOMATON AssumptionAutomaton\n\n");
-    sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
-
-    for (ARGState s : pPathStates) {
-
-      CFANode loc = AbstractStates.extractLocation(s);
-      sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
-
-      for (ARGState child : s.getChildren()) {
-        if (child.isCovered()) {
-          child = child.getCoveringState();
-          assert !child.isCovered();
-        }
-
-        if (pPathStates.contains(child)) {
-          CFANode childLoc = AbstractStates.extractLocation(child);
-          CFAEdge edge = loc.getEdgeTo(childLoc);
-          sb.append("    MATCH \"");
-          escape(edge.getRawStatement(), sb);
-          sb.append("\" -> ");
-
-          if (child.isTarget()) {
-            sb.append("ERROR");
-          } else {
-            sb.append("GOTO ARG" + child.getStateId());
-          }
-          sb.append(";\n");
-        }
-      }
-      sb.append("    TRUE -> STOP;\n\n");
-    }
-    sb.append("END AUTOMATON\n");
-  }
-
-  private static void escape(String s, Appendable appendTo) throws IOException {
-    for (int i = 0; i < s.length(); i++) {
-      char c = s.charAt(i);
-      switch (c) {
-      case '\n':
-        appendTo.append("\\n");
-        break;
-      case '\"':
-        appendTo.append("\\\"");
-        break;
-      case '\\':
-        appendTo.append("\\\\");
-        break;
-      default:
-        appendTo.append(c);
-        break;
-      }
-    }
-  }
 }
