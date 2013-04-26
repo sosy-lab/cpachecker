@@ -227,16 +227,38 @@ public class SMGState implements AbstractQueryableState {
     }
   }
 
+  public SMGEdgePointsTo getPointerFromValue(Integer pValue) throws SMGInconsistentException {
+    for (SMGEdgePointsTo edge : heap.getPTEdges()){
+      if (edge.getValue() == pValue) {
+        return edge;
+      }
+    }
+
+    throw new SMGInconsistentException("Asked for a Points-To edge for a non-pointer value");
+  }
+
   /**
    * Read Value in field (object, type) of an Object.
    *
-   * @param object SMGObject representing the memory the field belongs to.
-   * @param offset offset of field being read.
-   * @param type type of field written into.
+   * @param pObject SMGObject representing the memory the field belongs to.
+   * @param pOffset offset of field being read.
+   * @param pType type of field
    * @return
+   * @throws SMGInconsistentException
    */
-  public Integer readValue(SMGObject object, int offset, CType type) {
-    // TODO Auto-generated method stub
+  public Integer readValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
+    SMGEdgeHasValue edge = new SMGEdgeHasValue(pType, pOffset, pObject, 0);
+    Set<SMGEdgeHasValue> edges = heap.getValuesForObject(pObject, pOffset);
+
+    for (SMGEdgeHasValue object_edge : edges) {
+      if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())){
+        this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+        return object_edge.getValue();
+      }
+    }
+
+    // TODO: Nullified blocks coverage interpretation
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
     return null;
   }
 

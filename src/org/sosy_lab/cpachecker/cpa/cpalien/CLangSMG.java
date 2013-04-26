@@ -115,10 +115,9 @@ public class CLangSMG extends SMG {
   public CLangSMG(CLangSMG pHeap) {
     super(pHeap);
 
-    //TODO: Does this keep the stack layout order? Investigate.
     for (CLangStackFrame stack_frame : pHeap.stack_objects) {
       CLangStackFrame new_frame = new CLangStackFrame(stack_frame);
-      stack_objects.push(new_frame);
+      stack_objects.add(new_frame);
     }
 
     heap_objects.addAll(pHeap.heap_objects);

@@ -90,6 +90,17 @@ public class SMGEdgeHasValue extends SMGEdge {
     return true;
   }
 
+  // TODO: Fix compatibility detection based on type, not on the type size
+  public boolean isCompatibleField(SMGEdgeHasValue other, MachineModel pModel) {
+    // return (this.type.equals(other.type)) && (this.offset == other.offset);
+    return pModel.getSizeof(type) == pModel.getSizeof(other.type) && (this.offset == other.offset);
+  }
+
+  public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
+    // return (this.type.equals(other.type)) && (this.offset == other.offset) && (this.object == other.object);
+    return pModel.getSizeof(type) == pModel.getSizeof(other.type) && (this.offset == other.offset) && this.object == other.object;
+  }
+
   /* (non-Javadoc)
    * @see java.lang.Object#hashCode()
    */

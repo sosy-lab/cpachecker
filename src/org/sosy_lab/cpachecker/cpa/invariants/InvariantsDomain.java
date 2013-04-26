@@ -87,9 +87,11 @@ enum InvariantsDomain implements AbstractDomain {
     resultCandidateAssumptions.addAll(element1.getCandidateAssumptions());
     resultCandidateAssumptions.addAll(element2.getCandidateAssumptions());
 
+    assert element1.getUseBitvectors() == element2.getUseBitvectors();
+
     return InvariantsState.from(resultRemainingEvaluations,
         newThreshold, resultAssumptions, resultEnvironment,
-        resultCandidateAssumptions);
+        resultCandidateAssumptions, element1.getUseBitvectors());
   }
 
   @Override

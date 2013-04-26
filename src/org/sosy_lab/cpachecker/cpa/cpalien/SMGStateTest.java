@@ -220,4 +220,30 @@ public class SMGStateTest {
     // TODO: Checks for presence of two zero edges
   }
   */
+
+  @Test
+  public void getPointerFromValueTest() throws SMGInconsistentException {
+ // Empty state
+    SMGState state = new SMGState(logger, MachineModel.LINUX64);
+    state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
+
+    SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
+
+    Integer pointer = pt.getValue();
+
+    SMGEdgePointsTo pt_obtained = state.getPointerFromValue(pointer);
+    Assert.assertEquals(pt_obtained.getObject(), pt.getObject());
+  }
+
+  @Test(expected=SMGInconsistentException.class)
+  public void getPointerFromValueNonPointerTest() throws SMGInconsistentException {
+    SMGState state = new SMGState(logger, MachineModel.LINUX64);
+    state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
+
+    SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
+    Integer nonpointer =SMGValueFactory.getNewValue();
+    state.writeValue(pt.getObject(), 0, mockType16b, nonpointer);
+
+    state.getPointerFromValue(nonpointer);
+  }
 }

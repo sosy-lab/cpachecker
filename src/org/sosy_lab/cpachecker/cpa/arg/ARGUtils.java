@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import java.io.IOException;
 import java.util.AbstractCollection;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -398,4 +399,69 @@ public class ARGUtils {
 
       return true;
     }
+
+  /**
+   * Produce an automaton in the format for the AutomatonCPA from
+   * a given path. The automaton matches exactly the edges along the path.
+   * If there is a target state, it is signaled as an error state in the automaton.
+   * @param sb Where to write the automaton to
+   * @param pRootState The root of the ARG
+   * @param pPathStates The states along the path
+   * @throws IOException
+   */
+  public static void producePathAutomaton(Appendable sb, ARGState pRootState,
+      Set<ARGState> pPathStates) throws IOException {
+    sb.append("CONTROL AUTOMATON AssumptionAutomaton\n\n");
+    sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
+
+    for (ARGState s : pPathStates) {
+
+      CFANode loc = AbstractStates.extractLocation(s);
+      sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
+
+      for (ARGState child : s.getChildren()) {
+        if (child.isCovered()) {
+          child = child.getCoveringState();
+          assert !child.isCovered();
+        }
+
+        if (pPathStates.contains(child)) {
+          CFANode childLoc = AbstractStates.extractLocation(child);
+          CFAEdge edge = loc.getEdgeTo(childLoc);
+          sb.append("    MATCH \"");
+          escape(edge.getRawStatement(), sb);
+          sb.append("\" -> ");
+
+          if (child.isTarget()) {
+            sb.append("ERROR");
+          } else {
+            sb.append("GOTO ARG" + child.getStateId());
+          }
+          sb.append(";\n");
+        }
+      }
+      sb.append("    TRUE -> STOP;\n\n");
+    }
+    sb.append("END AUTOMATON\n");
+  }
+
+  private static void escape(String s, Appendable appendTo) throws IOException {
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      switch (c) {
+      case '\n':
+        appendTo.append("\\n");
+        break;
+      case '\"':
+        appendTo.append("\\\"");
+        break;
+      case '\\':
+        appendTo.append("\\\\");
+        break;
+      default:
+        appendTo.append(c);
+        break;
+      }
+    }
+  }
 }
