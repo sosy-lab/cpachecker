@@ -137,6 +137,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   // the previously analyzed counterexample to detect repeated counterexamples
   private List<BooleanFormula> lastErrorPath = null;
+  private boolean lastRefinementUsedHeuristics = false;
 
   public PredicateCPARefiner(final Configuration config, final LogManager pLogger,
       final ConfigurableProgramAnalysis pCpa,
@@ -195,7 +196,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      boolean repeatedCounterexample = formulas.equals(lastErrorPath);
+      boolean repeatedCounterexample = !lastRefinementUsedHeuristics && formulas.equals(lastErrorPath);
       lastErrorPath = formulas;
 
       if (minePredicatesOnFirstRefinement && miningCount == 0) {
@@ -205,9 +206,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
         HeuristicPredicatePrecision heuristicPrecision = miner.minePrecisionFromCfa();
 
-        pReached.removeSubtree(refinementRoot, heuristicPrecision);
+        pReached.removeSubtree(refinementRoot, heuristicPrecision, PredicatePrecision.class);
 
         miningCount++;
+        lastRefinementUsedHeuristics = true;
       } else {
         strategy.performRefinement(pReached, path, counterexample.getInterpolants(), repeatedCounterexample);
       }
