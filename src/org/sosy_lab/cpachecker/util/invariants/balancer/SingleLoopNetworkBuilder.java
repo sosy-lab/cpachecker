@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.util.invariants.choosers.SingleLoopTemplateChoose
 import org.sosy_lab.cpachecker.util.invariants.choosers.TemplateChooser;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplatePathFormulaBuilder;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;

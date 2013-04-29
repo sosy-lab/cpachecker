@@ -28,13 +28,34 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
 
-
+/**
+ * Instances of this class are parameterized compound state invariants formula
+ * visitors used to push information from an assumption into the environment.
+ * The visited formulae are the expressions for which the states provided as
+ * the additional parameters are assumed.
+ */
 public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvariantsFormulaVisitor<CompoundState, CompoundState, Boolean> {
 
+  /**
+   * The environment to push the gained information into.
+   */
   private final Map<String, InvariantsFormula<CompoundState>> environment;
 
+  /**
+   * The evaluation visitor used to evaluate compound state invariants formulae
+   * to compound states.
+   */
   private final FormulaEvaluationVisitor<CompoundState> evaluationVisitor;
 
+  /**
+   * Creates a new visitor for pushing information obtained from assuming given
+   * states for the visited formulae into the given environment.
+   *
+   * @param pEvaluationVisitor the evaluation visitor used to evaluate compound
+   * state invariants formulae to compound states.
+   * @param pEnvironment the environment to push the gained information into.
+   * Obviously, this environment must be mutable.
+   */
   public PushAssumptionToEnvironmentVisitor(FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor, Map<String, InvariantsFormula<CompoundState>> pEnvironment) {
     this.evaluationVisitor = pEvaluationVisitor;
     this.environment = pEnvironment;
@@ -178,11 +199,11 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     // ((right lower bound) to infinity) to the left and
     // (negative infinity to (left upper bound)) to the right.
     if (parameter.isDefinitelyTrue()) {
-      leftPushValue = rightValue.extendToNegativeInfinity().add(-1);
-      rightPushValue = leftValue.extendToPositiveInfinity().add(1);
+      leftPushValue = rightValue.extendToNegativeInfinity().span().add(-1);
+      rightPushValue = leftValue.extendToPositiveInfinity().span().add(1);
     } else {
-      leftPushValue = rightValue.extendToPositiveInfinity();
-      rightPushValue = leftValue.extendToNegativeInfinity();
+      leftPushValue = rightValue.extendToPositiveInfinity().span();
+      rightPushValue = leftValue.extendToNegativeInfinity().span();
     }
     return pLessThan.getOperand1().accept(this, leftPushValue)
         && pLessThan.getOperand2().accept(this, rightPushValue);
@@ -313,14 +334,24 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedInvarian
     return true;
   }
 
+  /**
+   * Resolves the variable with the given name.
+   *
+   * @param pVarName the name of the variable.
+   *
+   * @return the expression formula assigned to the variable.
+   */
   private InvariantsFormula<CompoundState> getFromEnvironment(String pVarName) {
     InvariantsFormula<CompoundState> result = environment.get(pVarName);
     if (result == null) {
-      return InvariantsFormulaManager.INSTANCE.asConstant(evaluationVisitor.top());
+      return InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.top());
     }
     return result;
   }
 
+  /**
+   * Gets an immutable version of the environment.
+   */
   private Map<? extends String, ? extends InvariantsFormula<CompoundState>> getUnmodifiableEnvironment() {
     return Collections.unmodifiableMap(environment);
   }

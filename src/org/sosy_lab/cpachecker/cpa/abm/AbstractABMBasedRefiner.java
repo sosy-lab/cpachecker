@@ -36,10 +36,10 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -142,8 +142,9 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
     }
 
     @Override
-    public void removeSubtree(ARGState element, Precision newPrecision) {
-      transfer.removeSubtree(delegate, path, element, newPrecision, pathStateToReachedState);
+    public void removeSubtree(ARGState element, Precision newPrecision,
+        Class<? extends Precision> pPrecisionType) {
+      transfer.removeSubtree(delegate, path, element, newPrecision, pPrecisionType, pathStateToReachedState);
     }
 
     @Override

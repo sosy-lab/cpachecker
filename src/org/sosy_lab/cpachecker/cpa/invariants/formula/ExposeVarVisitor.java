@@ -25,27 +25,55 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.Map;
 
+/**
+ * Instances of this class are used to expose a specified variable in visited
+ * formulae. By using an environment, the operation is applied recursively on
+ * the formulae of other variables. After applying the visitor to a formula,
+ * all occurrences of the variable in question in the formula are revealed and,
+ * if necessary, other variables are resolved. Variables that need not be
+ * resolved because their formulae do not contain the variable in question
+ * (even after recursively applying the exposing visitor to them) will stay
+ * unresolved.
+ *
+ * <pre>
+ * Example:
+ * Environment: {x = a + b, y = a + c}
+ * Variable in question: b
+ * Formula the visitor is applied to: (x + y) * z
+ * Resulting formula: ((a + b) + y) * z
+ * </pre>
+ *
+ * @param <T> the type of the constants used in the visited formulae.
+ */
+public class ExposeVarVisitor<T> implements ParameterizedInvariantsFormulaVisitor<T, String, InvariantsFormula<T>> {
 
-public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, InvariantsFormula<T>> {
+  /**
+   * The visitor used to determine whether or not a formula contains a
+   * variable.
+   */
+  private final ContainsVarVisitor<T> containsVarVisitor = new ContainsVarVisitor<>();
 
-  private final ContainsVarVisitor<T> containsVarVisitor;
-
-  private final String varName;
-
+  /**
+   * The environment used to resolve variables.
+   */
   private final Map<? extends String, ? extends InvariantsFormula<T>> environment;
 
-  public ExposeVarVisitor(String pVarName, Map<? extends String, ? extends InvariantsFormula<T>> pEnvironment) {
-    this.varName = pVarName;
-    this.containsVarVisitor = new ContainsVarVisitor<>(pVarName);
+  /**
+   * Creates a new visitor for exposing variables in formulae using the given
+   * environment to resolve variables.
+   *
+   * @param pEnvironment the environment used to resolve variables.
+   */
+  public ExposeVarVisitor(Map<? extends String, ? extends InvariantsFormula<T>> pEnvironment) {
     this.environment = pEnvironment;
   }
 
   @Override
-  public InvariantsFormula<T> visit(Add<T> pAdd) {
-    InvariantsFormula<T> summand1 = pAdd.getSummand1().accept(this);
-    InvariantsFormula<T> summand2 = pAdd.getSummand2().accept(this);
-    boolean s1ContainsVar = summand1.accept(containsVarVisitor);
-    boolean s2ContainsVar = summand2.accept(containsVarVisitor);
+  public InvariantsFormula<T> visit(Add<T> pAdd, String pVarName) {
+    InvariantsFormula<T> summand1 = pAdd.getSummand1().accept(this, pVarName);
+    InvariantsFormula<T> summand2 = pAdd.getSummand2().accept(this, pVarName);
+    boolean s1ContainsVar = summand1.accept(containsVarVisitor, pVarName);
+    boolean s2ContainsVar = summand2.accept(containsVarVisitor, pVarName);
     if (!s1ContainsVar && !s2ContainsVar) {
       return pAdd;
     }
@@ -61,11 +89,11 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(BinaryAnd<T> pAnd) {
-    InvariantsFormula<T> operand1 = pAnd.getOperand1().accept(this);
-    InvariantsFormula<T> operand2 = pAnd.getOperand2().accept(this);
-    boolean s1ContainsVar = operand1.accept(containsVarVisitor);
-    boolean s2ContainsVar = operand2.accept(containsVarVisitor);
+  public InvariantsFormula<T> visit(BinaryAnd<T> pAnd, String pVarName) {
+    InvariantsFormula<T> operand1 = pAnd.getOperand1().accept(this, pVarName);
+    InvariantsFormula<T> operand2 = pAnd.getOperand2().accept(this, pVarName);
+    boolean s1ContainsVar = operand1.accept(containsVarVisitor, pVarName);
+    boolean s2ContainsVar = operand2.accept(containsVarVisitor, pVarName);
     if (!s1ContainsVar && !s2ContainsVar) {
       return pAnd;
     }
@@ -81,9 +109,9 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(BinaryNot<T> pNot) {
-    InvariantsFormula<T> operand = pNot.getFlipped();
-    if (!operand.accept(containsVarVisitor)
+  public InvariantsFormula<T> visit(BinaryNot<T> pNot, String pVarName) {
+    InvariantsFormula<T> operand = pNot.getFlipped().accept(this, pVarName);
+    if (!operand.accept(containsVarVisitor, pVarName)
         || operand.equals(pNot.getFlipped())) {
       return pNot;
     }
@@ -91,11 +119,11 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(BinaryOr<T> pOr) {
-    InvariantsFormula<T> operand1 = pOr.getOperand1().accept(this);
-    InvariantsFormula<T> operand2 = pOr.getOperand2().accept(this);
-    boolean s1ContainsVar = operand1.accept(containsVarVisitor);
-    boolean s2ContainsVar = operand2.accept(containsVarVisitor);
+  public InvariantsFormula<T> visit(BinaryOr<T> pOr, String pVarName) {
+    InvariantsFormula<T> operand1 = pOr.getOperand1().accept(this, pVarName);
+    InvariantsFormula<T> operand2 = pOr.getOperand2().accept(this, pVarName);
+    boolean s1ContainsVar = operand1.accept(containsVarVisitor, pVarName);
+    boolean s2ContainsVar = operand2.accept(containsVarVisitor, pVarName);
     if (!s1ContainsVar && !s2ContainsVar) {
       return pOr;
     }
@@ -111,11 +139,11 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(BinaryXor<T> pXor) {
-    InvariantsFormula<T> operand1 = pXor.getOperand1().accept(this);
-    InvariantsFormula<T> operand2 = pXor.getOperand2().accept(this);
-    boolean s1ContainsVar = operand1.accept(containsVarVisitor);
-    boolean s2ContainsVar = operand2.accept(containsVarVisitor);
+  public InvariantsFormula<T> visit(BinaryXor<T> pXor, String pVarName) {
+    InvariantsFormula<T> operand1 = pXor.getOperand1().accept(this, pVarName);
+    InvariantsFormula<T> operand2 = pXor.getOperand2().accept(this, pVarName);
+    boolean s1ContainsVar = operand1.accept(containsVarVisitor, pVarName);
+    boolean s2ContainsVar = operand2.accept(containsVarVisitor, pVarName);
     if (!s1ContainsVar && !s2ContainsVar) {
       return pXor;
     }
@@ -131,16 +159,16 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(Constant<T> pConstant) {
+  public InvariantsFormula<T> visit(Constant<T> pConstant, String pVarName) {
     return pConstant;
   }
 
   @Override
-  public InvariantsFormula<T> visit(Divide<T> pDivide) {
-    InvariantsFormula<T> numerator = pDivide.getNumerator().accept(this);
-    InvariantsFormula<T> denominator = pDivide.getDenominator().accept(this);
-    boolean s1ContainsVar = numerator.accept(containsVarVisitor);
-    boolean s2ContainsVar = denominator.accept(containsVarVisitor);
+  public InvariantsFormula<T> visit(Divide<T> pDivide, String pVarName) {
+    InvariantsFormula<T> numerator = pDivide.getNumerator().accept(this, pVarName);
+    InvariantsFormula<T> denominator = pDivide.getDenominator().accept(this, pVarName);
+    boolean s1ContainsVar = numerator.accept(containsVarVisitor, pVarName);
+    boolean s2ContainsVar = denominator.accept(containsVarVisitor, pVarName);
     if (!s1ContainsVar && !s2ContainsVar) {
       return pDivide;
     }
@@ -156,11 +184,11 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(Equal<T> pEqual) {
-    InvariantsFormula<T> operand1 = pEqual.getOperand1().accept(this);
-    InvariantsFormula<T> operand2 = pEqual.getOperand2().accept(this);
-    boolean s1ContainsVar = operand1.accept(containsVarVisitor);
-    boolean s2ContainsVar = operand2.accept(containsVarVisitor);
+  public InvariantsFormula<T> visit(Equal<T> pEqual, String pVarName) {
+    InvariantsFormula<T> operand1 = pEqual.getOperand1().accept(this, pVarName);
+    InvariantsFormula<T> operand2 = pEqual.getOperand2().accept(this, pVarName);
+    boolean s1ContainsVar = operand1.accept(containsVarVisitor, pVarName);
+    boolean s2ContainsVar = operand2.accept(containsVarVisitor, pVarName);
     if (!s1ContainsVar && !s2ContainsVar) {
       return pEqual;
     }
@@ -176,11 +204,11 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(LessThan<T> pLessThan) {
-    InvariantsFormula<T> operand1 = pLessThan.getOperand1().accept(this);
-    InvariantsFormula<T> operand2 = pLessThan.getOperand2().accept(this);
-    boolean s1ContainsVar = operand1.accept(containsVarVisitor);
-    boolean s2ContainsVar = operand2.accept(containsVarVisitor);
+  public InvariantsFormula<T> visit(LessThan<T> pLessThan, String pVarName) {
+    InvariantsFormula<T> operand1 = pLessThan.getOperand1().accept(this, pVarName);
+    InvariantsFormula<T> operand2 = pLessThan.getOperand2().accept(this, pVarName);
+    boolean s1ContainsVar = operand1.accept(containsVarVisitor, pVarName);
+    boolean s2ContainsVar = operand2.accept(containsVarVisitor, pVarName);
     if (!s1ContainsVar && !s2ContainsVar) {
       return pLessThan;
     }
@@ -196,11 +224,11 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(LogicalAnd<T> pAnd) {
-    InvariantsFormula<T> operand1 = pAnd.getOperand1().accept(this);
-    InvariantsFormula<T> operand2 = pAnd.getOperand2().accept(this);
-    boolean s1ContainsVar = operand1.accept(containsVarVisitor);
-    boolean s2ContainsVar = operand2.accept(containsVarVisitor);
+  public InvariantsFormula<T> visit(LogicalAnd<T> pAnd, String pVarName) {
+    InvariantsFormula<T> operand1 = pAnd.getOperand1().accept(this, pVarName);
+    InvariantsFormula<T> operand2 = pAnd.getOperand2().accept(this, pVarName);
+    boolean s1ContainsVar = operand1.accept(containsVarVisitor, pVarName);
+    boolean s2ContainsVar = operand2.accept(containsVarVisitor, pVarName);
     if (!s1ContainsVar && !s2ContainsVar) {
       return pAnd;
     }
@@ -216,9 +244,9 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(LogicalNot<T> pNot) {
-    InvariantsFormula<T> operand = pNot.getNegated();
-    if (!operand.accept(containsVarVisitor)
+  public InvariantsFormula<T> visit(LogicalNot<T> pNot, String pVarName) {
+    InvariantsFormula<T> operand = pNot.getNegated().accept(this, pVarName);
+    if (!operand.accept(containsVarVisitor, pVarName)
         || operand.equals(pNot.getNegated())) {
       return pNot;
     }
@@ -226,11 +254,11 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(Modulo<T> pModulo) {
-    InvariantsFormula<T> numerator = pModulo.getNumerator().accept(this);
-    InvariantsFormula<T> denominator = pModulo.getDenominator().accept(this);
-    boolean s1ContainsVar = numerator.accept(containsVarVisitor);
-    boolean s2ContainsVar = denominator.accept(containsVarVisitor);
+  public InvariantsFormula<T> visit(Modulo<T> pModulo, String pVarName) {
+    InvariantsFormula<T> numerator = pModulo.getNumerator().accept(this, pVarName);
+    InvariantsFormula<T> denominator = pModulo.getDenominator().accept(this, pVarName);
+    boolean s1ContainsVar = numerator.accept(containsVarVisitor, pVarName);
+    boolean s2ContainsVar = denominator.accept(containsVarVisitor, pVarName);
     if (!s1ContainsVar && !s2ContainsVar) {
       return pModulo;
     }
@@ -246,11 +274,11 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(Multiply<T> pMultiply) {
-    InvariantsFormula<T> factor1 = pMultiply.getFactor1().accept(this);
-    InvariantsFormula<T> factor2 = pMultiply.getFactor2().accept(this);
-    boolean s1ContainsVar = factor1.accept(containsVarVisitor);
-    boolean s2ContainsVar = factor2.accept(containsVarVisitor);
+  public InvariantsFormula<T> visit(Multiply<T> pMultiply, String pVarName) {
+    InvariantsFormula<T> factor1 = pMultiply.getFactor1().accept(this, pVarName);
+    InvariantsFormula<T> factor2 = pMultiply.getFactor2().accept(this, pVarName);
+    boolean s1ContainsVar = factor1.accept(containsVarVisitor, pVarName);
+    boolean s2ContainsVar = factor2.accept(containsVarVisitor, pVarName);
     if (!s1ContainsVar && !s2ContainsVar) {
       return pMultiply;
     }
@@ -266,9 +294,9 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(Negate<T> pNegate) {
-    InvariantsFormula<T> operand = pNegate.getNegated();
-    if (!operand.accept(containsVarVisitor)
+  public InvariantsFormula<T> visit(Negate<T> pNegate, String pVarName) {
+    InvariantsFormula<T> operand = pNegate.getNegated().accept(this, pVarName);
+    if (!operand.accept(containsVarVisitor, pVarName)
         || operand.equals(pNegate.getNegated())) {
       return pNegate;
     }
@@ -276,11 +304,11 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(ShiftLeft<T> pShiftLeft) {
-    InvariantsFormula<T> shifted = pShiftLeft.getShifted().accept(this);
-    InvariantsFormula<T> shiftDistance = pShiftLeft.getShiftDistance().accept(this);
-    boolean s1ContainsVar = shifted.accept(containsVarVisitor);
-    boolean s2ContainsVar = shiftDistance.accept(containsVarVisitor);
+  public InvariantsFormula<T> visit(ShiftLeft<T> pShiftLeft, String pVarName) {
+    InvariantsFormula<T> shifted = pShiftLeft.getShifted().accept(this, pVarName);
+    InvariantsFormula<T> shiftDistance = pShiftLeft.getShiftDistance().accept(this, pVarName);
+    boolean s1ContainsVar = shifted.accept(containsVarVisitor, pVarName);
+    boolean s2ContainsVar = shiftDistance.accept(containsVarVisitor, pVarName);
     if (!s1ContainsVar && !s2ContainsVar) {
       return pShiftLeft;
     }
@@ -296,11 +324,11 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(ShiftRight<T> pShiftRight) {
-    InvariantsFormula<T> shifted = pShiftRight.getShifted().accept(this);
-    InvariantsFormula<T> shiftDistance = pShiftRight.getShiftDistance().accept(this);
-    boolean s1ContainsVar = shifted.accept(containsVarVisitor);
-    boolean s2ContainsVar = shiftDistance.accept(containsVarVisitor);
+  public InvariantsFormula<T> visit(ShiftRight<T> pShiftRight, String pVarName) {
+    InvariantsFormula<T> shifted = pShiftRight.getShifted().accept(this, pVarName);
+    InvariantsFormula<T> shiftDistance = pShiftRight.getShiftDistance().accept(this, pVarName);
+    boolean s1ContainsVar = shifted.accept(containsVarVisitor, pVarName);
+    boolean s2ContainsVar = shiftDistance.accept(containsVarVisitor, pVarName);
     if (!s1ContainsVar && !s2ContainsVar) {
       return pShiftRight;
     }
@@ -316,11 +344,11 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(Union<T> pUnion) {
-    InvariantsFormula<T> operand1 = pUnion.getOperand1().accept(this);
-    InvariantsFormula<T> operand2 = pUnion.getOperand2().accept(this);
-    boolean s1ContainsVar = operand1.accept(containsVarVisitor);
-    boolean s2ContainsVar = operand2.accept(containsVarVisitor);
+  public InvariantsFormula<T> visit(Union<T> pUnion, String pVarName) {
+    InvariantsFormula<T> operand1 = pUnion.getOperand1().accept(this, pVarName);
+    InvariantsFormula<T> operand2 = pUnion.getOperand2().accept(this, pVarName);
+    boolean s1ContainsVar = operand1.accept(containsVarVisitor, pVarName);
+    boolean s2ContainsVar = operand2.accept(containsVarVisitor, pVarName);
     if (!s1ContainsVar && !s2ContainsVar) {
       return pUnion;
     }
@@ -336,16 +364,23 @@ public class ExposeVarVisitor<T> implements InvariantsFormulaVisitor<T, Invarian
   }
 
   @Override
-  public InvariantsFormula<T> visit(Variable<T> pVariable) {
-    if (pVariable.getName().equals(varName)) {
+  public InvariantsFormula<T> visit(Variable<T> pVariable, String pVarName) {
+    // If the visited formula is the variable in question, it remains unchanged
+    if (pVariable.getName().equals(pVarName)) {
       return pVariable;
     }
+    // If the visited formula is a different variable, resolve it
     InvariantsFormula<T> value = environment.get(pVariable.getName());
+    // If the environment does not contain a value for the variable, return
+    // the variable, because no further exposing is possible
     if (value == null) {
       return pVariable;
     }
-    InvariantsFormula<T> resolved = value.accept(this);
-    if (!resolved.accept(containsVarVisitor)) {
+    // Try to expose the variable in the formula of the resolved variable
+    InvariantsFormula<T> resolved = value.accept(this, pVarName);
+    // If the variable could not be exposed in the formula, return the visited
+    // formula
+    if (!resolved.accept(containsVarVisitor, pVarName)) {
       return pVariable;
     }
     return resolved;

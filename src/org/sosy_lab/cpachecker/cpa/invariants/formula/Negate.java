@@ -23,15 +23,35 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
+/**
+ * Instances of this class are numerical negations of other invariants
+ *  formulae.
+ *
+ * @param <ConstantType> the type of the constants used in the formulae.
+ */
 public class Negate<ConstantType> implements InvariantsFormula<ConstantType> {
 
+  /**
+   * The invariants formula numerically negated by this formula.
+   */
   private final InvariantsFormula<ConstantType> negated;
 
+  /**
+   * Creates a new numerical negation of the given formula.
+   *
+   * @param pToNegate the formula to negate.
+   */
   private Negate(InvariantsFormula<ConstantType> pToNegate) {
     this.negated = pToNegate;
   }
 
+  /**
+   * Gets the invariants formula that is numerically negated by this formula,
+   * which is, of course, also the numerical negation of this formula.
+   *
+   * @return the invariants formula that is numerically negated by this
+   * formula.
+   */
   public InvariantsFormula<ConstantType> getNegated() {
     return this.negated;
   }
@@ -68,6 +88,15 @@ public class Negate<ConstantType> implements InvariantsFormula<ConstantType> {
     return pVisitor.visit(this, pParameter);
   }
 
+  /**
+   * Gets an invariants formula representing the numerical negation of the
+   * given invariants formula.
+   *
+   * @param pToNegate the invariants formula to negate.
+   *
+   * @return an invariants formula representing the numerical negation of the
+   * given invariants formula.
+   */
   static <ConstantType> Negate<ConstantType> of(InvariantsFormula<ConstantType> pToNegate) {
     return new Negate<>(pToNegate);
   }

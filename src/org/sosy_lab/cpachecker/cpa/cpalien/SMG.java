@@ -150,6 +150,17 @@ public class SMG {
   }
 
   /**
+   * Remove {@link pEdge} Has-Value edge from the SMG.
+   *
+   * Keeps consistency: no
+   *
+   * @param pEdge Has-Value edge to remove
+   */
+  final public void removeHasValueEdge(SMGEdgeHasValue pEdge) {
+    this.hv_edges.remove(pEdge);
+  }
+
+  /**
    * Sets the validity of the object {@link pObject} to {@link pValidity}.
    * Throws {@link IllegalArgumentException} if {@link pObject} is
    * not present in SMG.

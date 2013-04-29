@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -47,17 +50,20 @@ public class InvariantsCPA extends AbstractCPA {
 
   private final int evaluationThreshold;
 
+  private final boolean useBitvectors;
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(InvariantsCPA.class).withOptions(InvariantsOptions.class);
   }
 
-  public InvariantsCPA(InvariantsOptions options) {
+  public InvariantsCPA(Configuration config, LogManager logger, InvariantsOptions options) throws InvalidConfigurationException {
     super(options.merge, "sep", InvariantsDomain.INSTANCE, InvariantsTransferRelation.INSTANCE);
-    this.evaluationThreshold = 2; // TODO config
+    this.evaluationThreshold = 1; // TODO config
+    this.useBitvectors = true; // TODO config
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode) {
-    return new InvariantsState(this.evaluationThreshold);
+    return new InvariantsState(this.evaluationThreshold, this.useBitvectors);
   }
 }

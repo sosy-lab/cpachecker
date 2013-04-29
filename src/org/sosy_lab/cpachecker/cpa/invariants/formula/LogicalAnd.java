@@ -23,22 +23,50 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
+/**
+ * Instances of this class represent logical conjunctions over invariants
+ * formulae.
+ *
+ * @param <ConstantType> the type of the constant used in the formulae.
+ */
 public class LogicalAnd<ConstantType> implements InvariantsFormula<ConstantType> {
 
+  /**
+   * The first operand of the conjunction.
+   */
   private final InvariantsFormula<ConstantType> operand1;
 
+  /**
+   * The second operand of the conjunction.
+   */
   private final InvariantsFormula<ConstantType> operand2;
 
-  private LogicalAnd(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
+  /**
+   * Creates a new conjunction over the given operands.
+   *
+   * @param pOperand1 the first operand of the conjunction.
+   * @param pOperand2 the second operand of the conjunction.
+   */
+  private LogicalAnd(InvariantsFormula<ConstantType> pOperand1,
+      InvariantsFormula<ConstantType> pOperand2) {
     this.operand1 = pOperand1;
     this.operand2 = pOperand2;
   }
 
+  /**
+   * Gets the first operand of the conjunction.
+   *
+   * @return the first operand of the conjunction.
+   */
   public InvariantsFormula<ConstantType> getOperand1() {
     return this.operand1;
   }
 
+  /**
+   * Gets the second operand of the conjunction.
+   *
+   * @return the second operand of the conjunction.
+   */
   public InvariantsFormula<ConstantType> getOperand2() {
     return this.operand2;
   }
@@ -76,6 +104,16 @@ public class LogicalAnd<ConstantType> implements InvariantsFormula<ConstantType>
     return pVisitor.visit(this, pParameter);
   }
 
+  /**
+   * Gets an invariants formula representing the logical conjunction over the
+   * given operands.
+   *
+   * @param pOperand1 the first operand of the conjunction.
+   * @param pOperand2 the second operand of the conjunction.
+   *
+   * @return an invariants formula representing the logical conjunction over the
+   * given operands.
+   */
   static <ConstantType> LogicalAnd<ConstantType> of(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
     return new LogicalAnd<>(pOperand1, pOperand2);
   }

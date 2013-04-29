@@ -23,21 +23,48 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+/**
+ * Instances of this class represent invariants formula additions.
+ *
+ * @param <ConstantType> the type of the constants used in the formula.
+ */
 public class Add<ConstantType> implements InvariantsFormula<ConstantType> {
 
+  /**
+   * The first summand of the addition.
+   */
   private final InvariantsFormula<ConstantType> summand1;
 
+  /**
+   * The second summand of the addition.
+   */
   private final InvariantsFormula<ConstantType> summand2;
 
+  /**
+   * Creates a new addition formula for the given summands.
+   *
+   * @param pSummand1 the first summand.
+   * @param pSummand2 the second summand.
+   */
   private Add(InvariantsFormula<ConstantType> pSummand1, InvariantsFormula<ConstantType> pSummand2) {
     this.summand1 = pSummand1;
     this.summand2 = pSummand2;
   }
 
+  /**
+   * Gets the first summand.
+   *
+   * @return the first summand.
+   */
   public InvariantsFormula<ConstantType> getSummand1() {
     return this.summand1;
   }
 
+  /**
+   * Gets the second summand.
+   *
+   * @return the second summand.
+   */
   public InvariantsFormula<ConstantType> getSummand2() {
     return this.summand2;
   }
@@ -61,6 +88,10 @@ public class Add<ConstantType> implements InvariantsFormula<ConstantType> {
 
   @Override
   public String toString() {
+    if (getSummand2() instanceof Negate<?>) {
+      Negate<?> summand2 = (Negate<?>) getSummand2();
+      return String.format("(%s - %s)", getSummand1(), summand2.getNegated());
+    }
     return String.format("(%s + %s)", getSummand1(), getSummand2());
   }
 
@@ -75,6 +106,14 @@ public class Add<ConstantType> implements InvariantsFormula<ConstantType> {
     return pVisitor.visit(this, pParameter);
   }
 
+  /**
+   * Gets the sum of the given formulae as a formula.
+   *
+   * @param pSummand1 the first summand.
+   * @param pSummand2 the second summand.
+   *
+   * @return the sum of the given formulae.
+   */
   static <ConstantType> Add<ConstantType> of(InvariantsFormula<ConstantType> pSummand1, InvariantsFormula<ConstantType> pSummand2) {
     return new Add<>(pSummand1, pSummand2);
   }

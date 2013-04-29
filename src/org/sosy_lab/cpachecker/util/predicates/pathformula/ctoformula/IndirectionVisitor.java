@@ -21,12 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.ctoformulahelper;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -36,8 +37,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils;
 
-public class IndirectionVisitor implements CExpressionVisitor<Integer, RuntimeException> {
+class IndirectionVisitor implements CExpressionVisitor<Integer, RuntimeException> {
+
+  private static final IndirectionVisitor indirectionVisitor = new IndirectionVisitor();
+
+  public static int getIndirectionLevel(CExpression c) {
+    return c.accept(indirectionVisitor);
+  }
 
   @Override
   public Integer visit(CArraySubscriptExpression pIastArraySubscriptExpression) {

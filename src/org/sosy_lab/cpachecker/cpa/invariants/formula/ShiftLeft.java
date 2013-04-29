@@ -23,22 +23,51 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
+/**
+ * Instances of this class represent left shifts of invariants formulae by
+ * other invariants formulae.
+ *
+ * @param <ConstantType> the type of the constants used in the formulae.
+ */
 public class ShiftLeft<ConstantType> implements InvariantsFormula<ConstantType> {
 
+  /**
+   * The formula shifted by this operation.
+   */
   private final InvariantsFormula<ConstantType> shifted;
 
+  /**
+   * The shift distance formula of this operation.
+   */
   private final InvariantsFormula<ConstantType> shiftDistance;
 
-  private ShiftLeft(InvariantsFormula<ConstantType> pToShift, InvariantsFormula<ConstantType> pShiftDistance) {
+  /**
+   * Creates a new left shift formula over the given operands.
+   *
+   * @param pToShift the formula to be shifted by this operation.
+   * @param pShiftDistance the distance by which to shift the first operand to
+   * the left.
+   */
+  private ShiftLeft(InvariantsFormula<ConstantType> pToShift,
+      InvariantsFormula<ConstantType> pShiftDistance) {
     this.shifted = pToShift;
     this.shiftDistance = pShiftDistance;
   }
 
+  /**
+   * Gets the formula shifted by this operation.
+   *
+   * @return the formula shifted by this operation.
+   */
   public InvariantsFormula<ConstantType> getShifted() {
     return this.shifted;
   }
 
+  /**
+   * Gets the shift distance formula of this operation.
+   *
+   * @return the shift distance formula of this operation.
+   */
   public InvariantsFormula<ConstantType> getShiftDistance() {
     return this.shiftDistance;
   }
@@ -76,7 +105,18 @@ public class ShiftLeft<ConstantType> implements InvariantsFormula<ConstantType> 
     return pVisitor.visit(this, pParameter);
   }
 
-  static <ConstantType> ShiftLeft<ConstantType> of(InvariantsFormula<ConstantType> pToShift, InvariantsFormula<ConstantType> pShiftDistance) {
+  /**
+   * Gets an invariants formula representing the left shift of the first given
+   * operand by the second given operand.
+   *
+   * @param pToShift the operand to be shifted.
+   * @param pShiftDistance the shift distance.
+   *
+   * @return an invariants formula representing the left shift of the first
+   * given operand by the second given operand.
+   */
+  static <ConstantType> ShiftLeft<ConstantType> of(InvariantsFormula<ConstantType> pToShift,
+      InvariantsFormula<ConstantType> pShiftDistance) {
     return new ShiftLeft<>(pToShift, pShiftDistance);
   }
 

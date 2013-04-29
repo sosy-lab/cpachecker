@@ -110,9 +110,11 @@ public class SimpleIntervalTest {
   public void testIntersectsWith() {
     SimpleInterval zero = SimpleInterval.singleton(BigInteger.ZERO);
     SimpleInterval one = SimpleInterval.singleton(BigInteger.ONE);
+    SimpleInterval two = SimpleInterval.singleton(BigInteger.valueOf(2));
     SimpleInterval negFiveToTen = SimpleInterval.of(BigInteger.valueOf(-5), BigInteger.TEN);
     SimpleInterval fiveToFifteen = SimpleInterval.of(BigInteger.valueOf(5), BigInteger.valueOf(15));
     SimpleInterval twentyToFifty = SimpleInterval.of(BigInteger.valueOf(20), BigInteger.valueOf(50));
+    SimpleInterval oneToThousand = SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(1000));
     assertFalse(zero.intersectsWith(one));
     assertFalse(one.intersectsWith(zero));
     assertTrue(zero.intersectsWith(zero));
@@ -126,5 +128,6 @@ public class SimpleIntervalTest {
     assertTrue(negFiveToTen.intersectsWith(fiveToFifteen));
     assertFalse(negFiveToTen.intersectsWith(twentyToFifty));
     assertFalse(fiveToFifteen.intersectsWith(twentyToFifty));
+    assertTrue(oneToThousand.intersectsWith(two));
   }
 }

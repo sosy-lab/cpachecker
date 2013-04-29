@@ -52,10 +52,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes

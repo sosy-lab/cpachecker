@@ -33,6 +33,7 @@ import com.google.common.base.Strings;
 
 public final class SMGPlotter {
   private final HashMap <SMGObject, String> objectIndex = new HashMap<>();
+  static private int nulls = 0;
   private int offset = 0;
 
   public SMGPlotter() {} /* utility class */
@@ -53,7 +54,7 @@ public final class SMGPlotter {
     for (SMGObject heapObject : smg.getHeapObjects()) {
       //if (heapObject.notNull()){
         sb.append(newLineWithOffset(smgObjectAsDot(heapObject)));
-        objectIndex.put(heapObject, heapObject.getLabel());
+        objectIndex.put(heapObject, convertToValidDot(heapObject.getLabel()));
       //}
     }
 
@@ -132,8 +133,18 @@ public final class SMGPlotter {
     pSb.append(newLineWithOffset("}"));
   }
 
+  private String newNullLabel() {
+    SMGPlotter.nulls += 1;
+    return "value_null_" + SMGPlotter.nulls;
+  }
+
   private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge) {
-    return objectIndex.get(pEdge.getObject()) + " -> value_" + pEdge.getValue() + "[label=\"[" + pEdge.getOffset() + "]\"];";
+    if (pEdge.getValue() == 0) {
+      String newNull = newNullLabel();
+      return newNull + "[shape=plaintext, label=\"NULL\"];" + objectIndex.get(pEdge.getObject()) + " -> " + newNull + "[label=\"[" + pEdge.getOffset() + "]\"];";
+    } else {
+      return objectIndex.get(pEdge.getObject()) + " -> value_" + pEdge.getValue() + "[label=\"[" + pEdge.getOffset() + "]\"];";
+    }
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {

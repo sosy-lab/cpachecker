@@ -23,22 +23,50 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
+/**
+ * Instances of this class are multiplication formulae over other invariants
+ * formulae.
+ *
+ * @param <ConstantType> the type of the constants used in the formulae.
+ */
 public class Multiply<ConstantType> implements InvariantsFormula<ConstantType> {
 
+  /**
+   * The first factor of the multiplication.
+   */
   private final InvariantsFormula<ConstantType> factor1;
 
+  /**
+   * The second factor of the multiplication.
+   */
   private final InvariantsFormula<ConstantType> factor2;
 
-  private Multiply(InvariantsFormula<ConstantType> pFactor1, InvariantsFormula<ConstantType> pFactor2) {
+  /**
+   * Creates a new multiplication formula with the given factors.
+   *
+   * @param pFactor1 the first factor.
+   * @param pFactor2 the second factor.
+   */
+  private Multiply(InvariantsFormula<ConstantType> pFactor1,
+      InvariantsFormula<ConstantType> pFactor2) {
     this.factor1 = pFactor1;
     this.factor2 = pFactor2;
   }
 
+  /**
+   * Gets the first factor of the multiplication.
+   *
+   * @return the first factor of the multiplication.
+   */
   public InvariantsFormula<ConstantType> getFactor1() {
     return this.factor1;
   }
 
+  /**
+   * Gets the second factor of the multiplication.
+   *
+   * @return the second factor of the multiplication.
+   */
   public InvariantsFormula<ConstantType> getFactor2() {
     return this.factor2;
   }
@@ -76,6 +104,16 @@ public class Multiply<ConstantType> implements InvariantsFormula<ConstantType> {
     return pVisitor.visit(this, pParameter);
   }
 
+  /**
+   * Gets an invariants formula representing the multiplication of the given
+   * factors.
+   *
+   * @param pFactor1 the first factor.
+   * @param pFactor2 the second factor.
+   *
+   * @return an invariants formula representing the multiplication of the given
+   * factors.
+   */
   static <ConstantType> Multiply<ConstantType> of(InvariantsFormula<ConstantType> pFactor1, InvariantsFormula<ConstantType> pFactor2) {
     return new Multiply<>(pFactor1, pFactor2);
   }

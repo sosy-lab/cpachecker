@@ -177,6 +177,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     throws CPATransferException {
 
     ExplicitState explicitState = (ExplicitState)element;
+    explicitState.clearDelta();
 
     ExplicitState successor;
 
@@ -209,6 +210,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     if (successor == null) {
       return Collections.emptySet();
     } else {
+      successor.setDelta(explicitState);
       return Collections.singleton(successor);
     }
   }

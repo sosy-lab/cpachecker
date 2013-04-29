@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.logging;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -85,7 +86,7 @@ public class LoggingFormulaManager implements FormulaManager {
   }
 
   @Override
-  public String dumpFormula(Formula f) {
+  public Appender dumpFormula(Formula f) {
     return wrapped.dumpFormula(f);
   }
 

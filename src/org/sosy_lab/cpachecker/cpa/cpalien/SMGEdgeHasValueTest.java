@@ -37,11 +37,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 public class SMGEdgeHasValueTest {
 
   CType mockType = mock(CType.class);
+  CType mockType12b = mock(CType.class);
 
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
     when(mockType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
+    when(mockType12b.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(12));
   }
 
   @Test
@@ -73,5 +75,100 @@ public class SMGEdgeHasValueTest {
     Assert.assertTrue(hv1.isConsistentWith(hv3));
     Assert.assertFalse(hv2.isConsistentWith(hv3));
     Assert.assertTrue(hv2.isConsistentWith(hv4));
+  }
+
+  @Test
+  public void testOverlapsWith() {
+    SMGObject object = new SMGObject(12, "object");
+    Integer value = Integer.valueOf(666);
+
+    SMGEdgeHasValue at0 = new SMGEdgeHasValue(mockType, 0, object, value);
+    SMGEdgeHasValue at2 = new SMGEdgeHasValue(mockType, 2, object, value);
+    SMGEdgeHasValue at4 = new SMGEdgeHasValue(mockType, 4, object, value);
+    SMGEdgeHasValue at6 = new SMGEdgeHasValue(mockType, 6, object, value);
+
+    Assert.assertTrue(at0.overlapsWith(at2, MachineModel.LINUX64));
+    Assert.assertTrue(at2.overlapsWith(at0, MachineModel.LINUX64));
+    Assert.assertTrue(at2.overlapsWith(at4, MachineModel.LINUX64));
+    Assert.assertTrue(at4.overlapsWith(at2, MachineModel.LINUX64));
+    Assert.assertTrue(at4.overlapsWith(at6, MachineModel.LINUX64));
+    Assert.assertTrue(at6.overlapsWith(at4, MachineModel.LINUX64));
+
+    Assert.assertTrue(at0.overlapsWith(at0, MachineModel.LINUX64));
+
+    Assert.assertFalse(at0.overlapsWith(at4, MachineModel.LINUX64));
+    Assert.assertFalse(at0.overlapsWith(at6, MachineModel.LINUX64));
+    Assert.assertFalse(at2.overlapsWith(at6, MachineModel.LINUX64));
+    Assert.assertFalse(at4.overlapsWith(at0, MachineModel.LINUX64));
+    Assert.assertFalse(at6.overlapsWith(at0, MachineModel.LINUX64));
+    Assert.assertFalse(at6.overlapsWith(at2, MachineModel.LINUX64));
+
+    SMGEdgeHasValue whole = new SMGEdgeHasValue(mockType12b, 0, object, value);
+    Assert.assertTrue(whole.overlapsWith(at4, MachineModel.LINUX64));
+    Assert.assertTrue(at4.overlapsWith(whole, MachineModel.LINUX64));
+  }
+
+  @Test
+  public void testIsCompatibleField() {
+    SMGObject object1 = new SMGObject(12, "object-1");
+    SMGObject object2 = new SMGObject(12, "object-2");
+    Integer value = Integer.valueOf(666);
+
+    SMGEdgeHasValue obj1_at0 = new SMGEdgeHasValue(mockType, 0, object1, value);
+    SMGEdgeHasValue obj1_at2 = new SMGEdgeHasValue(mockType, 2, object1, value);
+    SMGEdgeHasValue obj1_at4 = new SMGEdgeHasValue(mockType, 4, object1, value);
+    SMGEdgeHasValue obj1_12at0 = new SMGEdgeHasValue(mockType12b, 0, object1, value);
+
+    SMGEdgeHasValue obj2_at0 = new SMGEdgeHasValue(mockType, 0, object2, value);
+    SMGEdgeHasValue obj2_at2 = new SMGEdgeHasValue(mockType, 2, object2, value);
+    SMGEdgeHasValue obj2_at4 = new SMGEdgeHasValue(mockType, 4, object2, value);
+    SMGEdgeHasValue obj2_12at0 = new SMGEdgeHasValue(mockType12b, 0, object2, value);
+
+    Assert.assertTrue(obj1_at0.isCompatibleField(obj1_at0, MachineModel.LINUX64));
+    Assert.assertFalse(obj1_at0.isCompatibleField(obj1_at2, MachineModel.LINUX64));
+    Assert.assertFalse(obj1_at0.isCompatibleField(obj1_at4, MachineModel.LINUX64));
+    Assert.assertFalse(obj1_at0.isCompatibleField(obj1_12at0, MachineModel.LINUX64));
+    Assert.assertTrue(obj1_at0.isCompatibleField(obj2_at0, MachineModel.LINUX64));
+    Assert.assertFalse(obj1_at0.isCompatibleField(obj2_at2, MachineModel.LINUX64));
+    Assert.assertFalse(obj1_at0.isCompatibleField(obj2_at4, MachineModel.LINUX64));
+    Assert.assertFalse(obj1_at0.isCompatibleField(obj2_12at0, MachineModel.LINUX64));
+  }
+
+  @Test
+  public void testIsCompatibleFieldOnSameObject() {
+    SMGObject object1 = new SMGObject(12, "object-1");
+    SMGObject object2 = new SMGObject(12, "object-2");
+    Integer value = Integer.valueOf(666);
+
+    SMGEdgeHasValue obj1_at0 = new SMGEdgeHasValue(mockType, 0, object1, value);
+    SMGEdgeHasValue obj1_at2 = new SMGEdgeHasValue(mockType, 2, object1, value);
+    SMGEdgeHasValue obj1_at4 = new SMGEdgeHasValue(mockType, 4, object1, value);
+    SMGEdgeHasValue obj1_12at0 = new SMGEdgeHasValue(mockType12b, 0, object1, value);
+
+    SMGEdgeHasValue obj2_at0 = new SMGEdgeHasValue(mockType, 0, object2, value);
+    SMGEdgeHasValue obj2_at2 = new SMGEdgeHasValue(mockType, 2, object2, value);
+    SMGEdgeHasValue obj2_at4 = new SMGEdgeHasValue(mockType, 4, object2, value);
+    SMGEdgeHasValue obj2_12at0 = new SMGEdgeHasValue(mockType12b, 0, object2, value);
+
+    Assert.assertTrue(obj1_at0.isCompatibleFieldOnSameObject(obj1_at0, MachineModel.LINUX64));
+    Assert.assertFalse(obj1_at0.isCompatibleFieldOnSameObject(obj1_at2, MachineModel.LINUX64));
+    Assert.assertFalse(obj1_at0.isCompatibleFieldOnSameObject(obj1_at4, MachineModel.LINUX64));
+    Assert.assertFalse(obj1_at0.isCompatibleFieldOnSameObject(obj1_12at0, MachineModel.LINUX64));
+    Assert.assertFalse(obj1_at0.isCompatibleFieldOnSameObject(obj2_at0, MachineModel.LINUX64));
+    Assert.assertFalse(obj1_at0.isCompatibleFieldOnSameObject(obj2_at2, MachineModel.LINUX64));
+    Assert.assertFalse(obj1_at0.isCompatibleFieldOnSameObject(obj2_at4, MachineModel.LINUX64));
+    Assert.assertFalse(obj1_at0.isCompatibleFieldOnSameObject(obj2_12at0, MachineModel.LINUX64));
+  }
+
+  @Test(expected=IllegalArgumentException.class)
+  public void testIllegalOverlapsWith() {
+    SMGObject object1 = new SMGObject(12, "object1");
+    SMGObject object2 = new SMGObject(12, "object2");
+    Integer value = Integer.valueOf(666);
+
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType, 0, object1, value);
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType, 2, object2, value);
+
+    hv1.overlapsWith(hv2, MachineModel.LINUX64);
   }
 }

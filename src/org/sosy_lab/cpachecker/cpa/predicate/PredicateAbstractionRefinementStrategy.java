@@ -24,8 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.*;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.*;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,7 +34,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -71,6 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -88,9 +88,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Option(description="use only the atoms from the interpolants as predicates, "
     + "and not the whole interpolant")
   private boolean atomicPredicates = true;
-
-  @Option(description="split each arithmetic equality into two inequalities when extracting predicates from interpolants")
-  private boolean splitItpAtoms = false;
 
   @Option(description="Add all discovered predicates to all the locations in the abstract trace. "
       + "DEPRECATED: use cpa.predicate.predicateSharing instead which offers more flexibility.")
@@ -131,9 +128,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
   protected final LogManager logger;
-  private final AbstractionManager amgr;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
+  private final PredicateAbstractionManager predAbsMgr;
 
   private class Stats implements Statistics {
     @Override
@@ -161,7 +158,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   protected PredicateAbstractionRefinementStrategy(final Configuration config,
       final LogManager pLogger, final FormulaManagerView pFormulaManager,
-      final AbstractionManager pAbstractionManager, final Solver pSolver) throws CPAException, InvalidConfigurationException {
+      final PredicateAbstractionManager pPredAbsMgr, final Solver pSolver)
+          throws CPAException, InvalidConfigurationException {
     super(pFormulaManager.getBooleanFormulaManager(), pSolver);
 
     config.inject(this, PredicateAbstractionRefinementStrategy.class);
@@ -170,9 +168,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
 
     logger = pLogger;
-    amgr = pAbstractionManager;
     fmgr = pFormulaManager;
     bfmgr = pFormulaManager.getBooleanFormulaManager();
+    predAbsMgr = pPredAbsMgr;
   }
 
   private ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates;
@@ -191,7 +189,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     predicateCreation.start();
     Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant);
     CFANode loc = AbstractStates.extractLocation(interpolationPoint);
-    int locInstance = AbstractStates.extractStateByType(interpolationPoint, PredicateAbstractState.class)
+    int locInstance = getPredicateState(interpolationPoint)
                                     .getAbstractionLocationsOnPath().get(loc);
 
     newPredicates.putAll(Pair.of(loc, locInstance), localPreds);
@@ -212,34 +210,15 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     Collection<AbstractionPredicate> preds;
 
-    if (bfmgr.isFalse(interpolant)) {
-      preds = ImmutableSet.of(amgr.makeFalsePredicate());
+    if (atomicPredicates) {
+      preds = predAbsMgr.extractPredicates(interpolant);
     } else {
-      preds = getAtomsAsPredicates(interpolant);
+      preds = ImmutableList.of(predAbsMgr.createPredicateFor(fmgr.uninstantiate(interpolant)));
     }
     assert !preds.isEmpty();
 
     logger.log(Level.FINEST, "Got predicates", preds);
 
-    return preds;
-  }
-
-  /**
-   * Create predicates for all atoms in a formula.
-   */
-  private List<AbstractionPredicate> getAtomsAsPredicates(BooleanFormula f) {
-    Collection<BooleanFormula> atoms;
-    if (atomicPredicates) {
-      atoms = fmgr.extractAtoms(f, splitItpAtoms, false);
-    } else {
-      atoms = Collections.singleton(fmgr.uninstantiate(f));
-    }
-
-    List<AbstractionPredicate> preds = new ArrayList<>(atoms.size());
-
-    for (BooleanFormula atom : atoms) {
-      preds.add(amgr.makePredicate(atom));
-    }
     return preds;
   }
 
@@ -258,9 +237,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     { // Add predicate "false" to unreachable location
       CFANode loc = extractLocation(pUnreachableState);
-      int locInstance = AbstractStates.extractStateByType(pUnreachableState, PredicateAbstractState.class)
+      int locInstance = getPredicateState(pUnreachableState)
                                        .getAbstractionLocationsOnPath().get(loc);
-      newPredicates.put(Pair.of(loc, locInstance), amgr.makeFalsePredicate());
+      newPredicates.put(Pair.of(loc, locInstance),
+          predAbsMgr.createPredicateFor(bfmgr.makeBoolean(false)));
       pAffectedStates.add(pUnreachableState);
     }
 
@@ -346,12 +326,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     argUpdate.start();
 
-    pReached.removeSubtree(refinementRoot, newPrecision);
+    pReached.removeSubtree(refinementRoot, newPrecision, PredicatePrecision.class);
 
     assert (refinementCount > 0) || reached.size() == 1;
 
     if (sharePredicates) {
-      pReached.updatePrecisionGlobally(newPrecision);
+      pReached.updatePrecisionGlobally(newPrecision, PredicatePrecision.class);
     }
 
     argUpdate.stop();
@@ -389,7 +369,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       while (!current.getParents().isEmpty()) {
         current = Iterables.get(current.getParents(), 0);
 
-        if (extractStateByType(current, PredicateAbstractState.class).isAbstractionState()) {
+        if (getPredicateState(current).isAbstractionState()) {
           CFANode loc = AbstractStates.extractLocation(current);
           if (loc.equals(firstInterpolationPointLocation)) {
             firstInterpolationPoint = current;

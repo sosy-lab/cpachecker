@@ -236,6 +236,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
         # For more details, c.f. the kernel documentation:
         # https://www.kernel.org/doc/Documentation/cgroups/memory.txt
         memUsage = _readFile(cgroups[MEMORY], 'memory.memsw.max_usage_in_bytes')
+        memUsage = int(memUsage)
 
     for cgroup in set(cgroups.itervalues()):
         # Need the set here to delete each cgroup only once.

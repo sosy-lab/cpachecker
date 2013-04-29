@@ -25,7 +25,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.*;
 
 import java.io.IOException;
@@ -60,12 +61,12 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -113,14 +114,18 @@ class PredicateCPAStatistics implements Statistics {
     private final PredicateCPA cpa;
     private final BlockOperator blk;
     private final RegionManager rmgr;
+    private final AbstractionManager absmgr;
     private final CFA cfa;
     private final PredicatePrecisionSweeper sweeper;
 
     public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
-        RegionManager pRmgr, CFA pCfa, PredicatePrecisionSweeper pSweeper) throws InvalidConfigurationException {
+        RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
+        PredicatePrecisionSweeper pSweeper)
+            throws InvalidConfigurationException {
       cpa = pCpa;
       blk = pBlk;
       rmgr = pRmgr;
+      absmgr = pAbsmgr;
       cfa = pCfa;
       sweeper = pSweeper;
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
@@ -257,7 +262,6 @@ class PredicateCPAStatistics implements Statistics {
       int totPredsUsed = predicates.location.size();
       int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
 
-      AbstractionManager absmgr = cpa.getAbstractionManager();
       int allDistinctPreds = absmgr.getNumberOfPredicates();
 
       if (result == Result.SAFE && exportInvariants && invariantsFile != null) {
@@ -380,7 +384,7 @@ class PredicateCPAStatistics implements Statistics {
       for (AbstractState state : reached) {
         CFANode loc = extractLocation(state);
         if (loc.isLoopStart()) {
-          PredicateAbstractState predicateState = extractStateByType(state, PredicateAbstractState.class);
+          PredicateAbstractState predicateState = getPredicateState(state);
           if (!predicateState.isAbstractionState()) {
             cpa.getLogger().log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
             return;
@@ -391,7 +395,6 @@ class PredicateCPAStatistics implements Statistics {
         }
       }
 
-      AbstractionManager absmgr = cpa.getAbstractionManager();
       FormulaManagerView fmgr = cpa.getFormulaManager();
       try (Writer invariants = Files.openOutputFile(invariantsFile)) {
         for (CFANode loc : from(cfa.getAllNodes())
@@ -404,7 +407,7 @@ class PredicateCPAStatistics implements Statistics {
           invariants.append("__");
           invariants.append(""+loc.getLineNumber());
           invariants.append(":\n");
-          invariants.append(fmgr.dumpFormula(formula));
+          fmgr.dumpFormula(formula).appendTo(invariants);
           invariants.append('\n');
         }
       } catch (IOException e) {
@@ -413,12 +416,12 @@ class PredicateCPAStatistics implements Statistics {
     }
 
     private Pair<String, List<String>> splitFormula(FormulaManagerView pV, BooleanFormula pF) {
-      String s = pV.dumpFormula(pF).trim();
+      String s = pV.dumpFormula(pF).toString().trim();
       List<String> lines = Lists.newArrayList(s.split("\n"));
-      assert !lines.isEmpty();
+      assert !lines.isEmpty() : "Formula " + pF + " has empty string representation";
       String predString = lines.get(lines.size()-1);
       lines.remove(lines.size()-1);
-      assert (predString.startsWith("(assert ") && predString.endsWith(")"));
+      assert (predString.startsWith("(assert ") && predString.endsWith(")")) : "Unexpected formula format: " + predString;
 
       return Pair.of(predString, lines);
     }
@@ -428,7 +431,7 @@ class PredicateCPAStatistics implements Statistics {
       for (AbstractState state : reached) {
         CFANode loc = extractLocation(state);
         if (loc.isLoopStart()) {
-          PredicateAbstractState predicateState = extractStateByType(state, PredicateAbstractState.class);
+          PredicateAbstractState predicateState = getPredicateState(state);
           if (!predicateState.isAbstractionState()) {
             cpa.getLogger().log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
             return;
@@ -443,7 +446,6 @@ class PredicateCPAStatistics implements Statistics {
       StringBuilder defs = new StringBuilder();
       StringBuilder asserts = new StringBuilder();
 
-      AbstractionManager absmgr = cpa.getAbstractionManager();
       FormulaManagerView fmgr = cpa.getFormulaManager();
 
       try (Writer invariants = Files.openOutputFile(invariantPrecisionsFile)) {

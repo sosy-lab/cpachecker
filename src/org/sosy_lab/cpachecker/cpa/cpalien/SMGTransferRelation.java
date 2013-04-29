@@ -199,7 +199,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     // TODO: Seems like there is large code sharing with evaluate calloc
-    public Address evaluateMalloc(CFunctionCallExpression functionCall, SMGState currentState, CFAEdge cfaEdge)
+    public SMGEdgePointsTo evaluateMalloc(CFunctionCallExpression functionCall, SMGState currentState, CFAEdge cfaEdge)
         throws CPATransferException {
       CRightHandSide sizeExpr;
 
@@ -219,10 +219,10 @@ public class SMGTransferRelation implements TransferRelation {
       SMGEdgePointsTo new_pointer = currentState.addNewHeapAllocation(value.intValue(), allocation_label);
 
       possibleMallocFail = true;
-      return new Address(new_pointer.getValue(), new_pointer.getObject(), 0);
+      return new_pointer;
     }
 
-    public Address evaluateMemset(CFunctionCallExpression functionCall,
+    public SMGEdgePointsTo evaluateMemset(CFunctionCallExpression functionCall,
         SMGState currentState, CFAEdge cfaEdge) throws CPATransferException {
 
       //evaluate function: void *memset( void *buffer, int ch, size_t count );
@@ -249,7 +249,8 @@ public class SMGTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("Memset count argument not found.", cfaEdge, functionCall);
       }
 
-      Address bufferAddress = evaluateAddress(currentState, cfaEdge, bufferExpr);
+      Integer bufferAddress = evaluateAddress(currentState, cfaEdge, bufferExpr);
+      SMGEdgePointsTo pointer = currentState.getPointerFromValue(bufferAddress);
 
       Integer count = evaluateExplicitValue(currentState, cfaEdge, countExpr);
 
@@ -257,21 +258,18 @@ public class SMGTransferRelation implements TransferRelation {
         return null;
       }
 
-      Integer bufferOffset = bufferAddress.getOffset();
-      SMGObject memory = bufferAddress.getObject();
-
       //TODO create Valid unsigned Char type mock Type?
       CType type = new CSimpleType(false, false, CBasicType.CHAR, false, false, false, true, false, false, false);
 
       //TODO More effective memset evaluation
       for (int c = 0; c < count; c++) {
-        handleAssignmentToField(currentState, cfaEdge, memory, bufferOffset, type, chExpr);
+        handleAssignmentToField(currentState, cfaEdge, pointer.getObject(), pointer.getOffset(), type, chExpr);
       }
 
-      return bufferAddress;
+      return pointer;
     }
 
-    public Address evaluateCalloc(CFunctionCallExpression functionCall,
+    public SMGEdgePointsTo evaluateCalloc(CFunctionCallExpression functionCall,
         SMGState currentState, CFAEdge cfaEdge) throws CPATransferException {
 
       CExpression numExpr;
@@ -300,7 +298,7 @@ public class SMGTransferRelation implements TransferRelation {
       SMGEdgePointsTo new_pointer = currentState.addNewHeapAllocation(num.intValue() * size.intValue(), allocation_label);
 
       possibleMallocFail = true;
-      return new Address(new_pointer.getValue(), new_pointer.getObject(), 0);
+      return new_pointer;
     }
 
     public void evaluateFree(CFunctionCallExpression pFunctionCall, SMGState currentState,
@@ -313,17 +311,18 @@ public class SMGTransferRelation implements TransferRelation {
         throw new UnrecognizedCCodeException("Bulit in function free has no parameter", cfaEdge, pFunctionCall);
       }
 
-      Address address = evaluateAddress(currentState, cfaEdge, pointerExp);
+      Integer address = evaluateAddress(currentState, cfaEdge, pointerExp);
+      SMGEdgePointsTo pointer = currentState.getPointerFromValue(address);
 
       if (address == null) {
         currentState.setInvalidFree();
-      } else if (address.getValue() == 0) {
+      } else if (pointer.getValue() == 0) {
         logger.log(Level.WARNING, "The argument of a free invocation: "
             + cfaEdge.getRawStatement() + ", in Line "
             + pFunctionCall.getFileLocation().getStartingLineNumber() + " is 0");
 
       } else {
-        currentState.free(address.getValue(), address.getOffset(), address.getObject());
+        currentState.free(pointer.getValue(), pointer.getOffset(), pointer.getObject());
       }
     }
 
@@ -485,7 +484,7 @@ public class SMGTransferRelation implements TransferRelation {
     return newState;
   }
 
-  private Integer getFunctionReturnValue(SMGState smgState, CType type) {
+  private Integer getFunctionReturnValue(SMGState smgState, CType type) throws SMGInconsistentException {
 
     SMGObject tmpMemory = smgState.getFunctionReturnObject();
 
@@ -687,25 +686,21 @@ public class SMGTransferRelation implements TransferRelation {
 
       CExpression addressExpression = lValue.getOperand();
 
-      Address address = evaluateAddress(smgState, cfaEdge, addressExpression);
+      Integer address = evaluateAddress(smgState, cfaEdge, addressExpression);
+      SMGEdgePointsTo pointer = smgState.getPointerFromValue(address);
 
-      if (address == null) {
-        return null;
-      }
-
-      offset = address.getOffset();
-
-      return address.getObject();
+      offset = pointer.getOffset();
+      return pointer.getObject();
     }
 
     @Override
-    public SMGObject visit(CFieldReference lValue) throws UnrecognizedCCodeException {
+    public SMGObject visit(CFieldReference lValue) throws CPATransferException {
       // a->b = ...
       return handleAssignmentToFieldReference(lValue);
     }
 
     private SMGObject handleAssignmentToFieldReference(CFieldReference fieldReference)
-        throws UnrecognizedCCodeException {
+        throws CPATransferException {
       logger.log(Level.FINEST, ">>> Handling statement: assignment to field reference");
 
       CType ownerType = getRealExpressionType(fieldReference.getFieldOwner());
@@ -773,15 +768,10 @@ public class SMGTransferRelation implements TransferRelation {
 
     if (arrayExpressionType instanceof CPointerType) {
 
-      Address address = evaluateAddress(smgState, cfaEdge, arrayExpression);
-
-      if (address == null) {
-        return null;
-      }
-
-      memoryOfArray = address.getObject();
-
-      offset = address.getOffset();
+      Integer address = evaluateAddress(smgState, cfaEdge, arrayExpression);
+      SMGEdgePointsTo pointer = smgState.getPointerFromValue(address);
+      memoryOfArray = pointer.getObject();
+      offset = pointer.getOffset();
 
     } else if (arrayExpressionType instanceof CArrayType) {
 
@@ -800,7 +790,7 @@ public class SMGTransferRelation implements TransferRelation {
     return Pair.of(memoryOfArray, offset);
   }
 
-  private SMGObject getMemoryOfField(SMGState smgState, CFAEdge cfaEdge, CFieldReference fieldReference) {
+  private SMGObject getMemoryOfField(SMGState smgState, CFAEdge cfaEdge, CFieldReference fieldReference) throws SMGInconsistentException {
 
     CExpression fieldOwner = fieldReference.getFieldOwner();
 
@@ -951,23 +941,7 @@ public class SMGTransferRelation implements TransferRelation {
     CType expressionType = getRealExpressionType(rValue);
 
     if (expressionType instanceof CPointerType) {
-
-      Address address = evaluateAddress(smgState, cfaEdge, rValue);
-
-      if (address == null) {
-        return null;
-      }
-
-      // This method may only be called, if the result,
-      // if there is a result, is written into the SMG.
-      // Otherwise, we would add an Address to the SMG
-      // without a necessary Has-Value-Edge to the address value.
-
-      if (!newState.containsValue(address.getValue())) {
-        newState.addAddress(address.getObject(), address.getOffset(), address.getValue());
-      }
-
-      return address.getValue();
+      return evaluateSMGValue(newState, cfaEdge, rValue);
 
     } else {
       return evaluateNonAddressValue(smgState, cfaEdge, rValue);
@@ -1002,6 +976,11 @@ public class SMGTransferRelation implements TransferRelation {
     return symbolicValue;
   }
 
+  private Integer evaluateSMGValue(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(cfaEdge, newState);
+    return rValue.accept(visitor);
+  }
+
   private Integer evaluateAssumptionValue(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue)
       throws CPATransferException {
 
@@ -1009,16 +988,10 @@ public class SMGTransferRelation implements TransferRelation {
     return rValue.accept(visitor);
   }
 
-  private Address evaluateAddress(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
+  private Integer evaluateAddress(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
 
     PointerAddressVisitor visitor = new PointerAddressVisitor(cfaEdge, newState);
-    Integer address = rValue.accept(visitor);
-
-    if (address == null || visitor.offset == null || visitor.object == null) {
-      return null;
-    }
-
-    return new Address(address, visitor.object, visitor.offset);
+    return rValue.accept(visitor);
   }
 
   private SMGState handleDeclaration(SMGState smgState, CDeclarationEdge edge) throws CPATransferException {
@@ -1210,12 +1183,9 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public Integer visit(CIdExpression idExpression) throws UnrecognizedCCodeException {
+    public Integer visit(CIdExpression idExpression) throws CPATransferException {
 
       Integer address = super.visit(idExpression);
-
-      offset = smgState.getOffset(address);
-      object = smgState.getMemoryOfAddress(address);
 
       return address;
     }
@@ -1282,7 +1252,7 @@ public class SMGTransferRelation implements TransferRelation {
       }
     }
 
-    private Integer createAddressOfField(CFieldReference lValue) {
+    private Integer createAddressOfField(CFieldReference lValue) throws SMGInconsistentException {
 
       SMGObject memoryOfField = getMemoryOfField(smgState, cfaEdge, lValue);
       Field field = getField(getRealExpressionType(lValue.getFieldOwner()), lValue.getFieldName());
@@ -1413,7 +1383,7 @@ public class SMGTransferRelation implements TransferRelation {
     public Integer visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
       CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
       String functionName = fileNameExpression.toASTString();
-      Address address = null;
+      SMGEdgePointsTo address = null;
 
       if (builtins.isABuiltIn(functionName)) {
         switch (functionName) {
@@ -1448,7 +1418,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public Integer visit(CFieldReference fieldReference) throws UnrecognizedCCodeException {
+    public Integer visit(CFieldReference fieldReference) throws CPATransferException {
 
       Integer address = super.visit(fieldReference);
 
@@ -1603,7 +1573,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public SMGObject visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+    public SMGObject visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
       return null;
     }
 
@@ -1613,7 +1583,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public SMGObject visit(CFieldReference fieldReference) throws UnrecognizedCCodeException {
+    public SMGObject visit(CFieldReference fieldReference) throws CPATransferException {
 
       SMGObject memoryOfField = getMemoryOfField(smgState, cfaEdge, fieldReference);
       Field field = getField(getRealExpressionType(fieldReference.getFieldOwner()), fieldReference.getFieldName());
@@ -1745,7 +1715,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public Integer visit(CFieldReference fieldReference) throws UnrecognizedCCodeException {
+    public Integer visit(CFieldReference fieldReference) throws CPATransferException {
 
       SMGObject memoryOfField = getMemoryOfField(smgState, cfaEdge, fieldReference);
       Field field = getField(getRealExpressionType(fieldReference.getFieldOwner()), fieldReference.getFieldName());
@@ -1760,7 +1730,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public Integer visit(CIdExpression idExpression) throws UnrecognizedCCodeException {
+    public Integer visit(CIdExpression idExpression) throws CPATransferException {
 
       Integer value = null;
 
@@ -1991,7 +1961,8 @@ public class SMGTransferRelation implements TransferRelation {
 
     protected Integer dereferencePointer(CRightHandSide exp, CType derefType) throws CPATransferException {
 
-      Address address = evaluateAddress(smgState, cfaEdge, exp);
+      Integer address = evaluateAddress(smgState, cfaEdge, exp);
+      SMGEdgePointsTo pointer = smgState.getPointerFromValue(address);
 
       if (address == null) {
         // We can't resolve the field to dereference , therefore
@@ -2000,10 +1971,7 @@ public class SMGTransferRelation implements TransferRelation {
         return null;
       }
 
-      SMGObject object = address.getObject();
-      Integer offset = address.getOffset();
-
-      Integer value = smgState.readValue(object, offset, derefType);
+      Integer value = smgState.readValue(pointer.getObject(), pointer.getOffset(), derefType);
 
       return value;
     }
@@ -2359,48 +2327,6 @@ public class SMGTransferRelation implements TransferRelation {
 
     public CType getType() {
       return type;
-    }
-  }
-
-  /**
-   * A class to represent an Address. This class is mainly used
-   * to store Address Information.
-   *
-   * TODO: Seems pretty much identical to SMGEdgePointsTo
-   */
-  private static class Address {
-
-    /**
-     * The symbolic value representing this address.
-     */
-    private final Integer value;
-
-    /**
-     * The SMGObject representing the Memory this address belongs to.
-     */
-    private final SMGObject object;
-
-    /**
-     * The offset relative to the beginning of object in byte.
-     */
-    private final Integer offset;
-
-    public Address(Integer pValue, SMGObject pObject, Integer pOffset) {
-      value = pValue;
-      object = pObject;
-      offset = pOffset;
-    }
-
-    public Integer getValue() {
-      return value;
-    }
-
-    public SMGObject getObject() {
-      return object;
-    }
-
-    public Integer getOffset() {
-      return offset;
     }
   }
 }

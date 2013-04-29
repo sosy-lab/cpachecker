@@ -27,8 +27,27 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
 
+/**
+ * Instances of this class are visitors for compound state invariants formulae
+ * which are used to evaluate the visited formulae to compound states. This
+ * visitor deliberately uses a weaker evaluation strategy than a
+ * {@link FormulaCompoundStateEvaluationVisitor} in order to enable the CPA
+ * strategy to prevent infeasible interpretation of the analyzed code.
+ */
 public class FormulaAbstractionVisitor implements FormulaEvaluationVisitor<CompoundState> {
 
+  /**
+   * Compute a compound state representing possible results of adding the
+   * given summand compound states up. This method provides a much weaker
+   * implementation of compound state addition than
+   * {@link CompoundState#add(CompoundState)} and will thus usually return a
+   * much larger result range.
+   *
+   * @param a the first summand.
+   * @param b the second summand.
+   * @return a state representing possible results of adding the given summand
+   * compound states up.
+   */
   private CompoundState weakAdd(CompoundState a, CompoundState b) {
     if (a.isSingleton() && a.containsZero()) {
       return b;
@@ -46,6 +65,18 @@ public class FormulaAbstractionVisitor implements FormulaEvaluationVisitor<Compo
     }
   }
 
+  /**
+   * Compute a compound state representing possible results of multiplying the
+   * given factor compound states. This method provides a much weaker
+   * implementation of compound state addition than
+   * {@link CompoundState#multiply(CompoundState)} and will thus usually return
+   * a much larger result range.
+   *
+   * @param a the first factor.
+   * @param b the second factor.
+   * @return a state representing possible results of multiplying the given
+   * factor compound states.
+   */
   private CompoundState weakMultiply(CompoundState a, CompoundState b) {
     if (a.isSingleton() && a.containsZero()) {
       return a;
@@ -82,7 +113,7 @@ public class FormulaAbstractionVisitor implements FormulaEvaluationVisitor<Compo
 
   @Override
   public CompoundState visit(BinaryAnd<CompoundState> pAnd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return top();
+    return CompoundState.top();
   }
 
   @Override
@@ -92,12 +123,12 @@ public class FormulaAbstractionVisitor implements FormulaEvaluationVisitor<Compo
 
   @Override
   public CompoundState visit(BinaryOr<CompoundState> pOr, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return top();
+    return CompoundState.top();
   }
 
   @Override
   public CompoundState visit(BinaryXor<CompoundState> pXor, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return top();
+    return CompoundState.top();
   }
 
   @Override
@@ -158,7 +189,7 @@ public class FormulaAbstractionVisitor implements FormulaEvaluationVisitor<Compo
     if (!toShift.containsNegative()) {
       return CompoundState.singleton(0).extendToPositiveInfinity();
     }
-    return top();
+    return CompoundState.top();
   }
 
   @Override
@@ -178,16 +209,6 @@ public class FormulaAbstractionVisitor implements FormulaEvaluationVisitor<Compo
       return CompoundState.top();
     }
     return varState.accept(this, pEnvironment);
-  }
-
-  @Override
-  public CompoundState top() {
-    return CompoundState.top();
-  }
-
-  @Override
-  public CompoundState bottom() {
-    return CompoundState.bottom();
   }
 
 }

@@ -38,16 +38,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
  * @param <TEnv> the solver specific environment.
  */
 public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implements FormulaCreator<TFormulaInfo> {
-  /**
-   * Create a solver specific type of the given size.
-   * @param <TType> the solver specific type for formula-types.
-   */
-  public static interface CreateBitType<TType> {
-    TType fromSize(int size);
-  }
 
   private final TType boolType;
-  private final CreateBitType<TType> bittype;
   private final TType numberType;
   private final TEnv environment;
 
@@ -58,15 +50,10 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
   protected AbstractFormulaCreator(
       TEnv env,
       TType boolType,
-      TType numberType,
-      CreateBitType<TType> bittype
+      TType numberType
       ) {
-    if (bittype == null) {
-      throw new IllegalArgumentException("CreateBitType instance has to be valid!");
-    }
     this.boolType = boolType;
     this.numberType = numberType;
-    this.bittype = bittype;
     this.environment = env;
   }
 
@@ -93,14 +80,11 @@ public abstract class AbstractFormulaCreator<TFormulaInfo, TType, TEnv> implemen
     return (T)f;
   }
 
+  public abstract TType getBittype(int bitwidth);
+
   public TType getBoolType() {
     return boolType;
   }
-
-  public TType getBittype(int size) {
-    return bittype.fromSize(size);
-  }
-
 
   public TType getNumberType() {
     return numberType;

@@ -67,4 +67,77 @@ public class SMGEdgeHasValue extends SMGEdge {
 
     return true;
   }
+
+  public boolean overlapsWith(SMGEdgeHasValue other, MachineModel pModel) {
+    if (this.object != other.object) {
+      throw new IllegalArgumentException("Call of overlapsWith() on Has-Value edges pair not originating from the same object");
+    }
+
+    int myStart = offset;
+    int otStart = other.getOffset();
+
+    int myEnd = myStart + pModel.getSizeof(type);
+    int otEnd = otStart + pModel.getSizeof(other.getType());
+
+    if (myStart < otStart) {
+      return (myEnd > otStart);
+
+    } else if ( otStart < myStart ) {
+      return (otEnd > myStart);
+    }
+
+    // Start offsets are equal, always overlap
+    return true;
+  }
+
+  // TODO: Fix compatibility detection based on type, not on the type size
+  public boolean isCompatibleField(SMGEdgeHasValue other, MachineModel pModel) {
+    // return (this.type.equals(other.type)) && (this.offset == other.offset);
+    return pModel.getSizeof(type) == pModel.getSizeof(other.type) && (this.offset == other.offset);
+  }
+
+  public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
+    // return (this.type.equals(other.type)) && (this.offset == other.offset) && (this.object == other.object);
+    return pModel.getSizeof(type) == pModel.getSizeof(other.type) && (this.offset == other.offset) && this.object == other.object;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + offset;
+    // "Do not use a hashCode() of CType"
+    // result = prime * result + ((type == null) ? 0 : type.hashCode());
+    // TODO: Ugly, ugly, ugly!
+    // I cannot obtain a hashcode of a type, therefore I cannot obtain hashcode
+    // of the Has-Value edge. *Seems* to work not, but is likely to cause
+    // problems in the future. Tread lightly.
+    result = prime * result + ((type == null) ? 0 : System.identityHashCode(type));
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (!super.equals(obj))
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    SMGEdgeHasValue other = (SMGEdgeHasValue) obj;
+    if (offset != other.offset)
+      return false;
+    if (type == null) {
+      if (other.type != null)
+        return false;
+     } else if (!type.equals(other.type))
+      return false;
+    return true;
+  }
 }

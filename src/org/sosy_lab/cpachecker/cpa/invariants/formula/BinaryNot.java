@@ -23,15 +23,32 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
+/**
+ * Instances of this class represent the binary negation of an invariants formula.
+ *
+ * @param <ConstantType> the type of the constants used in the formula.
+ */
 public class BinaryNot<ConstantType> implements InvariantsFormula<ConstantType> {
 
-  private final InvariantsFormula<ConstantType> flipped;
+  /**
+   * The operand of the bit flip operation.
+   */
+  final InvariantsFormula<ConstantType> flipped;
 
+  /**
+   * Creates a new binary negation formula over the given operand.
+   *
+   * @param pToFlip the operand of the bit flip operation.
+   */
   private BinaryNot(InvariantsFormula<ConstantType> pToFlip) {
     this.flipped = pToFlip;
   }
 
+  /**
+   * Gets the operand of the bit flip operation.
+   *
+   * @return the operand of the bit flip operation.
+   */
   public InvariantsFormula<ConstantType> getFlipped() {
     return this.flipped;
   }
@@ -68,6 +85,13 @@ public class BinaryNot<ConstantType> implements InvariantsFormula<ConstantType> 
     return pVisitor.visit(this, pParameter);
   }
 
+  /**
+   * Gets the binary negation of the given formula.
+   *
+   * @param pToFlip the operand of the bit flip operation.
+   *
+   * @return the binary negation of the given formula.
+   */
   static <ConstantType> BinaryNot<ConstantType> of(InvariantsFormula<ConstantType> pToFlip) {
     return new BinaryNot<>(pToFlip);
   }

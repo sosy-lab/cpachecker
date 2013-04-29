@@ -162,5 +162,13 @@ def main():
 
     print ('Report generated in {0}'.format(outfilepath))
 
+    try:
+        with open(os.devnull, 'w') as devnull:
+            subprocess.Popen(['xdg-open', outfilepath],
+                             stdout=devnull, stderr=devnull)
+    except OSError:
+        pass
+
+
 if __name__ == '__main__':
     main()

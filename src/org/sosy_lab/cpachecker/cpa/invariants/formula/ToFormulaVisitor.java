@@ -23,7 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.util.Map;
 
-public interface TransformFormulaVisitor<T> extends InvariantsFormulaVisitor<T, InvariantsFormula<T>> {
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+
+
+public interface ToFormulaVisitor<ConstantType, FormulaType> extends ParameterizedInvariantsFormulaVisitor<ConstantType, Map<? extends String, ? extends InvariantsFormula<ConstantType>>, FormulaType> {
+
+  FormulaType getZero();
+
+  FormulaType getOne();
+
+  BooleanFormula lessThan(FormulaType op1, FormulaType op2);
+
+  BooleanFormula equal(FormulaType op1, FormulaType op2);
+
+  BooleanFormula greaterThan(FormulaType op1, FormulaType op2);
+
+  BooleanFormula lessOrEqual(FormulaType op1, FormulaType op2);
+
+  BooleanFormula greaterOrEqual(FormulaType op1, FormulaType op2);
 
 }

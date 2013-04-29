@@ -27,7 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
 
 import java.util.Arrays;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -99,7 +99,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     return functionManager.isUninterpretedFunctionCall(funcDecl, unwrap(pBits));
   }
 
-  private Map<Integer[], FunctionFormulaType<RationalFormula>> extractMethods = new Hashtable<>();
+  private final Map<Integer[], FunctionFormulaType<RationalFormula>> extractMethods = new HashMap<>();
 
   private FunctionFormulaType<RationalFormula> getExtractDecl(int pMsb, int pLsb) {
     Integer[] hasKey = new Integer[]{pMsb, pLsb};
@@ -111,7 +111,7 @@ public class ReplaceBitvectorWithRationalAndFunctionTheory implements BitvectorF
     return value;
   }
 
-  private Map<Integer[], FunctionFormulaType<RationalFormula>> concatMethods = new Hashtable<>();
+  private Map<Integer[], FunctionFormulaType<RationalFormula>> concatMethods = new HashMap<>();
 
   private FunctionFormulaType<RationalFormula> getConcatDecl(int firstSize, int secoundSize) {
     Integer[] hasKey = new Integer[]{firstSize, secoundSize};

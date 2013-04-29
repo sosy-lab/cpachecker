@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,7 +35,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator.CreateBitType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFunctionFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractRationalFormulaManager;
@@ -116,17 +117,6 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     }
     inc_ref(context, sort_to_ast(context, numeralSort));
 
-    CreateBitType<Long> cbt = new CreateBitType<Long>() {
-
-      @Override
-      public Long fromSize(int pSize) {
-        long bvSort = mk_bv_sort(context, pSize);
-        inc_ref(context, sort_to_ast(context, bvSort));
-        return bvSort;
-      }
-    };
-
-
     // create logger for variables and set initial options in this logger,
     // note: logger for the solvers are created later,
     // they will not contain variable-declaration!
@@ -142,7 +132,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     smtLogger.logBracket("set-logic QF_UFLRA");
 
 
-    Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, numeralSort, cbt, smtLogger);
+    Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, numeralSort, smtLogger);
 
     // Create managers
     Z3UnsafeFormulaManager unsafeManager = new Z3UnsafeFormulaManager(creator);
@@ -191,8 +181,16 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
   }
 
   @Override
-  public String dumpFormula(Long expr) {
-    return ast_to_string(z3context, expr);
+  public Appender dumpFormula(final Long expr) {
+    // Lazy invocation of ast_to_string wrapped in an Appender.
+    return Appenders.fromToStringMethod(
+        new Object() {
+
+          @Override
+          public String toString() {
+            return ast_to_string(z3context, expr);
+          }
+        });
   }
 
   public long getContext() {

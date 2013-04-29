@@ -32,8 +32,8 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 
 /**

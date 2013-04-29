@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.ctoformulahelper;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -32,10 +32,9 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
-
-
 
 public class CtoFormulaTypeUtils {
 
@@ -252,17 +251,19 @@ public class CtoFormulaTypeUtils {
     return pType instanceof CPointerType;
   }
 
-  private static final IndirectionVisitor indirectionVisitor = new IndirectionVisitor();
-
-  public static int getIndirectionLevel(CExpression c) {
-    return c.accept(indirectionVisitor);
-  }
-
   private static final RepresentabilityCTypeVisitor representabilityCTypeVisitor
     = new RepresentabilityCTypeVisitor();
 
   // Checks if there is some formula type to represent the C type
   public static boolean isRepresentableType(CType pType) {
     return pType.accept(representabilityCTypeVisitor);
+  }
+
+  public static boolean isSignedType(CType pType) {
+    if (pType instanceof CSimpleType) {
+      return !((CSimpleType)pType).isUnsigned();
+    }
+    // Default behaviour, structs for example
+    return false;
   }
 }

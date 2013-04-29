@@ -150,6 +150,9 @@ analysis.useProofCheckAlgorithm = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.useRefinement = false
 
+# do analysis and then check analysis result
+analysis.useResultCheckAlgorithm = false
+
 # Add a threshold to the automaton, after so many branches on a path the
 # automaton will be ignored (0 to disable)
 assumptions.automatonBranchingThreshold = 0
@@ -161,8 +164,12 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 assumptions.export = true
 assumptions.file = "assumptions.txt"
 
-# Initial size of the BDD cache.
-bdd.initBddCacheSize = 1000
+# Size of the BDD cache in relation to the node table size (set to 0 to use
+# fixed BDD cache size).
+bdd.bddCacheRatio = 0.1
+
+# Size of the BDD cache if cache ratio is not used.
+bdd.bddCacheSize = 1000
 
 # Initial size of the BDD node table.
 bdd.initBddNodeTableSize = 10000
@@ -205,7 +212,7 @@ bmc.boundingAssertions = true
 bmc.checkTargetStates = true
 
 # dump counterexample formula to file
-bmc.dumpCounterexampleFormula = "counterexample.msat"
+bmc.dumpCounterexampleFormula = "counterexample.smt2"
 
 # try using induction to verify programs with loops
 bmc.induction = false
@@ -305,6 +312,9 @@ cpa.abm.gatherCacheMissStatistics = false
 
 # export one variable assignment for error path to file, if one is found
 cpa.arg.errorPath.assignment = "ErrorPathAssignment.txt"
+
+# export error path to file as an automaton
+cpa.arg.errorPath.automaton = "ErrorPath.spc"
 
 # export error path to file, if one is found
 cpa.arg.errorPath.core = "ErrorPathCore.txt"
@@ -466,6 +476,10 @@ cpa.cpalien.exportSMG.file = "smg-%s.dot"
 
 # Describes when SMG graphs should be dumped. One of: {never, leaf, every}
 cpa.cpalien.exportSMGwhen = "never"
+
+# Sets the level of runtime checking: NONE, HALF, FULL
+cpa.cpalien.runtimeCheck = NONE
+  enum:     [FORCED, NONE, HALF, FULL]
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
@@ -655,7 +669,7 @@ cpa.predicate.enablePrecisionSweeper = false
 cpa.predicate.externModelFunctionName = "__VERIFIER_externModelSatisfied"
 
 # where to dump interpolation and abstraction problems (format string)
-cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.msat"
+cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
 
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false
@@ -733,7 +747,7 @@ cpa.predicate.predmap.export = true
 cpa.predicate.predmap.file = "predmap.txt"
 cpa.predicate.predmap.includeSwept = true
 
-# When computing an abstraction during refinement, use only the interpolant
+# If an abstraction is computed during refinement, use only the interpolant
 # as input, not the concrete block.
 cpa.predicate.refinement.abstractInterpolantOnly = false
 
@@ -760,7 +774,11 @@ cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
 
 # Actually compute an abstraction, otherwise just convert the interpolants to
 # BDDs as they are.
-cpa.predicate.refinement.doAbstractionComputation = true
+cpa.predicate.refinement.doAbstractionComputation = false
+
+# where to dump the counterexample formula in case the error location is
+# reached
+cpa.predicate.refinement.dumpCounterexampleFile = "counterexample.smt2"
 
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
@@ -786,10 +804,6 @@ cpa.predicate.refinement.keepAllPredicates = false
 # skip refinement if input formula is larger than this amount of bytes
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
-
-# where to dump the counterexample formula in case the error location is
-# reached
-cpa.predicate.refinement.msatCexFile = "counterexample.msat"
 
 # Where to apply the found predicates to?
 cpa.predicate.refinement.predicateSharing = LOCATION
@@ -839,6 +853,17 @@ cpa.predicate.solver.useIntegers = false
 
 # log some solver actions, this may be slow!
 cpa.predicate.solver.useLogger = false
+
+# Export solver queries in Smtlib2 format.
+cpa.predicate.solver.z3.logger.logfile = "z3smtlog.%d.smt2"
+
+# Export solver queries in Smtlib2 format, there are small differences for
+# different solvers, choose target-solver.
+cpa.predicate.solver.z3.logger.target = Z3
+  allowed values: [Z3, MATHSAT5]
+
+# simplify formulas when they are asserted in a solver.
+cpa.predicate.solver.z3.simplifyFormulas = false
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
@@ -894,9 +919,6 @@ java.version = JavaCore.VERSION_1_7
 # C or Java?
 language = C
   enum:     [C, JAVA]
-
-# Export solver queries in Smtlib2 format.
-logfile = "z3smtlog.%d.smt2"
 
 # C dialect for parser
 parser.dialect = GNUC

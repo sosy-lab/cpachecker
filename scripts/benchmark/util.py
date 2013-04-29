@@ -24,6 +24,7 @@ CPAchecker web page:
 
 from __future__ import absolute_import, unicode_literals
 
+import glob
 import os
 import subprocess
 import sys
@@ -133,6 +134,27 @@ def formatNumber(number, numberOfDigits):
     @param digits: the number of digits
     """
     return "%.{0}f".format(numberOfDigits) % number
+
+
+def expandFileNamePattern(pattern, baseDir):
+    """
+    Expand a file name pattern containing wildcards, environment variables etc.
+
+    @param pattern: The pattern string to expand.
+    @param baseDir: The directory where relative paths are based on.
+    @return: A list of file names (possibly empty).
+    """
+    # 'join' ignores baseDir, if expandedPattern is absolute.
+    # 'normpath' replaces 'A/foo/../B' with 'A/B', for pretty printing only
+    pattern = os.path.normpath(os.path.join(baseDir, pattern))
+
+    # expand tilde and variables
+    pattern = os.path.expandvars(os.path.expanduser(pattern))
+
+    # expand wildcards
+    fileList = glob.glob(pattern)
+
+    return fileList
 
 
 def appendFileToFile(sourcename, targetname):

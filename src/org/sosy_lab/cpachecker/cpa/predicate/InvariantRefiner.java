@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.util.invariants.balancer.WeispfenningBalancer;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateBoolean;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
@@ -74,7 +73,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
   private final PredicateCPA predicateCpa;
   private final Configuration config;
   private final LogManager logger;
-  private final AbstractionManager amgr;
+  private final PredicateAbstractionManager amgr;
   private final FormulaManagerView emgr;
   //private final TemplatePathFormulaBuilder tpfb;
   //private final TheoremProver prover;
@@ -95,7 +94,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     config.inject(this, InvariantRefiner.class);
     logger = predicateCpa.getLogger();
 
-    amgr = predicateCpa.getAbstractionManager();
+    amgr = predicateCpa.getPredicateManager();
     emgr = predicateCpa.getFormulaManager();
 
     //tpfb = new TemplatePathFormulaBuilder();
@@ -209,7 +208,7 @@ public class InvariantRefiner extends AbstractARGBasedRefiner {
     // Make true and false formulas.
     BooleanFormula trueFormula = bfmgr.makeBoolean(true);
     Collection<AbstractionPredicate> falseFormula = new Vector<>();
-    falseFormula.add(amgr.makePredicate(bfmgr.makeBoolean(false)));
+    falseFormula.add(amgr.createPredicateFor(bfmgr.makeBoolean(false)));
 
     // Get the list of abstraction elements.
     List<CFANode> path = transformPath(pPath);

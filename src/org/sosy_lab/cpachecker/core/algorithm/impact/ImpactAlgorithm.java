@@ -56,11 +56,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -68,6 +64,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;

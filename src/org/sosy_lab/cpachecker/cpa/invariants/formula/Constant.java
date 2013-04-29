@@ -25,15 +25,33 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * Instances of this class represent constants within invariants formulae.
+ *
+ * @param <T> the type of the constant value.
+ */
 public class Constant<T> implements InvariantsFormula<T> {
 
+  /**
+   * The value of the constant.
+   */
   private final T value;
 
+  /**
+   * Creates a new constant with the given value.
+   *
+   * @param pValue the value of the constant.
+   */
   private Constant(T pValue) {
     Preconditions.checkNotNull(pValue);
     this.value = pValue;
   }
 
+  /**
+   * Gets the value of the constant.
+   *
+   * @return the value of the constant.
+   */
   public T getValue() {
     return this.value;
   }
@@ -70,6 +88,13 @@ public class Constant<T> implements InvariantsFormula<T> {
     return pVisitor.visit(this, pParameter);
   }
 
+  /**
+   * Gets a invariants formula representing a constant with the given value.
+   *
+   * @param pValue the value of the constant.
+   *
+   * @return a invariants formula representing a constant with the given value.
+   */
   static <T> Constant<T> of(T pValue) {
     return new Constant<>(pValue);
   }

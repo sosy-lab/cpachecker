@@ -23,22 +23,51 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
+/**
+ * Instances of this class represent right shifts of invariants formulae by
+ * other invariants formulae.
+ *
+ * @param <ConstantType> the type of the constants used in the formulae.
+ */
 public class ShiftRight<ConstantType> implements InvariantsFormula<ConstantType> {
 
+  /**
+   * The formula shifted by this operation.
+   */
   private final InvariantsFormula<ConstantType> shifted;
 
+  /**
+   * The shift distance formula of this operation.
+   */
   private final InvariantsFormula<ConstantType> shiftDistance;
 
-  private ShiftRight(InvariantsFormula<ConstantType> pToShift, InvariantsFormula<ConstantType> pShiftDistance) {
+  /**
+   * Creates a new right shift formula over the given operands.
+   *
+   * @param pToShift the formula to be shifted by this operation.
+   * @param pShiftDistance the distance by which to shift the first operand to
+   * the right.
+   */
+  private ShiftRight(InvariantsFormula<ConstantType> pToShift,
+      InvariantsFormula<ConstantType> pShiftDistance) {
     this.shifted = pToShift;
     this.shiftDistance = pShiftDistance;
   }
 
+  /**
+   * Gets the formula shifted by this operation.
+   *
+   * @return the formula shifted by this operation.
+   */
   public InvariantsFormula<ConstantType> getShifted() {
     return this.shifted;
   }
 
+  /**
+   * Gets the shift distance formula of this operation.
+   *
+   * @return the shift distance formula of this operation.
+   */
   public InvariantsFormula<ConstantType> getShiftDistance() {
     return this.shiftDistance;
   }
@@ -76,6 +105,16 @@ public class ShiftRight<ConstantType> implements InvariantsFormula<ConstantType>
     return pVisitor.visit(this, pParameter);
   }
 
+  /**
+   * Gets an invariants formula representing the right shift of the first given
+   * operand by the second given operand.
+   *
+   * @param pToShift the operand to be shifted.
+   * @param pShiftDistance the shift distance.
+   *
+   * @return an invariants formula representing the right shift of the first
+   * given operand by the second given operand.
+   */
   static <ConstantType> ShiftRight<ConstantType> of(InvariantsFormula<ConstantType> pToShift, InvariantsFormula<ConstantType> pShiftDistance) {
     return new ShiftRight<>(pToShift, pShiftDistance);
   }

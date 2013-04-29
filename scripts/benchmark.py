@@ -38,7 +38,6 @@ except ImportError: # Queue was renamed to queue in Python 3
   import queue as Queue
 
 import time
-import glob
 import logging
 import argparse
 import os
@@ -218,6 +217,22 @@ class Benchmark:
         # get global source files, they are used in all run sets
         globalSourcefilesTags = rootTag.findall("sourcefiles")
 
+        # get required files
+        self.requiredFiles = self.tool.getProgrammFiles(self.executable)
+        baseDir = os.path.dirname(self.benchmarkFile)
+        for requiredFilesTag in rootTag.findall('requiredfiles'):
+            requiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, baseDir)
+            self.requiredFiles.extend(requiredFiles)
+
+        # get requirements
+        self.requirements = Requirements()
+        for requireTag in rootTag.findall("require"):
+            requirements = Requirements(requireTag.get('cpuModel', None),
+                                        requireTag.get('cpuCores', None),
+                                        requireTag.get('memory',   None)
+                                        )
+            self.requirements = Requirements.merge(self.requirements, requirements)
+
         # get benchmarks
         self.runSets = []
         i = 1
@@ -387,22 +402,14 @@ class RunSet:
         assert len(expandedPattern) == 1
         expandedPattern = expandedPattern[0]
 
-        # 'join' ignores baseDir, if expandedPattern is absolute.
-        # 'normpath' replaces 'A/foo/../B' with 'A/B', for pretty printing only
-        expandedPattern = os.path.normpath(os.path.join(baseDir, expandedPattern))
+        if expandedPattern != pattern:
+            logging.debug("Expanded variables in expression {0} to {1}."
+                .format(repr(pattern), repr(expandedPattern)))
 
-        # expand tilde and variables
-        expandedPattern = os.path.expandvars(os.path.expanduser(expandedPattern))
-
-        # expand wildcards
-        fileList = glob.glob(expandedPattern)
+        fileList = Util.expandFileNamePattern(expandedPattern, baseDir)
 
         # sort alphabetical,
         fileList.sort()
-
-        if expandedPattern != pattern:
-            logging.debug("Expanded tilde and/or shell variables in expression {0} to {1}."
-                .format(repr(pattern), repr(expandedPattern)))
 
         if not fileList and baseDir:
             # try fallback for old syntax of run definitions
@@ -485,7 +492,7 @@ class Run():
         if returnsignal == 9 \
                 and MEMLIMIT in rlimits \
                 and self.memUsage \
-                and self.memUsage >= (rlimits[MEMLIMIT] * 1024 * 1024):
+                and int(self.memUsage) >= (rlimits[MEMLIMIT] * 1024 * 1024):
             self.status = 'OUT OF MEMORY'
 
         self.benchmark.outputHandler.outputAfterRun(self)
@@ -535,6 +542,55 @@ class Column:
         self.title = title
         self.numberOfDigits = numOfDigits
         self.value = ""
+
+
+class Requirements:
+    def __init__(self, cpuModel=None, cpuCores=None, memory=None):
+        self._cpuModel = cpuModel
+        self._cpuCores = int(cpuCores) if cpuCores is not None else None
+        self._memory   = int(memory) if memory is not None else None
+
+        if self.cpuCores <= 0:
+            raise Exception('Invalid value for required CPU cores.')
+
+        if self.cpuCores <= 0:
+            raise Exception('Invalid value for required memory.')
+
+    def cpuModel(self):
+        return self._cpuModel or ""
+
+    def cpuCores(self):
+        return self._cpuCores or 1
+
+    def memory(self):
+        return self._memory or 1
+
+    @classmethod
+    def merge(cls, r1, r2):
+        if r1._cpuModel is not None and r2._cpuModel is not None:
+            raise Exception('Double specification of required CPU model.')
+        if r1._cpuCores and r2._cpuCores:
+            raise Exception('Double specification of required CPU cores.')
+        if r1._memory and r2._memory:
+            raise Exception('Double specification of required memory.')
+
+        return cls(r1._cpuModel if r1._cpuModel is not None else r2._cpuModel,
+                   r1._cpuCores or r2._cpuCores,
+                   r1._memory or r2._memory)
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__, self.__dict__)
+
+    def __str__(self):
+        s = ""
+        if self._cpuModel:
+            s += " CPU='" + self._cpuModel + "'"
+        if self._cpuCores:
+            s += " Cores=" + str(self._cpuCores)
+        if self._memory:
+            s += " Memory=" + str(self._memory) + "MB"
+
+        return "Requirements:" + (s if s else " None")
 
 
 class OutputHandler:
@@ -982,7 +1038,7 @@ class OutputHandler:
         runElem.append(ET.Element("column", {"title": "cputime", "value": cpuTimeStr}))
         runElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeStr}))
         if run.memUsage is not None:
-            runElem.append(ET.Element("column", {"title": "memUsage", "value": run.memUsage}))
+            runElem.append(ET.Element("column", {"title": "memUsage", "value": str(run.memUsage)}))
 
         for column in run.columns:
             runElem.append(ET.Element("column",
@@ -1245,7 +1301,7 @@ def parseCloudResultFile(filePath):
         except ValueError:
             pass
         try:
-            memUsage = str(float(file.readline().split(":")[-1]));
+            memUsage = int(file.readline().split(":")[-1]);
         except ValueError:
             pass
         try:
@@ -1286,13 +1342,20 @@ def executeBenchmarkInCloud(benchmark):
 
     absWorkingDir = os.path.abspath(os.curdir)
     logging.debug("Working dir: " + absWorkingDir)
-    toolpaths = benchmark.tool.getProgrammFiles(benchmark.executable)
+    toolpaths = benchmark.requiredFiles
     for file in toolpaths:
         if not os.path.exists(file):
             logging.error("Missing file {0}, cannot run benchmark within cloud.".format(os.path.normpath(file)))
             return
 
-    requirements = "2000\t1"  # TODO memory numerOfCpuCores
+    requirements = str(benchmark.requirements.memory()) + "\t" + \
+                str(benchmark.requirements.cpuCores())
+                    
+    if(benchmark.requirements.cpuModel() is not ""):
+        requirements += "\t" + benchmark.requirements.cpuModel()                         
+                            
+    # TODO
+    print('Ignoring specified ' + requirements)
     cloudRunExecutorDir = os.path.abspath(os.path.dirname(__file__))
     outputDir = benchmark.logFolder
     absOutputDir = os.path.abspath(outputDir)

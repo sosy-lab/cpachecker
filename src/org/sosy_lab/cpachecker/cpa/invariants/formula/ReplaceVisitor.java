@@ -23,13 +23,33 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-public class ReplaceVisitor<T> extends RecursiveDefaultFormulaVisitor<T> implements TransformFormulaVisitor<T> {
+/**
+ * Instances of this class are invariants formula visitors used to replace
+ * parts of the visited formulae with other formulae.
+ *
+ * @param <T> the type of the constants used in the formulae.
+ */
+public class ReplaceVisitor<T> extends RecursiveDefaultFormulaVisitor<T> {
 
+  /**
+   * The formula to be replaced.
+   */
   private final InvariantsFormula<T> toReplace;
 
+  /**
+   * The replacement formula.
+   */
   private final InvariantsFormula<T> replacement;
 
-  public ReplaceVisitor(InvariantsFormula<T> pToReplace, InvariantsFormula<T> pReplacement) {
+  /**
+   * Creates a new replace visitor for replacing occurrences of the first given
+   * formula by the second given formula in visited formulae.
+   *
+   * @param pToReplace the formula to be replaced.
+   * @param pReplacement the replacement formula.
+   */
+  public ReplaceVisitor(InvariantsFormula<T> pToReplace,
+      InvariantsFormula<T> pReplacement) {
     this.toReplace = pToReplace;
     this.replacement = pReplacement;
   }

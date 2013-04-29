@@ -399,9 +399,10 @@ public class SimpleInterval {
         return this.upperBound.compareTo(other.lowerBound) >= 0;
       } else {
         // this is [a, b]; other is [c, d]
-        // result is true if a <= d or b >= c
-        return this.lowerBound.compareTo(other.upperBound) <= 0 && this.lowerBound.compareTo(other.lowerBound) >= 0
-            || this.upperBound.compareTo(other.lowerBound) >= 0 && this.upperBound.compareTo(other.upperBound) <= 0;
+        // result is true if a <= d and b >= c
+        boolean aLessThanOrEqB = this.lowerBound.compareTo(other.upperBound) <= 0;
+        boolean bGreaterThanOrEqC = this.upperBound.compareTo(other.lowerBound) >= 0;
+        return aLessThanOrEqB && bGreaterThanOrEqC;
       }
     }
   }

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.util.Set;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -225,16 +227,38 @@ public class SMGState implements AbstractQueryableState {
     }
   }
 
+  public SMGEdgePointsTo getPointerFromValue(Integer pValue) throws SMGInconsistentException {
+    for (SMGEdgePointsTo edge : heap.getPTEdges()){
+      if (edge.getValue() == pValue) {
+        return edge;
+      }
+    }
+
+    throw new SMGInconsistentException("Asked for a Points-To edge for a non-pointer value");
+  }
+
   /**
    * Read Value in field (object, type) of an Object.
    *
-   * @param object SMGObject representing the memory the field belongs to.
-   * @param offset offset of field being read.
-   * @param type type of field written into.
+   * @param pObject SMGObject representing the memory the field belongs to.
+   * @param pOffset offset of field being read.
+   * @param pType type of field
    * @return
+   * @throws SMGInconsistentException
    */
-  public Integer readValue(SMGObject object, int offset, CType type) {
-    // TODO Auto-generated method stub
+  public Integer readValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
+    SMGEdgeHasValue edge = new SMGEdgeHasValue(pType, pOffset, pObject, 0);
+    Set<SMGEdgeHasValue> edges = heap.getValuesForObject(pObject, pOffset);
+
+    for (SMGEdgeHasValue object_edge : edges) {
+      if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())){
+        this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+        return object_edge.getValue();
+      }
+    }
+
+    // TODO: Nullified blocks coverage interpretation
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
     return null;
   }
 
@@ -249,14 +273,52 @@ public class SMGState implements AbstractQueryableState {
    * @param machineModel Currently used Machine Model
    * @throws SMGInconsistentException
    */
-  public void writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
+  public SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
+
+    if (pValue == null) {
+      pValue = heap.getNullValue();
+    }
+
     SMGEdgeHasValue new_edge = new SMGEdgeHasValue(pType, pOffset, pObject, pValue);
+
+    // Check if the edge is  not present already
+    Set<SMGEdgeHasValue> edges = heap.getValuesForObject(pObject);
+    if (edges.contains(new_edge)){
+      this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+      return new_edge;
+    }
+
+    // If the value is not in the SMG, we need to add it
     if ( ! heap.getValues().contains(pValue) ){
       heap.addValue(pValue);
     }
+
+    // We need to remove all non-zero overlapping edges
+    for (SMGEdgeHasValue hv : edges){
+      if (hv.getValue() != heap.getNullValue() && new_edge.overlapsWith(hv, heap.getMachineModel())){
+        heap.removeHasValueEdge(hv);
+      }
+    }
+
+    //TODO: Shrink overlapping zero edges
     heap.addHasValueEdge(new_edge);
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+
+    return new_edge;
+  }
+
+  /**
+   * Returns an unmodifiable set of {@link SMGEdgeHasValue} objects leading from
+   * {@link pObject}.
+   *
+   * Constant.
+   *
+   * @param pObject A source object
+   * @return A set of edges leading from an object.
+   */
+  public Set<SMGEdgeHasValue> getValuesForObject(SMGObject pObject) {
+    return heap.getValuesForObject(pObject);
   }
 
   /**

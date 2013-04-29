@@ -82,16 +82,15 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
       ARGPath errorPath) throws CPAException {
     timerInterpolation.start();
+    numberOfRefinements++;
+    numberOfErrorPathElements += errorPath.size();
 
     ExplicitInterpolator interpolator     = new ExplicitInterpolator();
     Map<String, Long> currentInterpolant  = new HashMap<>();
     Multimap<CFANode, String> increment   = HashMultimap.create();
     firstInterpolationPoint               = null;
 
-    numberOfRefinements++;
     for (int i = 0; i < errorPath.size(); i++) {
-      numberOfErrorPathElements++;
-
       CFAEdge currentEdge = errorPath.get(i).getSecond();
       if (currentEdge instanceof CFunctionReturnEdge) {
         currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
@@ -101,8 +100,8 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       // do interpolation
       Map<String, Long> inputInterpolant = new HashMap<>(currentInterpolant);
       try {
-        numberOfInterpolations++;
         //System.out.println("\t\tinput interpolant: " + inputInterpolant);
+        numberOfInterpolations++;
         Set<Pair<String, Long>> interpolant = interpolator.deriveInterpolant(errorPath, i, inputInterpolant);
 
         //System.out.println("\t\t ----> feasible: " + (interpolator.isFeasible() ? "YES" : "NO"));

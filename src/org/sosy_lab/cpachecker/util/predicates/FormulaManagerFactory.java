@@ -79,10 +79,7 @@ public class FormulaManagerFactory {
 
     case MATHSAT5:
       try {
-        lFmgr = Mathsat5FormulaManager.create(logger, config);
-        if (useIntegers) { throw new InvalidConfigurationException(
-            "Using integers for program variables is currently not implementted when MathSAT is used."); }
-
+        lFmgr = Mathsat5FormulaManager.create(logger, config, useIntegers);
       } catch (UnsatisfiedLinkError e) {
         throw new InvalidConfigurationException("The SMT solver " + solver
             + " is not available on this machine."

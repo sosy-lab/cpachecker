@@ -170,7 +170,7 @@ class Tool(benchmark.tools.template.BaseTool):
             for line in output.splitlines():
                 if column.text in line:
                     startPosition = line.find(':') + 1
-                    endPosition = line.find('(') # bracket maybe not found -> (-1)
+                    endPosition = line.find('(', startPosition) # bracket maybe not found -> (-1)
                     if (endPosition == -1):
                         column.value = line[startPosition:].strip()
                     else:

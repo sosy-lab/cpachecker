@@ -23,22 +23,49 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
+/**
+ * Instances of this class represent binary and operations on invariants
+ * formulae.
+ *
+ * @param <ConstantType> the type of the constants used in the formula.
+ */
 public class BinaryAnd<ConstantType> implements InvariantsFormula<ConstantType> {
 
+  /**
+   * The first operand.
+   */
   private final InvariantsFormula<ConstantType> operand1;
 
+  /**
+   * The second operand.
+   */
   private final InvariantsFormula<ConstantType> operand2;
 
+  /**
+   * Creates a new binary and formula over the given operands.
+   *
+   * @param pOperand1 the first operand.
+   * @param pOperand2 the second operand.
+   */
   private BinaryAnd(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
     this.operand1 = pOperand1;
     this.operand2 = pOperand2;
   }
 
+  /**
+   * Gets the first operand.
+   *
+   * @return the first operand.
+   */
   public InvariantsFormula<ConstantType> getOperand1() {
     return this.operand1;
   }
 
+  /**
+   * Gets the second operand.
+   *
+   * @return the second operand.
+   */
   public InvariantsFormula<ConstantType> getOperand2() {
     return this.operand2;
   }
@@ -76,6 +103,14 @@ public class BinaryAnd<ConstantType> implements InvariantsFormula<ConstantType> 
     return pVisitor.visit(this, pParameter);
   }
 
+  /**
+   * Gets the binary and operation over the given operands.
+   *
+   * @param pOperand1 the first operand.
+   * @param pOperand2 the second operand.
+   *
+   * @return the binary and operation over the given operands.
+   */
   static <ConstantType> BinaryAnd<ConstantType> of(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
     return new BinaryAnd<>(pOperand1, pOperand2);
   }

@@ -39,8 +39,8 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
       long pEnv,
       long pBoolType,
       long pNumberType,
-      AbstractFormulaCreator.CreateBitType<Long> pBittype, Z3SmtLogger smtLogger) {
-    super(pEnv, pBoolType, pNumberType, pBittype);
+      Z3SmtLogger smtLogger) {
+    super(pEnv, pBoolType, pNumberType);
 
     this.smtLogger = smtLogger;
   }
@@ -80,4 +80,10 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
     }
     return (T) f;
   }
+
+  @Override
+  public Long getBittype(int pBitwidth) {
+    long bvSort = mk_bv_sort(getEnv(), pBitwidth);
+    inc_ref(getEnv(), sort_to_ast(getEnv(), bvSort));
+    return bvSort;  }
 }

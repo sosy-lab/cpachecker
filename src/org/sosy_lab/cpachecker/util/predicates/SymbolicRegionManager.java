@@ -41,12 +41,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
  */
 public class SymbolicRegionManager implements RegionManager {
 
-  public static class SymbolicRegion implements Region {
+  private static class SymbolicRegion implements Region {
 
     private final BooleanFormula f;
     private final BooleanFormulaManager bfmgr;
 
-    public SymbolicRegion(BooleanFormulaManager bfmgr, BooleanFormula pF) {
+    private SymbolicRegion(BooleanFormulaManager bfmgr, BooleanFormula pF) {
       f = checkNotNull(pF);
       this.bfmgr = bfmgr;
     }
@@ -78,16 +78,27 @@ public class SymbolicRegionManager implements RegionManager {
     }
   }
 
+  private final BooleanFormulaManager bfmgr;
   private final Solver solver;
 
   private final SymbolicRegion trueRegion;
   private final SymbolicRegion falseRegion;
 
+  private int predicateCount = 0;
+
   public SymbolicRegionManager(FormulaManager fmgr, Solver pSolver) {
     solver = pSolver;
-    BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
     trueRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(true));
     falseRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(false));
+  }
+
+  Region fromFormula(BooleanFormula f) {
+    return new SymbolicRegion(bfmgr, f);
+  }
+
+  BooleanFormula toFormula(Region r) {
+    return ((SymbolicRegion)r).f;
   }
 
   @Override
@@ -110,7 +121,8 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public Region makeNot(Region pF) {
-    throw new UnsupportedOperationException();
+    SymbolicRegion r = (SymbolicRegion)pF;
+    return new SymbolicRegion(r.bfmgr, r.bfmgr.not(r.f));
   }
 
   @Override
@@ -153,7 +165,8 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public Region createPredicate() {
-    throw new UnsupportedOperationException();
+    return new SymbolicRegion(bfmgr,
+        bfmgr.makeVariable("__PREDICATE__" + predicateCount++));
   }
 
   @Override

@@ -27,25 +27,48 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
 
-public class ChangeAnalyzeVisitor extends DefaultParameterizedFormulaVisitor<CompoundState, Map<? extends String, ? extends InvariantsFormula<CompoundState>>, ChangeAnalyzeVisitor.Result> implements ParameterizedInvariantsFormulaVisitor<CompoundState, Map<? extends String, ? extends InvariantsFormula<CompoundState>>, ChangeAnalyzeVisitor.Result> {
+/**
+ * Instances of this class are invariants formula visitors that are used to
+ * analyze how the visited compound state formulae compare to a comparison
+ * formula.
+ */
+public class ComparisonVisitor extends DefaultParameterizedFormulaVisitor<CompoundState, Map<? extends String, ? extends InvariantsFormula<CompoundState>>, ComparisonVisitor.Result> {
 
+  /**
+   * The comparison formula.
+   */
   private final InvariantsFormula<CompoundState> comparisonFormula;
 
-  private CompoundState comparisonValue = null;
-
-  private Result compValueToZero = null;
-
+  /**
+   * The formula evaluation visitor used.
+   */
   private final FormulaEvaluationVisitor<CompoundState> evaluationVisitor;
 
+  /**
+   * The last visitor used to determine stateful equality over formulae.
+   */
   private StateEqualsVisitor cachedStateEqualsVisitor;
 
+  /**
+   * The key identity the last stateful equality determination visitor is valid
+   * for.
+   */
   private Object stateEqualsVisitorCacheKey;
 
-  public ChangeAnalyzeVisitor(InvariantsFormula<CompoundState> pComparisonFormula, FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor) {
+  public ComparisonVisitor(InvariantsFormula<CompoundState> pComparisonFormula, FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor) {
     this.comparisonFormula = pComparisonFormula;
     this.evaluationVisitor = pEvaluationVisitor;
   }
 
+  /**
+   * Gets a visitor used to determine stateful equality over formulae for the
+   * given environment.
+   *
+   * @param pEnvironment the environment used by the visitor.
+   *
+   * @return a visitor used to determine stateful equality over formulae for the
+   * given environment.
+   */
   private StateEqualsVisitor getStateEqualsVisitor(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     if (stateEqualsVisitorCacheKey == pEnvironment) {
       return cachedStateEqualsVisitor;
@@ -55,34 +78,57 @@ public class ChangeAnalyzeVisitor extends DefaultParameterizedFormulaVisitor<Com
     return cachedStateEqualsVisitor;
   }
 
+  /**
+   * Gets the value of the comparison formula within the given environment.
+   *
+   * @param pEnvironment the environment to evaluate the comparison formula in.
+   *
+   * @return the value of the comparison formula within the given environment.
+   */
   private CompoundState getComparisonValue(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    if (this.comparisonValue == null) {
-      this.comparisonValue = comparisonFormula.accept(evaluationVisitor, pEnvironment);
-    }
-    return this.comparisonValue;
+    return comparisonFormula.accept(evaluationVisitor, pEnvironment);
   }
 
+  /**
+   * Compares the comparison formula to zero within the given environment.
+   *
+   * @param pEnvironment the environment to evaluate the comparison formula in.
+   *
+   * @return the result of the comparison between the comparison formula and
+   * zero.
+   */
   private Result getCompValueToZero(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    if (this.compValueToZero == null) {
-      if (isCompValueDefinitelyNegative(pEnvironment)) {
-        compValueToZero = Result.LESS_THAN;
-      } else if (isCompValueDefinitelyNonPositive(pEnvironment)) {
-        compValueToZero = Result.LESS_THAN_OR_EQUAL;
-      } else if (isCompValueDefinitelyZero(pEnvironment)) {
-        compValueToZero = Result.EQUAL;
-      } else if (isCompValueDefinitelyNonNegative(pEnvironment)) {
-        compValueToZero = Result.GREATER_THAN_OR_EQUAL;
-      } else if (isCompValueDefinitelyPositive(pEnvironment)) {
-        compValueToZero = Result.GREATER_THAN;
-      } else if (isCompValueDefinitelyNonZero(pEnvironment)) {
-        compValueToZero = Result.INEQUAL;
-      } else {
-        compValueToZero = Result.UNKNOWN;
-      }
+    if (isCompValueDefinitelyZero(pEnvironment)) {
+      return Result.EQUAL;
     }
-    return compValueToZero;
+    if (isCompValueDefinitelyNegative(pEnvironment)) {
+      return Result.LESS_THAN;
+    }
+    if (isCompValueDefinitelyPositive(pEnvironment)) {
+      return Result.GREATER_THAN;
+    }
+    if (isCompValueDefinitelyNonPositive(pEnvironment)) {
+      return Result.LESS_THAN_OR_EQUAL;
+    }
+    if (isCompValueDefinitelyNonNegative(pEnvironment)) {
+      return Result.GREATER_THAN_OR_EQUAL;
+    }
+    if (isCompValueDefinitelyNonZero(pEnvironment)) {
+      return Result.INEQUAL;
+    }
+    return Result.UNKNOWN;
   }
 
+  /**
+   * Checks if the comparison formula definitely evaluates to a negative value
+   * within the given environment.
+   *
+   * @param pEnvironment the environment to evaluate the comparison formula in.
+   *
+   * @return <code>true</code> if the comparison formula definitely evaluates
+   * to a negative value within the given environment, <code>false</code>
+   * otherwise.
+   */
   private boolean isCompValueDefinitelyNegative(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     CompoundState comparisonValue = getComparisonValue(pEnvironment);
     if (comparisonValue.hasUpperBound()) {
@@ -91,6 +137,16 @@ public class ChangeAnalyzeVisitor extends DefaultParameterizedFormulaVisitor<Com
     return false;
   }
 
+  /**
+   * Checks if the comparison formula definitely evaluates to a non-positive
+   * value within the given environment.
+   *
+   * @param pEnvironment the environment to evaluate the comparison formula in.
+   *
+   * @return <code>true</code> if the comparison formula definitely evaluates
+   * to a non-positive value within the given environment, <code>false</code>
+   * otherwise.
+   */
   private boolean isCompValueDefinitelyNonPositive(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     CompoundState comparisonValue = getComparisonValue(pEnvironment);
     if (comparisonValue.hasUpperBound()) {
@@ -99,6 +155,16 @@ public class ChangeAnalyzeVisitor extends DefaultParameterizedFormulaVisitor<Com
     return false;
   }
 
+  /**
+   * Checks if the comparison formula definitely evaluates to a positive value
+   * within the given environment.
+   *
+   * @param pEnvironment the environment to evaluate the comparison formula in.
+   *
+   * @return <code>true</code> if the comparison formula definitely evaluates
+   * to a positive value within the given environment, <code>false</code>
+   * otherwise.
+   */
   private boolean isCompValueDefinitelyPositive(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     CompoundState comparisonValue = getComparisonValue(pEnvironment);
     if (comparisonValue.hasLowerBound()) {
@@ -107,6 +173,16 @@ public class ChangeAnalyzeVisitor extends DefaultParameterizedFormulaVisitor<Com
     return false;
   }
 
+  /**
+   * Checks if the comparison formula definitely evaluates to a non-negative
+   * value within the given environment.
+   *
+   * @param pEnvironment the environment to evaluate the comparison formula in.
+   *
+   * @return <code>true</code> if the comparison formula definitely evaluates
+   * to a non--negative value within the given environment, <code>false</code>
+   * otherwise.
+   */
   private boolean isCompValueDefinitelyNonNegative(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     CompoundState comparisonValue = getComparisonValue(pEnvironment);
     if (comparisonValue.hasLowerBound()) {
@@ -115,11 +191,30 @@ public class ChangeAnalyzeVisitor extends DefaultParameterizedFormulaVisitor<Com
     return false;
   }
 
+  /**
+   * Checks if the comparison formula definitely evaluates to zero within the
+   * given environment.
+   *
+   * @param pEnvironment the environment to evaluate the comparison formula in.
+   *
+   * @return <code>true</code> if the comparison formula definitely evaluates
+   * to zero within the given environment, <code>false</code> otherwise.
+   */
   private boolean isCompValueDefinitelyZero(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     CompoundState comparisonValue = getComparisonValue(pEnvironment);
     return comparisonValue.isSingleton() && comparisonValue.containsZero();
   }
 
+  /**
+   * Checks if the comparison formula definitely evaluates to a non-zero value
+   * within the given environment.
+   *
+   * @param pEnvironment the environment to evaluate the comparison formula in.
+   *
+   * @return <code>true</code> if the comparison formula definitely evaluates
+   * to a non-zero value within the given environment, <code>false</code>
+   * otherwise.
+   */
   private boolean isCompValueDefinitelyNonZero(Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     return !getComparisonValue(pEnvironment).containsZero();
   }
@@ -174,7 +269,7 @@ public class ChangeAnalyzeVisitor extends DefaultParameterizedFormulaVisitor<Com
   @Override
   public Result visit(Variable<CompoundState> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
     if (!(comparisonFormula instanceof Variable<?>)) {
-      Result inverted = comparisonFormula.accept(new ChangeAnalyzeVisitor(pVariable, evaluationVisitor), pEnvironment);
+      Result inverted = comparisonFormula.accept(new ComparisonVisitor(pVariable, evaluationVisitor), pEnvironment);
       switch (inverted) {
       case EQUAL:
         return Result.EQUAL;
@@ -224,20 +319,46 @@ public class ChangeAnalyzeVisitor extends DefaultParameterizedFormulaVisitor<Com
     return Result.UNKNOWN;
   }
 
+  /**
+   * Instances of this enumeration represent possible comparison results.
+   */
   public enum Result {
 
+    /**
+     * Represents that a formula is less than a comparison formula.
+     */
     LESS_THAN,
 
+    /**
+     * Represents that a formula is less than or equal to a comparison formula.
+     */
     LESS_THAN_OR_EQUAL,
 
+    /**
+     * Represents that a formula is equal to a comparison formula.
+     */
     EQUAL,
 
+    /**
+     * Represents that a formula is greater than or equal to a comparison
+     * formula.
+     */
     GREATER_THAN_OR_EQUAL,
 
+    /**
+     * Represents that a formula is greater than a comparison formula.
+     */
     GREATER_THAN,
 
+    /**
+     * Represents that a formula is not equal to a comparison formula.
+     */
     INEQUAL,
 
+    /**
+     * Represents that it is unknown how a formula compares to a comparison
+     * formula.
+     */
     UNKNOWN;
 
   }

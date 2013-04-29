@@ -638,7 +638,9 @@ public class ABMTransferRelation implements TransferRelation {
     return reached;
   }
 
-  void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath, ARGState element, Precision newPrecision,
+  void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath,
+      ARGState element, Precision newPrecision,
+      Class<? extends Precision> pPrecisionType,
       Map<ARGState, ARGState> pPathElementToReachedState) {
     removeSubtreeTimer.start();
 
@@ -680,13 +682,13 @@ public class ABMTransferRelation implements TransferRelation {
     }
 
     for (Pair<ARGState, ARGState> removeCachedSubtreeArguments : neededRemoveCachedSubtreeCalls) {
-      removeCachedSubtree(removeCachedSubtreeArguments.getFirst(), removeCachedSubtreeArguments.getSecond(), null);
+      removeCachedSubtree(removeCachedSubtreeArguments.getFirst(), removeCachedSubtreeArguments.getSecond(), null, pPrecisionType);
     }
 
     if (lastElement == null) {
-      removeSubtree(mainReachedSet, pPathElementToReachedState.get(element), newPrecision);
+      removeSubtree(mainReachedSet, pPathElementToReachedState.get(element), newPrecision, pPrecisionType);
     } else {
-      removeCachedSubtree(lastElement, pPathElementToReachedState.get(element), newPrecision);
+      removeCachedSubtree(lastElement, pPathElementToReachedState.get(element), newPrecision, pPrecisionType);
     }
 
     removeSubtreeTimer.stop();
@@ -790,7 +792,8 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
 
-  private void removeCachedSubtree(ARGState rootState, ARGState removeElement, Precision newPrecision) {
+  private void removeCachedSubtree(ARGState rootState, ARGState removeElement,
+      Precision newPrecision, Class<? extends Precision> pPrecisionType) {
     removeCachedSubtreeTimer.start();
 
     try {
@@ -812,7 +815,8 @@ public class ABMTransferRelation implements TransferRelation {
       if (newPrecision != null) {
         newReducedRemovePrecision =
             wrappedReducer.getVariableReducedPrecision(
-                Precisions.replaceByType(removePrecision, newPrecision, newPrecision.getClass()), rootSubtree);
+                Precisions.replaceByType(removePrecision, newPrecision, pPrecisionType), rootSubtree);
+        pPrecisionType = newReducedRemovePrecision.getClass();
       }
 
       assert !removeElement.getParents().isEmpty();
@@ -823,7 +827,7 @@ public class ABMTransferRelation implements TransferRelation {
 
       logger.log(Level.FINEST, "Removing subtree, adding a new cached entry, and removing the former cached entries");
 
-      if (removeSubtree(reachedSet, removeElement, newReducedRemovePrecision)) {
+      if (removeSubtree(reachedSet, removeElement, newReducedRemovePrecision, pPrecisionType)) {
         argCache
             .updatePrecisionForEntry(reducedRootState, reducedRootPrecision, rootSubtree, newReducedRemovePrecision);
       }
@@ -840,10 +844,11 @@ public class ABMTransferRelation implements TransferRelation {
    * @param newPrecision
    * @return <code>true</code>, if the precision of the first element of the given reachedSet changed by this operation; <code>false</code>, otherwise.
    */
-  private static boolean removeSubtree(ReachedSet reachedSet, ARGState argElement, Precision newPrecision) {
+  private static boolean removeSubtree(ReachedSet reachedSet, ARGState argElement,
+      Precision newPrecision, Class<? extends Precision> pPrecisionType) {
     ARGReachedSet argReachSet = new ARGReachedSet(reachedSet);
     boolean updateCacheNeeded = argElement.getParents().contains(reachedSet.getFirstState());
-    removeSubtree(argReachSet, argElement, newPrecision);
+    removeSubtree(argReachSet, argElement, newPrecision, pPrecisionType);
     return updateCacheNeeded;
   }
 
@@ -851,11 +856,12 @@ public class ABMTransferRelation implements TransferRelation {
     reachedSet.removeSubtree(argElement);
   }
 
-  private static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement, Precision newPrecision) {
+  private static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement,
+      Precision newPrecision, Class<? extends Precision> pPrecisionType) {
     if (newPrecision == null) {
       removeSubtree(reachedSet, argElement);
     } else {
-      reachedSet.removeSubtree(argElement, newPrecision);
+      reachedSet.removeSubtree(argElement, newPrecision, pPrecisionType);
     }
   }
 

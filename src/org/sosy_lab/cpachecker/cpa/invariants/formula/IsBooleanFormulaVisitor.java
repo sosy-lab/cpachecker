@@ -23,6 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+/**
+ * Instances of this class are visitors used to check if the visited formula is
+ * a boolean formula. While numerical evaluations of formulae can be
+ * interpreted as boolean values with <code>0</code> meaning <code>false</code>
+ * and <code>1</code> meaning <code>true</code>, only formulae with operators
+ * producing genuine boolean results are considered as boolean formula.
+ *
+ * @param <T> the type of the constants used in the visited formulae.
+ */
 public class IsBooleanFormulaVisitor<T> implements InvariantsFormulaVisitor<T, Boolean> {
 
   @Override

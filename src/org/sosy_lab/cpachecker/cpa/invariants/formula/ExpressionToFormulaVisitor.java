@@ -39,8 +39,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
+/**
+ * Instances of this class are c expression visitors used to convert c
+ * expressions to compound state invariants formulae.
+ */
 public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<InvariantsFormula<CompoundState>, UnrecognizedCCodeException> implements CRightHandSideVisitor<InvariantsFormula<CompoundState>, UnrecognizedCCodeException> {
 
+  /**
+   * The set of allowed operators. Logical AND and logical OR are not allowed
+   * because they are deprecated.
+   */
   private static final List<CBinaryExpression.BinaryOperator> allowedOperators = Arrays.asList(
     BinaryOperator.BINARY_AND,
     BinaryOperator.BINARY_OR,
@@ -60,10 +68,25 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     BinaryOperator.SHIFT_RIGHT
   );
 
-  private static final InvariantsFormula<CompoundState> BOTTOM = InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.bottom());
+  /**
+   * The compound state invariants formula representing the top state.
+   */
+  private static final InvariantsFormula<CompoundState> TOP =
+      InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.top());
 
+  /**
+   * The variable name extractor used to extract variable names from c id
+   * expressions.
+   */
   private final VariableNameExtractor variableNameExtractor;
 
+  /**
+   * Creates a new visitor for converting c expressions to compound state
+   * invariants formulae with the given variable name extractor.
+   *
+   * @param pVariableNameExtractor the variable name extractor used to obtain
+   * variable names for c id expressions.
+   */
   public ExpressionToFormulaVisitor(VariableNameExtractor pVariableNameExtractor) {
     this.variableNameExtractor = pVariableNameExtractor;
   }
@@ -143,9 +166,14 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     case SHIFT_RIGHT:
       return fmgr.shiftRight(left, right);
     default:
+      /*
+       * While invariants formulae support logical AND and logical NOT and thus
+       * also logical OR, logical AND and logical OR are deprecated c binary
+       * operators in CPAchecker.
+       */
       assert allowedOperators.contains(pCBinaryExpression.getOperator())
           : ("Unexpected operator: " + pCBinaryExpression.getOperator());
-      return BOTTOM;
+      return TOP;
     }
   }
 
@@ -155,8 +183,22 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     return null;
   }
 
+  /**
+   * Instances of implementing classes are used to obtain variable names for c
+   * id expressions.
+   */
   public interface VariableNameExtractor {
 
+    /**
+     * Provides a variable name for the given c id expression.
+     *
+     * @param pCIdExpression the c id expression to provide a variable name
+     * for.
+     *
+     * @return the variable name for the given c id expression.
+     * @throws UnrecognizedCCodeException if the extraction process cannot be
+     * completed because involved c code is unrecognized.
+     */
     String extract(CIdExpression pCIdExpression) throws UnrecognizedCCodeException;
 
   }

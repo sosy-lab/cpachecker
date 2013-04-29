@@ -23,22 +23,51 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
+/**
+ * Instances of this class represent modulo invariants formulae over other
+ * invariants formulae.
+ *
+ * @param <ConstantType> the type of the constants used in the formulae.
+ */
 public class Modulo<ConstantType> implements InvariantsFormula<ConstantType> {
 
+  /**
+   * The numerator of the fraction.
+   */
   private final InvariantsFormula<ConstantType> numerator;
 
+  /**
+   * The denominator of the fraction.
+   */
   private final InvariantsFormula<ConstantType> denominator;
 
-  private Modulo(InvariantsFormula<ConstantType> pNumerator, InvariantsFormula<ConstantType> pDenominator) {
+  /**
+   * Creates a new modulo formula over the given numerator and denominator
+   * formulae.
+   *
+   * @param pNumerator the numerator of the fraction.
+   * @param pDenominator the denominator of the fraction.
+   */
+  private Modulo(InvariantsFormula<ConstantType> pNumerator,
+      InvariantsFormula<ConstantType> pDenominator) {
     this.numerator = pNumerator;
     this.denominator = pDenominator;
   }
 
+  /**
+   * Gets the numerator of the fraction.
+   *
+   * @return the numerator of the fraction.
+   */
   public InvariantsFormula<ConstantType> getNumerator() {
     return this.numerator;
   }
 
+  /**
+   * Gets the denominator of the fraction.
+   *
+   * @return the denominator of the fraction.
+   */
   public InvariantsFormula<ConstantType> getDenominator() {
     return this.denominator;
   }
@@ -76,6 +105,15 @@ public class Modulo<ConstantType> implements InvariantsFormula<ConstantType> {
     return pVisitor.visit(this, pParameter);
   }
 
+  /**
+   * Gets an invariants formula representing the modulo operation over the
+   * given operands.
+   *
+   * @param pNumerator the numerator of the fraction.
+   * @param pDenominator the denominator of the fraction.
+   * @return an invariants formula representing the modulo operation over the
+   * given operands.
+   */
   static <ConstantType> Modulo<ConstantType> of(InvariantsFormula<ConstantType> pNumerator, InvariantsFormula<ConstantType> pDenominator) {
     return new Modulo<>(pNumerator, pDenominator);
   }

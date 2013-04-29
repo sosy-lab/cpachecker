@@ -25,10 +25,12 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.Map;
 
+/**
+ * Instances of implementing classes are invariants formula visitors used to
+ * evaluate the visited formulae to values of their constant types.
+ *
+ * @param <T> the type of the constants used in the visited formulae.
+ */
 public interface FormulaEvaluationVisitor<T> extends ParameterizedInvariantsFormulaVisitor<T, Map<? extends String, ? extends InvariantsFormula<T>>, T> {
-
-  T top();
-
-  T bottom();
 
 }

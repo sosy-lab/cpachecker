@@ -42,12 +42,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -151,7 +151,7 @@ public class ABMPredicateReducer implements Reducer {
       AbstractionFormula newAbstractionFormula =
           pamgr.expand(reducedAbstraction, rootAbstraction, relevantRootPredicates, newSSA);
 
-      PersistentMap<CFANode, Integer> abstractionLocations = rootState.getAbstractionLocationsOnPath();
+      PersistentMap<CFANode, Integer> abstractionLocations = reducedState.getAbstractionLocationsOnPath();
 
       return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
           newAbstractionFormula, abstractionLocations);
@@ -388,10 +388,9 @@ public class ABMPredicateReducer implements Reducer {
     AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
 
     // create region predicates for every atom in formula
-    pamgr.extractPredicates(reducedAbstraction.asFormula());
+    pamgr.extractPredicates(reducedAbstraction.asInstantiatedFormula());
 
-
-    Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asFormula());
+    Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asInstantiatedFormula());
     Collection<AbstractionPredicate> relevantRootPredicates =
         relevantComputer.getRelevantPredicates(pReducedContext, rootPredicates);
     //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region

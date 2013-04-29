@@ -31,7 +31,6 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
 
@@ -77,52 +76,27 @@ enum InvariantsDomain implements AbstractDomain {
       resultEnvironment.put(entry.getKey(), newValue);
     }
 
-    Set<InvariantsFormula<CompoundState>> resultInvariants =
-        new HashSet<>(element1.getInvariants());
-    resultInvariants.retainAll(element2.getInvariants());
+    Set<InvariantsFormula<CompoundState>> resultAssumptions =
+        new HashSet<>(element1.getAssumptions());
+    resultAssumptions.retainAll(element2.getAssumptions());
 
     int newThreshold = Math.min(element1.getEvaluationThreshold(), element2.getEvaluationThreshold());
 
+    Set<InvariantsFormula<CompoundState>> resultCandidateAssumptions =
+        new HashSet<>();
+    resultCandidateAssumptions.addAll(element1.getCandidateAssumptions());
+    resultCandidateAssumptions.addAll(element2.getCandidateAssumptions());
+
+    assert element1.getUseBitvectors() == element2.getUseBitvectors();
+
     return InvariantsState.from(resultRemainingEvaluations,
-        newThreshold, resultInvariants, resultEnvironment);
+        newThreshold, resultAssumptions, resultEnvironment,
+        resultCandidateAssumptions, element1.getUseBitvectors());
   }
 
   @Override
   public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) {
-    // check whether element 1 (or left) contains more information than element 2 (or right)
-    InvariantsState element1 = (InvariantsState)pElement1;
-    InvariantsState element2 = (InvariantsState)pElement2;
-
-    MapDifference<String, InvariantsFormula<CompoundState>> differences =
-        Maps.difference(element1.getEnvironment(), element2.getEnvironment());
-
-    if (differences.areEqual()) {
-      return element2.getInvariants().containsAll(element1.getInvariants());
-    }
-
-    if (!differences.entriesOnlyOnRight().isEmpty()) {
-      // right knows more, so it is not greater than left
-      return false;
-    }
-
-    for (ValueDifference<InvariantsFormula<CompoundState>> valueDifference : differences.entriesDiffering().values()) {
-      if (valueDifference.leftValue() instanceof Constant<?> && valueDifference.rightValue() instanceof Constant<?>) {
-        Constant<CompoundState> leftValue = (Constant<CompoundState>) valueDifference.leftValue();
-        Constant<CompoundState> rightValue = (Constant<CompoundState>) valueDifference.rightValue();
-        if (!rightValue.getValue().contains(leftValue.getValue())) {
-          return false;
-        }
-      } else {
-        // TODO better check if right value contains left value?
-        return false;/*
-        if (!values.rightValue().contains(values.leftValue())) {
-          // right is more specific, so it has more information
-          return false;
-        }*/
-      }
-    }
-
-    return element2.getInvariants().containsAll(element1.getInvariants());
+    return pElement1.equals(pElement2);
   }
 
 }

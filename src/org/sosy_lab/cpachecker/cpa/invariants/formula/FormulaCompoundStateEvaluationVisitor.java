@@ -27,7 +27,21 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
 
+/**
+ * Instances of this class are visitors for compound state invariants formulae
+ * which are used to evaluate the visited formulae to compound states. This
+ * visitor uses a stronger evaluation strategy than a
+ * {@link FormulaAbstractionVisitor} in order to enable the CPA strategy to
+ * obtain very exact values for the expressions in the analyzed code.
+ */
 public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationVisitor<CompoundState> {
+
+  /**
+   * A visitor for compound state invariants formulae used to determine whether
+   * or not the visited formula is a genuine boolean formula.
+   */
+  private static final IsBooleanFormulaVisitor<CompoundState> IS_BOOLEAN_FORMULA_VISITOR =
+      new IsBooleanFormulaVisitor<>();
 
   @Override
   public CompoundState visit(Add<CompoundState> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
@@ -66,7 +80,26 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
 
   @Override
   public CompoundState visit(Equal<CompoundState> pEqual, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return pEqual.getOperand1().accept(this, pEnvironment).logicalEquals(pEqual.getOperand2().accept(this, pEnvironment));
+    CompoundState operand1 = pEqual.getOperand1().accept(this, pEnvironment);
+    CompoundState operand2 = pEqual.getOperand2().accept(this, pEnvironment);
+    /*
+     *  If both operands of the equation are boolean formulae and each of their
+     *  evaluations is either definitely true or definitely false, the
+     *  corresponding boolean value can be returned, which is more exact than
+     *  using the logical equality on compound states which considers numbers
+     *  instead of boolean values and would return top for true == true.
+     */
+    if (pEqual.getOperand1().accept(IS_BOOLEAN_FORMULA_VISITOR)
+        && pEqual.getOperand2().accept(IS_BOOLEAN_FORMULA_VISITOR)) {
+      if (operand1.isDefinitelyTrue() || operand1.isDefinitelyFalse()) {
+        if (operand2.isDefinitelyTrue()) {
+          return operand1;
+        } else if (operand2.isDefinitelyFalse()) {
+          return operand2;
+        }
+      }
+    }
+    return operand1.logicalEquals(operand2);
   }
 
   @Override
@@ -96,7 +129,7 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
 
   @Override
   public CompoundState visit(Negate<CompoundState> pNegate, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return pNegate.accept(this, pEnvironment).negate();
+    return pNegate.getNegated().accept(this, pEnvironment).negate();
   }
 
   @Override
@@ -121,16 +154,6 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
       return CompoundState.top();
     }
     return varState.accept(this, pEnvironment);
-  }
-
-  @Override
-  public CompoundState top() {
-    return CompoundState.top();
-  }
-
-  @Override
-  public CompoundState bottom() {
-    return CompoundState.bottom();
   }
 
 }

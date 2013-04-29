@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -189,7 +190,7 @@ public final class InterpolationManager {
 //    }
   }
 
-  public String dumpCounterexample(CounterexampleTraceInfo cex) {
+  public Appender dumpCounterexample(CounterexampleTraceInfo cex) {
     return fmgr.dumpFormula(bfmgr.conjunction(cex.getCounterExampleFormulas()));
   }
 
@@ -275,7 +276,7 @@ public final class InterpolationManager {
 
       // Check if refinement problem is not too big
       if (maxRefinementSize > 0) {
-        int size = fmgr.dumpFormula(bfmgr.conjunction(f)).length();
+        int size = fmgr.dumpFormula(bfmgr.conjunction(f)).toString().length();
         if (size > maxRefinementSize) {
           logger.log(Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
           throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
@@ -792,8 +793,7 @@ public final class InterpolationManager {
   private void dumpInterpolationProblem(List<BooleanFormula> f) {
     int k = 0;
     for (BooleanFormula formula : f) {
-      File dumpFile = formatFormulaOutputFile("formula", k++);
-      fmgr.dumpFormulaToFile(formula, dumpFile);
+      dumpFormulaToFile("formula", formula, k++);
     }
   }
 

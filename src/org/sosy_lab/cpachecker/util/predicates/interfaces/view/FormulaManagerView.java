@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -48,7 +49,6 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -63,10 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.ReplacingFormulaManager;
-
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 @Options(prefix="cpa.predicate")
 public class FormulaManagerView implements FormulaManager {
@@ -111,7 +108,7 @@ public class FormulaManagerView implements FormulaManager {
 
   @Option(name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File formulaDumpFile = new File("%s%04d-%s%03d.msat");
+  private File formulaDumpFile = new File("%s%04d-%s%03d.smt2");
   private String formulaDumpFilePattern;
 
   @Option(description="try to add some useful static-learning-like axioms for "
@@ -574,25 +571,6 @@ public class FormulaManagerView implements FormulaManager {
     return makeVariable(formulaType, makeName(name, idx));
   }
 
-  private static final Joiner LINE_JOINER = Joiner.on('\n');
-  public void printFormulasToFile(Iterable<BooleanFormula> f, File outputFile) {
-    if (outputFile != null) {
-      try {
-        Files.writeFile(outputFile,
-            LINE_JOINER.join(
-                FluentIterable.from(f)
-                  .transform(
-                      new Function<BooleanFormula, String>() {
-                      @Override
-                      public String apply(BooleanFormula pArg0) {
-                        return dumpFormula(pArg0);
-                      }}).iterator()));
-
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
-      }
-    }
-  }
   @Override
   public RationalFormulaManagerView getRationalFormulaManager() {
     return rationalFormulaManager;
@@ -1002,7 +980,7 @@ public class FormulaManagerView implements FormulaManager {
   }
 
   @Override
-  public String dumpFormula(Formula pT) {
+  public Appender dumpFormula(Formula pT) {
     return manager.dumpFormula(extractFromView(pT));
   }
 
@@ -1172,11 +1150,6 @@ public class FormulaManagerView implements FormulaManager {
 
   public BooleanFormula createPredicateVariable(String pName) {
     return wrapInView(myCreatePredicateVariable(pName));
-  }
-
-
-  public Collection<BooleanFormula> extractAtoms(BooleanFormula pFormula) {
-    return extractAtoms(pFormula, false, true);
   }
 
   public <T extends Formula> BooleanFormula toBooleanFormula(T pF) {

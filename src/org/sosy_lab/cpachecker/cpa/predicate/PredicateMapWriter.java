@@ -81,7 +81,7 @@ class PredicateMapWriter {
 
     // fill the above set and map
     for (AbstractionPredicate pred : allPredicates) {
-      String s = fmgr.dumpFormula(pred.getSymbolicAtom());
+      String s = fmgr.dumpFormula(pred.getSymbolicAtom()).toString();
       List<String> lines = Lists.newArrayList(LINE_SPLITTER.split(s));
       assert !lines.isEmpty();
       String predString = lines.get(lines.size()-1);

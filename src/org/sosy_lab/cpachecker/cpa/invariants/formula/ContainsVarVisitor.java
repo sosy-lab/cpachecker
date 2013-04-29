@@ -23,104 +23,114 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+/**
+ * Instances of this class are visitors used to check if the visited formulae
+ * contain a specified variable.
+ *
+ * @param <T> the type of the constants used in the visited formulae.
+ */
+public class ContainsVarVisitor<T> implements ParameterizedInvariantsFormulaVisitor<T, String, Boolean> {
 
-
-public class ContainsVarVisitor<T> implements InvariantsFormulaVisitor<T, Boolean> {
-
-  private final String varName;
-
-  public ContainsVarVisitor(String pVarName) {
-    this.varName = pVarName;
+  @Override
+  public Boolean visit(Add<T> pAdd, String pVarName) {
+    return pAdd.getSummand1().accept(this, pVarName)
+        || pAdd.getSummand2().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(Add<T> pAdd) {
-    return pAdd.getSummand1().accept(this) || pAdd.getSummand2().accept(this);
+  public Boolean visit(BinaryAnd<T> pAnd, String pVarName) {
+    return pAnd.getOperand1().accept(this, pVarName)
+        || pAnd.getOperand2().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(BinaryAnd<T> pAnd) {
-    return pAnd.getOperand1().accept(this) || pAnd.getOperand2().accept(this);
+  public Boolean visit(BinaryNot<T> pNot, String pVarName) {
+    return pNot.getFlipped().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(BinaryNot<T> pNot) {
-    return pNot.getFlipped().accept(this);
+  public Boolean visit(BinaryOr<T> pOr, String pVarName) {
+    return pOr.getOperand1().accept(this, pVarName)
+        || pOr.getOperand2().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(BinaryOr<T> pOr) {
-    return pOr.getOperand1().accept(this) || pOr.getOperand2().accept(this);
+  public Boolean visit(BinaryXor<T> pXor, String pVarName) {
+    return pXor.getOperand1().accept(this, pVarName)
+        || pXor.getOperand2().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(BinaryXor<T> pXor) {
-    return pXor.getOperand1().accept(this) || pXor.getOperand2().accept(this);
-  }
-
-  @Override
-  public Boolean visit(Constant<T> pConstant) {
+  public Boolean visit(Constant<T> pConstant, String pVarName) {
     return false;
   }
 
   @Override
-  public Boolean visit(Divide<T> pDivide) {
-    return pDivide.getNumerator().accept(this) || pDivide.getDenominator().accept(this);
+  public Boolean visit(Divide<T> pDivide, String pVarName) {
+    return pDivide.getNumerator().accept(this, pVarName)
+        || pDivide.getDenominator().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(Equal<T> pEqual) {
-    return pEqual.getOperand1().accept(this) || pEqual.getOperand2().accept(this);
+  public Boolean visit(Equal<T> pEqual, String pVarName) {
+    return pEqual.getOperand1().accept(this, pVarName)
+        || pEqual.getOperand2().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(LessThan<T> pLessThan) {
-    return pLessThan.getOperand1().accept(this) || pLessThan.getOperand2().accept(this);
+  public Boolean visit(LessThan<T> pLessThan, String pVarName) {
+    return pLessThan.getOperand1().accept(this, pVarName)
+        || pLessThan.getOperand2().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(LogicalAnd<T> pAnd) {
-    return pAnd.getOperand1().accept(this) || pAnd.getOperand2().accept(this);
+  public Boolean visit(LogicalAnd<T> pAnd, String pVarName) {
+    return pAnd.getOperand1().accept(this, pVarName)
+        || pAnd.getOperand2().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(LogicalNot<T> pNot) {
-    return pNot.getNegated().accept(this);
+  public Boolean visit(LogicalNot<T> pNot, String pVarName) {
+    return pNot.getNegated().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(Modulo<T> pModulo) {
-    return pModulo.getNumerator().accept(this) || pModulo.getDenominator().accept(this);
+  public Boolean visit(Modulo<T> pModulo, String pVarName) {
+    return pModulo.getNumerator().accept(this, pVarName) || pModulo.getDenominator().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(Multiply<T> pMultiply) {
-    return pMultiply.getFactor1().accept(this) || pMultiply.getFactor2().accept(this);
+  public Boolean visit(Multiply<T> pMultiply, String pVarName) {
+    return pMultiply.getFactor1().accept(this, pVarName)
+        || pMultiply.getFactor2().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(Negate<T> pNegate) {
-    return pNegate.getNegated().accept(this);
+  public Boolean visit(Negate<T> pNegate, String pVarName) {
+    return pNegate.getNegated().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(ShiftLeft<T> pShiftLeft) {
-    return pShiftLeft.getShifted().accept(this) || pShiftLeft.getShiftDistance().accept(this);
+  public Boolean visit(ShiftLeft<T> pShiftLeft, String pVarName) {
+    return pShiftLeft.getShifted().accept(this, pVarName)
+        || pShiftLeft.getShiftDistance().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(ShiftRight<T> pShiftRight) {
-    return pShiftRight.getShifted().accept(this) || pShiftRight.getShiftDistance().accept(this);
+  public Boolean visit(ShiftRight<T> pShiftRight, String pVarName) {
+    return pShiftRight.getShifted().accept(this, pVarName)
+        || pShiftRight.getShiftDistance().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(Union<T> pUnion) {
-    return pUnion.getOperand1().accept(this) || pUnion.getOperand2().accept(this);
+  public Boolean visit(Union<T> pUnion, String pVarName) {
+    return pUnion.getOperand1().accept(this, pVarName)
+        || pUnion.getOperand2().accept(this, pVarName);
   }
 
   @Override
-  public Boolean visit(Variable<T> pVariable) {
-    return pVariable.getName().equals(this.varName);
+  public Boolean visit(Variable<T> pVariable, String pVarName) {
+    return pVariable.getName().equals(pVarName);
   }
 
 }
