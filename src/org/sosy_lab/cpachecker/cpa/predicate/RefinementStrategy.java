@@ -138,7 +138,7 @@ public abstract class RefinementStrategy {
       throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
     }
 
-    finishRefinementOfPath(infeasiblePartOfART, changedElements, pReached, pRepeatedCounterexample);
+    finishRefinementOfPath(path, infeasiblePartOfART, changedElements, pReached, pRepeatedCounterexample);
 
     assert !pReached.asReachedSet().contains(lastElement);
   }
@@ -165,7 +165,8 @@ public abstract class RefinementStrategy {
    * @param repeatedCounterexample Whether the counterexample has been found before.
    * @throws CPAException
    */
-  protected abstract void finishRefinementOfPath(final ARGState unreachableState,
+  protected abstract void finishRefinementOfPath(final List<ARGState> path,
+      final ARGState unreachableState,
       List<ARGState> affectedStates, ARGReachedSet reached,
       boolean repeatedCounterexample) throws CPAException;
 

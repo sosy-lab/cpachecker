@@ -135,7 +135,8 @@ class ImpactRefinementStrategy extends RefinementStrategy {
    * are either covered or cannot be covered).
    */
   @Override
-  protected void finishRefinementOfPath(ARGState infeasiblePartOfART,
+  protected void finishRefinementOfPath(final List<ARGState> path,
+      ARGState infeasiblePartOfART,
       List<ARGState> changedElements, ARGReachedSet pReached,
       boolean pRepeatedCounterexample)
       throws CPAException {

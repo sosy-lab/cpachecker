@@ -229,7 +229,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  public void finishRefinementOfPath(ARGState pUnreachableState,
+  public void finishRefinementOfPath(final List<ARGState> pPath,
+      ARGState pUnreachableState,
       List<ARGState> pAffectedStates, ARGReachedSet pReached,
       boolean pRepeatedCounterexample)
       throws CPAException {
@@ -283,7 +284,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     if (keepAllPredicates) {
       basePrecision = findAllPredicatesFromSubgraph(refinementRoot, reached, pruneHeuristicPredicatesOnRefinement);
     } else {
-      basePrecision = targetStatePrecision;
+      basePrecision = findAllPredicatesFromPath(pPath, reached, pruneHeuristicPredicatesOnRefinement);
     }
 
     logger.log(Level.ALL, "Old predicate map is", basePrecision);
@@ -309,8 +310,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
 
-    assert basePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
-    assert targetStatePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
+    if (!pruneHeuristicPredicatesOnRefinement) {
+      assert basePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
+      assert targetStatePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
+    }
 
     if (dumpPredicates && dumpPredicatesFile != null) {
       Path precFile = Paths.get(String.format(dumpPredicatesFile.getPath(), precisionUpdate.getNumberOfIntervals()));
@@ -386,6 +389,35 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     return firstInterpolationPoint;
   }
 
+  private PredicatePrecision findAllPredicatesFromPath(final List<ARGState> pPath,
+      UnmodifiableReachedSet pReached,
+      boolean pIgnoreHeuristicPredicates) {
+
+    if (!pIgnoreHeuristicPredicates) {
+      return extractPredicatePrecision(pReached.getPrecision(pReached.getLastState()));
+    }
+
+    // find all distinct precisions to merge them
+    PredicatePrecision newPrecision = PredicatePrecision.empty();
+    Set<Precision> precisions = Sets.newIdentityHashSet();
+    for (ARGState state : pPath) {
+      // covered states are not in reached set
+      Precision statePrecision = pReached.getPrecision(state);
+      HeuristicPredicatePrecision heuristicPrec = Precisions.extractPrecisionByType(statePrecision, HeuristicPredicatePrecision.class);
+      if (!pIgnoreHeuristicPredicates || heuristicPrec == null) {
+        precisions.add(statePrecision);
+      } else {
+        logger.log(Level.INFO, "Heuristic precision from counterexample path ignored.");
+      }
+    }
+
+    for (Precision prec : precisions) {
+      newPrecision = newPrecision.mergeWith(extractPredicatePrecision(prec));
+    }
+
+    return newPrecision;
+  }
+
   /**
    * Collect all precisions in the subgraph below refinementRoot and merge
    * their predicates.
@@ -405,7 +437,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
         Precision statePrecision = reached.getPrecision(state);
         if (!ignoreHeuristicPredicates
          || !(statePrecision instanceof HeuristicPredicatePrecision)) {
+          logger.log(Level.INFO, statePrecision.getClass().getSimpleName());
           precisions.add(statePrecision);
+        } else {
+          logger.log(Level.INFO, "A precision from subgraph ignored.");
         }
       }
     }
