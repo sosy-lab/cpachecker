@@ -43,13 +43,23 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
-@Options(prefix = "cpa.predicate.solver.z3")
+@Options(prefix = "cpa.predicate.solver.z3.logger")
 public class Z3SmtLogger {
+
+  private static final String MATHSAT5 = "MATHSAT5";
+  private static final String Z3 = "Z3";
+  // TODO support for smtinterpol?
 
   @Option(name = "logfile", description = "Export solver queries in Smtlib2 format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File basicLogfile = new File("z3smtlog.%d.smt2");
   private static int logfileCounter = 0;
+
+  @Option(description = "Export solver queries in Smtlib2 format, " +
+      "there are small differences for different solvers, " +
+      "choose target-solver.",
+      values = { Z3, MATHSAT5 }, toUppercase = true)
+  private String target = Z3;
 
   private File logfile;
 
@@ -57,7 +67,7 @@ public class Z3SmtLogger {
   private final HashSet<Long> declarations = Sets.newHashSet();
 
   private int itpIndex = 0; // each interpolation gets its own index
-  private final HashMap<Long, String> interpolationGroups = Maps.newHashMap(); // for mathsat-compatibility
+  private final HashMap<Long, String> interpolationFormulas = Maps.newHashMap(); // for mathsat-compatibility
 
   public Z3SmtLogger(long z3context, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -118,9 +128,19 @@ public class Z3SmtLogger {
   public void logInterpolationAssert(long expr) {
     if (logfile == null) { return; }
     itpIndex++;
-    String name = "g" + itpIndex;
-    logBracket("assert (! " + ast_to_string(z3context, expr) + " :interpolation-group " + name + ")");
-    interpolationGroups.put(expr, name);
+    String formula = ast_to_string(z3context, expr);
+
+    switch (target) {
+    case Z3:
+      logBracket("assert " + formula);
+      break;
+
+    case MATHSAT5:
+      String name = "itpId" + itpIndex;
+      logBracket("assert (! " + formula + " :interpolation-group " + name + ")");
+      interpolationFormulas.put(expr, name);
+      break;
+    }
   }
 
   public void logCheck() {
@@ -134,21 +154,32 @@ public class Z3SmtLogger {
   }
 
 
-  public void logInterpolation(List<Long> formulasOfA) {
+  public void logInterpolation(
+      List<Long> formulasOfA, List<Long> formulasOfB,
+      long conjunctionA, long conjunctionB) {
     if (logfile == null) { return; }
 
-    // this is a mathsat-specific output!
-    String getItps = "get-interpolant (";
+    String itpQuery = null;
+    switch (target) {
+    case Z3:
+      itpQuery = "get-interpolant " + ast_to_string(z3context, conjunctionA)
+          + " " + ast_to_string(z3context, conjunctionB);
+      break;
 
-    for (long f : formulasOfA) {
-      Preconditions.checkArgument(interpolationGroups.containsKey(f));
-      getItps += interpolationGroups.get(f) + " ";
+    case MATHSAT5:
+      itpQuery = "get-interpolant (";
+
+      for (long f : formulasOfA) {
+        Preconditions.checkArgument(interpolationFormulas.containsKey(f));
+        itpQuery += interpolationFormulas.get(f) + " ";
+      }
+
+      itpQuery += ")";
+      break;
     }
 
-    getItps += ")";
-
-    logCheck();
-    logBracket(getItps);
+    logCheck(); // TODO remove check?
+    logBracket(itpQuery);
   }
 
   public void logBracket(String s) {

@@ -122,23 +122,32 @@ public class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long> {
       long[] sorts = new long[n];
       for (int i = 0; i < sorts.length; i++) {
         args[i] = get_app_arg(z3context, t, i);
+        inc_ref(z3context, args[i]);
         sorts[i] = get_sort(z3context, args[i]);
+        inc_ref(z3context, sorts[i]);
       }
       long symbol = mk_string_symbol(z3context, pNewName);
       long retSort = get_sort(z3context, t);
       long newFunc = mk_func_decl(z3context, symbol, sorts, retSort);
+      inc_ref(z3context, newFunc);
 
-//      creator.getSmtLogger().logDeclaration(newFunc, retSort, sorts); // TODO necessary???
+      //      creator.getSmtLogger().logDeclaration(newFunc, retSort, sorts); // TODO necessary???
 
-      return createUIFCallImpl(newFunc, args);
+      long uif = createUIFCallImpl(newFunc, args);
+
+      for (int i = 0; i < sorts.length; i++) {
+        dec_ref(z3context, args[i]);
+        dec_ref(z3context, sorts[i]);
+      }
+      return uif;
 
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");
     }
   }
 
-  public Long createUIFCallImpl(long pNewFunc, long[] args) {
-    Long ufc = mk_app(z3context, pNewFunc, args);
+  public long createUIFCallImpl(long pNewFunc, long[] args) {
+    long ufc = mk_app(z3context, pNewFunc, args);
     uifs.add(ufc);
     return ufc;
   }

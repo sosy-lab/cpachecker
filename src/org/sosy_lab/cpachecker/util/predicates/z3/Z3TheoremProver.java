@@ -110,7 +110,7 @@ public class Z3TheoremProver implements ProverEnvironment {
     Preconditions.checkArgument(z3solver != 0);
     Preconditions.checkArgument(solver_get_num_scopes(z3context, z3solver) >= 1);
 
-    while (level > 0) {
+    while (level > 0) { // TODO do we need this?
       pop();
     }
 

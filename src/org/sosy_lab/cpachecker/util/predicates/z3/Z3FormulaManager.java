@@ -106,16 +106,14 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     del_config(cfg);
 
     long boolSort = mk_bool_sort(context);
+    inc_ref(context, sort_to_ast(context, boolSort));
+
     long numeralSort;
     if (useIntegers) {
       numeralSort = mk_int_sort(context);
     } else {
       numeralSort = mk_real_sort(context);
     }
-
-    // we use those sorts multiple times and they are Z3_ASTs,
-    // so we need to increment their reference-counters.
-    inc_ref(context, sort_to_ast(context, boolSort));
     inc_ref(context, sort_to_ast(context, numeralSort));
 
     CreateBitType<Long> cbt = new CreateBitType<Long>() {
@@ -135,8 +133,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     Z3SmtLogger smtLogger = new Z3SmtLogger(context, config);
 
     // this options should match the option set above!
-    //    smtLogger.logOption("model", "true");
-    //    smtLogger.logOption("proof", "true");
+    smtLogger.logOption("model", "true");
+    smtLogger.logOption("proof", "true");
 
     // mathsat wants those 2 flags, they are ignored by other solvers
     smtLogger.logOption("produce-models", "true");

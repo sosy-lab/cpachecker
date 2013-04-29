@@ -134,11 +134,11 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
 
     long[] interpolationFormulas = new long[] { fA, fB };
 
+    smtLogger.logInterpolation(formulasOfA, formulasOfB, fA, fB);
+
     // get interpolant of groups
     int isSat = interpolateSeq(
         z3context, interpolationFormulas, itps, model, labels, 0, theory);
-
-    smtLogger.logInterpolation(formulasOfA);
 
     assert isSat != Z3_L_TRUE;
     BooleanFormula f = mgr.encapsulate(BooleanFormula.class, itps[0]);
@@ -161,7 +161,7 @@ public class Z3InterpolatingProver implements InterpolatingProverEnvironment<Lon
     Preconditions.checkState(z3context != 0);
     Preconditions.checkState(z3solver != 0);
 
-    while (level > 0) {
+    while (level > 0) { // TODO do we need this?
       pop();
     }
 

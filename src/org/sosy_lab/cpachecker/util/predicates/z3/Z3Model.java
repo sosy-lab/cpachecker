@@ -102,6 +102,7 @@ public class Z3Model {
     Object[] lArguments = new Object[lArity];
     for (int i = 0; i < lArity; i++) {
       long arg = get_app_arg(z3context, expr, i);
+      inc_ref(z3context, arg);
 
       Object lValue;
       long argSort = get_sort(z3context, arg);
@@ -128,6 +129,8 @@ public class Z3Model {
                 + ast_to_string(z3context, arg));
       }
 
+      dec_ref(z3context, arg);
+
       lArguments[i] = lValue;
     }
 
@@ -147,8 +150,8 @@ public class Z3Model {
   }
 
   public Model createZ3Model() {
-    Preconditions.checkArgument(solver_check(z3context, z3solver) != Z3_L_FALSE,
-        "model is not available for UNSAT"); // TODO expensive check?
+    // Preconditions.checkArgument(solver_check(z3context, z3solver) != Z3_L_FALSE,
+    // "model is not available for UNSAT"); // TODO expensive check?
 
     long z3model = solver_get_model(z3context, z3solver);
     model_inc_ref(z3context, z3model);
@@ -159,6 +162,7 @@ public class Z3Model {
 
     // TODO increment all ref-counters and decrement them later?
     long modelFormula = mk_true(z3context);
+    inc_ref(z3context, modelFormula);
 
     int n = model_get_num_consts(z3context, z3model);
     for (int i = 0; i < n; i++) {
@@ -175,10 +179,10 @@ public class Z3Model {
       inc_ref(z3context, value);
 
       long equivalence = mk_eq(z3context, var, value);
-      // TODO why is there a problem without next line
       inc_ref(z3context, equivalence);
-      modelFormula = mk_and(z3context, modelFormula, equivalence);
-      inc_ref(z3context, modelFormula);
+
+      long newModelFormula = mk_and(z3context, modelFormula, equivalence);
+      inc_ref(z3context, newModelFormula);
 
       AssignableTerm lAssignable = toAssignable(var);
 
@@ -213,10 +217,14 @@ public class Z3Model {
 
       model.put(lAssignable, lValue);
 
-      // cleanup
+      // cleanup outdated data
       dec_ref(z3context, keyDecl);
       dec_ref(z3context, value);
       dec_ref(z3context, var);
+      dec_ref(z3context, equivalence);
+      dec_ref(z3context, modelFormula);
+
+      modelFormula = newModelFormula;
     }
 
     // cleanup
