@@ -211,6 +211,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         miningCount++;
         lastRefinementUsedHeuristics = true;
       } else {
+        lastRefinementUsedHeuristics = false;
         strategy.performRefinement(pReached, path, counterexample.getInterpolants(), repeatedCounterexample);
       }
 
