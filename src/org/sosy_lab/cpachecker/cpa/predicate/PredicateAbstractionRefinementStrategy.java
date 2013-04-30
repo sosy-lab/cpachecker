@@ -128,7 +128,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Option(description="Run predicate mining on first refinement?")
   private boolean minePredicatesOnRefinement = false;
 
-  @Option(description="")
+  @Option(description="Remove heuristical computed predicates that were not useful.")
   private boolean pruneHeuristicPredicatesOnRefinement = false;
 
   private int refinementCount = 0; // this is modulo restartAfterRefinements
@@ -424,23 +424,23 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    * @return a new precision with all these predicates.
    */
   private PredicatePrecision findAllPredicatesFromSubgraph(
-      ARGState refinementRoot, UnmodifiableReachedSet reached,
-      boolean ignoreHeuristicPredicates) {
+      ARGState pRefinementRoot, UnmodifiableReachedSet pReached,
+      boolean pIgnoreHeuristicPredicates) {
 
     PredicatePrecision newPrecision = PredicatePrecision.empty();
 
     // find all distinct precisions to merge them
     Set<Precision> precisions = Sets.newIdentityHashSet();
-    for (ARGState state : refinementRoot.getSubgraph()) {
+    for (ARGState state : pRefinementRoot.getSubgraph()) {
       if (!state.isCovered()) {
         // covered states are not in reached set
-        Precision statePrecision = reached.getPrecision(state);
-        if (!ignoreHeuristicPredicates
-         || !(statePrecision instanceof HeuristicPredicatePrecision)) {
+        Precision statePrecision = pReached.getPrecision(state);
+        HeuristicPredicatePrecision heuristicPrec = Precisions.extractPrecisionByType(statePrecision, HeuristicPredicatePrecision.class);
+        if (!pIgnoreHeuristicPredicates || heuristicPrec == null) {
           logger.log(Level.INFO, statePrecision.getClass().getSimpleName());
           precisions.add(statePrecision);
         } else {
-          logger.log(Level.INFO, "A precision from subgraph ignored.");
+          logger.log(Level.INFO, "Heuristic precision from counterexample subgraph ignored.");
         }
       }
     }
