@@ -1360,7 +1360,7 @@ def executeBenchmarkInCloud(benchmark):
     outputDir = benchmark.logFolder
     absOutputDir = os.path.abspath(outputDir)
 
-    runDefinitions = ""
+    runDefinitions = []
     absSourceFiles = []
     numOfRunDefLines = 0
     
@@ -1375,16 +1375,16 @@ def executeBenchmarkInCloud(benchmark):
         
         runSetHeadLine = str(len(runSet.runs)) + "\t" + \
                         str(benchmark.rlimits[TIMELIMIT]) + "\t" + \
-                       str(benchmark.rlimits[MEMLIMIT]) + "\n"
+                       str(benchmark.rlimits[MEMLIMIT])
          
-        runDefinitions += runSetHeadLine;
+        runDefinitions.append(runSetHeadLine)
         
         # iterate over runs
         for run in runSet.runs:
                 argString = " ".join(run.args)
                 logFile = os.path.relpath(run.logFile, outputDir)
-                runDefinitions += argString + "\t" + run.sourcefile + "\t" + \
-                                    logFile + "\n"
+                runDefinitions.append(argString + "\t" + run.sourcefile + "\t" + \
+                                    logFile)
                 absSourceFiles.append(os.path.abspath(run.sourcefile))
 
     if not absSourceFiles:
@@ -1405,7 +1405,7 @@ def executeBenchmarkInCloud(benchmark):
                 baseDir + "\t" + absOutputDir + "\t" + absWorkingDir +"\n" + \
                 requirements + "\n" + \
                 str(numOfRunDefLines) + "\n" + \
-                runDefinitions
+                "\n".join(runDefinitions)
 
     # install cloud and dependencies
     ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"])
