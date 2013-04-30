@@ -1354,8 +1354,6 @@ def executeBenchmarkInCloud(benchmark):
     if(benchmark.requirements.cpuModel() is not ""):
         requirements += "\t" + benchmark.requirements.cpuModel()                         
                             
-    # TODO
-    print('Ignoring specified ' + requirements)
     cloudRunExecutorDir = os.path.abspath(os.path.dirname(__file__))
     outputDir = benchmark.logFolder
     absOutputDir = os.path.abspath(outputDir)
@@ -1415,7 +1413,7 @@ def executeBenchmarkInCloud(benchmark):
     # start cloud and wait for exit
     logging.debug("Starting cloud.")
     if(config.debug):
-        logLevel =  "ALL"
+        logLevel =  "FINER"
     else:
         logLevel = "INFO"
     libDir = os.path.abspath("./lib/java-benchmark")
