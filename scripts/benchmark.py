@@ -66,12 +66,12 @@ COLOR_RED = "\033[31;1m{0}\033[m"
 COLOR_ORANGE = "\033[33;1m{0}\033[m"
 COLOR_MAGENTA = "\033[35;1m{0}\033[m"
 COLOR_DEFAULT = "{0}"
-COLOR_DIC = {"correctSafe": COLOR_GREEN,
-             "correctUnsafe": COLOR_GREEN,
-             "unknown": COLOR_ORANGE,
-             "error": COLOR_MAGENTA,
-             "wrongUnsafe": COLOR_RED,
-             "wrongSafe": COLOR_RED,
+COLOR_DIC = {result.RESULT_CORRECT_SAFE:   COLOR_GREEN,
+             result.RESULT_CORRECT_UNSAFE: COLOR_GREEN,
+             result.RESULT_UNKNOWN:        COLOR_ORANGE,
+             result.RESULT_ERROR:          COLOR_MAGENTA,
+             result.RESULT_WRONG_UNSAFE:   COLOR_RED,
+             result.RESULT_WRONG_SAFE:     COLOR_RED,
              None: COLOR_DEFAULT}
 
 TERMINAL_TITLE=''
@@ -1115,31 +1115,24 @@ class OutputHandler:
 class Statistics:
 
     def __init__(self):
-        self.dic = {"counter": 0,
-                    "correctSafe": 0,
-                    "correctUnsafe": 0,
-                    "unknown": 0,
-                    "wrongUnsafe": 0,
-                    "wrongSafe": 0,
-                    None: 0}
-
+        self.dic = dict((status,0) for status in COLOR_DIC)
+        self.counter = 0
 
     def addResult(self, statusRelation):
-        self.dic["counter"] += 1
-        if statusRelation == 'error':
-            statusRelation = 'unknown'
+        self.counter += 1
         assert statusRelation in self.dic
         self.dic[statusRelation] += 1
 
 
     def printToTerminal(self):
-        Util.printOut('\n'.join(['\nStatistics:' + str(self.dic["counter"]).rjust(13) + ' Files',
-                 '    correct:        ' + str(self.dic["correctSafe"] + \
-                                              self.dic["correctUnsafe"]).rjust(4),
-                 '    unknown:        ' + str(self.dic["unknown"]).rjust(4),
-                 '    false positives:' + str(self.dic["wrongUnsafe"]).rjust(4) + \
+        Util.printOut('\n'.join(['\nStatistics:' + str(self.counter).rjust(13) + ' Files',
+                 '    correct:        ' + str(self.dic[result.RESULT_CORRECT_SAFE] + \
+                                              self.dic[result.RESULT_CORRECT_UNSAFE]).rjust(4),
+                 '    unknown:        ' + str(self.dic[result.RESULT_UNKNOWN] + \
+                                              self.dic[result.RESULT_ERROR]).rjust(4),
+                 '    false positives:' + str(self.dic[result.RESULT_WRONG_UNSAFE]).rjust(4) + \
                  '        (file is safe, result is unsafe)',
-                 '    false negatives:' + str(self.dic["wrongSafe"]).rjust(4) + \
+                 '    false negatives:' + str(self.dic[result.RESULT_WRONG_SAFE]).rjust(4) + \
                  '        (file is unsafe, result is safe)',
                  '']))
 

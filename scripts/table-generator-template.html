@@ -21,8 +21,8 @@
   tbody tr:first-child td { border-top:3px solid black}
   tfoot tr:first-child td { border-top:3px solid black}
   .status { text-align: center; }
-  .correctSafe, .correctUnsafe { color:green}
-  .wrongSafe, .wrongUnsafe { color:red; font-weight: bold; }
+  .correct.safe, .correct.unsafe { color:green}
+  .wrong.safe, .wrong.unsafe { color:red; font-weight: bold; }
   .unknown { color:orange; font-weight: bold; }
   .error { color:magenta; font-weight: bold; }
   .score { text-align:center; font-size:large; font-weight:bold; }
@@ -639,39 +639,34 @@ function collectTableData() {
     data.push([]);
   }
 
-  var tableBody = $('#dataTable > tbody')[0];
-
   // reset graphData
   graphData.filenames = [];
   graphData.integerOnly = true;
   graphData.minValue = Number.POSITIVE_INFINITY;
   graphData.maxValue = Number.NEGATIVE_INFINITY;
 
-  for (i = 0; i < tableBody.rows.length; i++) {
-    var currentRow = tableBody.rows[i];
-
-    if (!$(currentRow).is(":visible")) {
-        continue;
-    }
+  var rows = $('#dataTable > tbody > tr:visible');
+  for (i = 0; i < rows.length; i++) {
+    var currentRow = rows[i];
 
     graphData.filenames.push(currentRow.cells[0].textContent);
     
     for (j = 0; j < graphData.indices.length; j++) {
       var index = graphData.indices[j];
-      var currentCell = currentRow.cells[index];
+      var currentCell = $(currentRow.cells[index]);
 
       var value;
-      if (graphData.showCorrectOnly && currentCell.className.indexOf('correct') != 0) {
+      if (graphData.showCorrectOnly && !currentCell.hasClass('correct')) {
         value = Number.NaN;  // using 'null' as unknown value causes problems in the plot
 
       } else if (graphData.target.textContent === 'status') {
-        if (currentCell.className.indexOf('correct') == 0)     value = 1;
-        else if (currentCell.className.indexOf('wrong') == 0)  value = -1;
-        else                                                   value = 0;
+        if (currentCell.hasClass('correct'))     value = 1;
+        else if (currentCell.hasClass('wrong'))  value = -1;
+        else                                     value = 0;
 
       } else {
-        value = parseFloat(currentCell.textContent);
-        valueInt = parseInt(currentCell.textContent);
+        value = parseFloat(currentCell.text());
+        valueInt = parseInt(currentCell.text());
 
         // collect some information, used later for tick-formatter
         if (!isNaN(value)) {
@@ -1005,15 +1000,16 @@ def formatOptions(str):
 {{for line in body}}
 <tr><td title="Click here to show source code"><a href="{{line.filePath|url}}">{{line.shortFileName}}</a></td>
   {{for runResult in line.results}}
+  {{py:cssClasses = ' '.join(str(x) for x in runResult.category)}}
   {{for column, value in zip(runResult.columns, runResult.values)}}
   {{if column.title == 'status'}}
     {{if runResult.logFile}}
-    <td class="status {{runResult.category}}" title="Click here to show output of tool"><a href="{{relpath(runResult.logFile, baseDir)|url}}">{{value.lower()}}</a></td>
+    <td class="status {{cssClasses}}" title="Click here to show output of tool"><a href="{{relpath(runResult.logFile, baseDir)|url}}">{{value.lower()}}</a></td>
     {{else}}
-    <td class="status {{runResult.category}}">{{value.lower()}}</td>
+    <td class="status {{cssClasses}}">{{value.lower()}}</td>
     {{endif}}
   {{else}}
-  <td class="{{runResult.category}}Value">{{value or '-'}}</td>
+  <td class="{{cssClasses}}Value">{{value or '-'}}</td>
   {{endif}}
   {{endfor}}
   {{endfor}}

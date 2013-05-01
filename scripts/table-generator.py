@@ -770,8 +770,10 @@ def getCategoryCount(categoryList):
     for category in categoryList:
         counts[category] += 1
 
-    return (counts['correctSafe'], counts['correctUnsafe'],
-            counts['wrongSafe'], counts['wrongUnsafe'])
+    return (counts[result.RESULT_CORRECT_SAFE],
+            counts[result.RESULT_CORRECT_UNSAFE],
+            counts[result.RESULT_WRONG_SAFE],
+            counts[result.RESULT_WRONG_UNSAFE])
 
 
 def getStatsOfNumberColumn(values, categoryList):
@@ -784,14 +786,14 @@ def getStatsOfNumberColumn(values, categoryList):
 
     valuesPerCategory = collections.defaultdict(list)
     for value, category in zip(valueList, categoryList):
-        if category and category.startswith('correct'):
-            category = 'correct'
+        if category and 'correct' in category:
+            category = 'correct_tmp'
         valuesPerCategory[category] += [value]
 
     return (StatValue.fromList(valueList),
-            StatValue.fromList(valuesPerCategory['correct']),
-            StatValue.fromList(valuesPerCategory['wrongSafe']),
-            StatValue.fromList(valuesPerCategory['wrongUnsafe']),
+            StatValue.fromList(valuesPerCategory['correct_tmp']),
+            StatValue.fromList(valuesPerCategory[result.RESULT_WRONG_SAFE]),
+            StatValue.fromList(valuesPerCategory[result.RESULT_WRONG_UNSAFE]),
             )
 
 
