@@ -217,14 +217,14 @@ $(document).ready(function() {
 
 // a two-dimensional array of all the cells in the table header,
 // but each cell occurs as often in a row as its colspan attribute says
-var headerArray = null;
+var headerAndFooterArray = null;
 
-function createHeaderArray() {
-  headerArray = [];
-  var tableHead = $('#dataTable > thead')[0];
-  for (var i=0; i<tableHead.rows.length; i++) {
-    var rowIndices = expandColSpanToNums(tableHead.rows[i]);
-    headerArray.push(rowIndices);
+function createHeaderAndFooterArray() {
+  headerAndFooterArray = [];
+  var rows = $('#dataTable > thead > tr, #dataTable > tfoot > tr');
+  for (var i=0; i<rows.length; i++) {
+    var rowIndices = expandColSpanToNums(rows[i]);
+    headerAndFooterArray.push(rowIndices);
   }
 }
 
@@ -254,17 +254,16 @@ function decColspan(col) {
 // this function shows or hides a column and enlarges or shrinks the header-columns
 // @param index: index of a column in row "columnTitle"
 function toggleColumn (shouldBeVisible, index) {
-    if (headerArray == null) { createHeaderArray(); }
+    if (headerAndFooterArray == null) { createHeaderAndFooterArray(); }
     var columnTitles = $('#columnTitles > td');
     // if column is hidden (or visible), we do not hide (or show) it again
     if ($(columnTitles[index]).is(":visible") != shouldBeVisible) {
-        for (var i=0; i<headerArray.length; i++) {
-            var cell = headerArray[i][index];
+        for (var i=0; i<headerAndFooterArray.length; i++) {
+            var cell = headerAndFooterArray[i][index];
             shouldBeVisible ? incColspan(cell) : decColspan(cell);
         }
         var childIndex = index+1; // first child is number 1
-        var children = $("#dataTable > tbody > tr > td:nth-child(" + childIndex + "), " +
-                         "#dataTable > tfoot > tr > td:nth-child(" + childIndex + ")");
+        var children = $("#dataTable > tbody > tr > td:nth-child(" + childIndex + ")");
         shouldBeVisible ? children.show() : children.hide();
     }
 }
