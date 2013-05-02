@@ -282,7 +282,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     // get list of parameters
     String[] param;
-    int numParam;
+
     if (checkerParamList.equals("")) {
       param = new String[0];
     } else {
