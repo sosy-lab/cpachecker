@@ -59,6 +59,9 @@ MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
 CORELIMIT = runexecutor.CORELIMIT
 
+DEFAULT_CLOUD_TIMELIMIT = 3600
+DEFAULT_CLOUD_MEMLIMIT = None
+
 # colors for column status in terminal
 USE_COLORS = True
 COLOR_GREEN = "\033[32;1m{0}\033[m"
@@ -1364,9 +1367,15 @@ def executeBenchmarkInCloud(benchmark):
         
         numOfRunDefLines += (len(runSet.runs) + 1)
         
+        timeLimit = str(DEFAULT_CLOUD_TIMELIMIT)
+        memLimit = str(DEFAULT_CLOUD_MEMLIMIT)
+        if(TIMELIMIT in benchmark.rlimits):
+            timeLimit = str(benchmark.rlimits[TIMELIMIT])
+        if(MEMLIMIT in benchmark.rlimits):
+            memLimit = str(benchmark.rlimits[MEMLIMIT])
         runSetHeadLine = str(len(runSet.runs)) + "\t" + \
-                        str(benchmark.rlimits[TIMELIMIT]) + "\t" + \
-                       str(benchmark.rlimits[MEMLIMIT])
+                        timeLimit + "\t" + \
+                       memLimit
          
         runDefinitions.append(runSetHeadLine)
         
