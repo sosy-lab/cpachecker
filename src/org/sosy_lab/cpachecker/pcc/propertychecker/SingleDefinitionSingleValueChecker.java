@@ -46,7 +46,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
 
 /**
- * TODO document what it is actually checking
+ * Checks if a certain variable is defined at most once by the program and
+ * checks if a certain variable has a specific value at a specific location marked by a label in the program.
  */
 public class SingleDefinitionSingleValueChecker implements PropertyChecker {
 
