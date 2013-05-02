@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 
 /*
  * Requires preprocessing with cil to get proper result because preprocessing guarantees that
