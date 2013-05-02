@@ -159,6 +159,31 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     System.gc();
   }
 
+  protected ProofCheckAlgorithm(ConfigurableProgramAnalysis cpa, Configuration pConfig, LogManager logger, ReachedSet pReachedSet)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
+
+    this.cpa = cpa;
+    this.logger = logger;
+
+    if (pReachedSet == null || pReachedSet.hasWaitingState()) { throw new IllegalArgumentException(
+        "Parameter pReachedSet may not be null and may not have any states in its waitlist."); }
+
+    Object proof;
+    if (pccType.equals("ARG")) {
+      proof = pReachedSet.getFirstState();
+    } else if (pccType.equals("SET")) {
+      proof = new AbstractState[pReachedSet.size()];
+      pReachedSet.asCollection().toArray((AbstractState[]) proof);
+    } else if (pccType.equals("PSET")) {
+      proof = ProofGenerator.computePartialReachedSet(pReachedSet);
+    } else {
+      throw new InvalidConfigurationException("Undefined proof format. Only use predefined values for pcc.proofType.");
+    }
+
+    this.proof = prepareForChecking(proof);
+  }
+
   private Object readProof() throws IOException, ClassNotFoundException {
     stats.totalTimer.start();
     stats.readTimer.start();
@@ -262,6 +287,10 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  protected String getPCCType() {
+    return pccType;
+  }
+
   @Override
   public boolean run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     if (proof == null)
@@ -349,7 +378,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
         logger.log(Level.FINE, "Looking at state", state);
 
-        if (propertyChecker.satisfiesProperty(state)) { return false; }
+        if (!propertyChecker.satisfiesProperty(state)) { return false; }
 
         if (state.isCovered()) {
 

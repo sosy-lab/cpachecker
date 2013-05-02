@@ -200,7 +200,7 @@ public class ProofGenerator {
     }
   }
 
-  private AbstractState[] computePartialReachedSet(UnmodifiableReachedSet pReached) {
+  public static AbstractState[] computePartialReachedSet(UnmodifiableReachedSet pReached) {
     ArrayList<AbstractState> result = new ArrayList<>();
     CFANode node;
     for (AbstractState state : pReached.asCollection()) {
