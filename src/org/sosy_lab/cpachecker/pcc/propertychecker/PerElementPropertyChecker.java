@@ -23,19 +23,24 @@
  */
 package org.sosy_lab.cpachecker.pcc.propertychecker;
 
+import java.util.Collection;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 
 /**
- * Implementation of a property checker which does not accept abstract states representing some kind of "target" or
- * "error" abstract state. Accepts every abstract state which is not a target abstract state and every set of
- * states which does not contain a target abstract state.
+ * Checks if an abstract state or a set of abstract states adheres to the property which should be checked by the
+ * specific implementation of PerElementPropertyChecker. Property is always checked individually for every element.
  */
-public class NoTargetStateChecker extends PerElementPropertyChecker {
+public abstract class PerElementPropertyChecker implements PropertyChecker {
 
   @Override
-  public boolean satisfiesProperty(AbstractState pElemToCheck) throws UnsupportedOperationException {
-    return (!(pElemToCheck instanceof Targetable) || !((Targetable) pElemToCheck).isTarget());
+  public boolean satisfiesProperty(Collection<AbstractState> pCertificate) {
+    for (AbstractState elem : pCertificate) {
+      if (!satisfiesProperty(elem))
+        return false;
+    }
+    return true;
   }
 
 }
