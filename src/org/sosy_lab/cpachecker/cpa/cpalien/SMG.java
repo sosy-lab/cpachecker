@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -100,6 +101,39 @@ public class SMG {
    */
   final public void addObject(final SMGObject pObj) {
     this.addObject(pObj, true);
+  }
+
+  /**
+   * Remove {@link pObj} from the SMG. This method does not remove
+   * any edges leading from/to the removed object.
+   *
+   * @param pObj Object to remove
+   */
+  final public void removeObject(final SMGObject pObj) {
+    this.objects.remove(pObj);
+    this.object_validity.remove(pObj);
+  }
+
+  /**
+   * Remove {@link pObj} and all edges leading from/to it from the SMG
+   *
+   * @param pObj Object to remove
+   */
+  final public void removeObjectAndEdges(final SMGObject pObj) {
+    this.removeObject(pObj);
+    Iterator<SMGEdgeHasValue> hv_iter = this.hv_edges.iterator();
+    Iterator<SMGEdgePointsTo> pt_iter = this.pt_edges.iterator();
+    while (hv_iter.hasNext()) {
+      if (hv_iter.next().getObject() == pObj) {
+        hv_iter.remove();
+      }
+    }
+
+    while (pt_iter.hasNext()) {
+      if (pt_iter.next().getObject() == pObj) {
+        pt_iter.remove();
+      }
+    }
   }
 
   /**
