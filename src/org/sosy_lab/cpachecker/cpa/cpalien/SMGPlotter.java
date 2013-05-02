@@ -52,16 +52,18 @@ public final class SMGPlotter {
     addStackSubgraph(smg, sb);
 
     for (SMGObject heapObject : smg.getHeapObjects()) {
-      //if (heapObject.notNull()){
-        sb.append(newLineWithOffset(smgObjectAsDot(heapObject)));
-        objectIndex.put(heapObject, convertToValidDot(heapObject.getLabel()));
-      //}
+      if (heapObject.notNull()) {
+        sb.append(newLineWithOffset(smgObjectAsDot(heapObject, smg.isObjectValid(heapObject))));
+      }
+      objectIndex.put(heapObject, convertToValidDot(heapObject.getLabel()));
     }
 
     addGlobalObjectSubgraph(smg, sb);
 
     for (int value : smg.getValues()) {
-      sb.append(newLineWithOffset(smgValueAsDot(value)));
+      if (value != smg.getNullValue()) {
+        sb.append(newLineWithOffset(smgValueAsDot(value)));
+      }
     }
 
     for (SMGEdgeHasValue edge: smg.getHVEdges()) {
@@ -69,7 +71,9 @@ public final class SMGPlotter {
     }
 
     for (SMGEdgePointsTo edge: smg.getPTEdges()) {
-      sb.append(newLineWithOffset(smgPTEdgeAsDot(edge)));
+      if (edge.getValue() != smg.getNullValue()) {
+        sb.append(newLineWithOffset(smgPTEdgeAsDot(edge)));
+      }
     }
 
     sb.append("}");
@@ -125,12 +129,14 @@ public final class SMGPlotter {
   }
 
   private void addGlobalObjectSubgraph(CLangSMG pSmg, StringBuilder pSb) {
-    pSb.append(newLineWithOffset("subgraph cluster_global{"));
-    offset += 2;
-    pSb.append(newLineWithOffset("label=\"Global objects\";"));
-    pSb.append(newLineWithOffset(smgScopeFrameAsDot(pSmg.getGlobalObjects(), "global")));
-    offset -= 2;
-    pSb.append(newLineWithOffset("}"));
+    if (pSmg.getGlobalObjects().size() > 0) {
+      pSb.append(newLineWithOffset("subgraph cluster_global{"));
+      offset += 2;
+      pSb.append(newLineWithOffset("label=\"Global objects\";"));
+      pSb.append(newLineWithOffset(smgScopeFrameAsDot(pSmg.getGlobalObjects(), "global")));
+      offset -= 2;
+      pSb.append(newLineWithOffset("}"));
+    }
   }
 
   private String newNullLabel() {
