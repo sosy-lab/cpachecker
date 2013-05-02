@@ -13,12 +13,14 @@
 	<option name="-reachingdef-explicit"/>
 	<option name="-setprop">cpa.explicit.merge=JOIN</option>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
+	<option name="-setprop">pcc.proofcheck.propertychecker=org.sosy_lab.cpachecker.pcc.propertychecker.SingleDefinitionSingleValueChecker</option>
 		<sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -27,6 +29,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -35,6 +38,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -43,6 +47,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -51,6 +56,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -59,6 +65,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -67,6 +74,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -75,6 +83,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -83,6 +92,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 </rundefinition>
@@ -90,12 +100,14 @@
 <rundefinition name="ReachDef_ExplicitJOINSEP">
 	<option name="-reachingdef-explicit"/>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
+	<option name="-setprop">pcc.proofcheck.propertychecker=org.sosy_lab.cpachecker.pcc.propertychecker.SingleDefinitionSingleValueChecker</option>
 		<sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -104,6 +116,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -112,6 +125,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -120,6 +134,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -128,6 +143,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -136,6 +152,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -144,6 +161,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -152,6 +170,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -160,6 +179,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 </rundefinition>
@@ -169,12 +189,14 @@
 	<option name="-setprop">cpa.explicit.merge=JOIN</option>
 	<option name="-setprop">cpa.reachdef.merge=SEP</option>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
+	<option name="-setprop">pcc.proofcheck.propertychecker=org.sosy_lab.cpachecker.pcc.propertychecker.SingleDefinitionSingleValueChecker</option>
 		<sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -183,6 +205,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -191,6 +214,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -199,6 +223,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -207,6 +232,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -215,6 +241,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -223,6 +250,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -231,6 +259,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -239,6 +268,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 </rundefinition>
@@ -247,12 +277,14 @@
 	<option name="-reachingdef-explicit"/>
 	<option name="-setprop">cpa.reachdef.merge=SEP</option>
 	<option name="-setprop">analysis.traversal.order=DFS</option>
+	<option name="-setprop">pcc.proofcheck.propertychecker=org.sosy_lab.cpachecker.pcc.propertychecker.SingleDefinitionSingleValueChecker</option>
 		<sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -261,6 +293,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -269,6 +302,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=cond,main::cond,0,out,</option>
 <include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -277,6 +311,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -285,6 +320,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -293,6 +329,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -301,6 +338,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -309,6 +347,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
@@ -317,6 +356,7 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
+<option name="-setprop">pcc.proofcheck.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 </rundefinition>
@@ -616,6 +656,7 @@
 <column title="Analysis time">Time for Analysis</column>
 <column title="Transfer time">Time for abstract successor checks</column>
 <column title="Stop time">Time for covering checks</column>
+<column title="Property time">Time for checking property</column>
 <column title="#Elems">Number of iterations</column>
 </columns>
 </benchmark>
