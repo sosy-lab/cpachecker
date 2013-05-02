@@ -487,9 +487,11 @@ public class SMGState implements AbstractQueryableState {
    * the function with the given name
    *
    * @param functionName
+   * @throws SMGInconsistentException
    */
-  public void dropStackFrame(String functionName) {
-    // TODO Auto-generated method stub
+  public void dropStackFrame(String functionName) throws SMGInconsistentException {
+    this.heap.dropStackFrame();
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /**
