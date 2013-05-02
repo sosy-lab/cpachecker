@@ -400,10 +400,6 @@ public class SMGState implements AbstractQueryableState {
     heap.setMemoryLeak();
   }
 
- public void insertNewHasValueEdge(SMGEdgeHasValue pNewEdge) {
-   heap.addHasValueEdge(pNewEdge);
- }
-
  public boolean containsValue(int value) {
    return heap.getValues().contains(value);
  }
@@ -430,22 +426,6 @@ public class SMGState implements AbstractQueryableState {
    * if the memory this address belongs to is unkown.
    */
   public SMGObject getMemoryOfAddress(Integer address) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  /**
-   * Adds a new Address represented by a symbolic value and an offset
-   * to the SMG. The address points to the given object. Additionally,
-   * adds the necessary points-to edge to the given object representing Memory
-   * with the given offset.
-   *
-   * @param object An existing object in the SMG this address points to.
-   * @param offset the offset specifying the byte of memory this address points to.
-   * @param address the symbolic Value representing the address.
-   * @return
-   */
-  public Integer addAddress(SMGObject object, Integer offset, Integer address) {
     // TODO Auto-generated method stub
     return null;
   }
