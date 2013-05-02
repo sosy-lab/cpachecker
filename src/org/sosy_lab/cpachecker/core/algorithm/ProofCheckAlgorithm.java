@@ -85,6 +85,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     private Timer stopTimer = new Timer();
     private Timer readTimer = new Timer();
     private Timer preparationTimer = new Timer();
+    private Timer propertyCheckingTimer = new Timer();
 
     private int countIterations = 0;
 
@@ -106,6 +107,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       out.println("  Time for covering checks:               " + stopTimer + " (Calls: "
           + stopTimer.getNumberOfIntervals()
           + ")");
+      out.println(" Time for checking property:          "   + propertyCheckingTimer);
     }
   }
 
@@ -370,7 +372,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     //TODO does not account for strengthen yet (proof check will fail if strengthen is needed to explain successor states)
 
-    stats.totalTimer.start();
 
     logger.log(Level.INFO, "Proof check algorithm started");
 
@@ -380,7 +381,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     logger.log(Level.FINE, "Checking root state");
 
     if (!(checker.isCoveredBy(initialState, rootState) && checker.isCoveredBy(rootState, initialState))) {
-      stats.totalTimer.stop();
       logger.log(Level.WARNING, "Root state of proof is invalid.");
       return false;
     }
@@ -398,7 +398,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     do {
       for (ARGState e : postponedStates) {
         if (!reachedSet.contains(e.getCoveringState())) {
-          stats.totalTimer.stop();
           logger.log(Level.WARNING, "Covering state", e.getCoveringState(), "was not found in reached set");
           return false;
         }
@@ -415,7 +414,12 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
         logger.log(Level.FINE, "Looking at state", state);
 
-        if (!propertyChecker.satisfiesProperty(state)) { return false; }
+        stats.propertyCheckingTimer.start();
+        if (!propertyChecker.satisfiesProperty(state)) {
+          stats.propertyCheckingTimer.stop();
+          return false;
+        }
+        stats.propertyCheckingTimer.stop();
 
         if (state.isCovered()) {
 
@@ -430,13 +434,11 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
           stats.stopTimer.start();
           if (!isCoveringCycleFree(state)) {
             stats.stopTimer.stop();
-            stats.totalTimer.stop();
             logger.log(Level.WARNING, "Found cycle in covering relation for state", state);
             return false;
           }
           if (!checker.isCoveredBy(state, coveringState)) {
             stats.stopTimer.stop();
-            stats.totalTimer.stop();
             logger.log(Level.WARNING, "State", state, "is not covered by", coveringState);
             return false;
           }
@@ -447,7 +449,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
           logger.log(Level.FINER, "Checking abstract successors", successors);
           if (!checker.areAbstractSuccessors(state, null, successors)) {
             stats.transferTimer.stop();
-            stats.totalTimer.stop();
             logger.log(Level.WARNING, "State", state, "has other successors than", successors);
             return false;
           }
@@ -466,7 +467,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
             }
             if (reachedSet.contains(e)) {
               // state unknown parent of e
-              stats.totalTimer.stop();
               logger.log(Level.WARNING, "State", e, "has other parents than", e.getParents());
               return false;
             } else {
@@ -478,7 +478,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         }
       }
     } while (!postponedStates.isEmpty());
-    stats.totalTimer.stop();
 
     return waitingForUnexploredParents.isEmpty();
   }
@@ -487,7 +486,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     ARGState rootState = (ARGState) proof;
     StopOperator stop = ((ARGCPA) cpa).getWrappedCPAs().get(0).getStopOperator();
 // TODO include property checking
-    stats.totalTimer.start();
 
     logger.log(Level.INFO, "Proof check algorithm started");
 
@@ -498,7 +496,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     if (!stop
         .stop(initialState.getWrappedState(), Collections.singleton(rootState.getWrappedState()), initialPrecision)) {
-      stats.totalTimer.stop();
       logger.log(Level.WARNING, "Root state of proof is invalid.");
       return false;
     }
@@ -527,14 +524,12 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         stats.stopTimer.start();
         if (!isCoveringCycleFree(state)) {
           stats.stopTimer.stop();
-          stats.totalTimer.stop();
           logger.log(Level.WARNING, "Found cycle in covering relation for state", state);
           return false;
         }
         if (!stop.stop(state.getWrappedState(), Collections.singleton(coveringState.getWrappedState()),
             initialPrecision)) {
           stats.stopTimer.stop();
-          stats.totalTimer.stop();
           logger.log(Level.WARNING, "State", state, "is not covered by", coveringState);
           return false;
         }
@@ -553,7 +548,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         for (AbstractState succ : computedSuccessors) {
           if (!stop.stop(succ, successors, initialPrecision)) {
             stats.transferTimer.stop();
-            stats.totalTimer.stop();
             logger.log(Level.WARNING, "State", state, "has other successors than", successors);
             return false;
           }
@@ -561,7 +555,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         stats.transferTimer.stop();
       }
     }
-    stats.totalTimer.stop();
 
     return true;
   }
@@ -634,8 +627,11 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         return false;
       }
     }
-
-    return propertyChecker.satisfiesProperty(Arrays.asList(certificate));
+    try {
+      return propertyChecker.satisfiesProperty(Arrays.asList(certificate));
+    } finally {
+      stats.propertyCheckingTimer.stop();
+    }
   }
 
   private boolean checkPartialReachedSet(final ReachedSet reachedSet) throws CPAException, InterruptedException {
@@ -705,8 +701,12 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         return false;
       }
     }
-
-    return propertyChecker.satisfiesProperty(statesPerLocation.values());
+    stats.propertyCheckingTimer.start();
+    try {
+      return propertyChecker.satisfiesProperty(statesPerLocation.values());
+    } finally {
+      stats.propertyCheckingTimer.stop();
+    }
   }
 
   private void addElement(AbstractState element, List<AbstractState> insertIn) {
