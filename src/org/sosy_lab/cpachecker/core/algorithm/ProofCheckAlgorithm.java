@@ -134,6 +134,12 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       name = "pcc.proofcheck.propertychecker",
       description = "Qualified name for class which checks that the computed abstraction adheres to the desired property.")
   private String checkerClass = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker";
+  @Option(
+      name = "pcc.proofcheck.propertychecker.parameters",
+      description = "List of parameters for constructor of pcc.proofcheck.propertychecker. Parameter values are " +
+      		"specified in the order they parameters are defined in the respective constructor. Every parameter value is finished " +
+      		"with \",\". The empty string represents an empty parameter list.")
+  private String checkerParamList = "";
 
   private final Object proof;
   private Multimap<CFANode, AbstractState> statesPerLocation;
@@ -274,14 +280,45 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     if (!PropertyChecker.class.isAssignableFrom(propertyCheckerClass)) { throw new InvalidConfigurationException(
         "Option pcc.proofcheck.propertychecker must be set to a class implementing the PropertyChecker interface!"); }
 
+    // get list of parameters
+    String[] param;
+    int numParam;
+    if (checkerParamList.equals("")) {
+      param = new String[0];
+    } else {
+      String[] result = checkerParamList.split(",", -1);
+      param = new String[result.length - 1];
+      for (int i = 0; i < param.length; i++) {
+        param[i] = result[i];
+      }
+    }
     // construct property checker instance
     try {
-      Constructor<?> cons = propertyCheckerClass.getConstructor();
-      propertyChecker = (PropertyChecker) cons.newInstance((Object[]) null);
-    } catch (NoSuchMethodException | SecurityException e) {
-      throw new UnsupportedOperationException(
-          "Cannot create PropertyChecker if it does not provide the default constructor.");
-    } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+      Constructor<?>[] cons = propertyCheckerClass.getConstructors();
+
+      Class<?>[] paramTypes;
+      Constructor<?> constructor = null;
+      for (Constructor<?> con : cons) {
+        paramTypes = con.getParameterTypes();
+        if (paramTypes.length != param.length)
+          continue;
+        else {
+          for (Class<?> paramType : paramTypes) {
+            if (paramType != String.class)
+              continue;
+          }
+        }
+        constructor = con;
+        break;
+      }
+
+      if (constructor == null) { throw new UnsupportedOperationException(
+          "Cannot create PropertyChecker " + checkerClass + " if it does not provide a constructor with "
+              + param.length + " String parameters."); }
+
+      propertyChecker = (PropertyChecker) constructor.newInstance((Object[]) param);
+    } catch (SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException
+        | InvocationTargetException e) {
       throw new UnsupportedOperationException(
           "Creation of specified PropertyChecker instance failed.", e);
     }

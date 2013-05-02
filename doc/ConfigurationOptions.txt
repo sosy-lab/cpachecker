@@ -938,6 +938,12 @@ pcc.proofcheck.precision = true
 # to the desired property.
 pcc.proofcheck.propertychecker = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker"
 
+# List of parameters for constructor of pcc.proofcheck.propertychecker.
+# Parameter values are specified in the order they parameters are defined in
+# the respective constructor. Every parameter value is finished with ",". The
+# empty string represents an empty parameter list.
+pcc.proofcheck.propertychecker.parameters = ""
+
 pcc.proofgen.doPCC = false
 
 # Apply mined predicates on the corresponding scope. false = add them to the
