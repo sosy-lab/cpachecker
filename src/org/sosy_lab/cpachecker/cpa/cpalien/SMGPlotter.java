@@ -157,8 +157,15 @@ public final class SMGPlotter {
     return "value_" + pEdge.getValue() + " -> " + convertToValidDot(objectIndex.get(pEdge.getObject())) + "[label=\"+" + pEdge.getOffset() + "b\"];";
   }
 
-  private String smgObjectAsDot(SMGObject pObject) {
-    return this.convertToValidDot(pObject.getLabel()) + " [ shape=rectangle, label = \"" + pObject.toString() + "\"];";
+  private String smgObjectAsDot(SMGObject pObject, boolean pValidity) {
+    String shape;
+    String color;
+    if (pValidity){
+      shape="rectangle"; color="black";
+    } else {
+      shape="doubleoctagon"; color="red";
+    }
+    return this.convertToValidDot(pObject.getLabel()) + " [ color=" + color + ", shape=" + shape + ", label = \"" + pObject.toString() + "\"];";
   }
 
   private static String smgValueAsDot(int value) {
