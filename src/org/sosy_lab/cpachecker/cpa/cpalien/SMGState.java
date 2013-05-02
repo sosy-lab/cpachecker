@@ -440,9 +440,14 @@ public class SMGState implements AbstractQueryableState {
    * @param address The symbolic Value of the address.
    * @param offset The offset of the address relative to the beginning of smgObject.
    * @param smgObject The memory the given Address belongs to.
+   * @throws SMGInconsistentException
    */
-  public void free(Integer address, Integer offset, SMGObject smgObject) {
-    // TODO Auto-generated method stub
+  public void free(Integer address, Integer offset, SMGObject smgObject) throws SMGInconsistentException {
+    heap.setValidity(smgObject, false);
+    for (SMGEdgeHasValue edge : heap.getValuesForObject(smgObject)) {
+      heap.removeHasValueEdge(edge);
+    }
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /**
