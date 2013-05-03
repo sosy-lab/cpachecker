@@ -53,7 +53,7 @@ public class SingleDefinitionSingleValueChecker implements PropertyChecker {
 
   private final String varDefName;
   private final String varValName;
-  private final Long varVal;
+  private final long varVal;
   private final String labelLocVarVal;
   private ProgramDefinitionPoint point;
 
@@ -79,8 +79,10 @@ public class SingleDefinitionSingleValueChecker implements PropertyChecker {
       // check if value correctly specified at location
       CFANode node = AbstractStates.extractLocation(elem);
       if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(labelLocVarVal))
-        if (AbstractStates.extractStateByType(elem, ExplicitState.class).getValueFor(varValName) != varVal)
+        if (AbstractStates.extractStateByType(elem, ExplicitState.class).getValueFor(varValName) != varVal){
           return false;
+        }
+
       // check if variable is at most defined once
       rdState = AbstractStates.extractStateByType(elem, ReachingDefState.class);
       if (!(stillSingleDefinition(rdState.getGlobalReachingDefinitions().get(varDefName)) && stillSingleDefinition(rdState
