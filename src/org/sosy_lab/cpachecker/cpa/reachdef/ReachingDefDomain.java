@@ -32,7 +32,7 @@ public class ReachingDefDomain implements AbstractDomain {
 
   @Override
   public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
-    if (!(pState1 instanceof ReachingDefState && pState2 instanceof ReachingDefState)) { return pState1; }
+    if (!(pState1 instanceof ReachingDefState && pState2 instanceof ReachingDefState)) { return pState2; }
     return ((ReachingDefState) pState1).union((ReachingDefState) pState2);
   }
 
