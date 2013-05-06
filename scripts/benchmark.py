@@ -1373,9 +1373,14 @@ def executeBenchmarkInCloud(benchmark):
             timeLimit = str(benchmark.rlimits[TIMELIMIT])
         if(MEMLIMIT in benchmark.rlimits):
             memLimit = str(benchmark.rlimits[MEMLIMIT])
+            
         runSetHeadLine = str(len(runSet.runs)) + "\t" + \
                         timeLimit + "\t" + \
                        memLimit
+                       
+        if(CORELIMIT in benchmark.rlimits):
+           coreLimit = str(benchmark.rlimits[CORELIMIT])
+           runSetHeadLine += ("\t" + coreLimit)
          
         runDefinitions.append(runSetHeadLine)
         
