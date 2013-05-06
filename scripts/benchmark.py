@@ -1386,11 +1386,16 @@ def executeBenchmarkInCloud(benchmark):
         
         # iterate over runs
         for run in runSet.runs:
-                argString = " ".join(run.args)
-                logFile = os.path.relpath(run.logFile, outputDir)
-                runDefinitions.append(argString + "\t" + run.sourcefile + "\t" + \
+            #escape delimiter char
+            args = []
+            for arg in run.args:
+                args.append(arg.replace(" ", "  "))
+            argString = " ".join(args)
+            
+            logFile = os.path.relpath(run.logFile, outputDir)
+            runDefinitions.append(argString + "\t" + run.sourcefile + "\t" + \
                                     logFile)
-                absSourceFiles.append(os.path.abspath(run.sourcefile))
+            absSourceFiles.append(os.path.abspath(run.sourcefile))
 
     if not absSourceFiles:
         logging.warning("Skipping benchmark without source files.")

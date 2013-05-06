@@ -11,14 +11,36 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
         
-        #sys.stderr.write(str(argv)+"\n");
+        #sys.stderr.write(str(argv)+"\n")
 
     if len(argv) >= 5 and len(argv) <=6:
         
         rlimits={}
         
+        #"  " -> replace with " " and " " -> split at this position
         argStr = argv[1]
-        args = argStr.split(" ");
+        args = []
+        tmp=""
+        lastWasWhiteSpace = False
+        for c in argStr:
+            if(lastWasWhiteSpace):
+                if(c != " "):
+                    #split
+                    args.append(tmp)
+                    lastWasWhiteSpace = False
+                    tmp="" + c
+                else:
+                    tmp += " "
+                    lastWasWhiteSpace = False
+            else:
+                if(c == " "):
+                    lastWasWhiteSpace = True
+                else:
+                    tmp += c
+                    lastWasWhiteSpace = False
+        
+        args.append(tmp)
+            
         if(not (argv[2]=="-1" or argv[2]=="None")):
             rlimits[MEMLIMIT] = int(argv[2])
         rlimits[TIMELIMIT] = int(argv[3])
