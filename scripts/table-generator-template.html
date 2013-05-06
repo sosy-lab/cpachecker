@@ -1002,11 +1002,11 @@ def formatOptions(str):
   {{for runResult in line.results}}
   {{py:cssClasses = ' '.join(str(x) for x in runResult.category)}}
   {{for column, value in zip(runResult.columns, runResult.values)}}
-  {{if column.title == 'status'}}
+  {{if column.title == 'status' and value}}
     {{if runResult.logFile}}
-    <td class="status {{cssClasses}}" title="Click here to show output of tool"><a href="{{relpath(runResult.logFile, baseDir)|url}}">{{value.lower()}}</a></td>
+    <td class="status {{cssClasses}}" title="Click here to show output of tool"><a href="{{relpath(runResult.logFile, baseDir)|url}}">{{(value or '-').lower()}}</a></td>
     {{else}}
-    <td class="status {{cssClasses}}">{{value.lower()}}</td>
+    <td class="status {{cssClasses}}">{{(value or '-').lower()}}</td>
     {{endif}}
   {{else}}
   <td class="{{cssClasses}}Value">{{value or '-'}}</td>
