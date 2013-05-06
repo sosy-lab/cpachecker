@@ -627,6 +627,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         return false;
       }
     }
+    stats.propertyCheckingTimer.start();
     try {
       return propertyChecker.satisfiesProperty(Arrays.asList(certificate));
     } finally {
