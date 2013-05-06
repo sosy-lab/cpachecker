@@ -480,7 +480,7 @@ public class VariableClassification {
   /** This function handles normal assignments of vars. */
   private void handleAssignment(final CFAEdge edge, final CAssignment assignment) {
     CRightHandSide rhs = assignment.getRightHandSide();
-    CExpression lhs = assignment.getLeftHandSide().getExpression();
+    CExpression lhs = assignment.getLeftHandSide();
     String varName = lhs.toASTString();
     String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
 
@@ -593,7 +593,7 @@ public class VariableClassification {
     // a=f();
     if (statement instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement call = (CFunctionCallAssignmentStatement) statement;
-      CExpression lhs = call.getLeftHandSide().getExpression();
+      CExpression lhs = call.getLeftHandSide();
       String varName = lhs.toASTString();
       String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
       dependencies.add(innerFunctionName, FUNCTION_RETURN_VARIABLE, function, varName);

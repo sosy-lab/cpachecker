@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -66,7 +65,6 @@ import com.google.common.collect.Sets;
  * identifiers which are referenced.
  */
 class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRuntimeException>,
-                                     CLeftHandSideVisitor<Void, CFAGenerationRuntimeException>,
                                        CInitializerVisitor<Void, CFAGenerationRuntimeException>,
                                        CStatementVisitor<Void, CFAGenerationRuntimeException>,
                                        CDesignatorVisitor<Void, CFAGenerationRuntimeException> {

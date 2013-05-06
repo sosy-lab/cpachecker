@@ -23,18 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
  * Interfaces for all possible right-hand sides of an assignment.
  *
  */
-public interface IALeftHandSide extends IAstNode {
-
-
-  public Type getExpressionType();
-
-  public IAExpression getExpression();
-
+public interface IALeftHandSide extends IAExpression {
 
 }

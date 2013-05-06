@@ -26,23 +26,14 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 
 import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
 
 /**
  * Interface for all possible right-hand sides of an assignment.
  */
-public interface CLeftHandSide extends CAstNode, IALeftHandSide {
-
+public interface CLeftHandSide extends CExpression, IALeftHandSide {
 
   public <R, X extends Exception> R accept(CLeftHandSideVisitor<R, X> pV) throws X;
-
-  @Override
-  public CType getExpressionType();
-
-  @Override
-  public CExpression getExpression();
-
 
 }

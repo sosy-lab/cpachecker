@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class JIdExpression extends AIdExpression implements JExpression, JLeftHandSide {
+public class JIdExpression extends AIdExpression implements JLeftHandSide {
 
   public JIdExpression(FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName, pDeclaration);
@@ -81,8 +81,4 @@ public class JIdExpression extends AIdExpression implements JExpression, JLeftHa
     return super.equals(obj);
   }
 
-  @Override
-  public JExpression getExpression() {
-    return this;
-  }
 }

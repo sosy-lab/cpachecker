@@ -28,11 +28,8 @@ import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
 /**
  * Interface for all possible right-hand sides of an assignment.
  */
-public interface JLeftHandSide extends IALeftHandSide, JAstNode {
+public interface JLeftHandSide extends IALeftHandSide, JExpression {
 
   public <R, X extends Exception> R accept(JLeftHandSideVisitor<R, X> pV) throws X;
-
-  @Override
-  public JExpression getExpression();
 
 }

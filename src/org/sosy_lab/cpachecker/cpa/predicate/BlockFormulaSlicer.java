@@ -515,7 +515,7 @@ public class BlockFormulaSlicer {
 
   private boolean handleAssignment(CAssignment statement, CStatementEdge edge,
       Multimap<String, String> importantVars) {
-    final CExpression lhs = statement.getLeftHandSide().getExpression();
+    final CExpression lhs = statement.getLeftHandSide();
 
     // a = ?
     if (lhs instanceof CIdExpression) {
@@ -595,7 +595,7 @@ public class BlockFormulaSlicer {
     // handle assignments like "y = f(x);"
     if (call instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) call;
-      CExpression lhs = cAssignment.getLeftHandSide().getExpression();
+      CExpression lhs = cAssignment.getLeftHandSide();
 
       String outerFunctionName = edge.getSuccessor().getFunctionName();
       String function = isGlobal(lhs) ? null : outerFunctionName;

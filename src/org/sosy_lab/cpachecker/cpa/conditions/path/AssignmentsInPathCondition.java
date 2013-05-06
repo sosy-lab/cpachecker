@@ -126,7 +126,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
       CStatement statement = statementEdge.getStatement();
       if (statement instanceof CAssignment) {
-        CExpression leftHandSide = ((CAssignment)statement).getLeftHandSide().getExpression();
+        CExpression leftHandSide = ((CAssignment)statement).getLeftHandSide();
 
         String assignedVariable = getScopedVariableName(leftHandSide, edge);
         if (assignedVariable != null) {

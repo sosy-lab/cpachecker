@@ -1364,7 +1364,7 @@ public class CtoFormulaConverter {
       CType retType = getReturnType(funcCallExp, ce);
 
       Formula retVar = makeVariable(retVarName, retType, ssa);
-      CExpression e = exp.getLeftHandSide().getExpression();
+      CExpression e = exp.getLeftHandSide();
 
       function = ce.getSuccessor().getFunctionName();
       Formula outvarFormula = buildLvalueTerm(e, ce, function, ssa, constraints);
@@ -2868,7 +2868,7 @@ public class CtoFormulaConverter {
      */
     public Triple<Formula, Formula, BooleanFormula> visitAssignment(CAssignment assignment) throws UnrecognizedCCodeException {
       Formula r = assignment.getRightHandSide().accept(this);
-      Formula l = buildLvalueTerm(assignment.getLeftHandSide().getExpression(), edge, function, ssa, constraints);
+      Formula l = buildLvalueTerm(assignment.getLeftHandSide(), edge, function, ssa, constraints);
       r = makeCast(
             assignment.getRightHandSide().getExpressionType(),
             assignment.getLeftHandSide().getExpressionType(),
@@ -2959,7 +2959,7 @@ public class CtoFormulaConverter {
     @Override
     public BooleanFormula visit(CAssignment assignment)
         throws UnrecognizedCCodeException {
-      CExpression left = removeCast(assignment.getLeftHandSide().getExpression());
+      CExpression left = removeCast(assignment.getLeftHandSide());
 
       if (left instanceof CIdExpression) {
         // p = ...
@@ -2997,7 +2997,7 @@ public class CtoFormulaConverter {
      */
     private BooleanFormula handleIndirectAssignment(CAssignment pAssignment)
         throws UnrecognizedCCodeException {
-      CExpression lExpr = removeCast(pAssignment.getLeftHandSide().getExpression());
+      CExpression lExpr = removeCast(pAssignment.getLeftHandSide());
 
       assert (lExpr instanceof CUnaryExpression || (lExpr instanceof CFieldReference && isIndirectFieldReference((CFieldReference)lExpr)))
           : "Unsupported leftHandSide in Indirect Assignment";
@@ -3327,7 +3327,7 @@ public class CtoFormulaConverter {
     /** A direct assignment changes the value of the variable on the left side. */
     private BooleanFormula handleDirectAssignment(CAssignment assignment)
         throws UnrecognizedCCodeException {
-      CExpression lRawExpr = assignment.getLeftHandSide().getExpression();
+      CExpression lRawExpr = assignment.getLeftHandSide();
       CExpression lExpr = removeCast(lRawExpr);
       assert (lExpr instanceof CIdExpression
           || (lExpr instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)lExpr)))

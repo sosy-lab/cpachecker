@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class JArraySubscriptExpression extends AArraySubscriptExpression implements JExpression, JLeftHandSide {
+public class JArraySubscriptExpression extends AArraySubscriptExpression implements JLeftHandSide {
 
   public JArraySubscriptExpression(FileLocation pFileLocation, JType pType, JExpression pArrayExpression,
       JExpression pSubscriptExpression) {
@@ -84,11 +84,5 @@ public class JArraySubscriptExpression extends AArraySubscriptExpression impleme
 
     return super.equals(obj);
   }
-
-  @Override
-  public JExpression getExpression() {
-    return this;
-  }
-
 
 }

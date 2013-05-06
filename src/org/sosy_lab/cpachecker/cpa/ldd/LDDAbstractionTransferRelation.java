@@ -131,7 +131,7 @@ public class LDDAbstractionTransferRelation implements TransferRelation {
   private LDDRegion toRegion(CStatement pStatement, LDDRegion previousRegion) {
     if (pStatement instanceof CExpressionAssignmentStatement) {
       CExpressionAssignmentStatement eas = (CExpressionAssignmentStatement) pStatement;
-      CExpression leftHandSide = eas.getLeftHandSide().getExpression();
+      CExpression leftHandSide = eas.getLeftHandSide();
       if (leftHandSide instanceof CIdExpression) {
         CExpression rightHandSide = eas.getRightHandSide();
         CIdExpression lhsId = (CIdExpression) leftHandSide;

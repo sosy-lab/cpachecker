@@ -57,7 +57,7 @@ public class Equation {
   public CExpression getLeftHandSide() {
     CExpressionAssignmentStatement EAS =
       (CExpressionAssignmentStatement) tree;
-    CExpression LHS = EAS.getLeftHandSide().getExpression();
+    CExpression LHS = EAS.getLeftHandSide();
     return LHS;
   }
 

@@ -340,7 +340,7 @@ public class RTTTransferRelation implements TransferRelation {
                                   JAssignment assignExpression, CFAEdge cfaEdge)
                                                 throws UnrecognizedCCodeException {
 
-    JExpression op1 = assignExpression.getLeftHandSide().getExpression();
+    JExpression op1 = assignExpression.getLeftHandSide();
     JRightHandSide op2 = assignExpression.getRightHandSide();
 
 
@@ -441,7 +441,7 @@ public class RTTTransferRelation implements TransferRelation {
 
     if (exprOnSummary instanceof JMethodInvocationAssignmentStatement) {
       JMethodInvocationAssignmentStatement assignExp = ((JMethodInvocationAssignmentStatement)exprOnSummary);
-      JExpression op1 = assignExp.getLeftHandSide().getExpression();
+      JExpression op1 = assignExp.getLeftHandSide();
 
       // we expect left hand side of the expression to be a variable
 

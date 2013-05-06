@@ -942,7 +942,7 @@ public class ASTConverter {
 
       addSideassignmentsForExpressionsWithoutAssignmentSideEffects(node, e);
 
-      return ((JAssignment) node).getLeftHandSide().getExpression();
+      return ((JAssignment) node).getLeftHandSide();
     } else {
       throw new AssertionError("unknown expression " + node);
     }
@@ -1914,7 +1914,7 @@ public class ASTConverter {
         preSideAssignments.add(rightHandSide);
 
         return new JExpressionAssignmentStatement(fileLoc, leftHandSide,
-            ((JAssignment) rightHandSide).getLeftHandSide().getExpression());
+            ((JAssignment) rightHandSide).getLeftHandSide());
 
       } else {
         throw new CFAGenerationRuntimeException("Expression is not free of side-effects");
@@ -1925,7 +1925,7 @@ public class ASTConverter {
       JExpression rightHandSide = convertExpressionWithoutSideEffects(e.getRightHandSide());
 
       // first create expression "a + b"
-      JBinaryExpression exp = new JBinaryExpression(fileLoc, type, leftHandSide.getExpression(), rightHandSide, op);
+      JBinaryExpression exp = new JBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
       // and now the assignment
       return new JExpressionAssignmentStatement(fileLoc, leftHandSide, exp);
@@ -2016,7 +2016,7 @@ public class ASTConverter {
 
     JExpression preOne = new JIntegerLiteralExpression(fileLoc, BigInteger.ONE);
     JBinaryExpression preExp =
-        new JBinaryExpression(fileLoc, type, operand.getExpression(), preOne, postOp);
+        new JBinaryExpression(fileLoc, type, operand, preOne, postOp);
 
     return new JExpressionAssignmentStatement(fileLoc, operand, preExp);
   }
@@ -2038,7 +2038,7 @@ public class ASTConverter {
 
     JExpression preOne = new JIntegerLiteralExpression(fileLoc, BigInteger.ONE);
     JBinaryExpression preExp = new JBinaryExpression(fileLoc, type,
-        operand.getExpression(), preOne, preOp);
+        operand, preOne, preOp);
     return new JExpressionAssignmentStatement(fileLoc, operand, preExp);
   }
 

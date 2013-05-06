@@ -24,16 +24,19 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 
-public interface CExpressionVisitor<R, X extends Exception> {
+public interface CExpressionVisitor<R, X extends Exception> extends CLeftHandSideVisitor<R, X> {
 
+  @Override
   R visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws X;
 
   R visit(CBinaryExpression pIastBinaryExpression) throws X;
 
   R visit(CCastExpression pIastCastExpression) throws X;
 
+  @Override
   R visit(CFieldReference pIastFieldReference) throws X;
 
+  @Override
   R visit(CIdExpression pIastIdExpression) throws X;
 
   R visit(CCharLiteralExpression pIastCharLiteralExpression) throws X;
@@ -48,6 +51,7 @@ public interface CExpressionVisitor<R, X extends Exception> {
 
   R visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws X;
 
+  @Override
   R visit(CUnaryExpression pIastUnaryExpression) throws X;
 
 }

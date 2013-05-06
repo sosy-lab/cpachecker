@@ -198,7 +198,7 @@ enum InvariantsTransferRelation implements TransferRelation {
     if (edge.getStatement() instanceof CAssignment) {
       CAssignment assignment = (CAssignment)edge.getStatement();
 
-      CExpression leftHandSide = assignment.getLeftHandSide().getExpression();
+      CExpression leftHandSide = assignment.getLeftHandSide();
       if (leftHandSide instanceof CIdExpression) {
         // a = ...
 

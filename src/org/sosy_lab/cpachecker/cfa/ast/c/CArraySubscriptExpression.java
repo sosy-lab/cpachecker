@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CArraySubscriptExpression extends AArraySubscriptExpression implements CExpression, CLeftHandSide{
+public final class CArraySubscriptExpression extends AArraySubscriptExpression implements CLeftHandSide{
 
 
 
@@ -88,8 +88,4 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression i
     return super.equals(obj);
   }
 
-  @Override
-  public CExpression getExpression() {
-    return this;
-  }
 }

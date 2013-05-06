@@ -222,7 +222,7 @@ class ASTConverter {
 
     } else if (node instanceof CAssignment) {
       preSideAssignments.add(node);
-      return ((CAssignment) node).getLeftHandSide().getExpression();
+      return ((CAssignment) node).getLeftHandSide();
 
     } else {
       throw new AssertionError("unknown expression " + node);
@@ -245,11 +245,11 @@ class ASTConverter {
                                                               CType type,
                                                               BinaryOperator op) {
     CIdExpression tmp = createTemporaryVariable(e);
-    preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmp, exp.getExpression()));
+    preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmp, exp));
 
 
     CExpression one = createSideeffectLiteralOne(type, fileLoc, e);
-    CBinaryExpression postExp = new CBinaryExpression(fileLoc, type, exp.getExpression(), one, op);
+    CBinaryExpression postExp = new CBinaryExpression(fileLoc, type, exp, one, op);
     preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, exp, postExp));
 
 
@@ -419,7 +419,7 @@ class ASTConverter {
 
         } else if (rightHandSide instanceof CAssignment) {
           preSideAssignments.add(rightHandSide);
-          return new CExpressionAssignmentStatement(fileLoc, leftHandSide, ((CAssignment) rightHandSide).getLeftHandSide().getExpression());
+          return new CExpressionAssignmentStatement(fileLoc, leftHandSide, ((CAssignment) rightHandSide).getLeftHandSide());
         } else {
           throw new CFAGenerationRuntimeException("Expression is not free of side-effects", e);
         }
@@ -429,7 +429,7 @@ class ASTConverter {
         CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
 
         // first create expression "a + b"
-        CBinaryExpression exp = new CBinaryExpression(fileLoc, type, leftHandSide.getExpression(), rightHandSide, op);
+        CBinaryExpression exp = new CBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
         // and now the assignment
         return new CExpressionAssignmentStatement(fileLoc, leftHandSide, exp);
@@ -1317,7 +1317,7 @@ class ASTConverter {
 
       if (initializer instanceof CAssignment) {
         preSideAssignments.add(initializer);
-        return new CInitializerExpression(getLocation(e), ((CAssignment)initializer).getLeftHandSide().getExpression());
+        return new CInitializerExpression(getLocation(e), ((CAssignment)initializer).getLeftHandSide());
 
       } else if (initializer instanceof CFunctionCallExpression) {
         FileLocation loc = getLocation(i);

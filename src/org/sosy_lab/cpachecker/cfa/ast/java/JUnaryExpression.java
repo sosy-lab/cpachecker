@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 
-public class JUnaryExpression extends AUnaryExpression implements JExpression, JLeftHandSide {
+public class JUnaryExpression extends AUnaryExpression implements JLeftHandSide {
 
   public JUnaryExpression(FileLocation pFileLocation, JType pType, JExpression pOperand, UnaryOperator pOperator) {
     super(pFileLocation, pType, pOperand, pOperator);
@@ -109,8 +109,4 @@ public class JUnaryExpression extends AUnaryExpression implements JExpression, J
     return super.equals(obj);
   }
 
-  @Override
-  public JExpression getExpression() {
-    return this;
-  }
 }

@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CIdExpression extends AIdExpression implements CExpression, CLeftHandSide {
+public final class CIdExpression extends AIdExpression implements CLeftHandSide {
 
 
   public CIdExpression(final FileLocation pFileLocation,
@@ -85,11 +85,6 @@ public final class CIdExpression extends AIdExpression implements CExpression, C
     }
 
     return super.equals(obj);
-  }
-
-  @Override
-  public CExpression getExpression() {
-    return this;
   }
 
 }

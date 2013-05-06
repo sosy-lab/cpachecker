@@ -44,11 +44,6 @@ public  abstract class ALeftHandSide extends AstNode implements IALeftHandSide {
     type = pType;
   }
 
-  @Override
-  public Type getExpressionType() {
-    return type;
-  }
-
   /* (non-Javadoc)
    * @see java.lang.Object#hashCode()
    */

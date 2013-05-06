@@ -183,7 +183,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
     if (expression instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement)expression;
 
-      CExpression operand1 = funcExp.getLeftHandSide().getExpression();
+      CExpression operand1 = funcExp.getLeftHandSide();
 
       // left hand side of the expression has to be a variable
       if ((operand1 instanceof CIdExpression) || (operand1 instanceof CFieldReference)) {
@@ -643,7 +643,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
    */
   private IntervalAnalysisState handleAssignment(IntervalAnalysisState element, CAssignment assignExpression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException {
-    CExpression op1 = assignExpression.getLeftHandSide().getExpression();
+    CExpression op1 = assignExpression.getLeftHandSide();
     CRightHandSide op2 = assignExpression.getRightHandSide();
 
     // a = ?

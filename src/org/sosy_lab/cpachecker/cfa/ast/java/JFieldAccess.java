@@ -98,9 +98,4 @@ public class JFieldAccess extends JIdExpression implements JLeftHandSide{
     return v.visit(this);
   }
 
-  @Override
-  public JExpression getExpression() {
-    return this;
-  }
-
 }

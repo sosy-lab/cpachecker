@@ -1024,7 +1024,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
 
   private boolean isReferenced(JSimpleDeclaration referencedVariable, JAssignment assignment) {
-    JExpression leftHandSide = assignment.getLeftHandSide().getExpression();
+    JExpression leftHandSide = assignment.getLeftHandSide();
 
     return (leftHandSide instanceof JIdExpression)
         && ((JIdExpression) leftHandSide).getDeclaration().getName().equals(
@@ -1054,7 +1054,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
   private boolean isReferencableVariable(JSimpleDeclaration referencedVariable, JAssignment assignment) {
 
-    JExpression leftHandSide = assignment.getLeftHandSide().getExpression();
+    JExpression leftHandSide = assignment.getLeftHandSide();
     JRightHandSide rightHandSide = assignment.getRightHandSide();
 
     return (leftHandSide instanceof JIdExpression)
@@ -1226,7 +1226,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
         JExpressionAssignmentStatement assignment =
             new JExpressionAssignmentStatement(
-               fileLoc, tempVar, ((JAssignment) exp).getLeftHandSide().getExpression());
+               fileLoc, tempVar, ((JAssignment) exp).getLeftHandSide());
 
         edge = new JStatementEdge(condExp.toString(),
             assignment, filelocStart, middle, lastNode);
@@ -1277,7 +1277,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         addToCFA(edge);
         edge = new JStatementEdge(condExp.toString(),
             new JExpressionStatement(astCreator.getFileLocation(condExp),
-                ((JExpressionAssignmentStatement) exp).getLeftHandSide().getExpression()),
+                ((JExpressionAssignmentStatement) exp).getLeftHandSide()),
             filelocStart, middle, lastNode);
         addToCFA(edge);
       }
