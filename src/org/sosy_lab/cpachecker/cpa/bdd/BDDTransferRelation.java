@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -1012,6 +1013,12 @@ public class BDDTransferRelation implements TransferRelation {
       }
       return returnValue;
     }
+
+    @Override
+    public Region[] visit(CPointerExpression exp) {
+      //TODO check if this is right, handling for pointerexpression taken from cunaryexpression handling above
+      return null;
+    }
   }
 
   /** This Visitor evaluates the visited expression and
@@ -1094,6 +1101,11 @@ public class BDDTransferRelation implements TransferRelation {
 
     @Override
     public Boolean visit(CUnaryExpression exp) {
+      return exp.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CPointerExpression exp) {
       return exp.getOperand().accept(this);
     }
   }

@@ -57,7 +57,7 @@ class ASTOperatorConverter {
     case IASTUnaryExpression.op_sizeof:
       return UnaryOperator.SIZEOF;
     case IASTUnaryExpression.op_star:
-      return UnaryOperator.STAR;
+      throw new IllegalArgumentException("Unary Expressions with star operator are not supported. Use CPointerExpression instead.");
     case IASTUnaryExpression.op_tilde:
       return UnaryOperator.TILDE;
     default:

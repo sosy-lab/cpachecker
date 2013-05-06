@@ -23,25 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-
-import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-/**
- *
- * Abstract Super class for all possible right-hand sides of an assignment.
- * This class is only SuperClass of all abstract Classes and their Subclasses.
- * The Interface {@link IARightHandSide} contains all language specific
- * AST Nodes as well.
- */
-public  abstract class ALeftHandSide extends AExpression implements IALeftHandSide {
+import com.google.common.base.Objects;
 
-  private final Type type;
 
-  public ALeftHandSide(FileLocation pFileLocation, Type pType) {
+public class APointerExpression extends ALeftHandSide implements IAPointerExpression{
+
+  private final IAExpression operand;
+
+  public APointerExpression(FileLocation pFileLocation, Type pType, final IAExpression pOperand) {
     super(pFileLocation, pType);
-    type = pType;
+    operand = pOperand;
+  }
+
+  public IAExpression getOperand() {
+    return operand;
+  }
+
+  @Override
+  public String toASTString() {
+    return "*" + operand.toParenthesizedASTString();
   }
 
   /* (non-Javadoc)
@@ -51,7 +53,7 @@ public  abstract class ALeftHandSide extends AExpression implements IALeftHandSi
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(type);
+    result = prime * result + Objects.hashCode(operand);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -65,15 +67,14 @@ public  abstract class ALeftHandSide extends AExpression implements IALeftHandSi
       return true;
     }
 
-    if (!(obj instanceof ALeftHandSide)
+    if (!(obj instanceof APointerExpression)
         || !super.equals(obj)) {
       return false;
     }
 
-    ALeftHandSide other = (ALeftHandSide) obj;
+    APointerExpression other = (APointerExpression) obj;
 
-    return Objects.equals(other.type, type);
+    return Objects.equal(other.operand, operand);
   }
-
 
 }

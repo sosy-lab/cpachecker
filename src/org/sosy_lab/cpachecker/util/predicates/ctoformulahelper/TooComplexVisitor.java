@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
@@ -109,4 +110,8 @@ public class TooComplexVisitor implements CExpressionVisitor<Boolean, Exception>
     return pIastUnaryExpression.getOperand().accept(this);
   }
 
+  @Override
+  public Boolean visit(CPointerExpression pIastPointerExpression) throws Exception {
+    return pIastPointerExpression.getOperand().accept(this);
+  }
 }

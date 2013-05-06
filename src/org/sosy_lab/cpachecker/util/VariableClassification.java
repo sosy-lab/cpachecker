@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -834,6 +835,17 @@ public class VariableClassification {
     public Multimap<String, String> visit(CUnaryExpression exp) {
       BigInteger val = getNumber(exp);
       if (val == null) {
+        return exp.getOperand().accept(this);
+      } else {
+        values.add(val);
+        return null;
+      }
+    }
+
+    @Override
+    public Multimap<String, String> visit(CPointerExpression exp) {
+      BigInteger val = getNumber(exp);
+      if(val == null) {
         return exp.getOperand().accept(this);
       } else {
         values.add(val);

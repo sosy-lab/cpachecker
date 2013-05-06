@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -727,6 +728,12 @@ public class BlockFormulaSlicer {
 
     @Override
     public Multimap<String, String> visit(CUnaryExpression exp) {
+      exp.getOperand().accept(this);
+      return vars;
+    }
+
+    @Override
+    public Multimap<String, String> visit(CPointerExpression exp) {
       exp.getOperand().accept(this);
       return vars;
     }

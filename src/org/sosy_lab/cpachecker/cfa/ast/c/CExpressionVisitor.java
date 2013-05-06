@@ -39,6 +39,9 @@ public interface CExpressionVisitor<R, X extends Exception> extends CLeftHandSid
   @Override
   R visit(CIdExpression pIastIdExpression) throws X;
 
+  @Override
+  R visit(CPointerExpression pIastPointerExpression) throws X;
+
   R visit(CCharLiteralExpression pIastCharLiteralExpression) throws X;
 
   R visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws X;
@@ -51,7 +54,6 @@ public interface CExpressionVisitor<R, X extends Exception> extends CLeftHandSid
 
   R visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws X;
 
-  @Override
   R visit(CUnaryExpression pIastUnaryExpression) throws X;
 
 }

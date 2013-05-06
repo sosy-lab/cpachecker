@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -262,6 +263,11 @@ class AutomatonASTComparator {
     @Override
     public ASTMatcher visit(CUnaryExpression exp) throws InvalidAutomatonException {
       return new UnaryExpressionMatcher(exp, exp.getOperand().accept(this));
+    }
+
+    @Override
+    public ASTMatcher visit(CPointerExpression exp) throws InvalidAutomatonException {
+      return new PointerExpressionMatcher(exp, exp.getOperand().accept(this));
     }
 
     @Override
@@ -595,6 +601,24 @@ class AutomatonASTComparator {
     protected UnaryOperator getFieldValueFrom(CUnaryExpression pSource) {
       return pSource.getOperator();
     }
+  }
+
+  private static class PointerExpressionMatcher extends OneOperandExpressionMatcher<CPointerExpression, String> {
+
+    public PointerExpressionMatcher(CPointerExpression pPattern, ASTMatcher pOperand) {
+      super(CPointerExpression.class, pPattern, pOperand);
+    }
+
+    @Override
+    protected CExpression getOperandFrom(CPointerExpression pSource) {
+      return pSource.getOperand();
+    }
+
+    @Override
+    protected String getFieldValueFrom(CPointerExpression pSource) {
+      return "*";
+    }
+
   }
 
   private static class TypeIdExpressionMatcher extends ExpressionWithFieldMatcher<CTypeIdExpression, CType> {

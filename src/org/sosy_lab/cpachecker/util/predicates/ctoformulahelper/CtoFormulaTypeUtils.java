@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.ctoformulahelper;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -165,7 +165,7 @@ public class CtoFormulaTypeUtils {
     if (fExp.isPointerDereference()) {
       CType dereferencedType = CtoFormulaTypeUtils.dereferencedType(fieldOwner.getExpressionType());
       assert !(dereferencedType instanceof CDereferenceType) : "We should be able to dereference!";
-      fieldOwner = new CUnaryExpression(null, dereferencedType, fieldOwner, UnaryOperator.STAR);
+      fieldOwner = new CPointerExpression(null, dereferencedType, fieldOwner);
     }
     return fieldOwner;
   }

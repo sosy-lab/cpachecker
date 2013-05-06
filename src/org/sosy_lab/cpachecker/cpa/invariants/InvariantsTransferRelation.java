@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -315,6 +316,11 @@ enum InvariantsTransferRelation implements TransferRelation {
       default:
         return super.visit(pE);
       }
+    }
+
+    @Override
+    public SimpleInterval visit(CPointerExpression pE) throws UnrecognizedCCodeException {
+        return super.visit(pE);
     }
   }
 

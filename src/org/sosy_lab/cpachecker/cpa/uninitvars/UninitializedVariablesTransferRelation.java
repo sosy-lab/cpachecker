@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -343,10 +344,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         }
       }
 
-    } else if (
-
-        ((op1 instanceof CUnaryExpression)
-            && (((CUnaryExpression)op1).getOperator() == UnaryOperator.STAR))
+    } else if ((op1 instanceof CPointerExpression)
             || (op1 instanceof CArraySubscriptExpression)) {
       // assignment to the target of a pointer or an array element,
       // this does not change the initialization status of the variable

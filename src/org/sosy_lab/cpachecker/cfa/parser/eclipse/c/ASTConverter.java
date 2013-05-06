@@ -115,6 +115,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -511,7 +512,7 @@ class ASTConverter {
 
     // if there is a "var->field" convert it to (*var).field
     if(e.isPointerDereference()) {
-      CUnaryExpression exp = new CUnaryExpression(getLocation(e), type, owner, UnaryOperator.STAR);
+      CPointerExpression exp = new CPointerExpression(getLocation(e), type, owner);
       return new CFieldReference(getLocation(e), type, fieldName, exp, false);
     }
 
@@ -605,11 +606,10 @@ class ASTConverter {
     case IASTUnaryExpression.op_star:
       // if there is a dereference on a field of a dereferenced struct a temporary variable is needed
       if(operand instanceof CFieldReference
-          && ((CFieldReference)operand).getFieldOwner() instanceof CUnaryExpression
-          && ((CUnaryExpression)((CFieldReference)operand).getFieldOwner()).getOperator() == UnaryOperator.STAR) {
+          && ((CFieldReference)operand).getFieldOwner() instanceof CPointerExpression) {
         CIdExpression tmpVar = createTemporaryVariable(e.getOperand());
         preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmpVar, operand));
-        return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+        return new CPointerExpression(fileLoc, type, tmpVar);
       }
 
       // in case of *& both can be left out
@@ -619,20 +619,18 @@ class ASTConverter {
       }
 
       // in case of ** a temporary variable is needed
-      if(operand instanceof CUnaryExpression
-          && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR) {
+      if(operand instanceof CPointerExpression) {
         CIdExpression tmpVar = createTemporaryVariable(e.getOperand());
         preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmpVar, operand));
-        return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+        return new CPointerExpression(fileLoc, type, tmpVar);
       }
 
       // if none of the special cases before fits the default unaryExpression is created
-      return new CUnaryExpression(fileLoc, type, operand, ASTOperatorConverter.convertUnaryOperator(e));
+      return new CPointerExpression(fileLoc, type, operand);
 
     case IASTUnaryExpression.op_amper:
       // in case of *& both can be left out
-      if(operand instanceof CUnaryExpression
-          && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR) {
+      if(operand instanceof CPointerExpression) {
         return ((CUnaryExpression)operand).getOperand();
       }
 

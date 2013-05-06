@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -242,6 +243,12 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
   public Void visit(CEmptyDesignator e) throws CFAGenerationRuntimeException {
     // nothing to do here, empty designator is only the end of chained
     // designators
+    return null;
+  }
+
+  @Override
+  public Void visit(CPointerExpression e) throws CFAGenerationRuntimeException {
+    e.getOperand().accept(this);
     return null;
   }
 }

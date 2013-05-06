@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
@@ -63,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -352,7 +354,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
 
       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
-      else if (op1 instanceof AUnaryExpression && ((AUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
+      else if (op1 instanceof APointerExpression) {
         return newElement;
       }
 
@@ -522,10 +524,10 @@ public class ExplicitTransferRelation implements TransferRelation {
         }
 
         handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(cfaEdge, newElement, functionName));
-      } else if (op1 instanceof AUnaryExpression && ((AUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
+      } else if (op1 instanceof APointerExpression) {
       // *a = ...
 
-      op1 = ((AUnaryExpression)op1).getOperand();
+      op1 = ((APointerExpression)op1).getOperand();
 
       // Cil produces code like
       // *((int*)__cil_tmp5) = 1;
@@ -830,16 +832,19 @@ public class ExplicitTransferRelation implements TransferRelation {
       case AMPER:
         return null; // valid expression, but it's a pointer value
 
-      case STAR:
-        missingPointer = true;
-        return null;
-
       case SIZEOF:
       case TILDE:
       default:
         // TODO handle unimplemented operators
         return null;
       }
+    }
+
+    @Override
+    public Long visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
+        missingPointer = true;
+        return null;
+
     }
 
     @Override
@@ -1288,32 +1293,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     @Override
     public Long visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-      if (unaryExpression.getOperator() != UnaryOperator.STAR) {
-        return super.visit(unaryExpression);
-      }
-
-      // Cil produces code like
-      // __cil_tmp8 = *((int *)__cil_tmp7);
-      // so remove cast
-      CExpression unaryOperand = unaryExpression.getOperand();
-      if (unaryOperand instanceof CCastExpression) {
-        unaryOperand = ((CCastExpression)unaryOperand).getOperand();
-      }
-
-      if (unaryOperand instanceof CIdExpression) {
-        String rightVar = derefPointerToVariable(pointerState, ((CIdExpression)unaryOperand).getName());
-        if (rightVar != null) {
-          rightVar = getScopedVariableName(rightVar, functionName);
-
-          if (state.contains(rightVar)) {
-            return state.getValueFor(rightVar);
-          }
-        }
-      } else {
-        throw new UnrecognizedCCodeException("Pointer dereference of something that is not a variable", edge, unaryExpression);
-      }
-
-      return null;
+      return super.visit(unaryExpression);
     }
 
     @Override

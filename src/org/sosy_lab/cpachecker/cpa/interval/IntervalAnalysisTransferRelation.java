@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -216,7 +217,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
       }
 
       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
-      else if (operand1 instanceof CUnaryExpression && ((CUnaryExpression)operand1).getOperator() == UnaryOperator.STAR) {
+      else if (operand1 instanceof CPointerExpression) {
         return element.clone();
       } else {
         throw new UnrecognizedCCodeException("on function return", summaryEdge, operand1);
@@ -322,13 +323,12 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
         case NOT:
           return handleAssumption(element, unaryExp.getOperand(), cfaEdge, !truthValue);
 
-        case STAR:
-          // *exp - don't know anything
-          return soleSuccessor(element.clone());
-
         default:
           throw new UnrecognizedCCodeException(cfaEdge, unaryExp);
       }
+    } else if (expression instanceof CPointerExpression) {
+      // *exp - don't know anything
+      return soleSuccessor(element.clone());
     }
 
     // a plain (boolean) identifier, e.g. if (a)
@@ -654,7 +654,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
     }
 
     // TODO: assignment to pointer, *a = ?
-    else if (op1 instanceof CUnaryExpression && ((CUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
+    else if (op1 instanceof CPointerExpression) {
       return element.clone();
     } else if (op1 instanceof CFieldReference) {
       return element.clone();
@@ -969,13 +969,16 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
       case AMPER:
         return Interval.createUnboundInterval(); // valid expression, but it's a pointer value
 
-      case STAR:
-        return Interval.createUnboundInterval();
-
       default:
         throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);
       }
     }
+
+    @Override
+    public Interval visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
+      return Interval.createUnboundInterval();
+    }
+
   }
 }
 

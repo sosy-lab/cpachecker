@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -387,9 +388,6 @@ public class CtoFormulaConverter {
       CUnaryExpression unary = (CUnaryExpression) exp;
       name = scopedIfNecessary(unary.getOperand(), ssa, function);
       switch (unary.getOperator()) {
-      case STAR:
-        name = makePointerMask(name, ssa);
-        break;
       case AMPER:
         name = makeMemoryLocationVariable(name);
         break;
@@ -401,6 +399,10 @@ public class CtoFormulaConverter {
         default:
           throw new AssertionError("Operator not supported in scopedIfNecessary");
       }
+    } else if (exp instanceof CPointerExpression) {
+      CPointerExpression pointer = (CPointerExpression) exp;
+      name = scopedIfNecessary(pointer.getOperand(), ssa, function);
+      name = makePointerMask(name, ssa);
     } else if (exp instanceof CCastExpression) {
       // Just ignore
       CCastExpression cast = (CCastExpression) exp;
@@ -1695,8 +1697,7 @@ public class CtoFormulaConverter {
         return bfmgr.makeBoolean(true);
       }
 
-    } else if ((right instanceof CUnaryExpression &&
-                   ((CUnaryExpression) right).getOperator() == UnaryOperator.STAR) ||
+    } else if (right instanceof CPointerExpression ||
                (handleFieldAccess && right instanceof CFieldReference && isIndirectFieldReference((CFieldReference)right))) {
       // C statement like: s1 = *s2;
       // OR s1 = *(s.b)
@@ -2100,8 +2101,11 @@ public class CtoFormulaConverter {
       CUnaryExpression uexp = (CUnaryExpression)exp;
       UnaryOperator op = uexp.getOperator();
       return
-          (op == UnaryOperator.AMPER || op == UnaryOperator.STAR) &&
+          (op == UnaryOperator.AMPER) &&
           isSupportedExpression(uexp.getOperand(), level + 1);
+    } else if (exp instanceof CPointerExpression) {
+      CPointerExpression pexp = (CPointerExpression) exp;
+      return isSupportedExpression(pexp, level + 1);
     }
 
     return false;
@@ -2446,8 +2450,6 @@ public class CtoFormulaConverter {
       }
 
       case AMPER:
-      case STAR:
-        return visitDefault(exp);
 
       case SIZEOF:
         if (exp.getOperand() instanceof CIdExpression) {
@@ -2461,6 +2463,11 @@ public class CtoFormulaConverter {
       default:
         throw new UnrecognizedCCodeException("Unknown unary operator", edge, exp);
       }
+    }
+
+    @Override
+    public Formula visit(CPointerExpression pExp) throws UnrecognizedCCodeException {
+      return visitDefault(pExp);
     }
 
     @Override
@@ -2531,13 +2538,8 @@ public class CtoFormulaConverter {
       UnaryOperator op = exp.getOperator();
       switch (op) {
       case AMPER:
-      case STAR:
-        String opname;
-        if (op == UnaryOperator.AMPER) {
-          opname = OP_ADDRESSOF_NAME;
-        } else {
-          opname = OP_STAR_NAME;
-        }
+        String opname = OP_ADDRESSOF_NAME;
+
         Formula term = exp.getOperand().accept(this);
 
         CType expType = exp.getExpressionType();
@@ -2555,6 +2557,26 @@ public class CtoFormulaConverter {
       default:
         return super.visit(exp);
       }
+    }
+
+    @Override
+    public Formula visit(CPointerExpression exp) throws UnrecognizedCCodeException {
+      String opname = OP_STAR_NAME;
+
+      Formula term = exp.getOperand().accept(this);
+
+      CType expType = exp.getExpressionType();
+
+      // PW make SSA index of * independent from argument
+      int idx = getIndex(opname, expType, ssa);
+      //int idx = getIndex(
+      //    opname, term, ssa, absoluteSSAIndices);
+
+      // build the  function corresponding to this operation.
+
+      return ffmgr.createFuncAndCall(
+          opname, idx, getFormulaTypeFromCType(expType), ImmutableList.of(term));
+
     }
   }
 
@@ -2575,23 +2597,26 @@ public class CtoFormulaConverter {
       case AMPER:
         return makeAddressVariable(exp, function);
 
-      case STAR:
-        // *tmp or *(tmp->field) or *(s.a)
-        if (isSupportedExpression(exp)) {
-          Variable fieldPtrMask  = scopedIfNecessary(exp, ssa, function);
-          Formula f = makeVariable(fieldPtrMask, ssa);
-
-          // *((type*)tmp) or *((type*)(tmp->field)) or *((type*)(s.a))
-          if (exp.getOperand() instanceof CCastExpression) {
-            CCastExpression cast = (CCastExpression) exp.getOperand();
-            // Use fieldPtrMask.getType because of possible type guessing.
-            f = makeExtractOrConcatNondet(fieldPtrMask.getType(), dereferencedType(cast.getExpressionType()), f);
-          }
-          return f;
-        }
-
-        //$FALL-THROUGH$
       default:
+        return super.visit(exp);
+      }
+    }
+
+    @Override
+    public Formula visit(CPointerExpression exp) throws UnrecognizedCCodeException {
+   // *tmp or *(tmp->field) or *(s.a)
+      if (isSupportedExpression(exp)) {
+        Variable fieldPtrMask  = scopedIfNecessary(exp, ssa, function);
+        Formula f = makeVariable(fieldPtrMask, ssa);
+
+        // *((type*)tmp) or *((type*)(tmp->field)) or *((type*)(s.a))
+        if (exp.getOperand() instanceof CCastExpression) {
+          CCastExpression cast = (CCastExpression) exp.getOperand();
+          // Use fieldPtrMask.getType because of possible type guessing.
+          f = makeExtractOrConcatNondet(fieldPtrMask.getType(), dereferencedType(cast.getExpressionType()), f);
+        }
+        return f;
+      } else {
         return super.visit(exp);
       }
     }
@@ -2965,8 +2990,7 @@ public class CtoFormulaConverter {
         // p = ...
         return handleDirectAssignment(assignment);
 
-      } else if (left instanceof CUnaryExpression
-          && ((CUnaryExpression) left).getOperator() == UnaryOperator.STAR) {
+      } else if (left instanceof CPointerExpression) {
         // *p = ...
         return handleIndirectAssignment(assignment);
 
@@ -3003,24 +3027,22 @@ public class CtoFormulaConverter {
           : "Unsupported leftHandSide in Indirect Assignment";
 
 
-      CUnaryExpression leftSide;
-      if (lExpr instanceof CUnaryExpression) {
+      CPointerExpression leftSide;
+      if (lExpr instanceof CPointerExpression) {
         // the following expressions are supported by cil:
         // *p = a;
         // *p = 1;
         // *p = a | b; (or any other binary statement)
         // *p = function();
         // *s.t = ...
-        leftSide = (CUnaryExpression) lExpr;
+        leftSide = (CPointerExpression) lExpr;
       } else {
         // p->s = ... is the same as (*p).s = ... which we see as *p = ... (because the bitvector was changed)
         CFieldReference l = (CFieldReference) lExpr;
         assert isIndirectFieldReference(l) : "No pointer-dereferencing in handleIndirectFieldAssignment";
 
-        leftSide = (CUnaryExpression)getRealFieldOwner(l);
+        leftSide = (CPointerExpression)getRealFieldOwner(l);
       }
-
-      assert leftSide.getOperator() == UnaryOperator.STAR  : "Expected pointer dereferencing";
 
       if (!isSupportedExpression(leftSide)) {
         // TODO: *(a + 2) = b
@@ -3584,11 +3606,6 @@ public class CtoFormulaConverter {
         opname = OP_ADDRESSOF_NAME;
         result = new CPointerType(false, false, opType);
         break;
-      case STAR:
-        opname = OP_STAR_NAME;
-        CPointerType opTypeP = (CPointerType)opType;
-        result = opTypeP.getType();
-        break;
       default:
         throw new UnrecognizedCCodeException("Invalid unary operator for lvalue", edge, uExp);
       }
@@ -3606,6 +3623,29 @@ public class CtoFormulaConverter {
       // ...
       // &(*x) = 2    |     <ptr_&>::2(<ptr_*>::1(x)) = 2
       return ffmgr.createFuncAndCall(opname, idx, formulaType, ImmutableList.of(term));
+    }
+
+    @Override
+    public Formula visit(CPointerExpression pExp) throws UnrecognizedCCodeException {
+
+      CExpression operand = pExp.getOperand();
+
+      CType opType = operand.getExpressionType();
+      CType result = ((CPointerType)opType).getType();
+      Formula term = buildTerm(operand, edge, function, ssa, constraints);
+
+      FormulaType<?> formulaType = getFormulaTypeFromCType(result);
+      // PW make SSA index of * independent from argument
+      int idx = makeFreshIndex(OP_STAR_NAME, result, ssa);
+      //int idx = makeLvalIndex(opname, term, ssa, absoluteSSAIndices);
+
+      // build the "updated" function corresponding to this operation.
+      // what we do is the following:
+      // C            |     MathSAT
+      // *x = 1       |     <ptr_*>::2(x) = 1
+      // ...
+      // &(*x) = 2    |     <ptr_&>::2(<ptr_*>::1(x)) = 2
+      return ffmgr.createFuncAndCall(OP_STAR_NAME, idx, formulaType, ImmutableList.of(term));
     }
 
     @Override
@@ -3665,7 +3705,13 @@ public class CtoFormulaConverter {
 
     @Override
     public Formula visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
-      if (pE.getOperator() == UnaryOperator.STAR) {
+        // &f = ... which doesn't make much sense.
+        log(Level.WARNING, "Strange addressof operator on the left side:" + pE.toString());
+        return super.visit(pE);
+    }
+
+    @Override
+    public Formula visit(CPointerExpression pE) throws UnrecognizedCCodeException {
         // When the expression is supported we can create a Variable.
         if (isSupportedExpression(pE)) {
           // *a = ...
@@ -3688,11 +3734,6 @@ public class CtoFormulaConverter {
 
           return giveUpAndJustMakeVariable(pE);
         }
-      } else {
-        // &f = ... which doesn't make much sense.
-        log(Level.WARNING, "Strange addressof operator on the left side:" + pE.toString());
-        return super.visit(pE);
-      }
     }
   }
 }

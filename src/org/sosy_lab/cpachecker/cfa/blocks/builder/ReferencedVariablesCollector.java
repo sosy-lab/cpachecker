@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -197,7 +198,6 @@ public class ReferencedVariablesCollector {
 
       switch (op) {
       case AMPER:
-      case STAR:
         collectVar(pE.toASTString());
         //$FALL-THROUGH$
       default:
@@ -210,6 +210,13 @@ public class ReferencedVariablesCollector {
 
     @Override
     protected Void visitDefault(CExpression pExp) {
+      return null;
+    }
+
+    @Override
+    public Void visit(CPointerExpression pE) {
+      collectVar(pE.toASTString());
+      pE.getOperand().accept(this);
       return null;
     }
   }

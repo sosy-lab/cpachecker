@@ -38,9 +38,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -296,11 +296,14 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
     @Override
     public String visit(CUnaryExpression pIastUnaryExpression) throws Exception {
-      if (pIastUnaryExpression.getOperator() == UnaryOperator.STAR)
-        throw new UnsupportedCCodeException(
-            "Does not support assignment to dereferenced variable due to missing aliasing support", edgeForExpression,
-            pIastUnaryExpression);
       return pIastUnaryExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public String visit(CPointerExpression pIastPointerExpression) throws Exception {
+      throw new UnsupportedCCodeException(
+          "Does not support assignment to dereferenced variable due to missing aliasing support", edgeForExpression,
+          pIastPointerExpression);
     }
 
   }

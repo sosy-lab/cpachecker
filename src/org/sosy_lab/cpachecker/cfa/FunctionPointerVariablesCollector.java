@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -203,7 +204,6 @@ public class FunctionPointerVariablesCollector extends CFATraversal.DefaultCFAVi
 
       switch (op) {
       case AMPER:
-      case STAR:
         pE.getOperand().accept(this);
         break;
       default:
@@ -211,6 +211,12 @@ public class FunctionPointerVariablesCollector extends CFATraversal.DefaultCFAVi
       }
 
 
+      return null;
+    }
+
+    @Override
+    public Void visit(CPointerExpression pE) {
+      pE.getOperand().accept(this);
       return null;
     }
 

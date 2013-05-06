@@ -21,16 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.ast;
 
-public interface CLeftHandSideVisitor<R, X extends Exception> {
 
-  R visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws X;
-
-  R visit(CFieldReference pIastFieldReference) throws X;
-
-  R visit(CIdExpression pIastIdExpression) throws X;
-
-  R visit(CPointerExpression pIastUnaryExpression) throws X;
+public interface IAPointerExpression {
 
 }
