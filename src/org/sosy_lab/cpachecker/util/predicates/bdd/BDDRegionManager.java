@@ -40,9 +40,16 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.predicates.FormulaOperator;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 
 /**
@@ -352,6 +359,115 @@ public class BDDRegionManager implements RegionManager {
 
     return result;
   }
+
+  @Override
+  public Region fromFormula(BooleanFormula pF, FormulaManagerView fmgr,
+      Function<BooleanFormula, Region> atomToRegion) {
+    cleanupReferences();
+
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    UnsafeFormulaManager unsafe = fmgr.getUnsafeFormulaManager();
+
+    if (bfmgr.isFalse(pF)) {
+      return makeFalse();
+    }
+
+    if (bfmgr.isTrue(pF)) {
+      return makeTrue();
+    }
+
+    return wrap(new FormulaToRegionConverter(bfmgr, unsafe, atomToRegion)
+                                              .fromFormula(pF));
+  }
+
+  /**
+   * Class for creating BDDs out of a formula.
+   * This class directly uses the BDD objects and their manual reference counting,
+   * because for large formulas, the performance impact of creating BDDRegion
+   * objects, putting them into the referenceMap and referenceQueue,
+   * gc'ing the BDDRegions again, and calling cleanupReferences() would be too big.
+   */
+  private class FormulaToRegionConverter {
+
+    private final BooleanFormulaManagerView bfmgr;
+    private final UnsafeFormulaManager unsafe;
+    private final Function<BooleanFormula, Region> atomToRegion;
+
+    FormulaToRegionConverter(BooleanFormulaManagerView pBfmgr, UnsafeFormulaManager pUnsafe,
+        Function<BooleanFormula, Region> pAtomToRegion) {
+      bfmgr = pBfmgr;
+      unsafe = pUnsafe;
+      atomToRegion = pAtomToRegion;
+    }
+
+    BDD fromFormula(BooleanFormula pF) {
+      if (bfmgr.isFalse(pF)) {
+        return factory.zero();
+      }
+
+      if (bfmgr.isTrue(pF)) {
+        return factory.one();
+      }
+
+      FormulaOperator op = bfmgr.getOperator(pF);
+      switch (op) {
+      case ATOM:
+        // copy BDD with id() because we will free() it afterwards
+        return ((BDDRegion)atomToRegion.apply(pF)).getBDD().id();
+
+      case NOT: {
+        BDD arg = fromFormula(getArg(pF, 0));
+        BDD result = arg.not();
+        arg.free();
+        return result;
+      }
+      case AND:
+      case OR:
+      case EQUIV: {
+        BDD arg0 = fromFormula(getArg(pF, 0));
+        BDD arg1 = fromFormula(getArg(pF, 1));
+
+        BDDFactory.BDDOp bddOp;
+        switch (op) {
+        case AND:
+          bddOp = BDDFactory.and;
+          break;
+        case OR:
+          bddOp = BDDFactory.or;
+          break;
+        case EQUIV:
+          bddOp = BDDFactory.biimp;
+          break;
+        default:
+          throw new AssertionError();
+        }
+
+        // optimization: applyWith() destroys arg0 and arg1,
+        // but this is ok, because we would free them otherwise anyway
+        return arg0.applyWith(arg1, bddOp);
+      }
+      case ITE: {
+        BDD arg0 = fromFormula(getArg(pF, 0));
+        BDD arg1 = fromFormula(getArg(pF, 1));
+        BDD arg2 = fromFormula(getArg(pF, 2));
+
+        BDD result = arg0.ite(arg1, arg2);
+
+        arg0.free();
+        arg1.free();
+        arg2.free();
+        return result;
+      }
+      default:
+        throw new AssertionError();
+      }
+    }
+
+    private final BooleanFormula getArg(BooleanFormula pF, int i) {
+      return unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, i));
+    }
+  }
+
 
   public String getVersion() {
     return factory.getVersion();

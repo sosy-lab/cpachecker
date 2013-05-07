@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 
 import java.io.PrintStream;
 
@@ -33,6 +33,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+
+import com.google.common.base.Function;
 
 /**
  * Adaptor from FormulaManager/Solver to RegionManager in order to use Formulas
@@ -93,7 +96,10 @@ public class SymbolicRegionManager implements RegionManager {
     falseRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(false));
   }
 
-  Region fromFormula(BooleanFormula f) {
+  @Override
+  public Region fromFormula(BooleanFormula f, FormulaManagerView pFmgr,
+      Function<BooleanFormula, Region> pAtomToRegion) {
+    checkArgument(pFmgr.getBooleanFormulaManager() == bfmgr);
     return new SymbolicRegion(bfmgr, f);
   }
 
