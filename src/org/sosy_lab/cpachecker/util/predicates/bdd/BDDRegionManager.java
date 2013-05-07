@@ -178,7 +178,7 @@ public class BDDRegionManager implements RegionManager {
       //out.println("Size of BDD cache:                   " + factory.getCacheSize());
 
       // Cache stats are disabled in JFactory (CACHESTATS = false)
-      out.println(factory.getCacheStats());
+      //out.println(factory.getCacheStats());
 
       BDDFactory.GCStats stats = factory.getGCStats();
       out.println("Time for BDD garbage collection:     " + Timer.formatTime(stats.sumtime) + " (in " + stats.num + " runs)");
