@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -62,6 +63,11 @@ public class ExplicitInterpolator {
   private ExplicitTransferRelation transfer = null;
 
   /**
+   * the precision in use
+   */
+  private ExplicitPrecision precision = null;
+
+  /**
    * the first path element without any successors
    */
   public Pair<ARGState, CFAEdge> conflictingElement = null;
@@ -69,17 +75,12 @@ public class ExplicitInterpolator {
   /**
    * boolean flag telling whether the current path is feasible
    */
-  private boolean isFeasible = true;
+  private boolean isFeasible = false;
 
   /**
    * boolean flag telling whether any previous path was feasible
    */
   private boolean wasFeasible = false;
-
-  /**
-   * boolean flag telling whether to cancel the interpolation after the current run
-   */
-  boolean cancelInterpolation = false;
 
   /**
    * This method acts as the constructor of the class.
@@ -88,8 +89,8 @@ public class ExplicitInterpolator {
     try {
       config    = Configuration.builder().build();
       transfer  = new ExplicitTransferRelation(config);
+      precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
     }
-
     catch (InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
     }
@@ -108,96 +109,95 @@ public class ExplicitInterpolator {
       ARGPath errorPath,
       int offset,
       Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
-    try {
-      ExplicitState initialState  = new ExplicitState(PathCopyingPersistentTreeMap.copyOf(inputInterpolant));
-      ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
 
-      Long currentVariableValue             = null;
-      Pair<String, Long> currentInterpolant = null;
-      Set<Pair<String, Long>> interpolant   = new HashSet<>();
+    // cancel the interpolation if we are interpolating at the conflicting element
+    if (wasFeasible && conflictingElement == errorPath.get(offset)) {
+      return null;
+    }
 
-      Pair<ARGState, CFAEdge> interpolationState = errorPath.get(offset);
+    // create initial state, based on input interpolant, and create initial successor by consuming the next edge
+    ExplicitState initialState      = new ExplicitState(PathCopyingPersistentTreeMap.copyOf(inputInterpolant));
+    ExplicitState initialSuccessor  = getInitialSuccessor(initialState, errorPath.get(offset).getSecond());
+    if (initialSuccessor == null) {
+      return null;
+    }
 
-      // cancel the interpolation if we are interpolating at the conflicting element
-      if (wasFeasible && interpolationState == conflictingElement) {
-        cancelInterpolation = true;
+    Set<Pair<String, Long>> interpolant = new HashSet<>();
+    // for each variable in the difference set, check its relevance along the remaining error path
+    // TODO: also do this the other way round, remove all first, than re-add one by one
+    for (String currentVariable : initialState.getDifference(initialSuccessor)) {
+      ExplicitState successor = initialSuccessor.clone();
+
+      // remove the value of the current and all already-found-to-be-irrelevant variables from the successor
+      successor.forget(currentVariable);
+      for (Pair<String, Long> interpolantVariable : interpolant) {
+        if(interpolantVariable.getSecond() == null) {
+          successor.forget(interpolantVariable.getFirst());
+        }
       }
 
-      // consume subsequent edge
-      Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
+      // check if the remaining path now becomes feasible
+      isFeasible  = isRemainingPathFeasible(skip(errorPath, offset + 1), successor);
+      wasFeasible = wasFeasible || isFeasible;
+
+      // add to the interpolant if the remaining path became feasible
+      if (isFeasible) {
+        interpolant.add(Pair.of(currentVariable, initialSuccessor.getValueFor(currentVariable)));
+      } else {
+        interpolant.add(Pair.<String, Long>of(currentVariable, null));
+      }
+    }
+
+    return interpolant;
+  }
+
+  /**
+   * This method gets the initial successor, i.e. the state following the initial state.
+   *
+   * @param initialState the initial state, i.e. the state represented by the input interpolant.
+   * @param initialEdge the initial edge of the error path
+   * @return the initial successor
+   * @throws CPATransferException
+   */
+  private ExplicitState getInitialSuccessor(ExplicitState initialState, CFAEdge initialEdge)
+      throws CPATransferException {
+    Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
+        initialState,
+        precision,
+        initialEdge);
+    ExplicitState initialSuccessor = extractSuccessorState(successors);
+
+    return initialSuccessor;
+  }
+
+  /**
+   * This method checks, whether or not the (remaining) error path is feasible when starting with the given (pseudo) initial state.
+   *
+   * @param errorPath the error path to check feasibility on
+   * @param initialState the (pseudo) initial state
+   * @return true, it the path is feasible, else false
+   * @throws CPATransferException
+   */
+  private boolean isRemainingPathFeasible(Iterable<Pair<ARGState, CFAEdge>> errorPath, ExplicitState initialState)
+      throws CPATransferException {
+    Collection<ExplicitState> successors;
+    for (Pair<ARGState, CFAEdge> pathElement : errorPath) {
+      successors = transfer.getAbstractSuccessors(
           initialState,
           precision,
-          errorPath.get(offset).getSecond());
-      ExplicitState initialSuccessor = extractSuccessorState(successors);
+          pathElement.getSecond());
 
-      if (initialSuccessor == null) {
-        return null;
+      initialState = extractSuccessorState(successors);
+
+      // there is no successor and the current path element is not an error state => error path is spurious
+      if (initialState == null && !pathElement.getFirst().isTarget()) {
+        if (conflictingElement == null || conflictingElement.getFirst().isOlderThan(pathElement.getFirst())) {
+          conflictingElement = pathElement;
+        }
+        return false;
       }
-
-      // for each variable in the difference: remove the variable from the abstract assignment and check the path
-      // TODO: also do this the other way round, remove all first, than re-add one by one
-      Set<String> irrelevantVariables = new HashSet<>();
-      for (String currentVar : initialState.getDifference(initialSuccessor)) {
-        // start off with the successor of the initial state
-        ExplicitState successor = initialSuccessor.clone();
-
-        if (successor.contains(currentVar)) {
-          currentVariableValue = successor.getValueFor(currentVar);
-        }
-
-        currentInterpolant = Pair.of(currentVar, currentVariableValue);
-
-        // remove the value of the current variable and the already-found-irrelevant variables from the successor
-        successor.forget(currentVar);
-        for (String irrelevantVar : irrelevantVariables) {
-          successor.forget(irrelevantVar);
-        }
-
-        // simulate the remaining path
-        for (Pair<ARGState, CFAEdge> pathElement : skip(errorPath, offset + 1)) {
-          successors = transfer.getAbstractSuccessors(
-              successor,
-              precision,
-              pathElement.getSecond());
-
-          successor = extractSuccessorState(successors);
-
-          // there is no successor and the current path element is not an error state => error path is spurious
-          if (successor == null && !pathElement.getFirst().isTarget()) {
-            if (conflictingElement == null || conflictingElement.getFirst().isOlderThan(pathElement.getFirst())) {
-              conflictingElement = pathElement;
-            }
-
-            isFeasible = false;
-            //System.out.println("\t\t\tinfeasable at " + pathElement.getSecond());
-            //return Pair.of(currentVariable, null);
-            currentInterpolant = Pair.of(currentVar, null);
-            irrelevantVariables.add(currentVar);
-            break;
-          }
-        }
-
-        if (isFeasible) {
-          wasFeasible = true;
-        }
-
-        interpolant.add(currentInterpolant);
-      }
-
-
-      // signal callee to cancel any further interpolation runs
-      if (cancelInterpolation) {
-        return null;
-      }
-
-      isFeasible  = true;
-      wasFeasible = true;
-
-      // path is feasible
-      return interpolant;
-    } catch (InvalidConfigurationException e) {
-      throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
     }
+    return true;
   }
 
   /**
