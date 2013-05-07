@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.*;
 
+import java.math.BigDecimal;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -262,8 +264,17 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
   @Override
   public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
     FormulaType<?> t = conv.getFormulaTypeFromCType(fExp.getExpressionType());
-    // TODO: Check if this is actually correct
-    return conv.fmgr.makeNumber(t, fExp.getValue().longValue());
+    BigDecimal val = fExp.getValue();
+    if ((val.precision() - val.scale()) > 0) {
+      // actually an integral number
+      return conv.fmgr.makeNumber(t, val.longValueExact());
+    } else {
+      long numerator = val.unscaledValue().longValue();
+      long denominator = val.scale() * 10;
+      return conv.fmgr.makeDivide(conv.fmgr.makeNumber(t, numerator),
+                                   conv.fmgr.makeNumber(t, denominator),
+                                   true);
+    }
   }
 
   @Override
