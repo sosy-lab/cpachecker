@@ -264,16 +264,38 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
   @Override
   public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
     FormulaType<?> t = conv.getFormulaTypeFromCType(fExp.getExpressionType());
-    BigDecimal val = fExp.getValue();
-    if ((val.precision() - val.scale()) > 0) {
+    final BigDecimal val = fExp.getValue();
+    if (val.scale() <= 0) {
       // actually an integral number
-      return conv.fmgr.makeNumber(t, val.longValueExact());
+      return conv.fmgr.makeNumber(t, convertBigDecimalToLong(val, fExp));
+
     } else {
-      long numerator = val.unscaledValue().longValue();
-      long denominator = val.scale() * 10;
+      // represent x.y by xy / (10^z) where z is the number of digits in y
+      // (the "scale" of a BigDecimal)
+
+      final long numerator;
+      BigDecimal n = val.movePointRight(val.scale()); // this is "xy"
+      numerator = convertBigDecimalToLong(n, fExp);
+
+      final long denominator;
+      BigDecimal d = BigDecimal.ONE.scaleByPowerOfTen(val.scale()); // this is "10^z"
+      denominator = convertBigDecimalToLong(d, fExp);
+      assert denominator > 0;
+
       return conv.fmgr.makeDivide(conv.fmgr.makeNumber(t, numerator),
                                    conv.fmgr.makeNumber(t, denominator),
                                    true);
+    }
+  }
+
+  private static long convertBigDecimalToLong(BigDecimal d, CFloatLiteralExpression fExp)
+      throws NumberFormatException {
+    try {
+      return d.longValueExact();
+    } catch (ArithmeticException e) {
+      NumberFormatException nfe = new NumberFormatException("Cannot represent floating point literal " + fExp.toASTString() + " as fraction because " + d + " cannot be represented as a long");
+      nfe.initCause(e);
+      throw nfe;
     }
   }
 
