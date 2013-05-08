@@ -40,12 +40,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.predicates.FormulaOperator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -366,8 +363,6 @@ public class BDDRegionManager implements RegionManager {
     cleanupReferences();
 
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
-    UnsafeFormulaManager unsafe = fmgr.getUnsafeFormulaManager();
-
     if (bfmgr.isFalse(pF)) {
       return makeFalse();
     }
@@ -376,8 +371,8 @@ public class BDDRegionManager implements RegionManager {
       return makeTrue();
     }
 
-    return wrap(new FormulaToRegionConverter(bfmgr, unsafe, atomToRegion)
-                                              .fromFormula(pF));
+    return wrap(new FormulaToRegionConverter(fmgr, atomToRegion)
+                                              .visit(pF));
   }
 
   /**
@@ -387,84 +382,78 @@ public class BDDRegionManager implements RegionManager {
    * objects, putting them into the referenceMap and referenceQueue,
    * gc'ing the BDDRegions again, and calling cleanupReferences() would be too big.
    */
-  private class FormulaToRegionConverter {
+  private class FormulaToRegionConverter extends BooleanFormulaManagerView.BooleanFormulaVisitor<BDD> {
 
-    private final BooleanFormulaManagerView bfmgr;
-    private final UnsafeFormulaManager unsafe;
     private final Function<BooleanFormula, Region> atomToRegion;
 
-    FormulaToRegionConverter(BooleanFormulaManagerView pBfmgr, UnsafeFormulaManager pUnsafe,
+    FormulaToRegionConverter(FormulaManagerView pFmgr,
         Function<BooleanFormula, Region> pAtomToRegion) {
-      bfmgr = pBfmgr;
-      unsafe = pUnsafe;
+      super(pFmgr);
       atomToRegion = pAtomToRegion;
     }
 
-    BDD fromFormula(BooleanFormula pF) {
-      if (bfmgr.isFalse(pF)) {
-        return factory.zero();
-      }
-
-      if (bfmgr.isTrue(pF)) {
-        return factory.one();
-      }
-
-      FormulaOperator op = bfmgr.getOperator(pF);
-      switch (op) {
-      case ATOM:
-        // copy BDD with id() because we will free() it afterwards
-        return ((BDDRegion)atomToRegion.apply(pF)).getBDD().id();
-
-      case NOT: {
-        BDD arg = fromFormula(getArg(pF, 0));
-        BDD result = arg.not();
-        arg.free();
-        return result;
-      }
-      case AND:
-      case OR:
-      case EQUIV: {
-        BDD arg0 = fromFormula(getArg(pF, 0));
-        BDD arg1 = fromFormula(getArg(pF, 1));
-
-        BDDFactory.BDDOp bddOp;
-        switch (op) {
-        case AND:
-          bddOp = BDDFactory.and;
-          break;
-        case OR:
-          bddOp = BDDFactory.or;
-          break;
-        case EQUIV:
-          bddOp = BDDFactory.biimp;
-          break;
-        default:
-          throw new AssertionError();
-        }
-
-        // optimization: applyWith() destroys arg0 and arg1,
-        // but this is ok, because we would free them otherwise anyway
-        return arg0.applyWith(arg1, bddOp);
-      }
-      case ITE: {
-        BDD arg0 = fromFormula(getArg(pF, 0));
-        BDD arg1 = fromFormula(getArg(pF, 1));
-        BDD arg2 = fromFormula(getArg(pF, 2));
-
-        BDD result = arg0.ite(arg1, arg2);
-
-        arg0.free();
-        arg1.free();
-        arg2.free();
-        return result;
-      }
-      default:
-        throw new AssertionError();
-      }
+    @Override
+    protected BDD visitTrue() {
+      return factory.one();
     }
 
-    private final BooleanFormula getArg(BooleanFormula pF, int i) {
-      return unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, i));
+    @Override
+    protected BDD visitFalse() {
+      return factory.zero();
+    }
+
+    @Override
+    public BDD visitAtom(BooleanFormula pAtom) {
+      return ((BDDRegion)atomToRegion.apply(pAtom)).getBDD().id();
+    }
+
+    @Override
+    public BDD visitNot(BooleanFormula pOperand) {
+      BDD operand = visit(pOperand);
+      BDD result = operand.not();
+      operand.free();
+      return result;
+    }
+
+    private BDD visitBinary(BooleanFormula pOperand1, BooleanFormula pOperand2,
+        BDDFactory.BDDOp operator) {
+
+      BDD operand1 = visit(pOperand1);
+      BDD operand2 = visit(pOperand2);
+
+      // optimization: applyWith() destroys arg0 and arg1,
+      // but this is ok, because we would free them otherwise anyway
+      return operand1.applyWith(operand2, operator);
+    }
+
+    @Override
+    public BDD visitAnd(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      return visitBinary(pOperand1, pOperand2, BDDFactory.and);
+    }
+
+    @Override
+    public BDD visitOr(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      return visitBinary(pOperand1, pOperand2, BDDFactory.or);
+    }
+
+    @Override
+    public BDD visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      return visitBinary(pOperand1, pOperand2, BDDFactory.biimp);
+    }
+
+    @Override
+    public BDD visitIfThenElse(BooleanFormula pCondition,
+        BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+      BDD condition = visit(pCondition);
+      BDD thenBDD = visit(pThenFormula);
+      BDD elseBDD = visit(pElseFormula);
+
+      BDD result = condition.ite(thenBDD, elseBDD);
+
+      condition.free();
+      thenBDD.free();
+      elseBDD.free();
+      return result;
     }
   }
 

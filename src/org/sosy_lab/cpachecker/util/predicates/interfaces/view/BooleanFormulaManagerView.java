@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.FormulaOperator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
 
 public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> implements BooleanFormulaManager {
@@ -173,32 +173,64 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     return getViewManager().useBitwiseAxioms();
   }
 
-  public FormulaOperator getOperator(BooleanFormula f) {
-    FormulaManagerView viewManager = getViewManager();
-    if (viewManager.getUnsafeFormulaManager().isAtom(viewManager.extractFromView(f))) {
-      return FormulaOperator.ATOM;
+  public static abstract class BooleanFormulaVisitor<R> {
+
+    private final FormulaManagerView fmgr;
+    private final BooleanFormulaManagerView bfmgr;
+    private final UnsafeFormulaManager unsafe;
+
+    protected BooleanFormulaVisitor(FormulaManagerView pFmgr) {
+      fmgr = pFmgr;
+      bfmgr = fmgr.getBooleanFormulaManager();
+      unsafe = fmgr.getUnsafeFormulaManager();
     }
 
-    if (isNot(f)) {
-      return FormulaOperator.NOT;
+    public final R visit(BooleanFormula f) {
+      if (bfmgr.isTrue(f)) {
+        return visitTrue();
+      }
+
+      if (bfmgr.isFalse(f)) {
+        return visitFalse();
+      }
+
+      if (unsafe.isAtom(fmgr.extractFromView(f))) {
+        return visitAtom(f);
+      }
+
+      if (bfmgr.isNot(f)) {
+        return visitNot(getArg(f, 0));
+      }
+
+      if (bfmgr.isAnd(f)) {
+        return visitAnd(getArg(f, 0), getArg(f, 1));
+      }
+      if (bfmgr.isOr(f)) {
+        return visitOr(getArg(f, 0), getArg(f, 1));
+      }
+
+      if (bfmgr.isEquivalence(f)) {
+        return visitEquivalence(getArg(f, 0), getArg(f, 1));
+      }
+
+      if (bfmgr.isIfThenElse(f)) {
+        return visitIfThenElse(getArg(f, 0), getArg(f, 1), getArg(f, 2));
+      }
+
+      throw new UnsupportedOperationException();
     }
 
-    if (isAnd(f)) {
-      return FormulaOperator.AND;
-    }
-    if (isOr(f)) {
-      return FormulaOperator.OR;
+    private final BooleanFormula getArg(BooleanFormula pF, int i) {
+      return unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, i));
     }
 
-    if (isIfThenElse(f)) {
-      return FormulaOperator.ITE;
-    }
-
-    if (isEquivalence(f)) {
-      return FormulaOperator.EQUIV;
-    }
-
-    throw new UnsupportedOperationException();
+    protected abstract R visitTrue();
+    protected abstract R visitFalse();
+    protected abstract R visitAtom(BooleanFormula atom);
+    protected abstract R visitNot(BooleanFormula operand);
+    protected abstract R visitAnd(BooleanFormula operand1, BooleanFormula operand2);
+    protected abstract R visitOr(BooleanFormula operand1, BooleanFormula operand2);
+    protected abstract R visitEquivalence(BooleanFormula operand1, BooleanFormula operand2);
+    protected abstract R visitIfThenElse(BooleanFormula condition, BooleanFormula thenFormula, BooleanFormula elseFormula);
   }
-
 }
