@@ -1141,9 +1141,4 @@ public class FormulaManagerView {
   public BooleanFormula createPredicateVariable(String pName) {
     return wrapInView(myCreatePredicateVariable(pName));
   }
-
-  public <T extends Formula> BooleanFormula toBooleanFormula(T pF) {
-    T zero = makeNumber(getFormulaType(pF), 0);
-    return booleanFormulaManager.not(makeEqual(pF, zero));
-  }
 }

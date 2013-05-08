@@ -38,17 +38,6 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
     this.manager = pManager;
   }
 
-
-  public BooleanFormula toBooleanFormula(BitvectorFormula f) {
-    FormulaManagerView viewMgr = getViewManager();
-    BooleanFormulaManagerView boolMgr = viewMgr.getBooleanFormulaManager();
-    // If this is not a predicate, make it a predicate by adding a "!= 0"
-    BitvectorType t = (BitvectorType) viewMgr.getFormulaType(f);
-    BitvectorFormula z = makeBitvector(t.getSize(), 0);
-    return boolMgr.not(equal(f, z));
-  }
-
-
   public BooleanFormula notEqual(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     bmgr = getViewManager().getBooleanFormulaManager();
     return bmgr.not(equal(pNumber1, pNumber2));

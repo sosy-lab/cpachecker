@@ -177,7 +177,7 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
         default:
           throw new AssertionError();
       }
-      ret = conv.bfmgr.ifTrueThenOneElseZero(returnFormulaType, result);
+      ret = conv.ifTrueThenOneElseZero(returnFormulaType, result);
       break;
     }
     default:
@@ -339,8 +339,8 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
 
     case NOT: {
       Formula f = operand.accept(this);
-      BooleanFormula term = conv.fmgr.toBooleanFormula(f);
-      return conv.bfmgr.ifTrueThenOneElseZero(conv.getFormulaTypeFromCType(exp.getExpressionType()), conv.bfmgr.not(term));
+      BooleanFormula term = conv.toBooleanFormula(f);
+      return conv.ifTrueThenOneElseZero(conv.getFormulaTypeFromCType(exp.getExpressionType()), conv.bfmgr.not(term));
     }
 
     case AMPER:

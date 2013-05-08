@@ -25,12 +25,10 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 
 
@@ -134,22 +132,6 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
   @Override
   public boolean isEquivalence(BooleanFormula pFormula) {
     return manager.isEquivalence(extractFromView(pFormula));
-  }
-
-
-  public <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
-    FormulaManagerView viewManager = getViewManager();
-    T one = viewManager.makeNumber(type, 1);
-    T zero = viewManager.makeNumber(type, 0);
-    return manager.ifThenElse(pCond, one, zero);
-  }
-
-  public RationalFormula toNumericFormula(BooleanFormula f) {
-    return ifTrueThenOneElseZero(FormulaType.RationalType, f);
-  }
-
-  public BitvectorFormula toBitpreciseFormula(FormulaType<BitvectorFormula> t, BooleanFormula f) {
-    return ifTrueThenOneElseZero(t, f);
   }
 
   public BooleanFormula conjunction(List<BooleanFormula> f) {
