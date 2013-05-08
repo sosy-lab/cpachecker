@@ -26,13 +26,13 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 
 
-public abstract class BaseManagerView<TFormula extends Formula> extends AbstractBaseManagerView {
+abstract class BaseManagerView<TFormula extends Formula> extends AbstractBaseManagerView {
 
-  public TFormula wrapInView(TFormula formula) {
+  protected TFormula wrapInView(TFormula formula) {
     return formula;
   }
 
-  public TFormula extractFromView(TFormula pFormula) {
+  protected TFormula extractFromView(TFormula pFormula) {
     return pFormula;
   }
 

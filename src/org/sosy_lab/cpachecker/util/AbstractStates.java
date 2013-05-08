@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -210,7 +210,7 @@ public final class AbstractStates {
    * the given abstract state, according to reported
    * formulas
    */
-  public static BooleanFormula extractReportedFormulas(FormulaManager manager, AbstractState state) {
+  public static BooleanFormula extractReportedFormulas(FormulaManagerView manager, AbstractState state) {
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
     BooleanFormula result = bfmgr.makeBoolean(true);
 

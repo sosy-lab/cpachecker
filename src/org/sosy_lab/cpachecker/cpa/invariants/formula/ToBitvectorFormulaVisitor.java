@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
  * Instances of this class are compound state invariants visitors used to
@@ -86,7 +86,7 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundState
    * @param pEvaluationVisitor the formula evaluation visitor used to evaluate
    * compound state invariants formulae to compound states.
    */
-  ToBitvectorFormulaVisitor(FormulaManager pFmgr,
+  ToBitvectorFormulaVisitor(FormulaManagerView pFmgr,
       ToFormulaVisitor<CompoundState, BooleanFormula> pToBooleanFormulaVisitor,
       FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();

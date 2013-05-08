@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.Replaci
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 @Options(prefix="cpa.predicate")
-public class FormulaManagerView implements FormulaManager {
+public class FormulaManagerView {
 
   public interface LoadManagers {
     public BooleanFormulaManagerView wrapManager(BooleanFormulaManager manager);
@@ -571,39 +571,33 @@ public class FormulaManagerView implements FormulaManager {
     return makeVariable(formulaType, makeName(name, idx));
   }
 
-  @Override
   public RationalFormulaManagerView getRationalFormulaManager() {
     return rationalFormulaManager;
   }
 
-  @Override
   public BooleanFormulaManagerView getBooleanFormulaManager() {
     return booleanFormulaManager;
   }
 
-  @Override
   public BitvectorFormulaManagerView getBitvectorFormulaManager() {
     return bitvectorFormulaManager;
   }
 
-  @Override
   public FunctionFormulaManagerView getFunctionFormulaManager() {
     return functionFormulaManager;
   }
 
-  @Override
-  public UnsafeFormulaManager getUnsafeFormulaManager() {
+  UnsafeFormulaManager getUnsafeFormulaManager() {
     return manager.getUnsafeFormulaManager(); // Unsafe
   }
 
-  @Override
   public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
     checkNotNull(pFormula);
     return manager.getFormulaType(pFormula);
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T wrapInView(T formula) {
+  <T extends Formula> T wrapInView(T formula) {
     Class<T> formulaType = AbstractFormulaManager.getInterfaceHelper(formula);
     if (BooleanFormula.class == formulaType) {
       return (T) booleanFormulaManager.wrapInView((BooleanFormula) formula);
@@ -630,7 +624,7 @@ public class FormulaManagerView implements FormulaManager {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T extractFromView(T formula) {
+  <T extends Formula> T extractFromView(T formula) {
     Class<T> formulaType = AbstractFormulaManager.getInterfaceHelper(formula);
     if (BooleanFormula.class == formulaType) {
       return (T) booleanFormulaManager.extractFromView((BooleanFormula) formula);
@@ -645,12 +639,10 @@ public class FormulaManagerView implements FormulaManager {
     throw new IllegalArgumentException("Invalid class");
   }
 
-  @Override
-  public <T extends Formula> Class<T> getInterface(T pInstance) {
+  <T extends Formula> Class<T> getInterface(T pInstance) {
     return manager.getInterface(extractFromView(pInstance));
   }
 
-  @Override
   public <T extends Formula> T parse(Class<T> pClazz, String pS) throws IllegalArgumentException {
     return wrapInView(manager.parse(pClazz, pS));
   }
@@ -979,7 +971,6 @@ public class FormulaManagerView implements FormulaManager {
     return vars;
   }
 
-  @Override
   public Appender dumpFormula(Formula pT) {
     return manager.dumpFormula(extractFromView(pT));
   }
@@ -988,7 +979,7 @@ public class FormulaManagerView implements FormulaManager {
     return myCheckSyntacticEntails(extractFromView(leftFormula), extractFromView(rightFormula));
   }
 
-  protected boolean myCheckSyntacticEntails(Formula leftFormula, Formula rightFormula) {
+  private boolean myCheckSyntacticEntails(Formula leftFormula, Formula rightFormula) {
 
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Deque<Formula> toProcess = new ArrayDeque<>();
@@ -1126,7 +1117,6 @@ public class FormulaManagerView implements FormulaManager {
     }
 
 
-  @Override
   public String getVersion() {
     return manager.getVersion();
   }

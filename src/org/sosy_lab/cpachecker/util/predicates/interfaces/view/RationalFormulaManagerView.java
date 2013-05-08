@@ -37,7 +37,7 @@ public class RationalFormulaManagerView extends BaseManagerView<RationalFormula>
     this.manager = pManager;
   }
 
-  public BooleanFormula wrapInView(BooleanFormula pFormula) {
+  private BooleanFormula wrapInView(BooleanFormula pFormula) {
     return getViewManager().getBooleanFormulaManager().wrapInView(pFormula);
   }
 

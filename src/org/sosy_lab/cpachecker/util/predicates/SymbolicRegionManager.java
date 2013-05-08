@@ -30,7 +30,6 @@ import java.io.PrintStream;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -89,7 +88,7 @@ public class SymbolicRegionManager implements RegionManager {
 
   private int predicateCount = 0;
 
-  public SymbolicRegionManager(FormulaManager fmgr, Solver pSolver) {
+  public SymbolicRegionManager(FormulaManagerView fmgr, Solver pSolver) {
     solver = pSolver;
     bfmgr = fmgr.getBooleanFormulaManager();
     trueRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(true));

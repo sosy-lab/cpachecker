@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManage
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 
 
 public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormula> implements BitvectorFormulaManager {
@@ -77,11 +76,8 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
   }
 
 
-  public BooleanFormula wrapInView(BooleanFormula pFormula) {
+  private BooleanFormula wrapInView(BooleanFormula pFormula) {
     return getViewManager().getBooleanFormulaManager().wrapInView(pFormula);
-  }
-  public RationalFormula wrapInView(RationalFormula pFormula) {
-    return getViewManager().getRationalFormulaManager().wrapInView(pFormula);
   }
 
   @Override

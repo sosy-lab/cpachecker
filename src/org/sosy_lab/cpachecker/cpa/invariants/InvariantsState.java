@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ToBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Joiner;
 
@@ -518,7 +518,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(FormulaManager pManager) {
+  public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
     FormulaEvaluationVisitor<CompoundState> evaluationVisitor = getFormulaResolver();
     BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
     BooleanFormula result = bfmgr.makeBoolean(true);

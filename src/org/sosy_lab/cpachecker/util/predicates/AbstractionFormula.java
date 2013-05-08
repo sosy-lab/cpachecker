@@ -31,8 +31,8 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 /**
@@ -67,7 +67,7 @@ public class AbstractionFormula implements Serializable {
   private final BooleanFormulaManager mgr;
 
   public AbstractionFormula(
-      FormulaManager mgr,
+      FormulaManagerView mgr,
       Region pRegion, BooleanFormula pFormula,
       BooleanFormula pInstantiatedFormula, PathFormula pBlockFormula) {
     this.mgr = checkNotNull(mgr.getBooleanFormulaManager());
