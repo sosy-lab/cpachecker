@@ -263,7 +263,7 @@ public final class InterpolationManager {
       // Final adjustments to the list of formulas
       List<BooleanFormula> f = new ArrayList<>(pFormulas); // copy because we will change the list
 
-      if (bfmgr.useBitwiseAxioms()) {
+      if (fmgr.useBitwiseAxioms()) {
         addBitwiseAxioms(f);
       }
 

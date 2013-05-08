@@ -169,10 +169,6 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     return not(equivalence(p, q));
   }
 
-  public boolean useBitwiseAxioms() {
-    return getViewManager().useBitwiseAxioms();
-  }
-
   public static abstract class BooleanFormulaVisitor<R> {
 
     private final FormulaManagerView fmgr;
