@@ -52,8 +52,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment.AllSatResult;
@@ -532,18 +530,20 @@ public class PredicateAbstractionManager {
     //merge path formulae
     PathFormula mergedPathFormulae = pfmgr.makeOr(a1, a2);
 
-    //quick syntactic check
-    Formula arg = fmgr.getUnsafeFormulaManager().getArg(fmgr.extractFromView(mergedPathFormulae.getFormula()), 0);
-    BooleanFormula leftFormula = fmgr.wrapInView(fmgr.getUnsafeFormulaManager().typeFormula(FormulaType.BooleanType, arg));
+    // We need to get a1 with the additional SSA merger terms
     // BooleanFormula leftFormula = getArguments(mergedPathFormulae.getFormula())[0];
-    BooleanFormula rightFormula = a2.getFormula();
-    if (fmgr.checkSyntacticEntails(leftFormula, rightFormula)) {
+    BooleanFormula leftFormula = new ExtractLeftArgumentOfOR(fmgr)
+                                       .visit(mergedPathFormulae.getFormula());
+
+    //quick syntactic check
+    if (fmgr.checkSyntacticEntails(leftFormula, a2.getFormula())) {
       stats.numSyntacticEntailedPathFormulae++;
       return true;
     }
 
 
     //check formulae
+    // TODO: should leftFormula be used instead of mergedPathFormulae here?
     if (!solver.implies(mergedPathFormulae.getFormula(), a2.getFormula())) { return false; }
     stats.numSemanticEntailedPathFormulae++;
 
@@ -693,4 +693,55 @@ public class PredicateAbstractionManager {
     return amgr.buildRegionFromFormula(pF);
   }
 
+  /**
+   * This class can be used to extract the left argument of an "or" term.
+   * E.g. "x | y" will give "x".
+   */
+  private static class ExtractLeftArgumentOfOR extends BooleanFormulaManagerView.BooleanFormulaVisitor<BooleanFormula> {
+
+    private ExtractLeftArgumentOfOR(FormulaManagerView pFmgr) {
+      super(pFmgr);
+    }
+
+    @Override
+    protected BooleanFormula visitAnd(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      throw new IllegalArgumentException();
+    }
+
+    @Override
+    protected BooleanFormula visitTrue() {
+      throw new IllegalArgumentException();
+    }
+
+    @Override
+    protected BooleanFormula visitFalse() {
+      throw new IllegalArgumentException();
+    }
+
+    @Override
+    protected BooleanFormula visitAtom(BooleanFormula pAtom) {
+      throw new IllegalArgumentException();
+    }
+
+    @Override
+    protected BooleanFormula visitNot(BooleanFormula pOperand) {
+      throw new IllegalArgumentException();
+    }
+
+    @Override
+    protected BooleanFormula visitOr(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      return pOperand1;
+    }
+
+    @Override
+    protected BooleanFormula visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      throw new IllegalArgumentException();
+    }
+
+    @Override
+    protected BooleanFormula visitIfThenElse(BooleanFormula pCondition, BooleanFormula pThenFormula,
+        BooleanFormula pElseFormula) {
+      throw new IllegalArgumentException();
+    }
+  }
 }
