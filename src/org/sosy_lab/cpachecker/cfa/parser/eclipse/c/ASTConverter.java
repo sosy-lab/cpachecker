@@ -613,13 +613,20 @@ class ASTConverter {
       }
 
       // in case of *& both can be left out
-      if(operand instanceof CUnaryExpression
+      else if(operand instanceof CUnaryExpression
           && ((CUnaryExpression)operand).getOperator() == UnaryOperator.AMPER) {
         return ((CUnaryExpression)operand).getOperand();
       }
 
       // in case of ** a temporary variable is needed
-      if(operand instanceof CPointerExpression) {
+      else if(operand instanceof CPointerExpression) {
+        CIdExpression tmpVar = createTemporaryVariable(e.getOperand());
+        preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmpVar, operand));
+        return new CPointerExpression(fileLoc, type, tmpVar);
+      }
+
+      // in case of p.e. *(a+b) or +(a-b) or *(a ANY_OTHER_OPERATOR b) a temporary variable is needed
+      else if(operand instanceof CBinaryExpression) {
         CIdExpression tmpVar = createTemporaryVariable(e.getOperand());
         preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmpVar, operand));
         return new CPointerExpression(fileLoc, type, tmpVar);
