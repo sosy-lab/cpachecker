@@ -127,8 +127,13 @@ function fKeyPressed(event) {
   return (event.keyCode == 70 && event.ctrlKey == false);
 }
 
+// input: the index of the column in the table
 function getNameOfTest(column) {
   var test = columnsToTest[column-1];
+  return getNameOfTestDirect(test);
+}
+
+function getNameOfTestDirect(test) {
   return test.tool + ' '
        + (test.date ? test.date + ' ' : '')
        + test.name
@@ -559,6 +564,7 @@ $(document).ready(function() {
 <script type="text/javascript" src="{{lib_url}}/jquery.jqplot-1.0.0b2_r1012/jqplot.canvasAxisTickRenderer.min.js"></script>
 <script type="text/javascript" src="{{lib_url}}/jquery.jqplot-1.0.0b2_r1012/jqplot.enhancedLegendRenderer.min.js"></script>
 <script type="text/javascript" src="{{lib_url}}/jquery.jqplot-1.0.0b2_r1012/jqplot.logAxisRenderer.min.js"></script>
+<script type="text/javascript" src="{{lib_url}}/jquery.jqplot-1.0.0b2_r1012/jqplot.canvasAxisLabelRenderer.min.js"></script>
 <link rel="stylesheet" type="text/css" href="{{lib_url}}/jquery.jqplot-1.0.0b2_r1012/jquery.jqplot.min.css"/>
 
 <style type="text/css">
@@ -577,6 +583,7 @@ $(document).ready(function() {
   #button-quantile { position:absolute; bottom:50px; }
   #button-logScale { position:absolute; bottom:25px; }
   #button-showCorrectOnly { position:absolute; bottom:0px; }
+  .scatterplot-selector { width:30%; }
 </style>
 
 <script type="text/javascript">
@@ -905,13 +912,11 @@ function addButtons(target, callback, showQuantileButton) {
 
 
 function getSelectorForScatter(identifier) {
-    var select = $('<select>', {id:'scatterplot-selector' + identifier});
+    var select = $('<select>', {class:'scatterplot-selector'});
     var columnIndex = 1; // columns start with 1
     for (var i = 0; i < tests.length; i++) {
         var test = tests[i];
-        var testname = test.tool + ' ' + (test.date ? test.date + ' ' : '')
-                + test.name + (test.benchmarkname ? '.' + test.benchmarkname : '');
-        var group = $('<optgroup>', {label:testname})
+        var group = $('<optgroup>', {label:getNameOfTestDirect(test)})
                 .appendTo(select);
         for (var j = 0; j < test.columns.length; j++, columnIndex++) {
             var column = test.columns[j];
@@ -946,6 +951,8 @@ function showScatterPlot() {
   var titles = $('#columnTitles').children();
   var title0 = titles[index0].textContent;
   var title1 = titles[index1].textContent;
+  var label0 = getNameOfTest(index0) + " " + title0;
+  var label1 = getNameOfTest(index1) + " " + title1;
   
   collectTableDataForScatter(index0, title0, index1, title1);
 
@@ -976,18 +983,22 @@ function showScatterPlot() {
     },
     axes:{
       xaxis:{
-        //ticks: getXTicks(),
+        label:label0,
+        labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+        labelOptions:{ textColor:'Black' },
         renderer: (graphData.isLogScale && title0 !== 'status') ? $.jqplot.LogAxisRenderer : $.jqplot.LinearAxisRenderer,
         tickRenderer: $.jqplot.CanvasAxisTickRenderer,
         tickOptions: {
-          fontSize: '9px',
           angle: -60,
         }
       },
       yaxis:{
-        //ticks: getYTicks(),
+        label:label1,
+        labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+        labelOptions:{ textColor:'Black' },
         renderer: (graphData.isLogScale && title1 !== 'status') ? $.jqplot.LogAxisRenderer : $.jqplot.LinearAxisRenderer,
         pad: 1.2,
+        tickRenderer: $.jqplot.CanvasAxisTickRenderer,
         tickOptions:{
           formatString: getYTicksFormat()
         }
@@ -995,7 +1006,10 @@ function showScatterPlot() {
     },
   });
 
-  $('.jqplot-title').append(selector0).append(selector1);
+  $('.jqplot-title').empty()
+        .append('X: ').append(selector0)
+        .append('<span style="padding-left:50px"></span>') // some space between the selectors
+        .append('Y: ').append(selector1);
 
   $('#contentPaneBackground').click(function(event) {
     plot.destroy();
