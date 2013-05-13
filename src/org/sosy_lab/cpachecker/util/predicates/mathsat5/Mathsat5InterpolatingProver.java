@@ -36,86 +36,85 @@ import com.google.common.base.Preconditions;
 
 public class Mathsat5InterpolatingProver implements InterpolatingProverEnvironment<Integer> {
 
-    private final Mathsat5FormulaManager mgr;
-    private long interpolEnv;
+  private final Mathsat5FormulaManager mgr;
+  private long interpolEnv;
 
-    private final boolean useSharedEnv;
+  private final boolean useSharedEnv;
 
-    public Mathsat5InterpolatingProver(
-        Mathsat5FormulaManager pMgr, boolean shared) {
-        mgr = pMgr;
-        useSharedEnv = shared;
+  public Mathsat5InterpolatingProver(
+    Mathsat5FormulaManager pMgr, boolean shared) {
+    mgr = pMgr;
+    useSharedEnv = shared;
 
-        long cfg = msat_create_config();
-        msat_set_option_checked(cfg, "interpolation", "true");
-        msat_set_option_checked(cfg, "model_generation", "true");
-        msat_set_option_checked(cfg, "theory.bv.eager", "false");
-        msat_set_option_checked(cfg, "theory.eq_propagation", "false");
+    long cfg = msat_create_config();
+    msat_set_option_checked(cfg, "interpolation", "true");
+    msat_set_option_checked(cfg, "model_generation", "true");
+    msat_set_option_checked(cfg, "theory.bv.eager", "false");
+    msat_set_option_checked(cfg, "theory.eq_propagation", "false");
 
-        interpolEnv = mgr.createEnvironment(cfg, useSharedEnv, false);
-        Preconditions.checkState(interpolEnv != 0);
+    interpolEnv = mgr.createEnvironment(cfg, useSharedEnv, false);
+    Preconditions.checkState(interpolEnv != 0);
+  }
+
+  @Override
+  public Integer push(BooleanFormula f) {
+    Preconditions.checkState(interpolEnv != 0);
+    long t = Mathsat5FormulaManager.getMsatTerm(f);
+    //long t = ((Mathsat5Formula)f).getTerm();
+    if (!useSharedEnv) {
+      t = msat_make_copy_from(interpolEnv, t, mgr.getMsatEnv());
     }
+    int group = msat_create_itp_group(interpolEnv);
+    msat_push_backtrack_point(interpolEnv);
+    msat_set_itp_group(interpolEnv, group);
+    msat_assert_formula(interpolEnv, t);
+    return group;
+  }
 
-    @Override
-    public Integer push(BooleanFormula f) {
-        Preconditions.checkState(interpolEnv != 0);
-        long t = Mathsat5FormulaManager.getMsatTerm(f);
-        //long t = ((Mathsat5Formula)f).getTerm();
-        if (!useSharedEnv) {
-            t = msat_make_copy_from(interpolEnv, t, mgr.getMsatEnv());
-        }
-        int group = msat_create_itp_group(interpolEnv);
-        msat_push_backtrack_point(interpolEnv);
-        msat_set_itp_group(interpolEnv, group);
-        msat_assert_formula(interpolEnv, t);
-        return group;
+  @Override
+  public void pop() {
+    msat_pop_backtrack_point(interpolEnv);
+  }
+
+  @Override
+  public boolean isUnsat() {
+    Preconditions.checkState(interpolEnv != 0);
+
+    int res = msat_solve(interpolEnv);
+    assert (res != MSAT_UNKNOWN);
+
+    return res == MSAT_UNSAT;
+  }
+
+  @Override
+  public BooleanFormula getInterpolant(List<Integer> formulasOfA) {
+    Preconditions.checkState(interpolEnv != 0);
+
+    int[] groupsOfA = new int[formulasOfA.size()];
+    int i = 0;
+    for (Integer f : formulasOfA) {
+      groupsOfA[i++] = f;
     }
+    long itp = msat_get_interpolant(interpolEnv, groupsOfA);
 
-    @Override
-    public void pop() {
-        msat_pop_backtrack_point(interpolEnv);
+    if (!useSharedEnv) {
+      itp = msat_make_copy_from(mgr.getMsatEnv(), itp, interpolEnv);
     }
+    return mgr.encapsulateTerm(BooleanFormula.class, itp);
+  }
 
-    @Override
-    public boolean isUnsat() {
-        Preconditions.checkState(interpolEnv != 0);
+  @Override
+  public void close() {
+    Preconditions.checkState(interpolEnv != 0);
 
-        int res = msat_solve(interpolEnv);
-        assert (res != MSAT_UNKNOWN);
+    msat_destroy_env(interpolEnv);
+    interpolEnv = 0;
+  }
 
-        return res == MSAT_UNSAT;
-    }
+  @Override
+  public Model getModel() throws SolverException {
+    Preconditions.checkState(interpolEnv != 0);
 
-    @Override
-    public BooleanFormula getInterpolant(List<Integer> formulasOfA) {
-        Preconditions.checkState(interpolEnv != 0);
-
-        int[] groupsOfA = new int[formulasOfA.size()];
-        int i = 0;
-        for (Integer f : formulasOfA) {
-          groupsOfA[i++] = f;
-        }
-        long itp = msat_get_interpolant(interpolEnv, groupsOfA);
-
-        if (!useSharedEnv) {
-            itp = msat_make_copy_from(mgr.getMsatEnv(), itp, interpolEnv);
-        }
-        return mgr.encapsulateTerm(BooleanFormula.class, itp);
-    }
-
-    @Override
-    public void close() {
-        Preconditions.checkState(interpolEnv != 0);
-
-        msat_destroy_env(interpolEnv);
-        interpolEnv = 0;
-    }
-
-    @Override
-    public Model getModel() throws SolverException {
-      Preconditions.checkState(interpolEnv != 0);
-
-      return Mathsat5Model.createMathsatModel(interpolEnv, mgr, useSharedEnv);
-    }
-
+    return Mathsat5Model.createMathsatModel(interpolEnv, mgr, useSharedEnv);
+  }
 }
