@@ -813,6 +813,9 @@ cpa.predicate.refinement.predicateSharing = LOCATION
 # disable, 1 for always.
 cpa.predicate.refinement.restartAfterRefinements = 0
 
+# Use a single SMT solver environment for several interpolation queries
+cpa.predicate.refinement.reuseInterpolationEnvironment = false
+
 # During refinement, add all new predicates to the precisions of all abstract
 # states in the reached set.
 cpa.predicate.refinement.sharePredicates = false
