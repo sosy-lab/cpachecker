@@ -176,6 +176,9 @@ class CmdLineArguments {
 
         } else {
           System.out.println("Invalid option " + arg);
+          if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
+            System.out.println("If you meant to specify a configuration file, the file " + f.getPath() + " does not exist.");
+          }
           System.out.println("");
           printHelp();
         }
@@ -244,6 +247,9 @@ class CmdLineArguments {
     System.out.println(" -printOptions [-v|-verbose]");
     System.out.println(" -printUsedOptions");
     System.out.println(" -help");
+    System.out.println();
+    System.out.println("You can also specify any of the configuration files in the directory config/");
+    System.out.println("with -CONFIG_FILE, e.g., -predicateAnalysis for config/predicateAnalysis.properties.");
     System.out.println();
     System.out.println("More information on how to configure CPAchecker can be found in 'doc/Configuration.txt'.");
     System.exit(0);
