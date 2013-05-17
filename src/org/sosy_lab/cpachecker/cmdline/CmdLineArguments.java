@@ -90,10 +90,6 @@ class CmdLineArguments {
    * @throws InvalidCmdlineArgumentException if there is an error in the command line
    */
   static Map<String, String> processArguments(String[] args) throws InvalidCmdlineArgumentException {
-    if (args == null || args.length < 1) {
-      throw new InvalidCmdlineArgumentException("Configuration file or list of CPAs needed. Use -help for more information.");
-    }
-
     Map<String, String> properties = new HashMap<>();
     List<String> programs = new ArrayList<>();
 
