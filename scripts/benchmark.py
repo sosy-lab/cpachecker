@@ -221,11 +221,11 @@ class Benchmark:
         globalSourcefilesTags = rootTag.findall("sourcefiles")
 
         # get required files
-        self.requiredFiles = self.tool.getProgrammFiles(self.executable)
+        self._requiredFiles = []
         baseDir = os.path.dirname(self.benchmarkFile)
         for requiredFilesTag in rootTag.findall('requiredfiles'):
             requiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, baseDir)
-            self.requiredFiles.extend(requiredFiles)
+            self._requiredFiles.extend(requiredFiles)
 
         # get requirements
         self.requirements = Requirements()
@@ -254,6 +254,8 @@ class Benchmark:
 
         self.outputHandler = OutputHandler(self)
 
+    def requiredFiles(self):
+        return self._requiredFiles + self.tool.getProgrammFiles(self.executable)
 
     def loadColumns(self, columnsTag):
         """
@@ -1338,7 +1340,7 @@ def executeBenchmarkInCloud(benchmark):
 
     absWorkingDir = os.path.abspath(os.curdir)
     logging.debug("Working dir: " + absWorkingDir)
-    toolpaths = benchmark.requiredFiles
+    toolpaths = benchmark.requiredFiles()
     for file in toolpaths:
         if not os.path.exists(file):
             logging.error("Missing file {0}, cannot run benchmark within cloud.".format(os.path.normpath(file)))
