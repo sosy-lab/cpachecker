@@ -22,6 +22,9 @@ CPAchecker web page:
   http://cpachecker.sosy-lab.org
 """
 
+# prepare for Python 3
+from __future__ import absolute_import, print_function, unicode_literals
+
 import logging
 import multiprocessing
 import os
@@ -81,7 +84,7 @@ def init():
                 _cpus.append(int(cpu[0]))
             elif len(cpu) == 2:
                 start, end = cpu
-                _cpus.extend(xrange(int(start), int(end)+1))
+                _cpus.extend(range(int(start), int(end)+1))
             else:
                 logging.warning("Could not read available CPU cores from kernel, failed to parse {0}.".format(cpuStr))
 
@@ -108,7 +111,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
 
         # put us into the cgroup(s)
         pid = os.getpid()
-        for cgroup in cgroups.itervalues():
+        for cgroup in cgroups.values():
             _addTaskToCgroup(cgroup, pid)
 
     # Setup cgroups, need a single call to _createCgroup() for all subsystems
@@ -138,7 +141,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
         totalCpuCount = len(_cpus)
         myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
         myCpusEnd   = (myCpusStart + myCpuCount-1) % totalCpuCount
-        myCpus = ','.join(map(str, xrange(myCpusStart, myCpusEnd+1)))
+        myCpus = ','.join(map(str, range(myCpusStart, myCpusEnd+1)))
         _writeFile(myCpus, cgroupCpuset, 'cpuset.cpus')
 
         myCpus = _readFile(cgroupCpuset, 'cpuset.cpus')
@@ -204,7 +207,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
         outputFile.close() # normally subprocess closes file, we do this again
 
         # kill all remaining processes if some managed to survive
-        for cgroup in cgroups.itervalues():
+        for cgroup in cgroups.values():
             _killAllTasksInCgroup(cgroup)
 
     assert pid == p.pid
@@ -238,7 +241,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
         memUsage = _readFile(cgroups[MEMORY], 'memory.memsw.max_usage_in_bytes')
         memUsage = int(memUsage)
 
-    for cgroup in set(cgroups.itervalues()):
+    for cgroup in set(cgroups.values()):
         # Need the set here to delete each cgroup only once.
         _removeCgroup(cgroup)
 
@@ -254,8 +257,8 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
         else:
             cpuTime = cpuTime2
 
-    outputFile = open(outputFileName, 'r') # re-open file for reading output
-    output = map(Util.decodeToString, outputFile.readlines()[6:]) # first 6 lines are for logging, rest is output of subprocess
+    outputFile = open(outputFileName, 'rt') # re-open file for reading output
+    output = list(map(Util.decodeToString, outputFile.readlines()[6:])) # first 6 lines are for logging, rest is output of subprocess
     outputFile.close()
 
     # Segmentation faults and some memory failures reference a file with more information.
@@ -335,7 +338,7 @@ def _killSubprocess(process):
         pass
 
 def _findCgroupMount(subsystem=None):
-    with open('/proc/mounts') as mounts:
+    with open('/proc/mounts', 'rt') as mounts:
         for mount in mounts:
             mount = mount.split(' ')
             if mount[2] == 'cgroup':
@@ -395,7 +398,7 @@ def _findOwnCgroup(subsystem):
     (Each process is in exactly cgroup in each hierarchy.)
     @return the path to the cgroup inside the hierarchy
     """
-    with open('/proc/self/cgroup') as ownCgroups:
+    with open('/proc/self/cgroup', 'rt') as ownCgroups:
         for ownCgroup in ownCgroups:
             #each line is "id:subsystem,subsystem:path"
             ownCgroup = ownCgroup.strip().split(':')
@@ -412,7 +415,7 @@ def _killAllTasksInCgroup(cgroup):
     if cgroup:
         tasksFile = os.path.join(cgroup, 'tasks')
         while os.path.getsize(tasksFile) > 0:
-            with open(tasksFile) as tasks:
+            with open(tasksFile, 'rt') as tasks:
                 for task in tasks:
                     logging.warning('Run has left-over process with pid {0}'.format(task))
                     try:

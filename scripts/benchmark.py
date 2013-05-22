@@ -25,7 +25,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
@@ -44,7 +44,6 @@ import os
 import re
 import resource
 import signal
-import string
 import subprocess
 import threading
 import xml.etree.ElementTree as ET
@@ -215,7 +214,7 @@ class Benchmark:
         self.options = getOptionsFromXML(rootTag)
 
         # get columns
-        self.columns = self.loadColumns(rootTag.find("columns"))
+        self.columns = Benchmark.loadColumns(rootTag.find("columns"))
 
         # get global source files, they are used in all run sets
         globalSourcefilesTags = rootTag.findall("sourcefiles")
@@ -257,7 +256,8 @@ class Benchmark:
     def requiredFiles(self):
         return self._requiredFiles + self.tool.getProgrammFiles(self.executable)
 
-    def loadColumns(self, columnsTag):
+    @staticmethod
+    def loadColumns(columnsTag):
         """
         @param columnsTag: the columnsTag from the XML file
         @return: a list of Columns()
@@ -370,7 +370,7 @@ class RunSet:
                     sys.exit()
 
                 # read files from list
-                fileWithList = open(file, "r")
+                fileWithList = open(file, 'rt')
                 for line in fileWithList:
 
                     # strip() removes 'newline' behind the line
@@ -555,11 +555,11 @@ class Requirements:
         self._cpuCores = int(cpuCores) if cpuCores is not None else None
         self._memory   = int(memory) if memory is not None else None
 
-        if self.cpuCores <= 0:
-            raise Exception('Invalid value for required CPU cores.')
+        if self.cpuCores() <= 0:
+            raise Exception('Invalid value {} for required CPU cores.'.format(cpuCores))
 
-        if self.cpuCores <= 0:
-            raise Exception('Invalid value for required memory.')
+        if self.memory() <= 0:
+            raise Exception('Invalid value {} for required memory.'.format(memory))
 
     def cpuModel(self):
         return self._cpuModel or ""
@@ -744,7 +744,7 @@ class OutputHandler:
         maxFrequency = 'unknown'
         cpuInfoFilename = '/proc/cpuinfo'
         if os.path.isfile(cpuInfoFilename) and os.access(cpuInfoFilename, os.R_OK):
-            cpuInfoFile = open(cpuInfoFilename, "r")
+            cpuInfoFile = open(cpuInfoFilename, 'rt')
             cpuInfo = dict(tuple(str.split(':')) for str in
                             cpuInfoFile.read()
                             .replace('\n\n', '\n').replace('\t', '')
@@ -759,7 +759,7 @@ class OutputHandler:
         # read the number from cpufreq and overwrite maxFrequency from above
         freqInfoFilename = '/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq'
         if os.path.isfile(freqInfoFilename) and os.access(freqInfoFilename, os.R_OK):
-            frequencyInfoFile = open(freqInfoFilename, "r")
+            frequencyInfoFile = open(freqInfoFilename, 'rt')
             maxFrequency = frequencyInfoFile.read().strip('\n')
             frequencyInfoFile.close()
             maxFrequency = str(int(maxFrequency) // 1000) + ' MHz'
@@ -768,7 +768,7 @@ class OutputHandler:
         memInfo = dict()
         memInfoFilename = '/proc/meminfo'
         if os.path.isfile(memInfoFilename) and os.access(memInfoFilename, os.R_OK):
-            memInfoFile = open(memInfoFilename, "r")
+            memInfoFile = open(memInfoFilename, 'rt')
             memInfo = dict(tuple(str.split(': ')) for str in
                             memInfoFile.read()
                             .replace('\t', '')
@@ -1288,7 +1288,7 @@ def parseCloudResultFile(filePath):
     memUsage = None
     returnValue = None
     
-    with open(filePath) as file:
+    with open(filePath, 'rt') as file:
 
         try:
             wallTime = float(file.readline().split(":")[-1])
@@ -1312,19 +1312,19 @@ def parseCloudResultFile(filePath):
 def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
 
     try:
-        file = open(filePath)
+        file = open(filePath, 'rt')
         outputHandler.allCreatedFiles.append(filePath)
         
         complete = False
         while(not complete):
             firstLine = file.readline()
             if(not firstLine == "\n"):
-               name = string.replace(firstLine.split("=")[-1],"\n","")
-               osName = string.replace(file.readline().split("=")[-1],"\n","")
-               memory = string.replace(file.readline().split("=")[-1],"\n","")
-               cpuName = string.replace(file.readline().split("=")[-1],"\n","")
-               frequency = string.replace(file.readline().split("=")[-1],"\n","")
-               cores = string.replace(file.readline().split("=")[-1],"\n","")
+               name = firstLine.split("=")[-1].strip()
+               osName = file.readline().split("=")[-1].strip()
+               memory = file.readline().split("=")[-1].strip()
+               cpuName = file.readline().split("=")[-1].strip()
+               frequency = file.readline().split("=")[-1].strip()
+               cores = file.readline().split("=")[-1].strip()
                
                outputHandler.storeSystemInfo(osName, cpuName, cores, frequency, memory, name)
             
@@ -1404,7 +1404,7 @@ def executeBenchmarkInCloud(benchmark):
         return
 
     #preparing cloud input
-    absToolpaths = map(os.path.abspath, toolpaths)
+    absToolpaths = list(map(os.path.abspath, toolpaths))
     sourceFilesBaseDir = os.path.commonprefix(absSourceFiles)
     toolPathsBaseDir = os.path.commonprefix(absToolpaths)
     baseDir = os.path.commonprefix([sourceFilesBaseDir, toolPathsBaseDir, cloudRunExecutorDir])
@@ -1433,7 +1433,7 @@ def executeBenchmarkInCloud(benchmark):
     libDir = os.path.abspath("./lib/java-benchmark")
     cloud = subprocess.Popen(["java", "-jar", libDir + "/vercip.jar", "benchmark", "--master", config.cloud, "--loglevel", logLevel], stdin=subprocess.PIPE)
     try:
-        (out, err) = cloud.communicate(cloudInput)
+        (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
     except KeyboardInterrupt:
         killScript()
     returnCode = cloud.wait()
@@ -1470,7 +1470,7 @@ def executeBenchmarkInCloud(benchmark):
             outputHandler.outputBeforeRun(run)
             output = ''
             try:
-                with open(run.logFile) as f:
+                with open(run.logFile, 'rt') as f:
                     output = f.read()
             except IOError as e:
                 logging.warning("Cannot read log file: " + e.strerror)

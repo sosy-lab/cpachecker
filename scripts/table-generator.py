@@ -485,7 +485,7 @@ class RunResult:
         def readLogfileLines(logfileName):
             if not logfileName: return []
             try:
-                with open(logfileName) as logfile:
+                with open(logfileName, 'rt') as logfile:
                     return logfile.readlines()
             except IOError as e:
                 print('WARNING: Could not read value from logfile: {}'.format(e))
@@ -636,7 +636,7 @@ def getTableHead(runSetResults, commonFileNamePrefix):
 
     def getRow(rowName, format, collapse=False, onlyIf=None):
         def formatCell(attributes):
-            if onlyIf and not onlyIf in runSetResult.attributes:
+            if onlyIf and not onlyIf in attributes:
                 formatStr = 'Unknown'
             else:
                 formatStr = format
