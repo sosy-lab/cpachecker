@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
 import java.io.PrintStream;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -35,9 +36,18 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -50,6 +60,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.explicit.refiner")
@@ -62,16 +73,18 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   @Option(description="whether or not to do lazy-abstraction")
   private boolean doLazyAbstraction = false;
 
+  @Option(description="whether or not to avoid restarting at assume edges after a refinement")
+  private boolean avoidAssumes = false;
+
   /**
-   * the ART element, from where to cut-off the subtree, and restart the analysis
+   * the offset in the path from where to cut-off the subtree, and restart the analysis
    */
-  private ARGState firstInterpolationPoint = null;
+  private int interpolationOffset = -1;
 
   // statistics
   private int numberOfRefinements           = 0;
   private int numberOfSuccessfulRefinements = 0;
   private int numberOfInterpolations        = 0;
-  private int numberOfErrorPathElements     = 0;
   private Timer timerInterpolation          = new Timer();
 
   protected ExplicitInterpolationBasedExplicitRefiner(Configuration config, PathFormulaManager pathFormulaManager)
@@ -83,29 +96,27 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       ARGPath errorPath) throws CPAException {
     timerInterpolation.start();
     numberOfRefinements++;
-    numberOfErrorPathElements += errorPath.size();
 
     ExplicitInterpolator interpolator     = new ExplicitInterpolator();
     Map<String, Long> currentInterpolant  = new HashMap<>();
     Multimap<CFANode, String> increment   = HashMultimap.create();
-    firstInterpolationPoint               = null;
+    interpolationOffset                   = -1;
 
     for (int i = 0; i < errorPath.size(); i++) {
       CFAEdge currentEdge = errorPath.get(i).getSecond();
-      if (currentEdge instanceof CFunctionReturnEdge) {
+
+      if (currentEdge instanceof BlankEdge) {
+        continue;
+      }
+      else if (currentEdge instanceof CFunctionReturnEdge) {
         currentEdge = ((CFunctionReturnEdge)currentEdge).getSummaryEdge();
       }
-      //System.out.println("\n\ncurrent edge: " + currentEdge);
 
       // do interpolation
       Map<String, Long> inputInterpolant = new HashMap<>(currentInterpolant);
       try {
-        //System.out.println("\t\tinput interpolant: " + inputInterpolant);
-        numberOfInterpolations++;
         Set<Pair<String, Long>> interpolant = interpolator.deriveInterpolant(errorPath, i, inputInterpolant);
-
-        //System.out.println("\t\t ----> feasible: " + (interpolator.isFeasible() ? "YES" : "NO"));
-        //System.out.println("\t\t ----> element: " + element);
+        numberOfInterpolations += interpolator.getNumberOfInterpolations();
 
         // early stop once we are past the first statement that made a path feasible for the first time
         if (interpolant == null) {
@@ -130,14 +141,14 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
         currentInterpolant = clearInterpolant(currentInterpolant, errorPath.get(i - 1).getSecond().getSuccessor().getFunctionName());
       }
 
-      // add the current interpolant to the precision
+      // add the current interpolant to the increment
       for (String variableName : currentInterpolant.keySet()) {
-        increment.put(currentEdge.getSuccessor(), variableName);
-
-        if (firstInterpolationPoint == null) {
-          firstInterpolationPoint = errorPath.get(Math.max(1, i - 1)).getFirst();
+        if (interpolationOffset == -1) {
+          interpolationOffset = i + 1;
           numberOfSuccessfulRefinements++;
         }
+
+        increment.put(currentEdge.getSuccessor(), variableName);
       }
     }
 
@@ -168,16 +179,87 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * @param errorPath the error path from where to determine the interpolation point
    * @return the new interpolation point
    */
-  protected ARGState determineInterpolationPoint(ARGPath errorPath) {
+  protected Pair<ARGState, CFAEdge> determineInterpolationPoint(ARGPath errorPath, Multimap<CFANode, String> increment) {
     // if doing lazy abstraction, use the node closest to the root node where new information is present
     if (doLazyAbstraction) {
-      return firstInterpolationPoint;
+      // try to find a more suitable cut-off point when cut-off is an assume edge, and this should be avoided
+      if(avoidAssumes && cutOffIsAssumeEdge(errorPath)) {
+        HashSet<String> values = new HashSet<>(increment.values());
+
+        for (Pair<ARGState, CFAEdge> currentElement : Lists.reverse(errorPath.subList(0, interpolationOffset - 1))) {
+          CFAEdge currentEdge = currentElement.getSecond();
+
+          switch (currentElement.getSecond().getEdgeType()) {
+            case StatementEdge:
+            case DeclarationEdge:
+              if(isAssigningEdge(currentEdge, values)) {
+                return errorPath.get(errorPath.indexOf(currentElement) + 1);
+              }
+              break;
+
+            case MultiEdge:
+              for (CFAEdge singleEdge : ((MultiEdge)currentEdge)) {
+                if (isAssigningEdge(singleEdge, values)) {
+                  return errorPath.get(errorPath.indexOf(currentElement) + 1);
+                }
+              }
+              break;
+
+            default:
+              break;
+          }
+        }
+      }
+
+      return errorPath.get(interpolationOffset);
     }
 
-    // otherwise, just use the root node
+    // otherwise, just use the successor of the root node
     else {
-      return errorPath.get(1).getFirst();
+      return errorPath.get(1);
     }
+  }
+
+  /**
+   * This method checks whether or not the current cut-off point is at an assume edge.
+   *
+   * @param errorPath the error path
+   * @return true, if the current cut-off point is at an assume edge, else false
+   */
+  private boolean cutOffIsAssumeEdge(ARGPath errorPath) {
+    return errorPath.get(Math.max(1, interpolationOffset - 1)).getSecond().getEdgeType() == CFAEdgeType.AssumeEdge;
+  }
+
+  /**
+   * This method determines whether or not the current edge is assigning any of the given variables.
+   *
+   * @param currentEdge the current edge to inspect
+   * @param variableNames the collection of variables to check for
+   * @return true, if any of the given variables is assigned in the given edge
+   */
+  private boolean isAssigningEdge(CFAEdge currentEdge, Set<String> variableNames) {
+    if(currentEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      IAStatement statement = ((AStatementEdge)currentEdge).getStatement();
+
+      if (statement instanceof IAssignment) {
+        IAExpression assignedVariable = ((IAssignment)statement).getLeftHandSide();
+        if((assignedVariable instanceof AIdExpression) && variableNames.contains(((AIdExpression)assignedVariable).getName())) {
+          return true;
+        }
+      }
+    }
+
+    else if (currentEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+      ADeclarationEdge declEdge = ((ADeclarationEdge)currentEdge);
+      if(declEdge.getDeclaration() instanceof CVariableDeclaration) {
+        String declaredVariable = ((CVariableDeclaration)declEdge.getDeclaration()).getQualifiedName();
+        if(variableNames.contains(declaredVariable)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   @Override
@@ -190,8 +272,6 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     out.println("  number of explicit refinements:                      " + numberOfRefinements);
     out.println("  number of successful explicit refinements:           " + numberOfSuccessfulRefinements);
     out.println("  number of explicit interpolations:                   " + numberOfInterpolations);
-    out.println("  total number of elements in error paths:             " + numberOfErrorPathElements);
-    out.println("  percentage of elements checked:                      " + (Math.round(((double)numberOfInterpolations / (double)numberOfErrorPathElements) * 10000) / 100.00) + "%");
     out.println("  max. time for singe interpolation:                   " + timerInterpolation.printMaxTime());
     out.println("  total time for interpolation:                        " + timerInterpolation);
   }
