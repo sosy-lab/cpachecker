@@ -464,7 +464,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    *
    * @return the set of tracked variables by this state
    */
-  ImmutableCollection<String> getTrackedVariableNames() {
+  public ImmutableCollection<String> getTrackedVariableNames() {
     return ImmutableSet.copyOf(constantsMap.keySet());
   }
 

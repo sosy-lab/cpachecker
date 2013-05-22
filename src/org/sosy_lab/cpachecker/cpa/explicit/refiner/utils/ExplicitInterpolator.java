@@ -1,3 +1,4 @@
+
 /*
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
@@ -26,7 +27,9 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 import static com.google.common.collect.Iterables.skip;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -78,18 +81,18 @@ public class ExplicitInterpolator {
   private boolean isFeasible = false;
 
   /**
-   * boolean flag telling whether any previous path was feasible
+   * the number of interpolations
    */
-  private boolean wasFeasible = false;
+  private int numberOfInterpolations = 0;
 
   /**
    * This method acts as the constructor of the class.
    */
   public ExplicitInterpolator() throws CPAException {
     try {
-      config    = Configuration.builder().build();
-      transfer  = new ExplicitTransferRelation(config);
-      precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
+      config      = Configuration.builder().build();
+      transfer    = new ExplicitTransferRelation(config);
+      precision   = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
     }
     catch (InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);
@@ -109,9 +112,10 @@ public class ExplicitInterpolator {
       ARGPath errorPath,
       int offset,
       Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
+    numberOfInterpolations = 0;
 
     // cancel the interpolation if we are interpolating at the conflicting element
-    if (wasFeasible && conflictingElement == errorPath.get(offset)) {
+    if (conflictingElement == errorPath.get(offset)) {
       return null;
     }
 
@@ -122,10 +126,14 @@ public class ExplicitInterpolator {
       return null;
     }
 
+    // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
+    if(initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(skip(errorPath, offset + 1), new ExplicitState())) {
+      return Collections.emptySet();
+    }
+
     Set<Pair<String, Long>> interpolant = new HashSet<>();
-    // for each variable in the difference set, check its relevance along the remaining error path
-    // TODO: also do this the other way round, remove all first, than re-add one by one
-    for (String currentVariable : initialState.getDifference(initialSuccessor)) {
+    List<String> list = Lists.newArrayList(initialSuccessor.getTrackedVariableNames());
+    for (String currentVariable : list) {
       ExplicitState successor = initialSuccessor.clone();
 
       // remove the value of the current and all already-found-to-be-irrelevant variables from the successor
@@ -137,10 +145,8 @@ public class ExplicitInterpolator {
       }
 
       // check if the remaining path now becomes feasible
-      isFeasible  = isRemainingPathFeasible(skip(errorPath, offset + 1), successor);
-      wasFeasible = wasFeasible || isFeasible;
+      isFeasible = isRemainingPathFeasible(skip(errorPath, offset + 1), successor);
 
-      // add to the interpolant if the remaining path became feasible
       if (isFeasible) {
         interpolant.add(Pair.of(currentVariable, initialSuccessor.getValueFor(currentVariable)));
       } else {
@@ -149,6 +155,24 @@ public class ExplicitInterpolator {
     }
 
     return interpolant;
+  }
+
+  /**
+   * This method returns whether or not the last error path was feasible.
+   *
+   * @return whether or not the last error path was feasible
+   */
+  public boolean isFeasible() {
+    return isFeasible;
+  }
+
+  /**
+   * This method returns the number of performed interpolations.
+   *
+   * @return the number of performed interpolations
+   */
+  public int getNumberOfInterpolations() {
+    return numberOfInterpolations;
   }
 
   /**
@@ -180,17 +204,27 @@ public class ExplicitInterpolator {
    */
   private boolean isRemainingPathFeasible(Iterable<Pair<ARGState, CFAEdge>> errorPath, ExplicitState initialState)
       throws CPATransferException {
-    Collection<ExplicitState> successors;
+    numberOfInterpolations++;
+
     for (Pair<ARGState, CFAEdge> pathElement : errorPath) {
-      successors = transfer.getAbstractSuccessors(
-          initialState,
-          precision,
-          pathElement.getSecond());
+      Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
+        initialState,
+        precision,
+        pathElement.getSecond());
 
       initialState = extractSuccessorState(successors);
 
       // there is no successor and the current path element is not an error state => error path is spurious
       if (initialState == null && !pathElement.getFirst().isTarget()) {
+        /* needed for sequences like ...
+          ...
+          status = 259;
+          [status == 0] <- first conflictingElement
+          ...
+          [!(status >= 0)]
+          ... as this would otherwise stop interpolation after first conflicting element,
+          as the path to first conflicting element always is infeasible here
+        */
         if (conflictingElement == null || conflictingElement.getFirst().isOlderThan(pathElement.getFirst())) {
           conflictingElement = pathElement;
         }
@@ -198,15 +232,6 @@ public class ExplicitInterpolator {
       }
     }
     return true;
-  }
-
-  /**
-   * This method returns whether or not the last error path was feasible.
-   *
-   * @return whether or not the last error path was feasible
-   */
-  public boolean isFeasible() {
-    return isFeasible;
   }
 
   /**

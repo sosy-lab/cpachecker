@@ -28,8 +28,10 @@ import java.util.Collection;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -196,14 +198,13 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
     Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
 
-    Multimap<CFANode, String> increment = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
-    ARGState interpolationPoint         = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath);
-
+    Multimap<CFANode, String> increment         = explicitInterpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
+    Pair<ARGState, CFAEdge> interpolationPoint  = explicitInterpolatingRefiner.determineInterpolationPoint(errorPath, increment);
     ExplicitPrecision explicitPrecision         = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
     ExplicitPrecision refinedExplicitPrecision  = new ExplicitPrecision(explicitPrecision, increment);
 
     if(refinementSuccessful(errorPath, explicitPrecision, refinedExplicitPrecision)) {
-      reached.removeSubtree(interpolationPoint, refinedExplicitPrecision, ExplicitPrecision.class);
+      reached.removeSubtree(interpolationPoint.getFirst(), refinedExplicitPrecision, ExplicitPrecision.class);
       return true;
     }
     else {
