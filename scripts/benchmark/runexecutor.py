@@ -404,6 +404,7 @@ def _findOwnCgroup(subsystem):
             ownCgroup = ownCgroup.strip().split(':')
             if subsystem in ownCgroup[1].split(','):
                 return ownCgroup[2]
+        logging.warning('Could not identify my cgroup for subsystem {0} although it should be there'.format(subsystem))
         return None
 
 def _addTaskToCgroup(cgroup, pid):
@@ -445,10 +446,13 @@ Please enable it with "sudo mount -t cgroup none /sys/fs/cgroup".'''
                 )
             _cgroups[subsystem] = None
             return
+        else:
+            logging.debug('Subsystem {0} is mounted at {1}'.format(subsystem, cgroup))
 
         # find our own cgroup, we want to put processes in a child group of it
         cgroup = os.path.join(cgroup, _findOwnCgroup(subsystem)[1:])
         _cgroups[subsystem] = cgroup
+        logging.debug('My cgroup for subsystem {0} is {1}'.format(subsystem, cgroup))
 
         try:
             testCgroup = _createCgroup(subsystem)[subsystem]

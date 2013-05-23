@@ -1462,7 +1462,9 @@ def executeBenchmarkInCloud(benchmark):
             try:
                 stdoutFile = run.logFile + ".stdOut"
                 (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
-                os.remove(stdoutFile)
+                if returnValue is not None:
+                    # Do not delete stdOut file if there was some problem
+                    os.remove(stdoutFile)
             except EnvironmentError as e:
                 logging.warning("Cannot extract measured values from output for file {0}: {1}".format(run.sourcefile, e))
                 continue
