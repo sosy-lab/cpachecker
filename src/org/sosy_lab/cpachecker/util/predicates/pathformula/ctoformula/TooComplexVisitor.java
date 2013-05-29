@@ -113,7 +113,7 @@ class TooComplexVisitor implements CExpressionVisitor<Boolean, RuntimeException>
 
   @Override
   public Boolean visit(CPointerExpression pIastPointerExpression) {
-    return pIastPointerExpression.accept(this);
+    return pIastPointerExpression.getOperand().accept(this);
   }
 
 }
