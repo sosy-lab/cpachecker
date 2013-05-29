@@ -8,9 +8,11 @@
 
     <property name="version" value="1.2-svn"/> <!-- change here for a release -->
 
-    <!-- Enable this property (either via command-line or in build.properties to prevent ivy from running)
-    <property name="ivy.disable" value=""/>
-    -->
+    <!-- The following properties may be set via file build.properties or command line to change the build behavior. -->
+    <!-- <property name="ivy.disable" value=""/> --> <!-- Disable ivy completely. -->
+    <property name="ivy.repo.url" value="http://www.sosy-lab.org/ivy"/> <!-- URL to ivy repository. -->
+    <property name="verifiercloud.version" value="0.+"/> <!-- Version of VerifierCloud to use ("+" is wildcard). -->
+    <property name="verifiercloud.refresh" value="true"/> <!-- Lookup newest version of VerifierCloud on server each time. -->
 
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
@@ -54,7 +56,6 @@
     <target depends="clean" name="cleanall"/>
 
     <property name="ivy.useVersion" value="2.2.0"/> <!-- Change version number here to use a newer version of Ivy. -->
-    <property name="ivy.repo.url" value="http://www.sosy-lab.org/ivy"/>
     <property name="ivy.jar.dir" value="${ivy.lib.dir}/build"/>
     <property name="ivy.jar.file" value="ivy.jar"/>
     <available file="${ivy.jar.dir}/${ivy.jar.file}" property="ivy.jar.present"/>
@@ -98,7 +99,8 @@
     </target>
 
     <target name="resolve-benchmark-dependencies" depends="load-ivy" description="retrieve dependencies for benchmark configuration" unless="ivy.disable">
-        <ivy:resolve conf="benchmark" log="download-only"/>
+        <condition property="ivy.useCacheOnly" value="true" else="false"><not><istrue value="${verifiercloud.refresh}"/></not></condition>
+        <ivy:resolve conf="benchmark" log="download-only" resolveMode="dynamic" useCacheOnly="${ivy.useCacheOnly}" refresh="${verifiercloud.refresh}"/>
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
     </target>
 
@@ -183,7 +185,7 @@
                 excludes="lib/ivy*"
                 prefix="${namet}/"/>
             <tarfileset dir="scripts"
-                includes="*.* tempita/** benchmark/* benchmark/tools/cpachecker.py benchmark/tools/__init__.py"
+                includes="*.* tempita/** benchmark/* benchmark/tools/cpachecker.py benchmark/tools/template.py benchmark/tools/__init__.py"
                 excludes="*.bat *.sh *.py"
                 prefix="${namet}/scripts/"/>
             <tarfileset dir="." filemode="755"

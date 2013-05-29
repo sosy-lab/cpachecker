@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.StatisticsUtils.div;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -34,6 +36,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -44,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -76,6 +80,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -89,6 +94,7 @@ public final class InterpolationManager {
   private final Timer getInterpolantTimer = new Timer();
   private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
   private final Timer interpolantVerificationTimer = new Timer();
+  private int reusedFormulasOnSolverStack = 0;
 
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     out.println("  Counterexample analysis:            " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.printMaxTime() + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
@@ -96,6 +102,9 @@ public final class InterpolationManager {
       out.println("    Cex.focusing:                     " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.printMaxTime() + ")");
     }
     out.println("    Refinement sat check:             " + satCheckTimer);
+    if (reuseInterpolationEnvironment && satCheckTimer.getNumberOfIntervals() > 0) {
+      out.println("    Reused formulas on solver stack:  " + reusedFormulasOnSolverStack + " (Avg: " + div(reusedFormulasOnSolverStack, satCheckTimer.getNumberOfIntervals()) + ")");
+    }
     out.println("    Interpolant computation:          " + getInterpolantTimer);
     if (interpolantVerificationTimer.getNumberOfIntervals() > 0) {
       out.println("    Interpolant verification:         " + interpolantVerificationTimer);
@@ -110,6 +119,7 @@ public final class InterpolationManager {
   private final Solver solver;
 
   private final FormulaManagerFactory factory;
+  private final Interpolator<?> interpolator;
 
   @Option(description="apply deletion-filter to the abstract counterexample, to get "
     + "a minimal set of blocks, before applying interpolation-based refinement")
@@ -154,6 +164,9 @@ public final class InterpolationManager {
     + "this amount of bytes (ignored if 0)")
   private int maxRefinementSize = 0;
 
+  @Option(description="Use a single SMT solver environment for several interpolation queries")
+  private boolean reuseInterpolationEnvironment = false;
+
   private final ExecutorService executor;
 
 
@@ -180,6 +193,12 @@ public final class InterpolationManager {
       executor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
     }
 
+    if (reuseInterpolationEnvironment) {
+      interpolator = new Interpolator<>();
+    } else {
+      interpolator = null;
+    }
+
     if (wellScopedPredicates) {
       throw new InvalidConfigurationException("wellScopedPredicates are currently disabled");
     }
@@ -189,7 +208,7 @@ public final class InterpolationManager {
 //    }
   }
 
-  public String dumpCounterexample(CounterexampleTraceInfo cex) {
+  public Appender dumpCounterexample(CounterexampleTraceInfo cex) {
     return fmgr.dumpFormula(bfmgr.conjunction(cex.getCounterExampleFormulas()));
   }
 
@@ -209,9 +228,7 @@ public final class InterpolationManager {
 
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit == 0) {
-      try (InterpolatingProverEnvironment<?> itpProver = factory.newProverEnvironmentWithInterpolation(false)) {
-        return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
-      }
+      return buildCounterexampleTrace0(pFormulas, elementsOnPath);
     }
 
     assert executor != null;
@@ -219,9 +236,7 @@ public final class InterpolationManager {
     Callable<CounterexampleTraceInfo> tc = new Callable<CounterexampleTraceInfo>() {
       @Override
       public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
-        try (InterpolatingProverEnvironment<?> itpProver = factory.newProverEnvironmentWithInterpolation(false)) {
-          return buildCounterexampleTraceWithSpecifiedItp(pFormulas, elementsOnPath, itpProver);
-        }
+        return buildCounterexampleTrace0(pFormulas, elementsOnPath);
       }
     };
 
@@ -244,16 +259,9 @@ public final class InterpolationManager {
     }
   }
 
-  /**
-   * Counterexample analysis and predicate discovery.
-   * @param pFormulas the formulas for the path
-   * @param elementsOnPath the ARGElements on the path (may be empty if no branching information is required)
-   * @param pItpProver interpolation solver used
-   * @return counterexample info with predicated information
-   * @throws CPAException
-   */
-  private <T> CounterexampleTraceInfo buildCounterexampleTraceWithSpecifiedItp(
-      List<BooleanFormula> pFormulas, Set<ARGState> elementsOnPath, InterpolatingProverEnvironment<T> pItpProver) throws CPAException, InterruptedException {
+  private CounterexampleTraceInfo buildCounterexampleTrace0(
+      final List<BooleanFormula> pFormulas,
+      final Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
 
     logger.log(Level.FINEST, "Building counterexample trace");
     cexAnalysisTimer.start();
@@ -262,7 +270,7 @@ public final class InterpolationManager {
       // Final adjustments to the list of formulas
       List<BooleanFormula> f = new ArrayList<>(pFormulas); // copy because we will change the list
 
-      if (bfmgr.useBitwiseAxioms()) {
+      if (fmgr.useBitwiseAxioms()) {
         addBitwiseAxioms(f);
       }
 
@@ -275,74 +283,27 @@ public final class InterpolationManager {
 
       // Check if refinement problem is not too big
       if (maxRefinementSize > 0) {
-        int size = fmgr.dumpFormula(bfmgr.conjunction(f)).length();
+        int size = fmgr.dumpFormula(bfmgr.conjunction(f)).toString().length();
         if (size > maxRefinementSize) {
           logger.log(Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
           throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
         }
       }
 
-
-      // Check feasibility of counterexample
-      logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
-      satCheckTimer.start();
-
-      boolean spurious;
-      List<T> itpGroupsIds;
-      try {
-
-        if (getUsefulBlocks) {
-          f = Collections.unmodifiableList(getUsefulBlocks(f));
-        }
-
-        if (dumpInterpolationProblems) {
-          dumpInterpolationProblem(f);
-        }
-
-        // re-order formulas if needed
-        List<Pair<BooleanFormula, Integer>> orderedFormulas = orderFormulas(f);
-
-        // initialize all interpolation group ids with "null"
-        itpGroupsIds = new ArrayList<>(Collections.<T>nCopies(f.size(), null));
-
-        // ask solver for satisfiability
-        spurious = checkInfeasabilityOfTrace(orderedFormulas, itpGroupsIds, pItpProver);
-        assert itpGroupsIds.size() == f.size();
-        assert !itpGroupsIds.contains(null); // has to be filled completely
-
-      } finally {
-        satCheckTimer.stop();
-      }
-
-      logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
-
-
-      // Get either interpolants or error path information
-      CounterexampleTraceInfo info;
-      if (spurious) {
-
-        List<BooleanFormula> interpolants = getInterpolants(pItpProver, itpGroupsIds);
-        if (verifyInterpolants) {
-          verifyInterpolants(interpolants, f, pItpProver);
-        }
-
-        if (logger.wouldBeLogged(Level.ALL)) {
-          int i = 1;
-          for (BooleanFormula itp : interpolants) {
-            logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
-          }
-        }
-
-        info = CounterexampleTraceInfo.infeasible(interpolants);
-
+      final Interpolator<?> currentInterpolator;
+      if (reuseInterpolationEnvironment) {
+        currentInterpolator = checkNotNull(interpolator);
       } else {
-        // this is a real bug
-        info = getErrorPath(f, pItpProver, elementsOnPath);
+        currentInterpolator = new Interpolator<>();
       }
 
-      logger.log(Level.ALL, "Counterexample information:", info);
-
-      return info;
+      try {
+        return currentInterpolator.buildCounterexampleTrace(f, elementsOnPath);
+      } finally {
+        if (!reuseInterpolationEnvironment) {
+          currentInterpolator.close();
+        }
+      }
 
     } finally {
       cexAnalysisTimer.stop();
@@ -534,45 +495,6 @@ public final class InterpolationManager {
                              .equals(ImmutableMultiset.copyOf(traceFormulas))
             : "Ordered list does not contain the same formulas with the same count";
     return result;
-  }
-
-  /**
-   * Check the satisfiability of a list of formulas, using them in the given order.
-   * This method honors the {@link #incrementalCheck} configuration option.
-   *
-   * @param traceFormulas The list of formulas to check, each formula with its index of where it should be added in the list of interpolation groups.
-   * @param itpGroupsIds The list where to store the references to the interpolation groups.
-   * @param pItpProver The solver to use.
-   * @return True if the formulas are unsatisfiable.
-   * @throws InterruptedException
-   */
-  private <T> boolean checkInfeasabilityOfTrace(List<Pair<BooleanFormula, Integer>> traceFormulas,
-      List<T> itpGroupsIds, InterpolatingProverEnvironment<T> pItpProver) throws InterruptedException {
-
-    boolean isStillFeasible = true;
-
-    for (Pair<BooleanFormula, Integer> p : traceFormulas) {
-      BooleanFormula f = p.getFirst();
-      int index = p.getSecond();
-
-      assert itpGroupsIds.get(index) == null;
-      itpGroupsIds.set(index, pItpProver.push(f));
-
-      if (incrementalCheck && isStillFeasible && !bfmgr.isTrue(f)) {
-        if (pItpProver.isUnsat()) {
-          // We need to iterate through the full loop
-          // to add all formulas, but this prevents us from doing further sat checks.
-          isStillFeasible = false;
-        }
-      }
-    }
-
-    if (incrementalCheck) {
-      // we did unsat checks
-      return !isStillFeasible;
-    } else {
-      return pItpProver.isUnsat();
-    }
   }
 
   /**
@@ -792,8 +714,7 @@ public final class InterpolationManager {
   private void dumpInterpolationProblem(List<BooleanFormula> f) {
     int k = 0;
     for (BooleanFormula formula : f) {
-      File dumpFile = formatFormulaOutputFile("formula", k++);
-      fmgr.dumpFormulaToFile(formula, dumpFile);
+      dumpFormulaToFile("formula", formula, k++);
     }
   }
 
@@ -804,5 +725,228 @@ public final class InterpolationManager {
 
   private File formatFormulaOutputFile(String formula, int index) {
     return fmgr.formatFormulaOutputFile("interpolation", cexAnalysisTimer.getNumberOfIntervals(), formula, index);
+  }
+
+  /**
+   * This class encapsulates the used SMT solver for interpolation,
+   * and keeps track of the formulas that are currently on the solver stack.
+   *
+   * An instance of this class can be used for several interpolation queries
+   * in a row, and it will try to keep as many formulas as possible in the
+   * SMT solver between those queries (so that the solver may reuse information
+   * from previous queries, and hopefully might even return similar interpolants).
+   *
+   * When an instance won't be used anymore, call {@link #close()}.
+   *
+   * @param <T>
+   */
+  private class Interpolator<T> {
+
+    private InterpolatingProverEnvironment<T> itpProver;
+    private final List<Pair<BooleanFormula, T>> currentlyAssertedFormulas = new ArrayList<>();
+
+    Interpolator() {
+      itpProver = newEnvironment();
+    }
+
+    @SuppressWarnings("unchecked")
+    private InterpolatingProverEnvironment<T> newEnvironment() {
+      // This is safe because we don't actually care about the value of T,
+      // only the InterpolatingProverEnvironment itself cares about it.
+      return (InterpolatingProverEnvironment<T>)factory.newProverEnvironmentWithInterpolation(false);
+    }
+
+    /**
+     * Counterexample analysis and predicate discovery.
+     * @param pFormulas the formulas for the path
+     * @param elementsOnPath the ARGElements on the path (may be empty if no branching information is required)
+     * @param itpProver interpolation solver used
+     * @return counterexample info with predicated information
+     * @throws CPAException
+     */
+    CounterexampleTraceInfo buildCounterexampleTrace(
+        List<BooleanFormula> f, Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
+
+      // Check feasibility of counterexample
+      logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
+      satCheckTimer.start();
+
+      boolean spurious;
+      List<T> itpGroupsIds;
+      try {
+
+        if (getUsefulBlocks) {
+          f = Collections.unmodifiableList(getUsefulBlocks(f));
+        }
+
+        if (dumpInterpolationProblems) {
+          dumpInterpolationProblem(f);
+        }
+
+        // re-order formulas if needed
+        List<Pair<BooleanFormula, Integer>> orderedFormulas = orderFormulas(f);
+
+        // initialize all interpolation group ids with "null"
+        itpGroupsIds = new ArrayList<>(Collections.<T>nCopies(f.size(), null));
+
+        // ask solver for satisfiability
+        spurious = checkInfeasabilityOfTrace(orderedFormulas, itpGroupsIds);
+        assert itpGroupsIds.size() == f.size();
+        assert !itpGroupsIds.contains(null); // has to be filled completely
+
+      } finally {
+        satCheckTimer.stop();
+      }
+
+      logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
+
+
+      // Get either interpolants or error path information
+      CounterexampleTraceInfo info;
+      if (spurious) {
+
+        List<BooleanFormula> interpolants = getInterpolants(itpProver, itpGroupsIds);
+        if (verifyInterpolants) {
+          verifyInterpolants(interpolants, f, itpProver);
+        }
+
+        if (logger.wouldBeLogged(Level.ALL)) {
+          int i = 1;
+          for (BooleanFormula itp : interpolants) {
+            logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
+          }
+        }
+
+        info = CounterexampleTraceInfo.infeasible(interpolants);
+
+      } else {
+        // this is a real bug
+        info = getErrorPath(f, itpProver, elementsOnPath);
+      }
+
+      logger.log(Level.ALL, "Counterexample information:", info);
+
+      return info;
+    }
+
+    /**
+     * Check the satisfiability of a list of formulas, using them in the given order.
+     * This method honors the {@link #incrementalCheck} configuration option.
+     * It also updates the SMT solver stack and the {@link #currentlyAssertedFormulas}
+     * list that is used if {@link #reuseInterpolationEnvironment} is enabled.
+     *
+     * @param traceFormulas The list of formulas to check, each formula with its index of where it should be added in the list of interpolation groups.
+     * @param itpGroupsIds The list where to store the references to the interpolation groups.
+     * @param itpProver The solver to use.
+     * @return True if the formulas are unsatisfiable.
+     * @throws InterruptedException
+     */
+    private boolean checkInfeasabilityOfTrace(List<Pair<BooleanFormula, Integer>> traceFormulas,
+        List<T> itpGroupsIds) throws InterruptedException {
+
+      // first identify which formulas are already on the solver stack,
+      // which formulas need to be removed from the solver stack,
+      // and which formulas need to be added to the solver stack
+      ListIterator<Pair<BooleanFormula, Integer>> todoIterator = traceFormulas.listIterator();
+      ListIterator<Pair<BooleanFormula, T>> assertedIterator = currentlyAssertedFormulas.listIterator();
+
+      int firstBadIndex = -1; // index of first mis-matching formula in both lists
+
+      while (assertedIterator.hasNext()) {
+        Pair<BooleanFormula, T> assertedFormula = assertedIterator.next();
+
+        if (!todoIterator.hasNext()) {
+          firstBadIndex = assertedIterator.previousIndex();
+          break;
+        }
+
+        Pair<BooleanFormula, Integer> todoFormula = todoIterator.next();
+
+        if (todoFormula.getFirst().equals(assertedFormula.getFirst())) {
+          // formula is already in solver stack in correct location
+          @SuppressWarnings("unchecked")
+          T itpGroupId = assertedFormula.getSecond();
+          itpGroupsIds.set(todoFormula.getSecond(), itpGroupId);
+
+        } else {
+          firstBadIndex = assertedIterator.previousIndex();
+          // rewind iterator by one so that todoFormula will be added to stack
+          todoIterator.previous();
+          break;
+        }
+      }
+
+      // now remove the formulas from the solver stack where necessary
+      if (firstBadIndex == -1) {
+        // solver stack was already empty, nothing do to
+
+      } else if (firstBadIndex == 0) {
+        // Create a new environment instead of cleaning up the old one
+        // if no formulas need to be reused.
+        itpProver.close();
+        itpProver = newEnvironment();
+        currentlyAssertedFormulas.clear();
+
+      } else {
+        assert firstBadIndex > 0;
+        // list with all formulas on solver stack that we need to remove
+        // (= remaining formulas in currentlyAssertedFormulas list)
+        List<Pair<BooleanFormula, T>> toDeleteFormulas =
+            currentlyAssertedFormulas.subList(firstBadIndex,
+                                              currentlyAssertedFormulas.size());
+
+        // remove formulas from solver stack
+        for (int i = 0; i < toDeleteFormulas.size(); i++) {
+          itpProver.pop();
+        }
+        toDeleteFormulas.clear(); // this removes from currentlyAssertedFormulas
+
+        reusedFormulasOnSolverStack += currentlyAssertedFormulas.size();
+      }
+
+      boolean isStillFeasible = true;
+
+      if (incrementalCheck && !currentlyAssertedFormulas.isEmpty()) {
+        if (itpProver.isUnsat()) {
+          isStillFeasible = false;
+        }
+      }
+
+      // add remaining formulas to the solver stack
+      while (todoIterator.hasNext()) {
+        Pair<BooleanFormula, Integer> p = todoIterator.next();
+        BooleanFormula f = p.getFirst();
+        int index = p.getSecond();
+
+        assert itpGroupsIds.get(index) == null;
+        T itpGroupId = itpProver.push(f);
+        itpGroupsIds.set(index, itpGroupId);
+        currentlyAssertedFormulas.add(Pair.of(f, itpGroupId));
+
+        if (incrementalCheck && isStillFeasible && !bfmgr.isTrue(f)) {
+          if (itpProver.isUnsat()) {
+            // We need to iterate through the full loop
+            // to add all formulas, but this prevents us from doing further sat checks.
+            isStillFeasible = false;
+          }
+        }
+      }
+
+      assert Iterables.elementsEqual(from(traceFormulas).transform(Pair.getProjectionToFirst()),
+                                      from(currentlyAssertedFormulas).transform(Pair.getProjectionToFirst()));
+
+      if (incrementalCheck) {
+        // we did unsat checks
+        return !isStillFeasible;
+      } else {
+        return itpProver.isUnsat();
+      }
+    }
+
+    private void close() {
+      itpProver.close();
+      itpProver = null;
+      currentlyAssertedFormulas.clear();
+    }
   }
 }

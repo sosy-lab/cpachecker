@@ -31,10 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.bdd.BDDRegion;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 
@@ -45,8 +42,6 @@ public abstract class ImpactRefiner implements Refiner {
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
-
-    Region initialRegion = predicateCpa.getInitialState(null).getAbstractionFormula().asRegion();
 
     Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
@@ -62,23 +57,12 @@ public abstract class ImpactRefiner implements Refiner {
         config,
         logger);
 
-    RefinementStrategy strategy;
-    if (initialRegion instanceof SymbolicRegionManager.SymbolicRegion) {
-      strategy = new ImpactRefinementStrategy(
-          config,
-          logger,
-          fmgr,
-          solver);
-    } else if (initialRegion instanceof BDDRegion) {
-      strategy = new ImpactAbstractionRefinementStrategy(
-          config,
-          logger,
-          fmgr,
-          predicateCpa.getAbstractionManager(),
-          predicateCpa.getPredicateManager());
-    } else {
-      throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " cannot be used with configured abstraction representation.");
-    }
+    RefinementStrategy strategy = new ImpactRefinementStrategy(
+        config,
+        logger,
+        fmgr,
+        predicateCpa.getSolver(),
+        predicateCpa.getPredicateManager());
 
     return new PredicateCPARefiner(
         config,

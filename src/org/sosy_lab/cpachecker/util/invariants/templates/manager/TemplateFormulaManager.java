@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.invariants.templates.manager;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateVariable;
@@ -114,7 +115,7 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   @Override
-  public String dumpFormula(Formula pT) {
+  public Appender dumpFormula(Formula pT) {
     // TODO Auto-generated method stub
     return null;
   }

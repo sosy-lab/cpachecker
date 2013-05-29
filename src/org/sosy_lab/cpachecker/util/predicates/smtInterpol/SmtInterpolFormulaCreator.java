@@ -28,15 +28,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractForm
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
+class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtInterpolEnvironment> {
 
-public class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort, SmtInterpolEnvironment> {
-
-  public SmtInterpolFormulaCreator(
+  SmtInterpolFormulaCreator(
       SmtInterpolEnvironment pMathsatEnv,
       Sort pBoolType,
-      Sort pNumberType,
-      AbstractFormulaCreator.CreateBitType<Sort> pBittype) {
-    super(pMathsatEnv, pBoolType, pNumberType, pBittype);
+      Sort pNumberType) {
+    super(pMathsatEnv, pBoolType, pNumberType);
   }
 
   @Override
@@ -44,5 +42,10 @@ public class SmtInterpolFormulaCreator extends AbstractFormulaCreator<Term, Sort
     SmtInterpolEnvironment env = getEnv();
     env.declareFun(varName, new Sort[]{}, type);
     return env.term(varName);
+  }
+
+  @Override
+  public Sort getBittype(int pBitwidth) {
+    throw new UnsupportedOperationException("Bitvector theory is not supported by SmtInterpol");
   }
 }

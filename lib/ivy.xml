@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ivy-module version="2.0"
+        xmlns:e="http://ant.apache.org/ivy/extra"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
     <info organisation="org.sosy_lab" module="CPAchecker"/>
@@ -23,7 +24,7 @@
 
     <dependencies>
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.249" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.258" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
@@ -69,9 +70,12 @@
         <dependency org="org.eclipse.cdt" name="core" rev="5.4.1.201209170703" conf="runtime->default; contrib->sources"/>
 
         <!-- SmtInterpol -->
-        <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.0-r6308qb" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.0-r8402" conf="runtime->runtime; contrib->sources">
+          <artifact name="smtinterpol" e:classifier="comp" conf="runtime"/>
+          <artifact name="smtinterpol" e:classifier="sources" conf="contrib" ext="zip"/>
+        </dependency>
 
         <!-- VerifierCloud -->
-        <dependency org="org.sosy_lab" name="vercip" rev="0.1101" conf="benchmark->runtime"/>
+        <dependency org="org.sosy_lab" name="vercip" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
     </dependencies>
 </ivy-module>

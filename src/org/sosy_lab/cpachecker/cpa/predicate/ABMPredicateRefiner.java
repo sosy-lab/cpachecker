@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.getOnlyElement;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.PrintStream;
@@ -64,14 +65,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -133,7 +134,8 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
                                           logger,
                                           predicateCpa,
                                           predicateCpa.getFormulaManager(),
-                                          predicateCpa.getAbstractionManager());
+                                          predicateCpa.getSolver(),
+                                          predicateCpa.getPredicateManager());
 
     this.refiner = new ExtendedPredicateRefiner(
                                           predicateCpa.getConfiguration(),
@@ -278,10 +280,11 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
 
     private ABMPredicateAbstractionRefinementStrategy(final Configuration config, final LogManager logger,
         final ABMPredicateCPA predicateCpa,
-        final FormulaManagerView pFormulaManager,
-        final AbstractionManager pAbstractionManager) throws CPAException, InvalidConfigurationException {
+        final FormulaManagerView pFormulaManager, final Solver pSolver,
+        final PredicateAbstractionManager pPredAbsMgr)
+            throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pFormulaManager, pAbstractionManager);
+      super(config, logger, pFormulaManager, pPredAbsMgr, pSolver);
 
       RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
       if (relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {
@@ -348,11 +351,13 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
       openBlocks.push(partitioning.getMainBlock());
       for (ARGState pathElement : pPath) {
         CFANode currentNode = AbstractStates.extractLocation(pathElement);
+        Integer currentNodeInstance = getPredicateState(pathElement)
+                                      .getAbstractionLocationsOnPath().get(currentNode);
         if (partitioning.isCallNode(currentNode)) {
           openBlocks.push(partitioning.getBlockForCallNode(currentNode));
         }
 
-        Collection<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode);
+        Collection<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode, currentNodeInstance);
         for (Block block : openBlocks) {
           for (AbstractionPredicate pred : localPreds) {
             relevantPredicatesComputer.considerPredicateAsRelevant(block, pred);

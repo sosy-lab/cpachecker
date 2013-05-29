@@ -36,6 +36,7 @@ import os.path
 import glob
 import json
 import argparse
+import subprocess
 import time
 import tempita
 
@@ -316,23 +317,30 @@ class RunSetResult():
 
     @staticmethod
     def _extractAttributesFromResult(resultFile, resultTag):
-        systemTag = resultTag.find('systeminfo')
-        cpuTag = systemTag.find('cpu')
-        attributes = {
+        attributes = { # Defaults
                 'timelimit': None,
                 'memlimit':  None,
+                'cpuCores':  None,
                 'options':   ' ',
                 'benchmarkname': resultTag.get('benchmarkname'),
                 'name':      resultTag.get('name', resultTag.get('benchmarkname')),
                 'branch':    os.path.basename(resultFile).split('#')[0] if '#' in resultFile else '',
+                }
+        attributes.update(resultTag.attrib) # Update with real values
+
+        # Add system information if present
+        systemTag = resultTag.find('systeminfo')
+        if systemTag is not None:
+            cpuTag = systemTag.find('cpu')
+            attributes.update({
                 'os':        systemTag.find('os').get('name'),
                 'cpu':       cpuTag.get('model'),
                 'cores':     cpuTag.get('cores'),
                 'freq':      cpuTag.get('frequency'),
                 'ram':       systemTag.find('ram').get('size'),
                 'host':      systemTag.get('hostname', 'unknown')
-                }
-        attributes.update(resultTag.attrib)
+                })
+
         return attributes
 
 
@@ -477,7 +485,7 @@ class RunResult:
         def readLogfileLines(logfileName):
             if not logfileName: return []
             try:
-                with open(logfileName) as logfile:
+                with open(logfileName, 'rt') as logfile:
                     return logfile.readlines()
             except IOError as e:
                 print('WARNING: Could not read value from logfile: {}'.format(e))
@@ -494,7 +502,7 @@ class RunResult:
             for line in lines:
                 if identifier in line:
                     startPosition = line.find(':') + 1
-                    endPosition = line.find('(') # bracket maybe not found -> (-1)
+                    endPosition = line.find('(', startPosition) # bracket maybe not found -> (-1)
                     if (endPosition == -1):
                         return line[startPosition:].strip()
                     else:
@@ -626,8 +634,15 @@ def getTableHead(runSetResults, commonFileNamePrefix):
     # It is used for calculating the column spans of the header cells.
     runSetWidths = [len(runSetResult.columns) for runSetResult in runSetResults]
 
-    def getRow(rowName, format, collapse=False):
-        values = [format.format(**runSetResult.attributes) for runSetResult in runSetResults]
+    def getRow(rowName, format, collapse=False, onlyIf=None):
+        def formatCell(attributes):
+            if onlyIf and not onlyIf in attributes:
+                formatStr = 'Unknown'
+            else:
+                formatStr = format
+            return formatStr.format(**attributes)
+
+        values = [formatCell(runSetResult.attributes) for runSetResult in runSetResults]
         if not any(values): return None # skip row without values completely
 
         valuesAndWidths = list(Util.collapseEqualValues(values, runSetWidths)) \
@@ -646,10 +661,10 @@ def getTableHead(runSetResults, commonFileNamePrefix):
                                 content=list(zip(titles, runSetWidths1)))
 
     return {'tool':    getRow('Tool', '{tool} {version}', collapse=True),
-            'limit':   getRow('Limits', 'timelimit: {timelimit}, memlimit: {memlimit}', collapse=True),
-            'host':    getRow('Host', '{host}', collapse=True),
-            'os':      getRow('OS', '{os}', collapse=True),
-            'system':  getRow('System', 'CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}', collapse=True),
+            'limit':   getRow('Limits', 'timelimit: {timelimit}, memlimit: {memlimit}, CPU core limit: {cpuCores}', collapse=True),
+            'host':    getRow('Host', '{host}', collapse=True, onlyIf='host'),
+            'os':      getRow('OS', '{os}', collapse=True, onlyIf='os'),
+            'system':  getRow('System', 'CPU: {cpu} with {cores} cores, frequency: {freq}; RAM: {ram}', collapse=True, onlyIf='cpu'),
             'date':    getRow('Date of execution', '{date}', collapse=True),
             'runset':  getRow('Run set', '{name}' if allBenchmarkNamesEqual else '{benchmarkname}.{name}'),
             'branch':  getRow('Branch', '{branch}'),
@@ -755,8 +770,10 @@ def getCategoryCount(categoryList):
     for category in categoryList:
         counts[category] += 1
 
-    return (counts['correctSafe'], counts['correctUnsafe'],
-            counts['wrongSafe'], counts['wrongUnsafe'])
+    return (counts[result.RESULT_CORRECT_SAFE],
+            counts[result.RESULT_CORRECT_UNSAFE],
+            counts[result.RESULT_WRONG_SAFE],
+            counts[result.RESULT_WRONG_UNSAFE])
 
 
 def getStatsOfNumberColumn(values, categoryList):
@@ -769,14 +786,14 @@ def getStatsOfNumberColumn(values, categoryList):
 
     valuesPerCategory = collections.defaultdict(list)
     for value, category in zip(valueList, categoryList):
-        if category and category.startswith('correct'):
-            category = 'correct'
+        if category and 'correct' in category:
+            category = 'correct_tmp'
         valuesPerCategory[category] += [value]
 
     return (StatValue.fromList(valueList),
-            StatValue.fromList(valuesPerCategory['correct']),
-            StatValue.fromList(valuesPerCategory['wrongSafe']),
-            StatValue.fromList(valuesPerCategory['wrongUnsafe']),
+            StatValue.fromList(valuesPerCategory['correct_tmp']),
+            StatValue.fromList(valuesPerCategory[result.RESULT_WRONG_SAFE]),
+            StatValue.fromList(valuesPerCategory[result.RESULT_WRONG_UNSAFE]),
             )
 
 
@@ -796,7 +813,7 @@ def getCounts(rows): # for options.dumpCounts
     return countsList
 
 
-def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, outputFilePattern, libUrl):
+def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, outputFilePattern, options):
     '''
     create tables and write them to files
     '''
@@ -837,10 +854,17 @@ def createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, out
                         foot=stats,
                         runSets=runSetsData,
                         columns=runSetsColumns,
-                        lib_url=libUrl,
+                        lib_url=options.libUrl,
                         baseDir=outputPath,
                         ))
 
+            if options.showTable and format == 'html':
+                try:
+                    with open(os.devnull, 'w') as devnull:
+                        subprocess.Popen(['xdg-open', outfile],
+                                         stdout=devnull, stderr=devnull)
+                except OSError:
+                    pass
 
     # write normal tables
     writeTable("table", name, rows)
@@ -899,6 +923,10 @@ def main(args=None):
         const=LIB_URL_OFFLINE,
         default=LIB_URL,
         help="Don't insert links to http://www.sosy-lab.org, instead expect JS libs in libs/javascript."
+    )
+    parser.add_argument("--show",
+        action="store_true", dest="showTable",
+        help="Open the produced HTML table(s) in the default browser."
     )
 
     options = parser.parse_args(args[1:])
@@ -971,7 +999,7 @@ def main(args=None):
 
     print ('generating table ...')
     if not os.path.isdir(outputPath): os.makedirs(outputPath)
-    createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, outputFilePattern, options.libUrl)
+    createTables(name, runSetResults, fileNames, rows, rowsDiff, outputPath, outputFilePattern, options)
 
     print ('done')
 

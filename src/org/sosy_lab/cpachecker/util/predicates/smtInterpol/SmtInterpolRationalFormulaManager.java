@@ -37,37 +37,40 @@ import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 
+class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaManager<Term> {
 
-public class SmtInterpolRationalFormulaManager extends AbstractRationalFormulaManager<Term> {
-  private SmtInterpolEnvironment env;
-  private SmtInterpolFormulaCreator creator;
-  private SmtInterpolFunctionType<RationalFormula> multUfDecl;
-  private SmtInterpolFunctionType<RationalFormula> divUfDecl;
-  private SmtInterpolFunctionType<RationalFormula> modUfDecl;
-  private SmtInterpolFunctionFormulaManager functionManager;
+  private final SmtInterpolEnvironment env;
+  private final SmtInterpolFormulaCreator creator;
+  private final SmtInterpolFunctionType<RationalFormula> multUfDecl;
+  private final SmtInterpolFunctionType<RationalFormula> divUfDecl;
+  private final SmtInterpolFunctionType<RationalFormula> modUfDecl;
+  private final SmtInterpolFunctionFormulaManager functionManager;
 
-  public SmtInterpolRationalFormulaManager(
+  private final boolean useIntegers;
+
+  SmtInterpolRationalFormulaManager(
       SmtInterpolFormulaCreator pCreator,
-      SmtInterpolFunctionFormulaManager functionManager) {
-    super(
-        pCreator);
-    this.creator = pCreator;
-    this.env = pCreator.getEnv();
+      SmtInterpolFunctionFormulaManager pFunctionManager,
+      boolean pUseIntegers) {
+    super(pCreator);
+    creator = pCreator;
+    env = pCreator.getEnv();
+    functionManager = pFunctionManager;
+    useIntegers = pUseIntegers;
+
     FormulaType<RationalFormula> formulaType = FormulaType.RationalType;
-    this.functionManager = functionManager;
     multUfDecl = functionManager.createFunction(MultUfName, formulaType, formulaType, formulaType);
     divUfDecl = functionManager.createFunction(DivUfName, formulaType, formulaType, formulaType);
     modUfDecl = functionManager.createFunction(ModUfName, formulaType, formulaType, formulaType);
-
-  }
-
-  public static SmtInterpolRationalFormulaManager create(SmtInterpolFormulaCreator creator, SmtInterpolFunctionFormulaManager functionManager) {
-    return new SmtInterpolRationalFormulaManager(creator, functionManager);
   }
 
   @Override
   protected Term makeNumberImpl(long i) {
-    return env.decimal(Long.toString(i));
+    if (useIntegers) {
+      return env.numeral(Long.toString(i));
+    } else {
+      return env.decimal(Long.toString(i));
+    }
   }
 
   @Override

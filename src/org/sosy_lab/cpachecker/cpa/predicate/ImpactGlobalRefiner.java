@@ -25,8 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.Collections.unmodifiableList;
-import static org.sosy_lab.cpachecker.cpa.predicate.ImpactUtils.*;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.div;
 
 import java.io.PrintStream;
@@ -56,12 +55,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -83,10 +79,10 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
 
   private final LogManager logger;
 
-  private FormulaManagerView fmgr;
-  private Solver solver;
-  private FormulaManagerFactory factory;
-  private ARGCPA argCpa;
+  private final FormulaManagerView fmgr;
+  private final FormulaManagerFactory factory;
+  private final ARGCPA argCpa;
+  private final ImpactUtility impact;
 
   // statistics
   private int refinementCalls = 0;
@@ -99,7 +95,6 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
   private final Timer totalTime = new Timer();
   private final Timer satCheckTime = new Timer();
   private final Timer getInterpolantTime = new Timer();
-  private final Timer interpolantCheckTime  = new Timer();
   private final Timer coverTime = new Timer();
   private final Timer argUpdate = new Timer();
 
@@ -115,7 +110,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
       out.println("Total time for predicate refinement:  " + totalTime);
       out.println("  Refinement sat check:               " + satCheckTime);
       out.println("  Interpolant computation:            " + getInterpolantTime);
-      out.println("  Checking whether itp is new:        " + interpolantCheckTime);
+      out.println("  Checking whether itp is new:        " + impact.itpCheckTime);
       out.println("  Coverage checks:                    " + coverTime);
       out.println("  ARG update:                         " + argUpdate);
     }
@@ -129,28 +124,31 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
       throw new InvalidConfigurationException(ImpactRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    Region initialRegion = predicateCpa.getInitialState(null).getAbstractionFormula().asRegion();
-    if (!(initialRegion instanceof SymbolicRegionManager.SymbolicRegion)) {
-      throw new InvalidConfigurationException(ImpactGlobalRefiner.class.getSimpleName() + " works only with a PredicateCPA configured to store abstractions as formulas (cpa.predicate.abstraction.type=FORMULA)");
-    }
-
     return new ImpactGlobalRefiner(predicateCpa.getConfiguration(),
                                     predicateCpa.getLogger(),
                                     (ARGCPA)pCpa,
                                     predicateCpa.getFormulaManager(),
-                                    predicateCpa.getSolver(),
-                                    predicateCpa.getFormulaManagerFactory());
+                                    predicateCpa.getFormulaManagerFactory(),
+                                    predicateCpa.getPredicateManager());
   }
 
   private ImpactGlobalRefiner(Configuration config, LogManager pLogger,
-      ARGCPA pArgCpa, FormulaManagerView pFmgr, Solver pSolver,
-      FormulaManagerFactory pFactory) {
+      ARGCPA pArgCpa, FormulaManagerView pFmgr,
+      FormulaManagerFactory pFactory, PredicateAbstractionManager pPredAbsMgr)
+          throws InvalidConfigurationException {
 
     logger = pLogger;
     argCpa = pArgCpa;
     fmgr = pFmgr;
-    solver = pSolver;
     factory = pFactory;
+    impact = new ImpactUtility(config, pFmgr, pPredAbsMgr);
+
+    if (impact.requiresPreviousBlockAbstraction()) {
+      // With global refinements, we go backwards through the trace,
+      // and thus can't supply the abstraction of the previous block.
+      throw new InvalidConfigurationException("Computing block abstractions" +
+          "during refinement is not supported when using global refinements.");
+    }
   }
 
   @Override
@@ -212,7 +210,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
       ARGState currentState = currentAbstractionState;
       do {
         currentState = currentState.getParents().iterator().next();
-      } while (!extractStateByType(currentState, PredicateAbstractState.class).isAbstractionState());
+      } while (!getPredicateState(currentState).isAbstractionState());
 
       if (!currentState.getParents().isEmpty()
           && !predecessors.containsKey(currentState)) {
@@ -282,7 +280,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
       assert succ.getChildren().isEmpty() == targets.contains(succ);
       assert succ.mayCover();
 
-      BooleanFormula blockFormula = extractStateByType(succ, PredicateAbstractState.class).getAbstractionFormula().getBlockFormula().getFormula();
+      BooleanFormula blockFormula = getPredicateState(succ).getAbstractionFormula().getBlockFormula().getFormula();
       itpStack.add(itpProver.push(blockFormula));
       try {
         satCheckTime.start();
@@ -393,7 +391,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    * For each interpolant, we strengthen the corresponding state by
    * conjunctively adding the interpolant to its state formula.
    *
-   * @param interpolant The interpolant.
+   * @param interpolant The interpolant (with SSA indices).
    * @param state The state.
    * @return True if no refinement was necessary (this implies that refinement
    *          on all of the state's parents is also not necessary)
@@ -401,23 +399,15 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
   private boolean performRefinementForState(BooleanFormula interpolant,
       ARGState state) {
 
-    interpolant = fmgr.uninstantiate(interpolant);
+    // Passing null as lastAbstraction is ok because
+    // we check for impact.requirePreviousBlockAbstraction() in the constructor.
+    boolean stateChanged = impact.strengthenStateWithInterpolant(
+                                                    interpolant, state, null);
 
-    BooleanFormula stateFormula = getStateFormula(state);
-
-    interpolantCheckTime.start();
-    boolean isNewItp = !solver.implies(stateFormula, interpolant);
-    interpolantCheckTime.stop();
-
-    if (isNewItp) {
-      addFormulaToState(interpolant, state, fmgr);
-      return false;
-    } else {
-      // If the currentItp is implied by the stateFormula,
-      // then we don't need any of the interpolants between the ARG root
-      // and this state.
-      return true;
-    }
+    // If the interpolant is implied by the current state formula,
+    // then we don't need any of the interpolants between the ARG root
+    // and this state.
+    return !stateChanged;
   }
 
   /**

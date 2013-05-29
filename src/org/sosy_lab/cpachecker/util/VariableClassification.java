@@ -422,11 +422,10 @@ public class VariableClassification {
       // this is the 'x' from 'return (x);
       // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
       CReturnStatementEdge returnStatement = (CReturnStatementEdge) edge;
-      CRightHandSide rhs = returnStatement.getExpression();
-      if (rhs instanceof CExpression) {
+      CExpression rhs = returnStatement.getExpression();
+      if (rhs != null) {
         String function = edge.getPredecessor().getFunctionName();
-        handleExpression(edge, ((CExpression) rhs), FUNCTION_RETURN_VARIABLE,
-            function);
+        handleExpression(edge, rhs, FUNCTION_RETURN_VARIABLE, function);
       }
       break;
     }
@@ -843,9 +842,9 @@ public class VariableClassification {
     }
 
     @Override
-    public Multimap<String, String> visit(CPointerExpression exp) {
+    public Multimap<String, String> visit(CPointerExpression exp) throws RuntimeException {
       BigInteger val = getNumber(exp);
-      if(val == null) {
+      if (val == null) {
         return exp.getOperand().accept(this);
       } else {
         values.add(val);
@@ -922,6 +921,18 @@ public class VariableClassification {
         // boolean operation, return inner vars
         return inner;
       } else { // PLUS, MINUS, etc --> not boolean
+        nonBooleanVars.putAll(inner);
+        return null;
+      }
+    }
+
+    @Override
+    public Multimap<String, String> visit(CPointerExpression exp) {
+      Multimap<String, String> inner = exp.getOperand().accept(this);
+
+      if (inner == null) {
+        return null;
+      } else {
         nonBooleanVars.putAll(inner);
         return null;
       }
@@ -1033,6 +1044,24 @@ public class VariableClassification {
         return null;
       }
     }
+
+    @Override
+    public Multimap<String, String> visit(CPointerExpression exp) {
+
+      // if exp is numeral
+      BigInteger val = getNumber(exp);
+      if (val != null) { return HashMultimap.create(0, 0); }
+
+      // if exp is binary expression
+      Multimap<String, String> inner = exp.getOperand().accept(this);
+      if (isNestedBinaryExp(exp)) { return inner; }
+
+      // if exp is unknown
+      if (inner == null) { return null; }
+
+      nonIntEqualVars.putAll(inner);
+      return null;
+    }
   }
 
 
@@ -1116,6 +1145,15 @@ public class VariableClassification {
         nonIntAddVars.putAll(inner);
         return null;
       }
+    }
+
+    @Override
+    public Multimap<String, String> visit(CPointerExpression exp) {
+      Multimap<String, String> inner = exp.getOperand().accept(this);
+      if (inner == null) { return null; }
+
+      nonIntAddVars.putAll(inner);
+      return null;
     }
   }
 

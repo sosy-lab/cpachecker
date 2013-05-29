@@ -51,7 +51,7 @@ public class ExplicitReducer implements Reducer {
     ExplicitState clonedElement = expandedState.clone();
     for (String trackedVar : expandedState.getTrackedVariableNames()) {
       if (!occursInBlock(pContext, trackedVar)) {
-        clonedElement.deleteValue(trackedVar);
+        clonedElement.forget(trackedVar);
       }
     }
 
@@ -66,7 +66,7 @@ public class ExplicitReducer implements Reducer {
 
     ExplicitState diffElement = rootState.clone();
     for (String trackedVar : reducedState.getTrackedVariableNames()) {
-      diffElement.deleteValue(trackedVar);
+      diffElement.forget(trackedVar);
     }
     //TODO: following is needed with threshold != inf
   /*  for (String trackedVar : diffElement.getTrackedVariableNames()) {

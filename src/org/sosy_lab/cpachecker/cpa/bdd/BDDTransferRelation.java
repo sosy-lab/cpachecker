@@ -622,8 +622,8 @@ public class BDDTransferRelation implements TransferRelation {
    * evaluated right side ("x") is added to the new state. */
   private BDDState handleReturnStatementEdge(BDDState state, CReturnStatementEdge cfaEdge,
       BDDPrecision precision) {
-    CRightHandSide rhs = cfaEdge.getExpression();
-    if (rhs instanceof CExpression) {
+    CExpression rhs = cfaEdge.getExpression();
+    if (rhs != null) {
 
       Region newRegion = state.getRegion();
       Partition partition = varClass.getPartitionForEdge(cfaEdge);
@@ -635,7 +635,7 @@ public class BDDTransferRelation implements TransferRelation {
       final Region[] retvar = createPredicates(functionName, FUNCTION_RETURN_VARIABLE, size, precision);
 
       // make region for RIGHT SIDE, this is the 'x' from 'return (x);
-      final Region[] regRHS = evaluateVectorExpression(functionName, precision, partition, (CExpression) rhs, size);
+      final Region[] regRHS = evaluateVectorExpression(functionName, precision, partition, rhs, size);
       newRegion = addEquality(retvar, regRHS, newRegion);
 
       return new BDDState(rmgr, newRegion);
@@ -1015,8 +1015,8 @@ public class BDDTransferRelation implements TransferRelation {
     }
 
     @Override
-    public Region[] visit(CPointerExpression exp) {
-      //TODO check if this is right, handling for pointerexpression taken from cunaryexpression handling above
+    public Region[] visit(CPointerExpression pIastPointerExpression) throws RuntimeException {
+      // *exp --> don't know anything
       return null;
     }
   }

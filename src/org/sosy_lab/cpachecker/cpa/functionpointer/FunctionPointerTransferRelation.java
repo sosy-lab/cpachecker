@@ -38,15 +38,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -59,10 +56,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -72,8 +69,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -105,21 +100,12 @@ class FunctionPointerTransferRelation implements TransferRelation {
   private boolean trackInvalidFunctionPointers = false;
   private final FunctionPointerTarget invalidFunctionPointerTarget;
 
-  private final TransferRelation wrappedTransfer;
-  private final CFA functions;
   private final LogManager logger;
 
   private final Set<List<String>> loggedMessages = new HashSet<>();
 
-  @Option(name="immutableCFA",
-      description="do not change CFA, just check equality expressions with function pointers in assume edges")
-  @Deprecated
-  private boolean immutableCFA = true;
-
-  FunctionPointerTransferRelation(TransferRelation pWrappedTransfer, CFA pCfa, LogManager pLogger, Configuration config) throws InvalidConfigurationException {
+  FunctionPointerTransferRelation(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-    wrappedTransfer = pWrappedTransfer;
-    functions = pCfa;
     logger = pLogger;
 
     invalidFunctionPointerTarget = trackInvalidFunctionPointers
@@ -149,10 +135,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
       for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
         CFAEdge edge = node.getLeavingEdge(edgeIdx);
-        if (!(edge instanceof FunctionPointerCallEdge)) {
-          // ignore FunctionPointerCallEdges, they are from previous passes
-          getAbstractSuccessorForEdge(oldState, pPrecision, edge, results);
-        }
+        getAbstractSuccessorForEdge(oldState, pPrecision, edge, results);
       }
 
     } else {
@@ -166,51 +149,38 @@ class FunctionPointerTransferRelation implements TransferRelation {
   private void getAbstractSuccessorForEdge(
       FunctionPointerState oldState, Precision pPrecision, CFAEdge pCfaEdge, Collection<FunctionPointerState> results)
       throws CPATransferException, InterruptedException {
-    CFAEdge cfaEdge;
 
-    if (!immutableCFA) {
-      cfaEdge = createCallEdgeIfNecessary(oldState, pCfaEdge);
-    } else {
-      cfaEdge = pCfaEdge;
-      //check assumptions about function pointers, like p == &h, where p is a function pointer, h  is a function
-      if (!shouldGoByEdge(oldState, cfaEdge)) {
-        //should not go by the edge
-        return;//results is a empty set
-      }
+    //check assumptions about function pointers, like p == &h, where p is a function pointer, h  is a function
+    if (!shouldGoByEdge(oldState, pCfaEdge)) {
+      //should not go by the edge
+      return;//results is a empty set
+    }
 
-      // print warning if we go by the default edge of a function pointer call
-      // (i.e., the edge for the case where we don't have information about the target).
-      String functionCallVariable = getFunctionPointerCall(pCfaEdge);
-      if (functionCallVariable != null) {
-        FunctionPointerTarget target = oldState.getTarget(functionCallVariable);
-        if (target instanceof NamedFunctionTarget) {
-          String functionName = ((NamedFunctionTarget)target).getFunctionName();
-          log(Level.WARNING, "Function pointer", functionCallVariable,
-              "points to", functionName + ",",
-              "but no corresponding call edge was created during preprocessing.",
-              "Ignoring function pointer call in line", pCfaEdge.getLineNumber() +":",
-              pCfaEdge.getDescription());
-        } else {
-          log(Level.WARNING, "Ignoring call via function pointer", functionCallVariable,
-              "for which no suitable target was found in line", pCfaEdge.getLineNumber() +":",
-              pCfaEdge.getDescription());
-        }
+    // print warning if we go by the default edge of a function pointer call
+    // (i.e., the edge for the case where we don't have information about the target).
+    String functionCallVariable = getFunctionPointerCall(pCfaEdge);
+    if (functionCallVariable != null) {
+      FunctionPointerTarget target = oldState.getTarget(functionCallVariable);
+      if (target instanceof NamedFunctionTarget) {
+        String functionName = ((NamedFunctionTarget)target).getFunctionName();
+        log(Level.WARNING, "Function pointer", functionCallVariable,
+            "points to", functionName + ",",
+            "but no corresponding call edge was created during preprocessing.",
+            "Ignoring function pointer call in line", pCfaEdge.getLineNumber() +":",
+            pCfaEdge.getDescription());
+      } else {
+        log(Level.WARNING, "Ignoring call via function pointer", functionCallVariable,
+            "for which no suitable target was found in line", pCfaEdge.getLineNumber() +":",
+            pCfaEdge.getDescription());
       }
     }
-    // now handle the edge, whether it is real or not
-    Collection<? extends AbstractState> newWrappedStates = wrappedTransfer.getAbstractSuccessors(oldState.getWrappedState(), pPrecision, cfaEdge);
 
-    for (AbstractState newWrappedState : newWrappedStates) {
-      FunctionPointerState.Builder newState = oldState.createBuilderWithNewWrappedState(newWrappedState);
+    // now handle the edge
+    FunctionPointerState.Builder newState = oldState.createBuilder();
+    newState = handleEdge(newState, pCfaEdge);
 
-      newState = handleEdge(newState, cfaEdge);
-
-      if (newState != null) {
-        results.add(newState.build());
-      }
-    }
-    if (!immutableCFA) {
-      cleanUpEdge(pCfaEdge);
+    if (newState != null) {
+      results.add(newState.build());
     }
   }
 
@@ -223,7 +193,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
         CBinaryExpression e = (CBinaryExpression)exp;
         BinaryOperator op = e.getOperator();
         if (op == BinaryOperator.EQUALS) {
-          FunctionPointerState.Builder newState = oldState.createBuilderWithNewWrappedState(oldState.getWrappedState());
+          FunctionPointerState.Builder newState = oldState.createBuilder();
           FunctionPointerTarget v1 = getValue(e.getOperand1(), newState, functionName);
           FunctionPointerTarget v2 = getValue(e.getOperand2(), newState, functionName);
           logger.log(Level.ALL, "Operand1 value is " + v1);
@@ -244,110 +214,6 @@ class FunctionPointerTransferRelation implements TransferRelation {
       }
     }
     return true;
-  }
-
-  private void cleanUpEdge(CFAEdge pCfaEdge) {
-    if (pCfaEdge instanceof FunctionPointerReturnEdge) {
-      // We are returning from a function that was called via a function pointer
-      // Remove all fake edges we have created.
-
-      FunctionPointerReturnEdge returnEdge = (FunctionPointerReturnEdge)pCfaEdge;
-
-      // The call edge and the return edge are never removed from the CFA,
-      // because we might need them for refinement.
-      // CallstackCPA should force taking the right return edge.
-
-      CFACreationUtils.removeSummaryEdgeFromNodes(returnEdge.getSummaryEdge());
-    }
-  }
-
-  private CFAEdge createCallEdgeIfNecessary(FunctionPointerState oldState,
-      CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
-    CFAEdge cfaEdge;
-
-    // first, check if this is a function pointer call
-    String functionCallVariable = getFunctionPointerCall(pCfaEdge);
-    if (functionCallVariable != null) {
-      // this is indeed a function call via a function pointer
-
-      FunctionPointerTarget target = oldState.getTarget(functionCallVariable);
-      if (target instanceof NamedFunctionTarget) {
-        String functionName = ((NamedFunctionTarget)target).getFunctionName();
-        FunctionEntryNode fDefNode = functions.getFunctionHead(functionName);
-        if (fDefNode != null) {
-          logger.log(Level.FINEST, "Function pointer", functionCallVariable, "points to", target, "while it is used.");
-
-          CStatementEdge edge = (CStatementEdge)pCfaEdge;
-          CFunctionCall functionCall = (CFunctionCall)edge.getStatement();
-
-          // check parameters
-          int numberOfFormalParameters = fDefNode.getFunctionParameters().size();
-          int numberOfActualParameters = functionCall.getFunctionCallExpression().getParameterExpressions().size();
-          boolean varargs = fDefNode.getFunctionDefinition().getType().takesVarArgs();
-          if ((numberOfActualParameters < numberOfFormalParameters)
-              || (!varargs && (numberOfActualParameters > numberOfFormalParameters))) {
-            throw new UnrecognizedCCodeException(
-                String.format("Function pointer \"%s\" points to function \"%s\" which takes %d parameter(s) but is called with %d parameter(s)",
-                              functionCallVariable, functionName, numberOfFormalParameters, numberOfActualParameters),
-                edge);
-          }
-
-
-          CFANode predecessorNode = edge.getPredecessor();
-          CFANode successorNode = edge.getSuccessor();
-          int lineNumber = edge.getLineNumber();
-
-          FunctionExitNode fExitNode = fDefNode.getExitNode();
-
-          // Create new edges.
-          CFunctionSummaryEdge calltoReturnEdge = new CFunctionSummaryEdge(edge.getRawStatement(),
-              lineNumber, predecessorNode, successorNode, functionCall);
-
-          FunctionPointerCallEdge callEdge = new FunctionPointerCallEdge(edge.getRawStatement(), lineNumber, predecessorNode, (CFunctionEntryNode)fDefNode, functionCall, calltoReturnEdge);
-          predecessorNode.addLeavingEdge(callEdge);
-          fDefNode.addEnteringEdge(callEdge);
-
-          if (fExitNode.getNumEnteringEdges() > 0) {
-            FunctionPointerReturnEdge returnEdge = new FunctionPointerReturnEdge(lineNumber, fExitNode, successorNode, callEdge, calltoReturnEdge);
-            fExitNode.addLeavingEdge(returnEdge);
-            successorNode.addEnteringEdge(returnEdge);
-
-          } else {
-            // exit node of called functions is not reachable, i.e. this function never returns
-            // no need to add return edges
-          }
-
-          // now substitute the real edge with the fake edge
-          cfaEdge = callEdge;
-        } else {
-          log(Level.WARNING, "Ignoring function pointer call to external function", functionName);
-          cfaEdge = pCfaEdge;
-        }
-
-      } else if (target instanceof UnknownTarget) {
-        // we known nothing, so just keep the old edge
-        cfaEdge = pCfaEdge;
-
-      } else if (target instanceof InvalidTarget) {
-        throw new UnrecognizedCCodeException("function pointer points to invalid memory address", pCfaEdge);
-      } else {
-        throw new AssertionError();
-      }
-
-    } else {
-      // use the real edge
-      cfaEdge = pCfaEdge;
-    }
-
-    // Some CPAs rely on the call-to-return edge when processing the return edge.
-    // We add it here to the CFA and remove it before returning from this function.
-    if (cfaEdge instanceof FunctionPointerReturnEdge) {
-      CFunctionSummaryEdge calltoReturnEdge = ((FunctionPointerReturnEdge) cfaEdge).getSummaryEdge();
-      calltoReturnEdge.getPredecessor().addLeavingSummaryEdge(calltoReturnEdge);
-      calltoReturnEdge.getSuccessor().addEnteringSummaryEdge(calltoReturnEdge);
-    }
-
-    return cfaEdge;
   }
 
   private String getFunctionPointerCall(CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
@@ -472,14 +338,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     String functionName = declEdge.getPredecessor().getFunctionName();
 
     // get name of declaration
-    String name = decl.getName();
-    if (name == null) {
-      // not a variable declaration
-      return;
-    }
-    if (!decl.isGlobal()) {
-      name = scoped(name, functionName);
-    }
+    String name = decl.getQualifiedName();
 
     // get initial value
     FunctionPointerTarget initialValue = invalidFunctionPointerTarget;
@@ -524,20 +383,19 @@ class FunctionPointerTransferRelation implements TransferRelation {
   private void handleFunctionCall(FunctionPointerState.Builder pNewState, CFunctionCallEdge callEdge) throws UnrecognizedCCodeException {
 
     CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
-    String calledFunctionName = functionEntryNode.getFunctionName();
     String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
-    List<String> paramNames = functionEntryNode.getFunctionParameterNames();
+    List<CParameterDeclaration> formalParams = functionEntryNode.getFunctionParameters();
     List<CExpression> arguments = callEdge.getArguments();
 
     if (functionEntryNode.getFunctionDefinition().getType().takesVarArgs()) {
-      if (paramNames.size() > arguments.size()) {
+      if (formalParams.size() > arguments.size()) {
         throw new UnrecognizedCCodeException("Number of parameters on function call does " +
             "not match function definition", callEdge);
       }
 
     } else {
-      if (paramNames.size() != arguments.size()) {
+      if (formalParams.size() != arguments.size()) {
         throw new UnrecognizedCCodeException("Number of parameters on function call does " +
             "not match function definition", callEdge);
       }
@@ -546,8 +404,8 @@ class FunctionPointerTransferRelation implements TransferRelation {
     // used to get value in caller context
     ExpressionValueVisitor v = new ExpressionValueVisitor(pNewState, callerFunctionName, invalidFunctionPointerTarget);
 
-    for (int i=0; i < paramNames.size(); i++) {
-      String paramName = scoped(paramNames.get(i), calledFunctionName);
+    for (int i=0; i < formalParams.size(); i++) {
+      String paramName = formalParams.get(i).getQualifiedName();
       CExpression actualArgument = arguments.get(i);
 
       FunctionPointerTarget target = actualArgument.accept(v);
@@ -648,6 +506,14 @@ class FunctionPointerTransferRelation implements TransferRelation {
       return visitDefault(pE);
     }
 
+    @Override
+    public FunctionPointerTarget visit(CPointerExpression pE) throws UnrecognizedCCodeException {
+      if (pE.getOperand() instanceof CIdExpression) {
+        return extractFunctionId((CIdExpression)pE.getOperand());
+      }
+      return visitDefault(pE);
+    }
+
     private FunctionPointerTarget extractFunctionId(CIdExpression operand) {
       if ( (operand.getDeclaration()!=null && operand.getDeclaration().getType() instanceof CFunctionType)
         || (operand.getExpressionType() instanceof CFunctionType)) {
@@ -705,36 +571,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
     public FunctionPointerTarget visit(CStringLiteralExpression pE) {
       return targetForInvalidPointers;
     }
-
-    @Override
-    public FunctionPointerTarget visit(CPointerExpression pE) throws UnrecognizedCCodeException {
-      if (pE.getOperand() instanceof CIdExpression) {
-        return extractFunctionId((CIdExpression)pE.getOperand());
-      }
-      return visitDefault(pE);
-    }
   }
 
   // looks up the variable in the current namespace
   private static String scopedIfNecessary(CIdExpression var, String function) {
-    CSimpleDeclaration decl = var.getDeclaration();
-    boolean isGlobal = false;
-    if (decl instanceof CDeclaration) {
-      isGlobal = ((CDeclaration)decl).isGlobal();
-    }
-
-    if (isGlobal) {
-      return var.getName();
-    } else {
-      return scoped(var.getName(), function);
-    }
+    return var.getDeclaration().getQualifiedName();
   }
 
-  // prefixes function to variable name
-  // Call only if you are sure you have a local variable!
-  private static String scoped(String var, String function) {
-    return function + "::" + var;
-  }
 
   @Override
   public Collection<? extends AbstractState> strengthen(

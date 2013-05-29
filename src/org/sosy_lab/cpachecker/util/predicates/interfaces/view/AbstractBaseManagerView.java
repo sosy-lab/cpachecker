@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 
 
-public class AbstractBaseManagerView {
+class AbstractBaseManagerView {
 
   private FormulaManagerView baseManager = null;
 

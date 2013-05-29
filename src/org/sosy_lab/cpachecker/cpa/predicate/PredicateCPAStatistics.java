@@ -25,7 +25,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Objects.firstNonNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.StatisticsUtils.*;
 
 import java.io.IOException;
@@ -60,14 +61,16 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
@@ -86,11 +89,16 @@ class PredicateCPAStatistics implements Statistics {
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path predmapFile = Paths.get("predmap.txt");
 
+    @Option(description="file for exporting final predicate map",
+        name="predmap.includeSwept")
+    private boolean exportWithSwept = true;
+
     @Option(description="export final loop invariants",
             name="invariants.export")
     private boolean exportInvariants = true;
 
-    @Option(description="export invariants as precision file?")
+    @Option(description="export invariants as precision file?",
+            name="invariants.exportAsPrecision")
     private boolean exportInvariantsAsPrecision = true;
 
     @Option(description="file for exporting final loop invariants",
@@ -98,21 +106,28 @@ class PredicateCPAStatistics implements Statistics {
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path invariantsFile = Paths.get("invariants.txt");
 
-    @Option(description="file for precision that consits of invariants.")
+    @Option(description="file for precision that consists of invariants.",
+            name="invariants.precisionFile")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path invariantPrecisionsFile = Paths.get("invariantPrecs.txt");
 
     private final PredicateCPA cpa;
     private final BlockOperator blk;
     private final RegionManager rmgr;
+    private final AbstractionManager absmgr;
     private final CFA cfa;
+    private final PredicatePrecisionSweeper sweeper;
 
     public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
-        RegionManager pRmgr, CFA pCfa) throws InvalidConfigurationException {
+        RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
+        PredicatePrecisionSweeper pSweeper)
+            throws InvalidConfigurationException {
       cpa = pCpa;
       blk = pBlk;
       rmgr = pRmgr;
+      absmgr = pAbsmgr;
       cfa = pCfa;
+      sweeper = pSweeper;
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
     }
 
@@ -121,54 +136,132 @@ class PredicateCPAStatistics implements Statistics {
       return "PredicateCPA";
     }
 
+    /**
+     * TreeMap to sort output for the user and sets for no duplication.
+     */
+    private static class MutablePredicateSets {
+
+      private static Supplier<Set<AbstractionPredicate>> hashSetSupplier = new Supplier<Set<AbstractionPredicate>>() {
+          @Override
+          public Set<AbstractionPredicate> get() {
+            return Sets.newHashSet();
+          }
+        };
+
+      private final SetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstance;
+      private final SetMultimap<CFANode, AbstractionPredicate> location;
+      private final SetMultimap<String, AbstractionPredicate> function;
+      private final Set<AbstractionPredicate> global;
+
+      private MutablePredicateSets() {
+        // Use special multimaps with set-semantics and an ordering only on keys (not on values)
+        this.locationInstance = Multimaps.newSetMultimap(
+            new TreeMap<Pair<CFANode, Integer>, Collection<AbstractionPredicate>>(
+                Pair.<CFANode, Integer>lexicographicalNaturalComparator()),
+            hashSetSupplier);
+
+        this.location = Multimaps.newSetMultimap(new TreeMap<CFANode, Collection<AbstractionPredicate>>(), hashSetSupplier);
+        this.function = Multimaps.newSetMultimap(new TreeMap<String, Collection<AbstractionPredicate>>(), hashSetSupplier);
+        this.global = Sets.newHashSet();
+      }
+
+      private static MutablePredicateSets copyOf(MutablePredicateSets preds) {
+        MutablePredicateSets result = new MutablePredicateSets();
+
+        result.location.putAll(preds.location);
+        result.global.addAll(preds.global);
+        result.function.putAll(preds.function);
+
+        return result;
+      }
+
+    }
+
+    private void exportPredmapToFile(Path targetFile, MutablePredicateSets predicates) {
+      Preconditions.checkNotNull(targetFile);
+      Preconditions.checkNotNull(predicates);
+
+      Set<AbstractionPredicate> allPredicates = Sets.newHashSet(predicates.global);
+      allPredicates.addAll(predicates.function.values());
+      allPredicates.addAll(predicates.location.values());
+      allPredicates.addAll(predicates.location.values());
+
+      try (Writer w = Files.openOutputFile(targetFile)) {
+        PredicateMapWriter writer = new PredicateMapWriter(cpa);
+        writer.writePredicateMap(predicates.locationInstance,
+            predicates.location, predicates.function, predicates.global,
+            allPredicates, w);
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write predicate map to file");
+      }
+    }
+
+    private void exportPredmapIncludingSweptToFile(Path targetFile, MutablePredicateSets predicates, PredicatePrecisionSweeper sweeper) {
+      Preconditions.checkNotNull(targetFile);
+      Preconditions.checkNotNull(predicates);
+      Preconditions.checkNotNull(sweeper);
+
+      MutablePredicateSets merged = MutablePredicateSets.copyOf(predicates);
+
+      // Merge sweeped global predicates...
+      for (AbstractionPredicate p : sweeper.getSweepedGlobalPredicates()) {
+        merged.global.add(p);
+      }
+
+      // Merge sweeped location predicates...
+      ImmutableMultimap<CFANode, AbstractionPredicate> sweptOnLoc = sweeper.getSweepedLocationPredicates();
+      for (CFANode l: sweptOnLoc.keySet()) {
+        for (AbstractionPredicate p: sweptOnLoc.get(l)) {
+          merged.location.put(l, p);
+        }
+      }
+
+      // Merge sweeped function predicates...
+      ImmutableMultimap<String, AbstractionPredicate> sweptOnFunc = sweeper.getSweepedFunctionPredicates();
+      for (String f: sweptOnFunc.keySet()) {
+        for (AbstractionPredicate p: sweptOnFunc.get(f)) {
+          merged.function.put(f, p);
+        }
+      }
+
+      exportPredmapToFile(targetFile, merged);
+    }
+
+
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
       PredicateAbstractionManager amgr = cpa.getPredicateManager();
 
-      Supplier<Set<AbstractionPredicate>> hashSetSupplier = new Supplier<Set<AbstractionPredicate>>() {
-        @Override
-        public Set<AbstractionPredicate> get() {
-          return Sets.newHashSet();
-        }
-      };
-
-      SetMultimap<CFANode, AbstractionPredicate> localPredicates = Multimaps.newSetMultimap(new TreeMap<CFANode, Collection<AbstractionPredicate>>(), hashSetSupplier);
-      SetMultimap<String, AbstractionPredicate> functionPredicates = Multimaps.newSetMultimap(new TreeMap<String, Collection<AbstractionPredicate>>(), hashSetSupplier);
-      Set<AbstractionPredicate> globalPredicates = Sets.newHashSet();
+      MutablePredicateSets predicates = new MutablePredicateSets();
 
       for (Precision precision : reached.getPrecisions()) {
         if (precision instanceof WrapperPrecision) {
           PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
-          localPredicates.putAll(preds.getLocalPredicates());
-          functionPredicates.putAll(preds.getFunctionPredicates());
-          globalPredicates.addAll(preds.getGlobalPredicates());
+          predicates.locationInstance.putAll(preds.getLocationInstancePredicates());
+          predicates.location.putAll(preds.getLocalPredicates());
+          predicates.function.putAll(preds.getFunctionPredicates());
+          predicates.global.addAll(preds.getGlobalPredicates());
         }
       }
 
       // check if/where to dump the predicate map
       if (exportPredmap && predmapFile != null) {
-        Set<AbstractionPredicate> allPredicates = Sets.newHashSet(globalPredicates);
-        allPredicates.addAll(localPredicates.values());
-        allPredicates.addAll(functionPredicates.values());
-
-        try (Writer w = Files.openOutputFile(predmapFile)) {
-          PredicateMapWriter writer = new PredicateMapWriter(cpa);
-          writer.writePredicateMap(localPredicates, functionPredicates, globalPredicates, allPredicates, w);
-        } catch (IOException e) {
-          cpa.getLogger().logUserException(Level.WARNING, e, "Could not write predicate map to file");
+        if (exportWithSwept) {
+          exportPredmapIncludingSweptToFile(predmapFile, predicates, sweeper);
+        } else {
+          exportPredmapToFile(predmapFile, predicates);
         }
       }
 
       int maxPredsPerLocation = 0;
-      for (Collection<AbstractionPredicate> p : localPredicates.asMap().values()) {
+      for (Collection<AbstractionPredicate> p : predicates.location.asMap().values()) {
         maxPredsPerLocation = Math.max(maxPredsPerLocation, p.size());
       }
 
-      int allLocs = localPredicates.keySet().size();
-      int totPredsUsed = localPredicates.size();
+      int allLocs = predicates.location.keySet().size();
+      int totPredsUsed = predicates.location.size();
       int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
 
-      AbstractionManager absmgr = cpa.getAbstractionManager();
       int allDistinctPreds = absmgr.getNumberOfPredicates();
 
       if (result == Result.SAFE && exportInvariants && invariantsFile != null) {
@@ -212,9 +305,9 @@ class PredicateCPAStatistics implements Statistics {
       if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
         out.println("  Symbolic coverage check:         " + domain.symbolicCoverageCheckTimer.getNumberOfIntervals());
       }
-      out.println("Number of implication checks:      " + solver.implicationChecks);
-      out.println("  trivial:                         " + solver.trivialImplicationChecks);
-      out.println("  cached:                          " + solver.cachedImplicationChecks);
+      out.println("Number of SMT sat checks:          " + solver.satChecks);
+      out.println("  trivial:                         " + solver.trivialSatChecks);
+      out.println("  cached:                          " + solver.cachedSatChecks);
       out.println();
       out.println("Max ABE block size:                       " + prec.maxBlockSize);
       out.println("Number of predicates discovered:          " + allDistinctPreds);
@@ -227,9 +320,10 @@ class PredicateCPAStatistics implements Statistics {
       if (numAbstractions > 0) {
         out.println("Max number of predicates per abstraction: " + prec.maxPredsPerAbstraction);
         out.println("Avg number of predicates per abstraction: " + div(prec.totalPredsPerAbstraction, prec.numAbstractions));
+        out.println("Number of irrelevant predicates:          " + as.numIrrelevantPredicates + " (Avg: " + div(as.numIrrelevantPredicates, prec.numAbstractions) + ")");
         out.println("Total number of models for allsat:        " + as.allSatCount);
         out.println("Max number of models for allsat:          " + as.maxAllSatCount);
-        out.println("Avg number of models for allsat:          " + div(as.allSatCount, as.numCallsAbstraction));
+        out.println("Avg number of models for allsat:          " + div(as.allSatCount, numAbstractions));
       }
       out.println();
       if (pfMgr != null) {
@@ -291,15 +385,17 @@ class PredicateCPAStatistics implements Statistics {
       for (AbstractState state : reached) {
         CFANode loc = extractLocation(state);
         if (loc.isLoopStart()) {
-          PredicateAbstractState predicateState = extractStateByType(state, PredicateAbstractState.class);
-          assert predicateState.isAbstractionState();
+          PredicateAbstractState predicateState = getPredicateState(state);
+          if (!predicateState.isAbstractionState()) {
+            cpa.getLogger().log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
+            return;
+          }
           Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
           region = rmgr.makeOr(region, predicateState.getAbstractionFormula().asRegion());
           regions.put(loc, region);
         }
       }
 
-      AbstractionManager absmgr = cpa.getAbstractionManager();
       FormulaManagerView fmgr = cpa.getFormulaManager();
       try (Writer invariants = Files.openOutputFile(invariantsFile)) {
         for (CFANode loc : from(cfa.getAllNodes())
@@ -312,7 +408,7 @@ class PredicateCPAStatistics implements Statistics {
           invariants.append("__");
           invariants.append(""+loc.getLineNumber());
           invariants.append(":\n");
-          invariants.append(fmgr.dumpFormula(formula));
+          fmgr.dumpFormula(formula).appendTo(invariants);
           invariants.append('\n');
         }
       } catch (IOException e) {
@@ -321,12 +417,12 @@ class PredicateCPAStatistics implements Statistics {
     }
 
     private Pair<String, List<String>> splitFormula(FormulaManagerView pV, BooleanFormula pF) {
-      String s = pV.dumpFormula(pF).trim();
+      String s = pV.dumpFormula(pF).toString().trim();
       List<String> lines = Lists.newArrayList(s.split("\n"));
-      assert !lines.isEmpty();
+      assert !lines.isEmpty() : "Formula " + pF + " has empty string representation";
       String predString = lines.get(lines.size()-1);
       lines.remove(lines.size()-1);
-      assert (predString.startsWith("(assert ") && predString.endsWith(")"));
+      assert (predString.startsWith("(assert ") && predString.endsWith(")")) : "Unexpected formula format: " + predString;
 
       return Pair.of(predString, lines);
     }
@@ -336,8 +432,11 @@ class PredicateCPAStatistics implements Statistics {
       for (AbstractState state : reached) {
         CFANode loc = extractLocation(state);
         if (loc.isLoopStart()) {
-          PredicateAbstractState predicateState = extractStateByType(state, PredicateAbstractState.class);
-          assert predicateState.isAbstractionState();
+          PredicateAbstractState predicateState = getPredicateState(state);
+          if (!predicateState.isAbstractionState()) {
+            cpa.getLogger().log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
+            return;
+          }
           Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
           region = rmgr.makeOr(region, predicateState.getAbstractionFormula().asRegion());
           regions.put(loc, region);
@@ -348,8 +447,8 @@ class PredicateCPAStatistics implements Statistics {
       StringBuilder defs = new StringBuilder();
       StringBuilder asserts = new StringBuilder();
 
-      AbstractionManager absmgr = cpa.getAbstractionManager();
       FormulaManagerView fmgr = cpa.getFormulaManager();
+
       try (Writer invariants = Files.openOutputFile(invariantPrecisionsFile)) {
         for (CFANode loc : from(cfa.getAllNodes())
                              .filter(CFAUtils.IS_LOOP_NODE)
@@ -376,6 +475,7 @@ class PredicateCPAStatistics implements Statistics {
         invariants.append(defs);
         invariants.append("\n");
         invariants.append(asserts);
+
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write loop invariants to file");
       }

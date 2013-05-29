@@ -1,3 +1,6 @@
+# prepare for Python 3
+from __future__ import absolute_import, print_function, unicode_literals
+
 import logging
 import subprocess
 import sys
@@ -19,6 +22,8 @@ class Tool(benchmark.tools.template.BaseTool):
     
     def getProgrammFiles(self,executable):
         executableDir = os.path.join(os.path.dirname(executable),"../")
+        if not os.path.isfile(os.path.join(executableDir, "cpachecker.jar")):
+            logging.warning("Run 'ant jar' to create JAR file for CPAchecker.")
         result = []
         result.append(os.path.join(executableDir, "lib"))
         result.append(os.path.join(executableDir, "scripts"))
@@ -168,7 +173,7 @@ class Tool(benchmark.tools.template.BaseTool):
             for line in output.splitlines():
                 if column.text in line:
                     startPosition = line.find(':') + 1
-                    endPosition = line.find('(') # bracket maybe not found -> (-1)
+                    endPosition = line.find('(', startPosition) # bracket maybe not found -> (-1)
                     if (endPosition == -1):
                         column.value = line[startPosition:].strip()
                     else:

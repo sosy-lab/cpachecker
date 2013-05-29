@@ -193,7 +193,7 @@ public class AndersenState implements AbstractState, Cloneable {
       for (DirectedGraph.Node z : n.getSuccessors()) {
 
         // LCD code
-        DirectedGraph.Edge edge = g.new Edge(n, z);
+        DirectedGraph.Edge edge = new DirectedGraph.Edge(n, z);
         if (z.getPointsToSet().equals(n.getPointsToSet()) && !tested.contains(edge)) {
           tested.add(edge);
           DirectedGraph.Node merged = g.detectAndCollapseCycleContainingEdge(edge);

@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,6 +45,12 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.ModelI
 import com.google.common.collect.ImmutableMap;
 
 class Mathsat5Model {
+
+  // A model can contain arbitrary real numbers, such as 1/3.
+  // Java does not provide a representation of such numbers with arbitrary precision,
+  // thus we use BigDecimal (which can handle at least all rational numbers)
+  // and round real numbers.
+  private static final MathContext ROUNDING_PRECISION = MathContext.DECIMAL128;
 
   private static TermType toMathsatType(long e, long mType) {
 
@@ -231,9 +239,9 @@ class Mathsat5Model {
   }
 
   private static Object parseReal(String lTermRepresentation) {
-    Object lValue;
+    BigDecimal lValue;
     try {
-      lValue = Double.valueOf(lTermRepresentation);
+      lValue = new BigDecimal(lTermRepresentation);
     }
     catch (NumberFormatException e) {
       // lets try special case for mathsat
@@ -243,10 +251,10 @@ class Mathsat5Model {
         throw new NumberFormatException("Unknown number format: " + lTermRepresentation);
       }
 
-      double lNumerator = Double.valueOf(lNumbers[0]);
-      double lDenominator = Double.valueOf(lNumbers[1]);
+      BigDecimal lNumerator = new BigDecimal(lNumbers[0]);
+      BigDecimal lDenominator = new BigDecimal(lNumbers[1]);
 
-      lValue = lNumerator/lDenominator;
+      lValue = lNumerator.divide(lDenominator, ROUNDING_PRECISION);
     }
     return lValue;
   }

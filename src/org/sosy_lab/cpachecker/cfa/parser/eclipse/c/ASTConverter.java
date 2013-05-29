@@ -253,7 +253,6 @@ class ASTConverter {
     CBinaryExpression postExp = new CBinaryExpression(fileLoc, type, exp, one, op);
     preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, exp, postExp));
 
-
     return tmp;
   }
 
@@ -373,6 +372,7 @@ class ASTConverter {
                                                typeConverter.convert(e.getExpressionType()),
                                                name,
                                                name,
+                                               scope.createScopedNameOf(name),
                                                null);
 
     scope.registerDeclaration(decl);
@@ -404,6 +404,7 @@ class ASTConverter {
 
     if (isAssign) {
       CLeftHandSide leftHandSide = (CLeftHandSide) convertExpressionWithoutSideEffects(e.getOperand1());
+
 
       if (op == null) {
         // a = b
@@ -849,7 +850,7 @@ class ASTConverter {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Typedef with initializer", d);
         }
-        return new CTypeDefDeclaration(fileLoc, isGlobal, type, name);
+        return new CTypeDefDeclaration(fileLoc, isGlobal, type, name, scope.createScopedNameOf(name));
       }
 
       if (type instanceof CFunctionTypeWithNames) {
@@ -888,7 +889,9 @@ class ASTConverter {
         name = name + sep + index;
       }
 
-      CVariableDeclaration declaration = new CVariableDeclaration(fileLoc, isGlobal, cStorageClass, type, name, origName, null);
+      CVariableDeclaration declaration = new CVariableDeclaration(fileLoc,
+          isGlobal, cStorageClass, type, name, origName,
+          scope.createScopedNameOf(name), null);
       scope.registerDeclaration(declaration);
 
       // Now that we registered the declaration, we can parse the initializer.
@@ -1107,6 +1110,9 @@ class ASTConverter {
     }
 
     fType.setName(name);
+    for (CParameterDeclaration param : paramsList) {
+      param.setQualifiedName(FunctionScope.createQualifiedName(name, param.getName()));
+    }
 
     return Triple.of(type, d.getInitializer(), name);
   }
@@ -1222,7 +1228,8 @@ class ASTConverter {
       }
     }
 
-    CEnumerator result = new CEnumerator(getLocation(e), convert(e.getName()), value);
+    String name = convert(e.getName());
+    CEnumerator result = new CEnumerator(getLocation(e), name, scope.createScopedNameOf(name), value);
     scope.registerDeclaration(result);
     return result;
   }

@@ -42,7 +42,7 @@ public final class CComplexTypeDeclaration extends CTypeDeclaration {
 
   public CComplexTypeDeclaration(FileLocation pFileLocation,
       boolean pIsGlobal, CComplexType pType) {
-    super(pFileLocation, pIsGlobal, pType, null);
+    super(pFileLocation, pIsGlobal, pType, null, null);
   }
 
   @Override

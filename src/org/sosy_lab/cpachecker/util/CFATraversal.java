@@ -93,14 +93,35 @@ public class CFATraversal {
         }
       };
 
+  private static final Function<CFAEdge, CFANode> FORWARD_SUCCESSOR_SUPPLIER
+      = new Function<CFAEdge, CFANode>() {
+        @Override
+        public CFANode apply(CFAEdge edge) {
+          return edge.getSuccessor();
+        }
+      };
+
+  private static final Function<CFAEdge, CFANode> BACKWARD_SUCCESSOR_SUPPLIER
+      = new Function<CFAEdge, CFANode>() {
+        @Override
+        public CFANode apply(CFAEdge edge) {
+          return edge.getPredecessor();
+        }
+      };
+
   // function providing the outgoing edges for a CFANode
   private final Function<CFANode, Iterable<CFAEdge>> edgeSupplier;
+
+  // function providing the successor node of an edge
+  private final Function<CFAEdge, CFANode> successorSupplier;
 
   // predicate for whether an edge should be ignored
   private final Predicate<CFAEdge> ignoreEdge;
 
-  protected CFATraversal(Function<CFANode, Iterable<CFAEdge>> pEdgeSupplier, Predicate<CFAEdge> pIgnoreEdge) {
+  protected CFATraversal(Function<CFANode, Iterable<CFAEdge>> pEdgeSupplier,
+      Function<CFAEdge, CFANode> pSuccessorSupplier, Predicate<CFAEdge> pIgnoreEdge) {
     edgeSupplier = pEdgeSupplier;
+    successorSupplier = pSuccessorSupplier;
     ignoreEdge = pIgnoreEdge;
   }
 
@@ -109,7 +130,8 @@ public class CFATraversal {
    * the CFA, visiting all nodes and edges in a DFS-like strategy.
    */
   public static final CFATraversal dfs() {
-    return new CFATraversal(FORWARD_EDGE_SUPPLIER, Predicates.<CFAEdge>alwaysFalse());
+    return new CFATraversal(FORWARD_EDGE_SUPPLIER, FORWARD_SUCCESSOR_SUPPLIER,
+        Predicates.<CFAEdge>alwaysFalse());
   }
 
   /**
@@ -119,9 +141,9 @@ public class CFATraversal {
    */
   public CFATraversal backwards() {
     if (edgeSupplier == FORWARD_EDGE_SUPPLIER) {
-      return new CFATraversal(BACKWARD_EDGE_SUPPLIER, ignoreEdge);
+      return new CFATraversal(BACKWARD_EDGE_SUPPLIER, BACKWARD_SUCCESSOR_SUPPLIER, ignoreEdge);
     } else if (edgeSupplier == BACKWARD_EDGE_SUPPLIER) {
-      return new CFATraversal(FORWARD_EDGE_SUPPLIER, ignoreEdge);
+      return new CFATraversal(FORWARD_EDGE_SUPPLIER, FORWARD_SUCCESSOR_SUPPLIER, ignoreEdge);
     } else {
       throw new AssertionError();
     }
@@ -135,6 +157,7 @@ public class CFATraversal {
    */
   public CFATraversal ignoreSummaryEdges() {
     return new CFATraversal(edgeSupplier,
+        successorSupplier,
         Predicates.<CFAEdge>or(ignoreEdge,
             Predicates.instanceOf(CFunctionSummaryEdge.class)));
   }
@@ -148,6 +171,7 @@ public class CFATraversal {
   @SuppressWarnings("unchecked")
   public CFATraversal ignoreFunctionCalls() {
     return new CFATraversal(edgeSupplier,
+        successorSupplier,
         Predicates.<CFAEdge>or(
             ignoreEdge,
             Predicates.instanceOf(CFunctionCallEdge.class),
@@ -188,7 +212,7 @@ public class CFATraversal {
           }
 
           if (result != TraversalProcess.SKIP) {
-            toProcess.addLast(edge.getSuccessor());
+            toProcess.addLast(successorSupplier.apply(edge));
           }
         }
       }

@@ -24,8 +24,12 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 import java.io.PrintStream;
+import java.util.Map;
+import java.util.TreeMap;
 
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 
 /**
@@ -37,8 +41,37 @@ public abstract class AbstractStatistics implements Statistics {
 
   protected int outputNameColWidth = 40;
 
+  private Map<String, Object> keyValueStats = new TreeMap<>();
+
   protected void put(PrintStream pTarget, String pName, Object pValue) {
     pTarget.println(String.format("%-" + outputNameColWidth + "s %s", pName + ":", pValue));
+  }
+
+  public void addKeyValueStatistic(final String pName, final Object pValue) {
+    keyValueStats.put(pName, pValue);
+  }
+
+  @Override
+  public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    for (String key : keyValueStats.keySet()) {
+      put(pOut, key, keyValueStats.get(key));
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * This implementation of getName() computes the name of the statistic from the class name.
+   */
+  @Override
+  public String getName() {
+    String result = getClass().getSimpleName();
+    int relevantUntil = result.lastIndexOf(Statistics.class.getSimpleName());
+    if (relevantUntil == -1) {
+      return result;
+    } else {
+      return result.substring(0, relevantUntil);
+    }
   }
 
 }

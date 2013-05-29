@@ -29,12 +29,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 class FunctionPointerDomain implements AbstractDomain {
 
-  private final AbstractDomain wrappedDomain;
-
-  FunctionPointerDomain(AbstractDomain pWrappedDomain) {
-    wrappedDomain = pWrappedDomain;
-  }
-
   @Override
   public AbstractState join(AbstractState pElement1, AbstractState pElement2) {
     throw new UnsupportedOperationException();
@@ -47,7 +41,6 @@ class FunctionPointerDomain implements AbstractDomain {
     FunctionPointerState elem1 = (FunctionPointerState) pElement1;
     FunctionPointerState elem2 = (FunctionPointerState) pElement2;
 
-    return elem1.isLessOrEqualThan(elem2)
-        && wrappedDomain.isLessOrEqual(elem1.getWrappedState(), elem2.getWrappedState());
+    return elem1.isLessOrEqualThan(elem2);
   }
 }

@@ -27,12 +27,14 @@ import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefinitionStorage;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -41,13 +43,15 @@ public class ReachingDefState implements AbstractState, Serializable {
 
   private static final long serialVersionUID = -7715698130795640052L;
 
+  private static final SerialProxyReach proxy = new SerialProxyReach();
+
   public static final ReachingDefState topElement = new ReachingDefState();
 
   private ReachingDefState stateOnLastFunctionCall;
 
-  private Map<String, Set<DefinitionPoint>> localReachDefs;
+  private transient Map<String, Set<DefinitionPoint>> localReachDefs;
 
-  private Map<String, Set<DefinitionPoint>> globalReachDefs;
+  private transient Map<String, Set<DefinitionPoint>> globalReachDefs;
 
   private ReachingDefState() {}
 
@@ -128,12 +132,13 @@ public class ReachingDefState implements AbstractState, Serializable {
 
   private boolean isSubsetOf(Map<String, Set<DefinitionPoint>> subset, Map<String, Set<DefinitionPoint>> superset) {
     Set<DefinitionPoint> setSub, setSuper;
-    if (subset == superset)
+    if (subset == superset || superset == topElement)
       return true;
     for (String var : subset.keySet()) {
       setSub = subset.get(var);
       setSuper = superset.get(var);
-      if (setSuper == null || Sets.intersection(setSub, setSuper).size() != setSub.size())
+      if(setSub == setSuper) continue;
+      if (setSuper == null || Sets.intersection(setSub, setSuper).size()!=setSub.size())
         return false;
     }
     return true;
@@ -170,8 +175,13 @@ public class ReachingDefState implements AbstractState, Serializable {
     Set<DefinitionPoint> unionResult;
     boolean changed = false;
     for (String var : map1.keySet()) {
-      unionResult = Sets.union(map1.get(var), map2.get(var)).immutableCopy();
-      if (unionResult.size() != map1.get(var).size()) {
+      // decrease merge time, avoid building union if unnecessary
+      if(map1.get(var)== map2.get(var)){
+        newMap.put(var, map2.get(var));
+        continue;
+      }
+      unionResult = unionSets(map1.get(var), map2.get(var));
+      if (unionResult.size() != map2.get(var).size()) {
         changed = true;
       }
       newMap.put(var, unionResult);
@@ -179,6 +189,57 @@ public class ReachingDefState implements AbstractState, Serializable {
     assert (map1.keySet().equals(newMap.keySet()));
     if (changed) { return newMap; }
     return map1;
+  }
+
+  private Set<DefinitionPoint> unionSets(Set<DefinitionPoint> set1, Set<DefinitionPoint> set2) {
+    HashSet<DefinitionPoint> result = new HashSet<>();
+    for (DefinitionPoint p : set1) {
+      result.add(p);
+    }
+    for (DefinitionPoint p : set2) {
+      result.add(p);
+    }
+    return result;
+  }
+
+  private Object writeReplace() throws ObjectStreamException {
+    if(this==topElement){
+      return proxy;
+    }else{
+      return this;
+
+    }
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+
+    out.writeInt(ReachingDefinitionStorage.getInstance().saveMap(localReachDefs));
+    out.writeInt(ReachingDefinitionStorage.getInstance().saveMap(globalReachDefs));
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+
+    int id;
+
+    id = in.readInt();
+    localReachDefs = ReachingDefinitionStorage.getInstance().getMap(id);
+
+    id = in.readInt();
+    globalReachDefs = ReachingDefinitionStorage.getInstance().getMap(id);
+  }
+
+
+  private static class SerialProxyReach implements Serializable {
+
+    private static final long serialVersionUID = 2843708585446089623L;
+
+    public SerialProxyReach() {}
+
+    private Object readResolve() throws ObjectStreamException {
+      return topElement;
+    }
   }
 
   public interface DefinitionPoint {
@@ -213,7 +274,7 @@ public class ReachingDefState implements AbstractState, Serializable {
     }
   }
 
-  public class ProgramDefinitionPoint implements DefinitionPoint, Serializable {
+  public static class ProgramDefinitionPoint implements DefinitionPoint, Serializable {
 
     private static final long serialVersionUID = -7601382286840053882L;
     private transient CFANode entry;
@@ -264,13 +325,11 @@ public class ReachingDefState implements AbstractState, Serializable {
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-      out.defaultWriteObject();
       out.writeInt(entry.getNodeNumber());
       out.writeInt(exit.getNodeNumber());
     }
 
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-      in.defaultReadObject();
       int nodeNumber = in.readInt();
       entry = GlobalInfo.getInstance().getCFAInfo().getNodeByNodeNumber(nodeNumber);
       nodeNumber = in.readInt();

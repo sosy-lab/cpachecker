@@ -100,11 +100,12 @@ public class ARGReachedSet {
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
    */
-  public void removeSubtree(ARGState e, Precision p) {
+  public void removeSubtree(ARGState e, Precision p,
+      Class<? extends Precision> pPrecisionType) {
     Set<ARGState> toWaitlist = removeSubtree0(e);
 
     for (ARGState ae : toWaitlist) {
-      mReached.updatePrecision(ae, adaptPrecision(mReached.getPrecision(ae), p));
+      mReached.updatePrecision(ae, adaptPrecision(mReached.getPrecision(ae), p, pPrecisionType));
       mReached.reAddToWaitlist(ae);
     }
   }
@@ -133,7 +134,8 @@ public class ARGReachedSet {
    * Set a new precision for each single state in the reached set.
    * @param p The new precision, may be for a single CPA (c.f. {@link #adaptPrecision(ARGState, Precision)}).
    */
-  public void updatePrecisionGlobally(Precision pNewPrecision) {
+  public void updatePrecisionGlobally(Precision pNewPrecision,
+      Class<? extends Precision> pPrecisionType) {
     Map<Precision, Precision> precisionUpdateCache = Maps.newIdentityHashMap();
 
     for (AbstractState s : mReached) {
@@ -141,7 +143,7 @@ public class ARGReachedSet {
 
       Precision newPrecision = precisionUpdateCache.get(oldPrecision);
       if (newPrecision == null) {
-        newPrecision = adaptPrecision(oldPrecision, pNewPrecision);
+        newPrecision = adaptPrecision(oldPrecision, pNewPrecision, pPrecisionType);
         precisionUpdateCache.put(oldPrecision, newPrecision);
       }
 
@@ -158,8 +160,9 @@ public class ARGReachedSet {
    * @param pNewPrecision New precision.
    * @return The adapted precision.
    */
-  private Precision adaptPrecision(Precision pOldPrecision, Precision pNewPrecision) {
-    return Precisions.replaceByType(pOldPrecision, pNewPrecision, pNewPrecision.getClass());
+  private Precision adaptPrecision(Precision pOldPrecision, Precision pNewPrecision,
+      Class<? extends Precision> pPrecisionType) {
+    return Precisions.replaceByType(pOldPrecision, pNewPrecision, pPrecisionType);
   }
 
   private Set<ARGState> removeSubtree0(ARGState e) {
@@ -357,8 +360,9 @@ public class ARGReachedSet {
     }
 
     @Override
-    public void removeSubtree(ARGState pE, Precision pP) {
-      delegate.removeSubtree(pE, pP);
+    public void removeSubtree(ARGState pE, Precision pP,
+        Class<? extends Precision> pPrecisionType) {
+      delegate.removeSubtree(pE, pP, pPrecisionType);
     }
   }
 }

@@ -31,18 +31,11 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -55,7 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -173,16 +166,11 @@ public class ReachingDefTransferRelation implements TransferRelation {
     /* if a field is changed the whole variable the field is associated with is considered to be changed,
      * e.g. a.p.c = 110, then a should be considered
      */
-    String var;
-    try {
-      VariableExtractor varExtractor = new VariableExtractor(edge);
-      varExtractor.resetWarning();
-      var = left.accept(varExtractor);
-      if (varExtractor.getWarning() != null)
-        logger.log(Level.WARNING, varExtractor.getWarning());
-    } catch (Exception e) {
-      throw new CPATransferException("Cannot extract left operand from assignment.");
-    }
+    VariableExtractor varExtractor = new VariableExtractor(edge);
+    varExtractor.resetWarning();
+    String var = left.accept(varExtractor);
+    if (varExtractor.getWarning() != null)
+      logger.log(Level.WARNING, varExtractor.getWarning());
 
     if (var == null)
       return pState;
@@ -244,68 +232,6 @@ public class ReachingDefTransferRelation implements TransferRelation {
       }
     }
     return pState;
-  }
-
-  private class VariableExtractor extends DefaultCExpressionVisitor<String, Exception> {
-
-    private CFAEdge edgeForExpression;
-    private String warning;
-
-    public void resetWarning() {
-      warning = null;
-    }
-
-    public String getWarning() {
-      return warning;
-    }
-
-    public VariableExtractor(CFAEdge pEdgeForExpression) {
-      edgeForExpression = pEdgeForExpression;
-    }
-
-    @Override
-    protected String visitDefault(CExpression pExp) {
-      return null;
-    }
-
-    @Override
-    public String visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws Exception {
-      warning = "Analysis may be unsound in case of aliasing.";
-      return pIastArraySubscriptExpression.getArrayExpression().accept(this);
-    }
-
-    @Override
-    public String visit(CCastExpression pIastCastExpression) throws Exception {
-      return pIastCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public String visit(CFieldReference pIastFieldReference) throws Exception {
-      if (pIastFieldReference.isPointerDereference())
-        throw new UnsupportedCCodeException(
-            "Does not support assignment to dereferenced variable due to missing aliasing support", edgeForExpression,
-            pIastFieldReference);
-      warning = "Analysis may be unsound in case of aliasing.";
-      return pIastFieldReference.getFieldOwner().accept(this);
-    }
-
-    @Override
-    public String visit(CIdExpression pIastIdExpression) throws Exception {
-      return pIastIdExpression.getName();
-    }
-
-    @Override
-    public String visit(CUnaryExpression pIastUnaryExpression) throws Exception {
-      return pIastUnaryExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public String visit(CPointerExpression pIastPointerExpression) throws Exception {
-      throw new UnsupportedCCodeException(
-          "Does not support assignment to dereferenced variable due to missing aliasing support", edgeForExpression,
-          pIastPointerExpression);
-    }
-
   }
 
   @Override

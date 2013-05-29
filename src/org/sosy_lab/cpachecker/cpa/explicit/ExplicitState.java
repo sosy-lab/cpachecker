@@ -28,23 +28,28 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 
 public class ExplicitState implements AbstractQueryableState, FormulaReportingState, Serializable {
   private static final long serialVersionUID = -3152134511524554357L;
@@ -52,53 +57,49 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   /**
    * the map that keeps the name of variables and their constant values
    */
-  private final Map<String, Long> constantsMap;
+  private PersistentMap<String, Long> constantsMap;
 
   /**
-   * the set of variables that were changed since the last precision adjustment
+   * the current delta of this state to the previous state
    */
-  private Set<String> delta = null;
+  private Set<String> delta;
 
   public ExplicitState() {
-    constantsMap = new HashMap<>();
+    constantsMap = PathCopyingPersistentTreeMap.of();
   }
 
-  public ExplicitState(Map<String, Long> constantsMap) {
+  public ExplicitState(PersistentMap<String, Long> constantsMap) {
     this.constantsMap = constantsMap;
   }
 
   /**
-   * Assigns a value to the variable and puts it in the map
+   * This method assigns a value to the variable and puts it in the map.
+   *
    * @param variableName name of the variable.
    * @param value value to be assigned.
    */
   void assignConstant(String variableName, Long value) {
-    constantsMap.put(checkNotNull(variableName), checkNotNull(value));
-
-    if (delta == null) {
-      delta = new HashSet<>();
-    }
-    delta.add(variableName);
-  }
-
-  public void forget(String variableName) {
-    constantsMap.remove(variableName);
+    constantsMap = constantsMap.putAndCopy(checkNotNull(variableName), checkNotNull(value));
   }
 
   /**
-   * This method returns the current delta of this state, i.e. the name of variables that were written to in the last post operation.
+   * This method removes a variable and its value from the underlying map.
    *
-   * @return the name of variables that were written to in the last post operation.
+   * @param variableName the name of the variable to be removed
    */
-  Set<String> getDelta() {
-    return delta;
+  public void forget(String variableName) {
+    constantsMap = constantsMap.removeAndCopy(variableName);
   }
 
   /**
-   * This method resets the delta.
+   * This method removes all variables and their respective values from the underlying map.
+   *
+   * @param variableNames the names of the variables to be removed
    */
-  void resetDelta() {
-    delta = null;
+  void removeAll(Collection<String> variableNames) {
+    for(String variableName : variableNames) {
+      constantsMap = constantsMap.removeAndCopy(variableName);
+    }
   }
 
   /**
@@ -116,20 +117,55 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     }
 
     for (String variableNameToDrop : toDropAll) {
-      constantsMap.remove(variableNameToDrop);
+      constantsMap = constantsMap.removeAndCopy(variableNameToDrop);
     }
   }
 
+  /**
+   * This method returns the value for the given variable.
+   *
+   * @param variableName the name of the variable for which to get the value
+   * @throws NullPointerException - if no value is present in this state for the given variable
+   * @return the value associated with the given variable
+   */
   public Long getValueFor(String variableName) {
     return checkNotNull(constantsMap.get(variableName));
   }
 
+  /**
+   * This method checks whether or not the given variable is contained in this state.
+   *
+   * @param variableName the name of variable to check for
+   * @return true, if the variable is contained, else false
+   */
   public boolean contains(String variableName) {
     return constantsMap.containsKey(variableName);
   }
 
+  /**
+   * This method determines the total number of variables contained in this state.
+   *
+   * @return the total number of variables contained in this state
+   */
   public int getSize() {
     return constantsMap.size();
+  }
+
+  /**
+   * This method determines the number of global variables contained in this state.
+   *
+   * @return the number of global variables contained in this state
+   */
+  int getNumberOfGlobalVariables() {
+    int numberOfGlobalVariables = 0;
+
+    for (String variableName : constantsMap.keySet()) {
+      if (variableName.contains("::")) {
+        numberOfGlobalVariables++;
+      }
+    }
+
+    return numberOfGlobalVariables;
   }
 
   /**
@@ -139,15 +175,13 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    * @return a new state representing the join of this element and the other element
    */
   ExplicitState join(ExplicitState reachedState) {
-    int size = Math.min(constantsMap.size(), reachedState.constantsMap.size());
-
-    Map<String, Long> newConstantsMap = new HashMap<>(size);
+    PersistentMap<String, Long> newConstantsMap = PathCopyingPersistentTreeMap.of();
 
     for (Map.Entry<String, Long> otherEntry : reachedState.constantsMap.entrySet()) {
       String key = otherEntry.getKey();
 
       if (equal(otherEntry.getValue(), constantsMap.get(key))) {
-        newConstantsMap.put(key, otherEntry.getValue());
+        newConstantsMap = newConstantsMap.putAndCopy(key, otherEntry.getValue());
       }
     }
 
@@ -187,7 +221,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
   @Override
   public ExplicitState clone() {
-    return new ExplicitState(new HashMap<>(constantsMap));
+    return new ExplicitState(PathCopyingPersistentTreeMap.copyOf(constantsMap));
   }
 
   @Override
@@ -230,6 +264,11 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     return sb.append("] size->  ").append(constantsMap.size()).toString();
   }
 
+  /**
+   * This method returns a more compact string representation of the state, compared to toString().
+   *
+   * @return a more compact string representation of the state
+   */
   public String toCompactString() {
     StringBuilder sb = new StringBuilder();
 
@@ -305,9 +344,9 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
         String varName = statement.substring("deletevalues(".length(), statement.length() - 1);
 
-        Object x = this.constantsMap.remove(varName);
-
-        if (x == null) {
+        if (contains(varName)) {
+          forget(varName);
+        } else {
           // varname was not present in one of the maps
           // i would like to log an error here, but no logger is available
         }
@@ -344,7 +383,7 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(FormulaManager manager) {
+  public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
     RationalFormulaManager nfmgr = manager.getRationalFormulaManager();
     BooleanFormula formula = bfmgr.makeBoolean(true);
@@ -358,22 +397,17 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     return formula;
   }
 
-  void deleteValue(String varName) {
-    this.constantsMap.remove(varName);
-  }
-
-  Set<String> getTrackedVariableNames() {
-    return constantsMap.keySet();
-  }
-
-  Map<String, Long> getConstantsMap() {
-    return constantsMap;
-  }
-
+  /**
+   * This method determines the set of variable names that are in the other state but not in this,
+   * or that are in both, but differ in their value.
+   *
+   * @param other the other state for which to get the difference
+   * @return the set of variable names that differ
+   */
   public Set<String> getDifference(ExplicitState other) {
     Set<String> difference = new HashSet<>();
 
-    for (String variableName : other.getTrackedVariableNames()) {
+    for (String variableName : other.constantsMap.keySet()) {
       if (!contains(variableName)) {
         difference.add(variableName);
       } else if (!getValueFor(variableName).equals(other.getValueFor(variableName))) {
@@ -382,5 +416,65 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     }
 
     return difference;
+  }
+
+  /**
+   * This method returns the current delta of this state.
+   *
+   * @return the current delta of this state
+   */
+  Collection<String> getDelta() {
+    return ImmutableSet.copyOf(delta);
+  }
+
+  /**
+   * This method sets the delta of this state, in relation to the given other state.
+   *
+   * This is used for a more efficient abstraction computation, where only the delta of a state is considered.
+   *
+   * @param other the state to which to compute the delta
+   */
+  void setDelta(ExplicitState other) {
+    delta = other.getDifference(this);
+  }
+
+  /**
+   * This method resets the delta of this state.
+   */
+  void clearDelta() {
+    delta = null;
+  }
+
+  /**
+   * This method adds the key-value-pairs of this state to the given value mapping and returns the new mapping.
+   *
+   * @param valueMapping the mapping from variable name to the set of values of this variable
+   * @return the new mapping
+   */
+  public Multimap<String, Long> addToValueMapping(Multimap<String, Long> valueMapping) {
+    for (Map.Entry<String, Long> entry : constantsMap.entrySet()) {
+      valueMapping.put(entry.getKey(), entry.getValue());
+    }
+
+    return valueMapping;
+  }
+
+  /**
+   * This method returns the set of tracked variables by this state.
+   *
+   * @return the set of tracked variables by this state
+   */
+  public ImmutableCollection<String> getTrackedVariableNames() {
+    return ImmutableSet.copyOf(constantsMap.keySet());
+  }
+
+  /**
+   * This method returns the internal mapping of this state.
+   *
+   * @return the internal mapping of this state
+   * @TODO: eliminate this - breaks encapsulation
+   */
+  Map<String, Long> getConstantsMap() {
+    return constantsMap;
   }
 }

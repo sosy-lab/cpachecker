@@ -139,7 +139,6 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     int exitCode;
     try {
       List<String> cbmcArgs = new ArrayList<>();
-      cbmcArgs.add("cbmc");
       cbmcArgs.addAll(getParamForMachineModel());
 
       // Our paths are loop-free, but there might be hidden loops in stdlib functions like memcpy.
@@ -154,7 +153,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
       cbmcArgs.add(cFile.toAbsolutePath().toString());
 
-      cbmc = new CBMCExecutor(logger, cbmcArgs.toArray(new String[cbmcArgs.size()]));
+      cbmc = new CBMCExecutor(logger, cbmcArgs);
       exitCode = cbmc.join(timelimit);
 
     } catch (IOException e) {

@@ -31,7 +31,7 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
@@ -192,7 +192,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
     return mModel;
   }
 
-  public Model(FormulaManager fmgr) {
+  public Model(FormulaManagerView fmgr) {
     mModel = ImmutableMap.of();
     formulaRepresentation = fmgr.getBooleanFormulaManager().makeBoolean(true);
   }

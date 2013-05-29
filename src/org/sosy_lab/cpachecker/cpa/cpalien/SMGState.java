@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.util.Set;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -38,64 +40,184 @@ public class SMGState implements AbstractQueryableState {
   private SMGState predecessor;
   private final int id;
 
+  private SMGRuntimeCheck runtimeCheckLevel;
+
+  /**
+   * Constructor.
+   *
+   * Keeps consistency: yes
+   *
+   * @param pLogger A logger to log any messages
+   * @param pMachineModel A machine model for the underlying SMGs
+   */
   public SMGState(LogManager pLogger, MachineModel pMachineModel) {
     heap = new CLangSMG(pMachineModel);
     logger = pLogger;
     predecessor = null;
     id = id_counter++;
-  }
-
-  public SMGState(SMGState originalState) {
-    heap = new CLangSMG(originalState.heap);
-    logger = originalState.logger;
-    predecessor = originalState.predecessor;
-    id = id_counter++;
-  }
-
-  public int getId() {
-    return id;
-  }
-
-  public SMGState getPredecessor() {
-    return predecessor;
-  }
-
-  public void setPredecessor(SMGState pSMGState) {
-    predecessor = pSMGState;
-  }
-
-  void addStackObject(SMGObject obj) {
-    heap.addStackObject(obj);
-  }
-
-  public void addValue(int pValue) {
-    heap.addValue(Integer.valueOf(pValue));
+    runtimeCheckLevel = SMGRuntimeCheck.NONE;
   }
 
   /**
-   * Get memory of variable with the given Name. This method is used for
-   * the temporary function return variable.
+   * Copy constructor.
    *
-   * @param variableName
-   * @return
+   * Keeps consistency: yes
+   *
+   * @param pOriginalState Original state. Will be the predecessor of the
+   * new state
+   * @throws SMGInconsistentException
    */
-  public SMGObject getObjectForVisibleVariable(String variableName) {
-    return this.heap.getObjectForVisibleVariable(variableName);
+  public SMGState(SMGState pOriginalState) {
+    heap = new CLangSMG(pOriginalState.heap);
+    logger = pOriginalState.logger;
+    predecessor = pOriginalState.predecessor;
+    runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
+    id = id_counter++;
   }
 
-  public void addHVEdge(SMGEdgeHasValue pNewEdge) {
-    heap.addHasValueEdge(pNewEdge);
+  /**
+   * Sets a level of runtime checks performed.
+   *
+   * Keeps consistency: yes
+   *
+   * @param pLevel One of {@link SMGRuntimeCheck.NONE},
+   * {@link SMGRuntimeCheck.HALF} or {@link SMGRuntimeCheck.FULL}
+   * @throws SMGInconsistentException
+   */
+  final public void setRuntimeCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
+    runtimeCheckLevel = pLevel;
+    if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.HALF)) {
+      CLangSMG.setPerformChecks(true);
+    }
+    else {
+      CLangSMG.setPerformChecks(false);
+    }
+    this.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
-  public void performConsistencyCheck() {
-    CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap);
+  /**
+   * Constant.
+   *
+   * @param pSMGState A state to set as a predecessor.
+   * @throws SMGInconsistentException
+   */
+  final public void setPredecessor(SMGState pSMGState) throws SMGInconsistentException {
+    predecessor = pSMGState;
+    this.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
-  public String toDot(String name) {
+  /**
+   * Makes SMGState create a new object and put it into the current stack
+   * frame.
+   *
+   * Keeps consistency: yes
+   *
+   * @param pType Type of the new object
+   * @param pVarName Name of the local variable
+   * @return Newly created object
+   *
+   * @throws SMGInconsistentException when resulting SMGState is inconsistent
+   * and the checks are enabled
+   */
+  public SMGObject addLocalVariable(CType pType, String pVarName) throws SMGInconsistentException {
+    int size = heap.getMachineModel().getSizeof(pType);
+    SMGObject new_object = new SMGObject(size, pVarName);
+
+    heap.addStackObject(new_object);
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    return new_object;
+  }
+
+  /**
+   * Adds a new frame for the function.
+   *
+   * Keeps consistency: yes
+   *
+   * @param pFunctionDefinition A function for which to create a new stack frame
+   * @throws SMGInconsistentException
+   */
+  public void addStackFrame(CFunctionDeclaration pFunctionDefinition) throws SMGInconsistentException {
+    heap.addStackFrame(pFunctionDefinition);
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+  }
+
+  /* ********************************************* */
+  /* Non-modifying functions: getters and the like */
+  /* ********************************************* */
+
+  /**
+   * Constant.
+   *
+   * @return The ID of this SMGState
+   */
+  final public int getId() {
+    return id;
+  }
+
+  /**
+   * Constant.
+   * .
+   * @return The predecessor state, i.e. one from which this one was copied
+   */
+  final public SMGState getPredecessor() {
+    return predecessor;
+  }
+
+  /**
+   * Constant.
+   *
+   * @return A {@link SMGObject} for current function return value storage.
+   */
+  final public SMGObject getFunctionReturnObject() {
+    return heap.getFunctionReturnObject();
+  }
+
+  /**
+   * Get memory of variable with the given name.
+   *
+   * @param pVariableName A name of the desired variable
+   * @return An object corresponding to the variable name
+   */
+  public SMGObject getObjectForVisibleVariable(String pVariableName) {
+    return this.heap.getObjectForVisibleVariable(pVariableName);
+  }
+
+  /**
+   * Based on the current setting of runtime check level, it either performs
+   * a full consistency check or not. If the check is performed and the
+   * state is deemed inconsistent, a {@link SMGInconsistentException} is thrown.
+   *
+   * Constant.
+   *
+   * @param pLevel A level of the check request. When e.g. HALF is passed, it
+   * means "perform the check if the setting is HALF or finer.
+   * @throws SMGInconsistentException
+   */
+  final public void performConsistencyCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
+    if (this.runtimeCheckLevel.isFinerOrEqualThan(pLevel)) {
+      if ( ! CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap) ){
+        throw new SMGInconsistentException("SMG was found inconsistent during a check");
+      }
+    }
+  }
+
+  /**
+   * Returns a DOT representation of the SMGState.
+   *
+   * Constant.
+   *
+   * @param pName A name of the graph.
+   * @param pLocation A location in the program.
+   * @return String containing a DOT graph corresponding to the SMGState.
+   */
+  public String toDot(String pName, String pLocation) {
     SMGPlotter plotter = new SMGPlotter();
-    return plotter.smgAsDot(heap, name);
+    return plotter.smgAsDot(heap, pName, pLocation);
   }
 
+  /**
+   * @return A string representation of the SMGState.
+   */
   @Override
   public String toString() {
     if ( this.getPredecessor() != null) {
@@ -105,20 +227,38 @@ public class SMGState implements AbstractQueryableState {
     }
   }
 
-  public void addStackFrame(CFunctionDeclaration pFunctionDefinition) {
-    heap.addStackFrame(pFunctionDefinition);
+  public SMGEdgePointsTo getPointerFromValue(Integer pValue) throws SMGInconsistentException {
+    for (SMGEdgePointsTo edge : heap.getPTEdges()){
+      if (edge.getValue() == pValue) {
+        return edge;
+      }
+    }
+
+    throw new SMGInconsistentException("Asked for a Points-To edge for a non-pointer value");
   }
 
   /**
    * Read Value in field (object, type) of an Object.
    *
-   * @param object SMGObject representing the memory the field belongs to.
-   * @param offset offset of field being read.
-   * @param type type of field written into.
+   * @param pObject SMGObject representing the memory the field belongs to.
+   * @param pOffset offset of field being read.
+   * @param pType type of field
    * @return
+   * @throws SMGInconsistentException
    */
-  public Integer readValue(SMGObject object, int offset, CType type) {
-    // TODO Auto-generated method stub
+  public Integer readValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
+    SMGEdgeHasValue edge = new SMGEdgeHasValue(pType, pOffset, pObject, 0);
+    Set<SMGEdgeHasValue> edges = heap.getValuesForObject(pObject, pOffset);
+
+    for (SMGEdgeHasValue object_edge : edges) {
+      if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())){
+        this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+        return object_edge.getValue();
+      }
+    }
+
+    // TODO: Nullified blocks coverage interpretation
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
     return null;
   }
 
@@ -131,20 +271,54 @@ public class SMGState implements AbstractQueryableState {
    * @param type type of field written into.
    * @param value value to be written into field.
    * @param machineModel Currently used Machine Model
+   * @throws SMGInconsistentException
    */
-  public void writeValue(SMGObject object, int offset, CType type, Integer value, MachineModel machineModel) {
+  public SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
 
+    if (pValue == null) {
+      pValue = heap.getNullValue();
+    }
+
+    SMGEdgeHasValue new_edge = new SMGEdgeHasValue(pType, pOffset, pObject, pValue);
+
+    // Check if the edge is  not present already
+    Set<SMGEdgeHasValue> edges = heap.getValuesForObject(pObject);
+    if (edges.contains(new_edge)){
+      this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+      return new_edge;
+    }
+
+    // If the value is not in the SMG, we need to add it
+    if ( ! heap.getValues().contains(pValue) ){
+      heap.addValue(pValue);
+    }
+
+    // We need to remove all non-zero overlapping edges
+    for (SMGEdgeHasValue hv : edges){
+      if (hv.getValue() != heap.getNullValue() && new_edge.overlapsWith(hv, heap.getMachineModel())){
+        heap.removeHasValueEdge(hv);
+      }
+    }
+
+    //TODO: Shrink overlapping zero edges
+    heap.addHasValueEdge(new_edge);
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+
+    return new_edge;
   }
 
   /**
-   * Computes the next unused identifier for a symbolic Value.
+   * Returns an unmodifiable set of {@link SMGEdgeHasValue} objects leading from
+   * {@link pObject}.
    *
-   * @return the next unused symbolic Value.
+   * Constant.
+   *
+   * @param pObject A source object
+   * @return A set of edges leading from an object.
    */
-  public Integer nextFreeValue() {
-    // TODO Auto-generated method stub
-    return null;
+  public Set<SMGEdgeHasValue> getValuesForObject(SMGObject pObject) {
+    return heap.getValuesForObject(pObject);
   }
 
   /**
@@ -210,22 +384,21 @@ public class SMGState implements AbstractQueryableState {
     return  heap.getGlobalObjects().containsValue(heap.getObjectForVisibleVariable(variable));
   }
 
-  public void addHeapObject(SMGObject pNewObject) {
-    heap.addHeapObject(pNewObject);
-  }
+  public SMGEdgePointsTo addNewHeapAllocation(int pSize, String pLabel) throws SMGInconsistentException {
+    SMGObject new_object = new SMGObject(pSize, pLabel);
+    int new_value = SMGValueFactory.getNewValue();
+    SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
+    heap.addHeapObject(new_object);
+    heap.addValue(new_value);
+    heap.addPointsToEdge(points_to);
 
-  public void addPVEdge(SMGEdgePointsTo pNewPVEdge) {
-    heap.addPointsToEdge(pNewPVEdge);
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    return points_to;
   }
 
   public void setMemLeak() {
     heap.setMemoryLeak();
   }
-
- public void insertNewHasValueEdge(SMGEdgeHasValue pNewEdge) {
-   heap.addHasValueEdge(pNewEdge);
-   performConsistencyCheck();
- }
 
  public boolean containsValue(int value) {
    return heap.getValues().contains(value);
@@ -258,22 +431,6 @@ public class SMGState implements AbstractQueryableState {
   }
 
   /**
-   * Adds a new Address represented by a symbolic value and an offset
-   * to the SMG. The address points to the given object. Additionally,
-   * adds the necessary points-to edge to the given object representing Memory
-   * with the given offset.
-   *
-   * @param object An existing object in the SMG this address points to.
-   * @param offset the offset specifying the byte of memory this address points to.
-   * @param address the symbolic Value representing the address.
-   * @return
-   */
-  public Integer addAddress(SMGObject object, Integer offset, Integer address) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  /**
    * This method simulates a free invocation. It checks,
    * whether the call is valid, and invalidates the
    * Memory the given address points to.
@@ -283,9 +440,14 @@ public class SMGState implements AbstractQueryableState {
    * @param address The symbolic Value of the address.
    * @param offset The offset of the address relative to the beginning of smgObject.
    * @param smgObject The memory the given Address belongs to.
+   * @throws SMGInconsistentException
    */
-  public void free(Integer address, Integer offset, SMGObject smgObject) {
-    // TODO Auto-generated method stub
+  public void free(Integer address, Integer offset, SMGObject smgObject) throws SMGInconsistentException {
+    heap.setValidity(smgObject, false);
+    for (SMGEdgeHasValue edge : heap.getValuesForObject(smgObject)) {
+      heap.removeHasValueEdge(edge);
+    }
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /**
@@ -330,9 +492,11 @@ public class SMGState implements AbstractQueryableState {
    * the function with the given name
    *
    * @param functionName
+   * @throws SMGInconsistentException
    */
-  public void dropStackFrame(String functionName) {
-    // TODO Auto-generated method stub
+  public void dropStackFrame(String functionName) throws SMGInconsistentException {
+    this.heap.dropStackFrame();
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /**

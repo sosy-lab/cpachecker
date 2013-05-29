@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
+import org.sosy_lab.common.Appender;
+
 
 /**
  * Represents a Solver.
@@ -75,11 +77,17 @@ public interface FormulaManager {
   public <T extends Formula> Class<T> getInterface(T pInstance);
   /**
    * Create string representation of a formula in a format which may be dumped
-   * to a file.
+   * to a file. To get a String, simply call {@link Object#toString()}
+   * on the returned object.
+   *
+   * This method is lazy and does not create any huge string until the returned
+   * object is actually used.
+   *
+   * @see Appender
    */
   // TODO: Implement solver independent file format and remove this method from the solver interface
   // Instead implement the format in the View
-  public String dumpFormula(Formula pT);
+  public Appender dumpFormula(Formula pT);
 
   /**
    * Get some version information of the solver.

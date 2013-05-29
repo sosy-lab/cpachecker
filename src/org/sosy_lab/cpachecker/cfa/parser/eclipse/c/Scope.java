@@ -49,4 +49,10 @@ interface Scope {
   CComplexType lookupType(String name);
 
   void registerDeclaration(CSimpleDeclaration declaration);
+
+  /**
+   * Take a name and return a name qualified with the current function
+   * (if we are in a function).
+   */
+  String createScopedNameOf(String name);
 }

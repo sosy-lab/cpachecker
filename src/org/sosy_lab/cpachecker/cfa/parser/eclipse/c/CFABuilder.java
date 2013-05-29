@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 
@@ -76,7 +77,7 @@ class CFABuilder extends ASTVisitor {
   private final List<Pair<org.sosy_lab.cpachecker.cfa.ast.IADeclaration, String>> globalDeclarations = Lists.newArrayList();
 
   // Data structure for checking amount of initializations per global variable
-  private final Map<String, Boolean> globalInitializedVariables = new HashMap<>();
+  private final Set<String> globalInitializedVariables = Sets.newHashSet();
 
 
   private final GlobalScope scope = new GlobalScope();
@@ -200,11 +201,9 @@ class CFABuilder extends ASTVisitor {
           init.accept(checkBinding);
 
           // save global initialized variable in map to check duplicates
-          if (globalInitializedVariables.containsKey(newD.getName())) {
-            globalInitializedVariables.remove(newD.getName());
-            globalInitializedVariables.put(newD.getName(), true);
-          } else {
-            globalInitializedVariables.put(newD.getName(), false);
+          if (!globalInitializedVariables.add(newD.getName())) {
+            throw new CFAGenerationRuntimeException("Variable " + newD.getName()
+                + " initialized for the second time", newD);
           }
         }
 
@@ -231,7 +230,7 @@ class CFABuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTProblem problem) {
-    throw new CFAGenerationRuntimeException(problem.getMessage(), problem);
+    throw new CFAGenerationRuntimeException(problem);
   }
 
   @Override
@@ -261,23 +260,6 @@ class CFABuilder extends ASTVisitor {
 
     if (encounteredAsm) {
       logger.log(Level.WARNING, "Inline assembler ignored, analysis is probably unsound!");
-    }
-
-    // check on duplicates in initialized global variables
-    if (globalInitializedVariables.containsValue(true)) {
-      StringBuilder duplicateVars = new StringBuilder();
-      Iterator<String> it = globalInitializedVariables.keySet().iterator();
-      duplicateVars.append("[");
-      while (it.hasNext()) {
-        String key = it.next();
-        if (globalInitializedVariables.get(key)) {
-          duplicateVars.append(key + ", ");
-        }
-      }
-      duplicateVars = duplicateVars.delete(duplicateVars.length() - 2, duplicateVars.length());
-      duplicateVars.append("]");
-
-       throw new CFAGenerationRuntimeException("Duplicate variable initialization " + duplicateVars.toString());
     }
 
     return PROCESS_CONTINUE;

@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingStat
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
@@ -153,7 +153,7 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
     }
 
     @Override
-    public BooleanFormula getReasonFormula(FormulaManager pMgr) {
+    public BooleanFormula getReasonFormula(FormulaManagerView pMgr) {
       return PreventingHeuristic.REPETITIONSINPATH.getFormula(pMgr, threshold);
     }
 

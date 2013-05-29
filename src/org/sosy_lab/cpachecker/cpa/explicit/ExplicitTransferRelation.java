@@ -130,7 +130,6 @@ import com.google.common.collect.ImmutableMap;
 
 @Options(prefix="cpa.explicit")
 public class ExplicitTransferRelation implements TransferRelation {
-
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
@@ -168,9 +167,6 @@ public class ExplicitTransferRelation implements TransferRelation {
 
   private boolean missingAssumeInformation;
 
-
-
-
   public ExplicitTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
@@ -179,6 +175,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     throws CPATransferException {
 
     ExplicitState explicitState = (ExplicitState)element;
+    explicitState.clearDelta();
 
     ExplicitState successor;
 
@@ -211,6 +208,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     if (successor == null) {
       return Collections.emptySet();
     } else {
+      successor.setDelta(explicitState);
       return Collections.singleton(successor);
     }
   }
@@ -353,7 +351,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         }
       }
 
-      // a* = b(); TODO: for now, nothing is done here, but cloning the current element
+      // *a = b(); TODO: for now, nothing is done here, but cloning the current element
       else if (op1 instanceof APointerExpression) {
         return newElement;
       }
@@ -453,7 +451,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
 
     // assign initial value if necessary
-      String scopedVarName = getScopedVariableName(varName, functionName);
+      String scopedVarName = decl.isGlobal() ? varName : functionName + "::" + varName;
 
 
       boolean complexType = decl.getType() instanceof JClassOrInterfaceType || decl.getType() instanceof JArrayType;
@@ -527,7 +525,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       } else if (op1 instanceof APointerExpression) {
       // *a = ...
 
-      op1 = ((APointerExpression)op1).getOperand();
+      op1 = ((AUnaryExpression)op1).getOperand();
 
       // Cil produces code like
       // *((int*)__cil_tmp5) = 1;
@@ -651,6 +649,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       case PLUS:
       case MINUS:
       case DIVIDE:
+      case MODULO:
       case MULTIPLY:
       case SHIFT_LEFT:
       case BINARY_AND:
@@ -680,6 +679,9 @@ public class ExplicitTransferRelation implements TransferRelation {
           }
 
           return lVal / rVal;
+
+        case MODULO:
+          return lVal % rVal;
 
         case MULTIPLY:
           return lVal * rVal;
@@ -750,7 +752,6 @@ public class ExplicitTransferRelation implements TransferRelation {
         return (result ? 1L : 0L);
       }
 
-      case MODULO:
       case SHIFT_RIGHT:
       default:
         // TODO check which cases can be handled (I think all)
@@ -841,10 +842,9 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
 
     @Override
-    public Long visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
-        missingPointer = true;
-        return null;
-
+    public Long visit(CPointerExpression ptrExp) throws UnrecognizedCCodeException {
+      missingPointer = true;
+      return null;
     }
 
     @Override
@@ -1293,12 +1293,33 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     @Override
     public Long visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-      return super.visit(unaryExpression);
+        return super.visit(unaryExpression);
     }
 
     @Override
-    public Long visit(JUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-        return super.visit(unaryExpression);
+    public Long visit(CPointerExpression ptrExp) throws UnrecognizedCCodeException {
+      // Cil produces code like
+      // __cil_tmp8 = *((int *)__cil_tmp7);
+      // so remove cast
+      CExpression unaryOperand = ptrExp.getOperand();
+      if (unaryOperand instanceof CCastExpression) {
+        unaryOperand = ((CCastExpression)unaryOperand).getOperand();
+      }
+
+      if (unaryOperand instanceof CIdExpression) {
+        String rightVar = derefPointerToVariable(pointerState, ((CIdExpression)unaryOperand).getName());
+        if (rightVar != null) {
+          rightVar = getScopedVariableName(rightVar, functionName);
+
+          if (state.contains(rightVar)) {
+            return state.getValueFor(rightVar);
+          }
+        }
+      } else {
+        throw new UnrecognizedCCodeException("Pointer dereference of something that is not a variable", edge, ptrExp);
+      }
+
+      return null;
     }
   }
 

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -153,10 +154,10 @@ public abstract class AbstractFormulaManager<TFormulaInfo> implements FormulaMan
   }
 
 
-  public abstract String dumpFormula(TFormulaInfo t);
+  public abstract Appender dumpFormula(TFormulaInfo t);
 
   @Override
-  public String dumpFormula(Formula t) {
+  public Appender dumpFormula(Formula t) {
     return dumpFormula(formulaCreator.extractInfo(t));
   }
 

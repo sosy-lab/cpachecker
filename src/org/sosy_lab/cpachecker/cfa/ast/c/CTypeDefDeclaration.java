@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CTypeDefDeclaration extends CTypeDeclaration {
 
   public CTypeDefDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
-      CType pType, String pName) {
-    super(pFileLocation, pIsGlobal, pType, checkNotNull(pName));
+      CType pType, String pName, String pQualifiedName) {
+    super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), checkNotNull(pQualifiedName));
   }
 
   @Override
