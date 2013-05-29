@@ -150,6 +150,54 @@ public class SMGTest {
   }
 
   @Test
+  public void removeObjectTest() {
+    SMG smg = getNewSMG64();
+    Integer newValue = SMGValueFactory.getNewValue();
+
+    SMGObject object = new SMGObject(8, "object");
+    SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockType, 0, object, 0);
+    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockType, 4, object, 0);
+    SMGEdgePointsTo pt = new SMGEdgePointsTo(newValue, object, 0);
+
+    smg.addValue(newValue);
+    smg.addObject(object);
+    smg.addPointsToEdge(pt);
+    smg.addHasValueEdge(hv0);
+    smg.addHasValueEdge(hv4);
+
+    Assert.assertTrue(smg.getObjects().contains(object));
+    smg.removeObject(object);
+    Assert.assertFalse(smg.getObjects().contains(object));
+    Assert.assertTrue(smg.getHVEdges().contains(hv0));
+    Assert.assertTrue(smg.getHVEdges().contains(hv4));
+    Assert.assertTrue(smg.getPTEdges().contains(pt));
+  }
+
+  @Test
+  public void removeObjectAndEdgesTest() {
+    SMG smg = getNewSMG64();
+    Integer newValue = SMGValueFactory.getNewValue();
+
+    SMGObject object = new SMGObject(8, "object");
+    SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockType, 0, object, 0);
+    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockType, 4, object, 0);
+    SMGEdgePointsTo pt = new SMGEdgePointsTo(newValue, object, 0);
+
+    smg.addValue(newValue);
+    smg.addObject(object);
+    smg.addPointsToEdge(pt);
+    smg.addHasValueEdge(hv0);
+    smg.addHasValueEdge(hv4);
+
+    Assert.assertTrue(smg.getObjects().contains(object));
+    smg.removeObjectAndEdges(object);
+    Assert.assertFalse(smg.getObjects().contains(object));
+    Assert.assertFalse(smg.getHVEdges().contains(hv0));
+    Assert.assertFalse(smg.getHVEdges().contains(hv4));
+    Assert.assertFalse(smg.getPTEdges().contains(pt));
+  }
+
+  @Test
   public void validityTest() {
     Assert.assertFalse(smg.isObjectValid(smg.getNullObject()));
     Assert.assertTrue(smg.isObjectValid(obj1));

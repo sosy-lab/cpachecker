@@ -42,6 +42,8 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.algorithm.ProofGenerator;
 
+import com.google.common.base.Strings;
+
 public class CPAMain {
 
   public static void main(String[] args) {
@@ -94,6 +96,9 @@ public class CPAMain {
     try {
       MainOptions options = new MainOptions();
       cpaConfig.inject(options);
+      if (Strings.isNullOrEmpty(options.programs)) {
+        throw new InvalidConfigurationException("Please specify a program to analyze on the command line.");
+      }
       dumpConfiguration(options, cpaConfig, logManager);
       programDenotation = getProgramDenotation(options);
 
@@ -125,7 +130,7 @@ public class CPAMain {
   @Options
   private static class MainOptions {
     @Option(name="analysis.programNames",
-        required=true,
+        //required=true, NOT required because we want to give a nicer user message ourselves
         description="A String, denoting the programs to be analyzed")
     private String programs;
 
@@ -166,7 +171,6 @@ public class CPAMain {
     }
     config.setOptions(cmdLineOptions);
 
-    //normalizeValues();
     return config.build();
   }
 

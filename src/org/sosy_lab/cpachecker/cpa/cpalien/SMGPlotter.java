@@ -52,16 +52,18 @@ public final class SMGPlotter {
     addStackSubgraph(smg, sb);
 
     for (SMGObject heapObject : smg.getHeapObjects()) {
-      //if (heapObject.notNull()){
-        sb.append(newLineWithOffset(smgObjectAsDot(heapObject)));
-        objectIndex.put(heapObject, convertToValidDot(heapObject.getLabel()));
-      //}
+      if (heapObject.notNull()) {
+        sb.append(newLineWithOffset(smgObjectAsDot(heapObject, smg.isObjectValid(heapObject))));
+      }
+      objectIndex.put(heapObject, convertToValidDot(heapObject.getLabel()));
     }
 
     addGlobalObjectSubgraph(smg, sb);
 
     for (int value : smg.getValues()) {
-      sb.append(newLineWithOffset(smgValueAsDot(value)));
+      if (value != smg.getNullValue()) {
+        sb.append(newLineWithOffset(smgValueAsDot(value)));
+      }
     }
 
     for (SMGEdgeHasValue edge: smg.getHVEdges()) {
@@ -69,7 +71,9 @@ public final class SMGPlotter {
     }
 
     for (SMGEdgePointsTo edge: smg.getPTEdges()) {
-      sb.append(newLineWithOffset(smgPTEdgeAsDot(edge)));
+      if (edge.getValue() != smg.getNullValue()) {
+        sb.append(newLineWithOffset(smgPTEdgeAsDot(edge)));
+      }
     }
 
     sb.append("}");
@@ -125,12 +129,14 @@ public final class SMGPlotter {
   }
 
   private void addGlobalObjectSubgraph(CLangSMG pSmg, StringBuilder pSb) {
-    pSb.append(newLineWithOffset("subgraph cluster_global{"));
-    offset += 2;
-    pSb.append(newLineWithOffset("label=\"Global objects\";"));
-    pSb.append(newLineWithOffset(smgScopeFrameAsDot(pSmg.getGlobalObjects(), "global")));
-    offset -= 2;
-    pSb.append(newLineWithOffset("}"));
+    if (pSmg.getGlobalObjects().size() > 0) {
+      pSb.append(newLineWithOffset("subgraph cluster_global{"));
+      offset += 2;
+      pSb.append(newLineWithOffset("label=\"Global objects\";"));
+      pSb.append(newLineWithOffset(smgScopeFrameAsDot(pSmg.getGlobalObjects(), "global")));
+      offset -= 2;
+      pSb.append(newLineWithOffset("}"));
+    }
   }
 
   private String newNullLabel() {
@@ -151,8 +157,15 @@ public final class SMGPlotter {
     return "value_" + pEdge.getValue() + " -> " + convertToValidDot(objectIndex.get(pEdge.getObject())) + "[label=\"+" + pEdge.getOffset() + "b\"];";
   }
 
-  private String smgObjectAsDot(SMGObject pObject) {
-    return this.convertToValidDot(pObject.getLabel()) + " [ shape=rectangle, label = \"" + pObject.toString() + "\"];";
+  private String smgObjectAsDot(SMGObject pObject, boolean pValidity) {
+    String shape;
+    String color;
+    if (pValidity){
+      shape="rectangle"; color="black";
+    } else {
+      shape="doubleoctagon"; color="red";
+    }
+    return this.convertToValidDot(pObject.getLabel()) + " [ color=" + color + ", shape=" + shape + ", label = \"" + pObject.toString() + "\"];";
   }
 
   private static String smgValueAsDot(int value) {

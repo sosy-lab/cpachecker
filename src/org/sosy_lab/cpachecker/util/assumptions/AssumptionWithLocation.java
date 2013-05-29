@@ -35,7 +35,7 @@ import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -46,12 +46,12 @@ import com.google.common.collect.Collections2;
  */
 public class AssumptionWithLocation implements Appender {
 
-  private final FormulaManager manager;
+  private final FormulaManagerView manager;
 
   // map from location to (conjunctive) list of invariants
   private final Map<CFANode, BooleanFormula> map = new HashMap<>();
 
-  public AssumptionWithLocation(FormulaManager pManager) {
+  public AssumptionWithLocation(FormulaManagerView pManager) {
     manager = pManager;
   }
 

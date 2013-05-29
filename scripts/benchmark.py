@@ -25,7 +25,7 @@ CPAchecker web page:
 """
 
 # prepare for Python 3
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
@@ -44,7 +44,6 @@ import os
 import re
 import resource
 import signal
-import string
 import subprocess
 import threading
 import xml.etree.ElementTree as ET
@@ -59,6 +58,9 @@ MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
 CORELIMIT = runexecutor.CORELIMIT
 
+DEFAULT_CLOUD_TIMELIMIT = 3600
+DEFAULT_CLOUD_MEMLIMIT = None
+
 # colors for column status in terminal
 USE_COLORS = True
 COLOR_GREEN = "\033[32;1m{0}\033[m"
@@ -66,12 +68,12 @@ COLOR_RED = "\033[31;1m{0}\033[m"
 COLOR_ORANGE = "\033[33;1m{0}\033[m"
 COLOR_MAGENTA = "\033[35;1m{0}\033[m"
 COLOR_DEFAULT = "{0}"
-COLOR_DIC = {"correctSafe": COLOR_GREEN,
-             "correctUnsafe": COLOR_GREEN,
-             "unknown": COLOR_ORANGE,
-             "error": COLOR_MAGENTA,
-             "wrongUnsafe": COLOR_RED,
-             "wrongSafe": COLOR_RED,
+COLOR_DIC = {result.RESULT_CORRECT_SAFE:   COLOR_GREEN,
+             result.RESULT_CORRECT_UNSAFE: COLOR_GREEN,
+             result.RESULT_UNKNOWN:        COLOR_ORANGE,
+             result.RESULT_ERROR:          COLOR_MAGENTA,
+             result.RESULT_WRONG_UNSAFE:   COLOR_RED,
+             result.RESULT_WRONG_SAFE:     COLOR_RED,
              None: COLOR_DEFAULT}
 
 TERMINAL_TITLE=''
@@ -212,17 +214,17 @@ class Benchmark:
         self.options = getOptionsFromXML(rootTag)
 
         # get columns
-        self.columns = self.loadColumns(rootTag.find("columns"))
+        self.columns = Benchmark.loadColumns(rootTag.find("columns"))
 
         # get global source files, they are used in all run sets
         globalSourcefilesTags = rootTag.findall("sourcefiles")
 
         # get required files
-        self.requiredFiles = self.tool.getProgrammFiles(self.executable)
+        self._requiredFiles = []
         baseDir = os.path.dirname(self.benchmarkFile)
         for requiredFilesTag in rootTag.findall('requiredfiles'):
             requiredFiles = Util.expandFileNamePattern(requiredFilesTag.text, baseDir)
-            self.requiredFiles.extend(requiredFiles)
+            self._requiredFiles.extend(requiredFiles)
 
         # get requirements
         self.requirements = Requirements()
@@ -251,8 +253,11 @@ class Benchmark:
 
         self.outputHandler = OutputHandler(self)
 
+    def requiredFiles(self):
+        return self._requiredFiles + self.tool.getProgrammFiles(self.executable)
 
-    def loadColumns(self, columnsTag):
+    @staticmethod
+    def loadColumns(columnsTag):
         """
         @param columnsTag: the columnsTag from the XML file
         @return: a list of Columns()
@@ -365,7 +370,7 @@ class RunSet:
                     sys.exit()
 
                 # read files from list
-                fileWithList = open(file, "r")
+                fileWithList = open(file, 'rt')
                 for line in fileWithList:
 
                     # strip() removes 'newline' behind the line
@@ -550,11 +555,11 @@ class Requirements:
         self._cpuCores = int(cpuCores) if cpuCores is not None else None
         self._memory   = int(memory) if memory is not None else None
 
-        if self.cpuCores <= 0:
-            raise Exception('Invalid value for required CPU cores.')
+        if self.cpuCores() <= 0:
+            raise Exception('Invalid value {} for required CPU cores.'.format(cpuCores))
 
-        if self.cpuCores <= 0:
-            raise Exception('Invalid value for required memory.')
+        if self.memory() <= 0:
+            raise Exception('Invalid value {} for required memory.'.format(memory))
 
     def cpuModel(self):
         return self._cpuModel or ""
@@ -739,7 +744,7 @@ class OutputHandler:
         maxFrequency = 'unknown'
         cpuInfoFilename = '/proc/cpuinfo'
         if os.path.isfile(cpuInfoFilename) and os.access(cpuInfoFilename, os.R_OK):
-            cpuInfoFile = open(cpuInfoFilename, "r")
+            cpuInfoFile = open(cpuInfoFilename, 'rt')
             cpuInfo = dict(tuple(str.split(':')) for str in
                             cpuInfoFile.read()
                             .replace('\n\n', '\n').replace('\t', '')
@@ -754,7 +759,7 @@ class OutputHandler:
         # read the number from cpufreq and overwrite maxFrequency from above
         freqInfoFilename = '/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq'
         if os.path.isfile(freqInfoFilename) and os.access(freqInfoFilename, os.R_OK):
-            frequencyInfoFile = open(freqInfoFilename, "r")
+            frequencyInfoFile = open(freqInfoFilename, 'rt')
             maxFrequency = frequencyInfoFile.read().strip('\n')
             frequencyInfoFile.close()
             maxFrequency = str(int(maxFrequency) // 1000) + ' MHz'
@@ -763,7 +768,7 @@ class OutputHandler:
         memInfo = dict()
         memInfoFilename = '/proc/meminfo'
         if os.path.isfile(memInfoFilename) and os.access(memInfoFilename, os.R_OK):
-            memInfoFile = open(memInfoFilename, "r")
+            memInfoFile = open(memInfoFilename, 'rt')
             memInfo = dict(tuple(str.split(': ')) for str in
                             memInfoFile.read()
                             .replace('\t', '')
@@ -1115,31 +1120,24 @@ class OutputHandler:
 class Statistics:
 
     def __init__(self):
-        self.dic = {"counter": 0,
-                    "correctSafe": 0,
-                    "correctUnsafe": 0,
-                    "unknown": 0,
-                    "wrongUnsafe": 0,
-                    "wrongSafe": 0,
-                    None: 0}
-
+        self.dic = dict((status,0) for status in COLOR_DIC)
+        self.counter = 0
 
     def addResult(self, statusRelation):
-        self.dic["counter"] += 1
-        if statusRelation == 'error':
-            statusRelation = 'unknown'
+        self.counter += 1
         assert statusRelation in self.dic
         self.dic[statusRelation] += 1
 
 
     def printToTerminal(self):
-        Util.printOut('\n'.join(['\nStatistics:' + str(self.dic["counter"]).rjust(13) + ' Files',
-                 '    correct:        ' + str(self.dic["correctSafe"] + \
-                                              self.dic["correctUnsafe"]).rjust(4),
-                 '    unknown:        ' + str(self.dic["unknown"]).rjust(4),
-                 '    false positives:' + str(self.dic["wrongUnsafe"]).rjust(4) + \
+        Util.printOut('\n'.join(['\nStatistics:' + str(self.counter).rjust(13) + ' Files',
+                 '    correct:        ' + str(self.dic[result.RESULT_CORRECT_SAFE] + \
+                                              self.dic[result.RESULT_CORRECT_UNSAFE]).rjust(4),
+                 '    unknown:        ' + str(self.dic[result.RESULT_UNKNOWN] + \
+                                              self.dic[result.RESULT_ERROR]).rjust(4),
+                 '    false positives:' + str(self.dic[result.RESULT_WRONG_UNSAFE]).rjust(4) + \
                  '        (file is safe, result is unsafe)',
-                 '    false negatives:' + str(self.dic["wrongSafe"]).rjust(4) + \
+                 '    false negatives:' + str(self.dic[result.RESULT_WRONG_SAFE]).rjust(4) + \
                  '        (file is unsafe, result is safe)',
                  '']))
 
@@ -1290,7 +1288,7 @@ def parseCloudResultFile(filePath):
     memUsage = None
     returnValue = None
     
-    with open(filePath) as file:
+    with open(filePath, 'rt') as file:
 
         try:
             wallTime = float(file.readline().split(":")[-1])
@@ -1314,19 +1312,19 @@ def parseCloudResultFile(filePath):
 def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
 
     try:
-        file = open(filePath)
+        file = open(filePath, 'rt')
         outputHandler.allCreatedFiles.append(filePath)
         
         complete = False
         while(not complete):
             firstLine = file.readline()
             if(not firstLine == "\n"):
-               name = string.replace(firstLine.split("=")[-1],"\n","")
-               osName = string.replace(file.readline().split("=")[-1],"\n","")
-               memory = string.replace(file.readline().split("=")[-1],"\n","")
-               cpuName = string.replace(file.readline().split("=")[-1],"\n","")
-               frequency = string.replace(file.readline().split("=")[-1],"\n","")
-               cores = string.replace(file.readline().split("=")[-1],"\n","")
+               name = firstLine.split("=")[-1].strip()
+               osName = file.readline().split("=")[-1].strip()
+               memory = file.readline().split("=")[-1].strip()
+               cpuName = file.readline().split("=")[-1].strip()
+               frequency = file.readline().split("=")[-1].strip()
+               cores = file.readline().split("=")[-1].strip()
                
                outputHandler.storeSystemInfo(osName, cpuName, cores, frequency, memory, name)
             
@@ -1342,7 +1340,7 @@ def executeBenchmarkInCloud(benchmark):
 
     absWorkingDir = os.path.abspath(os.curdir)
     logging.debug("Working dir: " + absWorkingDir)
-    toolpaths = benchmark.requiredFiles
+    toolpaths = benchmark.requiredFiles()
     for file in toolpaths:
         if not os.path.exists(file):
             logging.error("Missing file {0}, cannot run benchmark within cloud.".format(os.path.normpath(file)))
@@ -1354,13 +1352,11 @@ def executeBenchmarkInCloud(benchmark):
     if(benchmark.requirements.cpuModel() is not ""):
         requirements += "\t" + benchmark.requirements.cpuModel()                         
                             
-    # TODO
-    print('Ignoring specified ' + requirements)
     cloudRunExecutorDir = os.path.abspath(os.path.dirname(__file__))
     outputDir = benchmark.logFolder
     absOutputDir = os.path.abspath(outputDir)
 
-    runDefinitions = ""
+    runDefinitions = []
     absSourceFiles = []
     numOfRunDefLines = 0
     
@@ -1373,26 +1369,42 @@ def executeBenchmarkInCloud(benchmark):
         
         numOfRunDefLines += (len(runSet.runs) + 1)
         
+        timeLimit = str(DEFAULT_CLOUD_TIMELIMIT)
+        memLimit = str(DEFAULT_CLOUD_MEMLIMIT)
+        if(TIMELIMIT in benchmark.rlimits):
+            timeLimit = str(benchmark.rlimits[TIMELIMIT])
+        if(MEMLIMIT in benchmark.rlimits):
+            memLimit = str(benchmark.rlimits[MEMLIMIT])
+            
         runSetHeadLine = str(len(runSet.runs)) + "\t" + \
-                        str(benchmark.rlimits[TIMELIMIT]) + "\t" + \
-                       str(benchmark.rlimits[MEMLIMIT]) + "\n"
+                        timeLimit + "\t" + \
+                       memLimit
+                       
+        if(CORELIMIT in benchmark.rlimits):
+           coreLimit = str(benchmark.rlimits[CORELIMIT])
+           runSetHeadLine += ("\t" + coreLimit)
          
-        runDefinitions += runSetHeadLine;
+        runDefinitions.append(runSetHeadLine)
         
         # iterate over runs
         for run in runSet.runs:
-                argString = " ".join(run.args)
-                logFile = os.path.relpath(run.logFile, outputDir)
-                runDefinitions += argString + "\t" + run.sourcefile + "\t" + \
-                                    logFile + "\n"
-                absSourceFiles.append(os.path.abspath(run.sourcefile))
+            #escape delimiter char
+            args = []
+            for arg in run.args:
+                args.append(arg.replace(" ", "  "))
+            argString = " ".join(args)
+            
+            logFile = os.path.relpath(run.logFile, outputDir)
+            runDefinitions.append(argString + "\t" + run.sourcefile + "\t" + \
+                                    logFile)
+            absSourceFiles.append(os.path.abspath(run.sourcefile))
 
     if not absSourceFiles:
         logging.warning("Skipping benchmark without source files.")
         return
 
     #preparing cloud input
-    absToolpaths = map(os.path.abspath, toolpaths)
+    absToolpaths = list(map(os.path.abspath, toolpaths))
     sourceFilesBaseDir = os.path.commonprefix(absSourceFiles)
     toolPathsBaseDir = os.path.commonprefix(absToolpaths)
     baseDir = os.path.commonprefix([sourceFilesBaseDir, toolPathsBaseDir, cloudRunExecutorDir])
@@ -1405,7 +1417,7 @@ def executeBenchmarkInCloud(benchmark):
                 baseDir + "\t" + absOutputDir + "\t" + absWorkingDir +"\n" + \
                 requirements + "\n" + \
                 str(numOfRunDefLines) + "\n" + \
-                runDefinitions
+                "\n".join(runDefinitions)
 
     # install cloud and dependencies
     ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"])
@@ -1415,13 +1427,13 @@ def executeBenchmarkInCloud(benchmark):
     # start cloud and wait for exit
     logging.debug("Starting cloud.")
     if(config.debug):
-        logLevel =  "ALL"
+        logLevel =  "FINER"
     else:
         logLevel = "INFO"
     libDir = os.path.abspath("./lib/java-benchmark")
     cloud = subprocess.Popen(["java", "-jar", libDir + "/vercip.jar", "benchmark", "--master", config.cloud, "--loglevel", logLevel], stdin=subprocess.PIPE)
     try:
-        (out, err) = cloud.communicate(cloudInput)
+        (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
     except KeyboardInterrupt:
         killScript()
     returnCode = cloud.wait()
@@ -1450,7 +1462,9 @@ def executeBenchmarkInCloud(benchmark):
             try:
                 stdoutFile = run.logFile + ".stdOut"
                 (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
-                os.remove(stdoutFile)
+                if returnValue is not None:
+                    # Do not delete stdOut file if there was some problem
+                    os.remove(stdoutFile)
             except EnvironmentError as e:
                 logging.warning("Cannot extract measured values from output for file {0}: {1}".format(run.sourcefile, e))
                 continue
@@ -1458,7 +1472,7 @@ def executeBenchmarkInCloud(benchmark):
             outputHandler.outputBeforeRun(run)
             output = ''
             try:
-                with open(run.logFile) as f:
+                with open(run.logFile, 'rt') as f:
                     output = f.read()
             except IOError as e:
                 logging.warning("Cannot read log file: " + e.strerror)
@@ -1591,16 +1605,16 @@ def main(argv=None):
         if not os.path.exists(arg) or not os.path.isfile(arg):
             parser.error("File {0} does not exist.".format(repr(arg)))
 
-    try:
-        processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
-        if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
-            logging.warn("Already running instance of this script detected. " + \
-                         "Please make sure to not interfere with somebody else's benchmarks.")
-    except OSError:
-        pass # this does not work on Windows
+    if not config.cloud:
+        try:
+            processes = subprocess.Popen(['ps', '-eo', 'cmd'], stdout=subprocess.PIPE).communicate()[0]
+            if len(re.findall("python.*benchmark\.py", Util.decodeToString(processes))) > 1:
+                logging.warn("Already running instance of this script detected. " + \
+                             "Please make sure to not interfere with somebody else's benchmarks.")
+        except OSError:
+            pass # this does not work on Windows
 
-    # do this after logger has been configured
-    if(not config.cloud):
+        # do this after logger has been configured
         runexecutor.init()
 
     for arg in config.files:

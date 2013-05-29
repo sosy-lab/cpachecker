@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManage
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 
 
 public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormula> implements BitvectorFormulaManager {
@@ -38,17 +37,6 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
   public BitvectorFormulaManagerView(BitvectorFormulaManager pManager) {
     this.manager = pManager;
   }
-
-
-  public BooleanFormula toBooleanFormula(BitvectorFormula f) {
-    FormulaManagerView viewMgr = getViewManager();
-    BooleanFormulaManagerView boolMgr = viewMgr.getBooleanFormulaManager();
-    // If this is not a predicate, make it a predicate by adding a "!= 0"
-    BitvectorType t = (BitvectorType) viewMgr.getFormulaType(f);
-    BitvectorFormula z = makeBitvector(t.getSize(), 0);
-    return boolMgr.not(equal(f, z));
-  }
-
 
   public BooleanFormula notEqual(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     bmgr = getViewManager().getBooleanFormulaManager();
@@ -77,11 +65,8 @@ public class BitvectorFormulaManagerView extends BaseManagerView<BitvectorFormul
   }
 
 
-  public BooleanFormula wrapInView(BooleanFormula pFormula) {
+  private BooleanFormula wrapInView(BooleanFormula pFormula) {
     return getViewManager().getBooleanFormulaManager().wrapInView(pFormula);
-  }
-  public RationalFormula wrapInView(RationalFormula pFormula) {
-    return getViewManager().getRationalFormulaManager().wrapInView(pFormula);
   }
 
   @Override

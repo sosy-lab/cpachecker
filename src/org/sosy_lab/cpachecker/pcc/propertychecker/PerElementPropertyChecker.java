@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2013  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,28 +21,26 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
+package org.sosy_lab.cpachecker.pcc.propertychecker;
 
+import java.util.Collection;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 
-class AbstractBaseManagerView {
+/**
+ * Checks if an abstract state or a set of abstract states adheres to the property which should be checked by the
+ * specific implementation of PerElementPropertyChecker. Property is always checked individually for every element.
+ */
+public abstract class PerElementPropertyChecker implements PropertyChecker {
 
-  private FormulaManagerView baseManager = null;
-
-  void couple(FormulaManagerView pFormulaManagerView) {
-    if (baseManager != null) {
-      throw new IllegalAccessError("Can't set manager twice!");
+  @Override
+  public boolean satisfiesProperty(Collection<AbstractState> pCertificate) {
+    for (AbstractState elem : pCertificate) {
+      if (!satisfiesProperty(elem))
+        return false;
     }
-
-    this.baseManager = pFormulaManagerView;
-  }
-
-  public FormulaManagerView getViewManager() {
-    if (baseManager == null) {
-      throw new IllegalAccessError("baseManager not set!");
-    }
-
-    return baseManager;
+    return true;
   }
 
 }

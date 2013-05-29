@@ -300,6 +300,13 @@ public class CLangSMG extends SMG {
   public SMGObject getFunctionReturnObject() {
     return stack_objects.peek().getReturnObject();
   }
+
+  public void dropStackFrame() {
+    CLangStackFrame frame = stack_objects.pop();
+    for (SMGObject object : frame.getAllObjects()) {
+      this.removeObjectAndEdges(object);
+    }
+  }
 }
 
 /**

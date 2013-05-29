@@ -308,7 +308,7 @@ public class SMGTransferRelation implements TransferRelation {
       try {
         pointerExp = pFunctionCall.getParameterExpressions().get(0);
       } catch (IndexOutOfBoundsException e) {
-        throw new UnrecognizedCCodeException("Bulit in function free has no parameter", cfaEdge, pFunctionCall);
+        throw new UnrecognizedCCodeException("Built-in function free has no parameter", cfaEdge, pFunctionCall);
       }
 
       Integer address = evaluateAddress(currentState, cfaEdge, pointerExp);

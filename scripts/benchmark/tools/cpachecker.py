@@ -1,3 +1,6 @@
+# prepare for Python 3
+from __future__ import absolute_import, print_function, unicode_literals
+
 import logging
 import subprocess
 import sys

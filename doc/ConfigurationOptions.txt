@@ -529,6 +529,9 @@ cpa.explicit.precision.scoped = true
 # target file to hold the exported precision
 cpa.explicit.precisionFile = no default value
 
+# whether or not to avoid restarting at assume edges after a refinement
+cpa.explicit.refiner.avoidAssumes = false
+
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = false
 
@@ -813,6 +816,9 @@ cpa.predicate.refinement.predicateSharing = LOCATION
 # disable, 1 for always.
 cpa.predicate.refinement.restartAfterRefinements = 0
 
+# Use a single SMT solver environment for several interpolation queries
+cpa.predicate.refinement.reuseInterpolationEnvironment = false
+
 # During refinement, add all new predicates to the precisions of all abstract
 # states in the reached set.
 cpa.predicate.refinement.sharePredicates = false
@@ -951,6 +957,12 @@ pcc.proofcheck.precision = true
 # Qualified name for class which checks that the computed abstraction adheres
 # to the desired property.
 pcc.proofcheck.propertychecker = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker"
+
+# List of parameters for constructor of pcc.proofcheck.propertychecker.
+# Parameter values are specified in the order they parameters are defined in
+# the respective constructor. Every parameter value is finished with ",". The
+# empty string represents an empty parameter list.
+pcc.proofcheck.propertychecker.parameters = ""
 
 pcc.proofgen.doPCC = false
 

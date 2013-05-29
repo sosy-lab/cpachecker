@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
  * Instances of this class are compound state invariants visitors used to
@@ -58,7 +58,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
    */
   private final ToFormulaVisitor<CompoundState, ValueFormulaType> toValueFormulaVisitor;
 
-  public static ToFormulaVisitor<CompoundState, BooleanFormula> getVisitor(FormulaManager pFmgr,
+  public static ToFormulaVisitor<CompoundState, BooleanFormula> getVisitor(FormulaManagerView pFmgr,
         FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor,
         boolean useBitvectors) {
 
@@ -90,7 +90,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
    * @param evaluationVisitor the evaluation visitor used to evaluate compound
    * state invariants formulae to compound states.
    */
-  public ToBooleanFormulaVisitor(FormulaManager pFmgr,
+  public ToBooleanFormulaVisitor(FormulaManagerView pFmgr,
       ToFormulaVisitor<CompoundState, ValueFormulaType> pToValueFormulaVisitor,
       FormulaEvaluationVisitor<CompoundState> pEvaluationVisitor) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();

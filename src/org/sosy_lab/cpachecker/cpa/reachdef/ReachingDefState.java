@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -131,12 +132,13 @@ public class ReachingDefState implements AbstractState, Serializable {
 
   private boolean isSubsetOf(Map<String, Set<DefinitionPoint>> subset, Map<String, Set<DefinitionPoint>> superset) {
     Set<DefinitionPoint> setSub, setSuper;
-    if (subset == superset)
+    if (subset == superset || superset == topElement)
       return true;
     for (String var : subset.keySet()) {
       setSub = subset.get(var);
       setSuper = superset.get(var);
-      if (setSuper == null || Sets.intersection(setSub, setSuper).size() != setSub.size())
+      if(setSub == setSuper) continue;
+      if (setSuper == null || Sets.intersection(setSub, setSuper).size()!=setSub.size())
         return false;
     }
     return true;
@@ -173,7 +175,12 @@ public class ReachingDefState implements AbstractState, Serializable {
     Set<DefinitionPoint> unionResult;
     boolean changed = false;
     for (String var : map1.keySet()) {
-      unionResult = Sets.union(map1.get(var), map2.get(var)).immutableCopy();
+      // decrease merge time, avoid building union if unnecessary
+      if(map1.get(var)== map2.get(var)){
+        newMap.put(var, map2.get(var));
+        continue;
+      }
+      unionResult = unionSets(map1.get(var), map2.get(var));
       if (unionResult.size() != map2.get(var).size()) {
         changed = true;
       }
@@ -182,6 +189,17 @@ public class ReachingDefState implements AbstractState, Serializable {
     assert (map1.keySet().equals(newMap.keySet()));
     if (changed) { return newMap; }
     return map1;
+  }
+
+  private Set<DefinitionPoint> unionSets(Set<DefinitionPoint> set1, Set<DefinitionPoint> set2) {
+    HashSet<DefinitionPoint> result = new HashSet<>();
+    for (DefinitionPoint p : set1) {
+      result.add(p);
+    }
+    for (DefinitionPoint p : set2) {
+      result.add(p);
+    }
+    return result;
   }
 
   private Object writeReplace() throws ObjectStreamException {

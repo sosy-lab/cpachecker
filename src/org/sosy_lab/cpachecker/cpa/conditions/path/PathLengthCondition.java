@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingStat
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
  * A {@link PathCondition} where the condition is the length of the current path.
@@ -126,7 +126,7 @@ public class PathLengthCondition implements PathCondition, Statistics {
     }
 
     @Override
-    public BooleanFormula getReasonFormula(FormulaManager pMgr) {
+    public BooleanFormula getReasonFormula(FormulaManagerView pMgr) {
       return PreventingHeuristic.PATHLENGTH.getFormula(pMgr, pathLength);
     }
 

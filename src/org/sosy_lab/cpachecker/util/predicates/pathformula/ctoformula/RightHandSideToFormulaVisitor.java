@@ -75,7 +75,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
     if (fn instanceof CIdExpression) {
       func = ((CIdExpression)fn).getName();
       if (func.equals(CtoFormulaConverter.ASSUME_FUNCTION_NAME) && pexps.size() == 1) {
-        BooleanFormula condition = conv.fmgr.toBooleanFormula(pexps.get(0).accept(this));
+        BooleanFormula condition = conv.toBooleanFormula(pexps.get(0).accept(this));
         constraints.addConstraint(condition);
 
         return conv.makeFreshVariable(func, expType, ssa);

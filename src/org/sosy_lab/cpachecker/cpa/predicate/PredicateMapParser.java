@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.HashMultimap;
@@ -109,14 +110,14 @@ public class PredicateMapParser {
   private final CFA cfa;
 
   private final LogManager logger;
-  private final FormulaManager fmgr;
+  private final FormulaManagerView fmgr;
   private final AbstractionManager amgr;
 
   private final Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
 
   public PredicateMapParser(Configuration config, CFA pCfa,
       LogManager pLogger,
-      FormulaManager pFmgr, AbstractionManager pAmgr) throws InvalidConfigurationException {
+      FormulaManagerView pFmgr, AbstractionManager pAmgr) throws InvalidConfigurationException {
     config.inject(this);
 
     cfa = pCfa;

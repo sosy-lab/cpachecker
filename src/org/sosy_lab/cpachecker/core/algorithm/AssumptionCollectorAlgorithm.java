@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -96,7 +96,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
-  private final FormulaManager formulaManager;
+  private final FormulaManagerView formulaManager;
   private final AssumptionWithLocation exceptionAssumptions;
   private final AssumptionStorageCPA cpa;
   private final BooleanFormulaManager bfmgr;

@@ -400,10 +400,6 @@ public class SMGState implements AbstractQueryableState {
     heap.setMemoryLeak();
   }
 
- public void insertNewHasValueEdge(SMGEdgeHasValue pNewEdge) {
-   heap.addHasValueEdge(pNewEdge);
- }
-
  public boolean containsValue(int value) {
    return heap.getValues().contains(value);
  }
@@ -435,22 +431,6 @@ public class SMGState implements AbstractQueryableState {
   }
 
   /**
-   * Adds a new Address represented by a symbolic value and an offset
-   * to the SMG. The address points to the given object. Additionally,
-   * adds the necessary points-to edge to the given object representing Memory
-   * with the given offset.
-   *
-   * @param object An existing object in the SMG this address points to.
-   * @param offset the offset specifying the byte of memory this address points to.
-   * @param address the symbolic Value representing the address.
-   * @return
-   */
-  public Integer addAddress(SMGObject object, Integer offset, Integer address) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  /**
    * This method simulates a free invocation. It checks,
    * whether the call is valid, and invalidates the
    * Memory the given address points to.
@@ -460,9 +440,14 @@ public class SMGState implements AbstractQueryableState {
    * @param address The symbolic Value of the address.
    * @param offset The offset of the address relative to the beginning of smgObject.
    * @param smgObject The memory the given Address belongs to.
+   * @throws SMGInconsistentException
    */
-  public void free(Integer address, Integer offset, SMGObject smgObject) {
-    // TODO Auto-generated method stub
+  public void free(Integer address, Integer offset, SMGObject smgObject) throws SMGInconsistentException {
+    heap.setValidity(smgObject, false);
+    for (SMGEdgeHasValue edge : heap.getValuesForObject(smgObject)) {
+      heap.removeHasValueEdge(edge);
+    }
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /**
@@ -507,9 +492,11 @@ public class SMGState implements AbstractQueryableState {
    * the function with the given name
    *
    * @param functionName
+   * @throws SMGInconsistentException
    */
-  public void dropStackFrame(String functionName) {
-    // TODO Auto-generated method stub
+  public void dropStackFrame(String functionName) throws SMGInconsistentException {
+    this.heap.dropStackFrame();
+    this.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /**

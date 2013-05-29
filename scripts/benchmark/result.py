@@ -38,6 +38,13 @@ SCORE_UNKNOWN = 0
 SCORE_WRONG_UNSAFE = -4
 SCORE_WRONG_SAFE = -8
 
+RESULT_CORRECT_SAFE = ('correct', 'safe')
+RESULT_CORRECT_UNSAFE = ('correct', 'unsafe')
+RESULT_UNKNOWN = ('unknown', )
+RESULT_ERROR = ('error', )
+RESULT_WRONG_UNSAFE = ('wrong', 'unsafe')
+RESULT_WRONG_SAFE = ('wrong', 'safe')
+
 
 def fileIsUnsafe(filename):
     return util.containsAny(filename, _UNSAFE_SUBSTRING_LIST)
@@ -53,28 +60,25 @@ def getResultCategory(filename, status):
     status = status.lower()
 
     if status not in ['safe', 'unsafe', 'unknown']:
-        return 'error'
+        return RESULT_ERROR
 
-    if fileIsSafe(filename):
+    elif fileIsSafe(filename):
         if status == 'safe':
-            return 'correctSafe'
+            return RESULT_CORRECT_SAFE
         elif status == 'unsafe':
-            return 'wrongUnsafe'
+            return RESULT_WRONG_UNSAFE
 
     elif fileIsUnsafe(filename):
         if status == 'safe':
-            return 'wrongSafe'
+            return RESULT_WRONG_SAFE
         elif status == 'unsafe':
-            return 'correctUnsafe'
+            return RESULT_CORRECT_UNSAFE
 
-    else:
-        return None
-
-    return 'unknown'
+    return RESULT_UNKNOWN
 
 def calculateScore(category):
-    return {'correctSafe':   SCORE_CORRECT_SAFE,
-            'wrongSafe':     SCORE_WRONG_SAFE,
-            'correctUnsafe': SCORE_CORRECT_UNSAFE,
-            'wrongUnsafe':   SCORE_WRONG_UNSAFE,
+    return {RESULT_CORRECT_SAFE:   SCORE_CORRECT_SAFE,
+            RESULT_WRONG_SAFE:     SCORE_WRONG_SAFE,
+            RESULT_CORRECT_UNSAFE: SCORE_CORRECT_UNSAFE,
+            RESULT_WRONG_UNSAFE:   SCORE_WRONG_UNSAFE,
             }.get(category,  SCORE_UNKNOWN)

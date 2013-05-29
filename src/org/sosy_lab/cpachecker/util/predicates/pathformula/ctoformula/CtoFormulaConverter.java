@@ -1388,6 +1388,18 @@ public class CtoFormulaConverter {
     }
   }
 
+  <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
+    T one = fmgr.makeNumber(type, 1);
+    T zero = fmgr.makeNumber(type, 0);
+    return bfmgr.ifThenElse(pCond, one, zero);
+  }
+
+  <T extends Formula> BooleanFormula toBooleanFormula(T pF) {
+    // If this is not a predicate, make it a predicate by adding a "!= 0"
+    T zero = fmgr.makeNumber(fmgr.getFormulaType(pF), 0);
+    return bfmgr.not(fmgr.makeEqual(pF, zero));
+  }
+
   private BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
       String function, SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
 
@@ -1396,7 +1408,7 @@ public class CtoFormulaConverter {
     }
 
     Formula f = exp.accept(getCExpressionVisitor(edge, function, ssa, constraints));
-    BooleanFormula result = fmgr.toBooleanFormula(f);
+    BooleanFormula result = toBooleanFormula(f);
 
     if (!isTrue) {
       result = bfmgr.not(result);
