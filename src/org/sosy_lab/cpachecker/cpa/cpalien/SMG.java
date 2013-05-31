@@ -104,8 +104,21 @@ public class SMG {
   }
 
   /**
+   * Remove {@link pValue} from the SMG. This method does not remove
+   * any edges leading from/to the removed value.
+   *
+   * Keeps consistency: no
+   *
+   * @param pValue Value to remove
+   */
+  final public void removeValue(final Integer pValue) {
+    this.values.remove(pValue);
+  }
+  /**
    * Remove {@link pObj} from the SMG. This method does not remove
    * any edges leading from/to the removed object.
+   *
+   * Keeps consistency: no
    *
    * @param pObj Object to remove
    */
@@ -116,6 +129,8 @@ public class SMG {
 
   /**
    * Remove {@link pObj} and all edges leading from/to it from the SMG
+   *
+   * Keeps consistency: no
    *
    * @param pObj Object to remove
    */

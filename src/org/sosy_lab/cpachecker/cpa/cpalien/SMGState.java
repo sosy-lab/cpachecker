@@ -496,6 +496,8 @@ public class SMGState implements AbstractQueryableState {
    */
   public void dropStackFrame(String functionName) throws SMGInconsistentException {
     this.heap.dropStackFrame();
+    this.performConsistencyCheck(SMGRuntimeCheck.FULL);
+    this.heap.pruneUnreachable();
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 

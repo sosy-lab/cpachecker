@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -305,6 +306,54 @@ public class CLangSMG extends SMG {
     CLangStackFrame frame = stack_objects.pop();
     for (SMGObject object : frame.getAllObjects()) {
       this.removeObjectAndEdges(object);
+    }
+  }
+
+  public void pruneUnreachable() {
+    Set<SMGObject> seen = new HashSet<>();
+    Set<Integer> seen_values = new HashSet<>();
+    Queue<SMGObject> workqueue = new ArrayDeque<>();
+
+    for (CLangStackFrame frame : this.getStackFrames()) {
+      for (SMGObject stack_object : frame.getAllObjects()) {
+        workqueue.add(stack_object);
+      }
+    }
+    for (SMGObject global_object : this.getGlobalObjects().values()) {
+      workqueue.add(global_object);
+    }
+
+    while ( ! workqueue.isEmpty()) {
+      SMGObject processed = workqueue.remove();
+      if ( ! seen.contains(processed)) {
+        seen.add(processed);
+        for (SMGEdgeHasValue outbound : this.getValuesForObject(processed)) {
+          if ( ! seen.contains(outbound.getObject())) {
+            workqueue.add(outbound.getObject());
+          }
+          if ( ! seen_values.contains(Integer.valueOf(outbound.getValue()))) {
+            seen_values.add(Integer.valueOf(outbound.getValue()));
+          }
+        }
+      }
+    }
+
+    Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(this.getObjects(), seen));
+    for (SMGObject stray_object : stray_objects) {
+      if (stray_object.notNull()) {
+        if (this.isObjectValid(stray_object)) {
+          this.setMemoryLeak();
+        }
+        this.removeObjectAndEdges(stray_object);
+        this.heap_objects.remove(stray_object);
+
+      }
+    }
+    Set<Integer> stray_values = new HashSet<>(Sets.difference(this.getValues(), seen_values));
+    for (Integer stray_value : stray_values) {
+      if (stray_value != this.getNullValue()) {
+        this.removeValue(stray_value);
+      }
     }
   }
 }
