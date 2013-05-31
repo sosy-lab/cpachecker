@@ -388,6 +388,12 @@ public class SMGTransferRelation implements TransferRelation {
       // last node of its CFA, where return edge is from that last node
       // to the return site of the caller function
       successor = handleExitFromFunction(smgState, returnEdge);
+      String funcName = returnEdge.getPredecessor().getFunctionName();
+      if (funcName.equals("main")) {
+        // Ugly, but I do not know how to do better
+        // TODO: Handle leaks at any program exit point (abort, etc.)
+        successor.dropStackFrame(funcName);
+      }
       break;
 
     default:
