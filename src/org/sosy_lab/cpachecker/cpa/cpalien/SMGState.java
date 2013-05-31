@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -359,7 +360,12 @@ public class SMGState implements AbstractQueryableState {
 
     switch (pProperty) {
       case "has-leaks":
-        return heap.hasMemoryLeaks();
+        if (heap.hasMemoryLeaks()) {
+          //TODO: Give more information
+          this.logger.log(Level.SEVERE, "Memory leak found");
+          return true;
+        }
+        return false;
       default:
         throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
     }
