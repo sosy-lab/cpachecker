@@ -2,7 +2,7 @@
 // Competition on Software Verification.
 // It checks only for "ERROR" labels,
 // and also implements some functions which usually lead to a program abort.
-CONTROL AUTOMATON SVCOMP
+CONTROL AUTOMATON CPAlienLeaks
 
 INITIAL STATE Init;
 
