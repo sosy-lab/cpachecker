@@ -603,6 +603,23 @@ class SMGConsistencyVerifier {
     return true;
   }
 
+  static private boolean verifyObjectConsistency(LogManager pLogger, SMG pSmg) {
+    for (SMGObject obj : pSmg.getObjects()) {
+      try {
+        pSmg.isObjectValid(obj);
+      } catch (IllegalArgumentException e) {
+        pLogger.log(Level.SEVERE, "SMG inconsistent: object does not have validity");
+        return false;
+      }
+
+      if (obj.getSizeInBytes() < 0) {
+        pLogger.log(Level.SEVERE, "SMG inconsistent: object with size lower than 0");
+        return false;
+      }
+    }
+    return true;
+  }
+
   /**
    * Verify a single SMG if it meets all consistency criteria.
    * @param pLogger A logger to record results
@@ -633,6 +650,10 @@ class SMGConsistencyVerifier {
         verifyEdgeConsistency(pLogger, pSmg, pSmg.getPTEdges()),
         pLogger,
         "Points To edge consistency");
+    toReturn = toReturn && verifySMGProperty(
+        verifyObjectConsistency(pLogger, pSmg),
+        pLogger,
+        "Validity consistency");
 
     pLogger.log(Level.FINEST, "Ending consistency check of a SMG");
 
