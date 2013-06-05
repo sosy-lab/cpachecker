@@ -43,6 +43,8 @@ public class SMGState implements AbstractQueryableState {
 
   private SMGRuntimeCheck runtimeCheckLevel;
 
+  private boolean invalidWrite = false;
+
   /**
    * Constructor.
    *
@@ -281,6 +283,12 @@ public class SMGState implements AbstractQueryableState {
       pValue = heap.getNullValue();
     }
 
+    if (! this.heap.isObjectValid(pObject)){
+      //Attempt to write to invalid object
+      this.setInvalidWrite();
+      return null;
+    }
+
     SMGEdgeHasValue new_edge = new SMGEdgeHasValue(pType, pOffset, pObject, pValue);
 
     // Check if the edge is  not present already
@@ -307,6 +315,10 @@ public class SMGState implements AbstractQueryableState {
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
 
     return new_edge;
+  }
+
+  private void setInvalidWrite() {
+    this.invalidWrite = true;
   }
 
   /**
@@ -363,6 +375,13 @@ public class SMGState implements AbstractQueryableState {
         if (heap.hasMemoryLeaks()) {
           //TODO: Give more information
           this.logger.log(Level.SEVERE, "Memory leak found");
+          return true;
+        }
+        return false;
+      case "has-invalid-writes":
+        if (this.invalidWrite) {
+          //TODO: Give more information
+          this.logger.log(Level.SEVERE, "Invalid write found");
           return true;
         }
         return false;

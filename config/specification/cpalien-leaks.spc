@@ -8,6 +8,7 @@ INITIAL STATE Init;
 
 STATE USEFIRST Init :
   MATCH LABEL [ERROR] -> ERROR;
+  CHECK(CPAlien, "has-invalid-writes") -> ERROR;
   CHECK(CPAlien, "has-leaks") -> ERROR;
 
 END AUTOMATON
