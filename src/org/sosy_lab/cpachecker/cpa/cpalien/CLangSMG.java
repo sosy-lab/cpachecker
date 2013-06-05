@@ -328,8 +328,9 @@ public class CLangSMG extends SMG {
       if ( ! seen.contains(processed)) {
         seen.add(processed);
         for (SMGEdgeHasValue outbound : this.getValuesForObject(processed)) {
-          if ( ! seen.contains(outbound.getObject())) {
-            workqueue.add(outbound.getObject());
+          SMGObject pointedObject = this.getObjectPointedBy(outbound.getValue());
+          if ( pointedObject != null && ! seen.contains(pointedObject)) {
+            workqueue.add(pointedObject);
           }
           if ( ! seen_values.contains(Integer.valueOf(outbound.getValue()))) {
             seen_values.add(Integer.valueOf(outbound.getValue()));
