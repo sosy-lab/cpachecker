@@ -589,7 +589,7 @@ class SMGConsistencyVerifier {
       //    - have same offset AND
       //    - leading to DIFFERENT values
       //  - two Points-To edges are inconsistent iff:
-      //    - different values point to same place (object, offse)
+      //    - different values point to same place (object, offset)
       //    - same values do not point to the same place
       for (SMGEdge other_edge : to_verify) {
         if (! edge.isConsistentWith(other_edge)) {
