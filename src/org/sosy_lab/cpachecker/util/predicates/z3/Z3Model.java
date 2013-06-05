@@ -63,8 +63,10 @@ public class Z3Model {
       return TermType.Integer;
     case Z3_REAL_SORT:
       return TermType.Real;
+    case Z3_BV_SORT:
+      return TermType.Bitvector;
     default:
-      // TODO Uninterpreted; Bitvector;
+      // TODO Uninterpreted;
       throw new IllegalArgumentException("Given parameter cannot be converted to a TermType!");
     }
   }
@@ -108,21 +110,25 @@ public class Z3Model {
       long argSort = get_sort(z3context, arg);
       int sortKind = get_sort_kind(z3context, argSort);
       switch (sortKind) {
-      case Z3_INT_SORT:
+      case Z3_INT_SORT: {
         PointerToInt p = new PointerToInt();
         boolean check = get_numeral_int(z3context, arg, p);
         Preconditions.checkState(check);
         lValue = p.value;
         break;
-
-      case Z3_REAL_SORT:
+      }
+      case Z3_REAL_SORT: {
         long numerator = get_numerator(z3context, arg);
         long denominator = get_denominator(z3context, arg);
         BigInteger num = BigInteger.valueOf(numerator);
         BigInteger den = BigInteger.valueOf(denominator);
         lValue = num.divide(den);
         break;
-
+      }
+      case Z3_BV_SORT: {
+        lValue = interpreteBitvector(arg);
+        break;
+      }
       default:
         throw new IllegalArgumentException(
             "function " + ast_to_string(z3context, expr) + " with unhandled arg "
@@ -207,9 +213,9 @@ public class Z3Model {
         lValue = num.divide(den);
         break;
 
-      //      case Bitvector:
-      //        lValue = fmgr.interpreteBitvector(lValueTerm);
-      //        break;
+      case Bitvector:
+        lValue = interpreteBitvector(value);
+        break;
 
       default:
         throw new IllegalArgumentException("Z3 expr with unhandled type " + lAssignable.getType());
@@ -230,6 +236,30 @@ public class Z3Model {
     // cleanup
     model_dec_ref(z3context, z3model);
     return new Model(model.build(), mgr.encapsulate(BooleanFormula.class, modelFormula));
+  }
+
+  /* INFO:
+   * There are 2 representations for BVs, depending on the length:
+   * (display (_ bv10 6)) -> #b001010, length=6
+   * (display (_ bv10 8)) -> #x0a, length=8, 8 modulo 4 == 0
+   */
+  private Object interpreteBitvector(long bv) {
+    long argSort = get_sort(z3context, bv);
+    int sortKind = get_sort_kind(z3context, argSort);
+    Preconditions.checkArgument(sortKind == Z3_BV_SORT);
+    //    int size = get_bv_sort_size(z3context, argSort);
+
+    return ast_to_string(z3context, bv);
+
+    // TODO make BigInteger from BV? signed/unsigned?
+
+    // next lines are not working, mk_bv2int can only handle short BVs (<31 bit)
+    //    boolean isSigned = false;
+    //    long numExpr = mk_bv2int(z3context, bv, isSigned);
+    //    PointerToInt p = new PointerToInt();
+    //    boolean check = get_numeral_int(z3context, numExpr, p);
+    //    Preconditions.checkState(check);
+    //    return p.value;
   }
 
 }
