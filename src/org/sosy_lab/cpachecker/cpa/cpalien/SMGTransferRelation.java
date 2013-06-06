@@ -531,7 +531,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       // We want to write a possible new Address in the new State, but
       // explore the old state for the parameters
-      Integer value = evaluateExpressionValue(newState, callEdge, exp, smgState);
+      Integer value = evaluateExpressionValue(smgState, callEdge, exp);
 
       if (value == null) {
         value = SMGValueFactory.getNewValue();
@@ -936,18 +936,11 @@ public class SMGTransferRelation implements TransferRelation {
     return rValue.accept(new IsNotZeroVisitor(newState, cfaEdge));
   }
 
-  private Integer evaluateExpressionValue(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue)
-      throws CPATransferException {
-    return evaluateExpressionValue(newState, cfaEdge, rValue, newState);
-  }
-
-  private Integer evaluateExpressionValue(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue, SMGState smgState)
-      throws CPATransferException {
-
+  private Integer evaluateExpressionValue(SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
     CType expressionType = getRealExpressionType(rValue);
 
     if (expressionType instanceof CPointerType) {
-      return evaluateSMGValue(newState, cfaEdge, rValue);
+      return evaluateSMGValue(smgState, cfaEdge, rValue);
 
     } else {
       return evaluateNonAddressValue(smgState, cfaEdge, rValue);
