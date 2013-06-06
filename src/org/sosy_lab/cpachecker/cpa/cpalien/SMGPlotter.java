@@ -86,10 +86,10 @@ public final class SMGPlotter {
     offset += 2;
     pSb.append(newLineWithOffset("label=\"Stack\";"));
 
-    int i = 0;
+    int i = pSmg.getStackFrames().size();
     for (CLangStackFrame stack_item : pSmg.getStackFrames()) {
       addStackItemSubgraph(stack_item, pSb, i);
-      i++;
+      i--;
     }
     offset -= 2;
     pSb.append(newLineWithOffset("}"));
@@ -99,7 +99,7 @@ public final class SMGPlotter {
     pSb.append(newLineWithOffset("subgraph cluster_stack_" + pStackFrame.getFunctionDeclaration().getName() + "{"));
     offset += 2;
     pSb.append(newLineWithOffset("fontcolor=blue;"));
-    pSb.append(newLineWithOffset("label=\"" + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
+    pSb.append(newLineWithOffset("label=\"#" + pIndex + ": " + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
 
     HashMap<String, SMGObject> to_print = new HashMap<>();
     to_print.putAll(pStackFrame.getVariables());
