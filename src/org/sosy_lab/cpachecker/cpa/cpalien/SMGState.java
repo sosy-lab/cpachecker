@@ -44,6 +44,9 @@ public class SMGState implements AbstractQueryableState {
   private SMGRuntimeCheck runtimeCheckLevel;
 
   private boolean invalidWrite = false;
+  private boolean invalidRead = false;
+
+  private boolean invalidFree = false;
 
   /**
    * Constructor.
@@ -250,6 +253,11 @@ public class SMGState implements AbstractQueryableState {
    * @throws SMGInconsistentException
    */
   public Integer readValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
+    if (! this.heap.isObjectValid(pObject)) {
+      this.setInvalidRead();
+      return null;
+    }
+
     SMGEdgeHasValue edge = new SMGEdgeHasValue(pType, pOffset, pObject, 0);
     Set<SMGEdgeHasValue> edges = heap.getValuesForObject(pObject, pOffset);
 
@@ -263,6 +271,10 @@ public class SMGState implements AbstractQueryableState {
     // TODO: Nullified blocks coverage interpretation
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
     return null;
+  }
+
+  private void setInvalidRead() {
+    this.invalidRead  = true;
   }
 
   /**
@@ -385,6 +397,20 @@ public class SMGState implements AbstractQueryableState {
           return true;
         }
         return false;
+      case "has-invalid-reads":
+        if (this.invalidRead) {
+          //TODO: Give more information
+          this.logger.log(Level.SEVERE, "Invalid read found");
+          return true;
+        }
+        return false;
+      case "has-invalid-frees":
+        if (this.invalidFree) {
+          //TODO: Give more information
+          this.logger.log(Level.SEVERE, "Invalid free found");
+          return true;
+        }
+        return false;
       default:
         throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
     }
@@ -468,6 +494,9 @@ public class SMGState implements AbstractQueryableState {
    * @throws SMGInconsistentException
    */
   public void free(Integer address, Integer offset, SMGObject smgObject) throws SMGInconsistentException {
+    if (! this.heap.isObjectValid(smgObject)) {
+      this.setInvalidFree();
+    }
     heap.setValidity(smgObject, false);
     for (SMGEdgeHasValue edge : heap.getValuesForObject(smgObject)) {
       heap.removeHasValueEdge(edge);
@@ -600,7 +629,7 @@ public class SMGState implements AbstractQueryableState {
    *  Signals an invalid free call.
    */
   public void setInvalidFree() {
-    // TODO Auto-generated method stub
+    this.invalidFree = true;
   }
 
   /**
