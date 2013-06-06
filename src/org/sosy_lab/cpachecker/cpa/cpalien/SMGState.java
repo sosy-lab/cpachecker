@@ -233,6 +233,18 @@ public class SMGState implements AbstractQueryableState {
     }
   }
 
+  /**
+   * Returns a Points-To edge leading from a value.
+   *
+   * Constant.
+   *
+   * @param pValue A value for which to return the Points-To edge
+   * @return A Points-To edge leading from the passed value. The value needs to be
+   * a pointer, i.e. it needs to have that edge. If it does not have it, the method raises
+   * an exception.
+   *
+   * @throws SMGInconsistentException When the value passed does not have a Points-To edge.
+   */
   public SMGEdgePointsTo getPointerFromValue(Integer pValue) throws SMGInconsistentException {
     for (SMGEdgePointsTo edge : heap.getPTEdges()){
       if (edge.getValue() == pValue) {
