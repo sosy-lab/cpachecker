@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Lists;
 
 // TODO: check whether this class is needed at all or if it can just be replaced by PredicateAbstractionRefinementStrategy
 class PredicatingExplicitRefinementStrategy extends PredicateAbstractionRefinementStrategy {
@@ -93,12 +92,6 @@ class PredicatingExplicitRefinementStrategy extends PredicateAbstractionRefineme
       List<ARGState> errorPath,
       List<BooleanFormula> pInterpolants) throws CPAException {
 
-    // extract predicates from interpolants
-    List<Collection<AbstractionPredicate>> newPreds = Lists.newArrayList();
-    for (BooleanFormula interpolant : pInterpolants) {
-      newPreds.add(convertInterpolant(interpolant));
-    }
-
     // create the mapping of CFA nodes to predicates, based on the counter example trace info
     ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
     ARGState interpolationPoint = null;
@@ -106,7 +99,9 @@ class PredicatingExplicitRefinementStrategy extends PredicateAbstractionRefineme
       ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> builder = ImmutableSetMultimap.builder();
 
       int i = 0;
-      for (Collection<AbstractionPredicate> predicates : newPreds) {
+      for (BooleanFormula interpolant : pInterpolants) {
+        Collection<AbstractionPredicate> predicates = convertInterpolant(interpolant);
+
         if (predicates.size() > 0) {
           ARGState currentState = errorPath.get(i);
           CFANode currentLocation = AbstractStates.extractLocation(currentState);
