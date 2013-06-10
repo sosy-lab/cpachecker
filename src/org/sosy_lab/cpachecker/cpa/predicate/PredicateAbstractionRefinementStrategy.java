@@ -153,11 +153,15 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       out.println();
       PredicateAbstractionRefinementStrategy.this.printStatistics(out);
       out.println("Number of refs with location-based cutoff:  " + numberOfRefinementsWithStrategy2);
+      if (itpSimplification.getNumberOfIntervals() > 0) {
+        out.println("Number of irrelevant preds in interpolants: " + irrelevantPredsInItp);
+      }
     }
   }
 
   // statistics
   private int numberOfRefinementsWithStrategy2 = 0;
+  private int irrelevantPredsInItp = 0;
 
   private final Timer predicateCreation = new Timer();
   private final Timer precisionUpdate = new Timer();
@@ -221,15 +225,22 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     Collection<AbstractionPredicate> preds;
 
+    int allPredsCount = 0;
     if (useBddInterpolantSimplification) {
       itpSimplification.start();
-      predAbsMgr.extractPredicates(interpolant); // Just to register all atoms as predicates
+      // need to call extractPredicates() for registering all predicates
+      allPredsCount = predAbsMgr.extractPredicates(interpolant).size();
       interpolant = predAbsMgr.buildAbstraction(fmgr.uninstantiate(interpolant), blockFormula).asInstantiatedFormula();
       itpSimplification.stop();
     }
 
     if (atomicPredicates) {
       preds = predAbsMgr.extractPredicates(interpolant);
+
+      if (useBddInterpolantSimplification) {
+        irrelevantPredsInItp += (allPredsCount-preds.size());
+      }
+
     } else {
       preds = ImmutableList.of(predAbsMgr.createPredicateFor(fmgr.uninstantiate(interpolant)));
     }
