@@ -243,7 +243,7 @@ public final class AbstractionManager {
         } else {
           if (bfmgr.isTrue(m2)) {
             // ITE(atom, m1, true) <==> (!atom || m1)
-            cache.put(n, bfmgr.or(bfmgr.not(atom), m2));
+            cache.put(n, bfmgr.or(bfmgr.not(atom), m1));
           } else if (bfmgr.isFalse(m2)) {
             // ITE(atom, m1, false) <==> (atom && m1)
             cache.put(n, bfmgr.and(atom, m1));
