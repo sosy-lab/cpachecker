@@ -32,6 +32,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -39,16 +40,17 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.PredicateMap;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 
 // TODO: check whether this class is needed at all or if it can just be replaced by PredicateAbstractionRefinementStrategy
@@ -98,12 +100,35 @@ class PredicatingExplicitRefinementStrategy extends PredicateAbstractionRefineme
     }
 
     // create the mapping of CFA nodes to predicates, based on the counter example trace info
-    PredicateMap predicateMap = new PredicateMap(newPreds, errorPath);
+    ImmutableSetMultimap<CFANode, AbstractionPredicate> predicateMap;
+    ARGState interpolationPoint = null;
+    {
+      ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> builder = ImmutableSetMultimap.builder();
+
+      int i = 0;
+      for (Collection<AbstractionPredicate> predicates : newPreds) {
+        if (predicates.size() > 0) {
+          ARGState currentState = errorPath.get(i);
+          CFANode currentLocation = AbstractStates.extractLocation(currentState);
+
+          // add each predicate to the respective set of the predicate map
+          for (AbstractionPredicate predicate : predicates) {
+            builder.put(currentLocation, predicate);
+          }
+
+          if (interpolationPoint == null) {
+            interpolationPoint = currentState;
+          }
+        }
+
+        i++;
+      }
+
+      predicateMap = builder.build();
+    }
 
     PredicatePrecision precision = extractPredicatePrecision(oldPrecision)
-        .addLocalPredicates(predicateMap.getPredicateMapping());
-    ARGState interpolationPoint = predicateMap.firstInterpolationPoint.getFirst();
-
+        .addLocalPredicates(predicateMap);
     return Pair.of(interpolationPoint, precision);
   }
 
