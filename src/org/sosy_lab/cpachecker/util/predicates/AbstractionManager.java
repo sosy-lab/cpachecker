@@ -224,8 +224,34 @@ public final class AbstractionManager {
         assert pred != null;
         BooleanFormula atom = pred.getSymbolicAtom();
 
-        BooleanFormula ite = bfmgr.ifThenElse(atom, m1, m2);
-        cache.put(n, ite);
+        if (bfmgr.isTrue(m1)) {
+          if (bfmgr.isFalse(m2)) {
+            // ITE(atom, true, false) <==> atom
+            cache.put(n, atom);
+          } else {
+            // ITE(atom, true, m2) <==> (atom || m2)
+            cache.put(n, bfmgr.or(atom, m2));
+          }
+        } else if (bfmgr.isFalse(m1)) {
+          if (bfmgr.isTrue(m2)) {
+            // ITE(atom, false, true) <==> !atom
+            cache.put(n, bfmgr.not(atom));
+          } else {
+            // ITE(atom, false, m2) <==> (!atom && m2)
+            cache.put(n, bfmgr.and(bfmgr.not(atom), m2));
+          }
+        } else {
+          if (bfmgr.isTrue(m2)) {
+            // ITE(atom, m1, true) <==> (!atom || m1)
+            cache.put(n, bfmgr.or(bfmgr.not(atom), m2));
+          } else if (bfmgr.isFalse(m2)) {
+            // ITE(atom, m1, false) <==> (atom && m1)
+            cache.put(n, bfmgr.and(atom, m1));
+          } else {
+            // ITE(atom, m1, m2)
+            cache.put(n, bfmgr.ifThenElse(atom, m1, m2));
+          }
+        }
       }
     }
 
