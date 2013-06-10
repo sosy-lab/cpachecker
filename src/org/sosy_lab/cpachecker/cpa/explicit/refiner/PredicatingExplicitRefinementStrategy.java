@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
+
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
@@ -49,6 +51,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.collect.ImmutableSetMultimap;
 
@@ -99,8 +102,11 @@ class PredicatingExplicitRefinementStrategy extends PredicateAbstractionRefineme
       ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> builder = ImmutableSetMultimap.builder();
 
       int i = 0;
-      for (BooleanFormula interpolant : pInterpolants) {
-        Collection<AbstractionPredicate> predicates = convertInterpolant(interpolant);
+      for (Pair<BooleanFormula, ARGState> currentInterpolationPoint : Pair.zipList(pInterpolants, errorPath)) {
+        BooleanFormula interpolant = currentInterpolationPoint.getFirst();
+        ARGState state = currentInterpolationPoint.getSecond();
+        PathFormula blockFormula = getPredicateState(state).getAbstractionFormula().getBlockFormula();
+        Collection<AbstractionPredicate> predicates = convertInterpolant(interpolant, blockFormula);
 
         if (predicates.size() > 0) {
           ARGState currentState = errorPath.get(i);

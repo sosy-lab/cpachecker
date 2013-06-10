@@ -529,6 +529,9 @@ cpa.explicit.precision.scoped = true
 # target file to hold the exported precision
 cpa.explicit.precisionFile = no default value
 
+# whether or not to avoid restarting at assume edges after a refinement
+cpa.explicit.refiner.avoidAssumes = false
+
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = false
 
@@ -830,6 +833,9 @@ cpa.predicate.refinement.splitItpAtoms = false
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)
 cpa.predicate.refinement.timelimit = 0
+
+# Use BDDs to simplify interpolants (removing irrelevant predicates)
+cpa.predicate.refinement.useBddInterpolantSimplification = false
 
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
