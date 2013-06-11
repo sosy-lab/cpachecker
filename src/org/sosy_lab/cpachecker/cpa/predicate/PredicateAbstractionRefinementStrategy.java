@@ -218,7 +218,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    * @return A set of predicates.
    */
   protected final Collection<AbstractionPredicate> convertInterpolant(
-      BooleanFormula interpolant, PathFormula blockFormula) {
+      final BooleanFormula pInterpolant, PathFormula blockFormula) {
+
+    BooleanFormula interpolant = pInterpolant;
     if (bfmgr.isTrue(interpolant)) {
       return Collections.<AbstractionPredicate>emptySet();
     }
@@ -244,7 +246,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     } else {
       preds = ImmutableList.of(predAbsMgr.createPredicateFor(fmgr.uninstantiate(interpolant)));
     }
-    assert !preds.isEmpty();
+    assert !preds.isEmpty() : "Interpolant without relevant predicates: " + pInterpolant + "; simplified to " + interpolant;
 
     logger.log(Level.FINEST, "Got predicates", preds);
 
