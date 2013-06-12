@@ -437,18 +437,17 @@ public class CtoFormulaConverter {
 //      || CTypeUtils.equals(t, type)
 //      : "Saving variables with mutliple types is not possible!";
     CType t = ssa.getType(name);
-    if (t != null) {
-      if (!areEqual(t, type)) {
-        log(Level.WARNING,
-            "Variable " + name + " was found with multiple types!"
-                + " Analysis with bitvectors could fail! "
-                + "(Type1: " + t + ", Type2: " + type + ")");
-      }
+    if (t != null && !areEqual(t, type)) {
 
       if (getFormulaTypeFromCType(t) != getFormulaTypeFromCType(type)) {
         throw new UnsupportedOperationException(
             "Variable " + name + " used with types of different sizes! " +
                 "(Type1: " + t + ", Type2: " + type + ")");
+      } else {
+        log(Level.WARNING,
+            "Variable " + name + " was found with multiple types!"
+                + " Analysis with bitvectors could fail! "
+                + "(Type1: " + t + ", Type2: " + type + ")");
       }
     }
   }
