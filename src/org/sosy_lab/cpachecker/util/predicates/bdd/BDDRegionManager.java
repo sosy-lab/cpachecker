@@ -27,6 +27,7 @@ import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -371,8 +372,10 @@ public class BDDRegionManager implements RegionManager {
       return makeTrue();
     }
 
-    return wrap(new FormulaToRegionConverter(fmgr, atomToRegion)
-                                              .visit(pF));
+
+    try (FormulaToRegionConverter converter = new FormulaToRegionConverter(fmgr, atomToRegion)) {
+      return wrap(converter.visit(pF));
+    }
   }
 
   /**
@@ -382,9 +385,11 @@ public class BDDRegionManager implements RegionManager {
    * objects, putting them into the referenceMap and referenceQueue,
    * gc'ing the BDDRegions again, and calling cleanupReferences() would be too big.
    */
-  private class FormulaToRegionConverter extends BooleanFormulaManagerView.BooleanFormulaVisitor<BDD> {
+  private class FormulaToRegionConverter extends BooleanFormulaManagerView.BooleanFormulaVisitor<BDD>
+                                         implements AutoCloseable {
 
     private final Function<BooleanFormula, Region> atomToRegion;
+    private final Map<BooleanFormula, BDD> cache = new HashMap<>();
 
     FormulaToRegionConverter(FormulaManagerView pFmgr,
         Function<BooleanFormula, Region> pAtomToRegion) {
@@ -407,9 +412,26 @@ public class BDDRegionManager implements RegionManager {
       return ((BDDRegion)atomToRegion.apply(pAtom)).getBDD().id();
     }
 
+    private BDD convert(BooleanFormula pOperand) {
+      BDD operand = cache.get(pOperand);
+      if (operand == null) {
+        operand = visit(pOperand);
+        cache.put(pOperand, operand);
+      }
+      return operand.id(); // copy BDD so the one in the cache won't be consumed
+    }
+
+    @Override
+    public void close() {
+      for (BDD bdd : cache.values()) {
+        bdd.free();
+      }
+      cache.clear();
+    }
+
     @Override
     public BDD visitNot(BooleanFormula pOperand) {
-      BDD operand = visit(pOperand);
+      BDD operand = convert(pOperand);
       BDD result = operand.not();
       operand.free();
       return result;
@@ -418,8 +440,8 @@ public class BDDRegionManager implements RegionManager {
     private BDD visitBinary(BooleanFormula pOperand1, BooleanFormula pOperand2,
         BDDFactory.BDDOp operator) {
 
-      BDD operand1 = visit(pOperand1);
-      BDD operand2 = visit(pOperand2);
+      BDD operand1 = convert(pOperand1);
+      BDD operand2 = convert(pOperand2);
 
       // optimization: applyWith() destroys arg0 and arg1,
       // but this is ok, because we would free them otherwise anyway
@@ -444,9 +466,9 @@ public class BDDRegionManager implements RegionManager {
     @Override
     public BDD visitIfThenElse(BooleanFormula pCondition,
         BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
-      BDD condition = visit(pCondition);
-      BDD thenBDD = visit(pThenFormula);
-      BDD elseBDD = visit(pElseFormula);
+      BDD condition = convert(pCondition);
+      BDD thenBDD = convert(pThenFormula);
+      BDD elseBDD = convert(pElseFormula);
 
       BDD result = condition.ite(thenBDD, elseBDD);
 
