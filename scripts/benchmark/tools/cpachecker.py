@@ -107,9 +107,11 @@ class Tool(benchmark.tools.template.BaseTool):
 
         if returnsignal != 0:
             if returnsignal == 6:
-                status = 'ABORTED (probably by Mathsat)'
+                status = 'ABORTED'
             elif returnsignal == 9 and isTimeout:
                 status = 'TIMEOUT'
+            elif returnsignal == 11:
+                status = 'SEGMENTATION FAULT'
             elif returnsignal == 15:
                 status = 'KILLED'
             else:
