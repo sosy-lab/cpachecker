@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
@@ -83,6 +84,7 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
 
   @Override
   public Long getBittype(int pBitwidth) {
+    checkArgument(pBitwidth > 0, "Cannot use bitvector type with size %s", pBitwidth);
     long bvSort = mk_bv_sort(getEnv(), pBitwidth);
     inc_ref(getEnv(), sort_to_ast(getEnv(), bvSort));
     return bvSort;  }
