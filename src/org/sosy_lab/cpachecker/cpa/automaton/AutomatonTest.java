@@ -58,7 +58,7 @@ public class AutomatonTest {
       Files.writeFile(tmpSpc, content);
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
       Assert.assertTrue(results.isSafe());
-      Assert.assertTrue(results.logContains("File \"./test/config/automata/tmpSpecification.spc\" was referenced multiple times."));
+      Assert.assertTrue(results.logContains("File \"test/config/automata/tmpSpecification.spc\" was referenced multiple times."));
       Assert.assertTrue("Could not delete temporary specification",tmpSpc.delete());
   }
   @Test
