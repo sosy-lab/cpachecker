@@ -143,19 +143,39 @@ public class ExplicitPrecision implements Precision {
     return refinablePrecision.getSize();
   }
 
-  /**
-   * This method computes the abstraction of a given state.
-   *
-   * @param state the state to compute the abstraction for
-   * @param location the current location
-   * @return the abstraction of the given state
-   */
   ExplicitState computeAbstraction(ExplicitState state, CFANode location) {
     refinablePrecision.setLocation(location);
 
     Collection<String> candidates = refinablePrecision.getAbstractionCandidates(state);
     for (Iterator<String> variableNames = candidates.iterator(); variableNames.hasNext(); ) {
-      if (isTracking(variableNames.next())) {
+      String name = variableNames.next();
+      /* for tests with failing benchmarks in product-lines
+       * //if(!name.equals("executiveFloor") && !name.startsWith("calls_") && !name.startsWith("personOnFloor_")) {
+      if(!name.startsWith("personOnFloor_0")
+      	&& !name.startsWith("personOnFloor_1")
+		&& !name.startsWith("personOnFloor_2")
+		&& !name.startsWith("personOnFloor_3")
+		&& !name.startsWith("personOnFloor_4")
+		&& !name.startsWith("personOnFloor_5")
+
+		&& !name.startsWith("calls_")
+
+		&& !name.startsWith("persons_")
+
+		&& !name.startsWith("floorButtons_")
+
+		&& !name.equals("executiveFloor")
+		&& !name.equals("currentFloorID")
+		&& !name.equals("currentHeading")) {
+        variableNames.remove();
+        continue;
+      }
+      if(name.contains("___cpa_temp_result_var_")) {
+        variableNames.remove();
+        continue;
+      }*/
+
+      if (isTracking(name)) {
         variableNames.remove();
       }
     }

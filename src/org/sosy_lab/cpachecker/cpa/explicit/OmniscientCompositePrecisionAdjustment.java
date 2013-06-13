@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -64,6 +65,9 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
 
   @Option(description="restrict abstractions to function calls/returns")
   private boolean alwaysAtFunctions = false;
+
+  @Option(description="restrict abstractions to assume edges")
+  private boolean alwaysAtAssumes = false;
 
   // statistics
   final Timer totalEnforceAbstraction         = new Timer();
@@ -203,9 +207,11 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    */
   private ExplicitState enforceAbstraction(ExplicitState state, LocationState location, ExplicitPrecision precision) {
     if (abstractAtEachLocation()
+    	|| abstractAtAssumes(location)
         || abstractAtFunction(location)
         || abstractAtLoopHead(location)) {
       state = precision.computeAbstraction(state, location.getLocationNode());
+      state.clearDelta();
     }
 
     return state;
@@ -217,7 +223,18 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    * @return true, if an abstraction should be computed at each location, else false
    */
   private boolean abstractAtEachLocation() {
-    return !alwaysAtFunctions && !alwaysAtLoops;
+    return !alwaysAtAssumes && !alwaysAtFunctions && !alwaysAtLoops;
+  }
+
+  /**
+   * This method determines whether or not the given location is a branching,
+   * and whether or not an abstraction shall be computed or not.
+   *
+   * @param location the current location
+   * @return true, if at the current location an abstraction shall be computed, else false
+   */
+  private boolean abstractAtAssumes(LocationState location) {
+    return alwaysAtAssumes && location.getLocationNode().getEnteringEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge;
   }
 
   /**
