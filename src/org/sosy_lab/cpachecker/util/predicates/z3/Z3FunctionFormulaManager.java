@@ -40,14 +40,17 @@ public class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Lon
   private final Z3FormulaCreator creator;
   private final Z3UnsafeFormulaManager unsafeManager;
   private final long z3context;
+  private final Z3SmtLogger smtLogger;
 
   public Z3FunctionFormulaManager(
       Z3FormulaCreator creator,
-      Z3UnsafeFormulaManager unsafeManager) {
+      Z3UnsafeFormulaManager unsafeManager,
+      Z3SmtLogger smtLogger) {
     super(creator, unsafeManager);
     this.creator = creator;
     this.z3context = creator.getEnv();
     this.unsafeManager = unsafeManager;
+    this.smtLogger = smtLogger;
   }
 
   @Override
@@ -91,6 +94,9 @@ public class Z3FunctionFormulaManager extends AbstractFunctionFormulaManager<Lon
     long returnType = toZ3Type(pReturnType);
     long func = mk_func_decl(z3context, symbol, sorts, returnType);
     inc_ref(z3context, func);
+
+    smtLogger.logFunctionDeclaration(symbol, sorts, returnType);
+
     return new Z3FunctionType<>(formulaType.getReturnType(), formulaType.getArgumentTypes(), func);
   }
 

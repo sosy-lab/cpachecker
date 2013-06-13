@@ -52,7 +52,7 @@ public class Z3FormulaCreator extends AbstractFormulaCreator<Long, Long, Long> {
     long symbol = mk_string_symbol(z3context, varName);
     long var = mk_const(z3context, symbol, type);
 
-    smtLogger.logDeclaration(var, type);
+    smtLogger.logVarDeclaration(var, type);
 
     return var;
   }

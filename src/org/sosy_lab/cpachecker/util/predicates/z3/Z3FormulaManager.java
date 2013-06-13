@@ -127,16 +127,16 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long> {
     smtLogger.logOption("proof", "true");
 
     // mathsat wants those 2 flags, they are ignored by other solvers
-    smtLogger.logOption("produce-models", "true");
-    smtLogger.logOption("produce-interpolants", "true");
-    smtLogger.logBracket("set-logic QF_UFLRA");
+//    smtLogger.logOption("produce-models", "true");
+//    smtLogger.logOption("produce-interpolants", "true");
+//    smtLogger.logBracket("set-logic QF_UFLRA");
 
 
     Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, numeralSort, smtLogger);
 
     // Create managers
     Z3UnsafeFormulaManager unsafeManager = new Z3UnsafeFormulaManager(creator);
-    Z3FunctionFormulaManager functionTheory = new Z3FunctionFormulaManager(creator, unsafeManager);
+    Z3FunctionFormulaManager functionTheory = new Z3FunctionFormulaManager(creator, unsafeManager, smtLogger);
     Z3BooleanFormulaManager booleanTheory = new Z3BooleanFormulaManager(creator);
     Z3RationalFormulaManager rationalTheory = new Z3RationalFormulaManager(creator, functionTheory);
     Z3BitvectorFormulaManager bitvectorTheory = new Z3BitvectorFormulaManager(creator);

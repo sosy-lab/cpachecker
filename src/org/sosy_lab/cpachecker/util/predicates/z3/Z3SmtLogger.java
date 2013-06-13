@@ -96,10 +96,18 @@ public class Z3SmtLogger {
     logBracket("set-option :" + option + " " + value);
   }
 
-  public void logDeclaration(long name, long returnType, long... inputTypes) {
+  public void logVarDeclaration(long name, long type) {
     if (logfile == null) { return; }
     if (declarations.add(name)) {
-      String s = "declare-fun " + ast_to_string(z3context, name) + " (";
+      logBracket("declare-fun " + ast_to_string(z3context, name) +
+          " () " + sort_to_string(z3context, type));
+    }
+  }
+
+  public void logFunctionDeclaration(long symbol, long[] inputTypes, long returnType) {
+    if (logfile == null) { return; }
+    if (declarations.add(symbol)) {
+      String s = "declare-fun " + get_symbol_string(z3context, symbol) + " (";
       for (long it : inputTypes) {
         s += sort_to_string(z3context, it) + " ";
       }
@@ -108,7 +116,6 @@ public class Z3SmtLogger {
       logBracket(s);
     }
   }
-
   public void logPush(int n) {
     if (logfile == null) { return; }
     logBracket("push " + n);
