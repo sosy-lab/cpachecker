@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -163,22 +165,27 @@ class CmdLineArguments {
 
       } else if (arg.startsWith("-") && !(new File(arg).exists())) {
         String argName = arg.substring(1); // remove "-"
-        File f = new File(String.format(DEFAULT_CONFIG_FILES_DIR, argName));
 
-        if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches() && f.exists()) {
-          try {
-            Files.checkReadableFile(f);
-            putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, f.getPath());
-          } catch (FileNotFoundException e) {
-            System.out.println("Invalid configuration " + argName + " (" + e.getMessage() + ")");
-            System.exit(0);
+        if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
+          Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, argName);
+
+          if (configFile != null) {
+            try {
+              Files.checkReadableFile(configFile);
+              putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, configFile.toString());
+            } catch (FileNotFoundException e) {
+              System.out.println("Invalid configuration " + argName + " (" + e.getMessage() + ")");
+              System.exit(0);
+            }
+          } else {
+            System.out.println("Invalid option " + arg);
+            System.out.println("If you meant to specify a configuration file, the file "
+                + String.format(DEFAULT_CONFIG_FILES_DIR, argName) + " does not exist.");
+            System.out.println("");
+            printHelp();
           }
-
         } else {
           System.out.println("Invalid option " + arg);
-          if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
-            System.out.println("If you meant to specify a configuration file, the file " + f.getPath() + " does not exist.");
-          }
           System.out.println("");
           printHelp();
         }
@@ -205,10 +212,10 @@ class CmdLineArguments {
 
       // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
       if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches() && !(new File(newValue).exists())) {
-        File f = new File(String.format(DEFAULT_CONFIG_FILES_DIR, newValue));
+        Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, newValue);
 
-        if (f.exists()) {
-          newValue = f.getPath();
+        if (configFile != null) {
+          newValue = configFile.toString();
         }
       }
 
@@ -309,9 +316,9 @@ class CmdLineArguments {
         if (arg.equals("-spec")
             && SPECIFICATION_FILES_PATTERN.matcher(newValue).matches()) {
 
-          File specFile = new File(String.format(SPECIFICATION_FILES_TEMPLATE, newValue));
-          if (specFile.exists()) {
-            newValue = specFile.getAbsolutePath();
+          Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, newValue);
+          if (specFile != null) {
+            newValue = specFile.toString();
           } else {
             System.err.println("Checking for property " + newValue + " is currently not supported by CPAchecker.");
             System.exit(0);
@@ -333,5 +340,40 @@ class CmdLineArguments {
     } else {
       return false;
     }
+  }
+
+  /**
+   * Try to locate a file whose (partial) name is given by the user,
+   * using a file name template which is filled with the user given name.
+   *
+   * If the path is relative, it is first looked up in the current directory,
+   * and (if the file does not exist there), it is looked up in the parent directory
+   * of the code base.
+   *
+   * If the file cannot be found, null is returned.
+   *
+   * @param template The string template for the path.
+   * @param name The value for filling in the template.
+   * @return An absolute Path object pointing to an existing file or null.
+   */
+  private static Path findFile(String template, String name) {
+    final String fileName = String.format(template, name);
+    Path file = Paths.get(fileName);
+
+    // look in current directory first
+    if (java.nio.file.Files.exists(file)) {
+      return file.toAbsolutePath();
+    }
+
+    // look relative to code location second
+    Path codeLocation = Paths.get(CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+    Path baseDir = codeLocation.getParent();
+
+    file = baseDir.resolve(fileName);
+    if (java.nio.file.Files.exists(file)) {
+      return file.toAbsolutePath();
+    }
+
+    return null;
   }
 }
