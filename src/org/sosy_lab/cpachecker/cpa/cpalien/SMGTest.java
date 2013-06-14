@@ -392,7 +392,7 @@ public class SMGTest {
   @Test
   public void getHVEdgesTest() {
     HashSet<SMGEdgeHasValue> set = new HashSet<>();
-    set.add(hv2has1at4);
+    set.add(hv2has2at0);
     set.add(hv2has1at4);
 
     Assert.assertTrue(smg.getHVEdges().containsAll(set));
