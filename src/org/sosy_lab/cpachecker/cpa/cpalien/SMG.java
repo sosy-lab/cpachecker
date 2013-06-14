@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -364,6 +365,20 @@ public class SMG {
    */
   final public MachineModel getMachineModel() {
     return this.machine_model;
+  }
+
+  public BitSet getNullBytesForObject(SMGObject pObj) {
+    BitSet bs = new BitSet(pObj.getSizeInBytes());
+    bs.clear();
+    SMGEdgeHasValueFilter objectFilter = new SMGEdgeHasValueFilter();
+    objectFilter.filterByObject(pObj);
+    objectFilter.filterHavingValue(getNullValue());
+
+    for (SMGEdgeHasValue edge : getHVEdges(objectFilter)) {
+      bs.set(edge.getOffset(), edge.getOffset() + edge.getSizeInBytes(machine_model));
+    }
+
+    return bs;
   }
 
   public void replaceHVSet(Set<SMGEdgeHasValue> pNewHV) {
