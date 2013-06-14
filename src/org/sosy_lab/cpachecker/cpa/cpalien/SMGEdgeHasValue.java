@@ -23,16 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class SMGEdgeHasValue extends SMGEdge {
   final private CType type;
   final private int offset;
+  final private CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
+  final private CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
 
   public SMGEdgeHasValue(CType pType, int pOffset, SMGObject pObject, int pValue) {
     super(pValue, pObject);
     type = pType;
+    offset = pOffset;
+  }
+
+  public SMGEdgeHasValue(int pSizeInBytes, int pOffset, SMGObject pObject, int pValue) {
+    super(pValue, pObject);
+    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(null, dummyInt, BigInteger.valueOf(pSizeInBytes));
+    type = new CArrayType(false, false, dummyChar, arrayLen);
     offset = pOffset;
   }
 
