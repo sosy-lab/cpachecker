@@ -129,7 +129,7 @@ public class CTypeUtils {
     }
     @Override
     public Boolean visit(CArrayType pThis) {
-      if (this == obj) {
+      if (pThis == obj) {
         return true;
       }
       if (pThis.getClass() != obj.getClass()) {
@@ -148,7 +148,7 @@ public class CTypeUtils {
     @Override
     public Boolean visit(CCompositeType pThis) {
 
-      if (this == obj) {
+      if (pThis == obj) {
         return true;
       }
       if (pThis.getClass() != obj.getClass()) {
@@ -196,7 +196,7 @@ public class CTypeUtils {
 
     @Override
     public Boolean visit(CElaboratedType pThis) {
-      if (this == obj) {
+      if (pThis == obj) {
         return true;
       }
       if (pThis.getClass() != obj.getClass()) {
@@ -215,7 +215,7 @@ public class CTypeUtils {
     @Override
     public Boolean visit(CEnumType pThis) {
 
-      if (this == obj) {
+      if (pThis == obj) {
         return true;
       }
       if (pThis.getClass() != obj.getClass()) {
@@ -234,7 +234,7 @@ public class CTypeUtils {
     @Override
     public Boolean visit(CFunctionType pThis) {
 
-      if (this == obj) {
+      if (pThis == obj) {
         return true;
       }
       if (!(obj instanceof CFunctionType)) {
@@ -279,7 +279,7 @@ public class CTypeUtils {
     @Override
     public Boolean visit(CPointerType pThis) {
 
-      if (this == obj) {
+      if (pThis == obj) {
         return true;
       }
       if (pThis.getClass() != obj.getClass()) {
@@ -297,7 +297,7 @@ public class CTypeUtils {
     @Override
     public Boolean visit(CProblemType pThis) {
 
-      if (this == obj) {
+      if (pThis == obj) {
         return true;
       }
       if (pThis.getClass() != obj.getClass()) {
@@ -315,7 +315,7 @@ public class CTypeUtils {
     @Override
     public Boolean visit(CSimpleType pThis) {
 
-      if (this == obj) {
+      if (pThis == obj) {
         return true;
       }
       if (pThis.getClass() != obj.getClass()) {
@@ -342,7 +342,7 @@ public class CTypeUtils {
 
     @Override
     public Boolean visit(CTypedefType pThis) {
-      if (this == obj) {
+      if (pThis == obj) {
         return true;
       }
 
