@@ -365,6 +365,11 @@ public class SMG {
   final public MachineModel getMachineModel() {
     return this.machine_model;
   }
+
+  public void replaceHVSet(Set<SMGEdgeHasValue> pNewHV) {
+    hv_edges.clear();
+    hv_edges.addAll(pNewHV);
+  }
 }
 
 class SMGConsistencyVerifier {
