@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 
 import com.google.common.collect.Multimap;
 
@@ -123,7 +124,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
           config,
           logger);
 
-      RefinementStrategy backupRefinementStrategy = new PredicatingExplicitRefinementStrategy(
+      RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
           config,
           logger,
           formulaManager,

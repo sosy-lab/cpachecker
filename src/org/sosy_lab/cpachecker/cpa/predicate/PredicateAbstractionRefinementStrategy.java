@@ -168,7 +168,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private final Timer argUpdate = new Timer();
   private final Timer itpSimplification = new Timer();
 
-  protected PredicateAbstractionRefinementStrategy(final Configuration config,
+  public PredicateAbstractionRefinementStrategy(final Configuration config,
       final LogManager pLogger, final FormulaManagerView pFormulaManager,
       final PredicateAbstractionManager pPredAbsMgr, final Solver pSolver)
           throws CPAException, InvalidConfigurationException {
