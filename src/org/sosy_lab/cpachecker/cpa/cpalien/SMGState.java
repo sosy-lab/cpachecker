@@ -271,7 +271,11 @@ public class SMGState implements AbstractQueryableState {
     }
 
     SMGEdgeHasValue edge = new SMGEdgeHasValue(pType, pOffset, pObject, 0);
-    Set<SMGEdgeHasValue> edges = heap.getValuesForObject(pObject, pOffset);
+
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    filter.filterByObject(pObject);
+    filter.filterAtOffset(pOffset);
+    Set<SMGEdgeHasValue> edges = heap.getHVEdges(filter);
 
     for (SMGEdgeHasValue object_edge : edges) {
       if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())){
@@ -316,7 +320,9 @@ public class SMGState implements AbstractQueryableState {
     SMGEdgeHasValue new_edge = new SMGEdgeHasValue(pType, pOffset, pObject, pValue);
 
     // Check if the edge is  not present already
-    Set<SMGEdgeHasValue> edges = heap.getValuesForObject(pObject);
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    filter.filterByObject(pObject);
+    Set<SMGEdgeHasValue> edges = heap.getHVEdges(filter);
     if (edges.contains(new_edge)){
       this.performConsistencyCheck(SMGRuntimeCheck.HALF);
       return new_edge;
@@ -343,19 +349,6 @@ public class SMGState implements AbstractQueryableState {
 
   private void setInvalidWrite() {
     this.invalidWrite = true;
-  }
-
-  /**
-   * Returns an unmodifiable set of {@link SMGEdgeHasValue} objects leading from
-   * {@link pObject}.
-   *
-   * Constant.
-   *
-   * @param pObject A source object
-   * @return A set of edges leading from an object.
-   */
-  public Set<SMGEdgeHasValue> getValuesForObject(SMGObject pObject) {
-    return heap.getValuesForObject(pObject);
   }
 
   /**
@@ -510,7 +503,9 @@ public class SMGState implements AbstractQueryableState {
       this.setInvalidFree();
     }
     heap.setValidity(smgObject, false);
-    for (SMGEdgeHasValue edge : heap.getValuesForObject(smgObject)) {
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    filter.filterByObject(smgObject);
+    for (SMGEdgeHasValue edge : heap.getHVEdges(filter)) {
       heap.removeHasValueEdge(edge);
     }
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -650,5 +645,9 @@ public class SMGState implements AbstractQueryableState {
    */
   public void setUnkownDereference() {
     // TODO Auto-generated method stub
+  }
+
+  public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
+    return this.heap.getHVEdges(pFilter);
   }
 }

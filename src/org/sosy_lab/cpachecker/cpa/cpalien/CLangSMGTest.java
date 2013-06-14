@@ -178,7 +178,10 @@ public class CLangSMGTest {
     Assert.assertEquals(1, smg_copy.getGlobalObjects().size());
 
     Assert.assertEquals(obj1, smg_copy.getObjectPointedBy(val1));
-    Assert.assertEquals(hv, smg_copy.getValuesForObject(obj2).iterator().next());
+
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    filter.filterByObject(obj2);
+    Assert.assertEquals(hv, smg_copy.getHVEdges(filter).iterator().next());
   }
 
   @Test

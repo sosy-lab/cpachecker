@@ -296,6 +296,16 @@ public class SMG {
   }
 
   /**
+   * Getter for obtaining unmodifiable view on Has-Value edges set, filtered by
+   * a certain set of criteria.
+   * @param pFilter Filtering object
+   * @return A set of Has-Value edges for which the criteria in p hold
+   */
+  final public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
+    return Collections.unmodifiableSet(pFilter.filterSet(this.hv_edges));
+  }
+
+  /**
    * Getter for obtaining unmodifiable view on Points-To edges set. Constant.
    * @return Unmodifiable view on Points-To edges set.
    */
@@ -330,65 +340,6 @@ public class SMG {
     }
 
     return null;
-  }
-
-  /**
-   * Back-end method for other flavors of getValuesForObject. Constant.
-   *
-   * Throws {@link IllegalArgumentException} if {@link pObject} is
-   * not present in the SMG.
-   *
-   * @param pObject An origin object.
-   * @param pOffset Requested object offset, or null
-   * @return An unmodifiable set of Has-Value edges leading from object
-   * {@link pObject}. If {@link} pOffset is not null, only the edges with
-   * offset=={@link pOffset} are included in the set.
-   *
-   * TODO: Long search (iteration) can be a performance problem
-   */
-  final private Set<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, Integer pOffset) {
-    if ( ! this.objects.contains(pObject)){
-      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
-    }
-
-    HashSet<SMGEdgeHasValue> toReturn = new HashSet<>();
-    for (SMGEdgeHasValue edge: this.hv_edges) {
-      if (edge.getObject() == pObject && (pOffset == null || edge.getOffset() == pOffset)) {
-        toReturn.add(edge);
-      }
-    }
-
-    return Collections.unmodifiableSet(toReturn);
-  }
-
-  /**
-   * Getter for obtaining all Has-Value edges leading from object {@link pObject}.
-   * Constant.
-   *
-   * Throws {@link IllegalArgumentException} if {@link pObject} is
-   * not present in the SMG.
-   *
-   * @param pObject An origin object
-   * @return An unmodifiable set of all Has-Value edges leading from {@link pObject}
-   */
-  final public Set<SMGEdgeHasValue> getValuesForObject(SMGObject pObject) {
-    return getValuesForObject(pObject, null);
-  }
-
-  /**
-   * Getter for obtaining Has-Value edges leading from object {@link pObject}
-   * at offset {@link pOffset}. Constant.
-   *
-   * Throws {@link IllegalArgumentException} if {@link pObject} is
-   * not present in the SMG.
-   *
-   * @param pObject Origin object.
-   * @param pOffset Requested offset.
-   * @return An unmodifiable set of all Has-Value edges leading from
-   * {@link pObject} at the offset {
-   */
-  final public Set<SMGEdgeHasValue> getValuesForObject(SMGObject pObject, int pOffset) {
-    return getValuesForObject(pObject, Integer.valueOf(pOffset));
   }
 
   /**
@@ -469,7 +420,10 @@ class SMGConsistencyVerifier {
     }
 
     // Verify that NULL object has no value
-    if (! pSmg.getValuesForObject(pSmg.getNullObject()).isEmpty()) {
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    filter.filterByObject(pSmg.getNullObject());
+
+    if (! pSmg.getHVEdges(filter).isEmpty()) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object has some value");
       return false;
     }
@@ -503,7 +457,10 @@ class SMGConsistencyVerifier {
         continue;
       }
       // Verify that the HasValue edge set for this invalid object is empty
-      if (pSmg.getValuesForObject(obj).size() > 0) {
+      SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+      filter.filterByObject(obj);
+
+      if (pSmg.getHVEdges(filter).size() > 0) {
         pLogger.log(Level.SEVERE, "SMG inconsistent: invalid object has a HVEdge");
         return false;
       }
@@ -524,7 +481,10 @@ class SMGConsistencyVerifier {
   static private boolean checkSingleFieldConsistency(LogManager pLogger, SMGObject pObject, SMG pSmg) {
 
     // For all fields in the object, verify that sizeof(type)+field_offset < object_size
-    for (SMGEdgeHasValue hvEdge : pSmg.getValuesForObject(pObject)) {
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    filter.filterByObject(pObject);
+
+    for (SMGEdgeHasValue hvEdge : pSmg.getHVEdges(filter)) {
       if ((hvEdge.getOffset() + hvEdge.getSizeInBytes(pSmg.getMachineModel())) > pObject.getSizeInBytes()) {
         pLogger.log(Level.SEVERE, "SMG inconistent: field exceedes boundary of the object");
         pLogger.log(Level.SEVERE, "Object: ", pObject);

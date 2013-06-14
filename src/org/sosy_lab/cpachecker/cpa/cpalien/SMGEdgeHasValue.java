@@ -159,3 +159,61 @@ public class SMGEdgeHasValue extends SMGEdge {
     return true;
   }
 }
+
+class SMGEdgeHasValueFilter {
+  private SMGObject object = null;
+
+  private Integer value = null;
+  private boolean valueComplement = false;
+
+  private Integer offset = null;
+
+  public void filterByObject(SMGObject pObject) {
+    object = pObject;
+  }
+
+  public void filterHavingValue(Integer pValue) {
+    value = pValue;
+    valueComplement = false;
+  }
+
+  public void filterNotHavingValue(Integer pValue) {
+    value = pValue;
+    valueComplement = true;
+  }
+
+  public void filterAtOffset(Integer pOffset) {
+    offset = pOffset;
+  }
+
+  public boolean holdsFor(SMGEdgeHasValue pEdge) {
+    if (object != null && object != pEdge.getObject()) {
+      return false;
+    }
+
+    if (value != null) {
+      if (valueComplement && pEdge.getValue() == value) {
+        return false;
+      }
+      else if ( (!valueComplement) && pEdge.getValue() != value) {
+        return false;
+      }
+    }
+
+    if (offset != null && offset != pEdge.getOffset()) {
+      return false;
+    }
+
+    return true;
+  }
+
+  public Set<SMGEdgeHasValue> filterSet(Set<SMGEdgeHasValue> pEdges) {
+    Set<SMGEdgeHasValue> returnSet = new HashSet<>();
+    for (SMGEdgeHasValue edge : pEdges) {
+      if (this.holdsFor(edge)) {
+        returnSet.add(edge);
+      }
+    }
+    return Collections.unmodifiableSet(returnSet);
+  }
+}

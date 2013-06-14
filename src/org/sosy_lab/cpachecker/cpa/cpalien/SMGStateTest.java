@@ -147,14 +147,16 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Check the object values and assert it has only the written 16b value
-    Set<SMGEdgeHasValue> values_for_obj = state.getValuesForObject(pt.getObject());
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    filter.filterByObject(pt.getObject());
+    Set<SMGEdgeHasValue> values_for_obj = state.getHVEdges(filter);
     Assert.assertEquals(1, values_for_obj.size());
     Assert.assertTrue(values_for_obj.contains(hv));
 
     // Write a same 16b value into it and assert that the state did not change
     state.writeValue(pt.getObject(), 0, mockType16b, new_value);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
-    values_for_obj = state.getValuesForObject(pt.getObject());
+    values_for_obj = state.getHVEdges(filter);
     Assert.assertEquals(1, values_for_obj.size());
     Assert.assertTrue(values_for_obj.contains(hv));
 
@@ -162,7 +164,7 @@ public class SMGStateTest {
     Integer newer_value = SMGValueFactory.getNewValue();
     SMGEdgeHasValue new_hv = state.writeValue(pt.getObject(), 0, mockType16b, newer_value);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
-    values_for_obj = state.getValuesForObject(pt.getObject());
+    values_for_obj = state.getHVEdges(filter);
     Assert.assertEquals(1, values_for_obj.size());
     Assert.assertTrue(values_for_obj.contains(new_hv));
     Assert.assertFalse(values_for_obj.contains(hv));
@@ -170,14 +172,14 @@ public class SMGStateTest {
     // Write a 8b value at index 0 and see that the old value got overwritten
     SMGEdgeHasValue hv8at0 = state.writeValue(pt.getObject(), 0, mockType8b, new_value);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
-    values_for_obj = state.getValuesForObject(pt.getObject());
+    values_for_obj = state.getHVEdges(filter);
     Assert.assertEquals(1, values_for_obj.size());
     Assert.assertTrue(values_for_obj.contains(hv8at0));
 
     // Write a 8b value at index 8 and see that the old value did *not* get overwritten
     SMGEdgeHasValue hv8at8 = state.writeValue(pt.getObject(), 8, mockType8b, new_value);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
-    values_for_obj = state.getValuesForObject(pt.getObject());
+    values_for_obj = state.getHVEdges(filter);
     Assert.assertEquals(2, values_for_obj.size());
     Assert.assertTrue(values_for_obj.contains(hv8at0));
     Assert.assertTrue(values_for_obj.contains(hv8at8));
@@ -185,7 +187,7 @@ public class SMGStateTest {
     // Write a 8b value at index 4 and see that the old value got overwritten
     SMGEdgeHasValue hv8at4 = state.writeValue(pt.getObject(), 4, mockType8b, new_value);
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
-    values_for_obj = state.getValuesForObject(pt.getObject());
+    values_for_obj = state.getHVEdges(filter);
     Assert.assertEquals(1, values_for_obj.size());
     Assert.assertTrue(values_for_obj.contains(hv8at4));
     Assert.assertFalse(values_for_obj.contains(hv8at0));

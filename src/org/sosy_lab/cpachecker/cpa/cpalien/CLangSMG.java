@@ -323,11 +323,14 @@ public class CLangSMG extends SMG {
       workqueue.add(global_object);
     }
 
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+
     while ( ! workqueue.isEmpty()) {
       SMGObject processed = workqueue.remove();
       if ( ! seen.contains(processed)) {
         seen.add(processed);
-        for (SMGEdgeHasValue outbound : this.getValuesForObject(processed)) {
+        filter.filterByObject(processed);
+        for (SMGEdgeHasValue outbound : this.getHVEdges(filter)) {
           SMGObject pointedObject = this.getObjectPointedBy(outbound.getValue());
           if ( pointedObject != null && ! seen.contains(pointedObject)) {
             workqueue.add(pointedObject);
