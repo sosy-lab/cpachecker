@@ -34,10 +34,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 public class SMGEdgeHasValue extends SMGEdge {
   final private CType type;
   final private int offset;
+
   final private CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
   final private CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
 
@@ -165,8 +167,8 @@ class SMGEdgeHasValueFilter {
 
   private Integer value = null;
   private boolean valueComplement = false;
-
   private Integer offset = null;
+  private CType type = null;
 
   public void filterByObject(SMGObject pObject) {
     object = pObject;
@@ -186,6 +188,10 @@ class SMGEdgeHasValueFilter {
     offset = pOffset;
   }
 
+  public void filterByType(CType pType) {
+    type = pType;
+  }
+
   public boolean holdsFor(SMGEdgeHasValue pEdge) {
     if (object != null && object != pEdge.getObject()) {
       return false;
@@ -201,6 +207,10 @@ class SMGEdgeHasValueFilter {
     }
 
     if (offset != null && offset != pEdge.getOffset()) {
+      return false;
+    }
+
+    if (type != null && ! CTypeUtils.equals(type, pEdge.getType())) {
       return false;
     }
 
