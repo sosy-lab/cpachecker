@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -48,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
 
 import com.google.common.collect.ImmutableSet;
@@ -75,6 +78,35 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
+      CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
+    System.out.println("test");
+    if (pCfaEdge != null)
+      return getAbstractSuccessors0(pState, pPrecision, pCfaEdge);
+    CFANode[] nodes = ReachingDefUtils.getAllNodesFromCFA();
+    if (nodes == null)
+      throw new CPATransferException("CPA not properly initialized.");
+    Vector<AbstractState> successors = new Vector<>();
+    Vector<CFAEdge> definitions = new Vector<>();
+    CFAEdge cfaedge;
+    for (CFANode node : nodes) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+        cfaedge = node.getLeavingEdge(i);
+        if (!(cfaedge.getEdgeType() == CFAEdgeType.FunctionReturnEdge)) {
+          if(cfaedge.getEdgeType() == CFAEdgeType.StatementEdge || cfaedge.getEdgeType() == CFAEdgeType.DeclarationEdge){
+            definitions.add(node.getLeavingEdge(i));
+          } else {
+            successors.addAll(getAbstractSuccessors0(pState, pPrecision, node.getLeavingEdge(i)));
+          }
+        }
+      }
+    }
+    for(CFAEdge edge: definitions){
+      successors.addAll(getAbstractSuccessors0(pState, pPrecision, edge));
+    }
+    return successors;
+  }
+
+  private Collection<? extends AbstractState> getAbstractSuccessors0(AbstractState pState, Precision pPrecision,
       CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
 
     logger.log(Level.INFO, "Compute succesor for ", pState, "along edge", pCfaEdge);

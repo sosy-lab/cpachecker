@@ -171,7 +171,8 @@ public class ReachingDefState implements AbstractState, Serializable {
       Map<String, Set<DefinitionPoint>> map2) {
     Map<String, Set<DefinitionPoint>> newMap = new HashMap<>();
     // every declared local variable of a function, global variable occurs in respective map, possibly undefined
-    assert (map1.keySet().equals(map1.keySet()));
+    assert (map1.keySet().equals(map2.keySet()));
+    if(map1==map2) return map1;
     Set<DefinitionPoint> unionResult;
     boolean changed = false;
     for (String var : map1.keySet()) {

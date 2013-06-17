@@ -53,9 +53,17 @@ import com.google.common.collect.ImmutableSet;
 
 public class ReachingDefUtils {
 
+  private static CFANode[] cfaNodes;
+
+  public static CFANode[] getAllNodesFromCFA(){
+    return cfaNodes;
+  }
+
   public static Pair<Set<String>, Map<FunctionEntryNode, Set<String>>> getAllVariables(CFANode pMainNode) {
     CFAEdge out;
     Vector<String> globalVariables = new Vector<>();
+    Vector<CFANode> nodes = new Vector<>();
+    nodes.add(pMainNode);
 
     while (!(pMainNode instanceof FunctionEntryNode)) {
       out = pMainNode.getLeavingEdge(0);
@@ -63,6 +71,7 @@ public class ReachingDefUtils {
           && ((CDeclarationEdge) out).getDeclaration() instanceof CVariableDeclaration) {
         globalVariables.add(((CVariableDeclaration) ((CDeclarationEdge) out).getDeclaration()).getName());
       }
+      nodes.add(pMainNode);
       pMainNode = pMainNode.getLeavingEdge(0).getSuccessor();
     }
 
@@ -90,6 +99,7 @@ public class ReachingDefUtils {
 
       while (!currentWaitlist.isEmpty()) {
         currentElement = currentWaitlist.pop();
+        nodes.add(currentElement);
 
         for (int i = 0; i < currentElement.getNumLeavingEdges(); i++) {
           out = currentElement.getLeavingEdge(i);
@@ -125,7 +135,8 @@ public class ReachingDefUtils {
 
       result.put(currentFunction, ImmutableSet.copyOf(localVariables));
     }
-
+    cfaNodes = new CFANode[nodes.size()];
+    nodes.toArray(cfaNodes);
     return Pair.of((Set<String>) ImmutableSet.copyOf(globalVariables), result);
   }
 
