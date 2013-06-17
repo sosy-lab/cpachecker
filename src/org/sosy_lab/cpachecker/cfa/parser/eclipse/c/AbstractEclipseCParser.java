@@ -236,6 +236,10 @@ abstract class AbstractEclipseCParser<T> implements CParser {
       macrosBuilder.put("__builtin_types_compatible_p", "__builtin_types_compatible_p");
       macrosBuilder.put("__offsetof__", "__offsetof__");
 
+      macrosBuilder.put("__func__", "\"__func__\"");
+      macrosBuilder.put("__FUNCTION__", "\"__FUNCTION__\"");
+      macrosBuilder.put("__PRETTY_FUNCTION__", "\"__PRETTY_FUNCTION__\"");
+
       // Eclipse CDT 8.1.1 has problems with more complex attributes
       macrosBuilder.put("__attribute__(a)", "");
 
