@@ -431,6 +431,12 @@ public class ABMTransferRelation implements TransferRelation {
           AbstractState reducedState = reducedPair.getFirst();
           Precision reducedPrecision = reducedPair.getSecond();
 
+          if (reducedState == ABMARGBlockStartState.getDummy()) {
+            ((ABMARGBlockStartState)reducedState).addParent((ARGState) pElement);
+            expandedResult.add(reducedState);
+            return expandedResult;
+          }
+
           ARGState expandedState =
               (ARGState) wrappedReducer.getVariableExpandedState(pElement, currentBlock, reducedState);
           expandedToReducedCache.put(expandedState, reducedState);
@@ -536,7 +542,9 @@ public class ABMTransferRelation implements TransferRelation {
         //no target state, but waiting elements
         //analysis failed -> also break this analysis
         prec.breakAnalysis();
-        return Collections.singletonList(Pair.of(reducedInitialState, reducedInitialPrecision)); //dummy element
+        return Collections.singletonList(Pair.of(
+            (AbstractState) ABMARGBlockStartState.createDummy(reducedInitialState),
+            reducedInitialPrecision)); //dummy element
       } else {
         returnElements = AbstractStates.filterLocations(reached, currentBlock.getReturnNodes())
             .toList();
