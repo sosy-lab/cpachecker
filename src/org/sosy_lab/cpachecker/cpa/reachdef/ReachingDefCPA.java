@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 
 /*
  * Requires preprocessing with cil to get proper result because preprocessing guarantees that
@@ -69,11 +70,11 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
 
   private ReachingDefTransferRelation transfer;
 
-  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
       description="which merge operator to use for ReachingDefCPA")
   private String mergeType = "JOIN";
 
-  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(name="stop", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
       description="which stop operator to use for ReachingDefCPA")
   private String stopType = "SEP";
 
@@ -93,12 +94,16 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
 
     if (stopType.equals("SEP"))
       stop = new StopSepOperator(domain);
-    else
+    else if (mergeType.equals("JOIN"))
       stop = new StopJoinOperator(domain);
+    else
+      stop = new StopIgnoringCallstack();
     if (mergeType.equals("SEP"))
       merge = new MergeSepOperator();
-    else
+    else if (mergeType.equals("JOIN"))
       merge = new MergeJoinOperator(domain);
+    else
+      merge = new MergeIgnoringCallstack();
   }
 
   @Override

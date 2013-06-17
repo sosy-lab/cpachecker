@@ -370,6 +370,7 @@ class ASTConverter {
                                                typeConverter.convert(e.getExpressionType()),
                                                name,
                                                name,
+                                               scope.createScopedNameOf(name),
                                                null);
 
     scope.registerDeclaration(decl);
@@ -466,7 +467,39 @@ class ASTConverter {
   }
 
   private CFieldReference convert(IASTFieldReference e) {
-    return new CFieldReference(getLocation(e), typeConverter.convert(e.getExpressionType()), convert(e.getFieldName()), convertExpressionWithoutSideEffects(e.getFieldOwner()), e.isPointerDereference());
+    CType type = typeConverter.convert(e.getExpressionType());
+    CExpression owner = convertExpressionWithoutSideEffects(e.getFieldOwner());
+    String fieldName = convert(e.getFieldName());
+
+    if (type instanceof CProblemType) {
+      CType ownerType = owner.getExpressionType();
+      if (ownerType instanceof CElaboratedType) {
+        ownerType = ((CElaboratedType)ownerType).getRealType();
+      }
+      if (ownerType instanceof CCompositeType) {
+        CCompositeType compositeType = (CCompositeType)ownerType;
+        boolean foundReplacement = false;
+        for (CCompositeTypeMemberDeclaration field : compositeType.getMembers()) {
+          if (fieldName.equals(field.getName())) {
+            logger.log(Level.FINE, "Replacing type", type, "of field reference", e.getRawSignature(),
+                "in line", e.getFileLocation().getStartingLineNumber(),
+                "with", field.getType());
+            type = field.getType();
+            foundReplacement = true;
+            break;
+          }
+        }
+
+        // no matching field found
+        if (!foundReplacement) {
+          throw new CFAGenerationRuntimeException("Accessing non-existent field of composite type", e);
+        }
+      }
+
+      logger.log(Level.FINE, "Field reference", e.getRawSignature(), "has unknown type", type);
+    }
+
+    return new CFieldReference(getLocation(e), type, fieldName, owner, e.isPointerDereference());
   }
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
@@ -754,7 +787,7 @@ class ASTConverter {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Typedef with initializer", d);
         }
-        return new CTypeDefDeclaration(fileLoc, isGlobal, type, name);
+        return new CTypeDefDeclaration(fileLoc, isGlobal, type, name, scope.createScopedNameOf(name));
       }
 
       if (type instanceof CFunctionTypeWithNames) {
@@ -793,7 +826,9 @@ class ASTConverter {
         name = name + sep + index;
       }
 
-      CVariableDeclaration declaration = new CVariableDeclaration(fileLoc, isGlobal, cStorageClass, type, name, origName, null);
+      CVariableDeclaration declaration = new CVariableDeclaration(fileLoc,
+          isGlobal, cStorageClass, type, name, origName,
+          scope.createScopedNameOf(name), null);
       scope.registerDeclaration(declaration);
 
       // Now that we registered the declaration, we can parse the initializer.
@@ -1012,6 +1047,9 @@ class ASTConverter {
     }
 
     fType.setName(name);
+    for (CParameterDeclaration param : paramsList) {
+      param.setQualifiedName(FunctionScope.createQualifiedName(name, param.getName()));
+    }
 
     return Triple.of(type, d.getInitializer(), name);
   }
@@ -1100,18 +1138,26 @@ class ASTConverter {
     } else {
       CExpression v = convertExpressionWithoutSideEffects(e.getValue());
       boolean negate = false;
+      boolean complement = false;
 
-      if (v instanceof CUnaryExpression) {
+      if (v instanceof CUnaryExpression && ((CUnaryExpression) v).getOperator() == UnaryOperator.MINUS) {
         CUnaryExpression u = (CUnaryExpression)v;
-        assert u.getOperator() == UnaryOperator.MINUS : v;
         negate = true;
         v = u.getOperand();
+      } else if (v instanceof CUnaryExpression && ((CUnaryExpression) v).getOperator() == UnaryOperator.TILDE) {
+        CUnaryExpression u = (CUnaryExpression)v;
+        complement = true;
+        v = u.getOperand();
+      } else if (v instanceof CUnaryExpression && ((CUnaryExpression) v).getOperator() != UnaryOperator.PLUS){
+        assert false : v;
       }
 
       if (v instanceof CIntegerLiteralExpression) {
         value = ((CIntegerLiteralExpression)v).asLong();
         if (negate) {
           value = -value;
+        } else if(complement) {
+          value = ~value;
         }
       } else {
         // ignoring unsupported enum value
@@ -1119,7 +1165,8 @@ class ASTConverter {
       }
     }
 
-    CEnumerator result = new CEnumerator(getLocation(e), convert(e.getName()), value);
+    String name = convert(e.getName());
+    CEnumerator result = new CEnumerator(getLocation(e), name, scope.createScopedNameOf(name), value);
     scope.registerDeclaration(result);
     return result;
   }

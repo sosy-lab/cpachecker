@@ -23,61 +23,55 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.IOException;
 import java.io.StringReader;
 
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaCreator.CreateBitType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
+import de.uni_freiburg.informatik.ultimate.logic.FormulaLet;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
+import de.uni_freiburg.informatik.ultimate.logic.PrintTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
-
 public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
-  private SmtInterpolEnvironment env;
-  private SmtInterpolFormulaCreator creator;
+  private final SmtInterpolEnvironment env;
+  private final SmtInterpolFormulaCreator creator;
 
-  public SmtInterpolFormulaManager(
+  private SmtInterpolFormulaManager(
       SmtInterpolUnsafeFormulaManager pUnsafeManager,
       SmtInterpolFunctionFormulaManager pFunctionManager,
       SmtInterpolBooleanFormulaManager pBooleanManager,
       SmtInterpolRationalFormulaManager pNumericManager) {
     super(pUnsafeManager, pFunctionManager, pBooleanManager, pNumericManager, null);
-    this.creator = (SmtInterpolFormulaCreator)getFormulaCreator();
-    assert creator != null;
+    this.creator = checkNotNull((SmtInterpolFormulaCreator)getFormulaCreator());
     this.env = creator.getEnv();
   }
 
-
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
 
-    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config);
-    Type type = pUseIntegers ? Type.INT : Type.REAL;
-    if (pUseIntegers) {
-      env.setLogic(Logics.QF_UFLIA);
-    } else {
-      env.setLogic(Logics.QF_UFLRA);
-    }
-    final Sort t = env.sort(type);
-    CreateBitType<Sort> bitTypeCreator = new CreateBitType<Sort>() {
-      @Override
-      public Sort fromSize(int pSize) {
-        return t;
-      }};
+    Logics logic = pUseIntegers ? Logics.QF_UFLIA : Logics.QF_UFLRA;
+    SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logic);
 
-    SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env, env.sort(Type.BOOL), t, bitTypeCreator);
+    Type type = pUseIntegers ? Type.INT : Type.REAL;
+    final Sort t = env.sort(type);
+    SmtInterpolFormulaCreator creator = new SmtInterpolFormulaCreator(env, env.sort(Type.BOOL), t);
 
     // Create managers
     SmtInterpolUnsafeFormulaManager unsafeManager = new SmtInterpolUnsafeFormulaManager(creator);
     SmtInterpolFunctionFormulaManager functionTheory = new SmtInterpolFunctionFormulaManager(creator, unsafeManager);
     SmtInterpolBooleanFormulaManager booleanTheory = SmtInterpolBooleanFormulaManager.create(creator);
-    SmtInterpolRationalFormulaManager rationalTheory = SmtInterpolRationalFormulaManager.create(creator, functionTheory);
+    SmtInterpolRationalFormulaManager rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory, pUseIntegers);
     return new SmtInterpolFormulaManager(unsafeManager, functionTheory, booleanTheory, rationalTheory);
   }
 
@@ -108,8 +102,22 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
 
   @Override
-  public String dumpFormula(Term t) {
-    return t.toStringDirect();
+  public Appender dumpFormula(final Term t) {
+    return new Appenders.AbstractAppender() {
+
+      @Override
+      public void appendTo(Appendable pAppendable) throws IOException {
+        pAppendable.append("(assert ");
+
+        // This is the same as t.toString() does,
+        // but directly uses the Appendable for better performance
+        // and less memory consumption.
+        Term letted = (new FormulaLet()).let(t);
+        new PrintTerm().append(pAppendable, letted);
+
+        pAppendable.append(")");
+      }
+    };
   }
 
   @Override

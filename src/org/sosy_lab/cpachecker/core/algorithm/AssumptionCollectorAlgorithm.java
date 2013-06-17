@@ -50,6 +50,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.defaults.AbstractStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -66,7 +67,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -95,7 +96,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
-  private final FormulaManager formulaManager;
+  private final FormulaManagerView formulaManager;
   private final AssumptionWithLocation exceptionAssumptions;
   private final AssumptionStorageCPA cpa;
   private final BooleanFormulaManager bfmgr;
@@ -414,7 +415,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     pStatsCollection.add(new AssumptionCollectionStatistics());
   }
 
-  private class AssumptionCollectionStatistics implements Statistics {
+  private class AssumptionCollectionStatistics extends AbstractStatistics {
     @Override
     public String getName() {
       return "Assumption Collection algorithm";
@@ -422,10 +423,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-
       AssumptionWithLocation resultAssumption = collectLocationAssumptions(pReached, exceptionAssumptions);
 
-      out.println("Number of locations with assumptions: " + resultAssumption.getNumberOfLocations());
+      put(out, "Number of locations with assumptions", resultAssumption.getNumberOfLocations());
 
       if (exportAssumptions) {
         if (assumptionsFile != null) {
@@ -442,7 +442,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
           }
-          out.println("Number of states in automaton:        " + automatonStates);
+          put(out, "Number of states in automaton", automatonStates);
         }
       }
     }

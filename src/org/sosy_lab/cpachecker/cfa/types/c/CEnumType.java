@@ -113,14 +113,16 @@ public final class CEnumType implements CComplexType {
 
     private final Long           value;
     private CEnumType             enumType;
+    private final String         qualifiedName;
 
     public CEnumerator(final FileLocation pFileLocation,
-                          final String pName,
+                          final String pName, final String pQualifiedName,
         final Long pValue) {
       super(pFileLocation, INT_TYPE, pName);
 
       checkNotNull(pName);
       value = pValue;
+      qualifiedName = checkNotNull(pQualifiedName);
     }
 
     /**
@@ -136,6 +138,11 @@ public final class CEnumType implements CComplexType {
     public void setEnum(CEnumType pEnumType) {
       checkState(enumType == null);
       enumType = pEnumType;
+    }
+
+    @Override
+    public String getQualifiedName() {
+      return qualifiedName;
     }
 
     @Override

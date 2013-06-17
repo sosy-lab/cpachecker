@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -46,9 +47,11 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
@@ -107,14 +110,14 @@ public class PredicateMapParser {
   private final CFA cfa;
 
   private final LogManager logger;
-  private final FormulaManager fmgr;
+  private final FormulaManagerView fmgr;
   private final AbstractionManager amgr;
 
   private final Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
 
   public PredicateMapParser(Configuration config, CFA pCfa,
       LogManager pLogger,
-      FormulaManager pFmgr, AbstractionManager pAmgr) throws InvalidConfigurationException {
+      FormulaManagerView pFmgr, AbstractionManager pAmgr) throws InvalidConfigurationException {
     config.inject(this);
 
     cfa = pCfa;
@@ -275,7 +278,9 @@ public class PredicateMapParser {
       }
     }
 
-    return new PredicatePrecision(localPredicates, functionPredicates, globalPredicates);
+    return new PredicatePrecision(
+        ImmutableSetMultimap.<Pair<CFANode,Integer>, AbstractionPredicate>of(),
+        localPredicates, functionPredicates, globalPredicates);
   }
 
   private CFANode getCFANodeWithId(int id) {

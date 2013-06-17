@@ -23,16 +23,36 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 public class SMGEdgeHasValue extends SMGEdge {
   final private CType type;
   final private int offset;
 
+  final private CSimpleType dummyChar = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
+  final private CSimpleType dummyInt = new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
+
   public SMGEdgeHasValue(CType pType, int pOffset, SMGObject pObject, int pValue) {
     super(pValue, pObject);
     type = pType;
+    offset = pOffset;
+  }
+
+  public SMGEdgeHasValue(int pSizeInBytes, int pOffset, SMGObject pObject, int pValue) {
+    super(pValue, pObject);
+    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(null, dummyInt, BigInteger.valueOf(pSizeInBytes));
+    type = new CArrayType(false, false, dummyChar, arrayLen);
     offset = pOffset;
   }
 
@@ -66,5 +86,144 @@ public class SMGEdgeHasValue extends SMGEdge {
     }
 
     return true;
+  }
+
+  public boolean overlapsWith(SMGEdgeHasValue other, MachineModel pModel) {
+    if (this.object != other.object) {
+      throw new IllegalArgumentException("Call of overlapsWith() on Has-Value edges pair not originating from the same object");
+    }
+
+    int myStart = offset;
+    int otStart = other.getOffset();
+
+    int myEnd = myStart + pModel.getSizeof(type);
+    int otEnd = otStart + pModel.getSizeof(other.getType());
+
+    if (myStart < otStart) {
+      return (myEnd > otStart);
+
+    } else if ( otStart < myStart ) {
+      return (otEnd > myStart);
+    }
+
+    // Start offsets are equal, always overlap
+    return true;
+  }
+
+  // TODO: Fix compatibility detection based on type, not on the type size
+  public boolean isCompatibleField(SMGEdgeHasValue other, MachineModel pModel) {
+    // return (this.type.equals(other.type)) && (this.offset == other.offset);
+    return pModel.getSizeof(type) == pModel.getSizeof(other.type) && (this.offset == other.offset);
+  }
+
+  public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
+    // return (this.type.equals(other.type)) && (this.offset == other.offset) && (this.object == other.object);
+    return pModel.getSizeof(type) == pModel.getSizeof(other.type) && (this.offset == other.offset) && this.object == other.object;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + offset;
+    // "Do not use a hashCode() of CType"
+    // result = prime * result + ((type == null) ? 0 : type.hashCode());
+    // TODO: Ugly, ugly, ugly!
+    // I cannot obtain a hashcode of a type, therefore I cannot obtain hashcode
+    // of the Has-Value edge. *Seems* to work not, but is likely to cause
+    // problems in the future. Tread lightly.
+    result = prime * result + ((type == null) ? 0 : System.identityHashCode(type));
+    return result;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (!super.equals(obj))
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    SMGEdgeHasValue other = (SMGEdgeHasValue) obj;
+    if (offset != other.offset)
+      return false;
+    if (type == null) {
+      if (other.type != null)
+        return false;
+     } else if (!type.equals(other.type))
+      return false;
+    return true;
+  }
+}
+
+class SMGEdgeHasValueFilter {
+  private SMGObject object = null;
+
+  private Integer value = null;
+  private boolean valueComplement = false;
+  private Integer offset = null;
+  private CType type = null;
+
+  public void filterByObject(SMGObject pObject) {
+    object = pObject;
+  }
+
+  public void filterHavingValue(Integer pValue) {
+    value = pValue;
+    valueComplement = false;
+  }
+
+  public void filterNotHavingValue(Integer pValue) {
+    value = pValue;
+    valueComplement = true;
+  }
+
+  public void filterAtOffset(Integer pOffset) {
+    offset = pOffset;
+  }
+
+  public void filterByType(CType pType) {
+    type = pType;
+  }
+
+  public boolean holdsFor(SMGEdgeHasValue pEdge) {
+    if (object != null && object != pEdge.getObject()) {
+      return false;
+    }
+
+    if (value != null) {
+      if (valueComplement && pEdge.getValue() == value) {
+        return false;
+      }
+      else if ( (!valueComplement) && pEdge.getValue() != value) {
+        return false;
+      }
+    }
+
+    if (offset != null && offset != pEdge.getOffset()) {
+      return false;
+    }
+
+    if (type != null && ! CTypeUtils.equals(type, pEdge.getType())) {
+      return false;
+    }
+
+    return true;
+  }
+
+  public Set<SMGEdgeHasValue> filterSet(Set<SMGEdgeHasValue> pEdges) {
+    Set<SMGEdgeHasValue> returnSet = new HashSet<>();
+    for (SMGEdgeHasValue edge : pEdges) {
+      if (this.holdsFor(edge)) {
+        returnSet.add(edge);
+      }
+    }
+    return Collections.unmodifiableSet(returnSet);
   }
 }

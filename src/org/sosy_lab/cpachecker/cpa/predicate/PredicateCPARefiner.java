@@ -85,10 +85,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @Option(description="slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
 
-  @Option(name="msatCexFile",
+  @Option(
       description="where to dump the counterexample formula in case the error location is reached")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File dumpCexFile = new File("counterexample.msat");
+  private File dumpCounterexampleFile = new File("counterexample.smt2");
 
 
   class Stats implements Statistics {
@@ -147,6 +147,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     formulaManager = pInterpolationManager;
     pfmgr = pPathFormulaManager;
     strategy = pStrategy;
+
+    logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
   }
 
   @Override
@@ -215,13 +217,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
       CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getCounterexample());
 
-      cex.addFurtherInformation(new Object() {
-        // lazily call formulaManager.dumpCounterexample()
-        @Override
-        public String toString() {
-          return formulaManager.dumpCounterexample(preciseCounterexample);
-        }
-      }, dumpCexFile);
+      cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
+          dumpCounterexampleFile);
 
       totalRefinement.stop();
       return cex;

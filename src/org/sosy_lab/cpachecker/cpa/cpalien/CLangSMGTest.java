@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.*;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -47,10 +46,10 @@ import com.google.common.collect.ImmutableList;
 
 public class CLangSMGTest {
 
-  CType mockType = mock(CType.class);
+  private CType mockType = mock(CType.class);
   private CFunctionType functionType = mock(CFunctionType.class);
   private CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(null, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
-  private CLangStackFrame sf =  new CLangStackFrame(functionDeclaration);
+  private CLangStackFrame sf;
   private LogManager logger = mock(LogManager.class);
   private CIdExpression id_expression = new CIdExpression(null, null, "label", null);
 
@@ -64,13 +63,17 @@ public class CLangSMGTest {
   @Before
   public void setUp() {
     when(mockType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
+    when(functionType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
+
+    sf = new CLangStackFrame(functionDeclaration, MachineModel.LINUX64);
+    CLangSMG.setPerformChecks(true);
   }
 
   @Test
   public void CLangStackFrameConstructorTest() {
 
     // Normal constructor
-    HashMap<String, SMGObject> variables = sf.getVariables();
+    Map<String, SMGObject> variables = sf.getVariables();
     Assert.assertEquals("CLangStackFrame contains no variables after creation",
                         variables.size(), 0);
     Assert.assertFalse(sf.containsVariable("foo"));
@@ -88,7 +91,7 @@ public class CLangSMGTest {
     sf.addStackVariable("fooVar", new SMGObject(8, "fooVarObject"));
     Assert.assertTrue("Added variable is present", sf.containsVariable("fooVar"));
 
-    HashMap<String, SMGObject> variables = sf.getVariables();
+    Map<String, SMGObject> variables = sf.getVariables();
     Assert.assertEquals("Variables set is nonempty after variable addition",
                         variables.size(), 1);
     SMGObject smg_object = variables.get("fooVar");
@@ -99,6 +102,24 @@ public class CLangSMGTest {
     smg_object = sf.getVariable("fooVar");
     Assert.assertEquals("Correct variable is returned: label", smg_object.getLabel(), "fooVarObject");
     Assert.assertEquals("Correct variable is returned: size", smg_object.getSizeInBytes(), 8);
+  }
+
+  @Test
+  public void CLangGetObjectsTest() {
+    Set<SMGObject> objects = sf.getAllObjects();
+    // Test that there is an return value object at
+    Assert.assertEquals(1, objects.size());
+
+    sf.addStackVariable("fooVar", new SMGObject(8, "fooVarObject"));
+    objects = sf.getAllObjects();
+    Assert.assertEquals(2, objects.size());
+  }
+
+  //TODO: Test void functions
+  @Test
+  public void CLangReturnValueTest() {
+    SMGObject retval = sf.getReturnObject();
+    Assert.assertEquals(4, retval.getSizeInBytes());
   }
 
   @Test(expected=IllegalArgumentException.class)
@@ -157,7 +178,10 @@ public class CLangSMGTest {
     Assert.assertEquals(1, smg_copy.getGlobalObjects().size());
 
     Assert.assertEquals(obj1, smg_copy.getObjectPointedBy(val1));
-    Assert.assertEquals(hv, smg_copy.getValuesForObject(obj2).iterator().next());
+
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    filter.filterByObject(obj2);
+    Assert.assertEquals(hv, smg_copy.getHVEdges(filter).iterator().next());
   }
 
   @Test
@@ -190,6 +214,17 @@ public class CLangSMGTest {
 
     smg.addHeapObject(obj);
     smg.addHeapObject(obj);
+  }
+
+  @Test
+  public void CLangSMGaddHeapObjectTwiceWithoutChecksTest() {
+    CLangSMG.setPerformChecks(false);
+    CLangSMG smg = getNewCLangSMG64();
+    SMGObject obj = new SMGObject(8, "label");
+
+    smg.addHeapObject(obj);
+    smg.addHeapObject(obj);
+    Assert.assertTrue("Asserting the test finished without exception", true);
   }
 
   @Test
@@ -275,22 +310,22 @@ public class CLangSMGTest {
     SMGObject obj2 = new SMGObject(16, "label");
     SMGObject obj3 = new SMGObject(32, "label");
 
-    Assert.assertNull(smg.getObjectForVisibleVariable(id_expression));
+    Assert.assertNull(smg.getObjectForVisibleVariable(id_expression.getName()));
     smg.addGlobalObject(obj3);
-    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression), obj3);
+    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj3);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     smg.addStackObject(obj1);
-    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression), obj1);
+    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj1);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     smg.addStackObject(obj2);
-    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression), obj2);
-    Assert.assertNotEquals(smg.getObjectForVisibleVariable(id_expression), obj1);
+    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj2);
+    Assert.assertNotEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj1);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
-    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression), obj3);
-    Assert.assertNotEquals(smg.getObjectForVisibleVariable(id_expression), obj2);
+    Assert.assertEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj3);
+    Assert.assertNotEquals(smg.getObjectForVisibleVariable(id_expression.getName()), obj2);
   }
 
   @Test

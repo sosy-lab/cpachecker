@@ -81,14 +81,14 @@ import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.predicates.Model;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -169,7 +169,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description="dump counterexample formula to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File dumpCounterexampleFormula = new File("counterexample.msat");
+  private File dumpCounterexampleFormula = new File("counterexample.smt2");
 
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
@@ -332,7 +332,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
 
       // replay error path for a more precise satisfying assignment
-      BooleanFormula pathFormula = pmgr.makeFormulaForPath(targetPath.asEdgesList()).getFormula();
+      final BooleanFormula pathFormula = pmgr.makeFormulaForPath(targetPath.asEdgesList()).getFormula();
       prover.pop(); // remove program formula
 
       prover.push(pathFormula);
@@ -352,7 +352,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // create and store CounterexampleInfo object
       CounterexampleInfo counterexample = CounterexampleInfo.feasible(targetPath, model);
       if (pathFormula != null) {
-        counterexample.addFurtherInformation(pathFormula, dumpCounterexampleFormula);
+        counterexample.addFurtherInformation(fmgr.dumpFormula(pathFormula),
+            dumpCounterexampleFormula);
       }
 
       ((ARGCPA)cpa).setCounterexample(counterexample);

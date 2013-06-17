@@ -101,8 +101,12 @@ public class AutomaticCPAFactory implements CPAFactory {
     Annotation parameterAnnotations[][] = cons.getParameterAnnotations();
 
     Object actualParameters[] = new Object[formalParameters.length];
+    boolean childCpaInjected = false;
     for (int i = 0; i < formalParameters.length; i++) {
       Class<?> formalParam = formalParameters[i];
+      if (formalParam.equals(ConfigurableProgramAnalysis.class)) {
+        childCpaInjected = true;
+      }
       Object actualParam = get(formalParam);
 
       boolean optional = false;
@@ -124,6 +128,10 @@ public class AutomaticCPAFactory implements CPAFactory {
     String exception = Classes.verifyDeclaredExceptions(cons, InvalidConfigurationException.class, CPAException.class);
     if (exception != null) {
       throw new UnsupportedOperationException("Cannot automatically create CPAs if the constructor declares the unsupported checked exception " + exception);
+    }
+
+    if (!childCpaInjected && injects.containsKey(ConfigurableProgramAnalysis.class)) {
+      throw new InvalidConfigurationException("Child CPA configured for " + type.getSimpleName() + ", but this is not a wrapper CPA.");
     }
 
     // instantiate

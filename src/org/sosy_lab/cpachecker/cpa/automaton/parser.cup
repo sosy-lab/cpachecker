@@ -87,9 +87,7 @@ parser code {:
     CParser cparser = CParser.Factory.getParser(pLogger, CParser.Factory.getOptions(config), pMachine);
 
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
-    FileInputStream input = null;
-    try {
-      input = new FileInputStream(pInputFile);
+    try (FileInputStream input = new FileInputStream(pInputFile)) {
       Scanner scanner = new AutomatonScanner(input, pInputFile, config, pLogger, sf);
       Symbol symbol = new AutomatonParser(scanner, sf, pLogger, cparser).parse();
       return ((List<Automaton>) symbol.value);
@@ -100,16 +98,6 @@ parser code {:
       } else {      
         throw new InvalidConfigurationException("Could not load automaton from file " + pInputFile.getAbsolutePath()
             + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")", e);
-      }
-
-    } finally {
-      if (input!= null) {
-        try {
-          input.close();
-        } catch (IOException e) {
-          throw new InvalidConfigurationException(
-              "IO Exception when closing the FileStream to \"" + pInputFile.getAbsolutePath() + "\": "+e.getMessage(), e);
-        }
       }
     }
   }

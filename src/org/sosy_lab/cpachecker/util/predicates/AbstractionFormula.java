@@ -23,12 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serializable;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 /**
  * Instances of this class should hold a state formula (the result of an
@@ -47,7 +52,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 public class AbstractionFormula implements Serializable {
 
   private static final long serialVersionUID = -7756517128231447936L;
-  private transient final Region region;
+  private @Nullable transient final Region region; // Null after de-serializing from proof
   private final BooleanFormula formula;
   private final BooleanFormula instantiatedFormula;
 
@@ -59,17 +64,17 @@ public class AbstractionFormula implements Serializable {
 
   private static int nextId = 0;
   private final int id = nextId++;
-  private BooleanFormulaManager mgr;
+  private final BooleanFormulaManager mgr;
 
   public AbstractionFormula(
-      FormulaManager mgr,
+      FormulaManagerView mgr,
       Region pRegion, BooleanFormula pFormula,
       BooleanFormula pInstantiatedFormula, PathFormula pBlockFormula) {
-    this.mgr = mgr.getBooleanFormulaManager();
-    this.region = pRegion;
-    this.formula = pFormula;
-    this.instantiatedFormula = pInstantiatedFormula;
-    this.blockFormula = pBlockFormula;
+    this.mgr = checkNotNull(mgr.getBooleanFormulaManager());
+    this.region = checkNotNull(pRegion);
+    this.formula = checkNotNull(pFormula);
+    this.instantiatedFormula = checkNotNull(pInstantiatedFormula);
+    this.blockFormula = checkNotNull(pBlockFormula);
   }
 
   public boolean isTrue() {
@@ -80,7 +85,7 @@ public class AbstractionFormula implements Serializable {
     return mgr.isFalse(formula);
   }
 
-  public Region asRegion() {
+  public @Nullable Region asRegion() {
     return region;
   }
 
@@ -106,9 +111,9 @@ public class AbstractionFormula implements Serializable {
   public String toString() {
     // we print the formula only when it is small
     String abs = "";
-    if (region.isTrue()) {
+    if (isTrue()) {
       abs = ": true";
-    } else if (region.isFalse()) {
+    } else if (isFalse()) {
       abs = ": false";
     }
     return "ABS" + id + abs;

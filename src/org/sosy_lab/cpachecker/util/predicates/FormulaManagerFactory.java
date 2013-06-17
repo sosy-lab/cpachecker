@@ -66,10 +66,7 @@ public class FormulaManagerFactory {
       try {
         assert solver.equals(MATHSAT5);
 
-        lFmgr = Mathsat5FormulaManager.create(logger, config);
-        if (useIntegers) {
-          throw new InvalidConfigurationException("Using integers for program variables is currently not implementted when MathSAT is used.");
-        }
+        lFmgr = Mathsat5FormulaManager.create(logger, config, useIntegers);
 
       } catch (UnsatisfiedLinkError e) {
         throw new InvalidConfigurationException("The SMT solver " + solver

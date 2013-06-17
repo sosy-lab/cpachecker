@@ -39,13 +39,13 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 
@@ -171,6 +171,10 @@ public final class AbstractionManager {
    * to the BDD, in which each predicate is replaced with its definition)
    */
   public BooleanFormula toConcrete(Region af) {
+    if (rmgr instanceof SymbolicRegionManager) {
+      // optimization shortcut
+      return ((SymbolicRegionManager)rmgr).toFormula(af);
+    }
 
     Map<Region, BooleanFormula> cache;
     if (useCache) {
@@ -220,8 +224,34 @@ public final class AbstractionManager {
         assert pred != null;
         BooleanFormula atom = pred.getSymbolicAtom();
 
-        BooleanFormula ite = bfmgr.ifThenElse(atom, m1, m2);
-        cache.put(n, ite);
+        if (bfmgr.isTrue(m1)) {
+          if (bfmgr.isFalse(m2)) {
+            // ITE(atom, true, false) <==> atom
+            cache.put(n, atom);
+          } else {
+            // ITE(atom, true, m2) <==> (atom || m2)
+            cache.put(n, bfmgr.or(atom, m2));
+          }
+        } else if (bfmgr.isFalse(m1)) {
+          if (bfmgr.isTrue(m2)) {
+            // ITE(atom, false, true) <==> !atom
+            cache.put(n, bfmgr.not(atom));
+          } else {
+            // ITE(atom, false, m2) <==> (!atom && m2)
+            cache.put(n, bfmgr.and(bfmgr.not(atom), m2));
+          }
+        } else {
+          if (bfmgr.isTrue(m2)) {
+            // ITE(atom, m1, true) <==> (!atom || m1)
+            cache.put(n, bfmgr.or(bfmgr.not(atom), m1));
+          } else if (bfmgr.isFalse(m2)) {
+            // ITE(atom, m1, false) <==> (atom && m1)
+            cache.put(n, bfmgr.and(atom, m1));
+          } else {
+            // ITE(atom, m1, m2)
+            cache.put(n, bfmgr.ifThenElse(atom, m1, m2));
+          }
+        }
       }
     }
 
@@ -281,56 +311,13 @@ public final class AbstractionManager {
   }
 
   public Region buildRegionFromFormula(BooleanFormula pF) {
-    // expect that pF is uninstantiated
-    if (bfmgr.isFalse(pF)) {
-      return getRegionCreator().makeFalse();
-    }
-
-    if (bfmgr.isTrue(pF)) {
-      return getRegionCreator().makeTrue();
-    }
-
-    FormulaOperator op = bfmgr.getOperator(pF);
-    //TODO: see if this can be done without unsafe-manager
-    UnsafeFormulaManager unsafe = fmgr.getUnsafeFormulaManager();
-    if (op == null) { return null; }
-    switch (op) {
-    case ATOM: {
-      return atomToPredicate.get(pF).getAbstractVariable();
-    }
-    case NOT: {
-      return getRegionCreator()
-          .makeNot(
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0))));
-    }
-    case AND: {
-      return getRegionCreator()
-          .makeAnd(
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0))),
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 1))));
-    }
-    case OR: {
-      return getRegionCreator()
-          .makeOr(
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0))),
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 1))));
-    }
-    case EQUIV: {
-      return getRegionCreator()
-          .makeEqual(
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0))),
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 1))));
-    }
-    case ITE: {
-      return getRegionCreator()
-          .makeIte(
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0))),
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 1))),
-            buildRegionFromFormula(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 2))));
-    }
-    default:
-      return null;
-    }
+    return rmgr.fromFormula(pF, fmgr,
+        Functions.compose(new Function<AbstractionPredicate, Region>() {
+          @Override
+          public Region apply(AbstractionPredicate pInput) {
+            return pInput.getAbstractVariable();
+          }
+        }, Functions.forMap(atomToPredicate)));
   }
 
   public RegionCreator getRegionCreator() {

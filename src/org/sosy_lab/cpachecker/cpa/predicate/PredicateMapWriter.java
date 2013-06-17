@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -59,9 +60,15 @@ class PredicateMapWriter {
     fmgr = pCpa.getFormulaManager();
   }
 
-  public void writePredicateMap(SetMultimap<CFANode, AbstractionPredicate> localPredicates,
+  PredicateMapWriter(FormulaManagerView pFmgr) {
+    fmgr = pFmgr;
+  }
+
+  public void writePredicateMap(
+      SetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstancePredicates,
+      SetMultimap<CFANode, AbstractionPredicate> localPredicates,
       SetMultimap<String, AbstractionPredicate> functionPredicates, Set<AbstractionPredicate> globalPredicates,
-      Set<AbstractionPredicate> allPredicates, Appendable sb) throws IOException {
+      Collection<AbstractionPredicate> allPredicates, Appendable sb) throws IOException {
 
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
@@ -74,7 +81,7 @@ class PredicateMapWriter {
 
     // fill the above set and map
     for (AbstractionPredicate pred : allPredicates) {
-      String s = fmgr.dumpFormula(pred.getSymbolicAtom());
+      String s = fmgr.dumpFormula(pred.getSymbolicAtom()).toString();
       List<String> lines = Lists.newArrayList(LINE_SPLITTER.split(s));
       assert !lines.isEmpty();
       String predString = lines.get(lines.size()-1);
@@ -99,6 +106,13 @@ class PredicateMapWriter {
 
     for (Entry<CFANode, Collection<AbstractionPredicate>> e : localPredicates.asMap().entrySet()) {
       String key = e.getKey().getFunctionName() + " " + e.getKey().toString();
+      writeSetOfPredicates(sb, key, e.getValue(), predToString);
+    }
+
+    for (Entry<Pair<CFANode, Integer>, Collection<AbstractionPredicate>> e : locationInstancePredicates.asMap().entrySet()) {
+      CFANode loc = e.getKey().getFirst();
+      String key = loc.getFunctionName()
+           + " " + loc.toString() + "@" + e.getKey().getSecond();
       writeSetOfPredicates(sb, key, e.getValue(), predToString);
     }
   }

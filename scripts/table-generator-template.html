@@ -21,8 +21,8 @@
   tbody tr:first-child td { border-top:3px solid black}
   tfoot tr:first-child td { border-top:3px solid black}
   .status { text-align: center; }
-  .correctSafe, .correctUnsafe { color:green}
-  .wrongSafe, .wrongUnsafe { color:red; font-weight: bold; }
+  .correct.safe, .correct.unsafe { color:green}
+  .wrong.safe, .wrong.unsafe { color:red; font-weight: bold; }
   .unknown { color:orange; font-weight: bold; }
   .error { color:magenta; font-weight: bold; }
   .score { text-align:center; font-size:large; font-weight:bold; }
@@ -127,8 +127,13 @@ function fKeyPressed(event) {
   return (event.keyCode == 70 && event.ctrlKey == false);
 }
 
+// input: the index of the column in the table
 function getNameOfTest(column) {
   var test = columnsToTest[column-1];
+  return getNameOfTestDirect(test);
+}
+
+function getNameOfTestDirect(test) {
   return test.tool + ' '
        + (test.date ? test.date + ' ' : '')
        + test.name
@@ -217,14 +222,14 @@ $(document).ready(function() {
 
 // a two-dimensional array of all the cells in the table header,
 // but each cell occurs as often in a row as its colspan attribute says
-var headerArray = null;
+var headerAndFooterArray = null;
 
-function createHeaderArray() {
-  headerArray = [];
-  var tableHead = $('#dataTable > thead')[0];
-  for (var i=0; i<tableHead.rows.length; i++) {
-    var rowIndices = expandColSpanToNums(tableHead.rows[i]);
-    headerArray.push(rowIndices);
+function createHeaderAndFooterArray() {
+  headerAndFooterArray = [];
+  var rows = $('#dataTable > thead > tr, #dataTable > tfoot > tr');
+  for (var i=0; i<rows.length; i++) {
+    var rowIndices = expandColSpanToNums(rows[i]);
+    headerAndFooterArray.push(rowIndices);
   }
 }
 
@@ -254,17 +259,16 @@ function decColspan(col) {
 // this function shows or hides a column and enlarges or shrinks the header-columns
 // @param index: index of a column in row "columnTitle"
 function toggleColumn (shouldBeVisible, index) {
-    if (headerArray == null) { createHeaderArray(); }
+    if (headerAndFooterArray == null) { createHeaderAndFooterArray(); }
     var columnTitles = $('#columnTitles > td');
     // if column is hidden (or visible), we do not hide (or show) it again
     if ($(columnTitles[index]).is(":visible") != shouldBeVisible) {
-        for (var i=0; i<headerArray.length; i++) {
-            var cell = headerArray[i][index];
+        for (var i=0; i<headerAndFooterArray.length; i++) {
+            var cell = headerAndFooterArray[i][index];
             shouldBeVisible ? incColspan(cell) : decColspan(cell);
         }
         var childIndex = index+1; // first child is number 1
-        var children = $("#dataTable > tbody > tr > td:nth-child(" + childIndex + "), " +
-                         "#dataTable > tfoot > tr > td:nth-child(" + childIndex + ")");
+        var children = $("#dataTable > tbody > tr > td:nth-child(" + childIndex + ")");
         shouldBeVisible ? children.show() : children.hide();
     }
 }
@@ -389,6 +393,7 @@ $(document).ready(function() {
 
 <style type="text/css">
   button:hover { cursor: pointer; }
+  #rowFilterButtons ul { list-style-type:none }
   #rowFilterSelector   { position:absolute; top:20px; right:140px; width:100px; height:300px; }
   #button-filter-reset { position:absolute; top:20px; right:20px; width:100px; height:30px; }
   #button-filter-all   { position:absolute; top:60px; right:20px; width:100px; height:30px; }
@@ -401,27 +406,22 @@ $(document).ready(function() {
 function createRowFilterButtons() {
   $("#contentPane").empty();
 
-  var buttonList = '';
+  var buttonList = $('<form>', {id:'rowFilterButtons', onsubmit:'return false'})
+        .appendTo($("#contentPane"));
   var columnIndex = 1; // columns start with 1
   for (var i = 0; i < tests.length; i++) {
     var test = tests[i];
-    buttonList += '<ul>' + getNameOfTest(columnIndex);
+    var sublist = $('<ul>').text(getNameOfTest(columnIndex)).appendTo(buttonList);
 
     for (var j = 0; j < test.columns.length; j++, columnIndex++) {
-      var toggleFunction = 'onclick="fillRowFilterField(' + columnIndex + ')"';
-
-      var button = '<input type="radio" name="filter" id="check' + columnIndex + '" ' + toggleFunction + '>';
-      var label = '<label for="check' + columnIndex + '">' + test.columns[j] + '</label>';
-      buttonList += '<li>' + button + label + '</li>';
+      var target = 'check' + columnIndex;
+      var button = $('<input>', {
+                    type:'radio', name:'filter', id:target, 
+                    onclick:('fillRowFilterField(' + columnIndex + ')')});
+      var label = $('<label>', {for:target}).text(test.columns[j]).addClass("clickable");
+      $('<li>').append(button).append(label).appendTo(sublist);
     }
-    buttonList += '</ul>';
   }
-
-  buttonList = $(buttonList);
-
-  $('<form id="rowFilterButtons" onsubmit="return false"></form>')
-    .append(buttonList)
-    .appendTo($("#contentPane"));
 
   $('<button>').text('reset filter').attr('id', 'button-filter-reset')
         .attr('title', 'Click here to restore the complete table')
@@ -564,10 +564,12 @@ $(document).ready(function() {
 <script type="text/javascript" src="{{lib_url}}/jquery.jqplot-1.0.0b2_r1012/jqplot.canvasAxisTickRenderer.min.js"></script>
 <script type="text/javascript" src="{{lib_url}}/jquery.jqplot-1.0.0b2_r1012/jqplot.enhancedLegendRenderer.min.js"></script>
 <script type="text/javascript" src="{{lib_url}}/jquery.jqplot-1.0.0b2_r1012/jqplot.logAxisRenderer.min.js"></script>
+<script type="text/javascript" src="{{lib_url}}/jquery.jqplot-1.0.0b2_r1012/jqplot.canvasAxisLabelRenderer.min.js"></script>
+<script type="text/javascript" src="{{lib_url}}/jquery.jqplot-1.0.0b2_r1012/jqplot.canvasOverlay.min.js"></script>
 <link rel="stylesheet" type="text/css" href="{{lib_url}}/jquery.jqplot-1.0.0b2_r1012/jquery.jqplot.min.css"/>
 
 <style type="text/css">
-  .jqplot-title {font-family:arial, sans serif; font-size:large }
+  .jqplot-title {font-family:arial, sans serif; font-size:large; z-index:10 }
   .jqplot-table-legend-swatch {width:20px; height:15px }
   .jqplot-table-legend { border-style:none; outline:none }
   .jqplot-table-legend tbody { border-style:none }
@@ -582,6 +584,7 @@ $(document).ready(function() {
   #button-quantile { position:absolute; bottom:50px; }
   #button-logScale { position:absolute; bottom:25px; }
   #button-showCorrectOnly { position:absolute; bottom:0px; }
+  .scatterplot-selector { width:30%; }
 </style>
 
 <script type="text/javascript">
@@ -640,51 +643,22 @@ function collectTableData() {
     data.push([]);
   }
 
-  var tableBody = $('#dataTable > tbody')[0];
-
   // reset graphData
   graphData.filenames = [];
   graphData.integerOnly = true;
   graphData.minValue = Number.POSITIVE_INFINITY;
   graphData.maxValue = Number.NEGATIVE_INFINITY;
 
-  for (i = 0; i < tableBody.rows.length; i++) {
-    var currentRow = tableBody.rows[i];
-
-    if (!$(currentRow).is(":visible")) {
-        continue;
-    }
-
+  var rows = $('#dataTable > tbody > tr:visible');
+  for (i = 0; i < rows.length; i++) {
+    var currentRow = rows[i];
     graphData.filenames.push(currentRow.cells[0].textContent);
     
     for (j = 0; j < graphData.indices.length; j++) {
       var index = graphData.indices[j];
-      var currentCell = currentRow.cells[index];
+      var currentCell = $(currentRow.cells[index]);
+      var value = getValue(currentCell, graphData.target.textContent);
 
-      var value;
-      if (graphData.showCorrectOnly && currentCell.className.indexOf('correct') != 0) {
-        value = Number.NaN;  // using 'null' as unknown value causes problems in the plot
-
-      } else if (graphData.target.textContent === 'status') {
-        if (currentCell.className.indexOf('correct') == 0)     value = 1;
-        else if (currentCell.className.indexOf('wrong') == 0)  value = -1;
-        else                                                   value = 0;
-
-      } else {
-        value = parseFloat(currentCell.textContent);
-        valueInt = parseInt(currentCell.textContent);
-
-        // collect some information, used later for tick-formatter
-        if (!isNaN(value)) {
-            if (value != valueInt){ graphData.integerOnly = false; }
-            if (value < graphData.minValue) { graphData.minValue = value; }
-            if (value > graphData.maxValue) { graphData.maxValue = value; }
-        }
-
-        if (value == 0 && graphData.isLogScale) {
-          value = 0.00001; // zero is not part of log-scale
-        }
-      }
       // each array is of the form: [[id1, value1], [id2, value2], ...]
       data[j].push([i, value]);
     }
@@ -721,6 +695,76 @@ function sortData(data) {
   }
   return newData;
 }
+
+
+// returns the textcontent of a cell as numeral
+function getValue(cell, title) {
+    var value;
+    if (graphData.showCorrectOnly && !cell.hasClass('correct')) {
+        value = Number.NaN;  // using 'null' as unknown value causes problems in the plot
+
+    } else if (title === 'status') {
+        if (cell.hasClass('correct'))     value = 1;
+        else if (cell.hasClass('wrong'))  value = -1;
+        else                              value = 0;
+
+    } else {
+        value = parseFloat(cell.text());
+        valueInt = parseInt(cell.text());
+
+        // collect some information, used later for tick-formatter
+        if (!isNaN(value)) {
+            if (value != valueInt){ graphData.integerOnly = false; }
+            if (value < graphData.minValue) { graphData.minValue = value; }
+            if (value > graphData.maxValue) { graphData.maxValue = value; }
+        }
+
+        if (value == 0 && graphData.isLogScale) {
+            value = 0.00001; // zero is not part of log-scale
+        }
+    }
+    return value;
+}
+
+
+// this functions collects a list of pairs (a,b) where a and b are the entires for the scatterplot.
+// this function must be called as first function for working with the plot.
+// collectTableData collects some data for the graphData,
+// this function must be called as first function for working with the plot
+function collectTableDataForScatter(index1, title1, index2, title2) {
+  var data = [[]];
+
+  // reset graphData
+  graphData.indices = [];
+  graphData.filenames = [];
+  graphData.integerOnly = true;
+  graphData.minValue = Number.POSITIVE_INFINITY;
+  graphData.maxValue = Number.NEGATIVE_INFINITY;
+
+  var rows = $('#dataTable > tbody > tr:visible');
+  for (i = 0; i < rows.length; i++) {
+    var currentRow = rows[i];
+    
+    var cell1 = $(currentRow.cells[index1]);
+    var value1 = getValue(cell1, title1);
+    
+    var cell2 = $(currentRow.cells[index2]);
+    var value2 = getValue(cell2, title2);
+
+    // we need two real numbers
+    if (value1 != null && value2 != null && !isNaN(value1) && !isNaN(value2)) {
+        var filename = currentRow.cells[0].textContent;
+       
+        // each array is of the form: [[id1, value1], [id2, value2], ...], 
+        // the third entry is additional info and is used for the highlighter,
+        data[0].push([value1, value2, filename]);
+    }
+  }
+
+  graphData.originalData = data;
+  graphData.data = data;
+};
+
 
 // Create a list which indicates at which ticks to draw grid lines
 // and which labels to put at the x-axis.
@@ -827,6 +871,18 @@ function highlightFormatter(str, seriesIndex, pointIndex) {
 }
 
 
+function highlightFormatterForScatter(str, seriesIndex, pointIndex, plot) {
+    var point = plot.series[seriesIndex].data[pointIndex]; // POINT=[x,y,filename]
+    // console.log(point);
+    if (graphData.target.textContent == "status") { // TODO not working, we have 2 independent values
+      if (str == 1)       str = "correct";
+      else if (str == 0)  str = "unknown";
+      else                str = "wrong";
+    }
+    return point[2] + "<br>X: " + point[0] + "<br>Y: " + point[1]; // + "<br>STR: " + str;
+}
+
+
 function getYTicksFormat() {
     if (graphData.integerOnly) { return '%.0f'; }
     if (graphData.isLogScale) {
@@ -838,46 +894,152 @@ function getYTicksFormat() {
     }
 }
 
-function toggleQuantile() {
-  graphData.isQuantile = !graphData.isQuantile;
-  showPlot();
+
+function addButtons(target, callback, showQuantileButton) {
+    if (showQuantileButton) {
+        $('<button>', {id:'button-quantile'}).appendTo(target)
+            .click(function() { graphData.isQuantile = !graphData.isQuantile; callback();})
+            .text(graphData.isQuantile ? 'Switch to Direct Plot' : 'Switch to Quantile Plot');
+    }
+
+    $('<button>', {id:'button-logScale'}).appendTo(target)
+        .click(function() { graphData.isLogScale = !graphData.isLogScale; callback();})
+        .text(graphData.isLogScale ?  'Switch to Linear Scale' : 'Switch to Logarithmic Scale');
+
+    $('<button>', {id:'button-showCorrectOnly'}).appendTo(target)
+        .click(function() { graphData.showCorrectOnly = !graphData.showCorrectOnly; callback();})
+        .text(graphData.showCorrectOnly ?  'Switch to All Results' : 'Switch to Correct Results Only');
 }
 
-function toggleLogScale() {
-  graphData.isLogScale = !graphData.isLogScale;
-  showPlot();
+
+function getSelectorForScatter(identifier) {
+    var select = $('<select>', {class:'scatterplot-selector'});
+    var columnIndex = 1; // columns start with 1
+    for (var i = 0; i < tests.length; i++) {
+        var test = tests[i];
+        var group = $('<optgroup>', {label:getNameOfTestDirect(test)})
+                .appendTo(select);
+        for (var j = 0; j < test.columns.length; j++, columnIndex++) {
+            var column = test.columns[j];
+            var option = $('<option>', {
+                            value:columnIndex, 
+                            selected:(graphData.target[identifier] == columnIndex)})
+                        .text(column).appendTo(group);
+        }
+    }
+    
+    select.change(function(){
+        var selectedValue = Number(select.find(':selected')[0].value);
+        graphData.target[identifier] = selectedValue;
+        showScatterPlot();
+    });
+    
+    return select;
 }
 
-function toggleShowCorrectOnly() {
-  graphData.showCorrectOnly = !graphData.showCorrectOnly;
-  showPlot();
-}
+function showScatterPlot() {
+  $('#contentPaneBackground').trigger('click'); // cleanup
+  var contentPane = $('#contentPane').append('<div id="chart"></div>');
+  addButtons(contentPane, showScatterPlot, false);
+  showContentPane();
+
+  // the identifier '0/1' is the arrayindex in 'graphData.target',
+  // it identifies the first and second selector
+  var selector0 = getSelectorForScatter(0); 
+  var selector1 = getSelectorForScatter(1);
+  var index0 = graphData.target[0];
+  var index1 = graphData.target[1];
+  var titles = $('#columnTitles').children();
+  var title0 = titles[index0].textContent;
+  var title1 = titles[index1].textContent;
+  var label0 = getNameOfTest(index0) + " " + title0;
+  var label1 = getNameOfTest(index1) + " " + title1;
+  
+  collectTableDataForScatter(index0, title0, index1, title1);
+
+  var maxValue = graphData.maxValue * 100; // should be bigger than all measurable values
+  var minValue = graphData.isLogScale ? 0.0000001 : (-maxValue); // there is no zero in logscale
+
+  var plot = $.jqplot('chart', graphData.data, {
+    title: 'ScatterPlot: ',
+    legend: {
+      show:false,
+    },
+    highlighter:{
+      yvalues: 2,   // we have one extra value in the array
+      show: true,
+      sizeAdjust: 10,
+      showMarker: true,
+      tooltipAxes: 'y',
+      tooltipLocation: 'ne',
+      tooltipContentEditor: highlightFormatterForScatter, // functionPointer!
+      tooltipFormatString: '%s', // how to format the y-value
+      useAxesFormatters: false
+    },
+    seriesDefaults:{
+      showLine:false,
+      shadow: false,
+    },
+    cursor:{
+      show: false,
+      zoom: false,
+      showTooltip: false,
+    },
+    axes:{
+      xaxis:{
+        label:label0,
+        labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+        labelOptions:{ textColor:'Black' },
+        renderer: (graphData.isLogScale && title0 !== 'status') ? $.jqplot.LogAxisRenderer : $.jqplot.LinearAxisRenderer,
+        tickRenderer: $.jqplot.CanvasAxisTickRenderer,
+        tickOptions: {
+          angle: -60,
+        }
+      },
+      yaxis:{
+        label:label1,
+        labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+        labelOptions:{ textColor:'Black' },
+        renderer: (graphData.isLogScale && title1 !== 'status') ? $.jqplot.LogAxisRenderer : $.jqplot.LinearAxisRenderer,
+        pad: 1.2,
+        tickRenderer: $.jqplot.CanvasAxisTickRenderer,
+        tickOptions:{
+          formatString: getYTicksFormat()
+        }
+      }
+    },
+    canvasOverlay: {
+        show: true,
+        objects: [
+            {line: {
+                name: 'diagonalLine',
+                lineWidth: 1,
+                color: 'red',
+                shadow: false,
+                start: [minValue, minValue],
+                stop: [maxValue, maxValue],
+            } },
+        ]
+    }
+  });
+
+  $('.jqplot-title').empty()
+        .append('X: ').append(selector0)
+        .append('<span style="padding-left:50px"></span>') // some space between the selectors
+        .append('Y: ').append(selector1);
+
+  $('#contentPaneBackground').click(function(event) {
+    plot.destroy();
+    $('#chart').empty();
+  });
+};
+
 
 function showPlot() {
   $('#contentPaneBackground').trigger('click'); // cleanup
-
-  $('#contentPane').append('<div id="chart"></div>',
-                 '<button id="button-quantile"></button>',
-                 '<button id="button-logScale"></button>',
-                 '<button id="button-showCorrectOnly"></button>');
-
-  var button = $('#button-quantile')[0];
-  button.onclick = function() { toggleQuantile(); };
-  button.textContent = graphData.isQuantile ? 'Switch to Direct Plot' : 'Switch to Quantile Plot';
-
-  var button = $('#button-logScale')[0];
-  button.onclick = function() { toggleLogScale(); };
-  button.textContent = graphData.isLogScale ?  'Switch to Linear Scale' : 'Switch to Logarithmic Scale';
-
-  var button = $('#button-showCorrectOnly')[0];
-  button.onclick = function() { toggleShowCorrectOnly(); };
-  button.textContent = graphData.showCorrectOnly ?  'Switch to All Results' : 'Switch to Correct Results Only';
-
+  $('#contentPane').append('<div id="chart"></div>');
+  addButtons($('#contentPane'), showPlot, true);
   showContentPane();
-  $('#contentPaneBackground').click(function(event) {
-    $('#chart').empty();
-  });
-
   collectTableData();
 
   var plot = $.jqplot('chart', graphData.data, {
@@ -930,38 +1092,42 @@ function showPlot() {
   });
 
   addLegendActions();
+  
+  $('#contentPaneBackground').click(function(event) {
+    plot.destroy();
+    $('#chart').empty();
+  });
 };
 
 
 // this function adds the listeners to the table
 $(document).ready(function() {
-  var columnTitles = $('.columnTitles > td:not(:first-child)'); // do not use first column
-  for (i = 0; i< columnTitles.length; i++) {
-    var column = columnTitles[i];
-    debug(column);
-    $(column)
+  $('.columnTitles > td:not(:first-child)') // do not use first column
       .addClass("clickable")
       .attr("title", "Click here to show a graph of this column")
-    column.onclick = function (event) {
-      graphData.target = event.target;
-      graphData.isRunSet = false;
-      showPlot();
-    }
-  }
+      .click(function (event) {
+            graphData.target = event.target;
+            graphData.isRunSet = false;
+            showPlot();
+      });
   
-  var runSetTitles = $('.run > td:not(:first-child)'); // do not use first column
-  for (i = 0; i< runSetTitles.length; i++) {
-    var column = runSetTitles[i];
-    debug(column);
-    $(column)
+  $('.run > td:not(:first-child)') // do not use first column
       .addClass("clickable")
       .attr("title", "Click here to show a graph of this run-set")
-    column.onclick = function (event) {
-      graphData.target = event.target;
-      graphData.isRunSet = true;
-      showPlot();
-    }
-  }
+      .click(function (event) {
+            graphData.target = event.target;
+            graphData.isRunSet = true;
+            showPlot();
+      });
+  
+  $('.run > td:first-child')
+      .addClass("clickable")
+      .attr("title", "Click here to show some scatter-graphs")
+      .click(function (event) {
+            graphData.target = [1,1]; // default indices of the columns in the plot
+            graphData.isRunSet = false;
+            showScatterPlot();
+      });
 });
 
 </script>
@@ -1006,15 +1172,16 @@ def formatOptions(str):
 {{for line in body}}
 <tr><td title="Click here to show source code"><a href="{{line.filePath|url}}">{{line.shortFileName}}</a></td>
   {{for runResult in line.results}}
+  {{py:cssClasses = ' '.join(str(x) for x in runResult.category)}}
   {{for column, value in zip(runResult.columns, runResult.values)}}
-  {{if column.title == 'status'}}
+  {{if column.title == 'status' and value}}
     {{if runResult.logFile}}
-    <td class="status {{runResult.category}}" title="Click here to show output of tool"><a href="{{relpath(runResult.logFile, baseDir)|url}}">{{value.lower()}}</a></td>
+    <td class="status {{cssClasses}}" title="Click here to show output of tool"><a href="{{relpath(runResult.logFile, baseDir)|url}}">{{(value or '-').lower()}}</a></td>
     {{else}}
-    <td class="status {{runResult.category}}">{{value.lower()}}</td>
+    <td class="status {{cssClasses}}">{{(value or '-').lower()}}</td>
     {{endif}}
   {{else}}
-  <td class="{{runResult.category}}Value">{{value or '-'}}</td>
+  <td class="{{cssClasses}}Value">{{value or '-'}}</td>
   {{endif}}
   {{endfor}}
   {{endfor}}

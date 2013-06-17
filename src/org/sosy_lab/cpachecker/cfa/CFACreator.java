@@ -108,13 +108,9 @@ public class CFACreator {
       description="run interprocedural analysis")
   private boolean interprocedural = true;
 
-  @Option(name="analysis.completeEdges",
-      description="create all potential function call edges"
-          + " (e.g. for function pointer analysis)"
-          + " and add summary call statement edges"
-          + " (e.g. for bounded recursion analysis)")
-  @Deprecated
-  private boolean completeEdges = true;
+  @Option(name="analysis.functionPointerCalls",
+      description="create all potential function pointer call edges")
+  private boolean fptrCallEdges = true;
 
   @Option(name="analysis.useGlobalVars",
       description="add declarations for global variables before entry function")
@@ -291,26 +287,26 @@ public class CFACreator {
 
       stats.processingTime.start();
 
-      // annotate CFA nodes with reverse postorder information for later use
+      // get loop information
+      Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
+
+      if (language == Language.C && fptrCallEdges) {
+        CFunctionPointerResolver fptrResolver = new CFunctionPointerResolver(cfa, config, logger);
+        fptrResolver.resolveFunctionPointers();
+      }
+
+      // Annotate CFA nodes with reverse postorder information for later use.
+      // This needs to come after function pointer resolving because the latter
+      // adds nodes to the CFA.
       for (FunctionEntryNode function : cfa.getAllFunctionHeads()) {
         CFAReversePostorder sorter = new CFAReversePostorder();
         sorter.assignSorting(function);
       }
 
-      // get loop information
-      Optional<ImmutableMultimap<String, Loop>> loopStructure = getLoopStructure(cfa);
-
       // Insert call and return edges and build the supergraph
       if (interprocedural) {
         logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
-        CFASecondPassBuilder spbuilder;
-        if (completeEdges) {
-          logger.log(Level.FINE, "Complete edges option is on.");
-          spbuilder = new CFASecondPassBuilderComplete(cfa, language, config, logger);
-        } else {
-          spbuilder = new CFASecondPassBuilder(cfa, language, logger);
-        }
-        spbuilder.collectDataRecursively();
+        CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language, logger, config);
         spbuilder.insertCallEdgesRecursively();
       }
 
@@ -353,7 +349,7 @@ public class CFACreator {
       stats.checkTime.stop();
 
       if ((exportCfaFile != null) && (exportCfa || exportCfaPerFunction)) {
-        exportCFA(immutableCFA);
+        exportCFAAsync(immutableCFA);
       }
 
       logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
@@ -581,6 +577,7 @@ public class CFACreator {
                                          v.getType(),
                                          v.getName(),
                                          v.getOrigName(),
+                                         v.getQualifiedName(),
                                          initializer);
 
             previouslyInitializedVariables.add(name);
@@ -592,11 +589,19 @@ public class CFACreator {
     }
   }
 
-  private void exportCFA(final CFA cfa) {
-    // We used to do this asynchronously.
-    // However, FunctionPointerCPA modifies the CFA during analysis, so this is
-    // no longer safe.
+  private void exportCFAAsync(final CFA cfa) {
+    // execute asynchronously, this may take several seconds for large programs on slow disks
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        // running the following in parallel is thread-safe
+        // because we don't modify the CFA from this point on
+        exportCFA(cfa);
+      }
+    }, "CFA export thread").start();
+  }
 
+  private void exportCFA(final CFA cfa) {
     stats.exportTime.start();
 
     // write CFA to file

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**
  * Interface to implement in order for an abstract state
@@ -36,6 +36,6 @@ public interface FormulaReportingState extends AbstractState {
   /**
    * Returns a formula over-approximating the state.
    */
-  public BooleanFormula getFormulaApproximation(FormulaManager manager);
+  public BooleanFormula getFormulaApproximation(FormulaManagerView manager);
 
 }

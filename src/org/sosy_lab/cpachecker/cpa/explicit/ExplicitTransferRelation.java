@@ -128,7 +128,6 @@ import com.google.common.collect.ImmutableMap;
 
 @Options(prefix="cpa.explicit")
 public class ExplicitTransferRelation implements TransferRelation {
-
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final Map<String, String> UNSUPPORTED_FUNCTIONS
@@ -165,9 +164,6 @@ public class ExplicitTransferRelation implements TransferRelation {
   private Long notScopedFieldValue;
 
   private boolean missingAssumeInformation;
-
-
-
 
   public ExplicitTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -209,6 +205,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     if (successor == null) {
       return Collections.emptySet();
     } else {
+      successor.addToDelta(explicitState);
       return Collections.singleton(successor);
     }
   }
@@ -451,7 +448,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
 
     // assign initial value if necessary
-      String scopedVarName = getScopedVariableName(varName, functionName);
+      String scopedVarName = decl.isGlobal() ? varName : functionName + "::" + varName;
 
 
       boolean complexType = decl.getType() instanceof JClassOrInterfaceType || decl.getType() instanceof JArrayType;
@@ -649,6 +646,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       case PLUS:
       case MINUS:
       case DIVIDE:
+      case MODULO:
       case MULTIPLY:
       case SHIFT_LEFT:
       case BINARY_AND:
@@ -678,6 +676,9 @@ public class ExplicitTransferRelation implements TransferRelation {
           }
 
           return lVal / rVal;
+
+        case MODULO:
+          return lVal % rVal;
 
         case MULTIPLY:
           return lVal * rVal;
@@ -748,7 +749,6 @@ public class ExplicitTransferRelation implements TransferRelation {
         return (result ? 1L : 0L);
       }
 
-      case MODULO:
       case SHIFT_RIGHT:
       default:
         // TODO check which cases can be handled (I think all)
@@ -1314,11 +1314,6 @@ public class ExplicitTransferRelation implements TransferRelation {
       }
 
       return null;
-    }
-
-    @Override
-    public Long visit(JUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-        return super.visit(unaryExpression);
     }
   }
 

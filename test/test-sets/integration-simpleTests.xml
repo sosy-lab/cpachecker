@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="10" memlimit="4000">
+<benchmark tool="cpachecker" timelimit="10" memlimit="4000" cpuCores="2">
   <option name="-noout"/>
 
   <rundefinition>
@@ -11,5 +11,7 @@
     </sourcefiles>
     <option name="-config">test/config/alwaysTopAnalysis.properties</option>
   </rundefinition>
+
+  <requiredfiles>../config/alwaysTopAnalysis.properties</requiredfiles>
 
 </benchmark>

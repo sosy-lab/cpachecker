@@ -24,11 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.explicit;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
@@ -37,6 +33,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -57,11 +55,19 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 
-@Options(prefix="cpa.explicit.precisionAdjustment")
+@Options(prefix="cpa.explicit.blk")
 public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAdjustment implements StatisticsProvider {
-  @Option(description="whether or not to only abstract variables that where updated in the foregoing post operation")
-  private boolean useDeltaPrecision = false;
+
+  @Option(description="restrict abstractions to loop heads")
+  private boolean alwaysAtLoops = false;
+
+  @Option(description="restrict abstractions to function calls/returns")
+  private boolean alwaysAtFunctions = false;
+
+  @Option(description="restrict abstractions to assume edges")
+  private boolean alwaysAtAssumes = false;
 
   // statistics
   final Timer totalEnforceAbstraction         = new Timer();
@@ -69,6 +75,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   final Timer totalEnforceReachedSetThreshold = new Timer();
   final Timer totalComposite                  = new Timer();
   final Timer total                           = new Timer();
+  int abstractions                           = 0;
 
   private Statistics stats  = null;
   private boolean modified = false;
@@ -92,6 +99,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
         pOut.println("Total time for abstraction: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceAbstraction);
         pOut.println("Total time for reached set: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceReachedSetThreshold);
         pOut.println("Total time for path:        " + OmniscientCompositePrecisionAdjustment.this.totalEnforcePathThreshold);
+        pOut.println("abstractions:        " + OmniscientCompositePrecisionAdjustment.this.abstractions);
       }
 
       @Override
@@ -140,6 +148,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
         // compute the abstraction for CEGAR
         totalEnforceAbstraction.start();
         explicitState = enforceAbstraction(explicitState, location, explicitPrecision);
+        abstractions++;
         totalEnforceAbstraction.stop();
 
         // compute the abstraction for reached set thresholds
@@ -193,97 +202,111 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    * This method performs an abstraction computation on the current explicit state.
    *
    * @param location the current location
-   * @param explicitState the current state
-   * @param explicitPrecision the current precision
+   * @param state the current state
+   * @param precision the current precision
    */
-  private ExplicitState enforceAbstraction(ExplicitState explicitState, LocationState location, ExplicitPrecision explicitPrecision) {
-    explicitPrecision.setLocation(location.getLocationNode());
-
-    for (String variableName : getVariablesToDrop(explicitState, explicitPrecision)) {
-      explicitState.forget(variableName);
+  private ExplicitState enforceAbstraction(ExplicitState state, LocationState location, ExplicitPrecision precision) {
+    if (abstractAtEachLocation()
+    	|| abstractAtAssumes(location)
+        || abstractAtFunction(location)
+        || abstractAtLoopHead(location)) {
+      state = precision.computeAbstraction(state, location.getLocationNode());
+      state.clearDelta();
     }
 
-    explicitState.resetDelta();
-
-    return explicitState;
+    return state;
   }
 
   /**
-   * This method return the set of variables to be dropped according to the current precision.
+   * This method determines whether or not to abstract at each location.
    *
-   * @param explicitState the current state
-   * @param explicitPrecision the current precision
-   * @return the variables to the dropped
+   * @return true, if an abstraction should be computed at each location, else false
    */
-  private List<String> getVariablesToDrop(ExplicitState explicitState, ExplicitPrecision explicitPrecision) {
-    Set<String> candidates = useDeltaPrecision ? explicitState.getDelta() : explicitState.getTrackedVariableNames();
+  private boolean abstractAtEachLocation() {
+    return !alwaysAtAssumes && !alwaysAtFunctions && !alwaysAtLoops;
+  }
 
-    List<String> toDrop = new ArrayList<>();
-    if (candidates != null) {
-      for (String variableName : candidates) {
-        if (!explicitPrecision.isTracking(variableName)) {
-          toDrop.add(variableName);
+  /**
+   * This method determines whether or not the given location is a branching,
+   * and whether or not an abstraction shall be computed or not.
+   *
+   * @param location the current location
+   * @return true, if at the current location an abstraction shall be computed, else false
+   */
+  private boolean abstractAtAssumes(LocationState location) {
+    return alwaysAtAssumes && location.getLocationNode().getEnteringEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge;
+  }
+
+  /**
+   * This method determines whether or not the given location is a function entry or exit,
+   * and whether or not an abstraction shall be computed or not.
+   *
+   * @param location the current location
+   * @return true, if at the current location an abstraction shall be computed, else false
+   */
+  private boolean abstractAtFunction(LocationState location) {
+    return alwaysAtFunctions && (location.getLocationNode() instanceof FunctionEntryNode
+        || location.getLocationNode().getEnteringSummaryEdge() != null);
+  }
+
+  /**
+   * This method determines whether or not the given location is a loop head,
+   * and whether or not an abstraction shall be computed or not.
+   *
+   * @param location the current location
+   * @return true, if at the current location an abstraction shall be computed, else false
+   */
+  private boolean abstractAtLoopHead(LocationState location) {
+    return alwaysAtLoops && location.getLocationNode().isLoopStart();
+  }
+
+  /**
+   * This method abstracts variables that exceed the threshold of assignments along the current path.
+   *
+   * @param state the explicit state
+   * @param precision the current precision
+   * @param assignments the assignment information
+   * @return the abstracted explicit state
+   */
+  private Pair<ExplicitState, ExplicitPrecision> enforcePathThreshold(ExplicitState state, ExplicitPrecision precision, AssignmentsInPathConditionState assignments) {
+    if (assignments != null) {
+      if (assignments instanceof UniqueAssignmentsInPathConditionState) {
+        UniqueAssignmentsInPathConditionState unique = (UniqueAssignmentsInPathConditionState)assignments;
+        unique.addAssignment(state);
+      }
+
+      // forget the value for all variables that exceed their threshold
+      for (String variableName: state.getTrackedVariableNames()) {
+        if (assignments.variableExceedsThreshold(variableName)) {
+          state.forget(variableName);
         }
       }
     }
 
-    return toDrop;
+    return Pair.of(state, precision);
   }
 
-  private ExplicitState enforceReachedSetThreshold(ExplicitState element, ExplicitPrecision precision, Collection<AbstractState> reachedSetAtLocation) {
-    // if an actual meaningful threshold is set
-    if (precision.getReachedSetThresholds().defaultThreshold != -1) {
-      // create the mapping from variable name to the number of different values this variable has
-      HashMultimap<String, Long> valueMapping = createMappingFromReachedSet(reachedSetAtLocation);
+  /**
+   * This method abstracts variables that exceed the threshold of different values in a given slice of the reached set.
+   *
+   * @param state the explicit state
+   * @param precision the current precision
+   * @param reachedSetAtLocation the slice of the reached set from where to retrieve the values per variable
+   * @return the abstracted explicit state
+   */
+  private ExplicitState enforceReachedSetThreshold(ExplicitState state, ExplicitPrecision precision, Collection<AbstractState> reachedSetAtLocation) {
+    if (precision.isReachedSetThresholdActive()) {
+      // create the mapping from variable name to its different values in this slice of the reached set
+      Multimap<String, Long> valueMapping = createMappingFromReachedSet(reachedSetAtLocation);
 
-      // forget the value for all variables that exceed their threshold
       for (String variable : valueMapping.keySet()) {
-        if (precision.getReachedSetThresholds().exceeds(variable, valueMapping.get(variable).size())) {
-          precision.getReachedSetThresholds().setExceeded(variable);
-          element.forget(variable);
+        if (precision.variableExceedsReachedSetThreshold(valueMapping.get(variable).size())) {
+          state.forget(variable);
         }
       }
     }
 
-    return element;
-  }
-
-  private Pair<ExplicitState, ExplicitPrecision> enforcePathThreshold(ExplicitState element, ExplicitPrecision precision, AssignmentsInPathConditionState assigns) {
-    if (assigns != null) {
-      if (assigns instanceof UniqueAssignmentsInPathConditionState) {
-        UniqueAssignmentsInPathConditionState unique = (UniqueAssignmentsInPathConditionState)assigns;
-        unique.addAssignment(element);
-      }
-
-      // forget the value for all variables that exceed their threshold
-      for (Map.Entry<String, Integer> entry : assigns.getAssignmentCounts().entrySet()) {
-        if (precision.getPathThresholds().exceeds(entry.getKey(), entry.getValue())) {
-          //System.out.println((assigns instanceof AllAssignmentsInPathConditionState) ? "non-" : "" +
-          //    "unique path: forgetting var " + entry.getKey());
-
-          // the path threshold precision is path sensitive, therefore, mutating a clone is mandatory
-          if (modified == false) {
-            precision = new ExplicitPrecision(precision);
-            modified = true;
-          }
-
-          precision.getPathThresholds().setExceeded(entry.getKey());
-          element.forget(entry.getKey());
-        }
-      }
-    }
-
-    return Pair.of(element, precision);
-  }
-
-  private int getIndexOfExplicitState(CompositeState composite) {
-    for (int i = 0; i < composite.getWrappedStates().size(); ++i) {
-      if (composite.get(i) instanceof ExplicitState) {
-        return i;
-      }
-    }
-
-    return -1;
+    return state;
   }
 
   /**
@@ -291,15 +314,30 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    *
    * @param reachedSetAtLocation the collection of AbstractStates in the reached set that refer to the current location
    */
-  private HashMultimap<String, Long> createMappingFromReachedSet(Collection<AbstractState> reachedSetAtLocation) {
-    HashMultimap<String, Long> valueMapping = HashMultimap.create();
+  private Multimap<String, Long> createMappingFromReachedSet(Collection<AbstractState> reachedSetAtLocation) {
+    Multimap<String, Long> valueMapping = HashMultimap.create();
 
     for (AbstractState element : reachedSetAtLocation) {
-      for (Map.Entry<String, Long> entry : ((ExplicitState)element).getConstantsMap().entrySet()) {
-        valueMapping.put(entry.getKey(), entry.getValue());
-      }
+      valueMapping = ((ExplicitState)element).addToValueMapping(valueMapping);
     }
 
     return valueMapping;
+  }
+
+  /**
+   * This helper gets the index of the explicit state within the composite state.
+   *
+   * @param composite the composite state in which to look for the explicit state
+   * @return the index of the explicit state within the composite state
+   * @throws CPAException if no explicit state could be found
+   */
+  private int getIndexOfExplicitState(CompositeState composite) throws CPAException {
+    for (int i = 0; i < composite.getWrappedStates().size(); ++i) {
+      if (composite.get(i) instanceof ExplicitState) {
+        return i;
+      }
+    }
+
+    throw new CPAException("Explicit-State could not be found within Composite-State.");
   }
 }

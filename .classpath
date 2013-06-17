@@ -4,7 +4,7 @@
 	<classpathentry exported="true" kind="lib" path="bin/"/>
 	<classpathentry exported="true" kind="lib" path="lib/java/runtime/common.jar" sourcepath="lib/java-contrib/common-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/java/runtime/guava.jar" sourcepath="lib/java-contrib/guava-sources.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/java/runtime/smtinterpol.jar" sourcepath="lib/java-contrib/smtinterpol-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/java/runtime/smtinterpol-comp.jar" sourcepath="lib/java-contrib/smtinterpol-sources.zip"/>
 	<classpathentry kind="lib" path="lib/java/runtime/jsr305.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/javabdd.jar" sourcepath="lib/java-contrib/javabdd-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/java-cup-runtime.jar"/>
@@ -23,5 +23,6 @@
 	<classpathentry kind="lib" path="lib/JavaParser/org.eclipse.core.runtime_3.7.0.v20110110.jar"/>
 	<classpathentry kind="lib" path="lib/JavaParser/org.eclipse.equinox.preferences_3.4.2.v20120111-2020.jar"/>
 	<classpathentry kind="lib" path="lib/JavaParser/org.eclipse.jdt.core_3.7.3.v20120119-1537.jar"/>
+  <classpathentry kind="lib" path="lib/java/test/objenesis.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

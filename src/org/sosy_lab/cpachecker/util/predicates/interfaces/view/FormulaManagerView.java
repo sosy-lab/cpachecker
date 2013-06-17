@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
@@ -48,7 +49,6 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -63,13 +63,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaList;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.replacing.ReplacingFormulaManager;
-
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 @Options(prefix="cpa.predicate")
-public class FormulaManagerView implements FormulaManager {
+public class FormulaManagerView {
 
   public interface LoadManagers {
     public BooleanFormulaManagerView wrapManager(BooleanFormulaManager manager);
@@ -111,7 +108,7 @@ public class FormulaManagerView implements FormulaManager {
 
   @Option(name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File formulaDumpFile = new File("%s%04d-%s%03d.msat");
+  private File formulaDumpFile = new File("%s%04d-%s%03d.smt2");
   private String formulaDumpFilePattern;
 
   @Option(description="try to add some useful static-learning-like axioms for "
@@ -198,13 +195,12 @@ public class FormulaManagerView implements FormulaManager {
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeVariable(FormulaType<T> formulaType, String name) {
-    Class<T> clazz = formulaType.getInterfaceType();
     Formula t;
-    if (clazz==BooleanFormula.class) {
+    if (formulaType.isBooleanType()) {
       t = booleanFormulaManager.makeVariable(name);
-    } else if (clazz == RationalFormula.class) {
+    } else if (formulaType.isRationalType()) {
       t = rationalFormulaManager.makeVariable(name);
-    } else if (clazz == BitvectorFormula.class) {
+    } else if (formulaType.isBitvectorType()) {
       FormulaType.BitvectorType impl = (FormulaType.BitvectorType) formulaType;
       t = bitvectorFormulaManager.makeVariable(impl.getSize(), name);
     } else {
@@ -222,13 +218,12 @@ public class FormulaManagerView implements FormulaManager {
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeNumber(FormulaType<T> formulaType, long value) {
-    Class<T> clazz = formulaType.getInterfaceType();
     Formula t;
-    if (clazz==BooleanFormula.class) {
+    if (formulaType.isBooleanType()) {
       t = booleanFormulaManager.makeBoolean(value != 0);
-    } else if (clazz == RationalFormula.class) {
+    } else if (formulaType.isRationalType()) {
       t = rationalFormulaManager.makeNumber(value);
-    } else if (clazz == BitvectorFormula.class) {
+    } else if (formulaType.isBitvectorType()) {
       t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType, value);
     } else {
       throw new IllegalArgumentException("Not supported interface");
@@ -576,58 +571,33 @@ public class FormulaManagerView implements FormulaManager {
     return makeVariable(formulaType, makeName(name, idx));
   }
 
-  private static final Joiner LINE_JOINER = Joiner.on('\n');
-  public void printFormulasToFile(Iterable<BooleanFormula> f, File outputFile) {
-    if (outputFile != null) {
-      try {
-        Files.writeFile(outputFile,
-            LINE_JOINER.join(
-                FluentIterable.from(f)
-                  .transform(
-                      new Function<BooleanFormula, String>() {
-                      @Override
-                      public String apply(BooleanFormula pArg0) {
-                        return dumpFormula(pArg0);
-                      }}).iterator()));
-
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
-      }
-    }
-  }
-  @Override
   public RationalFormulaManagerView getRationalFormulaManager() {
     return rationalFormulaManager;
   }
 
-  @Override
   public BooleanFormulaManagerView getBooleanFormulaManager() {
     return booleanFormulaManager;
   }
 
-  @Override
   public BitvectorFormulaManagerView getBitvectorFormulaManager() {
     return bitvectorFormulaManager;
   }
 
-  @Override
   public FunctionFormulaManagerView getFunctionFormulaManager() {
     return functionFormulaManager;
   }
 
-  @Override
-  public UnsafeFormulaManager getUnsafeFormulaManager() {
+  UnsafeFormulaManager getUnsafeFormulaManager() {
     return manager.getUnsafeFormulaManager(); // Unsafe
   }
 
-  @Override
   public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
     checkNotNull(pFormula);
     return manager.getFormulaType(pFormula);
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T wrapInView(T formula) {
+  <T extends Formula> T wrapInView(T formula) {
     Class<T> formulaType = AbstractFormulaManager.getInterfaceHelper(formula);
     if (BooleanFormula.class == formulaType) {
       return (T) booleanFormulaManager.wrapInView((BooleanFormula) formula);
@@ -654,7 +624,7 @@ public class FormulaManagerView implements FormulaManager {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T extractFromView(T formula) {
+  <T extends Formula> T extractFromView(T formula) {
     Class<T> formulaType = AbstractFormulaManager.getInterfaceHelper(formula);
     if (BooleanFormula.class == formulaType) {
       return (T) booleanFormulaManager.extractFromView((BooleanFormula) formula);
@@ -669,12 +639,10 @@ public class FormulaManagerView implements FormulaManager {
     throw new IllegalArgumentException("Invalid class");
   }
 
-  @Override
-  public <T extends Formula> Class<T> getInterface(T pInstance) {
+  <T extends Formula> Class<T> getInterface(T pInstance) {
     return manager.getInterface(extractFromView(pInstance));
   }
 
-  @Override
   public <T extends Formula> T parse(Class<T> pClazz, String pS) throws IllegalArgumentException {
     return wrapInView(manager.parse(pClazz, pS));
   }
@@ -1003,8 +971,7 @@ public class FormulaManagerView implements FormulaManager {
     return vars;
   }
 
-  @Override
-  public String dumpFormula(Formula pT) {
+  public Appender dumpFormula(Formula pT) {
     return manager.dumpFormula(extractFromView(pT));
   }
 
@@ -1012,7 +979,7 @@ public class FormulaManagerView implements FormulaManager {
     return myCheckSyntacticEntails(extractFromView(leftFormula), extractFromView(rightFormula));
   }
 
-  protected boolean myCheckSyntacticEntails(Formula leftFormula, Formula rightFormula) {
+  private boolean myCheckSyntacticEntails(Formula leftFormula, Formula rightFormula) {
 
     UnsafeFormulaManager unsafeManager = manager.getUnsafeFormulaManager();
     Deque<Formula> toProcess = new ArrayDeque<>();
@@ -1070,7 +1037,7 @@ public class FormulaManagerView implements FormulaManager {
   }
 
   public static final String BitwiseAndUfName = "_&_";
-  public static final String BitwiseOrUfName ="_|_";
+  public static final String BitwiseOrUfName ="_!!_"; // SMTInterpol does not allow "|" to be used
   public static final String BitwiseXorUfName ="_^_";
   public static final String BitwiseNotUfName ="_~_";
   public static final String MultUfName ="_*_";
@@ -1150,7 +1117,6 @@ public class FormulaManagerView implements FormulaManager {
     }
 
 
-  @Override
   public String getVersion() {
     return manager.getVersion();
   }
@@ -1174,15 +1140,5 @@ public class FormulaManagerView implements FormulaManager {
 
   public BooleanFormula createPredicateVariable(String pName) {
     return wrapInView(myCreatePredicateVariable(pName));
-  }
-
-
-  public Collection<BooleanFormula> extractAtoms(BooleanFormula pFormula) {
-    return extractAtoms(pFormula, false, true);
-  }
-
-  public <T extends Formula> BooleanFormula toBooleanFormula(T pF) {
-    T zero = makeNumber(getFormulaType(pF), 0);
-    return booleanFormulaManager.not(makeEqual(pF, zero));
   }
 }

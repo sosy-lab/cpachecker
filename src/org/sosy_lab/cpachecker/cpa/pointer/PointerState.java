@@ -860,7 +860,7 @@ public class PointerState implements AbstractQueryableState, Memory,
   }
 
   public void returnFromFunction() {
-    assert currentFunctionName != "" && currentFunctionName.contains(":") : "Cannot return from global context or main function!";
+    assert !currentFunctionName.isEmpty() && currentFunctionName.contains(":") : "Cannot return from global context or main function!";
     //localPointers.pollLast();
     String oldFunctionName = currentFunctionName;
     currentFunctionName =

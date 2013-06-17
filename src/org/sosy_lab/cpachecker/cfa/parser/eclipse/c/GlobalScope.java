@@ -102,6 +102,11 @@ class GlobalScope implements Scope {
     return null;
   }
 
+  @Override
+  public String createScopedNameOf(String pName) {
+    return pName;
+  }
+
   public void registerFunctionDeclaration(CFunctionDeclaration declaration) {
     String name = declaration.getName();
     assert name != null;

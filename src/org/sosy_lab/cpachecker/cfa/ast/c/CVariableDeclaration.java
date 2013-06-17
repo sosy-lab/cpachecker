@@ -41,14 +41,17 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 public final class CVariableDeclaration extends AVariableDeclaration implements CDeclaration {
 
+  private final String qualifiedName;
   private final CStorageClass    cStorageClass;
 
   public CVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
       CStorageClass pCStorageClass, CType pType, String pName, String pOrigName,
+      String pQualifiedName,
       CInitializer pInitializer) {
 
     super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), pOrigName, pInitializer);
     cStorageClass = pCStorageClass;
+    qualifiedName = checkNotNull(pQualifiedName);
 
     checkArgument(!(cStorageClass == CStorageClass.EXTERN && getInitializer() != null), "Extern declarations cannot have an initializer");
     checkArgument(cStorageClass == CStorageClass.EXTERN || cStorageClass == CStorageClass.AUTO, "CStorageClass is " + cStorageClass);
@@ -65,6 +68,11 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
    */
   public CStorageClass getCStorageClass() {
     return cStorageClass;
+  }
+
+  @Override
+  public String getQualifiedName() {
+    return qualifiedName;
   }
 
   @Override

@@ -41,4 +41,8 @@ public interface  CSimpleDeclaration extends IASimpleDeclaration, CAstNode {
   @Override
   public CType getType();
 
+  /**
+   * Get globally unique name of this declaration, qualified with the function name.
+   */
+  public String getQualifiedName();
 }

@@ -51,12 +51,12 @@ public class SimpleIntervalTest {
     assertNotNull(of(BigInteger.valueOf(Long.MIN_VALUE), BigInteger.valueOf(Long.MAX_VALUE)));
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testInvalidConstruction1() {
     of(BigInteger.ONE, BigInteger.ZERO);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testInvalidConstruction2() {
     of(BigInteger.valueOf(Long.MAX_VALUE), BigInteger.valueOf(Long.MIN_VALUE));
   }
@@ -99,12 +99,35 @@ public class SimpleIntervalTest {
     assertEquals(BigInteger.TEN, of(BigInteger.ONE, BigInteger.TEN).size());
 
     assertEquals(BigInteger.valueOf(201L),
-                 of(BigInteger.valueOf(-100L), BigInteger.valueOf(100L)).size()
-                 );
+        of(BigInteger.valueOf(-100L), BigInteger.valueOf(100L)).size());
 
     assertEquals(BigInteger.valueOf(Long.MAX_VALUE).subtract(BigInteger.valueOf(Long.MIN_VALUE)).add(BigInteger.ONE),
-                 of(BigInteger.valueOf(Long.MIN_VALUE), BigInteger.valueOf(Long.MAX_VALUE)).size()
-                );
+        of(BigInteger.valueOf(Long.MIN_VALUE), BigInteger.valueOf(Long.MAX_VALUE)).size());
 
+  }
+
+  @Test
+  public void testIntersectsWith() {
+    SimpleInterval zero = SimpleInterval.singleton(BigInteger.ZERO);
+    SimpleInterval one = SimpleInterval.singleton(BigInteger.ONE);
+    SimpleInterval two = SimpleInterval.singleton(BigInteger.valueOf(2));
+    SimpleInterval negFiveToTen = SimpleInterval.of(BigInteger.valueOf(-5), BigInteger.TEN);
+    SimpleInterval fiveToFifteen = SimpleInterval.of(BigInteger.valueOf(5), BigInteger.valueOf(15));
+    SimpleInterval twentyToFifty = SimpleInterval.of(BigInteger.valueOf(20), BigInteger.valueOf(50));
+    SimpleInterval oneToThousand = SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(1000));
+    assertFalse(zero.intersectsWith(one));
+    assertFalse(one.intersectsWith(zero));
+    assertTrue(zero.intersectsWith(zero));
+    assertTrue(one.intersectsWith(one));
+    assertTrue(zero.extendToNegativeInfinity().intersectsWith(zero.extendToPositiveInfinity()));
+    assertTrue(one.extendToNegativeInfinity().intersectsWith(one.extendToPositiveInfinity()));
+    assertFalse(zero.extendToNegativeInfinity().intersectsWith(one.extendToPositiveInfinity()));
+    assertFalse(one.extendToPositiveInfinity().intersectsWith(zero.extendToNegativeInfinity()));
+    assertTrue(one.extendToNegativeInfinity().intersectsWith(zero.extendToPositiveInfinity()));
+    assertTrue(zero.extendToPositiveInfinity().intersectsWith(one.extendToNegativeInfinity()));
+    assertTrue(negFiveToTen.intersectsWith(fiveToFifteen));
+    assertFalse(negFiveToTen.intersectsWith(twentyToFifty));
+    assertFalse(fiveToFifteen.intersectsWith(twentyToFifty));
+    assertTrue(oneToThousand.intersectsWith(two));
   }
 }

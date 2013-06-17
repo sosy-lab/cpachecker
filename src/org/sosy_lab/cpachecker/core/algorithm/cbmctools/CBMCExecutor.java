@@ -26,12 +26,14 @@ package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.util.NativeLibraries;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -44,8 +46,17 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   private boolean unwindingAssertionFailed = false;
   private volatile int errorOutputCount = 0;
 
-  public CBMCExecutor(LogManager logger, String[] args) throws IOException {
-    super(logger, CounterexampleAnalysisFailed.class, CBMC_ENV_VARS, args);
+  public CBMCExecutor(LogManager logger, List<String> args) throws IOException {
+    super(logger, CounterexampleAnalysisFailed.class, CBMC_ENV_VARS, getCommandLine(args));
+  }
+
+  private static String[] getCommandLine(List<String> args) {
+    String[] cmd = new String[args.size() + 1];
+    cmd[0] = NativeLibraries.getNativeLibraryPath().resolve("cbmc").toString();
+    for (int i = 0; i < args.size(); i++) {
+      cmd[i+1] = args.get(i);
+    }
+    return cmd;
   }
 
   @Override

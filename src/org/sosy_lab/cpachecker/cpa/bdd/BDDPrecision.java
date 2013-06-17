@@ -67,7 +67,7 @@ public class BDDPrecision implements Precision {
   public BDDPrecision(Configuration config, Optional<VariableClassification> vc)
       throws InvalidConfigurationException {
     config.inject(this);
-    if (forceTrackingPatternStr != "") {
+    if (!forceTrackingPatternStr.isEmpty()) {
       this.forceTrackingPattern = Pattern.compile(forceTrackingPatternStr);
     } else {
       this.forceTrackingPattern = null;
@@ -76,14 +76,16 @@ public class BDDPrecision implements Precision {
     this.varClass = vc;
   }
 
-  /** copy-constructor */
-  public BDDPrecision(BDDPrecision original) {
+  /** copy-constructor, that allows to add new variables to cegar-precision. */
+  public BDDPrecision(BDDPrecision original, Multimap<CFANode, String> increment) {
     this.varClass = original.varClass;
     this.forceTrackingPattern = original.forceTrackingPattern;
     this.trackBoolean = original.trackBoolean;
     this.trackIntEqual = original.trackIntEqual;
     this.trackIntAdd = original.trackIntAdd;
     this.cegarPrecision = new CegarPrecision(original.cegarPrecision);
+
+    cegarPrecision.addToMapping(increment);
   }
 
   public boolean isDisabled() {

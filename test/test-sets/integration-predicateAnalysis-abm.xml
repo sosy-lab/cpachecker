@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="240" memlimit="5000">
+<benchmark tool="cpachecker" timelimit="240" memlimit="5000" cpuCores="2">
+  <!-- try to make it more deterministic -->
+  <option name="-setprop">cpa.predicate.mathsat5.furtherOptions=random_seed=42</option>
 
   <rundefinition>
     <sourcefiles>

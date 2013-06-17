@@ -51,12 +51,12 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithABM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.ABMPredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -79,6 +79,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final ABMTransferRelation transfer;
   private final ABMPrecisionAdjustment prec;
   private final ABMMergeOperator merge;
+  private final ABMStopOperator stop;
   private final ABMCPAStatistics stats;
   private final PartitioningHeuristic heuristic;
   private final CFA cfa;
@@ -106,6 +107,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     transfer = new ABMTransferRelation(config, logger, this, pReachedSetFactory);
     prec.setABMTransferRelation(transfer);
     merge = new ABMMergeOperator(pCpa.getMergeOperator(), transfer);
+    stop = new ABMStopOperator(getWrappedCpa().getStopOperator());
 
     stats = new ABMCPAStatistics(this);
     heuristic = getPartitioningHeuristic();
@@ -157,7 +159,7 @@ public class ABMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   @Override
   public StopOperator getStopOperator() {
-    return getWrappedCpa().getStopOperator();
+    return stop;
   }
 
   @Override

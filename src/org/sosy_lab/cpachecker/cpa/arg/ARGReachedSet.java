@@ -100,11 +100,12 @@ public class ARGReachedSet {
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
    */
-  public void removeSubtree(ARGState e, Precision p) {
+  public void removeSubtree(ARGState e, Precision p,
+      Class<? extends Precision> pPrecisionType) {
     Set<ARGState> toWaitlist = removeSubtree0(e);
 
     for (ARGState ae : toWaitlist) {
-      mReached.updatePrecision(ae, adaptPrecision(mReached.getPrecision(ae), p));
+      mReached.updatePrecision(ae, adaptPrecision(mReached.getPrecision(ae), p, pPrecisionType));
       mReached.reAddToWaitlist(ae);
     }
   }
@@ -119,13 +120,16 @@ public class ARGReachedSet {
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
    */
-  public void removeSubtree(ARGState e, Precision... p) {
+  public void removeSubtree(ARGState e, List<Precision> precisions, List<Class<? extends Precision>> precisionTypes) {
+
+    Preconditions.checkArgument(precisions.size() == precisionTypes.size());
+
     Set<ARGState> toWaitlist = removeSubtree0(e);
 
     for (ARGState ae : toWaitlist) {
       Precision prec = mReached.getPrecision(ae);
-      for (final Precision newPrec : p){
-        prec = adaptPrecision(prec, newPrec);
+      for (int i = 0; i < precisions.size(); i++) {
+        prec = adaptPrecision(prec, precisions.get(i), precisionTypes.get(i));
       }
       mReached.updatePrecision(ae, prec);
       mReached.reAddToWaitlist(ae);
@@ -156,7 +160,8 @@ public class ARGReachedSet {
    * Set a new precision for each single state in the reached set.
    * @param p The new precision, may be for a single CPA (c.f. {@link #adaptPrecision(ARGState, Precision)}).
    */
-  public void updatePrecisionGlobally(Precision pNewPrecision) {
+  public void updatePrecisionGlobally(Precision pNewPrecision,
+      Class<? extends Precision> pPrecisionType) {
     Map<Precision, Precision> precisionUpdateCache = Maps.newIdentityHashMap();
 
     for (AbstractState s : mReached) {
@@ -164,7 +169,7 @@ public class ARGReachedSet {
 
       Precision newPrecision = precisionUpdateCache.get(oldPrecision);
       if (newPrecision == null) {
-        newPrecision = adaptPrecision(oldPrecision, pNewPrecision);
+        newPrecision = adaptPrecision(oldPrecision, pNewPrecision, pPrecisionType);
         precisionUpdateCache.put(oldPrecision, newPrecision);
       }
 
@@ -181,13 +186,15 @@ public class ARGReachedSet {
    * @param pNewPrecision New precision.
    * @return The adapted precision.
    */
-  private Precision adaptPrecision(Precision pOldPrecision, Precision pNewPrecision) {
-    return Precisions.replaceByType(pOldPrecision, pNewPrecision, pNewPrecision.getClass());
+  private Precision adaptPrecision(Precision pOldPrecision, Precision pNewPrecision,
+      Class<? extends Precision> pPrecisionType) {
+    return Precisions.replaceByType(pOldPrecision, pNewPrecision, pPrecisionType);
   }
 
   private Set<ARGState> removeSubtree0(ARGState e) {
     Preconditions.checkNotNull(e);
-    Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ARG/reached set");
+    Preconditions.checkArgument(!e.getParents().isEmpty(),
+        "May not remove the initial element from the ARG/reached set");
 
     dumpSubgraph(e);
 
@@ -207,14 +214,10 @@ public class ARGReachedSet {
   }
 
   private void dumpSubgraph(ARGState e) {
-    if (cpa == null) {
-      return;
-    }
+    if (cpa == null) { return; }
 
     ARGToDotWriter refinementGraph = cpa.getRefinementGraphWriter();
-    if (refinementGraph == null) {
-      return;
-    }
+    if (refinementGraph == null) { return; }
 
     SetMultimap<ARGState, ARGState> successors = ARGUtils.projectARG(e,
         ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
@@ -224,10 +227,10 @@ public class ARGReachedSet {
 
     try {
       refinementGraph.enterSubgraph("cluster_" + refinementNumber,
-                                    "Refinement " + refinementNumber);
+          "Refinement " + refinementNumber);
 
       refinementGraph.writeSubgraph(e,
-          Functions.forMap(successors.asMap(), ImmutableSet.<ARGState>of()),
+          Functions.forMap(successors.asMap(), ImmutableSet.<ARGState> of()),
           Predicates.alwaysTrue(),
           Predicates.alwaysFalse());
 
@@ -380,8 +383,9 @@ public class ARGReachedSet {
     }
 
     @Override
-    public void removeSubtree(ARGState pE, Precision pP) {
-      delegate.removeSubtree(pE, pP);
+    public void removeSubtree(ARGState pE, Precision pP,
+        Class<? extends Precision> pPrecisionType) {
+      delegate.removeSubtree(pE, pP, pPrecisionType);
     }
   }
 }

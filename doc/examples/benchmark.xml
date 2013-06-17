@@ -9,6 +9,7 @@
 
   "timelimit" is an optional time limit in seconds.
   "memlimit" is an optional memory limit in megabytes.
+  "cpuCores" is an optional number of CPU cores to use per run (otherwise all available cores are used).
   "threads" is the number of parallel executions of verification runs.
   This values can be overriden on the command line when running benchmark.py
 -->
@@ -64,6 +65,18 @@
     This is currently only supported for CPAchecker
     and not guaranteed to be supported in the future at all.
     C.f. benchmark-cpachecker.xml for an example.
+
+    There are two more top-level tags that are used only when the verifier cloud is used:
+    <requiredFiles> can be used to specify additional files that are needed
+    for executing the benchmark. The tag may contain a path to a file or directory
+    that is transmitted to the worker. Wildcards, environment variables etc. are resolved.
+    The tag may appear several times.
+    <require> can be used to select a specific set of worker machines. The attributes
+    "cpuModel" (giving a string that needs to be contained in the worker's CPU name),
+    "cpuCores" (giving the minimal number of CPU cores), and
+    "memory" (giving the minimal amount of memory in MB) can be specified (all optional).
+    The tag may appear several times, but each attribute may appear at most once
+    (so you can specify all attributes in a single tag or spread over several occurrences).
   -->
 
   <!-- Example: -->
@@ -101,4 +114,7 @@
       <option name="--64"/>
     </sourcefiles>
   </rundefinition>
+
+  <!-- Some requirements for the worker machine. -->
+  <require memory="512" cpuCores="2"/>
 </benchmark>

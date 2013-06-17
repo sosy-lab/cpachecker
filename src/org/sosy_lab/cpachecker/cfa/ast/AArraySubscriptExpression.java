@@ -44,11 +44,6 @@ public abstract class AArraySubscriptExpression extends AExpression {
 
   }
 
-  @Override
-  public Type getExpressionType() {
-    return  super.getExpressionType();
-  }
-
   public IAExpression getArrayExpression() {
     return arrayExpression;
   }

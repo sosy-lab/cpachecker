@@ -32,6 +32,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
@@ -51,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
@@ -64,19 +69,22 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  * This class takes several CFAs (each for a single function) and combines them
  * into one CFA by inserting the necessary function call and return edges.
  */
+@Options
 public class CFASecondPassBuilder {
+
+  @Option(name="analysis.summaryEdges",
+      description="create summary call statement edges")
+  private boolean summaryEdges = false;
 
   protected final MutableCFA cfa;
   protected final Language language;
   protected final LogManager logger;
-  /**
-   * Class constructor.
-   * @param map List of all CFA's in the program.
-   */
-  public CFASecondPassBuilder(MutableCFA pCfa,  Language pLanguage, LogManager pLogger) {
+
+  public CFASecondPassBuilder(MutableCFA pCfa, Language pLanguage, LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     cfa = pCfa;
     language = pLanguage;
     logger = pLogger;
+    config.inject(this);
   }
 
   /**
@@ -224,7 +232,18 @@ public class CFASecondPassBuilder {
     FunctionCallEdge callEdge = null;
 
     // create new edges
-    if (language == Language.C) {
+
+    switch (language) {
+    case C:
+      if (summaryEdges) {
+        CFunctionSummaryStatementEdge summaryStatementEdge =
+            new CFunctionSummaryStatementEdge(edge.getRawStatement(),
+                ((CFunctionCall)functionCall).asStatement(), lineNumber,
+                predecessorNode, successorNode, (CFunctionCall)functionCall, fDefNode.getFunctionName());
+
+        predecessorNode.addLeavingEdge(summaryStatementEdge);
+        successorNode.addEnteringEdge(summaryStatementEdge);
+      }
 
       calltoReturnEdge = new CFunctionSummaryEdge(edge.getRawStatement(),
           lineNumber, predecessorNode, successorNode, (CFunctionCall) functionCall);
@@ -232,15 +251,19 @@ public class CFASecondPassBuilder {
       callEdge = new CFunctionCallEdge(edge.getRawStatement(),
           lineNumber, predecessorNode,
           (CFunctionEntryNode) fDefNode, (CFunctionCall) functionCall,  (CFunctionSummaryEdge) calltoReturnEdge);
+      break;
 
-    } else if (language == Language.JAVA) {
-
+    case JAVA:
       calltoReturnEdge = new JMethodSummaryEdge(edge.getRawStatement(),
           lineNumber, predecessorNode, successorNode, (JMethodOrConstructorInvocation) functionCall);
 
       callEdge = new JMethodCallEdge(edge.getRawStatement(),
           lineNumber, predecessorNode,
           (JMethodEntryNode)fDefNode, (JMethodOrConstructorInvocation) functionCall, (JMethodSummaryEdge) calltoReturnEdge);
+      break;
+
+    default:
+      throw new AssertionError();
     }
 
     predecessorNode.addLeavingSummaryEdge(calltoReturnEdge);
@@ -258,20 +281,23 @@ public class CFASecondPassBuilder {
 
     } else {
 
-      FunctionReturnEdge returnEdge = null;
+      FunctionReturnEdge returnEdge;
 
-      if (language == Language.C) {
+      switch (language) {
+      case C:
         returnEdge = new CFunctionReturnEdge(lineNumber, fExitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
-      } else if (language == Language.JAVA) {
+        break;
+      case JAVA:
         returnEdge = new JMethodReturnEdge(lineNumber, fExitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);
+        break;
+      default:
+        throw new AssertionError();
       }
 
       fExitNode.addLeavingEdge(returnEdge);
       successorNode.addEnteringEdge(returnEdge);
     }
   }
-
-  public void collectDataRecursively() {}
 
   protected final boolean checkParamSizes(AFunctionCallExpression functionCallExpression,
       IAFunctionType functionType) {

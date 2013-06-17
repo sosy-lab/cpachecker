@@ -135,10 +135,9 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private String[] buildCBMCArguments(String fileName) {
+  private List<String> buildCBMCArguments(String fileName) {
     List<String> paramsList = new ArrayList<>();
 
-    paramsList.add("cbmc");
     paramsList.add("--function");
     paramsList.add(mainFunctionName);
     paramsList.add("--"+intWidth);
@@ -152,9 +151,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     paramsList.add(fileName);
-
-    String s[] = new String[paramsList.size()];
-    return paramsList.toArray(s);
+    return paramsList;
   }
 
   @Override

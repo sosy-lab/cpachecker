@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -76,11 +75,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -97,6 +97,7 @@ public class BlockFormulaSlicer {
   private static final String FUNCTION_RETURN_VARIABLE = "__CPAchecker_return_var";
 
   final private PathFormulaManager pfmgr;
+  final private boolean sliceBlockFormulas;
 
   //  TODO future work:
   //  We could not store the important edges, because they are much more.
@@ -129,6 +130,7 @@ public class BlockFormulaSlicer {
 
   public BlockFormulaSlicer(PathFormulaManager pPfmgr) {
     this.pfmgr = pPfmgr;
+    this.sliceBlockFormulas = true;
   }
 
   public List<BooleanFormula> sliceFormulasForPath(List<ARGState> path, ARGState initialState)
@@ -150,7 +152,7 @@ public class BlockFormulaSlicer {
     assert path.size() == blocks.size();
 
     // slice each block, we do this backwards
-    Multimap<String, String> importantVars = HashMultimap.create();
+    Collection<String> importantVars = new LinkedHashSet<>();
     for (int i = path.size() - 1; i >= 0; i--) {
       final ARGState start = i > 0 ? path.get(i - 1) : initialState;
       final ARGState end = path.get(i);
@@ -224,11 +226,11 @@ public class BlockFormulaSlicer {
   }
 
 
-  private Multimap<String, String> sliceBlock(ARGState start, ARGState end,
-      Set<ARGState> block, Multimap<String, String> importantVars) {
+  private Collection<String> sliceBlock(ARGState start, ARGState end,
+      Set<ARGState> block, Collection<String> importantVars) {
 
     // this map contains all done states with their vars (if not removed through cleanup)
-    final Map<ARGState, Multimap<String, String>> s2v = new HashMap<>(block.size());
+    final Map<ARGState, Collection<String>> s2v = new HashMap<>(block.size());
 
     // this map contains all done states with their last important state
     // a state is important, if any outgoing edge is important
@@ -271,7 +273,7 @@ public class BlockFormulaSlicer {
       }
 
       // handle state
-      final Multimap<String, String> vars = handleEdgesForState(current, s2v, s2s, block);
+      final Collection<String> vars = handleEdgesForState(current, s2v, s2s, block);
       s2v.put(current, vars);
 
       // cleanup, remove states, that will not be used in future
@@ -302,60 +304,75 @@ public class BlockFormulaSlicer {
 
   /** This function handles all outgoing edges of the current state.
    * Their important vars are joined and returned. */
-  private Multimap<String, String> handleEdgesForState(ARGState current,
-      Map<ARGState, Multimap<String, String>> s2v,
+  private Collection<String> handleEdgesForState(ARGState current,
+      Map<ARGState, Collection<String>> s2v,
       Multimap<ARGState, ARGState> s2s,
       Set<ARGState> block) {
 
     final List<ARGState> usedChildren = from(current.getChildren()).filter(in(block)).toList();
-
     assert usedChildren.size() > 0 : "no child for " + current.getStateId();
 
-    // there can be several children --> collect their vars and join them
-    final List<Multimap<String, String>> iVars = new ArrayList<>(usedChildren.size());
-
-    for (ARGState child : usedChildren) {
-
-      // do not modify oldVars, they are used later for the second parent
-      final Multimap<String, String> oldVars = s2v.get(child);
-      final Multimap<String, String> newVars;
-
-      // if there is only one parent for the child, we re-use oldVars
-      // TODO better solution: if (allParentsExceptThisDone(child)) {
-      if (child.getParents().size() == 1) {
-        newVars = oldVars;
-      } else {
-        // copy oldVars, we need them again later
-        newVars = HashMultimap.create();
-        newVars.putAll(oldVars);
-      }
-
-      iVars.add(newVars);
-
-      // do the hard work
-      final CFAEdge edge = current.getEdgeToChild(child);
-      final boolean isImportant = handleEdge(edge, newVars);
-
-      assert !importantEdges.containsEntry(current, child);
-
-      if (isImportant) {
-        importantEdges.put(current, child);
-        s2s.put(current, current);
-      } else {
-        s2s.putAll(current, s2s.get(child));
-      }
-
-      //      System.out.println("WORK   " + isImportant + "  \t" +
-      //          current.getStateId() + " -> " + child.getStateId() + "    \t" +
-      //          edge.getRawStatement() + "    \t" +
-      //          edge.getClass().toString().replace
-      //              ("class org.sosy_lab.cpachecker.cfa.model.", "") + "    \t" +
-      //          newVars
-      //          );
-    }
-
     // if we have an assumption, and the branches are completely unimportant,
-    // the assumption itself is unimportant.
+    // the assumption itself is unimportant, so we can ignore it
+    if (isAssumptionWithSameImpChild(usedChildren, current, s2s)) {
+
+      final ARGState child1 = usedChildren.get(0);
+      s2s.putAll(current, s2s.get(child1));
+
+      final Collection<String> iVars = new LinkedHashSet<>();
+      // vars from latest important child,
+      // we have to copy them, there could be another parent somewhere else
+      iVars.addAll(s2v.get(child1));
+      return iVars;
+
+    } else {
+      // there can be several children --> collect their vars and join them
+      // normally there is 1 or 2 children.
+      Collection<String> iVars = null;
+
+      for (ARGState child : usedChildren) {
+
+        final Collection<String> oldVars = s2v.get(child);
+        final Collection<String> newVars;
+
+        // if there is only one parent for the child, we re-use oldVars.
+        // TODO better solution: if (allParentsExceptThisDone(child)) {
+        if (child.getParents().size() == 1) {
+          newVars = oldVars;
+        } else {
+          // copy oldVars, they will be used later for a second parent
+          newVars = new LinkedHashSet<>();
+          newVars.addAll(oldVars);
+        }
+
+        // do the hard work
+        final CFAEdge edge = current.getEdgeToChild(child);
+        final boolean isImportant = handleEdge(edge, newVars);
+
+        assert !importantEdges.containsEntry(current, child);
+
+        if (isImportant) {
+          importantEdges.put(current, child);
+          s2s.put(current, current);
+        } else {
+          s2s.putAll(current, s2s.get(child));
+        }
+
+        if (iVars == null) {
+          iVars = newVars;
+        } else {
+          iVars.addAll(newVars);
+        }
+      }
+
+      Preconditions.checkNotNull(iVars);
+      return iVars;
+    }
+  }
+
+  /** checks, if an assumption has no important edge until the branches join. */
+  private boolean isAssumptionWithSameImpChild(final List<ARGState> usedChildren,
+      final ARGState current, final Multimap<ARGState, ARGState> s2s) {
     if (usedChildren.size() == 2) {
       final ARGState child1 = usedChildren.get(0);
       final ARGState child2 = usedChildren.get(1);
@@ -367,36 +384,16 @@ public class BlockFormulaSlicer {
         final CAssumeEdge assume1 = (CAssumeEdge) edge1;
         final CAssumeEdge assume2 = (CAssumeEdge) edge2;
 
-        if (assume1.getExpression() == assume2.getExpression()
-            && assume1.getTruthAssumption() != assume2.getTruthAssumption()) {
-
-          if (s2s.get(child1).equals(s2s.get(child2))) {
-            // we found an assumption with same important child,
-            // so we can ignore it
-
-            // System.out.println("ASSUMTION FOUND WITH SAME CHILD: "
-            //     + assume1.getRawStatement());
-
-            importantEdges.remove(current, child1);
-            importantEdges.remove(current, child2);
-
-            s2s.remove(current, current);
-            s2s.put(current, child1);
-          }
-        }
+        return (assume1.getExpression() == assume2.getExpression()
+            && assume1.getTruthAssumption() != assume2.getTruthAssumption()
+            && s2s.get(child1).equals(s2s.get(child2)));
       }
     }
-
-    Multimap<String, String> joined = iVars.get(0);
-    for (int i = 1; i < iVars.size(); i++) {
-      joined.putAll(iVars.get(i));
-    }
-    return joined;
+    return false;
   }
 
-
   /** This function only forwards to the correct type of edge. */
-  private boolean handleEdge(CFAEdge edge, Multimap<String, String> importantVars) {
+  private boolean handleEdge(CFAEdge edge, Collection<String> importantVars) {
 
     final boolean result;
     // check the type of the edge
@@ -448,17 +445,14 @@ public class BlockFormulaSlicer {
   }
 
   private boolean handleDeclaration(CDeclarationEdge edge,
-      Multimap<String, String> importantVars) {
+      Collection<String> importantVars) {
     final CDeclaration decl = edge.getDeclaration();
 
     if (decl instanceof CVariableDeclaration) {
       final CVariableDeclaration vdecl = (CVariableDeclaration) decl;
       final String functionName = edge.getPredecessor().getFunctionName();
-      final String scopedFunctionName = vdecl.isGlobal() ? null : functionName;
-      final String varName = vdecl.getName();
 
-      if (importantVars.containsEntry(scopedFunctionName, varName)) {
-        importantVars.remove(scopedFunctionName, varName);
+      if (importantVars.remove(buildVarName(vdecl.isGlobal() ? null : functionName, vdecl.getName()))) {
         final CInitializer initializer = vdecl.getInitializer();
         if (initializer != null && initializer instanceof CInitializerExpression) {
           final CExpression init = ((CInitializerExpression) initializer).getExpression();
@@ -476,7 +470,7 @@ public class BlockFormulaSlicer {
   }
 
   private boolean handleAssumption(CAssumeEdge edge,
-      Multimap<String, String> importantVars) {
+      Collection<String> importantVars) {
 
     final CExpression expression = edge.getExpression();
     final String functionName = edge.getPredecessor().getFunctionName();
@@ -488,7 +482,7 @@ public class BlockFormulaSlicer {
   /** This function handles statements like "a = 0;" and calls of external functions.
    * @param pImportantVars */
   private boolean handleStatement(CStatementEdge edge,
-      Multimap<String, String> importantVars) {
+      Collection<String> importantVars) {
     final IAStatement statement = edge.getStatement();
 
     // expression is an assignment operation, e.g. a = b;
@@ -514,7 +508,7 @@ public class BlockFormulaSlicer {
 
 
   private boolean handleAssignment(CAssignment statement, CStatementEdge edge,
-      Multimap<String, String> importantVars) {
+      Collection<String> importantVars) {
     final CExpression lhs = statement.getLeftHandSide();
 
     // a = ?
@@ -523,8 +517,7 @@ public class BlockFormulaSlicer {
       final String scopedFunctionName = isGlobal(lhs) ? null : functionName;
       final String varName = ((CIdExpression) lhs).getName();
 
-      if (importantVars.containsEntry(scopedFunctionName, varName)) {
-        importantVars.remove(scopedFunctionName, varName);
+      if (importantVars.remove(buildVarName(scopedFunctionName, varName))) {
         final IARightHandSide rhs = statement.getRightHandSide();
 
         // a = b + c
@@ -558,25 +551,21 @@ public class BlockFormulaSlicer {
   /** This function handles functionStatements like "return (x)".
    * The FUNCTION_RETURN_VARIABLE is equal to the right side ("x"). */
   private boolean handleReturnStatement(CReturnStatementEdge edge,
-      Multimap<String, String> importantVars) {
-    CRightHandSide rhs = edge.getExpression();
+      Collection<String> importantVars) {
+    CExpression rhs = edge.getExpression();
 
     if (rhs == null) {
       return false;
 
-    } else if (rhs instanceof CExpression) {
+    } else {
 
       String functionName = edge.getPredecessor().getFunctionName();
-      if (importantVars.containsEntry(functionName, FUNCTION_RETURN_VARIABLE)) {
-        importantVars.remove(functionName, FUNCTION_RETURN_VARIABLE);
-        addAllVarsFromExpr((CExpression) rhs, functionName, importantVars);
+      if (importantVars.remove(buildVarName(functionName, FUNCTION_RETURN_VARIABLE))) {
+        addAllVarsFromExpr(rhs, functionName, importantVars);
         return true;
       } else {
         return false;
       }
-
-    } else {
-      throw new AssertionError(edge.getRawStatement());
     }
   }
 
@@ -585,8 +574,7 @@ public class BlockFormulaSlicer {
    * The equality of the FUNCTION_RETURN_VARIABLE and the
    * left side ("y") is build. */
   private boolean handleFunctionReturn(CFunctionReturnEdge edge,
-      Multimap<String, String> importantVars) {
-    String innerFunctionName = edge.getPredecessor().getFunctionName();
+      Collection<String> importantVars) {
 
     // set result of function equal to variable on left side
     CFunctionSummaryEdge fnkCall = edge.getSummaryEdge();
@@ -597,13 +585,11 @@ public class BlockFormulaSlicer {
       CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) call;
       CExpression lhs = cAssignment.getLeftHandSide();
 
-      String outerFunctionName = edge.getSuccessor().getFunctionName();
-      String function = isGlobal(lhs) ? null : outerFunctionName;
-      String varName = lhs.toASTString();
+      final String innerFunctionName = edge.getPredecessor().getFunctionName();
+      final String outerFunctionName = isGlobal(lhs) ? null : edge.getSuccessor().getFunctionName();
 
-      if (importantVars.containsEntry(function, varName)) {
-        importantVars.remove(function, varName);
-        importantVars.put(innerFunctionName, FUNCTION_RETURN_VARIABLE);
+      if (importantVars.remove(buildVarName(outerFunctionName, lhs.toASTString()))) {
+        importantVars.add(buildVarName(innerFunctionName, FUNCTION_RETURN_VARIABLE));
         return true;
 
       } else {
@@ -623,7 +609,7 @@ public class BlockFormulaSlicer {
   /** This function handles functioncalls like "f(x)", that calls "f(int a)".
    * Therefore each arg ("x") assigned to a param ("int a") of the function. */
   private boolean handleFunctionCall(CFunctionCallEdge edge,
-      Multimap<String, String> importantVars) {
+      Collection<String> importantVars) {
 
     // overtake arguments from last functioncall into function,
     // get args from functioncall and make them equal with params from functionstart
@@ -637,9 +623,7 @@ public class BlockFormulaSlicer {
     final String outerFunctionName = edge.getPredecessor().getFunctionName();
 
     for (int i = 0; i < params.size(); i++) {
-      final String varName = params.get(i).getName();
-      if (importantVars.containsEntry(innerFunctionName, varName)) {
-        importantVars.remove(innerFunctionName, varName);
+      if (importantVars.remove(buildVarName(innerFunctionName, params.get(i).getName()))) {
         addAllVarsFromExpr(args.get(i), outerFunctionName, importantVars);
       }
     }
@@ -648,87 +632,95 @@ public class BlockFormulaSlicer {
     return true;
   }
 
+  private String buildVarName(String function, String var) {
+    if (function == null) {
+      return var;
+    } else {
+      return function + "::" + var;
+    }
+  }
+
   private void addAllVarsFromExpr(
-      CExpression exp, String functionName, Multimap<String, String> importantVars) {
+      CExpression exp, String functionName, Collection<String> importantVars) {
     exp.accept(new VarCollector(functionName, importantVars));
   }
 
   /** This Visitor collects all var-names in the expression. */
-  private class VarCollector implements CExpressionVisitor<Multimap<String, String>, RuntimeException> {
+  private class VarCollector implements CExpressionVisitor<Void, RuntimeException> {
 
-    final Multimap<String, String> vars;
-    private String functionName;
+    final Collection<String> vars;
+    final private String functionName;
 
-    VarCollector(String functionName, Multimap<String, String> vars) {
+    VarCollector(String functionName, Collection<String> vars) {
       this.functionName = functionName;
       this.vars = vars;
     }
 
     @Override
-    public Multimap<String, String> visit(CArraySubscriptExpression exp) {
-      return vars;
+    public Void visit(CArraySubscriptExpression exp) {
+      return null;
     }
 
     @Override
-    public Multimap<String, String> visit(CBinaryExpression exp) {
+    public Void visit(CBinaryExpression exp) {
       exp.getOperand1().accept(this);
       exp.getOperand2().accept(this);
-      return vars;
+      return null;
     }
 
     @Override
-    public Multimap<String, String> visit(CCastExpression exp) {
+    public Void visit(CCastExpression exp) {
       exp.getOperand().accept(this);
-      return vars;
+      return null;
     }
 
     @Override
-    public Multimap<String, String> visit(CFieldReference exp) {
-      return vars;
+    public Void visit(CFieldReference exp) {
+      return null;
     }
 
     @Override
-    public Multimap<String, String> visit(CIdExpression exp) {
+    public Void visit(CIdExpression exp) {
       String var = exp.getName();
       String function = isGlobal(exp) ? null : functionName;
-      vars.put(function, var);
-      return vars;
+      vars.add(buildVarName(function, var));
+      return null;
     }
 
     @Override
-    public Multimap<String, String> visit(CCharLiteralExpression exp) {
-      return vars;
+    public Void visit(CCharLiteralExpression exp) {
+      return null;
     }
 
     @Override
-    public Multimap<String, String> visit(CFloatLiteralExpression exp) {
-      return vars;
+    public Void visit(CFloatLiteralExpression exp) {
+      return null;
     }
 
     @Override
-    public Multimap<String, String> visit(CIntegerLiteralExpression exp) {
-      return vars;
+    public Void visit(CIntegerLiteralExpression exp) {
+      return null;
     }
 
     @Override
-    public Multimap<String, String> visit(CStringLiteralExpression exp) {
-      return vars;
+    public Void visit(CStringLiteralExpression exp) {
+      return null;
     }
 
     @Override
-    public Multimap<String, String> visit(CTypeIdExpression exp) {
-      return vars;
+    public Void visit(CTypeIdExpression exp) {
+      return null;
     }
 
     @Override
-    public Multimap<String, String> visit(CTypeIdInitializerExpression exp) {
-      return vars;
+    public Void visit(CTypeIdInitializerExpression exp) {
+      return null;
     }
 
     @Override
-    public Multimap<String, String> visit(CUnaryExpression exp) {
+    public Void visit(CUnaryExpression exp) {
       exp.getOperand().accept(this);
-      return vars;
+      return null;
     }
   }
 
@@ -813,10 +805,10 @@ public class BlockFormulaSlicer {
 
   private PathFormula buildFormulaForEdge(ARGState parent, ARGState child, PathFormula oldFormula)
       throws CPATransferException {
-    if (importantEdges.containsEntry(parent, child)) {
-      return pfmgr.makeAnd(oldFormula, parent.getEdgeToChild(child));
-    } else {
+    if (sliceBlockFormulas && !importantEdges.containsEntry(parent, child)) {
       return oldFormula;
+    } else {
+      return pfmgr.makeAnd(oldFormula, parent.getEdgeToChild(child));
     }
   }
 

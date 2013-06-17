@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.octagon;
 
+import org.sosy_lab.cpachecker.util.NativeLibraries;
+
 class OctWrapper {
 
   private OctWrapper() { }
 
   static {
-    System.loadLibrary("JOct");
+    NativeLibraries.loadLibrary("JOct");
   }
 
   /* Initialization */

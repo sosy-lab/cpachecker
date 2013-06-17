@@ -33,19 +33,16 @@ import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
+class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term> {
 
-public class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term> {
+  private final Set<Term> uifs = new HashSet<>();
+  private final SmtInterpolEnvironment env;
+  private final SmtInterpolFormulaCreator creator;
 
-  private Set<Term> uifs = new HashSet<>();
-  private SmtInterpolEnvironment env;
-  private SmtInterpolFormulaCreator creator;
-
-  public SmtInterpolUnsafeFormulaManager(
-      SmtInterpolFormulaCreator pCreator) {
+  SmtInterpolUnsafeFormulaManager(SmtInterpolFormulaCreator pCreator) {
     super(pCreator);
     this.creator = pCreator;
     this.env = pCreator.getEnv();
-
   }
 
   /** ApplicationTerms can be wrapped with "|".
@@ -122,7 +119,7 @@ public class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManage
     }
   }
 
-  public Term createUIFCallImpl(String funcDecl, Term[] args) {
+  Term createUIFCallImpl(String funcDecl, Term[] args) {
     Term ufc = env.term(funcDecl, args);
     uifs.add(ufc);
     return ufc;

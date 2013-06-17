@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -31,46 +31,70 @@ import java.util.Map;
  * @param <T> the static type of the FormulaType.
  */
 public abstract class FormulaType<T extends Formula> {
-  public abstract Class<T> getInterfaceType();
+
   FormulaType() {}
-  public static final FormulaType<RationalFormula> RationalType = new FormulaTypeImpl<>(RationalFormula.class);
-  public static final FormulaType<BooleanFormula> BooleanType = new FormulaTypeImpl<>(BooleanFormula.class);
+
+  public abstract Class<T> getInterfaceType();
+
+  public boolean isBitvectorType() {
+    return false;
+  }
+
+  public boolean isBooleanType() {
+    return false;
+  }
+
+  public boolean isRationalType() {
+    return false;
+  }
 
   @Override
   public abstract String toString();
 
-  private static class FormulaTypeImpl<T extends Formula> extends FormulaType<T> {
-    private Class<T> interfaceClass;
-    private FormulaTypeImpl(Class<T> interfaceClass) {
-      this.interfaceClass = interfaceClass;
-    }
+
+  public static final FormulaType<RationalFormula> RationalType = new FormulaType<RationalFormula>() {
+
     @Override
-    public Class<T> getInterfaceType() {
-      return interfaceClass;
+    public Class<RationalFormula> getInterfaceType() {
+      return RationalFormula.class;
     }
+
+    @Override
+    public boolean isRationalType() {
+      return true;
+    }
+
     @Override
     public String toString() {
-      return interfaceClass.toString();
+      return "Rational";
     }
-  }
+  };
 
-  public static <T extends Formula> boolean isBitVectorType(FormulaType<T> f) {
-    return f instanceof BitvectorType;
-  }
-  public static <T extends Formula> boolean isRationalType(FormulaType<T> f) {
-    return f == RationalType;
-  }
-  public static <T extends Formula> boolean isBooleanType(FormulaType<T> f) {
-    return f == BooleanType;
-  }
+  public static final FormulaType<BooleanFormula> BooleanType = new FormulaType<BooleanFormula>() {
 
-  public static class BitvectorType extends FormulaType<BitvectorFormula> {
-    private int size;
+    @Override
+    public Class<BooleanFormula> getInterfaceType() {
+      return BooleanFormula.class;
+    }
+
+    @Override
+    public boolean isBooleanType() {
+      return true;
+    }
+
+    @Override
+    public String toString() {
+      return "Boolean";
+    }
+  };
+
+  public static final class BitvectorType extends FormulaType<BitvectorFormula> {
+    private final int size;
 
     private BitvectorType(int size) {
       this.size = (size);
     }
-    private static Map<Integer, FormulaType<BitvectorFormula>> table = new Hashtable<>();
+    private static Map<Integer, FormulaType<BitvectorFormula>> table = new HashMap<>();
     /**
      * Gets the Raw Bitvector-Type with the given size.
      * Never call this method directly, always call the BitvectorFormulaManager.getFormulaType(int) method.
@@ -85,6 +109,11 @@ public abstract class FormulaType<T extends Formula> {
         table.put(hashValue, value);
       }
       return value;
+    }
+
+    @Override
+    public boolean isBitvectorType() {
+      return true;
     }
 
     public int getSize() {

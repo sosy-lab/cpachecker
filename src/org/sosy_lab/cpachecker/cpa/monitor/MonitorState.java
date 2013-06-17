@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingStat
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Preconditions;
 
@@ -110,7 +110,7 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
 
 
   @Override
-  public BooleanFormula getReasonFormula(FormulaManager manager) {
+  public BooleanFormula getReasonFormula(FormulaManagerView manager) {
     if (mustDumpAssumptionForAvoidance()) {
       return preventingCondition.getFirst().getFormula(manager, preventingCondition.getSecond());
     } else {

@@ -25,15 +25,22 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Objects;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
@@ -54,6 +61,7 @@ public class PredicatePrecision implements Precision {
 
   // do not access theses sets directly except in their getters
   // (overrides from subclass need to be used)
+  private final ImmutableSetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> mLocationInstancePredicates;
   private final ImmutableSetMultimap<CFANode, AbstractionPredicate> mLocalPredicates;
   private final ImmutableSetMultimap<String, AbstractionPredicate> mFunctionPredicates;
   private final ImmutableSet<AbstractionPredicate> mGlobalPredicates;
@@ -61,12 +69,24 @@ public class PredicatePrecision implements Precision {
   private final int id = idCounter++;
   private static int idCounter = 0;
 
-  public PredicatePrecision(Multimap<CFANode, AbstractionPredicate> pLocalPredicates,
+  public PredicatePrecision(
+      Multimap<Pair<CFANode, Integer>, AbstractionPredicate> pLocationInstancePredicates,
+      Multimap<CFANode, AbstractionPredicate> pLocalPredicates,
       Multimap<String, AbstractionPredicate> pFunctionPredicates,
       Collection<AbstractionPredicate> pGlobalPredicates) {
-    mLocalPredicates = ImmutableSetMultimap.<CFANode, AbstractionPredicate>builder().orderKeysBy(Ordering.natural()).putAll(pLocalPredicates).build();
-    mFunctionPredicates = ImmutableSetMultimap.<String, AbstractionPredicate>builder().orderKeysBy(Ordering.natural()).putAll(pFunctionPredicates).build();
+    mLocationInstancePredicates = ImmutableSetMultimap.copyOf(pLocationInstancePredicates);
+    mLocalPredicates = sortedImmutableSetCopyOf(pLocalPredicates);
+    mFunctionPredicates = sortedImmutableSetCopyOf(pFunctionPredicates);
     mGlobalPredicates = ImmutableSet.copyOf(pGlobalPredicates);
+  }
+
+  private static <K extends Comparable<? super K>, V>
+      ImmutableSetMultimap<K, V> sortedImmutableSetCopyOf(Multimap<K, V> m) {
+    return ImmutableSetMultimap
+        .<K, V>builder()
+        .orderKeysBy(Ordering.natural())
+        .putAll(m)
+        .build();
   }
 
   /**
@@ -74,9 +94,19 @@ public class PredicatePrecision implements Precision {
    */
   public static PredicatePrecision empty() {
     return new PredicatePrecision(
+        ImmutableSetMultimap.<Pair<CFANode, Integer>, AbstractionPredicate>of(),
         ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
         ImmutableSetMultimap.<String, AbstractionPredicate>of(),
         ImmutableSet.<AbstractionPredicate>of());
+  }
+
+  /**
+   * Return a table of the location-instance-specific predicates.
+   * These are the predicates that should be used at the n-th instance
+   * of an abstraction location l in the current path.
+   */
+  public ImmutableSetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> getLocationInstancePredicates() {
+    return mLocationInstancePredicates;
   }
 
   /**
@@ -102,12 +132,14 @@ public class PredicatePrecision implements Precision {
 
   /**
    * Return all predicates for one specific location in this precision.
-   * Note that this may be difference from <code>getPredicateMap().get(loc)</code>
-   * if there are global predicates.
    * @param loc A CFA location.
+   * @param locInstance How often this location has appeared in the current path.
    */
-  public Set<AbstractionPredicate> getPredicates(CFANode loc) {
-    Set<AbstractionPredicate> result = getLocalPredicates().get(loc);
+  public Set<AbstractionPredicate> getPredicates(CFANode loc, Integer locInstance) {
+    Set<AbstractionPredicate> result = getLocationInstancePredicates().get(Pair.of(loc, locInstance));
+    if (result.isEmpty()) {
+      result = getLocalPredicates().get(loc);
+    }
     if (result.isEmpty()) {
       result = getFunctionPredicates().get(loc.getFunctionName());
     }
@@ -124,7 +156,29 @@ public class PredicatePrecision implements Precision {
   public PredicatePrecision addGlobalPredicates(Collection<AbstractionPredicate> newPredicates) {
     List<AbstractionPredicate> predicates = Lists.newArrayList(getGlobalPredicates());
     predicates.addAll(newPredicates);
-    return new PredicatePrecision(getLocalPredicates(), getFunctionPredicates(), predicates);
+    return new PredicatePrecision(getLocationInstancePredicates(),
+        getLocalPredicates(), getFunctionPredicates(), predicates);
+  }
+
+  /**
+   * Create a new precision which is a copy of the current one with some
+   * additional function-specific predicates.
+   */
+  public PredicatePrecision addFunctionPredicates(Multimap<String, AbstractionPredicate> newPredicates) {
+    Multimap<String, AbstractionPredicate> predicates = ArrayListMultimap.create(getFunctionPredicates());
+    predicates.putAll(newPredicates);
+
+    // During lookup, we do not look into getGlobalPredicates(),
+    // if there is something for the key in predicates.
+    // Thus, we copy the relevant items into the predicates set here.
+    if (!getGlobalPredicates().isEmpty()) {
+      for (String function : newPredicates.keySet()) {
+        predicates.putAll(function, getGlobalPredicates());
+      }
+    }
+
+    return new PredicatePrecision(getLocationInstancePredicates(),
+        getLocalPredicates(), predicates, getGlobalPredicates());
   }
 
   /**
@@ -145,7 +199,34 @@ public class PredicatePrecision implements Precision {
       }
     }
 
-    return new PredicatePrecision(predicates, getFunctionPredicates(), getGlobalPredicates());
+    return new PredicatePrecision(getLocationInstancePredicates(),
+        predicates, getFunctionPredicates(), getGlobalPredicates());
+  }
+
+  /**
+   * Create a new precision which is a copy of the current one with some
+   * additional location-instance-specific predicates.
+   */
+  public PredicatePrecision addLocationInstancePredicates(
+      Multimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates) {
+    Multimap<Pair<CFANode, Integer>, AbstractionPredicate> predicates = ArrayListMultimap.create(getLocationInstancePredicates());
+    predicates.putAll(newPredicates);
+
+    // During lookup, we do not look into getGlobalPredicates(),
+    // getFunctionPredicates(), and getLocalPredicates(),
+    // if there is something for the key in predicates.
+    // Thus, we copy the relevant items into the predicates set here.
+    if (!getGlobalPredicates().isEmpty() || !getFunctionPredicates().isEmpty() || !getLocalPredicates().isEmpty()) {
+      for (Pair<CFANode, Integer> key : newPredicates.keySet()) {
+        CFANode loc = key.getFirst();
+        predicates.putAll(key, getLocalPredicates().get(loc));
+        predicates.putAll(key, getFunctionPredicates().get(loc.getFunctionName()));
+        predicates.putAll(key, getGlobalPredicates());
+      }
+    }
+
+    return new PredicatePrecision(predicates, getLocalPredicates(),
+        getFunctionPredicates(), getGlobalPredicates());
   }
 
   /**
@@ -180,7 +261,20 @@ public class PredicatePrecision implements Precision {
       }
     }
 
-    return new PredicatePrecision(newLocalPredicates, newFunctionPredicates, newGlobalPredicates);
+    // create new multimap of location-instance-specific predicates
+    Multimap<Pair<CFANode, Integer>, AbstractionPredicate> newLocationInstanceSpecificPredicates = ArrayListMultimap.create(getLocationInstancePredicates());
+    newLocationInstanceSpecificPredicates.putAll(prec.getLocationInstancePredicates());
+
+    if (!newGlobalPredicates.isEmpty() || !newFunctionPredicates.isEmpty() || !newLocalPredicates.isEmpty()) {
+      for (Pair<CFANode, Integer> key : newLocationInstanceSpecificPredicates.keySet()) {
+        newLocationInstanceSpecificPredicates.putAll(key, newGlobalPredicates);
+        newLocationInstanceSpecificPredicates.putAll(key, newFunctionPredicates.get(key.getFirst().getFunctionName()));
+        newLocationInstanceSpecificPredicates.putAll(key, newLocalPredicates.get(key.getFirst()));
+      }
+    }
+
+    return new PredicatePrecision(newLocationInstanceSpecificPredicates,
+        newLocalPredicates, newFunctionPredicates, newGlobalPredicates);
   }
 
   /**
@@ -203,23 +297,32 @@ public class PredicatePrecision implements Precision {
 
     difference += Sets.difference(this.getLocalPredicates().entries(),
                                   other.getLocalPredicates().entries()).size();
+
+    difference += Sets.difference(this.getLocationInstancePredicates().entries(),
+                                  other.getLocationInstancePredicates().entries()).size();
     return difference;
   }
 
   @Override
   public int hashCode() {
-    return getLocalPredicates().hashCode();
+    return Objects.hashCode(getGlobalPredicates(),
+                             getFunctionPredicates(),
+                             getLocalPredicates(),
+                             getLocationInstancePredicates());
   }
 
   @Override
   public boolean equals(Object pObj) {
     if (pObj == this) {
       return true;
+    } else if (pObj == null) {
+      return false;
     } else if (!(pObj.getClass().equals(PredicatePrecision.class))) {
       return false;
     } else {
       PredicatePrecision other = (PredicatePrecision)pObj;
-      return getLocalPredicates().equals(other.getLocalPredicates())
+      return getLocationInstancePredicates().equals(other.getLocationInstancePredicates())
+          && getLocalPredicates().equals(other.getLocalPredicates())
           && getFunctionPredicates().equals(other.getFunctionPredicates())
           && getGlobalPredicates().equals(other.getGlobalPredicates());
     }
@@ -246,6 +349,13 @@ public class PredicatePrecision implements Precision {
       sb.append("local predicates: ");
       sb.append(getLocalPredicates());
     }
+    if (!getLocationInstancePredicates().isEmpty()) {
+      if (sb.length() > 0) {
+        sb.append(", ");
+      }
+      sb.append("location-instance predicates: ");
+      sb.append(getLocationInstancePredicates());
+    }
 
     if (sb.length() == 0) {
       return "empty";
@@ -259,5 +369,29 @@ public class PredicatePrecision implements Precision {
    */
   public int getId() {
     return id;
+  }
+
+  static ListMultimap<String, AbstractionPredicate> mergePredicatesPerFunction(
+      Multimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates) {
+
+    return transformAndMergeKeys(newPredicates,
+        Functions.compose(CFAUtils.GET_FUNCTION,
+                          Pair.<CFANode>getProjectionToFirst()));
+  }
+
+  static ListMultimap<CFANode, AbstractionPredicate> mergePredicatesPerLocation(
+      Multimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates) {
+
+    return transformAndMergeKeys(newPredicates, Pair.<CFANode>getProjectionToFirst());
+  }
+
+  private static <K1, K2, V> ListMultimap<K2, V> transformAndMergeKeys(Multimap<K1, V> input,
+      Function<? super K1, K2> transformFunction) {
+
+    ListMultimap<K2, V> result = ArrayListMultimap.create();
+    for (Map.Entry<K1, Collection<V>> entry : input.asMap().entrySet()) {
+      result.putAll(transformFunction.apply(entry.getKey()), entry.getValue());
+    }
+    return result;
   }
 }

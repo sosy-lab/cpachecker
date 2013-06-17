@@ -56,11 +56,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -68,6 +64,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -114,9 +114,9 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       out.println("  Time for cover:                   " + coverTime);
       out.println("Time spent by solver for reasoning: " + solver.solverTime);
       out.println();
-      out.println("Number of implication checks:       " + solver.implicationChecks);
-      out.println("  trivial:                          " + solver.trivialImplicationChecks);
-      out.println("  cached:                           " + solver.cachedImplicationChecks);
+      out.println("Number of SMT sat checks:           " + solver.satChecks);
+      out.println("  trivial:                          " + solver.trivialSatChecks);
+      out.println("  cached:                           " + solver.cachedSatChecks);
       out.println("Number of refinements:              " + refinementTime.getNumberOfIntervals());
       if (useForcedCovering) {
         out.println("Number of forced coverings:         " + forceCoverTime.getNumberOfIntervals());

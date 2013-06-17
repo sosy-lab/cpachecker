@@ -42,13 +42,13 @@ public class Solver {
   private final BooleanFormulaManagerView bfmgr;
   private final FormulaManagerFactory factory;
 
-  private final Map<BooleanFormula, Boolean> implicationCache = Maps.newHashMap();
+  private final Map<BooleanFormula, Boolean> unsatCache = Maps.newHashMap();
 
   // stats
   public final Timer solverTime = new Timer();
-  public int implicationChecks = 0;
-  public int trivialImplicationChecks = 0;
-  public int cachedImplicationChecks = 0;
+  public int satChecks = 0;
+  public int trivialSatChecks = 0;
+  public int cachedSatChecks = 0;
 
   public Solver(FormulaManagerView pFmgr, FormulaManagerFactory pFactory) {
     fmgr = pFmgr;
@@ -82,13 +82,38 @@ public class Solver {
    * Checks whether a formula is unsat.
    */
   public boolean isUnsat(BooleanFormula f) {
+    satChecks++;
+
+    if (bfmgr.isTrue(f)) {
+      trivialSatChecks++;
+      return false;
+    }
+    if (bfmgr.isFalse(f)) {
+      trivialSatChecks++;
+      return true;
+    }
+    Boolean result = unsatCache.get(f);
+    if (result != null) {
+      cachedSatChecks++;
+      return result;
+    }
+
     solverTime.start();
-    try (ProverEnvironment prover = newProverEnvironment()) {
-      prover.push(f);
-      return prover.isUnsat();
+    try {
+      result = isUnsatUncached(f);
+
+      unsatCache.put(f, result);
+      return result;
 
     } finally {
       solverTime.stop();
+    }
+  }
+
+  private boolean isUnsatUncached(BooleanFormula f) {
+    try (ProverEnvironment prover = newProverEnvironment()) {
+      prover.push(f);
+      return prover.isUnsat();
     }
   }
 
@@ -97,28 +122,33 @@ public class Solver {
    * The result is cached.
    */
   public boolean implies(BooleanFormula a, BooleanFormula b) {
-    implicationChecks++;
-
     if (bfmgr.isFalse(a) || bfmgr.isTrue(b)) {
-      trivialImplicationChecks++;
+      satChecks++;
+      trivialSatChecks++;
       return true;
     }
     if (a.equals(b)) {
-      trivialImplicationChecks++;
+      satChecks++;
+      trivialSatChecks++;
       return true;
     }
 
     BooleanFormula f = bfmgr.not(bfmgr.implication(a, b));
 
-    Boolean result = implicationCache.get(f);
-    if (result != null) {
-      cachedImplicationChecks++;
-      return result;
+    return isUnsat(f);
+  }
+
+  /**
+   * Populate the cache for unsatisfiability queries with a formula
+   * that is known to be unsat.
+   * @param unsat An unsatisfiable formula.
+   */
+  public void addUnsatisfiableFormulaToCache(BooleanFormula unsat) {
+    if (unsatCache.containsKey(unsat) || bfmgr.isFalse(unsat)) {
+      return;
     }
+    assert isUnsatUncached(unsat);
 
-    result = isUnsat(f);
-
-    implicationCache.put(f, result);
-    return result;
+    unsatCache.put(unsat, true);
   }
 }
