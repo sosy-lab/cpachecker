@@ -79,7 +79,6 @@ public class ReachingDefTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
       CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
-    System.out.println("test");
     if (pCfaEdge != null)
       return getAbstractSuccessors0(pState, pPrecision, pCfaEdge);
     CFANode[] nodes = ReachingDefUtils.getAllNodesFromCFA();
