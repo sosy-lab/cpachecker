@@ -1414,7 +1414,7 @@ def executeBenchmarkInCloud(benchmark):
      
     numOfRunDefLinesAndPriorityStr = str(numOfRunDefLines)
     if(config.cloudPriority):
-        numOfRunDefLinesAndPriorityStr += config.cloudPriority
+        numOfRunDefLinesAndPriorityStr += "\t" + config.cloudPriority
 
     cloudInput = "\t".join(absToolpaths) + "\n" + \
                 cloudRunExecutorDir + "\n" + \
