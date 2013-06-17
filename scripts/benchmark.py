@@ -1411,12 +1411,16 @@ def executeBenchmarkInCloud(benchmark):
 
     if(baseDir == ""):
         sys.exit("No common base dir found.")
+     
+    numOfRunDefLinesAndPriorityStr = str(numOfRunDefLines)
+    if(config.cloudPriority):
+        numOfRunDefLinesAndPriorityStr += config.cloudPriority
 
     cloudInput = "\t".join(absToolpaths) + "\n" + \
                 cloudRunExecutorDir + "\n" + \
                 baseDir + "\t" + absOutputDir + "\t" + absWorkingDir +"\n" + \
                 requirements + "\n" + \
-                str(numOfRunDefLines) + "\n" + \
+                numOfRunDefLinesAndPriorityStr + "\n" + \
                 "\n".join(runDefinitions)
 
     # install cloud and dependencies
@@ -1586,6 +1590,11 @@ def main(argv=None):
                       dest="cloud",
                       metavar="HOST",
                       help="Use cloud with given host as master.")
+    
+    parser.add_argument("--cloudPriority",
+                      dest="cloudPriority",
+                      metavar="PRIORITY",
+                      help="Sets the priority for this benchmark used in the cloud.")
 
     global config, OUTPUT_PATH
     config = parser.parse_args(argv[1:])
