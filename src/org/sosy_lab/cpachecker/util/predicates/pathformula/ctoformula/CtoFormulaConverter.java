@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.*;
 
 import java.util.HashMap;
@@ -1515,13 +1516,22 @@ public class CtoFormulaConverter {
    */
   private Pair<Integer, Integer> getFieldOffsetMsbLsb(CFieldReference fExp) {
     CExpression fieldRef = getRealFieldOwner(fExp);
-    CType structType = simplifyType(fieldRef.getExpressionType());
+    CCompositeType structType = (CCompositeType)simplifyType(fieldRef.getExpressionType());
 
-    assert structType instanceof CCompositeType :
-        "expecting CCompositeType on structs!";
     // f is now the structure, access it:
     int bitsPerByte = machineModel.getSizeofCharInBits();
-    int offset = getFieldOffset((CCompositeType) structType, fExp.getFieldName(), fExp.getExpressionType()) * bitsPerByte;
+
+    // call getFieldOffset in all cases to check whether the field actually exists
+    int offset = getFieldOffset(structType, fExp.getFieldName(), fExp.getExpressionType())
+        * bitsPerByte;
+
+    if (structType.getKind() == ComplexTypeKind.UNION) {
+      offset = 0;
+    } else {
+      checkArgument(structType.getKind() == ComplexTypeKind.STRUCT,
+          "Illegal field access in expression %s", fExp);
+    }
+
     int fieldSize = getSizeof(fExp.getExpressionType()) * bitsPerByte;
     int lsb = offset;
     int msb = offset + fieldSize - 1;
@@ -1530,7 +1540,9 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Returns the offset of the given field in the given struct in bytes
+   * Returns the offset of the given field in the given struct in bytes.
+   *
+   * This function does not handle UNIONs or ENUMs!
    */
   private int getFieldOffset(CCompositeType structType, String fieldName, CType assertFieldType) {
       int off = 0;
