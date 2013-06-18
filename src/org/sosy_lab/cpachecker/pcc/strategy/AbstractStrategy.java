@@ -1,0 +1,199 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2013  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.pcc.strategy;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.NotSerializableException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.logging.Level;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
+
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+
+
+public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvider {
+
+  protected LogManager logger;
+  protected PCStrategyStatistics stats;
+
+  @Option(
+      name = "pcc.proofFile",
+      description = "file in which proof representation needed for proof checking is stored")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  protected File file = new File("arg.obj");
+
+  public AbstractStrategy(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+    pConfig.inject(this);
+    logger = pLogger;
+    stats = new PCStrategyStatistics();
+  }
+
+  @Override
+  public void writeProof(UnmodifiableReachedSet pReached) {
+    Object proof = getProofToWrite(pReached);
+
+    OutputStream fos = null;
+    try {
+      fos = new FileOutputStream(file);
+      ZipOutputStream zos = new ZipOutputStream(fos);
+      zos.setLevel(9);
+
+      ZipEntry ze = new ZipEntry("Proof");
+      zos.putNextEntry(ze);
+      ObjectOutputStream o = new ObjectOutputStream(zos);
+      //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
+      //write ARG
+      o.writeObject(proof);
+      zos.closeEntry();
+
+      ze = new ZipEntry("Helper");
+      zos.putNextEntry(ze);
+      //write helper storages
+      o = new ObjectOutputStream(zos);
+      int numberOfStorages = GlobalInfo.getInstance().getNumberOfHelperStorages();
+      o.writeInt(numberOfStorages);
+      for (int i = 0; i < numberOfStorages; ++i) {
+        o.writeObject(GlobalInfo.getInstance().getHelperStorage(i));
+      }
+
+      o.flush();
+      zos.closeEntry();
+      zos.close();
+    } catch (NotSerializableException eS){
+      logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage() + " does not implement Serializable interface");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    } finally {
+      try {
+        fos.close();
+      } catch (Exception e) {
+      }
+    }
+  }
+
+  protected abstract Object getProofToWrite(UnmodifiableReachedSet pReached);
+
+  @Override
+  public void readProof() throws IOException, ClassNotFoundException, InvalidConfigurationException {
+
+    InputStream fis = null;
+    try {
+
+      fis = new FileInputStream(file);
+      ZipInputStream zis = new ZipInputStream(fis);
+
+      ZipEntry entry = zis.getNextEntry();
+      assert entry.getName().equals("Proof");
+      zis.closeEntry();
+
+      entry = zis.getNextEntry();
+      assert entry.getName().equals("Helper");
+      ObjectInputStream o = new ObjectInputStream(zis);
+      //read helper storages
+      int numberOfStorages = o.readInt();
+      for (int i = 0; i < numberOfStorages; ++i) {
+        Serializable storage = (Serializable) o.readObject();
+        GlobalInfo.getInstance().addHelperStorage(storage);
+      }
+      zis.closeEntry();
+
+      o.close();
+      zis.close();
+      fis.close();
+
+      fis = new FileInputStream(file);
+      zis = new ZipInputStream(fis);
+      entry = zis.getNextEntry();
+      assert entry.getName().equals("Proof");
+      o = new ObjectInputStream(zis);
+      prepareForChecking(o);
+      o.close();
+      zis.close();
+    } finally {
+      fis.close();
+    }
+  }
+
+  protected abstract void prepareForChecking(Object pReadObject) throws InvalidConfigurationException;
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection){
+    statsCollection.add(stats);
+  }
+
+  protected static class PCStrategyStatistics implements Statistics {
+
+    protected Timer transferTimer = new Timer();
+    protected Timer stopTimer = new Timer();
+    protected Timer preparationTimer = new Timer();
+    protected Timer propertyCheckingTimer = new Timer();
+
+    protected int countIterations = 0;
+
+    @Override
+    public String getName() {
+      return "Proof Checking Strategy Statistics";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult,
+        ReachedSet pReached) {
+      out.println("Number of iterations:                     " + countIterations);
+      out.println();
+      out.println("  Time for preparing proof for checking:          " + preparationTimer);
+      out.println("  Time for abstract successor checks:     " + transferTimer + " (Calls: "
+          + transferTimer.getNumberOfIntervals() + ")");
+      out.println("  Time for covering checks:               " + stopTimer + " (Calls: "
+          + stopTimer.getNumberOfIntervals()
+          + ")");
+      out.println(" Time for checking property:          "   + propertyCheckingTimer);
+    }
+
+  }
+
+
+}
