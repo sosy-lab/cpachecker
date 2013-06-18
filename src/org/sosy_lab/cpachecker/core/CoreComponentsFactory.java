@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BMCAlgorithm;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.PropertyChecker.ConfigurableProgramAnalysisWithPropertyChecker;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -90,6 +92,10 @@ public class CoreComponentsFactory {
 
   @Option(description="use a proof check algorithm to validate a previously generated proof")
   private boolean useProofCheckAlgorithm = false;
+
+  @Option(description = "do analysis and then check "
+      + "if reached set fulfills property specified by ConfigurableProgramAnalysisWithPropertyChecker")
+  private boolean usePropertyCheckingAlgorithm = false;
 
   @Option(description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
@@ -152,6 +158,14 @@ public class CoreComponentsFactory {
 
       if (useAdjustableConditions) {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (usePropertyCheckingAlgorithm) {
+        if (!(cpa instanceof ConfigurableProgramAnalysisWithPropertyChecker))
+          throw new InvalidConfigurationException(
+              "Property checking algorithm requires CPAWithPropertyChecker as Top CPA");
+        algorithm =
+            new AlgorithmWithPropertyCheck(algorithm, logger, (ConfigurableProgramAnalysisWithPropertyChecker) cpa);
       }
 
       if (useResultCheckAlgorithm) {
