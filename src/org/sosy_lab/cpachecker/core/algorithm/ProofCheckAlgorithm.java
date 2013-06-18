@@ -71,7 +71,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   @Option(
       name = "pcc.strategy",
       description = "Qualified name for class which implements proof checking strategy to be used.")
-  private String pccStrategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGStrategy";
+  private String pccStrategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy";
 
   private PCCStrategy checkingStrategy;
 

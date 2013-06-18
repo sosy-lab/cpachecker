@@ -45,7 +45,7 @@ public class ProofGenerator {
   @Option(
       name = "pcc.strategy",
       description = "Qualified name for class which implements certification strategy, hence proof writing, to be used.")
-  private String pccStrategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGStrategy";
+  private String pccStrategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy";
 
   private PCCStrategy checkingStrategy;
 
