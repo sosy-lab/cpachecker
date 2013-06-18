@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.PropertyChecker;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -93,8 +91,8 @@ public class ConfigurableProgramAnalysisWithPropertyChecker extends AbstractSing
     return getWrappedCpa().getInitialState(pNode);
   }
 
-  public boolean satisfiesProperty(Collection<AbstractState> pCollection) {
-   return propChecker.satisfiesProperty(pCollection);
+  public PropertyChecker getPropChecker(){
+    return propChecker;
   }
 
 }

@@ -54,7 +54,7 @@ public class AlgorithmWithPropertyCheck implements Algorithm {
 
     if (result) {
       logger.log(Level.INFO, "Start property checking.");
-      cpa.satisfiesProperty(pReachedSet.asCollection());
+      cpa.getPropChecker().satisfiesProperty(pReachedSet.asCollection());
     }
 
     logger.log(Level.INFO, "Finished analysis");
