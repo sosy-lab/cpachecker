@@ -130,6 +130,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
-    // TODO add statistics of strategy
+    if(checkingStrategy instanceof StatisticsProvider)
+      ((StatisticsProvider)checkingStrategy).collectStatistics(pStatsCollection);
   }
 }
