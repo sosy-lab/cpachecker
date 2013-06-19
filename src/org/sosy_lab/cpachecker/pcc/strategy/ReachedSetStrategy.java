@@ -30,6 +30,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -45,7 +46,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-
+@Options
 public class ReachedSetStrategy extends AbstractStrategy {
 
   protected AbstractState[] reachedSet;

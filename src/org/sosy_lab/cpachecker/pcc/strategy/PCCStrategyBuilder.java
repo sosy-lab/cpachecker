@@ -67,7 +67,9 @@ public class PCCStrategyBuilder {
           continue;
         else {
           if (paramTypes[0] == Configuration.class && paramTypes[1] == LogManager.class)
-            if (paramTypes[2] == ProofChecker.class) {
+            if (pCpa == null)
+              return (PCCStrategy) con.newInstance(pConfig, pLogger, pCpa);
+          if (paramTypes[2] == ProofChecker.class) {
               if (!(pCpa instanceof ProofChecker))
                 continue;
               return (PCCStrategy) con.newInstance(pConfig, pLogger, pCpa);

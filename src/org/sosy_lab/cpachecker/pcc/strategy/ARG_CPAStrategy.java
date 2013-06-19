@@ -37,6 +37,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -47,7 +48,7 @@ import org.sosy_lab.cpachecker.cpa.PropertyChecker.ConfigurableProgramAnalysisWi
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-
+@Options
 public class ARG_CPAStrategy extends AbstractStrategy {
 
   @Option(name = "pcc.checkPropertyPerElement", description = "")

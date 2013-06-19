@@ -31,6 +31,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
@@ -46,14 +47,13 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-
+@Options
 public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
 
   public PartialReachedSetStrategy(Configuration pConfig, LogManager pLogger,
       ConfigurableProgramAnalysisWithPropertyChecker pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCpa);
-    // TODO Auto-generated constructor stub
   }
 
   @Override
