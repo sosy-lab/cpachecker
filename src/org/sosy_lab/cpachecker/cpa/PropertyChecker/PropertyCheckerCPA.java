@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.pcc.propertychecker.PropertyCheckerBuilder;
 
 
-public class ConfigurableProgramAnalysisWithPropertyChecker extends AbstractSingleWrapperCPA{
+public class PropertyCheckerCPA extends AbstractSingleWrapperCPA{
 
   @Option(
       name = "propertychecker.className",
@@ -54,7 +54,7 @@ public class ConfigurableProgramAnalysisWithPropertyChecker extends AbstractSing
 
   private PropertyChecker propChecker;
 
-  public ConfigurableProgramAnalysisWithPropertyChecker(ConfigurableProgramAnalysis pCpa, Configuration pConfig)
+  public PropertyCheckerCPA(ConfigurableProgramAnalysis pCpa, Configuration pConfig)
       throws InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);

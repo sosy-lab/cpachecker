@@ -33,7 +33,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.cpa.PropertyChecker.ConfigurableProgramAnalysisWithPropertyChecker;
+import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 
 
 public class PCCStrategyBuilder {
@@ -66,19 +66,20 @@ public class PCCStrategyBuilder {
         if (paramTypes.length != 3)
           continue;
         else {
-          if (paramTypes[0] == Configuration.class && paramTypes[1] == LogManager.class)
+          if (paramTypes[0] == Configuration.class && paramTypes[1] == LogManager.class) {
             if (pCpa == null)
               return (PCCStrategy) con.newInstance(pConfig, pLogger, pCpa);
-          if (paramTypes[2] == ProofChecker.class) {
+            if (paramTypes[2] == ProofChecker.class) {
               if (!(pCpa instanceof ProofChecker))
                 continue;
               return (PCCStrategy) con.newInstance(pConfig, pLogger, pCpa);
             }
-          if (paramTypes[2] == ConfigurableProgramAnalysisWithPropertyChecker.class) {
-            if (!(pCpa instanceof ConfigurableProgramAnalysisWithPropertyChecker))
-              continue;
-            return (PCCStrategy) con.newInstance(pConfig,
-                pLogger, pCpa);
+            if (paramTypes[2] == PropertyCheckerCPA.class) {
+              if (!(pCpa instanceof PropertyCheckerCPA))
+                continue;
+              return (PCCStrategy) con.newInstance(pConfig,
+                  pLogger, pCpa);
+            }
           }
         }
       }

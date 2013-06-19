@@ -23,22 +23,25 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.PropertyChecker.ConfigurableProgramAnalysisWithPropertyChecker;
+import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-public class AlgorithmWithPropertyCheck implements Algorithm {
+public class AlgorithmWithPropertyCheck implements Algorithm, StatisticsProvider {
 
   private final Algorithm analysis;
   private final LogManager logger;
-  ConfigurableProgramAnalysisWithPropertyChecker cpa;
+  private PropertyCheckerCPA cpa;
 
   public AlgorithmWithPropertyCheck(Algorithm analysisAlgorithm, LogManager logger,
-      ConfigurableProgramAnalysisWithPropertyChecker cpa) {
+      PropertyCheckerCPA cpa) {
     analysis = analysisAlgorithm;
     this.logger = logger;
     this.cpa = cpa;
@@ -59,6 +62,12 @@ public class AlgorithmWithPropertyCheck implements Algorithm {
 
     logger.log(Level.INFO, "Finished analysis");
     return result;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if(analysis instanceof StatisticsProvider)
+      ((StatisticsProvider) analysis).collectStatistics(pStatsCollection);
   }
 
 }

@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.PropertyChecker.ConfigurableProgramAnalysisWithPropertyChecker;
+import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -51,9 +51,9 @@ public class ReachedSetStrategy extends AbstractStrategy {
 
   protected AbstractState[] reachedSet;
   protected Multimap<CFANode, AbstractState> statesPerLocation;
-  protected ConfigurableProgramAnalysisWithPropertyChecker cpa;
+  protected PropertyCheckerCPA cpa;
 
-  public ReachedSetStrategy(Configuration pConfig, LogManager pLogger, ConfigurableProgramAnalysisWithPropertyChecker pCpa) throws InvalidConfigurationException {
+  public ReachedSetStrategy(Configuration pConfig, LogManager pLogger, PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger);
     cpa= pCpa;
   }

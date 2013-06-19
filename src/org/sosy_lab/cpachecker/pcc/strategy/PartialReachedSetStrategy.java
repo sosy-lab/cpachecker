@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.PropertyChecker.ConfigurableProgramAnalysisWithPropertyChecker;
+import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -52,7 +52,7 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
 
   public PartialReachedSetStrategy(Configuration pConfig, LogManager pLogger,
-      ConfigurableProgramAnalysisWithPropertyChecker pCpa) throws InvalidConfigurationException {
+      PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCpa);
   }
 

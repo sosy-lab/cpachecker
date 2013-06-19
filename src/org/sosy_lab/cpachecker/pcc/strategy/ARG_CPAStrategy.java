@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.PropertyChecker.ConfigurableProgramAnalysisWithPropertyChecker;
+import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -55,9 +55,9 @@ public class ARG_CPAStrategy extends AbstractStrategy {
   private boolean singleCheck = false;
   private List<AbstractState> visitedStates;
   private ARGState root;
-  private ConfigurableProgramAnalysisWithPropertyChecker cpa;
+  private PropertyCheckerCPA cpa;
 
-  public ARG_CPAStrategy(Configuration pConfig, LogManager pLogger, ConfigurableProgramAnalysisWithPropertyChecker pCpa)
+  public ARG_CPAStrategy(Configuration pConfig, LogManager pLogger, PropertyCheckerCPA pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     pConfig.inject(this);

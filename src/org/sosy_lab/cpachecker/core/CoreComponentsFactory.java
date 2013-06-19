@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.PropertyChecker.ConfigurableProgramAnalysisWithPropertyChecker;
+import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -161,11 +161,11 @@ public class CoreComponentsFactory {
       }
 
       if (usePropertyCheckingAlgorithm) {
-        if (!(cpa instanceof ConfigurableProgramAnalysisWithPropertyChecker))
+        if (!(cpa instanceof PropertyCheckerCPA))
           throw new InvalidConfigurationException(
               "Property checking algorithm requires CPAWithPropertyChecker as Top CPA");
         algorithm =
-            new AlgorithmWithPropertyCheck(algorithm, logger, (ConfigurableProgramAnalysisWithPropertyChecker) cpa);
+            new AlgorithmWithPropertyCheck(algorithm, logger, (PropertyCheckerCPA) cpa);
       }
 
       if (useResultCheckAlgorithm) {

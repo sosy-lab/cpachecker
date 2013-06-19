@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.PropertyChecker.ConfigurableProgramAnalysisWithPropertyChecker;
+import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.NoTargetStateChecker;
@@ -58,8 +58,8 @@ public class ARGProofCheckerStrategy extends AbstractStrategy {
     super(pConfig, pLogger);
     checker = pChecker;
     propChecker = new NoTargetStateChecker();
-    if (pChecker instanceof ConfigurableProgramAnalysisWithPropertyChecker) {
-      propChecker = ((ConfigurableProgramAnalysisWithPropertyChecker) pChecker).getPropChecker();
+    if (pChecker instanceof PropertyCheckerCPA) {
+      propChecker = ((PropertyCheckerCPA) pChecker).getPropChecker();
     }
   }
 
