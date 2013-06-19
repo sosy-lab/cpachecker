@@ -59,6 +59,7 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
   @Override
   public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
     reachedSet = computePartialReachedSet(pReached);
+    orderReachedSetByLocation(reachedSet);
   }
 
   private AbstractState[] computePartialReachedSet(UnmodifiableReachedSet pReached) {

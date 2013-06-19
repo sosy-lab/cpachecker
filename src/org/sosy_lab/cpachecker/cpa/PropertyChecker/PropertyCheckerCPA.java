@@ -26,10 +26,13 @@ package org.sosy_lab.cpachecker.cpa.PropertyChecker;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -38,7 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.pcc.propertychecker.PropertyCheckerBuilder;
 
-
+@Options
 public class PropertyCheckerCPA extends AbstractSingleWrapperCPA{
 
   @Option(
@@ -59,6 +62,10 @@ public class PropertyCheckerCPA extends AbstractSingleWrapperCPA{
     super(pCpa);
     pConfig.inject(this);
     propChecker = PropertyCheckerBuilder.buildPropertyChecker(checkerClass, checkerParamList);
+  }
+
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(PropertyCheckerCPA.class);
   }
 
   @Override

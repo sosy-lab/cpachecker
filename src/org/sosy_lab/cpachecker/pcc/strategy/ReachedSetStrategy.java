@@ -63,6 +63,7 @@ public class ReachedSetStrategy extends AbstractStrategy {
   public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
       reachedSet = new AbstractState[pReached.size()];
       pReached.asCollection().toArray(reachedSet);
+      orderReachedSetByLocation(reachedSet);
   }
 
   // TODO does it work with analysis without locations?
@@ -147,7 +148,7 @@ public class ReachedSetStrategy extends AbstractStrategy {
 
   }
 
-  private void orderReachedSetByLocation(AbstractState[] pReached) {
+  protected void orderReachedSetByLocation(AbstractState[] pReached) {
     statesPerLocation = HashMultimap.create();
     for (AbstractState state : pReached) {
       statesPerLocation.put(AbstractStates.extractLocation(state), state);
