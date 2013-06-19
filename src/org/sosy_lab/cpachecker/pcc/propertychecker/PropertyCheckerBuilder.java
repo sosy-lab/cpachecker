@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 
 public class PropertyCheckerBuilder {
 
-  private static final String CPA_CLASS_PREFIX = "org.sosy_lab.cpachecker";
+  private static final String PROPERTYCHECKER_CLASS_PREFIX = "org.sosy_lab.cpachecker.pcc.propertychecker";
 
   public static PropertyChecker buildPropertyChecker(String propCheckerClassName, String pCheckerParamList)
       throws InvalidConfigurationException {
@@ -42,7 +42,7 @@ public class PropertyCheckerBuilder {
 
     Class<?> propertyCheckerClass;
     try {
-      propertyCheckerClass = Classes.forName(propCheckerClassName, CPA_CLASS_PREFIX);
+      propertyCheckerClass = Classes.forName(propCheckerClassName, PROPERTYCHECKER_CLASS_PREFIX);
     } catch (ClassNotFoundException e) {
       throw new InvalidConfigurationException(
           "Class for property checker  " + propCheckerClassName + " is unknown.", e);

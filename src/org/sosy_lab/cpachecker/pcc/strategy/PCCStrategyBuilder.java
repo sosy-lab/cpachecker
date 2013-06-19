@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.PropertyChecker.ConfigurableProgramAnalysisWi
 
 public class PCCStrategyBuilder {
 
-  private static final String CPA_CLASS_PREFIX = "org.sosy_lab.cpachecker";
+  private static final String STRATEGY_CLASS_PREFIX = "org.sosy_lab.cpachecker.pcc.strategy";
 
   public static PCCStrategy buildStrategy(String pPccStrategy, Configuration pConfig, LogManager pLogger,
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -47,7 +47,7 @@ public class PCCStrategyBuilder {
 
     Class<?> pccStrategyClass;
     try {
-      pccStrategyClass = Classes.forName(pPccStrategy, CPA_CLASS_PREFIX);
+      pccStrategyClass = Classes.forName(pPccStrategy, STRATEGY_CLASS_PREFIX);
     } catch (ClassNotFoundException e) {
       throw new InvalidConfigurationException(
           "Class for pcc checker  " + pPccStrategy + " is unknown.", e);
