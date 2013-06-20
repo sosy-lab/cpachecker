@@ -25,36 +25,44 @@ package org.sosy_lab.cpachecker.pcc.propertychecker;
 
 import java.util.Collection;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * Checks if a certain variable is defined at most once by the program and
- * checks if a certain variable has a specific value at a specific location marked by a label in the program.
+ * Checks if a certain variable has a specific value at a specific location marked by a label in the program.
  */
-public class SingleDefinitionSingleValueChecker implements PropertyChecker {
+public class SingleValueChecker implements PropertyChecker {
 
-  private SingleDefinitionChecker defChecker;
-  private SingleValueChecker valChecker;
+  private final String varValName;
+  private final long varVal;
+  private final String labelLocVarVal;
 
-
-  public SingleDefinitionSingleValueChecker(String varWithSingleDef, String varWithSingleValue, String varValue,
-      String labelForLocationWithSingleValue) {
-    defChecker = new SingleDefinitionChecker(varWithSingleDef);
-    valChecker = new SingleValueChecker(varWithSingleValue, varValue, labelForLocationWithSingleValue);
+  public SingleValueChecker(String varWithSingleValue, String varValue, String labelForLocationWithSingleValue) {
+    varValName = varWithSingleValue;
+    labelLocVarVal = labelForLocationWithSingleValue;
+    varVal = Long.parseLong(varValue);
   }
 
   @Override
   public boolean satisfiesProperty(AbstractState pElemToCheck) throws UnsupportedOperationException {
-    throw new UnsupportedOperationException();
+    // check if value correctly specified at location
+    CFANode node = AbstractStates.extractLocation(pElemToCheck);
+    if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(labelLocVarVal))
+      if (AbstractStates.extractStateByType(pElemToCheck, ExplicitState.class).getValueFor(varValName) != varVal) { return false; }
+    return true;
   }
 
   @Override
   public boolean satisfiesProperty(Collection<AbstractState> pCertificate) {
-    boolean result = defChecker.satisfiesProperty(pCertificate);
-    if (result) {
-      result = valChecker.satisfiesProperty(pCertificate);
+    for (AbstractState elem : pCertificate) {
+      if (!satisfiesProperty(elem))
+        return false;
     }
-    return result;
+    return true;
   }
+
 }
