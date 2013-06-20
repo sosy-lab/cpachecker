@@ -49,7 +49,7 @@ public class PropertyCheckerBuilder {
     }
 
     if (!PropertyChecker.class.isAssignableFrom(propertyCheckerClass)) { throw new InvalidConfigurationException(
-        "Option pcc.proofcheck.propertychecker must be set to a class implementing the PropertyChecker interface!"); }
+        "Option propertychecker.className must be set to a class implementing the PropertyChecker interface!"); }
 
     // get list of parameters
     String[] param;
