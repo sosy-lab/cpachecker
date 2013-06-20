@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -53,6 +54,9 @@ public class ReachingDefState implements AbstractState, Serializable {
   private transient Map<String, Set<DefinitionPoint>> localReachDefs;
 
   private transient Map<String, Set<DefinitionPoint>> globalReachDefs;
+
+// TODO Ergebnis merken, wenn funktionsaufrufe zusammengeführt wurden
+  private static HashMap<Pair<ReachingDefState, ReachingDefState>, ReachingDefState> mergedFunctionCallStates = new HashMap<>();
 
   private ReachingDefState() {}
 
@@ -177,6 +181,7 @@ public class ReachingDefState implements AbstractState, Serializable {
 
   private ReachingDefState mergeStackStates(ReachingDefState e1, ReachingDefState e2) {
     Vector<ReachingDefState> statesToMerge = new Vector<>();
+    Pair<ReachingDefState, ReachingDefState> pair;
     do {
       if (e1.stateOnLastFunctionCall == null || e2.stateOnLastFunctionCall == null)
         return topElement;
@@ -184,9 +189,14 @@ public class ReachingDefState implements AbstractState, Serializable {
       statesToMerge.add(e2);
       e1 = e1.stateOnLastFunctionCall;
       e2 = e2.stateOnLastFunctionCall;
+      pair = Pair.of(e1, e2);
+      if (mergedFunctionCallStates.containsKey(pair)){
+       e1 = mergedFunctionCallStates.get(pair);
+       break;
+      }
     } while (e1 != e2);
 
-    boolean changed = false;
+    boolean changed = e1!=e2;
     Map<String, Set<DefinitionPoint>> resultOfMapUnion;
     Map<String, Set<DefinitionPoint>> newLocal;
     ReachingDefState newStateOnLastFunctionCall = e1;
@@ -200,6 +210,17 @@ public class ReachingDefState implements AbstractState, Serializable {
       changed = changed || resultOfMapUnion != statesToMerge.get(i - 1).globalReachDefs;
 
       newStateOnLastFunctionCall = new ReachingDefState(newLocal, resultOfMapUnion, newStateOnLastFunctionCall);
+      if (changed) {
+        mergedFunctionCallStates.put(Pair.of(statesToMerge.get(i - 1), statesToMerge.get(i)),
+            newStateOnLastFunctionCall);
+        mergedFunctionCallStates.put(Pair.of(statesToMerge.get(i), statesToMerge.get(i - 1)),
+            newStateOnLastFunctionCall);
+      } else {
+        mergedFunctionCallStates.put(Pair.of(statesToMerge.get(i - 1), statesToMerge.get(i)),
+            statesToMerge.get(i - 1));
+        mergedFunctionCallStates.put(Pair.of(statesToMerge.get(i), statesToMerge.get(i - 1)),
+            statesToMerge.get(i));
+      }
     }
 
     if (changed) { return newStateOnLastFunctionCall; }
