@@ -68,8 +68,9 @@ public class SingleDefinitionChecker implements PropertyChecker {
     for (AbstractState elem : pCertificate) {
       // check if variable is at most defined once
       rdState = AbstractStates.extractStateByType(elem, ReachingDefState.class);
-      if (!(stillSingleDefinition(rdState.getGlobalReachingDefinitions().get(varDefName)) && stillSingleDefinition(rdState
-          .getLocalReachingDefinitions().get(varDefName))))
+      if (rdState == ReachingDefState.topElement
+          || !(stillSingleDefinition(rdState.getGlobalReachingDefinitions().get(varDefName)) && stillSingleDefinition(rdState
+              .getLocalReachingDefinitions().get(varDefName))))
         return false;
     }
     return true;
