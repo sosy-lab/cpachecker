@@ -259,6 +259,11 @@ public class ReachingDefState implements AbstractState, Serializable {
       return instance;
     }
 
+    @Override
+    public String toString() {
+      return "?";
+    }
+
     private Object writeReplace() throws ObjectStreamException {
       return writeReplace;
     }
@@ -292,6 +297,11 @@ public class ReachingDefState implements AbstractState, Serializable {
 
     public CFANode getDefinitionExitLocation() {
       return exit;
+    }
+
+    @Override
+    public String toString() {
+      return "(N" + entry.getNodeNumber() + ",N" + exit.getNodeNumber() + ")";
     }
 
     @Override
