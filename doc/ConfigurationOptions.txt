@@ -485,6 +485,9 @@ cpa.cpalien.runtimeCheck = NONE
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
 
+# restrict abstractions to assume edges
+cpa.explicit.blk.alwaysAtAssumes = false
+
 # restrict abstractions to function calls/returns
 cpa.explicit.blk.alwaysAtFunctions = false
 
@@ -544,6 +547,14 @@ cpa.explicit.variableBlacklist = ""
 
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value
+
+# When an invalid function pointer is called, do not assume all functions as
+# possible targets and instead call no function.
+cpa.functionpointer.ignoreInvalidFunctionPointerCalls = false
+
+# When an unknown function pointer is called, do not assume all functions as
+# possible targets and instead call no function (this is unsound).
+cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
@@ -877,11 +888,11 @@ cpa.predicate.useNondetFlags = false
 
 # which merge operator to use for ReachingDefCPA
 cpa.reachdef.merge = "JOIN"
-  allowed values: [SEP, JOIN]
+  allowed values: [SEP, JOIN, IGNORECALLSTACK]
 
 # which stop operator to use for ReachingDefCPA
 cpa.reachdef.stop = "SEP"
-  allowed values: [SEP, JOIN]
+  allowed values: [SEP, JOIN, IGNORECALLSTACK]
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"

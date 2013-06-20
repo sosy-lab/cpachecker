@@ -99,6 +99,12 @@ class FunctionPointerTransferRelation implements TransferRelation {
   private boolean trackInvalidFunctionPointers = false;
   private final FunctionPointerTarget invalidFunctionPointerTarget;
 
+  @Option(description="When an invalid function pointer is called, do not assume all functions as possible targets and instead call no function.")
+  private boolean ignoreInvalidFunctionPointerCalls = false;
+
+  @Option(description="When an unknown function pointer is called, do not assume all functions as possible targets and instead call no function (this is unsound).")
+  private boolean ignoreUnknownFunctionPointerCalls = false;
+
   private final LogManager logger;
 
   private final Set<List<String>> loggedMessages = new HashSet<>();
@@ -110,6 +116,13 @@ class FunctionPointerTransferRelation implements TransferRelation {
     invalidFunctionPointerTarget = trackInvalidFunctionPointers
                                    ? InvalidTarget.getInstance()
                                    : UnknownTarget.getInstance();
+
+    if (ignoreInvalidFunctionPointerCalls && !trackInvalidFunctionPointers) {
+      throw new InvalidConfigurationException(
+          "FunctionPointerCPA cannot ignore invalid function pointer calls " +
+          "when such pointers are not tracked, " +
+          "please set cpa.functionpointer.trackInvalidFunctionPointers=true");
+    }
   }
 
   private void log(Level level, String... msg) {
@@ -195,10 +208,9 @@ class FunctionPointerTransferRelation implements TransferRelation {
           FunctionPointerState.Builder newState = oldState.createBuilder();
           FunctionPointerTarget v1 = getValue(e.getOperand1(), newState, functionName);
           FunctionPointerTarget v2 = getValue(e.getOperand2(), newState, functionName);
-          logger.log(Level.ALL, "Operand1 value is " + v1);
-          logger.log(Level.ALL, "Operand2 value is " + v2);
-          if (v1!=null && v2!=null
-              && v1 instanceof NamedFunctionTarget
+          logger.log(Level.ALL, "Operand1 value is", v1);
+          logger.log(Level.ALL, "Operand2 value is", v2);
+          if (v1 instanceof NamedFunctionTarget
               && v2 instanceof NamedFunctionTarget) {
             boolean eq = v1.equals(v2);
             if (eq != a.getTruthAssumption()) {
@@ -207,6 +219,45 @@ class FunctionPointerTransferRelation implements TransferRelation {
             } else {
               logger.log(Level.FINE, "Should go by the edge " + a);
               return true;
+            }
+          }
+          if (a.getTruthAssumption()
+              && cfaEdge.getSuccessor().getNumLeavingEdges() > 0
+              && cfaEdge.getSuccessor().getLeavingEdge(0).getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+
+            // This AssumedEdge has probably been created by converting a
+            // function pointer call into a series of if-else-if-else edges,
+            // where there is a single static function call in each branch.
+            // If the user wishes, we skip these function calls by not going entering the branches.
+            // Of course we have to go into the else branches.
+
+            if (ignoreInvalidFunctionPointerCalls) {
+              if (v1 instanceof InvalidTarget && v2 instanceof NamedFunctionTarget) {
+                logger.log(Level.WARNING, "Assuming function pointer", e.getOperand1(),
+                    "with invalid target does not point to", v2,
+                    "in line", cfaEdge.getLineNumber() + ".");
+                return false;
+              }
+              if (v2 instanceof InvalidTarget && v1 instanceof NamedFunctionTarget) {
+                logger.log(Level.WARNING, "Assuming function pointer", e.getOperand2(),
+                    "with invalid target does not point to", v1,
+                    "in line", cfaEdge.getLineNumber() + ".");
+                return false;
+              }
+            }
+            if (ignoreUnknownFunctionPointerCalls) {
+              if (v1 instanceof UnknownTarget && v2 instanceof NamedFunctionTarget) {
+                logger.log(Level.WARNING, "Assuming function pointer", e.getOperand1(),
+                    "with unknown target does not point to", v2,
+                    "in line", cfaEdge.getLineNumber() + ".");
+                return false;
+              }
+              if (v2 instanceof UnknownTarget && v1 instanceof NamedFunctionTarget) {
+                logger.log(Level.WARNING, "Assuming function pointer", e.getOperand2(),
+                    "with unknown target does not point to", v1,
+                    "in line", cfaEdge.getLineNumber() + ".");
+                return false;
+              }
             }
           }
         }
