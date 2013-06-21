@@ -86,6 +86,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 public abstract class ForwardingTransferRelation<S extends AbstractState, P extends Precision>
     implements TransferRelation {
 
+  private static final String NOT_IMPLEMENTED = "this method is not implemented";
 
   /** the given edge, not casted, for local access */
   protected CFAEdge edge;
@@ -260,12 +261,12 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
 
   protected S handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException {
-    throw new AssertionError("not implemented");
+    throw new AssertionError(NOT_IMPLEMENTED);
   }
 
   protected S handleAssumption(JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption)
       throws CPATransferException {
-    throw new AssertionError("not implemented");
+    throw new AssertionError(NOT_IMPLEMENTED);
   }
 
 
@@ -275,14 +276,12 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
       List<? extends IAExpression> arguments, List<? extends AParameterDeclaration> parameters,
       String calledFunctionName) throws CPATransferException {
     if (cfaEdge instanceof CFunctionCallEdge) {
-      final CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) cfaEdge;
-      return handleFunctionCallEdge(functionCallEdge,
+      return handleFunctionCallEdge((CFunctionCallEdge) cfaEdge,
           (List<CExpression>) arguments, (List<CParameterDeclaration>) parameters,
           calledFunctionName);
 
     } else if (cfaEdge instanceof JMethodCallEdge) {
-      final JMethodCallEdge functionCallEdge = (JMethodCallEdge) cfaEdge;
-      return handleFunctionCallEdge(functionCallEdge,
+      return handleFunctionCallEdge((JMethodCallEdge) cfaEdge,
           (List<JExpression>) arguments, (List<JParameterDeclaration>) parameters,
           calledFunctionName);
 
@@ -294,13 +293,13 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
   protected S handleFunctionCallEdge(CFunctionCallEdge cfaEdge,
       List<CExpression> arguments, List<CParameterDeclaration> parameters,
       String calledFunctionName) throws CPATransferException {
-    throw new AssertionError("not implemented");
+    throw new AssertionError(NOT_IMPLEMENTED);
   }
 
   protected S handleFunctionCallEdge(JMethodCallEdge cfaEdge,
       List<JExpression> arguments, List<JParameterDeclaration> parameters,
       String calledFunctionName) throws CPATransferException {
-    throw new AssertionError("not implemented");
+    throw new AssertionError(NOT_IMPLEMENTED);
   }
 
 
@@ -324,13 +323,13 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
   protected S handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
       CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
       throws CPATransferException {
-    throw new AssertionError("not implemented");
+    throw new AssertionError(NOT_IMPLEMENTED);
   }
 
   protected S handleFunctionReturnEdge(JMethodReturnEdge cfaEdge,
       JMethodSummaryEdge fnkCall, JMethodOrConstructorInvocation summaryExpr, String callerFunctionName)
       throws CPATransferException {
-    throw new AssertionError("not implemented");
+    throw new AssertionError(NOT_IMPLEMENTED);
   }
 
 
@@ -350,12 +349,12 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
 
   protected S handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
       throws CPATransferException {
-    throw new AssertionError("not implemented");
+    throw new AssertionError(NOT_IMPLEMENTED);
   }
 
   protected S handleDeclarationEdge(JDeclarationEdge cfaEdge, JDeclaration decl)
       throws CPATransferException {
-    throw new AssertionError("not implemented");
+    throw new AssertionError(NOT_IMPLEMENTED);
   }
 
   /** This function handles statements like "a = 0;" and "b = !a;"
@@ -375,12 +374,12 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
 
   protected S handleStatementEdge(CStatementEdge cfaEdge, CStatement statement)
       throws CPATransferException {
-    throw new AssertionError("not implemented");
+    throw new AssertionError(NOT_IMPLEMENTED);
   }
 
   protected S handleStatementEdge(JStatementEdge cfaEdge, JStatement statement)
       throws CPATransferException {
-    throw new AssertionError("not implemented");
+    throw new AssertionError(NOT_IMPLEMENTED);
   }
 
 
@@ -400,16 +399,17 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
 
   protected S handleReturnStatementEdge(CReturnStatementEdge cfaEdge, @Nullable CExpression expression)
       throws CPATransferException {
-    throw new AssertionError("not implemented");
+    throw new AssertionError(NOT_IMPLEMENTED);
   }
 
   protected S handleReturnStatementEdge(JReturnStatementEdge cfaEdge, @Nullable JExpression expression)
       throws CPATransferException {
-    throw new AssertionError("not implemented");
+    throw new AssertionError(NOT_IMPLEMENTED);
   }
 
 
-  /** This method does nothing, it returns the input-state. */
+  /** This function handles blank edges, that are used for plain connectors
+   *  in the CFA. This default implementation returns the input-state. */
   protected S handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
     return state;
   }
