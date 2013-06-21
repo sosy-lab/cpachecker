@@ -54,12 +54,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -71,12 +68,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -712,7 +707,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   /** This Visitor evaluates the visited expression and creates a region for it. */
   private class BDDVectorCExpressionVisitor
-      implements CExpressionVisitor<Region[], RuntimeException> {
+      extends DefaultCExpressionVisitor<Region[], RuntimeException> {
 
     private final Partition partition;
     private final int size;
@@ -829,23 +824,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     @Override
-    public Region[] visit(CFieldReference exp) {
-      return null;
-    }
-
-    @Override
     public Region[] visit(CIdExpression exp) {
       return makePredicate(exp);
-    }
-
-    @Override
-    public Region[] visit(CCharLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Region[] visit(CFloatLiteralExpression exp) {
-      return null;
     }
 
     @Override
@@ -855,21 +835,6 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       } else {
         return bvmgr.makeNumber(exp.getValue(), size);
       }
-    }
-
-    @Override
-    public Region[] visit(CStringLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Region[] visit(CTypeIdExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Region[] visit(CTypeIdInitializerExpression exp) {
-      return null;
     }
 
     @Override
@@ -904,11 +869,16 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       }
       return returnValue;
     }
+
+    @Override
+    protected Region[] visitDefault(CExpression pExp) throws RuntimeException {
+      return null;
+    }
   }
 
   /** This Visitor evaluates the visited expression and
    * returns iff the given variable is used in it. */
-  private static class VarCExpressionVisitor implements CExpressionVisitor<Boolean, RuntimeException> {
+  private static class VarCExpressionVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
 
     private String functionName;
     private String varName;
@@ -955,38 +925,13 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     @Override
-    public Boolean visit(CCharLiteralExpression exp) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CFloatLiteralExpression exp) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CIntegerLiteralExpression exp) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CStringLiteralExpression exp) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CTypeIdExpression exp) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CTypeIdInitializerExpression exp) {
-      return false;
-    }
-
-    @Override
     public Boolean visit(CUnaryExpression exp) {
       return exp.getOperand().accept(this);
+    }
+
+    @Override
+    protected Boolean visitDefault(CExpression pExp) {
+      return false;
     }
   }
 
