@@ -415,7 +415,7 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
   }
 
   protected S handleFunctionSummaryEdge(FunctionSummaryEdge cfaEdge) throws CPATransferException {
-    return null;
+    throw new AssertionError(NOT_IMPLEMENTED);
   }
 
   protected static boolean isGlobal(final CExpression exp) {
