@@ -38,6 +38,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.logging.Level;
 
+import javax.management.JMException;
+
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
@@ -58,6 +60,7 @@ import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.MemoryStatistics;
+import org.sosy_lab.cpachecker.util.ProgramCpuTime;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -85,10 +88,13 @@ class MainCPAStatistics implements Statistics {
     private final Collection<Statistics> subStats;
     private final MemoryStatistics memStats;
 
-    final Timer programTime = new Timer();
+    private final Timer programTime = new Timer();
     final Timer creationTime = new Timer();
     final Timer cpaCreationTime = new Timer();
-    final Timer analysisTime = new Timer();
+    private final Timer analysisTime = new Timer();
+
+    private long programCpuTime;
+    private long analysisCpuTime = 0;
 
     private Statistics cfaCreatorStatistics;
     private CFA cfa;
@@ -108,6 +114,13 @@ class MainCPAStatistics implements Statistics {
         }
 
         programTime.start();
+        try {
+          programCpuTime = ProgramCpuTime.read();
+        } catch (JMException e) {
+          logger.logDebugException(e, "Querying cpu time failed");
+          logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
+          programCpuTime = -1;
+        }
     }
 
     public Collection<Statistics> getSubStatistics() {
@@ -117,6 +130,37 @@ class MainCPAStatistics implements Statistics {
     @Override
     public String getName() {
         return "CPAchecker";
+    }
+
+    void startAnalysisTimer() {
+      analysisTime.start();
+      try {
+        analysisCpuTime = ProgramCpuTime.read();
+      } catch (JMException e) {
+        logger.logDebugException(e, "Querying cpu time failed");
+        // user was already warned
+        analysisCpuTime = -1;
+      }
+    }
+
+    void stopAnalysisTimer() {
+      analysisTime.stop();
+      programTime.stop();
+
+      try {
+        long stopCpuTime = ProgramCpuTime.read();
+
+        if (programCpuTime >= 0) {
+          programCpuTime = stopCpuTime - programCpuTime;
+        }
+        if (analysisCpuTime >= 0) {
+          analysisCpuTime = stopCpuTime - analysisCpuTime;
+        }
+
+      } catch (JMException e) {
+        logger.logDebugException(e, "Querying cpu time failed");
+        // user was already warned
+      }
     }
 
     @Override
@@ -285,7 +329,9 @@ class MainCPAStatistics implements Statistics {
         cfaCreatorStatistics.printStatistics(out, result, reached);
       }
       out.println("Time for Analysis:            " + analysisTime);
+      out.println("CPU time for analysis:        " + Timer.formatTime(analysisCpuTime/1000/1000));
       out.println("Total time for CPAchecker:    " + programTime);
+      out.println("Total CPU time for CPAchecker:" + Timer.formatTime(programCpuTime/1000/1000));
     }
 
     private void printMemoryStatistics(PrintStream out) {
