@@ -1454,6 +1454,8 @@ def executeBenchmarkInCloud(benchmark):
     filePath = os.path.join(outputDir, "hostInformation.txt")
     parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
     
+    executedAllRuns = True;
+    
     #write results in runs and
     #handle output after all runs are done
     for runSet in benchmark.runSets:
@@ -1466,11 +1468,16 @@ def executeBenchmarkInCloud(benchmark):
             try:
                 stdoutFile = run.logFile + ".stdOut"
                 (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
+                
                 if returnValue is not None:
                     # Do not delete stdOut file if there was some problem
                     os.remove(stdoutFile)
+                else:
+                    executedAllRuns = False;
+                    
             except EnvironmentError as e:
                 logging.warning("Cannot extract measured values from output for file {0}: {1}".format(run.sourcefile, e))
+                executedAllRuns = False;
                 continue
 
             outputHandler.outputBeforeRun(run)
@@ -1485,6 +1492,9 @@ def executeBenchmarkInCloud(benchmark):
         outputHandler.outputAfterRunSet(runSet, None, None)
         
     outputHandler.outputAfterBenchmark()
+    
+    if not executedAllRuns:
+         logging.warning("Not all runs were executed in the cloud!")
 
     if config.commit and not STOPPED_BY_INTERRUPT:
         Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
