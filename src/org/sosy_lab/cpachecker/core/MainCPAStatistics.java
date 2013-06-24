@@ -256,16 +256,16 @@ class MainCPAStatistics implements Statistics {
       }
       int reachedSize = reached.size();
 
-      out.println("Size of reached set:          " + reachedSize);
+      out.println("Size of reached set:             " + reachedSize);
 
       if (reached instanceof LocationMappedReachedSet) {
         LocationMappedReachedSet l = (LocationMappedReachedSet)reached;
         int locs = l.getNumberOfPartitions();
         if (locs > 0) {
-          out.println("  Number of locations:        " + locs);
-          out.println("    Avg states per loc.:      " + reachedSize / locs);
+          out.println("  Number of locations:           " + locs);
+          out.println("    Avg states per location:     " + reachedSize / locs);
           Map.Entry<Object, Collection<AbstractState>> maxPartition = l.getMaxPartition();
-          out.println("    Max states per loc.:      " + maxPartition.getValue().size() + " (at node " + maxPartition.getKey() + ")");
+          out.println("    Max states per location:     " + maxPartition.getValue().size() + " (at node " + maxPartition.getKey() + ")");
         }
 
       } else {
@@ -275,8 +275,8 @@ class MainCPAStatistics implements Statistics {
 
         int locs = allLocations.entrySet().size();
         if (locs > 0) {
-          out.println("  Number of locations:        " + locs);
-          out.println("    Avg states per loc.:      " + reachedSize / locs);
+          out.println("  Number of reached locations:   " + locs);
+          out.println("    Avg states per location:     " + reachedSize / locs);
 
           int max = 0;
           CFANode maxLoc = null;
@@ -287,26 +287,26 @@ class MainCPAStatistics implements Statistics {
               maxLoc = location.getElement();
             }
           }
-          out.println("    Max states per loc.:      " + max + " (at node " + maxLoc + ")");
+          out.println("    Max states per location:     " + max + " (at node " + maxLoc + ")");
         }
       }
 
       if (reached instanceof PartitionedReachedSet) {
         PartitionedReachedSet p = (PartitionedReachedSet)reached;
         int partitions = p.getNumberOfPartitions();
-        out.println("  Number of partitions:       " + partitions);
-        out.println("    Avg size of partitions:   " + reachedSize / partitions);
+        out.println("  Number of partitions:          " + partitions);
+        out.println("    Avg size of partitions:      " + reachedSize / partitions);
         Map.Entry<Object, Collection<AbstractState>> maxPartition = p.getMaxPartition();
-        out.print  ("    Max size of partitions:   " + maxPartition.getValue().size());
+        out.print  ("    Max size of partitions:      " + maxPartition.getValue().size());
         if (maxPartition.getValue().size() > 1) {
           out.println(" (with key " + maxPartition.getKey() + ")");
         } else {
           out.println();
         }
       }
-      out.println("  Number of target states:    " + from(reached).filter(IS_TARGET_STATE).size());
+      out.println("  Number of target states:       " + from(reached).filter(IS_TARGET_STATE).size());
       if (reached.hasWaitingState()) {
-        out.println("  Size of final wait list     " + reached.getWaitlistSize());
+        out.println("  Size of final wait list        " + reached.getWaitlistSize());
       }
     }
 
@@ -316,9 +316,9 @@ class MainCPAStatistics implements Statistics {
                         .filter(CFAUtils.IS_LOOP_NODE)
                         .size();
 
-        out.println("Number of program locations:  " + cfa.getAllNodes().size());
-        out.println("Number of functions:          " + cfa.getNumberOfFunctions());
-        out.println("Number of loops:              " + loops);
+        out.println("Number of program locations:     " + cfa.getAllNodes().size());
+        out.println("Number of functions:             " + cfa.getNumberOfFunctions());
+        out.println("Number of loops:                 " + loops);
       }
     }
 
