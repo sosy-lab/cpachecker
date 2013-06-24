@@ -36,6 +36,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.management.JMException;
@@ -61,6 +62,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.ProgramCpuTime;
+import org.sosy_lab.cpachecker.util.StatisticsUtils;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -189,6 +191,8 @@ class MainCPAStatistics implements Statistics {
         out.println("CPAchecker general statistics");
         out.println("-----------------------------");
 
+        printCfaStatistics(out);
+
         if (result != Result.NOT_YET_STARTED) {
           try {
             printReachedSetStatistics(reached, out);
@@ -197,8 +201,6 @@ class MainCPAStatistics implements Statistics {
                 "Out of memory while generating statistics about final reached set");
           }
         }
-
-        printCfaStatistics(out);
 
         out.println();
 
@@ -258,8 +260,11 @@ class MainCPAStatistics implements Statistics {
 
       out.println("Size of reached set:             " + reachedSize);
 
+      Set<CFANode> locations;
+
       if (reached instanceof LocationMappedReachedSet) {
         LocationMappedReachedSet l = (LocationMappedReachedSet)reached;
+        locations = l.getLocations();
         int locs = l.getNumberOfPartitions();
         if (locs > 0) {
           out.println("  Number of locations:           " + locs);
@@ -273,9 +278,10 @@ class MainCPAStatistics implements Statistics {
                                                                       .transform(EXTRACT_LOCATION)
                                                                       .filter(notNull()));
 
+        locations = allLocations.elementSet();
         int locs = allLocations.entrySet().size();
         if (locs > 0) {
-          out.println("  Number of reached locations:   " + locs);
+          out.println("  Number of reached locations:   " + locs + " (" + StatisticsUtils.toPercent(locs, cfa.getAllNodes().size()) + ")");
           out.println("    Avg states per location:     " + reachedSize / locs);
 
           int max = 0;
@@ -289,6 +295,11 @@ class MainCPAStatistics implements Statistics {
           }
           out.println("    Max states per location:     " + max + " (at node " + maxLoc + ")");
         }
+      }
+
+      if (!locations.isEmpty()) {
+        Set<String> functions = from(locations).transform(CFAUtils.GET_FUNCTION).toSet();
+        out.println("  Number of reached functions:   " + functions.size() + " (" + StatisticsUtils.toPercent(functions.size(), cfa.getNumberOfFunctions()) + ")");
       }
 
       if (reached instanceof PartitionedReachedSet) {
