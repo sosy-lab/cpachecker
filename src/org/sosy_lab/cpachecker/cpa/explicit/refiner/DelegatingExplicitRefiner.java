@@ -47,8 +47,10 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateExtractor;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -58,7 +60,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 
 import com.google.common.collect.Multimap;
 
@@ -115,6 +116,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       FormulaManagerView formulaManager           = predicateCpa.getFormulaManager();
       Solver solver                               = predicateCpa.getSolver();
       pathFormulaManager                          = predicateCpa.getPathFormulaManager();
+      PredicateExtractor extractor                = predicateCpa.getExtractor();
 
       InterpolationManager manager = new InterpolationManager(
           formulaManager,
@@ -138,7 +140,8 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
           manager,
           formulaManager,
           pathFormulaManager,
-          backupRefinementStrategy);
+          backupRefinementStrategy,
+          extractor);
 
     } else {
       FormulaManagerFactory factory         = new FormulaManagerFactory(config, logger);

@@ -144,7 +144,8 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
                                           manager,
                                           predicateCpa.getFormulaManager(),
                                           predicateCpa.getPathFormulaManager(),
-                                          strategy);
+                                          strategy,
+                                          predicateCpa.getExtractor());
   }
 
   @Override
@@ -169,9 +170,10 @@ public final class ABMPredicateRefiner extends AbstractABMBasedRefiner implement
         final InterpolationManager pInterpolationManager,
         final FormulaManagerView pFormulaManager,
         final PathFormulaManager pPathFormulaManager,
-        final RefinementStrategy strategy) throws CPAException, InvalidConfigurationException {
+        final RefinementStrategy pStrategy,
+        final PredicateExtractor pExtractor) throws CPAException, InvalidConfigurationException {
 
-      super(config, logger, pCpa, pInterpolationManager, pFormulaManager, pPathFormulaManager, strategy);
+      super(config, logger, pCpa, pInterpolationManager, pFormulaManager, pPathFormulaManager, pStrategy, pExtractor);
 
       pfmgr = pPathFormulaManager;
     }

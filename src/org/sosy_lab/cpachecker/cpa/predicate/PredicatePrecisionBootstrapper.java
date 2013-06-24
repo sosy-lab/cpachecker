@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateMapParser.PredicateMapParsingFailedException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -61,9 +60,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
   @Option(description="always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
-
-  @Option(description="Enable mining of predicates from the CFA (preprocessing).")
-  private boolean enablePrecisionMiner = false;
 
   @Option(description="Enable sweeping the precision: remove predicates that make statements about variables that do not exist in the CFA.")
   private boolean enablePrecisionSweeper = false;
@@ -113,15 +109,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
       } catch (PredicateMapParsingFailedException e) {
         logger.logUserException(Level.WARNING, e, "Could not read predicate map");
-        return PredicatePrecision.empty();
-      }
-    } else if (enablePrecisionMiner) {
-      try {
-        PredicateMiner precMiner = new PredicateMiner(config, logger, pathFormulaManager, formulaManagerView, abstractionManager);
-        return precMiner.minePrecisionFromCfa(cfa);
-
-      } catch (CPATransferException e) {
-        logger.logUserException(Level.WARNING, e, "Could not mine precision from CFA");
         return PredicatePrecision.empty();
       }
     }
