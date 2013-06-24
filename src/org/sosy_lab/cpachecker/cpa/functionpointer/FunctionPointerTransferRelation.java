@@ -222,8 +222,10 @@ class FunctionPointerTransferRelation implements TransferRelation {
             }
           }
           if (a.getTruthAssumption()
-              && cfaEdge.getSuccessor().getNumLeavingEdges() > 0
-              && cfaEdge.getSuccessor().getLeavingEdge(0).getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+              && (cfaEdge.getSuccessor().getNumLeavingEdges() > 0
+                  && cfaEdge.getSuccessor().getLeavingEdge(0).getEdgeType() == CFAEdgeType.FunctionCallEdge
+                  || cfaEdge.getSuccessor().getNumLeavingEdges() > 1
+                  && cfaEdge.getSuccessor().getLeavingEdge(1).getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
 
             // This AssumedEdge has probably been created by converting a
             // function pointer call into a series of if-else-if-else edges,
