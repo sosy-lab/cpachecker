@@ -64,7 +64,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   @Option(description="Enable sweeping the precision: remove predicates that make statements about variables that do not exist in the CFA.")
   private boolean enablePrecisionSweeper = false;
 
-  private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView formulaManagerView;
   private final AbstractionManager abstractionManager;
   private final PredicatePrecisionSweeper sweeper;
@@ -84,7 +83,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     this.cfa = cfa;
     this.sweeper = sweeper;
 
-    this.pathFormulaManager = pathFormulaManager;
     this.abstractionManager = abstractionManager;
     this.formulaManagerView = formulaManagerView;
 
