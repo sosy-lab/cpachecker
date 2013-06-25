@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -54,9 +53,6 @@ public class ReachingDefState implements AbstractState, Serializable {
   private transient Map<String, Set<DefinitionPoint>> localReachDefs;
 
   private transient Map<String, Set<DefinitionPoint>> globalReachDefs;
-
-// TODO Ergebnis merken, wenn funktionsaufrufe zusammengeführt wurden
-  private static HashMap<Pair<ReachingDefState, ReachingDefState>, ReachingDefState> mergedFunctionCallStates = new HashMap<>();
 
   private ReachingDefState() {}
 
@@ -128,11 +124,24 @@ public class ReachingDefState implements AbstractState, Serializable {
   public boolean isSubsetOf(ReachingDefState superset) {
     if (superset == this || superset == topElement)
       return true;
-    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall)
+    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall && !compareStackStates(this, superset))
       return false;
-    boolean isLocalSubset = true;
+    boolean isLocalSubset;
     isLocalSubset = isSubsetOf(localReachDefs, superset.localReachDefs);
     return isLocalSubset && isSubsetOf(globalReachDefs, superset.globalReachDefs);
+  }
+
+  private boolean compareStackStates(ReachingDefState sub, ReachingDefState sup){
+    boolean result;
+    do {
+      if (sub.stateOnLastFunctionCall == null || sup.stateOnLastFunctionCall == null)
+        return false;
+      result = isSubsetOf(sub.getLocalReachingDefinitions(), sup.getLocalReachingDefinitions());
+      result = result && isSubsetOf(sub.getGlobalReachingDefinitions(), sup.getGlobalReachingDefinitions());
+      sub = sub.stateOnLastFunctionCall;
+      sup = sup.stateOnLastFunctionCall;
+    } while (sub != sup && result);
+    return result;
   }
 
   private boolean isSubsetOf(Map<String, Set<DefinitionPoint>> subset, Map<String, Set<DefinitionPoint>> superset) {
@@ -167,7 +176,7 @@ public class ReachingDefState implements AbstractState, Serializable {
     }
     Map<String, Set<DefinitionPoint>> resultOfMapUnion;
     resultOfMapUnion = unionMaps(localReachDefs, toJoin.localReachDefs);
-    changed = resultOfMapUnion != localReachDefs;
+    changed = changed || resultOfMapUnion != localReachDefs;
     newLocal = resultOfMapUnion;
 
     resultOfMapUnion = unionMaps(globalReachDefs, toJoin.globalReachDefs);
@@ -181,7 +190,6 @@ public class ReachingDefState implements AbstractState, Serializable {
 
   private ReachingDefState mergeStackStates(ReachingDefState e1, ReachingDefState e2) {
     Vector<ReachingDefState> statesToMerge = new Vector<>();
-    Pair<ReachingDefState, ReachingDefState> pair;
     do {
       if (e1.stateOnLastFunctionCall == null || e2.stateOnLastFunctionCall == null)
         return topElement;
@@ -189,11 +197,6 @@ public class ReachingDefState implements AbstractState, Serializable {
       statesToMerge.add(e2);
       e1 = e1.stateOnLastFunctionCall;
       e2 = e2.stateOnLastFunctionCall;
-      pair = Pair.of(e1, e2);
-      if (mergedFunctionCallStates.containsKey(pair)){
-       e1 = mergedFunctionCallStates.get(pair);
-       break;
-      }
     } while (e1 != e2);
 
     boolean changed = e1!=e2;
@@ -210,17 +213,6 @@ public class ReachingDefState implements AbstractState, Serializable {
       changed = changed || resultOfMapUnion != statesToMerge.get(i - 1).globalReachDefs;
 
       newStateOnLastFunctionCall = new ReachingDefState(newLocal, resultOfMapUnion, newStateOnLastFunctionCall);
-      if (changed) {
-        mergedFunctionCallStates.put(Pair.of(statesToMerge.get(i - 1), statesToMerge.get(i)),
-            newStateOnLastFunctionCall);
-        mergedFunctionCallStates.put(Pair.of(statesToMerge.get(i), statesToMerge.get(i - 1)),
-            newStateOnLastFunctionCall);
-      } else {
-        mergedFunctionCallStates.put(Pair.of(statesToMerge.get(i - 1), statesToMerge.get(i)),
-            statesToMerge.get(i - 1));
-        mergedFunctionCallStates.put(Pair.of(statesToMerge.get(i), statesToMerge.get(i - 1)),
-            statesToMerge.get(i));
-      }
     }
 
     if (changed) { return newStateOnLastFunctionCall; }
