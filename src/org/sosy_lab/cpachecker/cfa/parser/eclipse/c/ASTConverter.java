@@ -471,6 +471,14 @@ class ASTConverter {
     CExpression owner = convertExpressionWithoutSideEffects(e.getFieldOwner());
     String fieldName = convert(e.getFieldName());
 
+    // if the owner is a FieldReference itself there's the need for a temporary Variable
+    // but only if we are not in global scope, otherwise there will be parsing errors
+    if(owner instanceof CFieldReference && !scope.isGlobalScope()) {
+      CIdExpression tmpVar = createTemporaryVariable(e.getFieldOwner());
+      preSideAssignments.add(new CExpressionAssignmentStatement(getLocation(e), tmpVar, owner));
+      owner = tmpVar;
+    }
+
     if (type instanceof CProblemType) {
       CType ownerType = owner.getExpressionType();
       if (ownerType instanceof CElaboratedType) {
@@ -497,6 +505,12 @@ class ASTConverter {
       }
 
       logger.log(Level.FINE, "Field reference", e.getRawSignature(), "has unknown type", type);
+    }
+
+    // if there is a "var->field" convert it to (*var).field
+    if(e.isPointerDereference()) {
+      CUnaryExpression exp = new CUnaryExpression(getLocation(e), type, owner, UnaryOperator.STAR);
+      return new CFieldReference(getLocation(e), type, fieldName, exp, false);
     }
 
     return new CFieldReference(getLocation(e), type, fieldName, owner, e.isPointerDereference());
@@ -579,18 +593,57 @@ class ASTConverter {
 
   private CAstNode convert(IASTUnaryExpression e) {
     CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
-
-    if (e.getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-      return operand;
-    }
-
-
     FileLocation fileLoc = getLocation(e);
     CType type = typeConverter.convert(e.getExpressionType());
 
 
-
     switch (e.getOperator()) {
+    case IASTUnaryExpression.op_bracketedPrimary:
+      return operand;
+
+    case IASTUnaryExpression.op_star:
+      // if there is a dereference on a field of a dereferenced struct a temporary variable is needed
+      if(operand instanceof CFieldReference
+          && ((CFieldReference)operand).getFieldOwner() instanceof CUnaryExpression && ((CUnaryExpression)((CFieldReference)operand).getFieldOwner()).getOperator() == UnaryOperator.STAR) {
+        CIdExpression tmpVar = createTemporaryVariable(e.getOperand());
+        preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmpVar, operand));
+        return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+      }
+
+      // in case of *& both can be left out
+      else if(operand instanceof CUnaryExpression
+          && ((CUnaryExpression)operand).getOperator() == UnaryOperator.AMPER) {
+        return ((CUnaryExpression)operand).getOperand();
+      }
+
+      // in case of ** a temporary variable is needed
+      else if(operand instanceof CUnaryExpression && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR) {
+        CIdExpression tmpVar = createTemporaryVariable(e.getOperand());
+        preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmpVar, operand));
+        return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+      }
+
+      // in case of p.e. *(a+b) or *(a-b) or *(a ANY_OTHER_OPERATOR b) a temporary variable is needed
+      else if(operand instanceof CBinaryExpression) {
+        CIdExpression tmpVar = createTemporaryVariable(e.getOperand());
+        preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmpVar, operand));
+        return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+      }
+
+      // if none of the special cases before fits the default unaryExpression is created
+      return new CUnaryExpression(fileLoc, type, operand, UnaryOperator.STAR);
+
+    case IASTUnaryExpression.op_amper:
+      // in case of *& both can be left out
+      if(operand instanceof CUnaryExpression && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR ) {
+        return ((CUnaryExpression)operand).getOperand();
+      }
+
+      // if none of the special cases before fits the default unaryExpression is created
+      return new CUnaryExpression(fileLoc, type, operand, ASTOperatorConverter.convertUnaryOperator(e));
+
+
+
     case IASTUnaryExpression.op_prefixIncr:
     case IASTUnaryExpression.op_prefixDecr:
       // instead of ++x, create "x = x+1"
