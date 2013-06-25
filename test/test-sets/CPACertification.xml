@@ -59,137 +59,137 @@
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=lastSession,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=FilterDevice,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=PeripheralType,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ObjectType,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=Timeout,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=devExt,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
 </sourcefiles>
 </rundefinition>
 
@@ -244,137 +244,137 @@
 	<sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=lastSession,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=FilterDevice,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=PeripheralType,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ObjectType,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=Timeout,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=devExt,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
 </sourcefiles>	
 </rundefinition>
 
@@ -411,137 +411,137 @@
 	<sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=main::cond,0,out,</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=main::cond,0,out,</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=main::cond,0,out,</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ssl3_connect::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ssl3_connect::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ssl3_connect::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ssl3_accept::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ssl3_accept::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ssl3_accept::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
 </sourcefiles>
 </rundefinition>
 
@@ -599,137 +599,137 @@
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=lastSession,IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=FilterDevice,IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=PeripheralType,IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ObjectType,IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=Timeout,IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=devExt,IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
 </sourcefiles>
 </rundefinition>
 
@@ -783,119 +783,119 @@
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_5_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_5_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_6_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_6_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=cond,main::cond,0,out,</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/locks/test_locks_7_safe.c</include>
+<include>../programs/benchmarks/locks/test_locks_7_safe.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_clnt_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
+<include>../programs/benchmarks/bitvector/s3_srvr_3_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=lastSession,IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/cdaudio_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=FilterDevice,IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=PeripheralType,IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=ObjectType,IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl4_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=Timeout,IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl1_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=devExt,IPC,7,_L,</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<include>test/programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
+<include>../programs/benchmarks/ntdrivers-simplified/kbfiltr_simpl2_safe.cil.c</include>
 </sourcefiles>
 </rundefinition>
 
