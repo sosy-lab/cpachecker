@@ -291,12 +291,14 @@ class MainCPAStatistics implements Statistics {
         }
 
         int locs = locations.size();
+        if(locs>0){
         out.println("  Number of reached locations:   " + locs + " (" + StatisticsUtils.toPercent(locs, cfa.getAllNodes().size()) + ")");
         out.println("    Avg states per location:     " + reachedSize / locs);
         out.println("    Max states per location:     " + mostFrequentLocationCount + " (at node " + mostFrequentLocation + ")");
 
         Set<String> functions = from(locations).transform(CFAUtils.GET_FUNCTION).toSet();
         out.println("  Number of reached functions:   " + functions.size() + " (" + StatisticsUtils.toPercent(functions.size(), cfa.getNumberOfFunctions()) + ")");
+        }
 
         if (reached instanceof PartitionedReachedSet) {
           PartitionedReachedSet p = (PartitionedReachedSet)reached;
