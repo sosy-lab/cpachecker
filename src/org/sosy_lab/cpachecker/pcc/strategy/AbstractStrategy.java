@@ -151,7 +151,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       entry = zis.getNextEntry();
       assert entry.getName().equals("Proof");
       o = new ObjectInputStream(zis);
-      prepareForChecking(o);
+      prepareForChecking(o.readObject());
       o.close();
       zis.close();
     } finally {
