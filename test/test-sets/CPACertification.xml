@@ -923,16 +923,6 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
-<option name="-setprop">cpa.propertychecker.parameters=FilterDevice,IPC,7,_L,</option>
-<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
-</sourcefiles>
-<sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<option name="-setprop">cpa.propertychecker.parameters=FilterDevice,IPC,7,_L,</option>
-<include>../programs/benchmarks/ntdrivers-simplified/diskperf_simpl1_safe.cil.c</include>
-</sourcefiles>
-<sourcefiles>
-<option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=PeripheralType,IPC,7,_L,</option>
 <include>../programs/benchmarks/ntdrivers-simplified/floppy_simpl3_safe.cil.c</include>
 </sourcefiles>
