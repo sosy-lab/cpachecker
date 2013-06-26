@@ -682,17 +682,20 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * For a boolean var the value is 1.
    *
    * Compression for IntEqual-vars:
-   * For N different values there are N+1 possible values for a var
-   * (one for each value and one for the whole rest).
+   * For N different values of M different variables
+   * there are N+M possible values for a var
+   * (one for each value and one for each (maybe uninitialized) variable).
    * For N+1 different values we need at least log_2(N+1) bits in the representation. */
   private int partitionToBitsize(Partition partition) {
     if (partition == null) {
       // we know nothing about the partition, so do not track it with BDDCPA
       return 0;
+    } else if (compressIntEqual && varClass.getIntEqualPartitions().contains(partition)) {
+      int N = partition.getValues().size();
+      int M = partition.getVars().size();
+      return (int) Math.ceil(Math.log(N+M) / Math.log(2));
     } else if (varClass.getBooleanPartitions().contains(partition)) {
       return 1;
-    } else if (compressIntEqual && varClass.getIntEqualPartitions().contains(partition)) {
-      return (int) Math.ceil(Math.log(partition.getValues().size() + 1) / Math.log(2));
     } else {
       return bitsize;
     }
@@ -717,7 +720,6 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       this.partition = partition;
       this.size = size;
       this.compress = compressIntEqual &&
-          !varClass.getBooleanPartitions().contains(partition) &&
           varClass.getIntEqualPartitions().contains(partition);
     }
 

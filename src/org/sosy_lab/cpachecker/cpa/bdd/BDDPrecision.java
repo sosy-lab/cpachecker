@@ -106,10 +106,10 @@ public class BDDPrecision implements Precision {
     final boolean isIntEqual = varClass.get().getIntEqualVars().containsEntry(function, var);
     final boolean isIntAdd = varClass.get().getIntAddVars().containsEntry(function, var);
 
-    final boolean isTrackedBoolean = trackBoolean && isBoolean;
+    final boolean isTrackedIntEqual = trackIntEqual && isIntEqual;
 
-    // if a var is both boolean and intEqual, do NOT track it as intEqual!
-    final boolean isTrackedIntEqual = trackIntEqual && !isBoolean && isIntEqual;
+    // if a var is both boolean and intEqual, do NOT track it as boolean!
+    final boolean isTrackedBoolean = trackBoolean && isBoolean && !isIntEqual;
 
     // if a var is (boolean or intEqual) and intAdd, do NOT track it as intAdd!
     final boolean isTrackedIntAdd = trackIntAdd && !isBoolean && !isIntEqual && isIntAdd;
