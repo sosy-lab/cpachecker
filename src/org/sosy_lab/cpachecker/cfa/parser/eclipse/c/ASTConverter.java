@@ -535,7 +535,15 @@ class ASTConverter {
 
     // if there is a "var->field" convert it to (*var).field
     if(e.isPointerDereference()) {
-      CUnaryExpression exp = new CUnaryExpression(getLocation(e), type, owner, UnaryOperator.STAR);
+      CType newType = null;
+      if(owner.getExpressionType() instanceof CPointerType) {
+        newType = ((CPointerType)owner.getExpressionType()).getType();
+      } else {
+        throw new CFAGenerationRuntimeException("The owner of the struct with field dereference has an invalid type", owner);
+      }
+
+      CUnaryExpression exp = new CUnaryExpression(getLocation(e), newType, owner, UnaryOperator.STAR);
+
       return new CFieldReference(getLocation(e), type, fieldName, exp, false);
     }
 
