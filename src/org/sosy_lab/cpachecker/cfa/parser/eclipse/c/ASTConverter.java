@@ -634,6 +634,12 @@ class ASTConverter {
         return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
       }
 
+      // in case of *(a[index])
+      else if(operand instanceof CArraySubscriptExpression) {
+        CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
+        return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+      }
+
       // in case of *& both can be left out
       else if(operand instanceof CUnaryExpression
           && ((CUnaryExpression)operand).getOperator() == UnaryOperator.AMPER) {
