@@ -893,16 +893,6 @@
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
-<option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
-<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
-</sourcefiles>
-<sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_connect::skip,0,end,</option>
-<include>../programs/benchmarks/bitvector/s3_clnt_3_safe.BV.c.cil.c</include>
-</sourcefiles>
-<sourcefiles>
-<option name="-setprop">pcc.proofgen.doPCC = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
 </sourcefiles>
@@ -910,16 +900,6 @@
 <option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
 <option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
 <include>../programs/benchmarks/bitvector/s3_srvr_1_safe.BV.c.cil.c</include>
-</sourcefiles>
-<sourcefiles>
-<option name="-setprop">pcc.proofgen.doPCC = true</option>
-<option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
-<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
-</sourcefiles>
-<sourcefiles>
-<option name="-setprop">analysis.useProofCheckAlgorithm = true</option>
-<option name="-setprop">cpa.propertychecker.parameters=skip,ssl3_accept::skip,0,end,</option>
-<include>../programs/benchmarks/bitvector/s3_srvr_2_safe.BV.c.cil.c</include>
 </sourcefiles>
 <sourcefiles>
 <option name="-setprop">pcc.proofgen.doPCC = true</option>
