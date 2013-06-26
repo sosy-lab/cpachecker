@@ -665,8 +665,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   /** This function creates a mapping of intEqual partitions to a mapping of number to bitvector.
    * This allows to compress big numbers to a small number of bits in the BDD. */
   private void initMappingIntToRegions() {
-    for (Partition partition : Sets.difference(
-        varClass.getIntEqualPartitions(), varClass.getBooleanPartitions())) {
+    for (Partition partition : varClass.getIntEqualPartitions()) {
       int size = partitionToBitsize(partition);
       Map<BigInteger, Region[]> currentMapping = new HashMap<>();
       int i = 0;
@@ -690,12 +689,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     if (partition == null) {
       // we know nothing about the partition, so do not track it with BDDCPA
       return 0;
+    } else if (varClass.getBooleanPartitions().contains(partition)) {
+      return 1;
     } else if (compressIntEqual && varClass.getIntEqualPartitions().contains(partition)) {
       int N = partition.getValues().size();
       int M = partition.getVars().size();
       return (int) Math.ceil(Math.log(N+M) / Math.log(2));
-    } else if (varClass.getBooleanPartitions().contains(partition)) {
-      return 1;
     } else {
       return bitsize;
     }
