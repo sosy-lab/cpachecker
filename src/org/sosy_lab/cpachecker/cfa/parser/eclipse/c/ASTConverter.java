@@ -243,9 +243,7 @@ class ASTConverter {
                                                               FileLocation fileLoc,
                                                               CType type,
                                                               BinaryOperator op) {
-    CIdExpression tmp = createTemporaryVariable(e);
-    preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmp, exp));
-
+    CIdExpression tmp = createInitializedTemporaryVariable(e, exp);
 
     CExpression one = createSideeffectLiteralOne(type, fileLoc, e);
     CBinaryExpression postExp = new CBinaryExpression(fileLoc, type, exp, one, op);
@@ -383,6 +381,36 @@ class ASTConverter {
     return tmp;
   }
 
+  /**
+   * creates temporary variables with increasing numbers with a certain initializer
+   */
+  private CIdExpression createInitializedTemporaryVariable(IASTExpression e, CExpression initializer) {
+    String name = "__CPAchecker_TMP_";
+    int i = 0;
+    while (scope.variableNameInUse(name + i, name + i)) {
+      i++;
+    }
+    name += i;
+
+    CVariableDeclaration decl = new CVariableDeclaration(getLocation(e),
+                                               false,
+                                               CStorageClass.AUTO,
+                                               typeConverter.convert(e.getExpressionType()),
+                                               name,
+                                               name,
+                                               scope.createScopedNameOf(name),
+                                               new CInitializerExpression(getLocation(e), initializer));
+
+    scope.registerDeclaration(decl);
+    preSideAssignments.add(decl);
+
+    CIdExpression tmp = new CIdExpression(getLocation(e),
+                                                typeConverter.convert(e.getExpressionType()),
+                                                name,
+                                                decl);
+    return tmp;
+  }
+
   private CAstNode convert(IASTBinaryExpression e) {
 
     switch (e.getOperator()) {
@@ -473,10 +501,8 @@ class ASTConverter {
 
     // if the owner is a FieldReference itself there's the need for a temporary Variable
     // but only if we are not in global scope, otherwise there will be parsing errors
-    if(owner instanceof CFieldReference && !scope.isGlobalScope()) {
-      CIdExpression tmpVar = createTemporaryVariable(e.getFieldOwner());
-      preSideAssignments.add(new CExpressionAssignmentStatement(getLocation(e), tmpVar, owner));
-      owner = tmpVar;
+    if(owner instanceof CFieldReference && !scope.isGlobalScope() && (e.isPointerDereference())) {
+      owner = createInitializedTemporaryVariable(e.getFieldOwner(), owner);
     }
 
     if (type instanceof CProblemType) {
@@ -602,11 +628,9 @@ class ASTConverter {
       return operand;
 
     case IASTUnaryExpression.op_star:
-      // if there is a dereference on a field of a dereferenced struct a temporary variable is needed
-      if(operand instanceof CFieldReference
-          && ((CFieldReference)operand).getFieldOwner() instanceof CUnaryExpression && ((CUnaryExpression)((CFieldReference)operand).getFieldOwner()).getOperator() == UnaryOperator.STAR) {
-        CIdExpression tmpVar = createTemporaryVariable(e.getOperand());
-        preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmpVar, operand));
+      // if there is a dereference on a field of a struct a temporary variable is needed
+      if(operand instanceof CFieldReference) {
+        CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
         return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
       }
 
@@ -618,15 +642,13 @@ class ASTConverter {
 
       // in case of ** a temporary variable is needed
       else if(operand instanceof CUnaryExpression && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR) {
-        CIdExpression tmpVar = createTemporaryVariable(e.getOperand());
-        preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmpVar, operand));
+        CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
         return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
       }
 
       // in case of p.e. *(a+b) or *(a-b) or *(a ANY_OTHER_OPERATOR b) a temporary variable is needed
       else if(operand instanceof CBinaryExpression) {
-        CIdExpression tmpVar = createTemporaryVariable(e.getOperand());
-        preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmpVar, operand));
+        CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
         return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
       }
 
