@@ -668,8 +668,16 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     for (Partition partition : varClass.getIntEqualPartitions()) {
       int size = partitionToBitsize(partition);
       Map<BigInteger, Region[]> currentMapping = new HashMap<>();
-      int i = 0;
-      for (BigInteger num : partition.getValues()) {
+
+      // special handling of One and Zero,
+      // because they can appear as result of an equality-check.
+      // this allows us to check expressions as "((a==0)==5)" with varClass intEQ
+      currentMapping.put(BigInteger.ZERO, bvmgr.makeNumber(BigInteger.valueOf(0), size));
+      currentMapping.put(BigInteger.ONE, bvmgr.makeNumber(BigInteger.valueOf(1), size));
+
+      int i = 2;
+      for (BigInteger num : Sets.difference(
+          partition.getValues(), Sets.newHashSet(BigInteger.ZERO, BigInteger.ONE))) {
         currentMapping.put(num, bvmgr.makeNumber(BigInteger.valueOf(i), size));
         i++;
       }
