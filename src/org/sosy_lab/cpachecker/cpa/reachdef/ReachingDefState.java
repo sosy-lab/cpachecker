@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -123,11 +124,24 @@ public class ReachingDefState implements AbstractState, Serializable {
   public boolean isSubsetOf(ReachingDefState superset) {
     if (superset == this || superset == topElement)
       return true;
-    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall)
+    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall && !compareStackStates(this, superset))
       return false;
-    boolean isLocalSubset = true;
+    boolean isLocalSubset;
     isLocalSubset = isSubsetOf(localReachDefs, superset.localReachDefs);
     return isLocalSubset && isSubsetOf(globalReachDefs, superset.globalReachDefs);
+  }
+
+  private boolean compareStackStates(ReachingDefState sub, ReachingDefState sup){
+    boolean result;
+    do {
+      if (sub.stateOnLastFunctionCall == null || sup.stateOnLastFunctionCall == null)
+        return false;
+      result = isSubsetOf(sub.getLocalReachingDefinitions(), sup.getLocalReachingDefinitions());
+      result = result && isSubsetOf(sub.getGlobalReachingDefinitions(), sup.getGlobalReachingDefinitions());
+      sub = sub.stateOnLastFunctionCall;
+      sup = sup.stateOnLastFunctionCall;
+    } while (sub != sup && result);
+    return result;
   }
 
   private boolean isSubsetOf(Map<String, Set<DefinitionPoint>> subset, Map<String, Set<DefinitionPoint>> superset) {
@@ -146,25 +160,72 @@ public class ReachingDefState implements AbstractState, Serializable {
 
   public ReachingDefState union(ReachingDefState toJoin) {
     Map<String, Set<DefinitionPoint>> newLocal = null;
+    boolean changed = false;
+    ReachingDefState lastFunctionCall = stateOnLastFunctionCall;
     if (toJoin == this)
       return this;
     if (toJoin == topElement || this == topElement)
       return topElement;
-    if (stateOnLastFunctionCall != toJoin.stateOnLastFunctionCall)
-      return topElement;
+    if (stateOnLastFunctionCall != toJoin.stateOnLastFunctionCall) {
+      lastFunctionCall = mergeStackStates(stateOnLastFunctionCall, toJoin.stateOnLastFunctionCall);
+      if (lastFunctionCall == topElement)
+        return topElement;
+      if (lastFunctionCall != stateOnLastFunctionCall) {
+        changed = true;
+      }
+    }
     Map<String, Set<DefinitionPoint>> resultOfMapUnion;
-    boolean changed = false;
     resultOfMapUnion = unionMaps(localReachDefs, toJoin.localReachDefs);
-    changed = resultOfMapUnion != localReachDefs;
-    newLocal = resultOfMapUnion;
+    if (resultOfMapUnion == localReachDefs) {
+      newLocal = toJoin.localReachDefs;
+    } else {
+      changed = true;
+      newLocal = resultOfMapUnion;
+    }
 
     resultOfMapUnion = unionMaps(globalReachDefs, toJoin.globalReachDefs);
-    changed = changed || resultOfMapUnion != globalReachDefs;
+    if (resultOfMapUnion == globalReachDefs) {
+      resultOfMapUnion = toJoin.globalReachDefs;
+    } else {
+      changed = true;
+    }
+
     if (changed) {
       assert (newLocal != null);
-      return new ReachingDefState(newLocal, resultOfMapUnion, stateOnLastFunctionCall);
+      return new ReachingDefState(newLocal, resultOfMapUnion, lastFunctionCall);
     }
     return toJoin;
+  }
+
+  private ReachingDefState mergeStackStates(ReachingDefState e1, ReachingDefState e2) {
+    Vector<ReachingDefState> statesToMerge = new Vector<>();
+    do {
+      if (e1.stateOnLastFunctionCall == null || e2.stateOnLastFunctionCall == null)
+        return topElement;
+      statesToMerge.add(e1);
+      statesToMerge.add(e2);
+      e1 = e1.stateOnLastFunctionCall;
+      e2 = e2.stateOnLastFunctionCall;
+    } while (e1 != e2);
+
+    boolean changed = false;
+    Map<String, Set<DefinitionPoint>> resultOfMapUnion;
+    Map<String, Set<DefinitionPoint>> newLocal;
+    ReachingDefState newStateOnLastFunctionCall = e1;
+
+    for (int i = statesToMerge.size() - 1; i >= 0; i = i - 2) {
+      resultOfMapUnion = unionMaps(statesToMerge.get(i - 1).localReachDefs, statesToMerge.get(i).localReachDefs);
+      changed = changed || resultOfMapUnion != statesToMerge.get(i - 1).localReachDefs;
+      newLocal = resultOfMapUnion;
+
+      resultOfMapUnion = unionMaps(statesToMerge.get(i - 1).globalReachDefs, statesToMerge.get(i).globalReachDefs);
+      changed = changed || resultOfMapUnion != statesToMerge.get(i - 1).globalReachDefs;
+
+      newStateOnLastFunctionCall = new ReachingDefState(newLocal, resultOfMapUnion, newStateOnLastFunctionCall);
+    }
+
+    if (changed) { return newStateOnLastFunctionCall; }
+    return statesToMerge.get(0);
   }
 
   private Map<String, Set<DefinitionPoint>> unionMaps(Map<String, Set<DefinitionPoint>> map1,
@@ -259,6 +320,11 @@ public class ReachingDefState implements AbstractState, Serializable {
       return instance;
     }
 
+    @Override
+    public String toString() {
+      return "?";
+    }
+
     private Object writeReplace() throws ObjectStreamException {
       return writeReplace;
     }
@@ -292,6 +358,11 @@ public class ReachingDefState implements AbstractState, Serializable {
 
     public CFANode getDefinitionExitLocation() {
       return exit;
+    }
+
+    @Override
+    public String toString() {
+      return "(N" + entry.getNodeNumber() + ",N" + exit.getNodeNumber() + ")";
     }
 
     @Override

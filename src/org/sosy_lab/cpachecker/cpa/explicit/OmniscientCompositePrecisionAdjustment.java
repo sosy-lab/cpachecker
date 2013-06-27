@@ -75,7 +75,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   final Timer totalEnforceReachedSetThreshold = new Timer();
   final Timer totalComposite                  = new Timer();
   final Timer total                           = new Timer();
-  int abstractions                           = 0;
+  int abstractionComputations                           = 0;
 
   private Statistics stats  = null;
   private boolean modified = false;
@@ -99,7 +99,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
         pOut.println("Total time for abstraction: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceAbstraction);
         pOut.println("Total time for reached set: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceReachedSetThreshold);
         pOut.println("Total time for path:        " + OmniscientCompositePrecisionAdjustment.this.totalEnforcePathThreshold);
-        pOut.println("abstractions:        " + OmniscientCompositePrecisionAdjustment.this.abstractions);
+        pOut.println("Number of abstractions:     " + OmniscientCompositePrecisionAdjustment.this.abstractionComputations);
       }
 
       @Override
@@ -148,7 +148,6 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
         // compute the abstraction for CEGAR
         totalEnforceAbstraction.start();
         explicitState = enforceAbstraction(explicitState, location, explicitPrecision);
-        abstractions++;
         totalEnforceAbstraction.stop();
 
         // compute the abstraction for reached set thresholds
@@ -212,6 +211,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
         || abstractAtLoopHead(location)) {
       state = precision.computeAbstraction(state, location.getLocationNode());
       state.clearDelta();
+      abstractionComputations++;
     }
 
     return state;

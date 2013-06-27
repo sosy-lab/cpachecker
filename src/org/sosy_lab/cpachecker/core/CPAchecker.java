@@ -286,7 +286,7 @@ public class CPAchecker {
     // register management interface for CPAchecker
     CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger);
 
-    stats.analysisTime.start();
+    stats.startAnalysisTimer();
     try {
 
       do {
@@ -300,8 +300,7 @@ public class CPAchecker {
       return isComplete;
 
     } finally {
-      stats.analysisTime.stop();
-      stats.programTime.stop();
+      stats.stopAnalysisTimer();
 
       // unregister management interface for CPAchecker
       mxbean.unregister();

@@ -238,6 +238,8 @@ def parseTableDefinitionFile(file):
             for resultsFile in filelist:
                 result.append(resultsFile, parseResultsFile(resultsFile))
 
+        result.attributes['name'] = unionTag.get('title', unionTag.get('name', result.attributes['name']))
+
         if result.filelist:
             runSetResults.append(result)
 

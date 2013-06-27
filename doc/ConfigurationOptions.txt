@@ -145,6 +145,10 @@ analysis.useImpactAlgorithm = false
 # use a proof check algorithm to validate a previously generated proof
 analysis.useProofCheckAlgorithm = false
 
+# do analysis and then check if reached set fulfills property specified by
+# ConfigurableProgramAnalysisWithPropertyChecker
+analysis.usePropertyCheckingAlgorithm = false
+
 # use CEGAR algorithm for lazy counter-example guided analysis
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARGCPA.
@@ -537,10 +541,10 @@ cpa.explicit.precision.scoped = true
 cpa.explicit.precisionFile = no default value
 
 # whether or not to avoid restarting at assume edges after a refinement
-cpa.explicit.refiner.avoidAssumes = false
+cpa.explicit.refiner.avoidAssumes = true
 
 # whether or not to do lazy-abstraction
-cpa.explicit.refiner.doLazyAbstraction = false
+cpa.explicit.refiner.doLazyAbstraction = true
 
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"
@@ -551,6 +555,14 @@ cpa.explicit.variableBlacklist = ""
 
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value
+
+# When an invalid function pointer is called, do not assume all functions as
+# possible targets and instead call no function.
+cpa.functionpointer.ignoreInvalidFunctionPointerCalls = false
+
+# When an unknown function pointer is called, do not assume all functions as
+# possible targets and instead call no function (this is unsound).
+cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
@@ -616,9 +628,9 @@ cpa.predicate.abstraction.cartesian = false
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
 
-# get an initial map of predicates from a file (see source
+# get an initial map of predicates from a list of files (see source
 # doc/examples/predmap.txt for an example)
-cpa.predicate.abstraction.initialPredicates = no default value
+cpa.predicate.abstraction.initialPredicates = ImmutableList.of()
 
 # Apply location-specific predicates to all locations in their function
 cpa.predicate.abstraction.initialPredicates.applyFunctionWide = false
@@ -664,9 +676,6 @@ cpa.predicate.checkBlockFeasibility = false
 
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
-
-# Enable mining of predicates from the CFA (preprocessing).
-cpa.predicate.enablePrecisionMiner = false
 
 # Enable sweeping the precision: remove predicates that make statements about
 # variables that do not exist in the CFA.
@@ -815,6 +824,9 @@ cpa.predicate.refinement.keepAllPredicates = false
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
+# Heuristically extract predicates from the CFA on first refinement?
+cpa.predicate.refinement.predicateHeuristicOnFirstRefinement = false
+
 # Where to apply the found predicates to?
 cpa.predicate.refinement.predicateSharing = LOCATION
   enum:     [GLOBAL, FUNCTION, LOCATION, LOCATION_INSTANCE]
@@ -882,6 +894,16 @@ cpa.predicate.useBitwiseAxioms = false
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
 
+# Qualified name for class which checks that the computed abstraction adheres
+# to the desired property.
+cpa.propertychecker.className = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker"
+
+# List of parameters for constructor of propertychecker.className. Parameter
+# values are specified in the order the parameters are defined in the
+# respective constructor. Every parameter value is finished with ",". The
+# empty string represents an empty parameter list.
+cpa.propertychecker.parameters = ""
+
 # which merge operator to use for ReachingDefCPA
 cpa.reachdef.merge = "JOIN"
   allowed values: [SEP, JOIN, IGNORECALLSTACK]
@@ -937,38 +959,26 @@ parser.preprocessor = "cpp"
 # not the original input file.
 parser.usePreprocessor = false
 
+pcc.checkPropertyPerElement = false
+
 # file in which proof representation needed for proof checking is stored
-# file in which ARG representation needed for proof checking is stored
 pcc.proofFile = "arg.obj"
-
-# defines proof representation, either abstract reachability graph or set of
-# reachable abstract states
-pcc.proofType = "ARG"
-  allowed values: [ARG, SET, PSET]
-
-# Flag indicating if analysis which constructed proof adjusted precisions
-# during computation.
-pcc.proofcheck.precision = true
-
-# Qualified name for class which checks that the computed abstraction adheres
-# to the desired property.
-pcc.proofcheck.propertychecker = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker"
-
-# List of parameters for constructor of pcc.proofcheck.propertychecker.
-# Parameter values are specified in the order they parameters are defined in
-# the respective constructor. Every parameter value is finished with ",". The
-# empty string represents an empty parameter list.
-pcc.proofcheck.propertychecker.parameters = ""
 
 pcc.proofgen.doPCC = false
 
+# Qualified name for class which implements certification strategy, hence
+# proof writing, to be used.
+# Qualified name for class which implements proof checking strategy to be
+# used.
+pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy"
+
 # Apply mined predicates on the corresponding scope. false = add them to the
 # global precision.
-predicate.mining.applyScoped = true
+predicate.extraction.applyScoped = true
 
 # Collect at most n assumes allong a path backwards from a target (error)
 # location.
-predicate.mining.maxBackscanPathAssumes = 1
+predicate.extraction.maxBackscanPathAssumes = 1
 
 # print reached set to text file
 reachedSet.export = true

@@ -65,6 +65,15 @@ public class CounterexampleTraceInfo {
           );
     }
 
+    static CounterexampleTraceInfo infeasibleNoItp() {
+      return new CounterexampleTraceInfo(true,
+          null,
+          null,
+          ImmutableList.<BooleanFormula>of(),
+          ImmutableMap.<Integer, Boolean>of()
+          );
+    }
+
     static CounterexampleTraceInfo feasible(List<BooleanFormula> pCounterexampleFormula,
         Model pModel, Map<Integer, Boolean> preds) {
       return new CounterexampleTraceInfo(false,

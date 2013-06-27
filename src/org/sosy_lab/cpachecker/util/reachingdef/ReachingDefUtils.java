@@ -63,7 +63,6 @@ public class ReachingDefUtils {
     CFAEdge out;
     Vector<String> globalVariables = new Vector<>();
     Vector<CFANode> nodes = new Vector<>();
-    nodes.add(pMainNode);
 
     while (!(pMainNode instanceof FunctionEntryNode)) {
       out = pMainNode.getLeavingEdge(0);

@@ -81,8 +81,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 
-@Options(prefix="predicate.mining")
-public class PredicateMiner {
+@Options(prefix="predicate.extraction")
+public class PredicateExtractor {
 
   @Option(description="Collect at most n assumes allong a path backwards from a target (error) location.")
   private int maxBackscanPathAssumes = 1;
@@ -96,6 +96,7 @@ public class PredicateMiner {
 
   private final Configuration config;
   private final LogManager logger;
+  private final CFA cfa;
 
   private final CExpressionVisitor<List<String>, CPATransferException> referencedVariablesVisitor = new CExpressionVisitor<List<String>, CPATransferException>() {
     @Override
@@ -165,16 +166,23 @@ public class PredicateMiner {
 
   };
 
-  public PredicateMiner(Configuration config, LogManager logger, PathFormulaManager pathFormulaManager, FormulaManagerView formulaManagerView, AbstractionManager abstractionManager) throws InvalidConfigurationException {
-    this.logger = logger;
-    this.config = config;
-    this.pathFormulaManager = pathFormulaManager;
-    this.formulaManagerView = formulaManagerView;
-    this.abstractionManager = abstractionManager;
+  public PredicateExtractor(
+      Configuration pConfig,
+      LogManager pLogger,
+      PathFormulaManager pPathFormulaManager,
+      FormulaManagerView pFormulaManagerView,
+      AbstractionManager pAbstractionManager,
+      CFA pCfa) throws InvalidConfigurationException {
+    this.logger = pLogger;
+    this.config = pConfig;
+    this.pathFormulaManager = pPathFormulaManager;
+    this.formulaManagerView = pFormulaManagerView;
+    this.abstractionManager = pAbstractionManager;
+    this.cfa = pCfa;
 
-    config.inject(this);
+    pConfig.inject(this);
 
-    if (config.getProperty("specification") == null) {
+    if (pConfig.getProperty("specification") == null) {
       throw new InvalidConfigurationException("No valid specification is given!");
     }
   }
@@ -330,16 +338,16 @@ public class PredicateMiner {
     }
   }
 
-  public PredicatePrecision minePrecisionFromCfa(CFA pCfa) throws CPATransferException {
-    logger.log(Level.INFO, "Mining precision from CFA...");
+  public PredicatePrecision extractPrecisionFromCfa() throws CPATransferException {
+    logger.log(Level.INFO, "Extracting precision from CFA...");
 
     Multimap<CFANode, AbstractionPredicate> localPredicates = ArrayListMultimap.create();
     Multimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
     Collection<AbstractionPredicate> globalPredicates = Lists.newArrayList();
 
-    VariableScopeProvider scopeProvider = new VariableScopeProvider(pCfa);
+    VariableScopeProvider scopeProvider = new VariableScopeProvider(cfa);
 
-    ListMultimap<CFANode, AssumeEdge> locAssumes = getTargetLocationAssumes(pCfa);
+    ListMultimap<CFANode, AssumeEdge> locAssumes = getTargetLocationAssumes(cfa);
 
     for (CFANode targetLocation : locAssumes.keySet()) {
       for (AssumeEdge assume : locAssumes.get(targetLocation)) {
@@ -368,15 +376,15 @@ public class PredicateMiner {
         }
 
         if (applyGlobal) {
-          logger.log(Level.INFO, "Global predicate mined", predicate);
+          logger.log(Level.FINE, "Global predicate mined", predicate);
           globalPredicates.add(predicate);
         }
 
-        logger.log(Level.INFO, "Mining result", "Function:", function, "Predicate:", predicate);
+        logger.log(Level.FINE, "Extraction result", "Function:", function, "Predicate:", predicate);
       }
     }
 
-    logger.log(Level.INFO, "Mining finished.");
+    logger.log(Level.INFO, "Extracting finished.");
 
     return new PredicatePrecision(
         ImmutableSetMultimap.<Pair<CFANode,Integer>, AbstractionPredicate>of(),
