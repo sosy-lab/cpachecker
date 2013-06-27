@@ -106,6 +106,10 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       CFAEdge currentEdge = errorPath.get(i).getSecond();
 
       if (currentEdge instanceof BlankEdge) {
+	    // add the current interpolant to the increment
+    	for (String variableName : currentInterpolant.keySet()) {
+    	  increment.put(currentEdge.getSuccessor(), variableName);
+        }
         continue;
       }
       else if (currentEdge instanceof CFunctionReturnEdge) {
