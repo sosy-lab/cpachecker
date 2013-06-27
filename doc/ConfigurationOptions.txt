@@ -673,10 +673,6 @@ cpa.predicate.checkBlockFeasibility = false
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
-# Enable sweeping the precision: remove predicates that make statements about
-# variables that do not exist in the CFA.
-cpa.predicate.enablePrecisionSweeper = false
-
 # Name of an external function that will be interpreted as if the function
 # call would be replaced by an externally defined expression over the program
 # variables. This will only work when all variables referenced by the dimacs
@@ -760,7 +756,6 @@ cpa.predicate.predmap.export = true
 
 # file for exporting final predicate map
 cpa.predicate.predmap.file = "predmap.txt"
-cpa.predicate.predmap.includeSwept = true
 
 # If an abstraction is computed during refinement, use only the interpolant
 # as input, not the concrete block.

@@ -103,7 +103,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateCPAStatistics stats;
   private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
-  private final PredicatePrecisionSweeper precisionSweeper;
   private final PredicateExtractor predicateExtractor;
 
   protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk, CFA cfa) throws InvalidConfigurationException {
@@ -164,13 +163,11 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     stop = new PredicateStopOperator(domain);
 
     predicateExtractor = new PredicateExtractor(config, logger, pathFormulaManager, formulaManager, abstractionManager, cfa);
-    precisionSweeper = new PredicatePrecisionSweeper(logger, cfa);
-    precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, pathFormulaManager, abstractionManager, formulaManager, precisionSweeper);
+    precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, pathFormulaManager, abstractionManager, formulaManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    stats = new PredicateCPAStatistics(this, blk, regionManager,
-        abstractionManager, cfa, precisionSweeper);
+    stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager, cfa);
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
   }
@@ -247,7 +244,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
     precisionBootstraper.collectStatistics(pStatsCollection);
-    precisionSweeper.collectStatistics(pStatsCollection);
   }
 
   @Override

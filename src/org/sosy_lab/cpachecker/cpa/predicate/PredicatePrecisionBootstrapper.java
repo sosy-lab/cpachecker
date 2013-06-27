@@ -59,12 +59,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   @Option(description="always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
 
-  @Option(description="Enable sweeping the precision: remove predicates that make statements about variables that do not exist in the CFA.")
-  private boolean enablePrecisionSweeper = false;
-
   private final FormulaManagerView formulaManagerView;
   private final AbstractionManager abstractionManager;
-  private final PredicatePrecisionSweeper sweeper;
 
   private final Configuration config;
   private final LogManager logger;
@@ -74,12 +70,10 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private final PrecisionBootstrapStatistics statistics = new PrecisionBootstrapStatistics();
 
   public PredicatePrecisionBootstrapper(Configuration config, LogManager logger, CFA cfa,
-      PathFormulaManager pathFormulaManager, AbstractionManager abstractionManager, FormulaManagerView formulaManagerView,
-      PredicatePrecisionSweeper sweeper) throws InvalidConfigurationException {
+      PathFormulaManager pathFormulaManager, AbstractionManager abstractionManager, FormulaManagerView formulaManagerView) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;
     this.cfa = cfa;
-    this.sweeper = sweeper;
 
     this.abstractionManager = abstractionManager;
     this.formulaManagerView = formulaManagerView;
@@ -108,10 +102,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
         } catch (PredicateMapParsingFailedException e) {
           logger.logUserException(Level.WARNING, e, "Could not read predicate map");
         }
-      }
-
-      if (enablePrecisionSweeper) {
-        result = sweeper.sweepPrecision(result);
       }
     }
 
