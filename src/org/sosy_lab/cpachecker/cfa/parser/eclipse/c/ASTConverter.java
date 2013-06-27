@@ -536,8 +536,15 @@ class ASTConverter {
     // if there is a "var->field" convert it to (*var).field
     if(e.isPointerDereference()) {
       CType newType = null;
-      if(owner.getExpressionType() instanceof CPointerType) {
-        newType = ((CPointerType)owner.getExpressionType()).getType();
+      CType typeDefType = owner.getExpressionType();
+
+      //unpack typedefs
+      while(typeDefType instanceof CTypedefType){
+        typeDefType = ((CTypedefType)typeDefType).getRealType();
+      }
+
+      if(typeDefType instanceof CPointerType) {
+        newType = ((CPointerType)typeDefType).getType();
       } else {
         throw new CFAGenerationRuntimeException("The owner of the struct with field dereference has an invalid type", owner);
       }
