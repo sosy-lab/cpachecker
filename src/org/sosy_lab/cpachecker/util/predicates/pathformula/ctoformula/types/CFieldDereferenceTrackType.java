@@ -73,4 +73,14 @@ class CFieldDereferenceTrackType extends CtoFormulaCType {
     return fieldPtrType.accept(pVisitor);
   }
 
+  @Override
+  public CFieldDereferenceTrackType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CFieldDereferenceTrackType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return new CFieldDereferenceTrackType(fieldPtrType.getCanonicalType(pForceConst, pForceVolatile), fieldType.getCanonicalType(pForceConst, pForceVolatile));
+  }
+
 }

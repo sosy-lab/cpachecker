@@ -80,4 +80,16 @@ public class CFieldTrackType extends CtoFormulaCType {
     return fieldType.accept(pVisitor);
   }
 
+  @Override
+  public CFieldTrackType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CFieldTrackType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return new CFieldTrackType(fieldType.getCanonicalType(pForceConst, pForceVolatile),
+                               structType.getCanonicalType(pForceConst, pForceVolatile),
+                               structTypeRepectingCasts.getCanonicalType(pForceConst, pForceVolatile));
+  }
+
 }

@@ -106,4 +106,14 @@ final class CDereferenceType extends CtoFormulaCType {
   public <R, X extends Exception> R accept(CtoFormulaTypeVisitor<R, X> pVisitor) throws X {
     return pVisitor.visit(this);
   }
+
+  @Override
+  public CDereferenceType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CDereferenceType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return new CDereferenceType(isConst || pForceConst, isVolatile || pForceVolatile, type.getCanonicalType(), guessedType.getCanonicalType());
+  }
 }
