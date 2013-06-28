@@ -89,4 +89,14 @@ public class CArrayType extends AArrayType implements CType {
   public boolean equals(Object obj) {
     return CTypeUtils.equals(this, obj);
   }
+
+  @Override
+  public CArrayType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CArrayType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return new CArrayType(isConst || pForceConst, isVolatile || pForceVolatile, getType().getCanonicalType(), length);
+  }
 }

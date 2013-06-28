@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.transform;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
@@ -143,5 +145,21 @@ public class CFunctionType extends AFunctionType implements CType {
   @Override
   public boolean equals(Object obj) {
     return CTypeUtils.equals(this, obj);
+  }
+
+  @Override
+  public CFunctionType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CFunctionType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    List<CType> newParameterTypes = new ArrayList<>();
+    Iterator<CType> it = getParameters().iterator();
+
+    while(it.hasNext()) {
+      newParameterTypes.add(it.next().getCanonicalType());
+    }
+    return new CFunctionType(isConst || pForceConst, isVolatile || pForceVolatile, getReturnType().getCanonicalType(), newParameterTypes, takesVarArgs());
   }
 }

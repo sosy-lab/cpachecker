@@ -159,4 +159,14 @@ public final class CSimpleType implements CType {
 
     return Joiner.on(' ').skipNulls().join(parts);
   }
+
+  @Override
+  public CSimpleType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CSimpleType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return new CSimpleType(isConst || pForceConst, isVolatile || pForceVolatile, type, isLong, isShort, isSigned, isUnsigned, isComplex, isImaginary, isLongLong);
+  }
 }

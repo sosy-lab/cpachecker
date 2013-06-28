@@ -181,4 +181,14 @@ public final class CEnumType implements CComplexType {
   public boolean equals(Object obj) {
     return CTypeUtils.equals(this, obj);
   }
+
+  @Override
+  public CEnumType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CEnumType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return new CEnumType(isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name);
+  }
 }

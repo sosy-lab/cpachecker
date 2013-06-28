@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -197,5 +199,23 @@ public final class CCompositeType implements CComplexType {
   @Override
   public boolean equals(Object obj) {
     return CTypeUtils.equals(this, obj);
+  }
+
+  @Override
+  public CCompositeType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CCompositeType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    List<CCompositeTypeMemberDeclaration> newMembers = new ArrayList<>();
+    Iterator<CCompositeTypeMemberDeclaration> it = members.iterator();
+    CCompositeTypeMemberDeclaration decl;
+    while(it.hasNext()) {
+      decl = it.next();
+      newMembers.add(new CCompositeTypeMemberDeclaration(decl.getType().getCanonicalType(), decl.getName()));
+    }
+
+    return new CCompositeType(isConst || pForceConst, isVolatile || pForceVolatile, kind, newMembers, name);
   }
 }

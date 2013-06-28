@@ -130,4 +130,14 @@ public final class CElaboratedType implements CComplexType {
   public boolean equals(Object obj) {
     return CTypeUtils.equals(this, obj);
   }
+
+  @Override
+  public CElaboratedType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CElaboratedType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return new CElaboratedType(isConst || pForceConst, isVolatile || pForceVolatile, kind, name, (CComplexType) realType.getCanonicalType());
+  }
 }

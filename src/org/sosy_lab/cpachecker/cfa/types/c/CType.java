@@ -44,4 +44,8 @@ public interface CType extends Type {
   public boolean equals(Object obj);
 
   public abstract <R, X extends Exception> R accept(CTypeVisitor<R, X> visitor) throws X;
+
+  public CType getCanonicalType();
+
+  public CType getCanonicalType(boolean forceConst, boolean forceVolatile);
 }

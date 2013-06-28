@@ -69,4 +69,14 @@ public class CProblemType implements CType {
   public boolean equals(Object obj) {
     return CTypeUtils.equals(this, obj);
   }
+
+  @Override
+  public CProblemType getCanonicalType() {
+    return this;
+  }
+
+  @Override
+  public CProblemType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return this;
+  }
 }

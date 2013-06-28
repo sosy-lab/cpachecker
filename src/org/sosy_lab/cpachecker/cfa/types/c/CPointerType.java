@@ -96,4 +96,14 @@ public final class CPointerType implements CType {
   public boolean equals(Object obj) {
     return CTypeUtils.equals(this, obj);
   }
+
+  @Override
+  public CPointerType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CPointerType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return new CPointerType(isConst || pForceConst, isVolatile || pForceVolatile, type.getCanonicalType());
+  }
 }

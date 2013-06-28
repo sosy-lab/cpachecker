@@ -88,4 +88,14 @@ public final class CTypedefType implements CType {
   public boolean equals(Object obj) {
     return CTypeUtils.equals(this, obj);
   }
+
+  @Override
+  public CType getCanonicalType() {
+    return getCanonicalType(isConst, isVolatile);
+  }
+
+  @Override
+  public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return realType.getCanonicalType(pForceConst, pForceVolatile);
+  }
 }
