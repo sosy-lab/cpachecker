@@ -29,6 +29,7 @@ import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.balancer.prh3.PivotRowHandler;
@@ -37,9 +38,9 @@ import org.sosy_lab.cpachecker.util.invariants.redlog.RedlogInterface;
 
 public class AcyclicColumnRelianceBalancer extends AbstractBalancer {
 
-  public AcyclicColumnRelianceBalancer(LogManager lm) {
+  public AcyclicColumnRelianceBalancer(Configuration config, LogManager lm) {
     logger = lm;
-    RLI = new RedlogInterface(logger);
+    RLI = new RedlogInterface(config, logger);
   }
 
   @Override

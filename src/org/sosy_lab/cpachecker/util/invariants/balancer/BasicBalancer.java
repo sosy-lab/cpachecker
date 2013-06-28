@@ -33,6 +33,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.invariants.Farkas;
 import org.sosy_lab.cpachecker.util.invariants.LinearInequality;
@@ -52,6 +53,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateLinearizer;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateVariableManager;
 import org.sosy_lab.cpachecker.util.invariants.templates.VariableWriteMode;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+
 
 public class BasicBalancer implements Balancer {
 
@@ -73,9 +75,9 @@ public class BasicBalancer implements Balancer {
 
   final Timer redlog = new Timer();
 
-  public BasicBalancer(LogManager lm) {
+  public BasicBalancer(Configuration config, LogManager lm) {
     logger = lm;
-    RLI = new RedlogInterface(logger);
+    RLI = new RedlogInterface(config, logger);
   }
 
   public void setAxiomStrategy(UIFAxiomStrategy s) {

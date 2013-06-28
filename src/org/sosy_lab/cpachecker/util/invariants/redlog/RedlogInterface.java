@@ -29,6 +29,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.ProcessExecutor;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -42,9 +43,9 @@ public class RedlogInterface {
   // diagnostic output features of this class, which it supports.
   //private boolean verbose = false;
 
-  public RedlogInterface(LogManager pLogger) {
+  public RedlogInterface(Configuration config, LogManager pLogger) {
     logger = pLogger;
-    parser = CParser.Factory.getParser(logger, CParser.Factory.getDefaultOptions(), MachineModel.LINUX32);
+    parser = CParser.Factory.getParser(config, logger, CParser.Factory.getDefaultOptions(), MachineModel.LINUX32);
   }
 
   /**

@@ -29,6 +29,7 @@ import java.util.Vector;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.redlog.RedlogInterface;
@@ -38,9 +39,9 @@ public class WeispfenningBalancer extends AbstractBalancer {
 
   private List<WeispfenningSystem> wsystems;
 
-  public WeispfenningBalancer(LogManager lm) {
+  public WeispfenningBalancer(Configuration config, LogManager lm) {
     logger = lm;
-    RLI = new RedlogInterface(logger);
+    RLI = new RedlogInterface(config, logger);
   }
 
   @Override

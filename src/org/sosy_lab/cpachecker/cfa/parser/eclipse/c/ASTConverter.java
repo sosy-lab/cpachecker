@@ -85,6 +85,10 @@ import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -146,7 +150,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
+@Options
 class ASTConverter {
+
+  @Option(name="cfa.simplifyPointerExpressions",
+      description="simplify pointer expressions like s->f to (*s).f with this option " +
+        "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide")
+  private boolean simplifyPointerExpressions = false;
 
   private final LogManager logger;
   private final ASTLiteralConverter literalConverter;
@@ -162,7 +172,8 @@ class ASTConverter {
   // this list is for ternary operators, &&, etc.
   private final List<Pair<IASTExpression, CIdExpression>> conditionalExpressions = new ArrayList<>();
 
-  public ASTConverter(Scope pScope, LogManager pLogger, MachineModel pMachineModel) {
+  public ASTConverter(Configuration config, Scope pScope, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
+    config.inject(this);
     scope = pScope;
     logger = pLogger;
     typeConverter = new ASTTypeConverter(scope);
@@ -499,9 +510,10 @@ class ASTConverter {
     CExpression owner = convertExpressionWithoutSideEffects(e.getFieldOwner());
     String fieldName = convert(e.getFieldName());
 
+    // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
     // if the owner is a FieldReference itself there's the need for a temporary Variable
     // but only if we are not in global scope, otherwise there will be parsing errors
-    if(owner instanceof CFieldReference && !scope.isGlobalScope() && (e.isPointerDereference())) {
+    if(simplifyPointerExpressions && owner instanceof CFieldReference && !scope.isGlobalScope() && (e.isPointerDereference())) {
       owner = createInitializedTemporaryVariable(e.getFieldOwner(), owner);
     }
 
@@ -533,8 +545,9 @@ class ASTConverter {
       logger.log(Level.FINE, "Field reference", e.getRawSignature(), "has unknown type", type);
     }
 
+    // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
     // if there is a "var->field" convert it to (*var).field
-    if(e.isPointerDereference()) {
+    if(simplifyPointerExpressions && e.isPointerDereference()) {
       CType newType = null;
       CType typeDefType = owner.getExpressionType();
 
@@ -643,47 +656,53 @@ class ASTConverter {
       return operand;
 
     case IASTUnaryExpression.op_star:
-      // if there is a dereference on a field of a struct a temporary variable is needed
-      if(operand instanceof CFieldReference) {
-        CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
-        return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
-      }
 
-      // in case of *(a[index])
-      else if(operand instanceof CArraySubscriptExpression) {
-        CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
-        return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
-      }
+      // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
+      if(simplifyPointerExpressions) {
 
-      // in case of *& both can be left out
-      else if(operand instanceof CUnaryExpression
-          && ((CUnaryExpression)operand).getOperator() == UnaryOperator.AMPER) {
-        return ((CUnaryExpression)operand).getOperand();
-      }
+        // if there is a dereference on a field of a struct a temporary variable is needed
+        if(operand instanceof CFieldReference) {
+          CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
+          return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+        }
 
-      // in case of ** a temporary variable is needed
-      else if(operand instanceof CUnaryExpression && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR) {
-        CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
-        return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
-      }
+        // in case of *(a[index])
+        else if(operand instanceof CArraySubscriptExpression) {
+          CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
+          return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+        }
 
-      // in case of p.e. *(a+b) or *(a-b) or *(a ANY_OTHER_OPERATOR b) a temporary variable is needed
-      else if(operand instanceof CBinaryExpression) {
-        CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
-        return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+        // in case of *& both can be left out
+        else if(operand instanceof CUnaryExpression
+            && ((CUnaryExpression)operand).getOperator() == UnaryOperator.AMPER) {
+          return ((CUnaryExpression)operand).getOperand();
+        }
+
+        // in case of ** a temporary variable is needed
+        else if(operand instanceof CUnaryExpression && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR) {
+          CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
+          return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+        }
+
+        // in case of p.e. *(a+b) or *(a-b) or *(a ANY_OTHER_OPERATOR b) a temporary variable is needed
+        else if(operand instanceof CBinaryExpression) {
+          CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
+          return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+        }
       }
 
       // if none of the special cases before fits the default unaryExpression is created
       return new CUnaryExpression(fileLoc, type, operand, UnaryOperator.STAR);
 
     case IASTUnaryExpression.op_amper:
+      // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
       // in case of *& both can be left out
-      if(operand instanceof CUnaryExpression && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR ) {
+      if(simplifyPointerExpressions && operand instanceof CUnaryExpression && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR ) {
         return ((CUnaryExpression)operand).getOperand();
       }
 
       // if none of the special cases before fits the default unaryExpression is created
-      return new CUnaryExpression(fileLoc, type, operand, ASTOperatorConverter.convertUnaryOperator(e));
+      return new CUnaryExpression(fileLoc, type, operand, UnaryOperator.AMPER);
 
 
 

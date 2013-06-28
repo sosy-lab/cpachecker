@@ -194,7 +194,7 @@ public class CFACreator {
       parser = EclipseParsers.getJavaParser(logger, config);
       break;
     case C:
-      parser = CParser.Factory.getParser(logger, CParser.Factory.getOptions(config), machineModel);
+      parser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machineModel);
       break;
     default:
       throw new AssertionError();
