@@ -665,12 +665,19 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   /** This function creates a mapping of intEqual partitions to a mapping of number to bitvector.
    * This allows to compress big numbers to a small number of bits in the BDD. */
   private void initMappingIntToRegions() {
-    for (Partition partition : Sets.difference(
-        varClass.getIntEqualPartitions(), varClass.getBooleanPartitions())) {
+    for (Partition partition : varClass.getIntEqualPartitions()) {
       int size = partitionToBitsize(partition);
       Map<BigInteger, Region[]> currentMapping = new HashMap<>();
-      int i = 0;
-      for (BigInteger num : partition.getValues()) {
+
+      // special handling of One and Zero,
+      // because they can appear as result of an equality-check.
+      // this allows us to check expressions as "((a==0)==5)" with varClass intEQ
+      currentMapping.put(BigInteger.ZERO, bvmgr.makeNumber(BigInteger.valueOf(0), size));
+      currentMapping.put(BigInteger.ONE, bvmgr.makeNumber(BigInteger.valueOf(1), size));
+
+      int i = 2;
+      for (BigInteger num : Sets.difference(
+          partition.getValues(), Sets.newHashSet(BigInteger.ZERO, BigInteger.ONE))) {
         currentMapping.put(num, bvmgr.makeNumber(BigInteger.valueOf(i), size));
         i++;
       }
@@ -682,8 +689,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * For a boolean var the value is 1.
    *
    * Compression for IntEqual-vars:
-   * For N different values there are N+1 possible values for a var
-   * (one for each value and one for the whole rest).
+   * For N different values of M different variables
+   * there are N+M possible values for a var
+   * (one for each value and one for each (maybe uninitialized) variable).
    * For N+1 different values we need at least log_2(N+1) bits in the representation. */
   private int partitionToBitsize(Partition partition) {
     if (partition == null) {
@@ -692,7 +700,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     } else if (varClass.getBooleanPartitions().contains(partition)) {
       return 1;
     } else if (compressIntEqual && varClass.getIntEqualPartitions().contains(partition)) {
-      return (int) Math.ceil(Math.log(partition.getValues().size() + 1) / Math.log(2));
+      int N = partition.getValues().size();
+      int M = partition.getVars().size();
+      return (int) Math.ceil(Math.log(N+M) / Math.log(2));
     } else {
       return bitsize;
     }
@@ -717,7 +727,6 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       this.partition = partition;
       this.size = size;
       this.compress = compressIntEqual &&
-          !varClass.getBooleanPartitions().contains(partition) &&
           varClass.getIntEqualPartitions().contains(partition);
     }
 

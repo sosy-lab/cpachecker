@@ -176,11 +176,20 @@ public class ReachingDefState implements AbstractState, Serializable {
     }
     Map<String, Set<DefinitionPoint>> resultOfMapUnion;
     resultOfMapUnion = unionMaps(localReachDefs, toJoin.localReachDefs);
-    changed = changed || resultOfMapUnion != localReachDefs;
-    newLocal = resultOfMapUnion;
+    if (resultOfMapUnion == localReachDefs) {
+      newLocal = toJoin.localReachDefs;
+    } else {
+      changed = true;
+      newLocal = resultOfMapUnion;
+    }
 
     resultOfMapUnion = unionMaps(globalReachDefs, toJoin.globalReachDefs);
-    changed = changed || resultOfMapUnion != globalReachDefs;
+    if (resultOfMapUnion == globalReachDefs) {
+      resultOfMapUnion = toJoin.globalReachDefs;
+    } else {
+      changed = true;
+    }
+
     if (changed) {
       assert (newLocal != null);
       return new ReachingDefState(newLocal, resultOfMapUnion, lastFunctionCall);
@@ -199,7 +208,7 @@ public class ReachingDefState implements AbstractState, Serializable {
       e2 = e2.stateOnLastFunctionCall;
     } while (e1 != e2);
 
-    boolean changed = e1!=e2;
+    boolean changed = false;
     Map<String, Set<DefinitionPoint>> resultOfMapUnion;
     Map<String, Set<DefinitionPoint>> newLocal;
     ReachingDefState newStateOnLastFunctionCall = e1;

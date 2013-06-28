@@ -878,8 +878,16 @@ public class VariableClassification {
 
       case EQUALS:
       case NOT_EQUALS: // ==, != work with boolean operands
-        operand1.putAll(operand2);
-        return operand1;
+        if (operand1.isEmpty() || operand2.isEmpty()) {
+          // one operand is Zero (or One, if allowed)
+          operand1.putAll(operand2);
+          return operand1;
+        }
+        // We compare 2 variables. There is no guarantee, that they are boolean!
+        // Example: (a!=b) && (b!=c) && (c!=a)
+        // -> FALSE for boolean, but TRUE for {1,2,3}
+
+        //$FALL-THROUGH$
 
       default: // +-*/ --> no boolean operators, a+b --> a and b are not boolean
         nonBooleanVars.putAll(operand1);
