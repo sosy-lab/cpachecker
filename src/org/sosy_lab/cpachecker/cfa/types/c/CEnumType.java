@@ -109,8 +109,6 @@ public final class CEnumType implements CComplexType {
 
   public static final class CEnumerator extends ASimpleDeclarations implements CSimpleDeclaration {
 
-    private static final CType INT_TYPE = new CSimpleType(true, false, CBasicType.INT, false, false, true, false, false, false, false);
-
     private final Long           value;
     private CEnumType             enumType;
     private final String         qualifiedName;
@@ -118,7 +116,7 @@ public final class CEnumType implements CComplexType {
     public CEnumerator(final FileLocation pFileLocation,
                           final String pName, final String pQualifiedName,
         final Long pValue) {
-      super(pFileLocation, INT_TYPE, pName);
+      super(pFileLocation, CNumericTypes.SIGNED_INT, pName);
 
       checkNotNull(pName);
       value = pValue;
