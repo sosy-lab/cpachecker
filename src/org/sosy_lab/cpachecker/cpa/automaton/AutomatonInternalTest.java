@@ -71,7 +71,7 @@ public class AutomatonInternalTest {
     logger = new LogManager(config);
 
     ParserOptions options = CParser.Factory.getDefaultOptions();
-    parser = CParser.Factory.getParser(logger, options, MachineModel.LINUX32);
+    parser = CParser.Factory.getParser(config, logger, options, MachineModel.LINUX32);
   }
 
   @Test
@@ -147,7 +147,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testJokerReplacementInAST() throws InvalidAutomatonException {
+  public void testJokerReplacementInAST() throws InvalidAutomatonException, InvalidConfigurationException {
     // tests the replacement of Joker expressions in the AST comparison
     ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST("$20 = $5($1, $?);", parser);
     CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(var2, egal);", parser);
@@ -178,7 +178,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testASTcomparison() throws InvalidAutomatonException {
+  public void testASTcomparison() throws InvalidAutomatonException, InvalidConfigurationException {
 
    testAST("x=5;", "x= $?;", true);
    testAST("x=5;", "x= 10;", false);
@@ -211,8 +211,9 @@ public class AutomatonInternalTest {
    * Tests the equality of two strings as used the ASTComparison transition.
    * @param src sourcecode string
    * @param pattern string in the automaton definition (may contain $?)
+   * @throws InvalidConfigurationException
    */
-  public void testAST(String src, String pattern, boolean result) throws InvalidAutomatonException {
+  public void testAST(String src, String pattern, boolean result) throws InvalidAutomatonException, InvalidConfigurationException {
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
     CAstNode sourceAST  = AutomatonASTComparator.generateSourceAST(src, parser);
     ASTMatcher patternAST = AutomatonASTComparator.generatePatternAST(pattern, parser);

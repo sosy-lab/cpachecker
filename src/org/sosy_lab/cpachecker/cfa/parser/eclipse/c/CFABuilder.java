@@ -42,6 +42,8 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -87,12 +89,15 @@ class CFABuilder extends ASTVisitor {
   private final LogManager logger;
   private final CheckBindingVisitor checkBinding;
 
+  private final Configuration config;
+
   private boolean encounteredAsm = false;
 
-  public CFABuilder(LogManager pLogger, MachineModel pMachine) {
+  public CFABuilder(Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
     logger = pLogger;
     machine = pMachine;
-    astCreator = new ASTConverter(scope, logger, pMachine);
+    this.config = config;
+    astCreator = new ASTConverter(config, scope, logger, pMachine);
     checkBinding = new CheckBindingVisitor(pLogger);
 
     shouldVisitDeclarations = true;
@@ -241,7 +246,13 @@ class CFABuilder extends ASTVisitor {
 
     for (IASTFunctionDefinition declaration : functionDeclarations) {
       FunctionScope localScope = new FunctionScope(functions, types, globalVars);
-      CFAFunctionBuilder functionBuilder = new CFAFunctionBuilder(logger, localScope, machine);
+      CFAFunctionBuilder functionBuilder;
+
+      try {
+        functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine);
+      } catch (InvalidConfigurationException e) {
+        throw new CFAGenerationRuntimeException("Invalid configuration");
+      }
 
       declaration.accept(functionBuilder);
 
