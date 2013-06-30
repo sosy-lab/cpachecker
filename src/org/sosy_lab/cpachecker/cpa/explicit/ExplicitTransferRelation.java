@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
@@ -180,21 +181,25 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     // this is an assumption, e.g. if (a == b)
     case AssumeEdge:
       AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
-      successor = handleAssumption(state.clone(), assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption());
+      successor = handleAssumption(assumeEdge, assumeEdge.getExpression(), assumeEdge.getTruthAssumption());
       break;
 
     case FunctionCallEdge:
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
-      successor = handleFunctionCall(state, functionCallEdge);
+      final FunctionEntryNode succ = functionCallEdge.getSuccessor();
+      final String calledFunctionName = succ.getFunctionName();
+      successor = handleFunctionCallEdge(functionCallEdge, functionCallEdge.getArguments(),
+          succ.getFunctionParameters(), calledFunctionName);
       break;
 
     // this is a return edge from function, this is different from return statement
     // of the function. See case for statement edge for details
     case FunctionReturnEdge:
+      final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
       FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) cfaEdge;
-      successor = handleFunctionReturn(state, functionReturnEdge);
-
-      successor.dropFrame(functionName);
+      final FunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
+      successor = handleFunctionReturnEdge(functionReturnEdge,
+          summaryEdge, summaryEdge.getExpression(), callerFunctionName);
       break;
 
     default:
@@ -261,30 +266,23 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
   }
 
-  private ExplicitState handleFunctionCall(ExplicitState element, FunctionCallEdge callEdge)
-    throws UnrecognizedCCodeException {
-    ExplicitState newElement = element.clone();
-
-    FunctionEntryNode functionEntryNode = callEdge.getSuccessor();
-    String calledFunctionName = functionEntryNode.getFunctionName();
-
-    List<String> paramNames = functionEntryNode.getFunctionParameterNames();
-    List<? extends IAExpression> arguments = callEdge.getArguments();
+  @Override
+  protected ExplicitState handleFunctionCallEdge(FunctionCallEdge callEdge,
+      List<? extends IAExpression> arguments, List<? extends AParameterDeclaration> parameters,
+      String calledFunctionName) throws UnrecognizedCCodeException {
+    ExplicitState newElement = state.clone();
 
     if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
-      assert (paramNames.size() == arguments.size());
+      assert (parameters.size() == arguments.size());
     }
 
-
-
     // visitor for getting the values of the actual parameters in caller function context
-    ExpressionValueVisitor visitor = new ExpressionValueVisitor(element);
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(newElement);
 
     // get value of actual parameter in caller function context
-    for (int i = 0; i < paramNames.size(); i++) {
+    for (int i = 0; i < parameters.size(); i++) {
       Long value;
       IAExpression exp = arguments.get(i);
-
 
       if (exp instanceof JExpression) {
         value = ((JExpression) arguments.get(i)).accept(visitor);
@@ -292,8 +290,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         value = ((CExpression) arguments.get(i)).accept(visitor);
       }
 
-
-      String formalParamName = getScopedVariableName(paramNames.get(i), calledFunctionName);
+      String formalParamName = getScopedVariableName(parameters.get(i).getName(), calledFunctionName);
 
       if (value == null) {
         newElement.forget(formalParamName);
@@ -320,14 +317,12 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
    * @param functionReturnEdge return edge from a function to its call site
    * @return new abstract state
    */
-  private ExplicitState handleFunctionReturn(ExplicitState element, FunctionReturnEdge functionReturnEdge)
+  @Override
+  protected ExplicitState handleFunctionReturnEdge(FunctionReturnEdge functionReturnEdge,
+      FunctionSummaryEdge summaryEdge, AFunctionCall exprOnSummary, String callerFunctionName)
     throws UnrecognizedCCodeException {
 
-    FunctionSummaryEdge summaryEdge    = functionReturnEdge.getSummaryEdge();
-    AFunctionCall exprOnSummary  = summaryEdge.getExpression();
-
-    ExplicitState newElement  = element.clone();
-    String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
+    ExplicitState newElement  = state.clone();
 
     // expression is an assignment operation, e.g. a = g(b);
 
@@ -342,26 +337,23 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
         String assignedVarName = getScopedVariableName(op1.toASTString(), callerFunctionName);
 
-
-        if (!element.contains(returnVarName)) {
+        if (!state.contains(returnVarName)) {
           newElement.forget(assignedVarName);
         } else if (op1 instanceof JIdExpression && ((JIdExpression) op1).getDeclaration() instanceof JFieldDeclaration && !((JFieldDeclaration) ((JIdExpression) op1).getDeclaration()).isStatic()) {
           missingScopedFieldName = true;
           notScopedField = (JIdExpression) op1;
-          notScopedFieldValue = element.getValueFor(returnVarName);
+          notScopedFieldValue = state.getValueFor(returnVarName);
         } else {
-          newElement.assignConstant(assignedVarName, element.getValueFor(returnVarName));
+          newElement.assignConstant(assignedVarName, state.getValueFor(returnVarName));
         }
       }
 
       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
       else if (op1 instanceof AUnaryExpression && ((AUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
-        return newElement;
       }
 
       // a[x] = b(); TODO: for now, nothing is done here, but cloning the current element
       else if (op1 instanceof CArraySubscriptExpression) {
-        return newElement;
       }
 
       else {
@@ -369,12 +361,16 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       }
     }
 
+    newElement.dropFrame(functionName);
     return newElement;
   }
 
 
-  private ExplicitState handleAssumption(ExplicitState element, IAExpression expression, CFAEdge cfaEdge, boolean truthValue)
+  @Override
+  protected ExplicitState handleAssumption(AssumeEdge cfaEdge, IAExpression expression, boolean truthValue)
     throws UnrecognizedCCodeException {
+
+    ExplicitState element = state.clone();
     // convert an expression like [a + 753 != 951] to [a != 951 - 753]
     expression = optimizeAssumeForEvaluation(expression);
 
@@ -1545,7 +1541,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   private ExplicitState handleNotScopedVariable(RTTState rttState, ExplicitState newElement, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
-   String objectScope = getObjectScope(rttState, cfaEdge.getPredecessor().getFunctionName(), notScopedField);
+   String objectScope = getObjectScope(rttState, functionName, notScopedField);
 
    if (objectScope != null) {
 
