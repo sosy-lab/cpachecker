@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
@@ -203,8 +204,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       break;
 
     default:
-      successor = state.clone();
-      handleSimpleEdge(successor, cfaEdge);
+      successor = handleSimpleEdge(cfaEdge);
     }
 
     postProcessing(successor);
@@ -225,45 +225,55 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
   }
 
-  private void handleSimpleEdge(ExplicitState element, CFAEdge cfaEdge)
+  @Override
+  protected ExplicitState handleSimpleEdge(CFAEdge cfaEdge)
         throws CPATransferException {
 
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
     // if edge is a statement edge, e.g. a = b + c
     case StatementEdge:
-      AStatementEdge statementEdge = (AStatementEdge) cfaEdge;
-      handleStatement(element, statementEdge.getStatement(), cfaEdge);
-      break;
+      final AStatementEdge statementEdge = (AStatementEdge) cfaEdge;
+      return handleStatementEdge(statementEdge, statementEdge.getStatement());
 
     case ReturnStatementEdge:
-      AReturnStatementEdge returnEdge = (AReturnStatementEdge)cfaEdge;
+      AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
       // this statement is a function return, e.g. return (a);
-      // note that this is different from return edge
-      // this is a statement edge which leads the function to the
+      // note that this is different from return edge,
+      // this is a statement edge, which leads the function to the
       // last node of its CFA, where return edge is from that last node
       // to the return site of the caller function
-      handleExitFromFunction(element, returnEdge.getExpression(), returnEdge);
-      break;
+      return handleReturnStatementEdge(returnEdge, returnEdge.getExpression());
 
     // edge is a declaration edge, e.g. int a;
     case DeclarationEdge:
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) cfaEdge;
-      handleDeclaration(element, declarationEdge);
-      break;
+      final ADeclarationEdge declarationEdge = (ADeclarationEdge) cfaEdge;
+      return handleDeclarationEdge(declarationEdge, declarationEdge.getDeclaration());
 
     case BlankEdge:
       break;
 
     case MultiEdge:
-      for (CFAEdge edge : (MultiEdge)cfaEdge) {
-        handleSimpleEdge(element, edge);
-      }
-      break;
+      return handleMultiEdge((MultiEdge)cfaEdge);
 
     default:
       throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
+
+    return state;
+  }
+
+  @Override
+  protected ExplicitState handleMultiEdge(final MultiEdge cfaEdge) throws CPATransferException {
+    // we need to keep the old state,
+    // because the analysis uses a 'delta' for the now state
+    final ExplicitState backup = state;
+    for (CFAEdge edge : cfaEdge) {
+      state = handleSimpleEdge(edge);
+    }
+    final ExplicitState successor = state;
+    state = backup;
+    return successor;
   }
 
   @Override
@@ -302,13 +312,15 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     return newElement;
   }
 
-  private void handleExitFromFunction(ExplicitState newElement, IAExpression expression, AReturnStatementEdge returnEdge)
-    throws UnrecognizedCCodeException {
+  @Override
+  protected ExplicitState handleReturnStatementEdge(AReturnStatementEdge returnEdge, IAExpression expression)
+          throws UnrecognizedCCodeException {
+
     if (expression == null) {
       expression = CNumericTypes.ZERO; // this is the default in C
     }
 
-    handleAssignmentToVariable(FUNCTION_RETURN_VAR, expression, new ExpressionValueVisitor(newElement));
+    return handleAssignmentToVariable(FUNCTION_RETURN_VAR, expression, new ExpressionValueVisitor(state));
   }
 
   /**
@@ -408,15 +420,18 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   }
 
 
-  private void handleDeclaration(ExplicitState newElement, ADeclarationEdge declarationEdge)
+  @Override
+  protected ExplicitState handleDeclarationEdge(ADeclarationEdge declarationEdge, IADeclaration declaration)
     throws UnrecognizedCCodeException {
 
-    if (!(declarationEdge.getDeclaration() instanceof AVariableDeclaration) || (declarationEdge.getDeclaration().getType() instanceof JType && !(declarationEdge.getDeclaration().getType() instanceof JSimpleType))) {
+    if (!(declaration instanceof AVariableDeclaration)
+        || (declaration.getType() instanceof JType && !(declaration.getType() instanceof JSimpleType))) {
       // nothing interesting to see here, please move along
-      return;
+      return state;
     }
 
-    AVariableDeclaration decl = (AVariableDeclaration)declarationEdge.getDeclaration();
+    ExplicitState newElement = state.clone();
+    AVariableDeclaration decl = (AVariableDeclaration)declaration;
 
     // get the variable name in the declarator
     String varName = decl.getName();
@@ -468,12 +483,15 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       newElement.forget(scopedVarName);
 
     }
+
+    return newElement;
   }
 
 
-  private void handleStatement(ExplicitState newElement, IAStatement expression, CFAEdge cfaEdge)
-
+  @Override
+  protected ExplicitState handleStatementEdge(AStatementEdge cfaEdge, IAStatement expression)
     throws UnrecognizedCCodeException {
+
     if (expression instanceof CFunctionCall) {
       CExpression fn = ((CFunctionCall)expression).getFunctionCallExpression().getFunctionNameExpression();
       if (fn instanceof CIdExpression) {
@@ -487,7 +505,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     // expression is a binary operation, e.g. a = b;
 
     if (expression instanceof IAssignment) {
-      handleAssignment(newElement, (IAssignment)expression, cfaEdge);
+      return handleAssignment((IAssignment)expression, cfaEdge);
 
     // external function call - do nothing
     } else if (expression instanceof AFunctionCallStatement) {
@@ -498,10 +516,12 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     } else {
       throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
+
+    return state;
   }
 
 
-  private void handleAssignment(ExplicitState newElement, IAssignment assignExpression, CFAEdge cfaEdge)
+  private ExplicitState handleAssignment(IAssignment assignExpression, CFAEdge cfaEdge)
     throws UnrecognizedCCodeException {
     IAExpression op1    = assignExpression.getLeftHandSide();
     IARightHandSide op2 = assignExpression.getRightHandSide();
@@ -515,8 +535,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
           notScopedField = (JIdExpression) op1;
         }
 
-        handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(newElement));
-      } else if (op1 instanceof AUnaryExpression && ((AUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
+        return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(state));
+    } else if (op1 instanceof AUnaryExpression && ((AUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
       // *a = ...
 
       op1 = ((AUnaryExpression)op1).getOperand();
@@ -533,13 +553,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         missingInformationLeftPointer = ((AIdExpression)op1).getName();
         missingInformationRightExpression = op2;
       }
-
-      return;
     }
 
     else if (op1 instanceof CFieldReference) {
       // a->b = ...
-      handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(newElement));
+      return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(state));
     }
 
     // TODO assignment to array cell
@@ -548,9 +566,13 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     } else {
       throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
     }
+
+    return state; // the default return-value is the old state
   }
 
-  private void handleAssignmentToVariable(String lParam, IARightHandSide exp, ExpressionValueVisitor visitor)
+  /** This method analyses the expression with the visitor and assigns the value to lParam.
+   * The method returns a new state, that contains (a copy of) the old state and the new assignment. */
+   private ExplicitState handleAssignmentToVariable(String lParam, IARightHandSide exp, ExpressionValueVisitor visitor)
     throws UnrecognizedCCodeException {
 
 
@@ -569,7 +591,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       assert value == null;
     }
 
-    ExplicitState newElement = visitor.state_p;
+    // here we clone the state, because we get new information or must forget it.
+    ExplicitState newElement = state.clone();
+
     String assignedVar = getScopedVariableName(lParam, functionName);
 
     if (visitor.missingFieldAccessInformation || visitor.missingEnumComparisonInformation) {
@@ -577,7 +601,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       // In  such a case, forget about it
       if (value != null) {
         newElement.forget(lParam);
-        return;
+        return newElement;
       } else {
         missingInformationRightJExpression =  (JRightHandSide) exp;
         if (!missingScopedFieldName) {
@@ -600,6 +624,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       }
 
     }
+    return newElement;
   }
 
   /**
