@@ -1645,14 +1645,14 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         ExpressionValueVisitor v = new PointerExpressionValueVisitor(newElement, pointerElement);
 
         if (missingInformationLeftVariable != null) {
-          handleAssignmentToVariable(missingInformationLeftVariable, missingInformationRightExpression, v);
+          newElement = handleAssignmentToVariable(missingInformationLeftVariable, missingInformationRightExpression, v);
 
           return Collections.singleton(newElement);
         } else if (missingInformationLeftPointer != null) {
           String leftVar = derefPointerToVariable(pointerElement, missingInformationLeftPointer);
           if (leftVar != null) {
             leftVar = getScopedVariableName(leftVar, functionName);
-            handleAssignmentToVariable(leftVar, missingInformationRightExpression, v);
+            newElement = handleAssignmentToVariable(leftVar, missingInformationRightExpression, v);
 
             return Collections.singleton(newElement);
           }
