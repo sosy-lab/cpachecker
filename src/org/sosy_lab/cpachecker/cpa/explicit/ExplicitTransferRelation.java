@@ -287,7 +287,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     // visitor for getting the values of the actual parameters in caller function context
-    ExpressionValueVisitor visitor = new ExpressionValueVisitor(newElement);
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor();
 
     // get value of actual parameter in caller function context
     for (int i = 0; i < parameters.size(); i++) {
@@ -320,7 +320,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       expression = CNumericTypes.ZERO; // this is the default in C
     }
 
-    return handleAssignmentToVariable(FUNCTION_RETURN_VAR, expression, new ExpressionValueVisitor(state));
+    return handleAssignmentToVariable(FUNCTION_RETURN_VAR, expression, new ExpressionValueVisitor());
   }
 
   /**
@@ -535,7 +535,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
           notScopedField = (JIdExpression) op1;
         }
 
-        return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(state));
+        return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor());
     } else if (op1 instanceof AUnaryExpression && ((AUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
       // *a = ...
 
@@ -557,7 +557,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     else if (op1 instanceof CFieldReference) {
       // a->b = ...
-      return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor(state));
+      return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor());
     }
 
     // TODO assignment to array cell
@@ -635,17 +635,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
                                        implements CRightHandSideVisitor<Long, UnrecognizedCCodeException>,
                                                    JRightHandSideVisitor<Long, UnrecognizedCCodeException>,
                                                    JExpressionVisitor<Long, UnrecognizedCCodeException> {
-    protected final ExplicitState state_p;
-
     private boolean missingPointer = false;
     protected boolean missingFieldAccessInformation = false;
     protected boolean missingEnumComparisonInformation = false;
-
-    public ExpressionValueVisitor(ExplicitState pElement) {
-      state_p = pElement;
-    }
-
-
 
     @Override
     protected Long visitDefault(CExpression pExp) {
@@ -815,8 +807,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       String varName = getScopedVariableName(idExp.getName(), functionName);
 
-      if (state_p.contains(varName)) {
-        return state_p.getValueFor(varName);
+      if (state.contains(varName)) {
+        return state.getValueFor(varName);
       } else {
         return null;
       }
@@ -862,8 +854,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     public Long visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
       String varName = getScopedVariableName(fieldReferenceExpression.toASTString(), functionName);
 
-      if (state_p.contains(varName)) {
-        return state_p.getValueFor(varName);
+      if (state.contains(varName)) {
+        return state.getValueFor(varName);
       } else {
         return null;
       }
@@ -1023,8 +1015,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       String varName = getScopedVariableName(idExp.getName(), functionName);
 
-      if (state_p.contains(varName)) {
-        return state_p.getValueFor(varName);
+      if (state.contains(varName)) {
+        return state.getValueFor(varName);
       } else {
         return null;
       }
@@ -1137,15 +1129,14 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
    * Visitor that derives further information from an assume edge
    */
   private class AssigningValueVisitor extends ExpressionValueVisitor {
+
+    private ExplicitState assignableState;
     protected boolean truthValue = false;
 
-    public AssigningValueVisitor(ExplicitState pElement, boolean truthValue) {
-      super(pElement);
-
+    public AssigningValueVisitor(ExplicitState assignableState, boolean truthValue) {
+      this.assignableState = assignableState;
       this.truthValue = truthValue;
     }
-
-
 
     private IAExpression unwrap(IAExpression expression) {
       // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
@@ -1186,12 +1177,12 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       if ((binaryOperator == BinaryOperator.EQUALS && truthValue) || (binaryOperator == BinaryOperator.NOT_EQUALS && !truthValue)) {
         if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
           String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
-          state_p.assignConstant(leftVariableName, rightValue);
+          assignableState.assignConstant(leftVariableName, rightValue);
         }
 
         else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
           String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
-          state_p.assignConstant(rightVariableName, leftValue);
+          assignableState.assignConstant(rightVariableName, leftValue);
         }
       }
 
@@ -1202,12 +1193,12 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
             || (binaryOperator == BinaryOperator.EQUALS && !truthValue)) {
           if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
             String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
-            state_p.assignConstant(leftVariableName, 1L);
+            assignableState.assignConstant(leftVariableName, 1L);
           }
 
           else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
             String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
-            state_p.assignConstant(rightVariableName, 1L);
+            assignableState.assignConstant(rightVariableName, 1L);
           }
         }
       }
@@ -1234,10 +1225,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         if (leftValue == null &&  rightValue != null && isAssignable(lVarInBinaryExp)) {
 
           String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
-          state_p.assignConstant(leftVariableName, rightValue);
+          assignableState.assignConstant(leftVariableName, rightValue);
         } else if (rightValue == null && leftValue != null && isAssignable(rVarInBinaryExp)) {
           String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
-          state_p.assignConstant(rightVariableName, leftValue);
+          assignableState.assignConstant(rightVariableName, leftValue);
 
         }
       }
@@ -1249,13 +1240,13 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
             || (binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && !truthValue)) {
           if (leftValue == null && rightValue == 0L && isAssignable(lVarInBinaryExp)) {
             String leftVariableName = getScopedVariableName(lVarInBinaryExp.toASTString(), functionName);
-            state_p.assignConstant(leftVariableName, 1L);
+            assignableState.assignConstant(leftVariableName, 1L);
 
           }
 
           else if (rightValue == null && leftValue == 0L && isAssignable(rVarInBinaryExp)) {
             String rightVariableName = getScopedVariableName(rVarInBinaryExp.toASTString(), functionName);
-            state_p.assignConstant(rightVariableName, 1L);
+            assignableState.assignConstant(rightVariableName, 1L);
           }
         }
       }
@@ -1297,8 +1288,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   private class PointerExpressionValueVisitor extends ExpressionValueVisitor {
     private final PointerState pointerState;
 
-    public PointerExpressionValueVisitor(ExplicitState pElement, PointerState pPointerState) {
-      super(pElement);
+    public PointerExpressionValueVisitor(PointerState pPointerState) {
       pointerState = pPointerState;
     }
 
@@ -1321,8 +1311,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         if (rightVar != null) {
           rightVar = getScopedVariableName(rightVar, functionName);
 
-          if (state_p.contains(rightVar)) {
-            return state_p.getValueFor(rightVar);
+          if (state.contains(rightVar)) {
+            return state.getValueFor(rightVar);
           }
         }
       } else {
@@ -1336,8 +1326,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
     private final RTTState jortState;
 
-    public FieldAccessExpressionValueVisitor(ExplicitState pElement, RTTState pJortState) {
-      super(pElement);
+    public FieldAccessExpressionValueVisitor(RTTState pJortState) {
       jortState = pJortState;
     }
 
@@ -1431,8 +1420,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       String varName = handleIdExpression(idExp);
 
-      if (state_p.contains(varName)) {
-        return state_p.getValueFor(varName);
+      if (state.contains(varName)) {
+        return state.getValueFor(varName);
       } else {
         return null;
       }
@@ -1444,7 +1433,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     throws UnrecognizedCCodeException {
     if (expression instanceof JRightHandSide && !(expression instanceof CRightHandSide)) {
 
-        ExpressionValueVisitor evv = new ExpressionValueVisitor(element);
+        ExpressionValueVisitor evv = new ExpressionValueVisitor();
         Long value =  ((JRightHandSide) expression).accept(evv);
         if (evv.missingFieldAccessInformation || evv.missingEnumComparisonInformation) {
           missingInformationRightJExpression = (JRightHandSide) expression;
@@ -1453,7 +1442,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
           return value;
         }
     } else {
-      return ((CRightHandSide) expression).accept(new ExpressionValueVisitor(element));
+      return ((CRightHandSide) expression).accept(new ExpressionValueVisitor());
     }
   }
 
@@ -1477,10 +1466,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     for (AbstractState ae : elements) {
       if (ae instanceof PointerState) {
-        retVal = strengthen(state, (PointerState)ae, cfaEdge);
+        retVal = strengthen((PointerState)ae);
         break;
       } else if (ae instanceof RTTState) {
-        retVal =  strengthen(state, (RTTState)ae, cfaEdge, precision);
+        retVal =  strengthen((RTTState)ae);
         break;
       }
     }
@@ -1490,14 +1479,12 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     return retVal;
   }
 
-  private Collection<? extends AbstractState> strengthen(
-      ExplicitState explicitState, RTTState rttState, CFAEdge cfaEdge,
-      Precision precision) throws UnrecognizedCCodeException {
+  private Collection<? extends AbstractState> strengthen(RTTState rttState)
+      throws UnrecognizedCCodeException {
+
+    ExplicitState newElement = state.clone();
 
     if (missingFieldVariableObject) {
-
-      ExplicitState newElement = explicitState.clone();
-
       newElement.assignConstant(getRTTScopedVariableName(
           fieldNameAndInitialValue.getFirst(),
           rttState.getKeywordThisUniqueObject()),
@@ -1509,8 +1496,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     } else if (missingScopedFieldName) {
 
-      ExplicitState newElement = explicitState.clone();
-      newElement = handleNotScopedVariable(rttState, newElement, cfaEdge);
+      newElement = handleNotScopedVariable(rttState, newElement);
       missingScopedFieldName = false;
       notScopedField = null;
       notScopedFieldValue = null;
@@ -1522,24 +1508,22 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         return null;
       }
     } else if (missingAssumeInformation && missingInformationRightJExpression != null) {
-      ExplicitState newElement = explicitState.clone();
-      Long value = handleMissingInformationRightJExpression(rttState, newElement, cfaEdge);
-
+      Long value = handleMissingInformationRightJExpression(rttState);
 
       missingAssumeInformation = false;
       missingInformationRightJExpression = null;
 
       if (value == null) {
         return null;
-      } else if ((((AssumeEdge) cfaEdge).getTruthAssumption() && value == 1L) || (!((AssumeEdge) cfaEdge).getTruthAssumption() && value == 0L)) {
+      } else if ((((AssumeEdge) edge).getTruthAssumption() && value == 1L)
+          || (!((AssumeEdge) edge).getTruthAssumption() && value == 0L)) {
         return Collections.singleton(newElement);
       } else {
         return new HashSet<>();
       }
     } else if (missingInformationRightJExpression != null) {
 
-      ExplicitState newElement = explicitState.clone();
-      Long value = handleMissingInformationRightJExpression(rttState, newElement, cfaEdge);
+      Long value = handleMissingInformationRightJExpression(rttState);
 
       if (value != null) {
         newElement.assignConstant(missingInformationLeftJVariable, value);
@@ -1559,12 +1543,14 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   private String getRTTScopedVariableName(String fieldName, String uniqueObject) {
     return  uniqueObject + "::"+ fieldName;
   }
-  private Long handleMissingInformationRightJExpression(RTTState pJortState, ExplicitState newElement, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
-    return missingInformationRightJExpression.accept(new FieldAccessExpressionValueVisitor(newElement, pJortState));
+  private Long handleMissingInformationRightJExpression(RTTState pJortState)
+      throws UnrecognizedCCodeException {
+    return missingInformationRightJExpression.accept(
+        new FieldAccessExpressionValueVisitor(pJortState));
   }
 
-  private ExplicitState handleNotScopedVariable(RTTState rttState, ExplicitState newElement, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  private ExplicitState handleNotScopedVariable(RTTState rttState, ExplicitState newElement) throws UnrecognizedCCodeException {
 
    String objectScope = getObjectScope(rttState, functionName, notScopedField);
 
@@ -1574,7 +1560,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
      Long value = notScopedFieldValue;
      if (missingInformationRightJExpression != null) {
-       value = handleMissingInformationRightJExpression(rttState, newElement, cfaEdge);
+       value = handleMissingInformationRightJExpression(rttState);
      }
 
      if (value != null) {
@@ -1637,22 +1623,21 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
   }
 
-  private Collection<? extends AbstractState> strengthen(ExplicitState explicitState, PointerState pointerElement, CFAEdge cfaEdge)
+  private Collection<? extends AbstractState> strengthen(PointerState pointerElement)
     throws UnrecognizedCCodeException {
     try {
       if (missingInformationRightExpression != null) {
-        ExplicitState newElement = explicitState.clone();
-        ExpressionValueVisitor v = new PointerExpressionValueVisitor(newElement, pointerElement);
+        ExpressionValueVisitor v = new PointerExpressionValueVisitor(pointerElement);
 
         if (missingInformationLeftVariable != null) {
-          newElement = handleAssignmentToVariable(missingInformationLeftVariable, missingInformationRightExpression, v);
+          ExplicitState newElement = handleAssignmentToVariable(missingInformationLeftVariable, missingInformationRightExpression, v);
 
           return Collections.singleton(newElement);
         } else if (missingInformationLeftPointer != null) {
           String leftVar = derefPointerToVariable(pointerElement, missingInformationLeftPointer);
           if (leftVar != null) {
             leftVar = getScopedVariableName(leftVar, functionName);
-            newElement = handleAssignmentToVariable(leftVar, missingInformationRightExpression, v);
+            ExplicitState newElement = handleAssignmentToVariable(leftVar, missingInformationRightExpression, v);
 
             return Collections.singleton(newElement);
           }
