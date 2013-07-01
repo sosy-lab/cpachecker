@@ -325,7 +325,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   /**
    * Handles return from one function to another function.
-   * @param element previous abstract state
    * @param functionReturnEdge return edge from a function to its call site
    * @return new abstract state
    */
@@ -381,18 +380,16 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   @Override
   protected ExplicitState handleAssumption(AssumeEdge cfaEdge, IAExpression expression, boolean truthValue)
     throws UnrecognizedCCodeException {
-
-    ExplicitState element = state.clone();
     // convert an expression like [a + 753 != 951] to [a != 951 - 753]
     expression = optimizeAssumeForEvaluation(expression);
 
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
-    Long value = getExpressionValue(element, expression, functionName, cfaEdge);
-
+    Long value = getExpressionValue(expression);
 
     // value is null, try to derive further information
     if (value == null) {
 
+      ExplicitState element = state.clone();
       AssigningValueVisitor avv = new AssigningValueVisitor(element, truthValue);
 
       if (expression instanceof JExpression && ! (expression instanceof CExpression)) {
@@ -407,14 +404,15 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       } else {
         ((CExpression)expression).accept(avv);
       }
-
-
-
-
       return element;
+
     } else if ((truthValue && value == 1L) || (!truthValue && value == 0L)) {
-      return element;
+      // we do not know more than before, and the assumption is fulfilled,
+      // so return the old state
+      return state;
+
     } else {
+      // assumption not fulfilled
       return null;
     }
   }
@@ -457,8 +455,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     if (init instanceof AInitializerExpression) {
       IAExpression exp = ((AInitializerExpression)init).getExpression();
-
-        initialValue = getExpressionValue(newElement, exp, functionName, declarationEdge);
+      initialValue = getExpressionValue(exp);
     }
 
     // assign initial value if necessary
@@ -627,7 +624,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     return newElement;
   }
 
-  /**
+ /**
    * Visitor that get's the value from an expression.
    * The result may be null, i.e., the value is unknown.
    */
@@ -880,8 +877,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     public Long visit(JBinaryExpression pE) throws UnrecognizedCCodeException {
 
       org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
-      IAExpression lVarInBinaryExp = pE.getOperand1();
-      IAExpression rVarInBinaryExp = pE.getOperand2();
+      JExpression lVarInBinaryExp = pE.getOperand1();
+      JExpression rVarInBinaryExp = pE.getOperand2();
 
       switch (binaryOperator) {
       case PLUS:
@@ -895,12 +892,12 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       case MODULO:
       case SHIFT_RIGHT_SIGNED:
       case SHIFT_RIGHT_UNSIGNED: {
-        Long lVal =    ((JExpression)lVarInBinaryExp).accept(this);
+        Long lVal =    lVarInBinaryExp.accept(this);
         if (lVal == null) {
           return null;
         }
 
-        Long rVal = ((JExpression)rVarInBinaryExp).accept(this);
+        Long rVal = rVarInBinaryExp.accept(this);
         if (rVal == null) {
           return null;
         }
@@ -955,8 +952,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       case LESS_THAN:
       case LESS_EQUAL: {
 
-        Long lVal = ((JExpression)lVarInBinaryExp).accept(this);
-        Long rVal = ((JExpression)rVarInBinaryExp).accept(this);
+        Long lVal = lVarInBinaryExp.accept(this);
+        Long rVal = rVarInBinaryExp.accept(this);
         if (lVal == null || rVal == null)
           return null;
 
@@ -1026,17 +1023,17 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     public Long visit(JUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
 
       JUnaryExpression.UnaryOperator unaryOperator = unaryExpression.getOperator();
-      IAExpression unaryOperand = unaryExpression.getOperand();
+      JExpression unaryOperand = unaryExpression.getOperand();
 
       Long value = null;
 
       switch (unaryOperator) {
       case MINUS:
-        value = ((JExpression)unaryOperand).accept(this);
+        value = unaryOperand.accept(this);
         return (value != null) ? -value : null;
 
       case NOT:
-        value = ((JExpression)(unaryOperand)).accept(this);
+        value = unaryOperand.accept(this);
 
         if (value == null) {
           return null;
@@ -1046,11 +1043,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         }
 
       case COMPLEMENT:
-        value = ((JExpression)unaryOperand).accept(this);
+        value = unaryOperand.accept(this);
         return (value != null) ? ~value : null;
 
       case PLUS:
-        value = ((JExpression)unaryOperand).accept(this);
+        value = unaryOperand.accept(this);
         return value;
       default:
         return null;
@@ -1143,7 +1140,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       if (expression instanceof AUnaryExpression) {
         AUnaryExpression exp = (AUnaryExpression)expression;
-        if (exp.getOperator() == UnaryOperator.NOT) {
+        if (exp.getOperator() == UnaryOperator.NOT) { // TODO why only C-UnaryOperator?
           expression = exp.getOperand();
           truthValue = !truthValue;
 
@@ -1429,7 +1426,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   }
 
 
-  private Long getExpressionValue(ExplicitState element, IAExpression expression, String functionName, CFAEdge edge)
+  private Long getExpressionValue(IAExpression expression)
     throws UnrecognizedCCodeException {
     if (expression instanceof JRightHandSide && !(expression instanceof CRightHandSide)) {
 
