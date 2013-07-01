@@ -1408,9 +1408,13 @@ def executeBenchmarkInCloud(benchmark):
     sourceFilesBaseDir = os.path.commonprefix(absSourceFiles)
     toolPathsBaseDir = os.path.commonprefix(absToolpaths)
     baseDir = os.path.commonprefix([sourceFilesBaseDir, toolPathsBaseDir, cloudRunExecutorDir])
-
+    
     if(baseDir == ""):
         sys.exit("No common base dir found.")
+        
+    #os.path.commonprefix works on charakters not on the file system
+    if(baseDir[-1]!='/'):
+        basDir = os.path.split(basDir)[0];
      
     numOfRunDefLinesAndPriorityStr = str(numOfRunDefLines)
     if(config.cloudPriority):
