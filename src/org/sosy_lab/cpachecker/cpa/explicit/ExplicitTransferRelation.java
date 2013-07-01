@@ -104,7 +104,6 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -123,7 +122,6 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 import com.google.common.collect.ImmutableMap;
@@ -170,97 +168,12 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   public ExplicitTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
-  @Override
-  public Collection<ExplicitState> getAbstractSuccessors(AbstractState element, Precision precision, CFAEdge cfaEdge)
-    throws CPATransferException {
-
-    super.setInfo(element, precision, cfaEdge);
-
-    ExplicitState successor;
-
-    switch (cfaEdge.getEdgeType()) {
-    // this is an assumption, e.g. if (a == b)
-    case AssumeEdge:
-      AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
-      successor = handleAssumption(assumeEdge, assumeEdge.getExpression(), assumeEdge.getTruthAssumption());
-      break;
-
-    case FunctionCallEdge:
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
-      final FunctionEntryNode succ = functionCallEdge.getSuccessor();
-      final String calledFunctionName = succ.getFunctionName();
-      successor = handleFunctionCallEdge(functionCallEdge, functionCallEdge.getArguments(),
-          succ.getFunctionParameters(), calledFunctionName);
-      break;
-
-    // this is a return edge from function, this is different from return statement
-    // of the function. See case for statement edge for details
-    case FunctionReturnEdge:
-      final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
-      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) cfaEdge;
-      final FunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
-      successor = handleFunctionReturnEdge(functionReturnEdge,
-          summaryEdge, summaryEdge.getExpression(), callerFunctionName);
-      break;
-
-    default:
-      successor = handleSimpleEdge(cfaEdge);
-    }
-
-    postProcessing(successor);
-
-    super.resetInfo();
-
-    if (successor == null) {
-      return Collections.emptySet();
-    } else {
-      return Collections.singleton(successor);
-    }
-  }
 
   @Override
   protected void postProcessing(ExplicitState successor) {
     if (successor != null){
       successor.addToDelta(state);
     }
-  }
-
-  @Override
-  protected ExplicitState handleSimpleEdge(CFAEdge cfaEdge)
-        throws CPATransferException {
-
-    // check the type of the edge
-    switch (cfaEdge.getEdgeType()) {
-    // if edge is a statement edge, e.g. a = b + c
-    case StatementEdge:
-      final AStatementEdge statementEdge = (AStatementEdge) cfaEdge;
-      return handleStatementEdge(statementEdge, statementEdge.getStatement());
-
-    case ReturnStatementEdge:
-      AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
-      // this statement is a function return, e.g. return (a);
-      // note that this is different from return edge,
-      // this is a statement edge, which leads the function to the
-      // last node of its CFA, where return edge is from that last node
-      // to the return site of the caller function
-      return handleReturnStatementEdge(returnEdge, returnEdge.getExpression());
-
-    // edge is a declaration edge, e.g. int a;
-    case DeclarationEdge:
-      final ADeclarationEdge declarationEdge = (ADeclarationEdge) cfaEdge;
-      return handleDeclarationEdge(declarationEdge, declarationEdge.getDeclaration());
-
-    case BlankEdge:
-      break;
-
-    case MultiEdge:
-      return handleMultiEdge((MultiEdge)cfaEdge);
-
-    default:
-      throw new UnrecognizedCFAEdgeException(cfaEdge);
-    }
-
-    return state;
   }
 
   @Override
