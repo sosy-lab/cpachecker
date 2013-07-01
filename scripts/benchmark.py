@@ -1439,7 +1439,7 @@ def executeBenchmarkInCloud(benchmark):
     else:
         logLevel = "INFO"
     libDir = os.path.abspath("./lib/java-benchmark")
-    cloud = subprocess.Popen(["java", "-jar", libDir + "/vercip.jar", "benchmark", "--master", config.cloud, "--loglevel", logLevel], stdin=subprocess.PIPE)
+    cloud = subprocess.Popen(["java", "-jar", libDir + "/vcloud.jar", "benchmark", "--master", config.cloud, "--loglevel", logLevel], stdin=subprocess.PIPE)
     try:
         (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
     except KeyboardInterrupt:
