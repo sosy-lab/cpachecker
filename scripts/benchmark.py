@@ -463,6 +463,7 @@ class Run():
         self.cpuTime = 0
         self.wallTime = 0
         self.memUsage = None
+        self.host = None
         
         self.tool = self.benchmark.tool
         args = self.tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
@@ -1044,6 +1045,8 @@ class OutputHandler:
         runElem.append(ET.Element("column", {"title": "walltime", "value": wallTimeStr}))
         if run.memUsage is not None:
             runElem.append(ET.Element("column", {"title": "memUsage", "value": str(run.memUsage)}))
+        if run.host:
+            runElem.append(ET.Element("column", {"title": "host", "value": run.host}))
 
         for column in run.columns:
             runElem.append(ET.Element("column",
@@ -1311,28 +1314,34 @@ def parseCloudResultFile(filePath):
 
 def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
 
+    runToHostMap = {}
     try:
-        file = open(filePath, 'rt')
-        outputHandler.allCreatedFiles.append(filePath)
-        
-        complete = False
-        while(not complete):
-            firstLine = file.readline()
-            if(not firstLine == "\n"):
-               name = firstLine.split("=")[-1].strip()
-               osName = file.readline().split("=")[-1].strip()
-               memory = file.readline().split("=")[-1].strip()
-               cpuName = file.readline().split("=")[-1].strip()
-               frequency = file.readline().split("=")[-1].strip()
-               cores = file.readline().split("=")[-1].strip()
-               
-               outputHandler.storeSystemInfo(osName, cpuName, cores, frequency, memory, name)
+        with open(filePath, 'rt') as file:
+            outputHandler.allCreatedFiles.append(filePath)
             
-            else:
-                complete = True
-        file.close
+            name = file.readline().split("=")[-1].strip()
+            osName = file.readline().split("=")[-1].strip()
+            memory = file.readline().split("=")[-1].strip()
+            cpuName = file.readline().split("=")[-1].strip()
+            frequency = file.readline().split("=")[-1].strip()
+            cores = file.readline().split("=")[-1].strip()
+            outputHandler.storeSystemInfo(osName, cpuName, cores, frequency, memory, name)
+
+            # skip all further hostdescriptions for now and wait for separator line
+            while file.readline() != '\n':
+                pass
+
+            for line in file:
+                line = line.strip()
+                if not line:
+                    continue # skip empty lines
+
+                runInfo = line.split('\t')
+                runToHostMap[runInfo[1].strip()] = runInfo[0].strip()
+
     except IOError:
-        logging.warning("Host information file not found: " + filePath)    
+        logging.warning("Host information file not found: " + filePath)
+    return runToHostMap
  
 def executeBenchmarkInCloud(benchmark):
     
@@ -1456,7 +1465,7 @@ def executeBenchmarkInCloud(benchmark):
 
     #Write worker host informations in xml
     filePath = os.path.join(outputDir, "hostInformation.txt")
-    parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
+    runToHostMap = parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
     
     executedAllRuns = True;
     
@@ -1472,7 +1481,8 @@ def executeBenchmarkInCloud(benchmark):
             try:
                 stdoutFile = run.logFile + ".stdOut"
                 (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
-                
+                run.host = runToHostMap[run.sourcefile]
+
                 if returnValue is not None:
                     # Do not delete stdOut file if there was some problem
                     os.remove(stdoutFile)
