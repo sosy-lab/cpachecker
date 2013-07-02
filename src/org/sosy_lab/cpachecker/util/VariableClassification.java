@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+
 import java.io.IOException;
 import java.io.Writer;
 import java.math.BigInteger;
@@ -330,8 +332,7 @@ public class VariableClassification {
   private void collectVars() {
     Collection<CFANode> nodes = cfa.getAllNodes();
     for (CFANode node : nodes) {
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFAEdge edge = node.getLeavingEdge(i);
+      for (CFAEdge edge : leavingEdges(node)) {
         handleEdge(edge);
       }
     }

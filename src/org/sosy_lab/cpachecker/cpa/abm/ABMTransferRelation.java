@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.abm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -457,8 +458,7 @@ public class ABMTransferRelation implements TransferRelation {
         return attachAdditionalInfoToCallNodes(expandedResult);
       } else {
         List<AbstractState> result = new ArrayList<>();
-        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-          CFAEdge e = node.getLeavingEdge(i);
+        for (CFAEdge e : leavingEdges(node)) {
           result.addAll(getAbstractSuccessors0(pElement, pPrecision, e));
         }
         return attachAdditionalInfoToCallNodes(result);

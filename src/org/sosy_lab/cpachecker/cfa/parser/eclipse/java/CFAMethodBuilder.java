@@ -109,8 +109,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import com.google.common.collect.ImmutableList;
-
 /**
  * Builder to traverse AST.
  *
@@ -1365,10 +1363,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     if (isReachableNode(prevNode)) {
 
-      ImmutableList<CFAEdge> enteringEdges =
-          ImmutableList.copyOf(CFAUtils.allEnteringEdges(prevNode));
-
-      for (CFAEdge prevEdge : enteringEdges) {
+      for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
 
         boolean isBlankEdge = (prevEdge instanceof BlankEdge)
                                 && prevEdge.getDescription().equals("");

@@ -180,7 +180,7 @@ public class CFAUtils {
     };
   }
 
-  private static final Function<CFAEdge,  CFANode> TO_PREDECESSOR = new Function<CFAEdge,  CFANode>() {
+  static final Function<CFAEdge,  CFANode> TO_PREDECESSOR = new Function<CFAEdge,  CFANode>() {
       @Override
       public CFANode apply(CFAEdge pInput) {
         return pInput.getPredecessor();
@@ -188,7 +188,7 @@ public class CFAUtils {
     };
 
 
-  private static final Function<CFAEdge,  CFANode> TO_SUCCESSOR = new Function<CFAEdge,  CFANode>() {
+  static final Function<CFAEdge,  CFANode> TO_SUCCESSOR = new Function<CFAEdge,  CFANode>() {
     @Override
     public CFANode apply(CFAEdge pInput) {
       return pInput.getSuccessor();
@@ -304,12 +304,8 @@ public class CFAUtils {
       Set<CFAEdge> outgoingEdges = new HashSet<>();
 
       for (CFANode n : nodes) {
-        for (int i = 0; i < n.getNumEnteringEdges(); i++) {
-          incomingEdges.add(n.getEnteringEdge(i));
-        }
-        for (int i = 0; i < n.getNumLeavingEdges(); i++) {
-          outgoingEdges.add(n.getLeavingEdge(i));
-        }
+        enteringEdges(n).copyInto(incomingEdges);
+        leavingEdges(n).copyInto(outgoingEdges);
       }
 
       innerLoopEdges = Sets.intersection(incomingEdges, outgoingEdges).immutableCopy();
@@ -381,6 +377,17 @@ public class CFAUtils {
     }
   }
 
+  /**
+   * Find all loops inside a given set of CFA nodes.
+   * The nodes in the given set may not be connected
+   * with any nodes outside of this set.
+   * This method tries to differentiate nested loops.
+   *
+   * @param nodes The set of nodes to look for loops in.
+   * @param language The source language.
+   * @return A collection of found loops.
+   * @throws ParserException
+   */
   public static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
     final int min = nodes.first().getNodeNumber();
     final int max = nodes.last().getNodeNumber();
@@ -406,8 +413,7 @@ public class CFAUtils {
       assert nodesArray[i] == null;
       nodesArray[i] = n;
 
-      for (int e = 0; e < n.getNumLeavingEdges(); e++) {
-        CFAEdge edge = n.getLeavingEdge(e);
+      for (CFAEdge edge : leavingEdges(n)) {
         CFANode succ = edge.getSuccessor();
         int j = succ.getNodeNumber() - min;
         edges[i][j] = new Edge();
