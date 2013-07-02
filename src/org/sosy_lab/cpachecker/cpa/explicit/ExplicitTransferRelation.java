@@ -1527,7 +1527,9 @@ public class ExplicitTransferRelation implements TransferRelation {
       } else {
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
-        newElement.forget(missingInformationLeftJVariable);
+        if (missingInformationLeftJVariable != null) {
+          newElement.forget(missingInformationLeftJVariable);
+        }
         return Collections.singleton(newElement);
       }
     }

@@ -25,12 +25,15 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
+import java.io.Writer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.eclipse.jdt.core.JavaCore;
@@ -38,21 +41,21 @@ import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+
 
 /**
  * Wrapper around the JDT Parser and CFA-Builder Implementation.
@@ -78,6 +81,15 @@ public class EclipseJavaParser implements Parser {
       description="Specify the class code path to " +
           "search for java class or interface definitions")
   private String javaClasspath = "";
+
+  @Option(name="java.exportTypeHierarchy",
+      description="export TypeHierarchy as .dot file")
+  private boolean exportTypeHierarchy = true;
+
+  @Option(name="java.typeHierarchyFile",
+      description="export TypeHierarchy as .dot file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path exportTypeHierarchyFile = Paths.get("typeHierarchy.dot");
 
   private final ASTParser parser = ASTParser.newParser(AST.JLS4);
 
@@ -160,7 +172,23 @@ public class EclipseJavaParser implements Parser {
   public ParseResult parseFile(String mainClassName) throws JParserException {
     File mainClassFile = getMainClassFile(mainClassName);
     Scope scope = prepareScope(mainClassName);
-    return buildCFA(parse(mainClassFile), scope);
+    ParseResult result = buildCFA(parse(mainClassFile), scope);
+    exportTypeHierarchy(scope);
+    return result;
+  }
+
+  private void exportTypeHierarchy(Scope pScope) {
+
+    // write CFA to file
+    if (exportTypeHierarchy) {
+      try (Writer w = Files.newWriter(exportTypeHierarchyFile.toFile(), Charsets.UTF_8)) {
+        THDotBuilder.generateDOT(w, pScope);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e,
+            "Could not write TypeHierarchy to dot file");
+        // continue with analysis
+      }
+    }
   }
 
   private File getMainClassFile(String mainClassName) throws JParserException  {
@@ -175,62 +203,50 @@ public class EclipseJavaParser implements Parser {
 
   private Scope prepareScope(String mainClassName) throws JParserException {
 
-    List<Pair<CompilationUnit, String>> astsOfFoundFiles = getASTsOfProgram();
+    List<JavaFileAST> astsOfFoundFiles = getASTsOfProgram();
 
-    Map<String, String> typeOfFiles = new HashMap<>();
-    Map<String, JClassOrInterfaceType> types
-                            = getTypeHieachie(astsOfFoundFiles, typeOfFiles);
+    TypeHierarchy typeHierarchy = TypeHierarchy.createTypeHierachy(logger, astsOfFoundFiles);
 
-    return new Scope(mainClassName, types, typeOfFiles);
+    return new Scope(mainClassName, typeHierarchy);
   }
 
-  private Map<String, JClassOrInterfaceType> getTypeHieachie(List<Pair<CompilationUnit,
-      String>> astsOfFoundFiles, Map<String, String> pTypeOfFiles) {
-
-    Map<String, JClassOrInterfaceType> types = new HashMap<>();
-
-    TypeHierachyCreator creator = new TypeHierachyCreator(logger, types, pTypeOfFiles);
-
-    for (Pair<CompilationUnit, String> ast : astsOfFoundFiles) {
-      creator.setFileOfCU(ast.getSecond());
-      ast.getFirst().accept(creator);
-    }
-
-    return types;
-  }
-
-  private List<Pair<CompilationUnit, String>> getASTsOfProgram() throws JParserException {
-    Queue<File> sourceFileToBeParsed = getJavaFilesInSourcePaths();
-    List<Pair<CompilationUnit, String>> astsOfFoundFiles = new LinkedList<>();
+  private List<JavaFileAST> getASTsOfProgram() throws JParserException {
+    Set<File> sourceFileToBeParsed = getJavaFilesInSourcePaths();
+    List<JavaFileAST> astsOfFoundFiles = new LinkedList<>();
 
     for (File file : sourceFileToBeParsed) {
-      astsOfFoundFiles.add(Pair.of(parse(file, IGNORE_METHOD_BODY), file.getName()));
+      String fileName = file.getName();
+      CompilationUnit ast = parse(file, IGNORE_METHOD_BODY);
+      astsOfFoundFiles.add(new JavaFileAST(fileName, ast));
     }
 
     return astsOfFoundFiles;
   }
 
-  private Queue<File> getJavaFilesInSourcePaths() throws JParserException {
+  private Set<File> getJavaFilesInSourcePaths() throws JParserException {
 
-    Queue<File> sourceFileToBeParsed = new LinkedList<>();
+    Set<File> sourceFileToBeParsed = new HashSet<>();
 
     for (String path : javaSourcePaths) {
       sourceFileToBeParsed.addAll(getJavaFilesInPath(path));
     }
 
+
+
     return sourceFileToBeParsed;
   }
 
-  private Queue<File> getJavaFilesInPath(String path) throws JParserException {
+  private Set<File> getJavaFilesInPath(String path) throws JParserException {
 
     File mainDirectory = new File(path);
 
     assert mainDirectory.isDirectory() : "Could not find directory at" + path;
 
-    Queue<File> sourceFileToBeParsed = new LinkedList<>();
+    Set<File> sourceFileToBeParsed = new HashSet<>();
     Queue<File> directorysToBeSearched = new LinkedList<>();
+    Set<File> directorysReached = new HashSet<>();
 
-    addDirectory(mainDirectory, directorysToBeSearched);
+    addDirectory(mainDirectory, directorysToBeSearched, directorysReached);
 
     while (!directorysToBeSearched.isEmpty()) {
 
@@ -239,7 +255,7 @@ public class EclipseJavaParser implements Parser {
       if (directory.exists() && directory.canRead()) {
         for (String fileName : directory.list()) {
           addFileWhereAppropriate(fileName, directory,
-              sourceFileToBeParsed, directorysToBeSearched);
+              sourceFileToBeParsed, directorysToBeSearched, directorysReached);
         }
       }
     }
@@ -248,7 +264,7 @@ public class EclipseJavaParser implements Parser {
   }
 
   private void addFileWhereAppropriate(String fileName, File directory,
-      Queue<File> sourceFileToBeParsed, Queue<File> directorysToBeSearched) {
+      Set<File> sourceFileToBeParsed, Queue<File> directorysToBeSearched, Set<File> pDirectorysReached) {
 
     File file =
         new File(directory.getAbsolutePath() + File.separatorChar + fileName);
@@ -256,24 +272,26 @@ public class EclipseJavaParser implements Parser {
     if (fileName.matches(JAVA_SOURCE_FILE_REGEX)) {
       addJavaFile(file, sourceFileToBeParsed);
     } else if (file.isDirectory()) {
-      addDirectory(file, directorysToBeSearched);
+      addDirectory(file, directorysToBeSearched, pDirectorysReached);
     }
   }
 
-  private void addDirectory(File file, Queue<File> directorysToBeSearched) {
-    if (file.exists() && file.canRead()) {
+  private void addDirectory(File file, Queue<File> directorysToBeSearched, Set<File> directorysReached) {
+    if (file.exists() && file.canRead() && !directorysReached.contains(file)) {
       directorysToBeSearched.add(file);
+      directorysReached.add(file);
     } else {
       logger.log(Level.WARNING, "No permission to read directory " + file.getName() + ".");
     }
   }
 
-  private void addJavaFile(File file, Queue<File> sourceFileToBeParsed) {
-    if (file.exists() && file.canRead()) {
+  private void addJavaFile(File file, Set<File> sourceFileToBeParsed) {
+    if (file.exists() && file.canRead() && !sourceFileToBeParsed.contains(file)) {
       sourceFileToBeParsed.add(file);
     } else {
-      logger.log(Level.WARNING, "No permission to read java file "
-                                  + file.getName() + ".");
+      logger.log(Level.WARNING, "No permission to read java file ");
+      logger.log(Level.WARNING, file.getName());
+      logger.log(Level.WARNING, ".");
     }
   }
 
@@ -396,4 +414,26 @@ public class EclipseJavaParser implements Parser {
   public Timer getCFAConstructionTime() {
     return cfaTimer;
   }
+
+  public static final class JavaFileAST {
+
+    private final  String fileName;
+
+    private final  CompilationUnit ast;
+
+    public JavaFileAST(String pFileName, CompilationUnit pAst) {
+      fileName = pFileName;
+      ast = pAst;
+    }
+
+    public CompilationUnit getAst() {
+      return ast;
+    }
+
+    public String getFileName() {
+      return fileName;
+    }
+  }
+
+
 }

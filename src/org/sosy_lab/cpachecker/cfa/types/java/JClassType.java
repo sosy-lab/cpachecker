@@ -23,203 +23,247 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
-import java.util.ArrayList;
+import static com.google.common.base.Preconditions.*;
+
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
 import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
+import com.google.common.collect.ImmutableSet;
 
 public class JClassType extends JClassOrInterfaceType implements JReferenceType {
 
+  private static final String NAME_OF_CLASS_OBJECT = "java.lang.Object";
+  private static final String SIMPLE_NAME_OF_CLASS_OBJECT = "Object";
+
+  private static final JClassType typeOfObject = new JClassType();
+
+  private static final JClassType UNRESOLVABLE_TYPE =
+      new JClassType("_unspecified_", "_unspecified_",
+          VisibilityModifier.NONE, false, false, false,
+          JClassType.getTypeOfObject(), new HashSet<JInterfaceType>());
 
   private final boolean isFinal;
   private final boolean isAbstract;
   private final boolean isStrictFp;
 
-  private  JClassType superClass;
+  private final  JClassType superClass;
+  private final  Set<JInterfaceType> implementedInterfaces;
   private final  Set<JClassType> directSubClasses = new HashSet<>();
-  private final  Set<JInterfaceType> implementedInterfaces = new HashSet<>();
 
+  JClassType(
+      String fullyQualifiedName, String pSimpleName, final VisibilityModifier pVisibility,
+      final boolean pIsFinal, final boolean pIsAbstract, final boolean pStrictFp,
+      JClassType pSuperClass, Set<JInterfaceType> pImplementedInterfaces) {
 
-  public JClassType(String fullyQualifiedName, final VisibilityModifier pVisibility, final boolean pIsFinal,
-      final boolean pIsAbstract, final boolean pStrictFp) {
-    super(fullyQualifiedName, pVisibility);
+    super(fullyQualifiedName, pSimpleName, pVisibility);
+
+    checkNotNull(pImplementedInterfaces);
+    checkNotNull(pSuperClass);
+
+    checkArgument(!pIsFinal || !pIsAbstract ,
+        "Classes can't be abstract and final");
+    checkArgument((getVisibility() != VisibilityModifier.PRIVATE)
+        || (getVisibility() != VisibilityModifier.PROTECTED),
+        " Classes can't be private or protected");
+
     isFinal = pIsFinal;
     isAbstract = pIsAbstract;
     isStrictFp = pStrictFp;
+    superClass = pSuperClass;
+    implementedInterfaces = ImmutableSet.copyOf(pImplementedInterfaces);
 
-     assert !isFinal || !isAbstract : "Classes can't be abstract and final";
-     assert (getVisibility() != VisibilityModifier.PRIVATE) || (getVisibility() != VisibilityModifier.PROTECTED) : " Classes can't be private or protected";
-
+    pSuperClass.registerSubType(this);
+    notifyImplementedInterfacesOfThisClass();
+    checkSuperClassConsistency();
   }
 
-  public boolean isFinal() {
+  JClassType(
+      String fullyQualifiedName, String pSimpleName, final VisibilityModifier pVisibility,
+      final boolean pIsFinal, final boolean pIsAbstract, final boolean pStrictFp,
+      JClassType pSuperClass, Set<JInterfaceType> pImplementedInterfaces,
+      JClassOrInterfaceType pEnclosingType) {
+
+    super(fullyQualifiedName, pSimpleName, pVisibility, pEnclosingType);
+
+    checkNotNull(pImplementedInterfaces);
+    checkNotNull(pSuperClass);
+
+    checkArgument(!pIsFinal || !pIsAbstract,
+        "Classes can't be abstract and final");
+    checkArgument((getVisibility() != VisibilityModifier.PRIVATE)
+        || (getVisibility() != VisibilityModifier.PROTECTED),
+        " Classes can't be private or protected");
+
+    isFinal = pIsFinal;
+    isAbstract = pIsAbstract;
+    isStrictFp = pStrictFp;
+    superClass = pSuperClass;
+    implementedInterfaces = ImmutableSet.copyOf(pImplementedInterfaces);
+
+    pSuperClass.registerSubType(this);
+    notifyImplementedInterfacesOfThisClass();
+    checkSuperClassConsistency();
+  }
+
+  private void checkSuperClassConsistency() {
+    Set<JClassType> found = new HashSet<>();
+
+    JClassType nextSuperClass = superClass;
+
+    while (nextSuperClass != null) {
+      found.add(nextSuperClass);
+      nextSuperClass = nextSuperClass.getParentClass();
+      checkArgument(!found.contains(this),
+          "Class " + getName() + " may not be a super class of itself." );
+    }
+
+    checkArgument(found.contains(typeOfObject),
+        "Class " + getName() + " must be a super class of Object");
+  }
+
+  private JClassType() {
+    super(NAME_OF_CLASS_OBJECT, SIMPLE_NAME_OF_CLASS_OBJECT, VisibilityModifier.PUBLIC);
+
+    superClass = null;
+    implementedInterfaces = new HashSet<>();
+
+    isFinal = false;
+    isAbstract = false;
+    isStrictFp = false;
+  }
+
+  public static final JClassType getTypeOfObject() {
+    return typeOfObject;
+  }
+
+  public static final JClassType valueOf(
+      String fullyQualifiedName, String pSimpleName,
+      final VisibilityModifier pVisibility, final boolean pIsFinal,
+      final boolean pIsAbstract, final boolean pStrictFp,
+      JClassType pSuperClass, Set<JInterfaceType> pImplementedInterfaces) {
+
+    return new JClassType(fullyQualifiedName, pSimpleName, pVisibility,
+        pIsFinal, pIsAbstract, pStrictFp, pSuperClass, pImplementedInterfaces);
+  }
+
+  public static final JClassType valueOf(
+      String fullyQualifiedName, String pSimpleName,
+      final VisibilityModifier pVisibility, final boolean pIsFinal,
+      final boolean pIsAbstract, final boolean pStrictFp,
+      JClassType pSuperClass, Set<JInterfaceType> pImplementedInterfaces,
+      JClassOrInterfaceType pEnclosingType) {
+
+    return new JClassType(fullyQualifiedName, pSimpleName, pVisibility, pIsFinal,
+        pIsAbstract, pStrictFp, pSuperClass, pImplementedInterfaces, pEnclosingType);
+  }
+
+  private final void notifyImplementedInterfacesOfThisClass() {
+    for (JInterfaceType implementedInterface : implementedInterfaces) {
+      implementedInterface.registerSubType(this);
+    }
+  }
+
+  public final boolean isFinal() {
     return isFinal;
   }
 
-  public boolean isAbstract() {
+  public final boolean isAbstract() {
     return isAbstract;
   }
 
-  public boolean isStrictFp() {
+  public final boolean isStrictFp() {
     return isStrictFp;
   }
 
-  public JClassType getParentClass() {
+  @Nullable
+  /**
+   * Returns the super type of this class type.
+   * The Super Type of the class Object is null.
+   *
+   * @return the super Type of this class type.
+   */
+  public final JClassType getParentClass() {
     return superClass;
   }
 
-
-  public Set<JClassType> getDirectSubClasses() {
-     return directSubClasses;
+  public final Set<JClassType> getDirectSubClasses() {
+     return ImmutableSet.copyOf(directSubClasses);
   }
 
-  public Set<JInterfaceType> getImplementedInterfaces() {
+  public final Set<JInterfaceType> getImplementedInterfaces() {
     return implementedInterfaces;
   }
 
-
-   public void registerSuperType(JClassOrInterfaceType superType) {
-
-    if (superType instanceof JInterfaceType) {
-
-      assert !implementedInterfaces.contains(superType);
-
-      implementedInterfaces.add((JInterfaceType) superType);
-
-    } else {
-
-      assert superClass == null;
-
-      superClass = (JClassType) superType;
-
-    }
-  }
-
-
-
-  public void registerSubType(JClassType pChild) {
-
-      assert !directSubClasses.contains(pChild);
+  private final void registerSubType(JClassType pChild) {
+      checkArgument(!directSubClasses.contains(pChild));
       directSubClasses.add(pChild);
-
   }
 
-  public List<JClassType> getAllSuperClasses() {
+  public final Set<JClassType> getAllSuperClasses() {
 
-     List<JClassType> result = new ArrayList<>();
+    Set<JClassType> result = new HashSet<>();
 
-     result.add(superClass);
+    JClassType nextSuperClass = superClass;
 
-     JClassType superSuperClass = superClass;
+    while (nextSuperClass != null) {
 
-     while (superSuperClass.getParentClass() != null) {
-
-        superSuperClass = superSuperClass.getParentClass();
-
-       //Termination Check (maybe Exception?)
-       if (result.contains(superSuperClass)) {
-         break;
-       }
-
-       result.add(superSuperClass.getParentClass());
-       superSuperClass = superSuperClass.getParentClass();
-
-     }
-
-     return result;
-    }
-
-  public List<JInterfaceType> getAllImplementedInterfaces() {
-
-    List<JClassType> superClasses = getAllSuperClasses();
-
-    List<JInterfaceType> result = new LinkedList<>();
-
-    for (JClassType superClass : superClasses) {
-      result.addAll(superClass.getAllSuperInterfacesOfImplementedInterfacsOfClass());
+      result.add(nextSuperClass);
+      nextSuperClass = nextSuperClass.getParentClass();
     }
 
     return result;
   }
 
+  public final Set<JInterfaceType> getAllImplementedInterfaces() {
 
-  private List<JInterfaceType> getAllSuperInterfacesOfImplementedInterfacsOfClass() {
+    // First, get all super classes of this class,
+    // then, get all Implementing Interfaces and superInterfaces
 
-     List<JInterfaceType> result = new ArrayList<>();
-     Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<>();
+    Set<JInterfaceType> result = new HashSet<>();
 
-     for (JInterfaceType implementedInterface : this.getImplementedInterfaces()) {
+    Set<JClassType> classes = getAllSuperClasses();
 
-       //Termination Check (maybe Exception?)
-       if (result.contains(implementedInterface)) {
-         continue;
-       }
+    classes.add(this);
 
-       result.add(implementedInterface);
-       toBeAdded.add(implementedInterface.getExtendedInterfaces());
-     }
+    for(JClassType iClass : classes) {
 
-     while (!toBeAdded.isEmpty()) {
+      result.addAll(iClass.getImplementedInterfaces());
 
-       for (JInterfaceType implementedInterface : toBeAdded.poll()) {
+      for(JInterfaceType implementedInterface : iClass.getImplementedInterfaces()) {
+        result.addAll(implementedInterface.getAllSuperInterfaces());
+      }
+    }
 
-         //Termination Check (maybe Exception?)
-         if (result.contains(implementedInterface)) {
-           continue;
-         }
-
-         result.add(implementedInterface);
-         toBeAdded.add(implementedInterface.getExtendedInterfaces());
-       }
-
-     }
-
-     return result;
+    return result;
   }
 
-  public List<JClassOrInterfaceType> getAllSuperTypesOfClass() {
+  public final Set<JClassOrInterfaceType> getAllSuperTypesOfClass() {
 
-    List<JClassOrInterfaceType> result = new LinkedList<>();
+    Set<JClassOrInterfaceType> result = new HashSet<>();
     result.addAll(getAllSuperClasses());
     result.addAll(getAllImplementedInterfaces());
     return result;
   }
 
-  public List<JClassType> getAllSubTypesOfClass() {
+  public final Set<JClassType> getAllSubTypesOfClass() {
 
+    Set<JClassType> result = new HashSet<>();
 
-     List<JClassType> result = new LinkedList<>();
-     Queue<Set<JClassType>> toBeAdded = new LinkedList<>();
+    result.addAll(directSubClasses);
 
-
-     for (JClassType subClass : this.getDirectSubClasses()) {
-
-       if (result.contains(subClass)) {
-         continue; //maybe Exception?
-       }
-
-       result.add(subClass);
-       toBeAdded.add(subClass.getDirectSubClasses());
-     }
-
-     while (!toBeAdded.isEmpty()) {
-       for (JClassType subClass : toBeAdded.poll()) {
-
-         if (result.contains(subClass)) {
-           continue; //maybe Exception?
-         }
-
-         result.add(subClass);
-         toBeAdded.add(subClass.getDirectSubClasses());
-       }
-     }
-
-     return result;
+    // Recursion stops, if the Set directSubClasses is empty
+    for(JClassType directSubClass : directSubClasses) {
+      result.addAll(directSubClass.getAllSubTypesOfClass());
     }
 
+    return result;
+  }
+
+  public static JClassType createUnresolvableType() {
+    return UNRESOLVABLE_TYPE;
+  }
 }

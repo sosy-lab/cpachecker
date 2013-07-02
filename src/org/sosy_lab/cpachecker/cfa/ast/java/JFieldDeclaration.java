@@ -27,32 +27,53 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.Initializer;
+import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
+/**
+ *
+ *
+ * This class represents the field declaration node type.
+ *
+ * FieldDeclaration:
+ *   [Javadoc] { ExtendedModifier } Type Identifier { [] } [ = Expression ]
+ *
+ * The simple name contains the Identifier and can be ambiguous in the cfa.
+ * The name also contains the type as qualifier and is unique in the cfa.
+ *
+ *  {@link JInitializerExpression} contains the initializer expression.
+ */
 public class JFieldDeclaration extends JVariableDeclaration {
 
+  //TODO Annotation,
+
   private static final boolean IS_FIELD = true;
+  private static final JDeclaration UNRESOLVED_DECLARATION = new JFieldDeclaration(
+      new FileLocation(0, "", 0, 0, 0),
+      new JSimpleType(JBasicType.UNSPECIFIED), "_unresolved_", "_unresolved_", false,
+      false, false, false, VisibilityModifier.NONE);
 
   private final VisibilityModifier visibility;
   private final boolean isStatic;
   private final boolean isTransient;
   private final boolean isVolatile;
+  private final String simpleName;
 
 
-  public JFieldDeclaration(FileLocation pFileLocation, JType pType, String pName, String pOrigName,
-      Initializer pInitializer, boolean pIsFinal, boolean pIsStatic, boolean pIsTransient, boolean pIsVolatile,
+  public JFieldDeclaration(FileLocation pFileLocation, JType pType,
+      String pName, String pSimpleName,
+      boolean pIsFinal, boolean pIsStatic,
+      boolean pIsTransient, boolean pIsVolatile,
       VisibilityModifier pVisibility) {
-    super(pFileLocation, IS_FIELD, pType, pName, pOrigName, pInitializer, pIsFinal);
+    super(pFileLocation, IS_FIELD, pType, pName, pName, null, pIsFinal);
 
     isTransient = pIsTransient;
     isVolatile =  pIsVolatile;
     isStatic = pIsStatic;
     visibility = pVisibility;
-
+    simpleName = pSimpleName;
   }
-
-
 
   @Override
   public String toASTString() {
@@ -148,4 +169,21 @@ public class JFieldDeclaration extends JVariableDeclaration {
             && Objects.equals(other.visibility, visibility);
   }
 
+  public static JDeclaration createUnresolvedFieldDeclaration() {
+    return UNRESOLVED_DECLARATION;
+  }
+
+  public static JFieldDeclaration createExternFieldDeclaration(JType pType,
+      String pName, String pSimpleName, boolean pIsFinal, boolean pIsStatic,
+      boolean pIsTransient, boolean pIsVolatile,
+      VisibilityModifier pVisibility) {
+
+    return new JFieldDeclaration(
+        new FileLocation(0, "", 0, 0, 0),
+        pType, pName, pSimpleName, pIsFinal, pIsStatic, pIsTransient, pIsVolatile, pVisibility);
+  }
+
+  public String getSimpleName() {
+    return simpleName;
+  }
 }

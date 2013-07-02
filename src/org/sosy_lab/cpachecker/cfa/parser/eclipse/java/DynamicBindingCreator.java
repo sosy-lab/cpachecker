@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
@@ -177,7 +178,7 @@ public class DynamicBindingCreator {
       copmleteBindingsForClassType(implementingClasses, methodName, methodName);
     }
 
-    List<JInterfaceType> subInterfaces = methodDeclaringType.getAllSubInterfacesOfInterface();
+    Set<JInterfaceType> subInterfaces = methodDeclaringType.getAllSubInterfacesOfInterface();
 
     for (JInterfaceType subInterface : subInterfaces) {
       for (JClassType implementingClasses : subInterface.getKnownInterfaceImplementingClasses()) {
@@ -294,7 +295,7 @@ public class DynamicBindingCreator {
         } else {
           createOnlyReferencedMethodInvocationBinding(edge, subMethodsOfMethod.get(functionName));
         }
-      } else if (!functionCallExpression.getDeclaration().isStatic() && !functionCallExpression.getDeclaration().isFinal() && !(functionCallExpression.getDeclaringClassType() instanceof JInterfaceType) && !((JClassType) functionCallExpression.getDeclaringClassType()).isFinal() && !functionCallExpression.hasKnownRunTimeBinding()) {
+      } else if (!functionCallExpression.getDeclaration().isStatic() && !functionCallExpression.getDeclaration().isFinal() && !(functionCallExpression.getDeclaringType() instanceof JInterfaceType) && !((JClassType) functionCallExpression.getDeclaringType()).isFinal() && !functionCallExpression.hasKnownRunTimeBinding()) {
         createMethodInvocationBindings(edge, pProcessed, functionName);
       }
     }
@@ -344,7 +345,7 @@ public class DynamicBindingCreator {
 
     if (onlyFunction == null) {
 
-      List<JClassType> superTypes = runTimeBinding.getAllSuperClasses();
+      Set<JClassType> superTypes = runTimeBinding.getAllSuperClasses();
 
       for (JClassType superType : superTypes) {
         if (map.containsKey(superType)) {
@@ -549,7 +550,7 @@ public class DynamicBindingCreator {
   }
 
   private void registerMethod(IMethodBinding overriddenMethod, Pair<FunctionEntryNode, JClassOrInterfaceType> toBeRegistered) {
-   String overridenMethodName = astCreator.getFullyQualifiedMethodName(overriddenMethod);
+   String overridenMethodName = NameConverter.convertName(overriddenMethod);
 
    // If Method not yet parsed, it needs to be added
    if (!subMethodsOfMethod.containsKey(overridenMethodName)) {

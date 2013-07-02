@@ -32,9 +32,21 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
+/**
+ * This class represents the unqualified method invocation expression AST node type.
+ *
+ * Unqualified MethodInvocation:
+ *        [ < Type { , Type } > ]
+ *        Identifier ( [ Expression { , Expression } ] )
+ *
+ * Note that in the cfa, all method names are transformed to have unique names.
+ * It is therefore unnecessary to have Qualifiers for methods with the same simple name.
+ */
 public class JMethodInvocationExpression extends AFunctionCallExpression implements JRightHandSide {
 
+  //TODO Type parameters
+
+  // TODO erase these two fields and change the algorithm to find known run time type bindings,
   private boolean hasKnownRunTimeBinding = false;
   private JClassType runTimeBinding = null;
 
@@ -70,7 +82,7 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
     return v.visit(this);
   }
 
-  public JClassOrInterfaceType getDeclaringClassType() {
+  public JClassOrInterfaceType getDeclaringType() {
     return getDeclaration().getDeclaringClass();
   }
 
@@ -119,5 +131,4 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
     return other.hasKnownRunTimeBinding == hasKnownRunTimeBinding
             && Objects.equals(other.runTimeBinding, runTimeBinding);
   }
-
 }

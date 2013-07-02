@@ -36,12 +36,19 @@ import java.util.Stack;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
+import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
+import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 import com.google.common.base.Joiner;
@@ -55,30 +62,24 @@ import com.google.common.collect.Lists;
 class Scope {
 
   // Stores all found class and reference types
-  private final Map<String, JClassOrInterfaceType> types;
-
-  // Track the name of the files which the types were extracted from
-  // Key: TypeName Object: fileName
-  private final Map<String, String> fileOfType;
-
-  // symbolic tables for Fields
-  private final Map<String, LinkedList<JFieldDeclaration>>
-    typeFieldDeclarations = new HashMap<>();
-  private final Map<String, JFieldDeclaration> fieldDeclarations = new HashMap<>();
+  private final TypeHierarchy typeHierachy;
 
   // symbolic table for  Variables and other Declarations
   private final LinkedList<Map<String, JSimpleDeclaration>> varsStack = Lists.newLinkedList();
   private final LinkedList<Map<String, JSimpleDeclaration>> varsList = Lists.newLinkedList();
 
   // Stores all found methods and constructors
-  private final Map<String, JMethodDeclaration> methods = new HashMap<>();
+  private final Map<String, JMethodDeclaration> methods;
+
+  // Stores all found field declarations
+  private final Map<String, JFieldDeclaration> fields;
 
   // Stores current class and method
   private String currentMethodName = null;
-  private String currentClassName = null;
+  private JClassOrInterfaceType currentClassType = null;
 
   // Stores enclosing classes
-  private final Stack<String> classStack = new Stack<>();
+  private final Stack<JClassOrInterfaceType> classStack = new Stack<>();
 
   // fully Qualified main Class (not the ast name, but the real name with . instead of _)
   private final String fullyQualifiedMainClassName;
@@ -90,8 +91,6 @@ class Scope {
   // Track depth of current Class
   private  int depth = 0;
 
-  private  Map<String, JSimpleDeclaration> programScopeVars;
-
 /**
  * Creates the Scope. It stores Information about the program as well
  * as creating symbolic tables to solve declarations.
@@ -101,24 +100,21 @@ class Scope {
  * @param pTypes Type Hierarchy of program created by {@link TypeHierachyCreator}
  * @param pFileOfTypes Maps types to the sourceFile they were extracted from
  */
-  public Scope(String pFullyQualifiedMainClassName,
-      Map<String, JClassOrInterfaceType> pTypes, Map<String, String> pFileOfTypes) {
+  public Scope(String pFullyQualifiedMainClassName, TypeHierarchy pTypeHierachy) {
+
     fullyQualifiedMainClassName = pFullyQualifiedMainClassName;
-    types = pTypes;
     enterProgramScope();
     registeredClasses.add(fullyQualifiedMainClassName); // Register Main Class
-    fileOfType = pFileOfTypes;
 
-    // initialize Lists in type Map for each type
-    for (String classNames : types.keySet()) {
-      typeFieldDeclarations.put(classNames, new LinkedList<JFieldDeclaration>());
-    }
+    methods = pTypeHierachy.getMethodDeclarations();
+    fields = pTypeHierachy.getFieldDeclarations();
+
+    typeHierachy = pTypeHierachy;
   }
 
   private void enterProgramScope() {
     varsStack.addLast(new HashMap<String, JSimpleDeclaration>());
     varsList.addLast(varsStack.getLast());
-    programScopeVars = varsStack.getLast();
   }
 
   /**
@@ -149,7 +145,6 @@ class Scope {
    */
   public void enterMethod(JMethodDeclaration methodDef) {
     currentMethodName = methodDef.getOrigName();
-    registerMethodDeclaration(methodDef);
     enterBlock();
   }
 
@@ -162,16 +157,16 @@ class Scope {
   public void enterClass(JClassOrInterfaceType enteredClassType) {
       depth++;
 
-      if (!types.containsKey(enteredClassType.getName())) {
+      if (!typeHierachy.containsType(enteredClassType)) {
         throw new CFAGenerationRuntimeException(
             "Could not find Type for Class" + enteredClassType.getName());
       }
 
       if (depth > 0) {
-        classStack.push(currentClassName);
+        classStack.push(currentClassType);
       }
 
-      currentClassName = enteredClassType.getName();
+      currentClassType = enteredClassType;
       assert depth >= 0;
   }
 
@@ -183,13 +178,13 @@ class Scope {
     depth--;
 
     if (depth == 0) {
-      currentClassName = null;
+      currentClassType = null;
     } else {
 
       if (classStack.size() == 0) { throw new CFAGenerationRuntimeException(
           "Could not find enclosing Class of this nested Class"); }
 
-      currentClassName = classStack.pop();
+      currentClassType = classStack.pop();
     }
 
     assert depth >= 0;
@@ -273,7 +268,12 @@ class Scope {
         return binding;
       }
     }
-    return null;
+
+    if(fields.containsKey(name)) {
+      return fields.get(name);
+    } else {
+      return null;
+    }
   }
 
   /**
@@ -297,12 +297,15 @@ class Scope {
     return methods.containsKey(checkNotNull(name));
   }
 
-
   public void registerDeclarationOfThisClass(JSimpleDeclaration declaration) {
 
-    assert declaration instanceof JVariableDeclaration
-        || declaration instanceof JParameterDeclaration
-        : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
+    checkArgument(declaration instanceof JVariableDeclaration
+                  || declaration instanceof JParameterDeclaration,
+                  "Tried to register a declaration which does not define " +
+                      "a name in the standard namespace: " + declaration);
+
+    checkArgument(!(declaration instanceof JFieldDeclaration),
+        "Can't register a field declaration, it has to be updated within the type Hierarchy");
 
     String name = declaration.getOrigName();
     assert name != null;
@@ -320,71 +323,6 @@ class Scope {
     }
 
     vars.put(name, declaration);
-
-    if (declaration instanceof JFieldDeclaration) {
-      registerFieldDeclarationOfThisClass((JFieldDeclaration) declaration);
-    }
-  }
-
-
-   public void registerFieldDeclarationOfClass(JFieldDeclaration decl, JType type) {
-
-     String name = decl.getName();
-
-     // multiple declarations of the same variable are disallowed
-     if (programScopeVars.containsKey(name)) {
-       throw new CFAGenerationRuntimeException("Variable " + name + " already declared", decl);
-     }
-
-     programScopeVars.put(name, decl);
-
-     if (type instanceof JClassOrInterfaceType) {
-       registerFieldDeclarationOfClass(decl, ((JClassOrInterfaceType) type).getName());
-     } else {
-       registerFieldDeclarationOfUnspecifiedClass(decl);
-     }
-   }
-
-  private void registerFieldDeclarationOfUnspecifiedClass(JFieldDeclaration declaration) {
-    if (fieldDeclarations.containsKey(declaration.getName())) {
-      throw new CFAGenerationRuntimeException("Variable " +
-        declaration.getName() + " already declared", declaration);
-      }
-
-    if (isProgramScope()) {
-      throw new CFAGenerationRuntimeException("Field Declaration" +
-        "can only be declared within Classes");
-      }
-
-    fieldDeclarations.put(declaration.getName(), declaration);
-
-  }
-
-  private void registerFieldDeclarationOfClass(JFieldDeclaration declaration, String className) {
-
-    if (fieldDeclarations.containsKey(declaration.getName())) { throw new CFAGenerationRuntimeException("Variable " +
-        declaration.getName() + " already declared", declaration); }
-
-    if (isProgramScope()) { throw new CFAGenerationRuntimeException("Field Declaration" +
-        "can only be declared within Classes");
-    }
-
-    fieldDeclarations.put(declaration.getName(), declaration);
-    typeFieldDeclarations.get(className).add(declaration);
-
-  }
-
-  private void registerFieldDeclarationOfThisClass(JFieldDeclaration declaration) {
-    registerFieldDeclarationOfClass(declaration, currentClassName);
-  }
-
-  public void registerMethodDeclaration(JMethodDeclaration declaration) {
-    checkState(!isProgramScope(), "method was not declared in class");
-
-    String name = declaration.getName();
-    assert name != null;
-
-    methods.put(name, declaration);
   }
 
   public String getCurrentMethodName() {
@@ -419,7 +357,8 @@ class Scope {
     }
 
     //Sub Classes need to be parsed for dynamic Binding
-    JClassOrInterfaceType type = types.get(ASTConverter.getFullyQualifiedClassOrInterfaceName(classBinding));
+    JClassOrInterfaceType type =
+        typeHierachy.getType(NameConverter.convertClassOrInterfaceName(classBinding));
 
     toBeAdded.addAll(type.getAllSubTypesOfType());
 
@@ -460,26 +399,18 @@ class Scope {
     return fullyQualifiedMainClassName;
   }
 
-  public String getCurrentClassName() {
-    return currentClassName;
+  public JClassOrInterfaceType getCurrentClassType() {
+    return currentClassType;
   }
 
-  public Map<String, JClassOrInterfaceType> getTypeHierachie() {
-    return types;
-  }
-
-  public Map<String, JFieldDeclaration> getFieldDeclarations() {
-    return fieldDeclarations;
-  }
-
-  public Map<String, LinkedList<JFieldDeclaration>> getTypeFieldDeclarations() {
-    return typeFieldDeclarations;
+  public Set<JFieldDeclaration> getFieldDeclarations(JClassOrInterfaceType pType) {
+    return typeHierachy.getFieldDeclarations(pType);
   }
 
   public Map<String, JFieldDeclaration> getStaticFieldDeclarations() {
     Map<String, JFieldDeclaration> result = new HashMap<>();
 
-    for (JFieldDeclaration declaration : fieldDeclarations.values()) {
+    for (JFieldDeclaration declaration : fields.values()) {
       if (declaration.isStatic()) {
         result.put(declaration.getName(), declaration);
       }
@@ -487,10 +418,17 @@ class Scope {
     return result;
   }
 
-  public Map<String, JFieldDeclaration> getNonStaticFieldDeclarationOfClass(String className) {
+  public Map<String, JFieldDeclaration> getNonStaticFieldDeclarationOfClass(JClassOrInterfaceType pType) {
+
     Map<String, JFieldDeclaration> result = new HashMap<>();
 
-    for (JFieldDeclaration declaration : typeFieldDeclarations.get(className)) {
+    if (typeHierachy.isExternType(pType)) {
+      return result;
+    }
+
+    Set<JFieldDeclaration> fieldDecls = getFieldDeclarations(pType);
+
+    for (JFieldDeclaration declaration : fieldDecls) {
       if (!declaration.isStatic()) {
         result.put(declaration.getName(), declaration);
       }
@@ -499,10 +437,117 @@ class Scope {
   }
 
   public String getFileOfCurrentType() {
-    if (fileOfType.containsKey(currentClassName)) {
-      return fileOfType.get(currentClassName);
+    if (typeHierachy.containsType(currentClassType)) {
+      return typeHierachy.getFileOfType(currentClassType);
     } else {
       return "";
     }
+  }
+
+  public boolean containsInterfaceType(String typeName) {
+    return  typeHierachy.containsInterfaceType(typeName);
+  }
+
+  public JInterfaceType getInterfaceType(String typeName) {
+    return typeHierachy.getInterfaceType(typeName);
+  }
+
+  public boolean containsClassType(String pTypeName) {
+    return typeHierachy.containsClassType(pTypeName);
+  }
+
+  public JClassType getClassType(String pTypeName) {
+    return typeHierachy.getClassType(pTypeName);
+  }
+
+  public JInterfaceType createNewInterfaceType(ITypeBinding pTypeBinding) {
+    typeHierachy.updateTypeHierarchy(pTypeBinding);
+
+    String newTypeName = NameConverter.convertClassOrInterfaceName(pTypeBinding);
+
+    if (containsInterfaceType(newTypeName)) {
+      return getInterfaceType(newTypeName);
+    } else {
+      return JInterfaceType.createUnresolvableType();
+    }
+  }
+
+  public JClassType createNewClassType(ITypeBinding pTypeBinding) {
+    typeHierachy.updateTypeHierarchy(pTypeBinding);
+
+    String newTypeName = NameConverter.convertClassOrInterfaceName(pTypeBinding);
+
+    if (containsClassType(newTypeName)) {
+      return getClassType(newTypeName);
+    } else {
+      return JClassType.createUnresolvableType();
+    }
+  }
+
+  public JMethodDeclaration createExternMethodDeclaration(
+      JMethodType pConvertMethodType, String pName, String pSimpleName,
+      VisibilityModifier pPublic, boolean pFinal,
+      boolean pAbstract, boolean pStatic,
+      boolean pNative, boolean pSynchronized,
+      boolean pStrictFp, JClassOrInterfaceType pDeclaringClassType) {
+
+    JMethodDeclaration decl =
+        JMethodDeclaration.createExternMethodDeclaration(
+            pConvertMethodType, pName, pSimpleName,
+            pPublic, pFinal, pAbstract,
+            pStatic, pNative, pSynchronized,
+            pStrictFp, pDeclaringClassType);
+
+    checkArgument(!methods.containsKey(decl.getName()));
+
+    methods.put(decl.getName(), decl);
+
+    return decl;
+  }
+
+  public JConstructorDeclaration createExternConstructorDeclaration(
+      JConstructorType pConvertConstructorType,
+      String pName, String pSimpleName, VisibilityModifier pVisibility,
+      boolean pStrictFp, JClassType pDeclaringClassType) {
+
+    JConstructorDeclaration decl =
+        JConstructorDeclaration.createExternConstructorDeclaration(
+            pConvertConstructorType, pName, pSimpleName,
+            pVisibility, pStrictFp, pDeclaringClassType);
+
+    checkArgument(!methods.containsKey(decl.getName()));
+
+    methods.put(decl.getName(), decl);
+
+    return decl;
+  }
+
+  public boolean isFieldRegistered(String pFieldName) {
+    return fields.containsKey(pFieldName);
+  }
+
+  public JFieldDeclaration lookupField(String pFieldName) {
+    checkArgument(fields.containsKey(pFieldName));
+    return fields.get(pFieldName);
+  }
+
+  public JFieldDeclaration createExternFieldDeclaration(JType pType, String pName,
+      String pSimpleName, boolean pIsFinal, boolean pIsStatic,
+      VisibilityModifier pVisibility, boolean pIsVolatile, boolean pIsTransient) {
+
+    JFieldDeclaration decl =
+        JFieldDeclaration.createExternFieldDeclaration(
+            pType, pName, pSimpleName, pIsFinal, pIsStatic,
+            pIsTransient, pIsVolatile, pVisibility);
+
+    checkArgument(!fields.containsKey(decl.getName()));
+
+    fields.put(decl.getName(), decl);
+
+    return decl;
+  }
+
+  public TypeHierarchy getTypeHierarchy() {
+    return typeHierachy;
   }
 }
