@@ -66,7 +66,6 @@ public class ReachedSetStrategy extends AbstractStrategy {
       orderReachedSetByLocation(reachedSet);
   }
 
-  // TODO does it work with analysis without locations?
   @Override
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
@@ -110,6 +109,7 @@ public class ReachedSetStrategy extends AbstractStrategy {
             if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
               logger.log(Level.FINE, "Cannot check that result is transitive closure.", "Successor ", succ,
                   "of element ", state, "not covered by result.");
+              System.out.println(AbstractStates.extractLocation(succ).getNodeNumber());// TODO remove
               return false;
             }
           } finally {
@@ -141,10 +141,15 @@ public class ReachedSetStrategy extends AbstractStrategy {
 
   @Override
   protected void prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
+    try {
+      stats.preparationTimer.start();
     if (!(pReadProof instanceof AbstractState[])) { throw new InvalidConfigurationException(
         "Proof Type requires reached set as set of abstract states."); }
     reachedSet = (AbstractState[])pReadProof;
     orderReachedSetByLocation(reachedSet);
+    } finally {
+      stats.preparationTimer.stop();
+    }
 
   }
 

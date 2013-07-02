@@ -86,6 +86,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     logger.log(Level.INFO, "Start reading proof.");
     try {
+      stats.totalTimer.start();
       stats.readTimer.start();
       checkingStrategy.readProof();
     } catch (Throwable e) {
@@ -93,6 +94,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       throw new RuntimeException("Failed reading proof.", e);
     } finally {
       stats.readTimer.stop();
+      stats.totalTimer.stop();
     }
     logger.log(Level.INFO, "Finished reading proof.");
 
@@ -109,7 +111,9 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     if (pReachedSet == null || pReachedSet.hasWaitingState()) { throw new IllegalArgumentException(
         "Parameter pReachedSet may not be null and may not have any states in its waitlist."); }
 
+    stats.totalTimer.start();
     checkingStrategy.constructInternalProofRepresentation(pReachedSet);
+    stats.totalTimer.stop();
   }
 
   @Override

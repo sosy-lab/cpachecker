@@ -183,9 +183,14 @@ public class ARG_CPAStrategy extends AbstractStrategy {
 
   @Override
   protected void prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
+    try {
+    stats.preparationTimer.start();
     if (!(pReadProof instanceof ARGState))
       throw new InvalidConfigurationException("Proof Strategy requires ARG.");
     root = (ARGState) pReadProof;
+    } finally {
+      stats.preparationTimer.stop();
+    }
   }
 
 }
