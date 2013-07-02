@@ -473,19 +473,6 @@ public class SMGState implements AbstractQueryableState {
     return null;
   }
 
-
-  /**
-   * Get the SMGObject representing the Memory the given address points to.
-   *
-   * @param address the address belonging to the memory to be returned.
-   * @return SMGObject representing the Memory this address points to, or null,
-   * if the memory this address belongs to is unkown.
-   */
-  public SMGObject getMemoryOfAddress(Integer address) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
   /**
    * This method simulates a free invocation. It checks,
    * whether the call is valid, and invalidates the
@@ -536,19 +523,6 @@ public class SMGState implements AbstractQueryableState {
   }
 
   /**
-   * Get the offset of this address.
-   *
-   * @param address An address pointing to an object in the SMG.
-   * @return the offset of the given address or null, if the given value is
-   *   not an address or the object its pointing to is unknown.
-   *
-   */
-  public Integer getOffset(Integer address) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  /**
    * Drop the stack frame representing the stack of
    * the function with the given name
    *
@@ -571,65 +545,6 @@ public class SMGState implements AbstractQueryableState {
    */
   public SMGObject createObject(int size, String label) {
     return new SMGObject(size, label);
-  }
-
-  /**
-   * Assigns the given symbolic value an explicit value.
-   *
-   * @param symbolicValue the symbolic value to be assigned.
-   * @param explicitValue the explicit value which will be assigned to the given symbolic value.
-   */
-  public void assignExplicitValue(Integer symbolicValue, Integer explicitValue) {
-    // TODO Auto-generated method stub
-  }
-
-  /**
-   * Return true, if the explicit value of the given symbolic value is known
-   *
-   * @param symbolicValue Search for the explicit value of the given symbolic value.
-   * @return true if the explicit value of the given symbolic one is known, else false.
-   */
-  public boolean isExplicitValueKnown(Integer symbolicValue) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  /**
-   * Return the explicit value assigned to the given symbolic value,
-   * or null, if the symbolic value was not assigned a explicit value.
-   *
-   * @param symbolicValue get the explicit value assigned to this symbolic value.
-   * @return the explicit value assigned to the given symbolic value, or null.
-   */
-  public Integer getExplicitValue(Integer symbolicValue) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  /**
-   * Returns true, if the given explicit value is assigned to
-   * a symbolic value.
-   *
-   * @param explicitValue the explicit Value to be searched for an assignment,
-   *
-   * @return true if the given explicit value is assigned to
-   * a symbolic value, else false.
-   */
-  public boolean isSymbolicValueKnown(int explicitValue) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  /**
-   * Return the symbolic value assigned to a explicit value,
-   * or null, if the explicit value was not assigned  one.
-   *
-   * @param explicitValue get the symbolic value assigned to this explicit value.
-   * @return the symbolic value assigned to the given explicit value, or null.
-   */
-  public Integer getSymbolicValue(int explicitValue) {
-    // TODO Auto-generated method stub
-    return null;
   }
 
   /**
