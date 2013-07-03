@@ -38,6 +38,7 @@ SCORE_UNKNOWN = 0
 SCORE_WRONG_UNSAFE = -4
 SCORE_WRONG_SAFE = -8
 
+CATEGORY_UNKNOWN = ('', )
 RESULT_CORRECT_SAFE = ('correct', 'safe')
 RESULT_CORRECT_UNSAFE = ('correct', 'unsafe')
 RESULT_UNKNOWN = ('unknown', )
@@ -67,14 +68,16 @@ def getResultCategory(filename, status):
             return RESULT_CORRECT_SAFE
         elif status == 'unsafe':
             return RESULT_WRONG_UNSAFE
+        return RESULT_UNKNOWN;
 
     elif fileIsUnsafe(filename):
         if status == 'safe':
             return RESULT_WRONG_SAFE
         elif status == 'unsafe':
             return RESULT_CORRECT_UNSAFE
+        return RESULT_UNKNOWN;
 
-    return RESULT_UNKNOWN
+    return CATEGORY_UNKNOWN
 
 def calculateScore(category):
     return {RESULT_CORRECT_SAFE:   SCORE_CORRECT_SAFE,
