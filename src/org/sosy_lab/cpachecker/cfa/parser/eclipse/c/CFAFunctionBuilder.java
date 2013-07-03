@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -283,6 +284,8 @@ class CFAFunctionBuilder extends ASTVisitor {
           init.accept(checkBinding);
         }
 
+      } else if (newD instanceof CComplexTypeDeclaration) {
+        scope.registerTypeDeclaration((CComplexTypeDeclaration)newD);
       } else {
         assert !(newD instanceof CFunctionDeclaration) : "Function declaration inside function";
       }

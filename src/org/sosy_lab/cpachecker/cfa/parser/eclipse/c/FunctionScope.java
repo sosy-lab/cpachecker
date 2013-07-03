@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -41,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 
 
 /**
@@ -52,9 +52,9 @@ import com.google.common.collect.Lists;
 class FunctionScope implements Scope {
 
   private final ImmutableMap<String, CFunctionDeclaration> functions;
-  private final ImmutableMap<String, CComplexTypeDeclaration> types;
-  private final Deque<Map<String, CSimpleDeclaration>> varsStack = Lists.newLinkedList();
-  private final Deque<Map<String, CSimpleDeclaration>> varsList = Lists.newLinkedList();
+  private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
+  private final Deque<Map<String, CSimpleDeclaration>> varsStack = new ArrayDeque<>();
+  private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
 
   private String currentFunctionName = null;
 
@@ -63,7 +63,7 @@ class FunctionScope implements Scope {
       ImmutableMap<String, CSimpleDeclaration> pGlobalVars) {
 
     functions = pFunctions;
-    types = pTypes;
+    typesStack.addLast(pTypes);
     varsStack.push(pGlobalVars);
     varsList.push(pGlobalVars);
 
@@ -88,6 +88,7 @@ class FunctionScope implements Scope {
   }
 
   public void enterBlock() {
+    typesStack.addLast(new HashMap<String, CComplexTypeDeclaration>());
     varsStack.addLast(new HashMap<String, CSimpleDeclaration>());
     varsList.addLast(varsStack.getLast());
   }
@@ -95,6 +96,7 @@ class FunctionScope implements Scope {
   public void leaveBlock() {
     checkState(varsStack.size() > 2);
     varsStack.removeLast();
+    typesStack.removeLast();
   }
 
   @Override
@@ -141,9 +143,16 @@ class FunctionScope implements Scope {
 
   @Override
   public CComplexType lookupType(String name) {
-    CComplexTypeDeclaration declaration = types.get(checkNotNull(name));
-    if (declaration != null) {
-      return declaration.getType();
+    checkNotNull(name);
+
+    Iterator<Map<String, CComplexTypeDeclaration>> it = typesStack.descendingIterator();
+    while (it.hasNext()) {
+      Map<String, CComplexTypeDeclaration> types = it.next();
+
+      CComplexTypeDeclaration declaration = types.get(name);
+      if (declaration != null) {
+        return declaration.getType();
+      }
     }
     return null;
   }
@@ -180,6 +189,18 @@ class FunctionScope implements Scope {
     }
 
     vars.put(name, declaration);
+  }
+
+  public void registerTypeDeclaration(CComplexTypeDeclaration declaration) {
+    checkArgument(declaration.getName() == null);
+
+    String typeName = declaration.getType().getQualifiedName();
+
+    if (lookupType(typeName) != null) {
+      throw new CFAGenerationRuntimeException("Shadowing types are currently not supported", declaration);
+    }
+
+    typesStack.peekLast().put(typeName, declaration);
   }
 
   public String getCurrentFunctionName() {
