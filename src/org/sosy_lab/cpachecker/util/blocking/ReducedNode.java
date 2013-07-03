@@ -33,7 +33,6 @@ public class ReducedNode {
   private final CFANode wrappedNode;
   private final int uniqueNodeId;
   private int summarizations;
-  private boolean isAbstractioNode;
   private int functionCallId;
 
   public ReducedNode(CFANode pWrappedNode) {
@@ -41,7 +40,6 @@ public class ReducedNode {
     this.uniqueNodeId = ReducedNode.uniqueNodeIdSequence++;
     this.summarizations = 0;
     this.functionCallId = 0;
-    this.isAbstractioNode = false;
   }
 
   public CFANode getWrapped() {
@@ -58,14 +56,6 @@ public class ReducedNode {
 
   public void incSummarizations(int pIncBy) {
     this.summarizations += pIncBy;
-  }
-
-  public void setIsAbstractionNode(boolean pIsAbstractionNode) {
-    this.isAbstractioNode = pIsAbstractionNode;
-  }
-
-  public boolean getIsAbstractionNode() {
-    return this.isAbstractioNode || this.getWrapped().isLoopStart();
   }
 
   public boolean isFunctionEntry() {
