@@ -239,21 +239,24 @@ public class BlockedCFAReducer implements BlockComputer {
   }
 
   private static class FunctionNodeManager {
+    private final CFA cfa;
     private Map<CFANode, ReducedNode> nodeMapping = new HashMap<>();
     private int functionCallId;
 
     public ReducedNode getWrapper(CFANode pNode) {
       ReducedNode result = nodeMapping.get(pNode);
       if (result == null) {
-        result = new ReducedNode(pNode);
+        boolean isLoopHead = cfa.getAllLoopHeads().get().contains(pNode);
+        result = new ReducedNode(pNode, isLoopHead);
         result.setFunctionCallId(this.functionCallId);
         this.nodeMapping.put(pNode, result);
       }
       return result;
     }
 
-    public FunctionNodeManager(int pFunctionCallId) {
+    public FunctionNodeManager(int pFunctionCallId, CFA pCfa) {
       this.functionCallId = pFunctionCallId;
+      this.cfa = pCfa;
     }
   }
 
@@ -263,13 +266,13 @@ public class BlockedCFAReducer implements BlockComputer {
    * and the outgoing function calls that get inlined.
    *
    */
-  private ReducedFunction inlineAndSummarize(FunctionEntryNode pFunctionNode) {
+  private ReducedFunction inlineAndSummarize(FunctionEntryNode pFunctionNode, CFA cfa) {
     this.functionCallSeq++;
     this.inliningStack.push(pFunctionNode);
 
     Set<CFAEdge> traversed = new HashSet<>();
     Deque<ReducedNode> openEndpoints = new ArrayDeque<>();
-    FunctionNodeManager functionNodes = new FunctionNodeManager(this.functionCallSeq);
+    FunctionNodeManager functionNodes = new FunctionNodeManager(this.functionCallSeq, cfa);
 
     ReducedNode entryNode = functionNodes.getWrapper(pFunctionNode);
     ReducedNode exitNode = functionNodes.getWrapper(pFunctionNode.getExitNode());
@@ -301,7 +304,7 @@ public class BlockedCFAReducer implements BlockComputer {
             result.addEdge(uSn, callReturnTarget);
           } else {
             //System.out.println(String.format("Inlining %s to %s", calledFunction.getFunctionName(), pFunctionNode.getFunctionName()));
-            ReducedFunction functionSum = inlineAndSummarize(calledFunction);
+            ReducedFunction functionSum = inlineAndSummarize(calledFunction, cfa);
 
             result.insertFunctionSum(functionSum);
             result.addEdge(uSn, functionSum.getEntryNode());
@@ -379,7 +382,7 @@ public class BlockedCFAReducer implements BlockComputer {
     assert (this.functionCallSeq == 0);
 
     this.functionCallSeq = 0;
-    ReducedFunction reducedProgram = inlineAndSummarize(pCfa.getMainFunction());
+    ReducedFunction reducedProgram = inlineAndSummarize(pCfa.getMainFunction(), pCfa);
 
     if (reducedCfaFile != null) {
       try {

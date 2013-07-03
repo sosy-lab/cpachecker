@@ -36,8 +36,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -46,7 +44,6 @@ import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
@@ -226,16 +223,6 @@ public class CFAUtils {
   public static FluentIterable<CFANode> allSuccessorsOf(final CFANode node) {
     return allLeavingEdges(node).transform(TO_SUCCESSOR);
   }
-
-  /**
-   * A predicate delegating to {@link CFANode#isLoopStart()}.
-   */
-  public static final Predicate<CFANode> IS_LOOP_NODE = new Predicate<CFANode>() {
-    @Override
-    public boolean apply(@Nullable CFANode pInput) {
-      return pInput.isLoopStart();
-    }
-  };
 
   public static final Function<CFANode, String> GET_FUNCTION = new Function<CFANode, String>() {
     @Override

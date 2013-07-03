@@ -322,13 +322,14 @@ class MainCPAStatistics implements Statistics {
 
     private void printCfaStatistics(PrintStream out) {
       if (cfa != null) {
-        int loops = from(cfa.getAllNodes())
-                        .filter(CFAUtils.IS_LOOP_NODE)
-                        .size();
 
         out.println("Number of program locations:     " + cfa.getAllNodes().size());
         out.println("Number of functions:             " + cfa.getNumberOfFunctions());
-        out.println("Number of loops:                 " + loops);
+
+        if (cfa.getLoopStructure().isPresent()) {
+          int loops = cfa.getLoopStructure().get().values().size();
+          out.println("Number of loops:                 " + loops);
+        }
       }
     }
 

@@ -34,12 +34,18 @@ public class ReducedNode {
   private final int uniqueNodeId;
   private int summarizations;
   private int functionCallId;
+  private final boolean isLoopHead;
 
   public ReducedNode(CFANode pWrappedNode) {
+    this(pWrappedNode, false);
+  }
+
+  public ReducedNode(CFANode pWrappedNode, boolean pIsLoopHead) {
     this.wrappedNode = pWrappedNode;
     this.uniqueNodeId = ReducedNode.uniqueNodeIdSequence++;
     this.summarizations = 0;
     this.functionCallId = 0;
+    this.isLoopHead = pIsLoopHead;
   }
 
   public CFANode getWrapped() {
@@ -67,7 +73,7 @@ public class ReducedNode {
   }
 
   public boolean isLoopHead() {
-    return getWrapped().isLoopStart();
+    return isLoopHead;
   }
 
   public String getNodeKindText() {

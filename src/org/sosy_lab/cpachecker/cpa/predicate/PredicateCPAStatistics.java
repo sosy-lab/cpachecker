@@ -335,8 +335,7 @@ class PredicateCPAStatistics implements Statistics {
 
       FormulaManagerView fmgr = cpa.getFormulaManager();
       try (Writer invariants = Files.openOutputFile(invariantsFile)) {
-        for (CFANode loc : from(cfa.getAllNodes())
-                             .filter(CFAUtils.IS_LOOP_NODE)
+        for (CFANode loc : from(cfa.getAllLoopHeads().get())
                              .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
           Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
           BooleanFormula formula = absmgr.toConcrete(region);
@@ -368,7 +367,7 @@ class PredicateCPAStatistics implements Statistics {
       Map<CFANode, Region> regions = Maps.newHashMap();
       for (AbstractState state : reached) {
         CFANode loc = extractLocation(state);
-        if (loc.isLoopStart()) {
+        if (cfa.getAllLoopHeads().get().contains(loc)) {
           PredicateAbstractState predicateState = getPredicateState(state);
           if (!predicateState.isAbstractionState()) {
             cpa.getLogger().log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
@@ -395,8 +394,7 @@ class PredicateCPAStatistics implements Statistics {
       FormulaManagerView fmgr = cpa.getFormulaManager();
 
       try (Writer invariants = Files.openOutputFile(invariantPrecisionsFile)) {
-        for (CFANode loc : from(cfa.getAllNodes())
-                             .filter(CFAUtils.IS_LOOP_NODE)
+        for (CFANode loc : from(cfa.getAllLoopHeads().get())
                              .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
           Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
           BooleanFormula formula = absmgr.toConcrete(region);

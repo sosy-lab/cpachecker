@@ -115,6 +115,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       BlockComputer blockComputer = new BlockedCFAReducer(config);
       blk.setExplicitAbstractionNodes(blockComputer.computeAbstractionNodes(cfa));
     }
+    blk.setCFA(cfa);
 
     formulaManagerFactory = new FormulaManagerFactory(config, logger);
 
