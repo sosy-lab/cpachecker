@@ -328,19 +328,9 @@ class PredicateCPAStatistics implements Statistics {
     }
 
     private void exportInvariants(ReachedSet reached) {
-      Map<CFANode, Region> regions = Maps.newHashMap();
-      for (AbstractState state : reached) {
-        CFANode loc = extractLocation(state);
-        if (loc.isLoopStart()) {
-          PredicateAbstractState predicateState = getPredicateState(state);
-          if (!predicateState.isAbstractionState()) {
-            cpa.getLogger().log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
-            return;
-          }
-          Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
-          region = rmgr.makeOr(region, predicateState.getAbstractionFormula().asRegion());
-          regions.put(loc, region);
-        }
+      Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
+      if (regions == null) {
+        return;
       }
 
       FormulaManagerView fmgr = cpa.getFormulaManager();
@@ -374,7 +364,7 @@ class PredicateCPAStatistics implements Statistics {
       return Pair.of(predString, lines);
     }
 
-    private void exportInvariantsAsPrecision(ReachedSet reached) {
+    private Map<CFANode, Region> getLoopHeadInvariants(ReachedSet reached) {
       Map<CFANode, Region> regions = Maps.newHashMap();
       for (AbstractState state : reached) {
         CFANode loc = extractLocation(state);
@@ -382,12 +372,20 @@ class PredicateCPAStatistics implements Statistics {
           PredicateAbstractState predicateState = getPredicateState(state);
           if (!predicateState.isAbstractionState()) {
             cpa.getLogger().log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
-            return;
+            return null;
           }
           Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
           region = rmgr.makeOr(region, predicateState.getAbstractionFormula().asRegion());
           regions.put(loc, region);
         }
+      }
+      return regions;
+    }
+
+    private void exportInvariantsAsPrecision(ReachedSet reached) {
+      Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
+      if (regions == null) {
+        return;
       }
 
       Set<String> uniqueDefs = new TreeSet<>();
