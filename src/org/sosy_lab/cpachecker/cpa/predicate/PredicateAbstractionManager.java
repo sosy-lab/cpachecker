@@ -725,7 +725,7 @@ public class PredicateAbstractionManager {
 
   // delegate methods
 
-  public Collection<AbstractionPredicate> extractPredicates(Region pRegion) {
+  public Set<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);
   }
 
