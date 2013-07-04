@@ -67,6 +67,12 @@ public class BDDRegion implements Region {
 
     @Override
     public String toString() {
-      return bddRepr.isOne() ? "true" : bddRepr.toString();
+      if (bddRepr.isOne()) {
+        return "true";
+      } else if (bddRepr.isZero()) {
+        return "false";
+      } else {
+        return bddRepr.toString();
+      }
     }
 }
