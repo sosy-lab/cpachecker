@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -273,14 +272,41 @@ public final class AbstractionManager {
     return rmgr.entails(f1, f2);
   }
 
+  /**
+   * Return the set of predicates that occur in a a region.
+   * In some cases, this method also returns the predicate 'false'
+   * in the set.
+   */
   public Set<AbstractionPredicate> extractPredicates(Region af) {
-    return from(rmgr.extractPredicates(af))
-        .transform(new Function<Region, AbstractionPredicate>() {
-          @Override
-          public AbstractionPredicate apply(Region pInput) {
-            return absVarToPredicate.get(pInput);
-          }
-        }).toSet();
+    Set<AbstractionPredicate> vars = new HashSet<>();
+
+    Deque<Region> toProcess = new ArrayDeque<>();
+    toProcess.push(af);
+    while (!toProcess.isEmpty()) {
+      Region n = toProcess.pop();
+
+      if (n.isTrue() || n.isFalse()) {
+        vars.add(this.makeFalsePredicate());
+        continue;
+      }
+
+      AbstractionPredicate pred = absVarToPredicate.get(n);
+
+      if (pred == null) {
+        Triple<Region, Region, Region> parts = rmgr.getIfThenElse(n);
+
+        Region var = parts.getFirst();
+        pred = absVarToPredicate.get(var);
+        assert pred != null;
+
+        toProcess.push(parts.getSecond());
+        toProcess.push(parts.getThird());
+      }
+
+      vars.add(pred);
+    }
+
+    return vars;
   }
 
   public Region buildRegionFromFormula(BooleanFormula pF) {
