@@ -29,6 +29,7 @@ import java.lang.ref.ReferenceQueue;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import net.sf.javabdd.BDD;
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
 /**
@@ -356,6 +358,23 @@ public class BDDRegionManager implements RegionManager {
     f.free();
 
     return result;
+  }
+
+  @Override
+  public Set<Region> extractPredicates(Region pF) {
+    cleanupReferences();
+
+    BDD f = unwrap(pF);
+    int[] vars = f.scanSet();
+    if (vars == null) {
+      return ImmutableSet.of();
+    }
+
+    ImmutableSet.Builder<Region> predicateBuilder = ImmutableSet.builder();
+    for (int var : vars) {
+      predicateBuilder.add(wrap(factory.ithVar(var)));
+    }
+    return predicateBuilder.build();
   }
 
   @Override
