@@ -220,13 +220,11 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     Pair<ARGState, CFAEdge> interpolationPoint;
 
     if(!initialStaticRefinementDone && staticRefiner != null) {
-      System.out.println("static ref");
       interpolationPoint          = errorPath.get(1);
       refinedExplicitPrecision    = staticRefiner.extractPrecisionFromCfa();
       initialStaticRefinementDone = true;
     }
     else {
-      System.out.println("interpol ref");
       Multimap<CFANode, String> increment = interpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
 
       interpolationPoint        = interpolatingRefiner.determineInterpolationPoint(errorPath, increment);
