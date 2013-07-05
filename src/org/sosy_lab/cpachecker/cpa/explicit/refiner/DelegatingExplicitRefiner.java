@@ -31,7 +31,6 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -71,9 +70,6 @@ import com.google.common.collect.Multimap;
  */
 @Options(prefix="cpa.explicit.refiner")
 public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
-  @Option(description="use heuristic to extract predicates from the CFA statically on first refinement")
-  private boolean performInitialStaticRefinement = false;
-
   /**
    * the flag to determine if initial refinement was done already
    */
@@ -223,12 +219,14 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     ExplicitPrecision refinedExplicitPrecision;
     Pair<ARGState, CFAEdge> interpolationPoint;
 
-    if(!initialStaticRefinementDone && performInitialStaticRefinement) {
+    if(!initialStaticRefinementDone && staticRefiner != null) {
+      System.out.println("static ref");
       interpolationPoint          = errorPath.get(1);
       refinedExplicitPrecision    = staticRefiner.extractPrecisionFromCfa();
       initialStaticRefinementDone = true;
     }
     else {
+      System.out.println("interpol ref");
       Multimap<CFANode, String> increment = interpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
 
       interpolationPoint        = interpolatingRefiner.determineInterpolationPoint(errorPath, increment);

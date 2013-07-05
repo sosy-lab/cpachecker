@@ -71,10 +71,6 @@ import com.google.common.io.Files;
 @Options(prefix="cpa.explicit")
 public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, StatisticsProvider {
 
-  public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ExplicitCPA.class);
-  }
-
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ExplicitCPA")
   private String mergeType = "SEP";
@@ -87,20 +83,27 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
       description="blacklist regex for variables that won't be tracked by ExplicitCPA")
   private String variableBlacklist = "";
 
+  @Option(name="refiner.performInitialStaticRefinement",
+      description="use heuristic to extract a precision from the CFA statically on first refinement")
+  private boolean performInitialStaticRefinement = false;
+
   @Option(description="get an initial precison from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private File initialPrecisionFile = null;
 
-  private ExplicitPrecision precision;
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(ExplicitCPA.class);
+  }
 
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
+  private ExplicitPrecision precision;
   private PrecisionAdjustment precisionAdjustment;
+  private final ExplicitStaticRefiner staticRefiner;
   private final ExplicitReducer reducer;
   private final ExplicitCPAStatistics statistics;
-  private final ExplicitStaticRefiner staticRefiner;
 
   private final Configuration config;
   private final LogManager logger;
@@ -118,10 +121,10 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     precision           = initializePrecision(config, cfa);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
+    staticRefiner       = initializeStaticRefiner(cfa);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     reducer             = new ExplicitReducer();
     statistics          = new ExplicitCPAStatistics(this);
-    staticRefiner       = new ExplicitStaticRefiner(config, logger, cfa, precision);
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -147,6 +150,14 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
 
     else if (stopType.equals("NEVER")) {
       return new StopNeverOperator();
+    }
+
+    return null;
+  }
+
+  private ExplicitStaticRefiner initializeStaticRefiner(CFA cfa) throws InvalidConfigurationException {
+    if (performInitialStaticRefinement) {
+      return new ExplicitStaticRefiner(config, logger, cfa, precision);
     }
 
     return null;
