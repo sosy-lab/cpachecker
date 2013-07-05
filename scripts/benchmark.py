@@ -74,6 +74,7 @@ COLOR_DIC = {result.RESULT_CORRECT_SAFE:   COLOR_GREEN,
              result.RESULT_ERROR:          COLOR_MAGENTA,
              result.RESULT_WRONG_UNSAFE:   COLOR_RED,
              result.RESULT_WRONG_SAFE:     COLOR_RED,
+             result.CATEGORY_UNKNOWN:      COLOR_DEFAULT,
              None: COLOR_DEFAULT}
 
 TERMINAL_TITLE=''
