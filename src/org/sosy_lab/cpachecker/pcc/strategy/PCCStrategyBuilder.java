@@ -88,7 +88,7 @@ public class PCCStrategyBuilder {
           "Cannot create PCC Strategy "
               + pPccStrategy
               +
-              " if it does not provide a constructor (Configuration, LogManager, (ConfigurableProgramAnalysis|ProofChecker)");
+              " if it does not provide a constructor (Configuration, LogManager, (PropertyCheckerCPA|ProofChecker)");
     } catch (SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException
         | InvocationTargetException e) {
       throw new UnsupportedOperationException(
