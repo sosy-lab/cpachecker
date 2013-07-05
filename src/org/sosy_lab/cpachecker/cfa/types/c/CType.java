@@ -40,6 +40,11 @@ public interface CType extends Type {
   @Override
   public int hashCode();
 
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
   @Override
   public boolean equals(Object obj);
 

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import java.util.Objects;
+
 
 /**
  * This type is used when the parser could not determine the correct type.
@@ -65,9 +67,24 @@ public class CProblemType implements CType {
     throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
   @Override
   public boolean equals(Object obj) {
-    return CTypeUtils.equals(this, obj);
+    if (obj == this) {
+      return true;
+    }
+
+    if (!(obj instanceof CProblemType)) {
+      return false;
+    }
+
+    CProblemType other = (CProblemType) obj;
+
+    return Objects.equals(typeName, other.typeName);
   }
 
   @Override

@@ -29,6 +29,7 @@ import static com.google.common.collect.Iterables.transform;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
@@ -142,9 +143,25 @@ public class CFunctionType extends AFunctionType implements CType {
     throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
   @Override
   public boolean equals(Object obj) {
-    return CTypeUtils.equals(this, obj);
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CFunctionType) || !super.equals(obj)) {
+      return false;
+    }
+
+    CFunctionType other = (CFunctionType) obj;
+
+    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
+           && Objects.equals(name, other.name);
   }
 
   @Override

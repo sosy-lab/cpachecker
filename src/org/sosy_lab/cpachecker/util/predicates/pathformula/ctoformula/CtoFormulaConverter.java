@@ -864,7 +864,7 @@ public class CtoFormulaConverter {
       }
     }
 
-    if (pT1.equals(pT2)) {
+    if (pT1.getCanonicalType().equals(pT2.getCanonicalType())) {
       return pT1;
     }
 

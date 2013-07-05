@@ -44,7 +44,15 @@ abstract class CtoFormulaCType implements CType {
 
   @Override
   public boolean equals(Object obj) {
-    return CtoFormulaTypeUtils.equals(this, obj);
+    if (obj == this) {
+      return true;
+    }
+
+    if (!(obj instanceof CtoFormulaCType)) {
+      return false;
+    }
+
+    return true;
   }
 
   @Override

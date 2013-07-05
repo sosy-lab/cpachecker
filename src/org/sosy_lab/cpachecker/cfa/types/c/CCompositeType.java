@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -126,8 +124,6 @@ public final class CCompositeType implements CComplexType {
 
     }
 
-
-
     @Override
     public int hashCode() {
       final int prime = 31;
@@ -136,8 +132,6 @@ public final class CCompositeType implements CComplexType {
       result = prime * result + ((type == null) ? 0 : type.hashCode());
       return result;
     }
-
-
 
     @Override
     public boolean equals(Object obj) {
@@ -153,20 +147,16 @@ public final class CCompositeType implements CComplexType {
       CCompositeTypeMemberDeclaration other = (CCompositeTypeMemberDeclaration) obj;
       return
           Objects.equals(name, other.name) &&
-          CTypeUtils.equals(type, other.type);
+          type.getCanonicalType().equals(other.type.getCanonicalType());
     }
-
-
 
     public CType getType() {
       return type;
     }
 
-
     public String getName() {
       return name;
     }
-
 
     public String toASTString() {
       String name = Strings.nullToEmpty(getName());
@@ -196,9 +186,26 @@ public final class CCompositeType implements CComplexType {
     throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
   @Override
   public boolean equals(Object obj) {
-    return CTypeUtils.equals(this, obj);
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CCompositeType)) {
+      return false;
+    }
+
+    CCompositeType other = (CCompositeType) obj;
+
+    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
+           && Objects.equals(kind, other.kind) && Objects.equals(name, other.name)
+           && Objects.equals(members, other.members);
   }
 
   @Override
@@ -208,14 +215,7 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public CCompositeType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    List<CCompositeTypeMemberDeclaration> newMembers = new ArrayList<>();
-    Iterator<CCompositeTypeMemberDeclaration> it = members.iterator();
-    CCompositeTypeMemberDeclaration decl;
-    while(it.hasNext()) {
-      decl = it.next();
-      newMembers.add(new CCompositeTypeMemberDeclaration(decl.getType().getCanonicalType(), decl.getName()));
-    }
-
-    return new CCompositeType(isConst || pForceConst, isVolatile || pForceVolatile, kind, newMembers, name);
+    return new CCompositeType(isConst || pForceConst, isVolatile || pForceVolatile, kind, members, name);
   }
+
 }
