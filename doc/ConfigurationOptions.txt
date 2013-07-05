@@ -547,6 +547,10 @@ cpa.explicit.refiner.avoidAssumes = true
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = true
 
+# use heuristic to extract predicates from the CFA statically on first
+# refinement
+cpa.explicit.refiner.performInitialStaticRefinement = false
+
 # which stop operator to use for ExplicitCPA
 cpa.explicit.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
@@ -820,8 +824,9 @@ cpa.predicate.refinement.keepAllPredicates = false
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
-# Heuristically extract predicates from the CFA on first refinement?
-cpa.predicate.refinement.predicateHeuristicOnFirstRefinement = false
+# use heuristic to extract predicates from the CFA statically on first
+# refinement
+cpa.predicate.refinement.performInitialStaticRefinement = false
 
 # Where to apply the found predicates to?
 cpa.predicate.refinement.predicateSharing = LOCATION
@@ -974,14 +979,6 @@ pcc.proofgen.doPCC = false
 # used.
 pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy"
 
-# Apply mined predicates on the corresponding scope. false = add them to the
-# global precision.
-predicate.extraction.applyScoped = true
-
-# Collect at most n assumes allong a path backwards from a target (error)
-# location.
-predicate.extraction.maxBackscanPathAssumes = 1
-
 # print reached set to text file
 reachedSet.export = true
 reachedSet.file = "reached.txt"
@@ -992,6 +989,14 @@ restartAlgorithm.configFiles = no default value
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
 specification = no default value
+
+# Apply mined predicates on the corresponding scope. false = add them to the
+# global precision.
+staticRefiner.applyScoped = true
+
+# collect at most this number of assumes along a path, backwards from each
+# target (= error) location
+staticRefiner.maxBackscanPathAssumes = 1
 
 # write some statistics to disk
 statistics.export = true
