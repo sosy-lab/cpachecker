@@ -92,9 +92,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File dumpCounterexampleFile = new File("counterexample.smt2");
 
-  @Option(description="use heuristic to extract predicates from the CFA statically on first refinement")
-  private boolean performInitialStaticRefinement = false;
-
   private boolean lastRefinementUsedHeuristics = false;
 
   private int heuristicsCount = 0;
@@ -188,7 +185,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     final List<BooleanFormula> formulas = getFormulasForPath(path, pPath.getFirst().getFirst());
     assert path.size() == formulas.size();
 
-    boolean refineUsingInterpolation = (!performInitialStaticRefinement) || (heuristicsCount > 0);
+    boolean refineUsingInterpolation = (extractor == null) || (heuristicsCount > 0);
 
     // build the counterexample
     final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath, refineUsingInterpolation);
@@ -200,7 +197,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       boolean repeatedCounterexample = !lastRefinementUsedHeuristics && formulas.equals(lastErrorPath);
       lastErrorPath = formulas;
 
-      if (performInitialStaticRefinement && heuristicsCount == 0) {
+      if (!refineUsingInterpolation) {
         UnmodifiableReachedSet reached = pReached.asReachedSet();
         ARGState root = (ARGState)reached.getFirstState();
         ARGState refinementRoot = Iterables.getLast(root.getChildren());

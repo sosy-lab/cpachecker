@@ -86,6 +86,10 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       description="which merge operator to use for predicate cpa (usually ABE should be used)")
   private String mergeType = "ABE";
 
+  @Option(name="refinement.performInitialStaticRefinement",
+      description="use heuristic to extract predicates from the CFA statically on first refinement")
+  private boolean performInitialStaticRefinement = false;
+
   private final Configuration config;
   private final LogManager logger;
 
@@ -163,7 +167,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     prec = new PredicatePrecisionAdjustment(this);
     stop = new PredicateStopOperator(domain);
 
-    staticRefiner = new PredicateStaticRefiner(config, logger, pathFormulaManager, formulaManager, abstractionManager, cfa);
+    staticRefiner = initializeStaticRefiner(config, logger, abstractionManager, cfa);
     precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, pathFormulaManager, abstractionManager, formulaManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
@@ -264,5 +268,17 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     } else {
       return false;
     }
+  }
+
+  private PredicateStaticRefiner initializeStaticRefiner(
+    Configuration config,
+    LogManager logger,
+    AbstractionManager abstractionManager,
+    CFA cfa) throws InvalidConfigurationException {
+    if(performInitialStaticRefinement) {
+      return new PredicateStaticRefiner(config, logger, pathFormulaManager, formulaManager, abstractionManager, cfa);
+    }
+
+    return null;
   }
 }
