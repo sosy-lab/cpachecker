@@ -158,21 +158,21 @@ public class ExplicitPrecision implements Precision {
       /* for tests with failing benchmarks in product-lines
        * //if(!name.equals("executiveFloor") && !name.startsWith("calls_") && !name.startsWith("personOnFloor_")) {
       if(!name.startsWith("personOnFloor_0")
-      	&& !name.startsWith("personOnFloor_1")
-		&& !name.startsWith("personOnFloor_2")
-		&& !name.startsWith("personOnFloor_3")
-		&& !name.startsWith("personOnFloor_4")
-		&& !name.startsWith("personOnFloor_5")
+          && !name.startsWith("personOnFloor_1")
+          && !name.startsWith("personOnFloor_2")
+          && !name.startsWith("personOnFloor_3")
+          && !name.startsWith("personOnFloor_4")
+          && !name.startsWith("personOnFloor_5")
 
-		&& !name.startsWith("calls_")
+          && !name.startsWith("calls_")
 
-		&& !name.startsWith("persons_")
+          && !name.startsWith("persons_")
 
-		&& !name.startsWith("floorButtons_")
+          && !name.startsWith("floorButtons_")
 
-		&& !name.equals("executiveFloor")
-		&& !name.equals("currentFloorID")
-		&& !name.equals("currentHeading")) {
+          && !name.equals("executiveFloor")
+          && !name.equals("currentFloorID")
+          && !name.equals("currentHeading")) {
         variableNames.remove();
         continue;
       }

@@ -219,7 +219,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    */
   private ExplicitState enforceAbstraction(ExplicitState state, LocationState location, ExplicitPrecision precision) {
     if (abstractAtEachLocation()
-    	|| abstractAtAssumes(location)
+        || abstractAtAssumes(location)
         || abstractAtFunction(location)
         || abstractAtLoopHead(location)) {
       state = precision.computeAbstraction(state, location.getLocationNode());

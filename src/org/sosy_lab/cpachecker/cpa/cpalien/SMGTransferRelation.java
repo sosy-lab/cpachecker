@@ -207,7 +207,7 @@ public class SMGTransferRelation implements TransferRelation {
       this.dumpSMGPlot(name, currentState, functionCall.toString());
     }
 
-	// TODO: Seems like there is large code sharing with evaluate calloc
+    // TODO: Seems like there is large code sharing with evaluate calloc
     public SMGEdgePointsTo evaluateMalloc(CFunctionCallExpression functionCall, SMGState currentState, CFAEdge cfaEdge)
         throws CPATransferException {
       CRightHandSide sizeExpr;
@@ -269,7 +269,7 @@ public class SMGTransferRelation implements TransferRelation {
       if (bufferAddress.isUnknown() || countValue.isUnknown()) {
         return null;
       }
-      
+
       SMGEdgePointsTo pointer = currentState.getPointerFromValue(bufferAddress.getAsInt());
 
       long count = countValue.getAsLong();

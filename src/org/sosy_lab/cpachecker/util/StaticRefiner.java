@@ -152,16 +152,16 @@ abstract public class StaticRefiner {
             else if (edge instanceof CDeclarationEdge) {
               CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
               if (!decl.isGlobal()) {
-	              if (decl instanceof CFunctionDeclaration) {
-	                CFunctionDeclaration fdecl = (CFunctionDeclaration) decl;
-	                for (CParameterDeclaration param: fdecl.getParameters()) {
-	                  declaredInFunction.put(function, param.getName());
-	                }
-	              }
+                if (decl instanceof CFunctionDeclaration) {
+                  CFunctionDeclaration fdecl = (CFunctionDeclaration) decl;
+                  for (CParameterDeclaration param: fdecl.getParameters()) {
+                    declaredInFunction.put(function, param.getName());
+                  }
+                }
 
-	              else if (decl instanceof CVariableDeclaration){
-	                declaredInFunction.put(function, decl.getName());
-	              }
+                else if (decl instanceof CVariableDeclaration){
+                  declaredInFunction.put(function, decl.getName());
+                }
               }
             }
           }
