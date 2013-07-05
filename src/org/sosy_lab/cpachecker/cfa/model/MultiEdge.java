@@ -97,6 +97,6 @@ public class MultiEdge extends AbstractCFAEdge implements Iterable<CFAEdge> {
 
   @Override
   public String toString() {
-    return Joiner.on('\n').join(edges);
+    return "\n<MULTI>\n" + Joiner.on('\n').join(edges) + "\n</MULTI>\n";
   }
 }

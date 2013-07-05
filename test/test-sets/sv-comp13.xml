@@ -40,11 +40,11 @@
   <sourcefiles name="SystemC">
     <includesfile>../programs/benchmarks/SystemC.set</includesfile>
   </sourcefiles>
-
+<!--
   <rundefinition name="combinations">
-    <option name="-sv-comp13--combinations"/>
+    <option name="-sv-comp13-combinations"/>
   </rundefinition>
-
+-->
   <rundefinition name="explitp-pred">
     <option name="-sv-comp13--explitp-pred"/>
   </rundefinition>
