@@ -266,7 +266,6 @@ abstract public class StaticRefiner {
     } catch (CPAException | InvalidConfigurationException e) {
       logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
       logger.logDebugException(e);
-      e.printStackTrace();System.exit(0);
     } catch (InterruptedException e) {
       // not handled.
     }
