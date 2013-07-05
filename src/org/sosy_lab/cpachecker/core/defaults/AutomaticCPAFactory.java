@@ -34,6 +34,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
+import org.sosy_lab.common.ChildFirstPatternClassLoader;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LogManager;
@@ -69,8 +70,39 @@ public class AutomaticCPAFactory implements CPAFactory {
   private final Class<? extends ConfigurableProgramAnalysis> type;
   private final ClassToInstanceMap<Object> injects = MutableClassToInstanceMap.create();
 
+  /**
+   * Construct a CPAFactory for the given type.
+   */
   public static AutomaticCPAFactory forType(Class<? extends ConfigurableProgramAnalysis> type) {
     return new AutomaticCPAFactory(type);
+  }
+
+  /**
+   * Construct a CPAFactory for the given type.
+   * The CPA will be loaded using the given class loader.
+   * It is advisable to use something like {@link ChildFirstPatternClassLoader}
+   * to ensure that the other classes of the CPA will be loaded with the same
+   * class loader, even if they are on the class path of the parent class loader.
+   *
+   * When using this method, make sure that the class that calls this method
+   * does not reference any of the other classes of the CPA.
+   * Specifically, you cannot put this method in the same class that should
+   * be instantiated.
+   *
+   * Also, using this means that other classes from other CPAs
+   * or from CPAchecker itself cannot access classes of your CPA.
+   */
+  public static CPAFactory forType(String className, ClassLoader cl) {
+    Class<?> cls;
+    try {
+      cls = cl.loadClass(className);
+    } catch (ClassNotFoundException e) {
+      throw new IllegalArgumentException(e);
+    }
+
+    checkArgument(ConfigurableProgramAnalysis.class.isAssignableFrom(cls), "Class %s does not implement the CPA interface and cannot be used with AutomaticCPAFactory", className);
+
+    return new AutomaticCPAFactory(cls.asSubclass(ConfigurableProgramAnalysis.class));
   }
 
   public AutomaticCPAFactory(Class<? extends ConfigurableProgramAnalysis> type) {
