@@ -103,7 +103,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicateCPAStatistics stats;
   private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
-  private final PredicateExtractor predicateExtractor;
+  private final PredicateStaticRefiner staticRefiner;
 
   protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk, CFA cfa) throws InvalidConfigurationException {
     config.inject(this, PredicateCPA.class);
@@ -163,7 +163,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     prec = new PredicatePrecisionAdjustment(this);
     stop = new PredicateStopOperator(domain);
 
-    predicateExtractor = new PredicateExtractor(config, logger, pathFormulaManager, formulaManager, abstractionManager, cfa);
+    staticRefiner = new PredicateStaticRefiner(config, logger, pathFormulaManager, formulaManager, abstractionManager, cfa);
     precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, pathFormulaManager, abstractionManager, formulaManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
@@ -218,8 +218,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return logger;
   }
 
-  public PredicateExtractor getExtractor() {
-    return predicateExtractor;
+  public PredicateStaticRefiner getStaticRefiner() {
+    return staticRefiner;
   }
 
   public FormulaManagerFactory getFormulaManagerFactory() {

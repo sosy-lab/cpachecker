@@ -47,6 +47,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.TreeMultimap;
 
 @Options(prefix="cpa.explicit.precision")
 public class ExplicitPrecision implements Precision {
@@ -141,6 +142,11 @@ public class ExplicitPrecision implements Precision {
 
   public int getSize() {
     return refinablePrecision.getSize();
+  }
+
+  @Override
+  public String toString() {
+    return refinablePrecision.toString();
   }
 
   ExplicitState computeAbstraction(ExplicitState state, CFANode location) {
@@ -358,6 +364,11 @@ public class ExplicitPrecision implements Precision {
     protected Collection<String> getAbstractionCandidates(ExplicitState state) {
       return new HashSet<>(state.getTrackedVariableNames());
     }
+
+    @Override
+    public String toString() {
+      return TreeMultimap.create(rawPrecision).toString();
+    }
   }
 
   public static class ScopedRefinablePrecision extends RefinablePrecision {
@@ -427,6 +438,11 @@ public class ExplicitPrecision implements Precision {
     @Override
     protected Collection<String> getAbstractionCandidates(ExplicitState state) {
       return new HashSet<>(state.getDelta());
+    }
+
+    @Override
+    public String toString() {
+      return new TreeSet<>(rawPrecision).toString();
     }
   }
 

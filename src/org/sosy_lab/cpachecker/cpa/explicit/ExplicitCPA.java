@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.ExplicitStaticRefiner;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -99,6 +100,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
   private PrecisionAdjustment precisionAdjustment;
   private final ExplicitReducer reducer;
   private final ExplicitCPAStatistics statistics;
+  private final ExplicitStaticRefiner staticRefiner;
 
   private final Configuration config;
   private final LogManager logger;
@@ -119,6 +121,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     reducer             = new ExplicitReducer();
     statistics          = new ExplicitCPAStatistics(this);
+    staticRefiner       = new ExplicitStaticRefiner(config, logger, cfa, precision);
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -239,6 +242,10 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
 
   ExplicitPrecision getPrecision() {
     return precision;
+  }
+
+  public ExplicitStaticRefiner getStaticRefiner() {
+    return staticRefiner;
   }
 
   @Override
