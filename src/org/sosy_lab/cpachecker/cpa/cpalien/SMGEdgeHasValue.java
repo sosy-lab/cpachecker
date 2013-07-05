@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 public class SMGEdgeHasValue extends SMGEdge {
   final private CType type;
@@ -156,7 +155,7 @@ public class SMGEdgeHasValue extends SMGEdge {
     if (type == null) {
       if (other.type != null)
         return false;
-     } else if (!type.equals(other.type))
+     } else if (!type.getCanonicalType().equals(other.type.getCanonicalType()))
       return false;
     return true;
   }
@@ -210,7 +209,7 @@ class SMGEdgeHasValueFilter {
       return false;
     }
 
-    if (type != null && ! CTypeUtils.equals(type, pEdge.getType())) {
+    if (type != null && ! type.getCanonicalType().equals(pEdge.getType().getCanonicalType())) {
       return false;
     }
 

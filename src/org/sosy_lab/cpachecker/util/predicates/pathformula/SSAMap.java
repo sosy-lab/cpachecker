@@ -112,7 +112,7 @@ public class SSAMap implements Serializable {
       checkNotNull(type);
       CType oldType = varTypes.get(name);
       if (oldType != null) {
-        Preconditions.checkArgument(oldType.equals(type)
+        Preconditions.checkArgument(oldType.getCanonicalType().equals(type.getCanonicalType())
             || type instanceof CFunctionType || oldType instanceof CFunctionType
             , "Cannot change type of variable %s in SSAMap from %s to %s", name, oldType, type);
       } else {
@@ -136,7 +136,7 @@ public class SSAMap implements Serializable {
       checkNotNull(type);
       CType oldType = Objects.firstNonNull(funcTypesBuilder, ssa.types).get(key);
       if (oldType != null) {
-        Preconditions.checkArgument(oldType.equals(type)
+        Preconditions.checkArgument(oldType.getCanonicalType().equals(type.getCanonicalType())
             || type instanceof CFunctionType || oldType instanceof CFunctionType
             , "Cannot change type of variable %s in SSAMap from %s to %s", key, oldType, type);
       } else {
