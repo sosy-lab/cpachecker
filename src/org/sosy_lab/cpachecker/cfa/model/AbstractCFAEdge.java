@@ -102,6 +102,6 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   public String toString() {
     return "Line " + getLineNumber() + ":\t" + getPredecessor() + " -{" +
         getDescription().replaceAll("\n", " ") +
-        "}-> " + getSuccessor() + "[" + getEdgeType() + "]";
+        "}-> " + getSuccessor();
   }
 }

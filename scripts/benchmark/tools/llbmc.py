@@ -33,7 +33,6 @@ class Tool(benchmark.tools.template.BaseTool):
         clangExecutable = Util.findExecutable('clang')
         newFilename     = sourcefile + ".o"
 
-        """ clang -c -emit-llvm -std=gnu89 -m32 sourcefile -O0 -o sourcefile.o -w """
         subprocess.Popen([clangExecutable,
                             '-c',
                             '-emit-llvm',
@@ -59,11 +58,11 @@ class Tool(benchmark.tools.template.BaseTool):
                 status = 'SAFE'
 
         # delete tmp-files
-        #try:
-         # os.remove(self.prepSourcefile)
-        #except OSError, e:
-         #   print "Could not remove file " + self.prepSourcefile + "! Maybe clang call failed"
-         #   pass
+        try:
+          os.remove(self.prepSourcefile)
+        except OSError, e:
+            print "Could not remove file " + self.prepSourcefile + "! Maybe clang call failed"
+            pass
 
         return status
 

@@ -69,8 +69,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     private int countSuccessfulRefinements = 0;
     private int countFailedRefinements = 0;
 
-    private int minReachedSizeBeforeRefinement = Integer.MAX_VALUE;
-    private int minReachedSizeAfterRefinement = Integer.MAX_VALUE;
     private int maxReachedSizeBeforeRefinement = 0;
     private int maxReachedSizeAfterRefinement = 0;
     private long totalReachedSizeBeforeRefinement = 0;
@@ -90,8 +88,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       if (countRefinements > 0) {
         out.println("Number of successful refinements:     " + countSuccessfulRefinements);
         out.println("Number of failed refinements:         " + countFailedRefinements);
-        out.println("Min. size of reached set before ref.: " + minReachedSizeBeforeRefinement);
-        out.println("Min. size of reached set after ref.:  " + minReachedSizeAfterRefinement);
         out.println("Max. size of reached set before ref.: " + maxReachedSizeBeforeRefinement);
         out.println("Max. size of reached set after ref.:  " + maxReachedSizeAfterRefinement);
         out.println("Avg. size of reached set before ref.: " + div(totalReachedSizeBeforeRefinement, countRefinements));
@@ -267,7 +263,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     logger.log(Level.FINE, "Error found, performing CEGAR");
     stats.countRefinements++;
     stats.totalReachedSizeBeforeRefinement += reached.size();
-    stats.minReachedSizeBeforeRefinement = Math.min(stats.minReachedSizeBeforeRefinement, reached.size());
     stats.maxReachedSizeBeforeRefinement = Math.max(stats.maxReachedSizeBeforeRefinement, reached.size());
     sizeOfReachedSetBeforeRefinement = reached.size();
 
@@ -288,7 +283,6 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     if (refinementResult) {
       stats.countSuccessfulRefinements++;
       stats.totalReachedSizeAfterRefinement += reached.size();
-      stats.minReachedSizeAfterRefinement = Math.min(stats.minReachedSizeAfterRefinement, reached.size());
       stats.maxReachedSizeAfterRefinement = Math.max(stats.maxReachedSizeAfterRefinement, reached.size());
     }
 

@@ -4,9 +4,11 @@
 
 <!-- a list of result files, where each file was created automatically by benchmark.py for a run set -->
 
-  <result filename="../../test/results/staticRefinement.13-07-02_1702.results.explicit-staticRefinement.xml"/>
-  <result filename="../../test/results/staticRefinement.13-07-02_1702.results.explicit-default.xml"/>
+  <result filename="../../test/results/multiEdges.13-02-26_0027.results.explicit-itp-multi.xml"/>
+  <result filename="../../test/results/multiEdges.13-02-26_0027.results.explicit-itp-single.xml"/>
 
+  <result filename="../../test/results/multiEdges.13-02-26_0027.results.explicit-itp-multi-lazy.xml"/>
+  <result filename="../../test/results/multiEdges.13-02-26_0027.results.explicit-itp-single-lazy.xml"/>
 <!--
   <union>-->
     <!-- Merge the result of several runs into one column in the table. --><!--
@@ -21,8 +23,7 @@
   <column title="walltime"/>
   <column title="#iter">Number of iterations:</column>
   <column title="#refs">Number of refinements:</column>
-  <column title="#intpols">number of explicit interpolations:</column>
-  <column title="time_intpol">total time for interpolation:</column>
+  <column title="#intpols">Number of explicit interpolations:</column>
   <column title="#reached">Size of reached set:</column>
   <column title="#locs">Number of locations:</column>
 

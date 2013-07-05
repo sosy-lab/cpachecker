@@ -547,7 +547,7 @@ cpa.explicit.refiner.avoidAssumes = true
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = true
 
-# use heuristic to extract a precision from the CFA statically on first
+# use heuristic to extract predicates from the CFA statically on first
 # refinement
 cpa.explicit.refiner.performInitialStaticRefinement = false
 
