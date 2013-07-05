@@ -87,11 +87,8 @@ public class PredicateStaticRefiner extends StaticRefiner {
     logger.log(Level.INFO, "Extracting precision from CFA...");
 
     Multimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
-    Collection<AbstractionPredicate> globalPredicates = Lists.newArrayList();
-
-    VariableScopeProvider scopeProvider = new VariableScopeProvider(cfa);
-
-    ListMultimap<CFANode, AssumeEdge> locAssumes = getTargetLocationAssumes(cfa);
+    Collection<AbstractionPredicate> globalPredicates         = Lists.newArrayList();
+    ListMultimap<CFANode, AssumeEdge> locAssumes              = getTargetLocationAssumes();
 
     for (CFANode targetLocation : locAssumes.keySet()) {
       for (AssumeEdge assume : locAssumes.get(targetLocation)) {
@@ -105,7 +102,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
         if (applyScoped) {
           for (String var : getQualifiedVariablesOfAssume(assume)) {
             logger.log(Level.FINE, "Checking scope of ", function, var);
-            if (scopeProvider.isDeclaredInFunction(function, var)) {
+            if (isDeclaredInFunction(function, var)) {
               // Apply the predicate in function scope
               // as soon one of the variable the assumption talks about is local.
               applyGlobal = false;

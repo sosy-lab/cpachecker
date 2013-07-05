@@ -78,9 +78,10 @@ abstract public class StaticRefiner {
   @Option(description="collect at most this number of assumes along a path, backwards from each target (= error) location")
   protected int maxBackscanPathAssumes = 1;
 
+  private final CFA cfa;
+  private final VariableScopeProvider scope;
   protected final Configuration config;
   protected final LogManager logger;
-  protected final CFA cfa;
 
   public StaticRefiner(
       Configuration pConfig,
@@ -88,7 +89,9 @@ abstract public class StaticRefiner {
       CFA pCfa) throws InvalidConfigurationException {
     this.logger = pLogger;
     this.config = pConfig;
+
     this.cfa    = pCfa;
+    this.scope  = new VariableScopeProvider(cfa);
 
     pConfig.inject(this, StaticRefiner.class);
 
@@ -105,7 +108,11 @@ abstract public class StaticRefiner {
    */
   abstract public Precision extractPrecisionFromCfa() throws CPATransferException;
 
-  protected static class VariableScopeProvider {
+  protected boolean isDeclaredInFunction(String function, String var) {
+    return scope.isDeclaredInFunction(function, var);
+  }
+
+  private static class VariableScopeProvider {
     private final CFA cfa;
     private final Multimap<String, String> declaredInFunction = HashMultimap.create();
 
@@ -113,7 +120,7 @@ abstract public class StaticRefiner {
       this.cfa = pCfa;
     }
 
-    public boolean isDeclaredInFunction(String functionName, String variableName) {
+    private boolean isDeclaredInFunction(String functionName, String variableName) {
       if (declaredInFunction.isEmpty()) {
         determinScopes();
       }
@@ -182,11 +189,9 @@ abstract public class StaticRefiner {
    * @param cfa the CFA to work in
    * @return the mapping from target nodes to the corresponding preceeding assume edges
    */
-  protected ListMultimap<CFANode, AssumeEdge> getTargetLocationAssumes(final CFA cfa) {
-    ListMultimap<CFANode, AssumeEdge> result = ArrayListMultimap.create();
-
-    Collection<CFANode> targetNodes = getTargetNodesWithCPA(cfa);
-
+  protected ListMultimap<CFANode, AssumeEdge> getTargetLocationAssumes() {
+    ListMultimap<CFANode, AssumeEdge> result  = ArrayListMultimap.create();
+    Collection<CFANode> targetNodes           = getTargetNodesWithCPA(cfa);
     if (targetNodes.isEmpty()) {
       return result;
     }

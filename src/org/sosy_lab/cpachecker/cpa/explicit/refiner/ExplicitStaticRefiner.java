@@ -57,15 +57,14 @@ public class ExplicitStaticRefiner extends StaticRefiner {
   public ExplicitPrecision extractPrecisionFromCfa() throws CPATransferException {
     logger.log(Level.INFO, "Extracting precision from CFA...");
 
-    VariableScopeProvider scopeProvider           = new VariableScopeProvider(cfa);
-    ListMultimap<CFANode, AssumeEdge> locAssumes  = getTargetLocationAssumes(cfa);
+    ListMultimap<CFANode, AssumeEdge> locAssumes  = getTargetLocationAssumes();
     Multimap<CFANode, String> increment           = HashMultimap.create();
 
     for (CFANode targetLocation : locAssumes.keySet()) {
       for (AssumeEdge assume : locAssumes.get(targetLocation)) {
         String function = assume.getPredecessor().getFunctionName();
         for (String var : getQualifiedVariablesOfAssume(assume)) {
-          if (scopeProvider.isDeclaredInFunction(function, var)) {
+          if (isDeclaredInFunction(function, var)) {
             var = function + "::" + var;
           }
 
