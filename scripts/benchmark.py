@@ -570,7 +570,7 @@ class Requirements:
         return self._cpuCores or 1
 
     def memory(self):
-        return self._memory or 1
+        return self._memory or 15000
 
     @classmethod
     def merge(cls, r1, r2):
