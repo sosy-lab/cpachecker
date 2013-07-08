@@ -552,7 +552,7 @@ class ASTConverter {
       CType typeDefType = owner.getExpressionType();
 
       //unpack typedefs
-      while (typeDefType instanceof CTypedefType){
+      while (typeDefType instanceof CTypedefType) {
         typeDefType = ((CTypedefType)typeDefType).getRealType();
       }
 
@@ -1263,7 +1263,7 @@ class ASTConverter {
         CUnaryExpression u = (CUnaryExpression)v;
         complement = true;
         v = u.getOperand();
-      } else if (v instanceof CUnaryExpression && ((CUnaryExpression) v).getOperator() != UnaryOperator.PLUS){
+      } else if (v instanceof CUnaryExpression && ((CUnaryExpression) v).getOperator() != UnaryOperator.PLUS) {
         assert false : v;
       }
 

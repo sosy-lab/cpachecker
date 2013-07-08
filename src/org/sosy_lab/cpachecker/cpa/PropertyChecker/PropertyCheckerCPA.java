@@ -98,7 +98,7 @@ public class PropertyCheckerCPA extends AbstractSingleWrapperCPA{
     return getWrappedCpa().getInitialState(pNode);
   }
 
-  public PropertyChecker getPropChecker(){
+  public PropertyChecker getPropChecker() {
     return propChecker;
   }
 

@@ -92,7 +92,7 @@ public class CallstackPccState implements AbstractState, Partitionable, Abstract
     if (pOther == null) {
       return false;
     }
-    if (pOther instanceof CallstackPccState){
+    if (pOther instanceof CallstackPccState) {
       CallstackPccState other = (CallstackPccState) pOther;
       if (other.callerNode == callerNode
           && other.depth == depth

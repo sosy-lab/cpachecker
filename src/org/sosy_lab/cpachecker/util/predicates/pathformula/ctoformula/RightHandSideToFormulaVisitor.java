@@ -86,7 +86,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
         // ignore parameters and just create a fresh variable for it
         return conv.makeFreshVariable(func, expType, ssa);
 
-      } else if (conv.externModelFunctionName.equals(func)){
+      } else if (conv.externModelFunctionName.equals(func)) {
         assert (pexps.size()>0): "No external model given!";
         // the parameter comes in C syntax (with ")
         String filename = pexps.get(0).toASTString().replaceAll("\"", "");
@@ -170,7 +170,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
     if (! pModelFile.getName().endsWith(".dimacs")) {
       throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
     }
-    try (BufferedReader br = new BufferedReader(new FileReader(pModelFile))){
+    try (BufferedReader br = new BufferedReader(new FileReader(pModelFile))) {
        ArrayList<String> predicates = new ArrayList<>(10000);
        //var ids in dimacs files start with 1, so we want the first var at position 1
        predicates.add("RheinDummyVar");
@@ -195,7 +195,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
            String[] parts = line.split(" ");
            // +1 because of the dummy var
            assert predicates.size()==Integer.parseInt(parts[2])+1: "did not get all dimcas variables?";
-         } else if (line.trim().length()>0){
+         } else if (line.trim().length()>0) {
            //-17552 -11882 1489 48905 0
            // constraints
            BooleanFormula constraint = conv.bfmgr.makeBoolean(false);

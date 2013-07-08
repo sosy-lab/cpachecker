@@ -201,7 +201,7 @@ public class SMGState implements AbstractQueryableState {
    */
   final public void performConsistencyCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
     if (this.runtimeCheckLevel.isFinerOrEqualThan(pLevel)) {
-      if ( ! CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap) ){
+      if ( ! CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap) ) {
         throw new SMGInconsistentException("SMG was found inconsistent during a check");
       }
     }
@@ -246,7 +246,7 @@ public class SMGState implements AbstractQueryableState {
    * @throws SMGInconsistentException When the value passed does not have a Points-To edge.
    */
   public SMGEdgePointsTo getPointerFromValue(Integer pValue) throws SMGInconsistentException {
-    for (SMGEdgePointsTo edge : heap.getPTEdges()){
+    for (SMGEdgePointsTo edge : heap.getPTEdges()) {
       if (edge.getValue() == pValue) {
         return edge;
       }
@@ -278,7 +278,7 @@ public class SMGState implements AbstractQueryableState {
     Set<SMGEdgeHasValue> edges = heap.getHVEdges(filter);
 
     for (SMGEdgeHasValue object_edge : edges) {
-      if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())){
+      if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())) {
         this.performConsistencyCheck(SMGRuntimeCheck.HALF);
         return object_edge.getValue();
       }
@@ -311,7 +311,7 @@ public class SMGState implements AbstractQueryableState {
       pValue = heap.getNullValue();
     }
 
-    if (! this.heap.isObjectValid(pObject)){
+    if (! this.heap.isObjectValid(pObject)) {
       //Attempt to write to invalid object
       this.setInvalidWrite();
       return null;
@@ -323,19 +323,19 @@ public class SMGState implements AbstractQueryableState {
     SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
     filter.filterByObject(pObject);
     Set<SMGEdgeHasValue> edges = heap.getHVEdges(filter);
-    if (edges.contains(new_edge)){
+    if (edges.contains(new_edge)) {
       this.performConsistencyCheck(SMGRuntimeCheck.HALF);
       return new_edge;
     }
 
     // If the value is not in the SMG, we need to add it
-    if ( ! heap.getValues().contains(pValue) ){
+    if ( ! heap.getValues().contains(pValue) ) {
       heap.addValue(pValue);
     }
 
     // We need to remove all non-zero overlapping edges
-    for (SMGEdgeHasValue hv : edges){
-      if (hv.getValue() != heap.getNullValue() && new_edge.overlapsWith(hv, heap.getMachineModel())){
+    for (SMGEdgeHasValue hv : edges) {
+      if (hv.getValue() != heap.getNullValue() && new_edge.overlapsWith(hv, heap.getMachineModel())) {
         heap.removeHasValueEdge(hv);
       }
     }

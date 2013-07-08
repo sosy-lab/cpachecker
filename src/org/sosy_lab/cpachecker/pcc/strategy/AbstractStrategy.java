@@ -104,7 +104,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       o.flush();
       zos.closeEntry();
       zos.close();
-    } catch (NotSerializableException eS){
+    } catch (NotSerializableException eS) {
       logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage() + " does not implement Serializable interface");
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -162,7 +162,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   protected abstract void prepareForChecking(Object pReadObject) throws InvalidConfigurationException;
 
   @Override
-  public void collectStatistics(Collection<Statistics> statsCollection){
+  public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(stats);
   }
 

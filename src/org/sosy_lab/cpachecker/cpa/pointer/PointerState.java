@@ -1035,7 +1035,7 @@ public class PointerState implements AbstractQueryableState, Memory,
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    if (pProperty.toLowerCase().equals("memoryleak")){
+    if (pProperty.toLowerCase().equals("memoryleak")) {
       if (this.properties.contains(ElementProperty.MEMORY_LEAK)) {
         return true;
       } else if (this.properties.contains(ElementProperty.NO_MEMORY_LEAK)) {

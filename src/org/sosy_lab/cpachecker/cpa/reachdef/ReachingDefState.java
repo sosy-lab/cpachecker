@@ -133,7 +133,7 @@ public class ReachingDefState implements AbstractState, Serializable {
     return isLocalSubset && isSubsetOf(globalReachDefs, superset.globalReachDefs);
   }
 
-  private boolean compareStackStates(ReachingDefState sub, ReachingDefState sup){
+  private boolean compareStackStates(ReachingDefState sub, ReachingDefState sup) {
     boolean result;
     do {
       if (sub.stateOnLastFunctionCall == null || sup.stateOnLastFunctionCall == null) {
@@ -251,7 +251,7 @@ public class ReachingDefState implements AbstractState, Serializable {
     boolean changed = false;
     for (String var : map1.keySet()) {
       // decrease merge time, avoid building union if unnecessary
-      if (map1.get(var)== map2.get(var)){
+      if (map1.get(var)== map2.get(var)) {
         newMap.put(var, map2.get(var));
         continue;
       }
@@ -278,7 +278,7 @@ public class ReachingDefState implements AbstractState, Serializable {
   }
 
   private Object writeReplace() throws ObjectStreamException {
-    if (this==topElement){
+    if (this==topElement) {
       return proxy;
     }else{
       return this;

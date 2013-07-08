@@ -251,7 +251,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    * @param explicitPrecision the previous precision
    * @param refinedExplicitPrecision the refined precision
    */
-  private boolean refinementSuccessful(ARGPath errorPath, ExplicitPrecision explicitPrecision, ExplicitPrecision refinedExplicitPrecision){
+  private boolean refinementSuccessful(ARGPath errorPath, ExplicitPrecision explicitPrecision, ExplicitPrecision refinedExplicitPrecision) {
     // new error path or precision refined -> success
     boolean success = (errorPath.toString().hashCode() != previousErrorPathID)
         || (refinedExplicitPrecision.getSize() > explicitPrecision.getSize());

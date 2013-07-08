@@ -187,7 +187,7 @@ public class SMGTransferRelation implements TransferRelation {
     {
       if (exportSMGFilePattern != null) {
         if (name == null) {
-          if (currentState.getPredecessor() == null){
+          if (currentState.getPredecessor() == null) {
             name = String.format("initial-%03d", currentState.getId());
           } else {
             name = String.format("%03d-%03d", currentState.getPredecessor().getId(), currentState.getId());

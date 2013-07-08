@@ -159,7 +159,7 @@ abstract public class StaticRefiner {
                   }
                 }
 
-                else if (decl instanceof CVariableDeclaration){
+                else if (decl instanceof CVariableDeclaration) {
                   declaredInFunction.put(function, decl.getName());
                 }
               }
