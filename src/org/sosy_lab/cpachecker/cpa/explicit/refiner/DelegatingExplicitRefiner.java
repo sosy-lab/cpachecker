@@ -189,7 +189,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       throws CPAException, InterruptedException {
     // if path is infeasible, try to refine the precision
     if (!isPathFeasable(errorPath)) {
-      if(performExplicitRefinement(reached, errorPath)) {
+      if (performExplicitRefinement(reached, errorPath)) {
         return CounterexampleInfo.spurious();
       }
     }
@@ -219,7 +219,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     ExplicitPrecision refinedExplicitPrecision;
     Pair<ARGState, CFAEdge> interpolationPoint;
 
-    if(!initialStaticRefinementDone && staticRefiner != null) {
+    if (!initialStaticRefinementDone && staticRefiner != null) {
       interpolationPoint          = errorPath.get(1);
       refinedExplicitPrecision    = staticRefiner.extractPrecisionFromCfa();
       initialStaticRefinementDone = true;
@@ -231,7 +231,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       refinedExplicitPrecision  = new ExplicitPrecision(explicitPrecision, increment);
     }
 
-    if(refinementSuccessful(errorPath, explicitPrecision, refinedExplicitPrecision)) {
+    if (refinementSuccessful(errorPath, explicitPrecision, refinedExplicitPrecision)) {
       reached.removeSubtree(interpolationPoint.getFirst(), refinedExplicitPrecision, ExplicitPrecision.class);
       return true;
     }

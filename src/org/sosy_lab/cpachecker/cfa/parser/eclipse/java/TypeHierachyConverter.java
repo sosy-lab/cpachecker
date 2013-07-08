@@ -84,7 +84,7 @@ public class TypeHierachyConverter {
 
     IMethodBinding methodBinding = md.resolveBinding();
 
-    if(methodBinding == null) {
+    if (methodBinding == null) {
       logger.log(Level.WARNING, md.getName());
       logger.log(Level.WARNING, " can't be resolved.");
       return JMethodDeclaration.createUnresolvedMethodDeclaration();
@@ -207,13 +207,13 @@ public class TypeHierachyConverter {
 
     IMethodBinding methodBinding = md.resolveBinding();
 
-    if(methodBinding == null) {
+    if (methodBinding == null) {
       return JClassType.createUnresolvableType();
     }
 
     ITypeBinding typeBinding = methodBinding.getDeclaringClass();
 
-    if(typeBinding == null) {
+    if (typeBinding == null) {
       return JClassType.createUnresolvableType();
     }
 
@@ -223,7 +223,7 @@ public class TypeHierachyConverter {
   private JClassType convertClassOfConstructor(MethodDeclaration md) {
     JClassOrInterfaceType type = convertDeclaringClassType(md);
 
-    if(type instanceof JClassType) {
+    if (type instanceof JClassType) {
       return (JClassType) type;
     } else {
       return JClassType.createUnresolvableType();

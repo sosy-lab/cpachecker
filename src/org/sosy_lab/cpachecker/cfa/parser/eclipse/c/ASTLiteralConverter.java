@@ -80,7 +80,7 @@ class ASTLiteralConverter {
 
         //in Java float and double can be distinguished by the suffixes "f" (Float) and "d" (Double)
         // in C the suffixes are "f" / "F" (Float) and "l" / "L" (Long Double)
-        if(valueStr.endsWith("L") || valueStr.endsWith("l")) {
+        if (valueStr.endsWith("L") || valueStr.endsWith("l")) {
           valueStr = valueStr.substring(0, valueStr.length()-1) + "d";
         }
 

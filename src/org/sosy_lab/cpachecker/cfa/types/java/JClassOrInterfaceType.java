@@ -116,11 +116,11 @@ public abstract class  JClassOrInterfaceType implements JReferenceType {
   @Override
   public boolean equals(Object pObj) {
 
-    if(this == pObj) {
+    if (this == pObj) {
       return true;
     }
 
-    if(!(pObj instanceof JClassOrInterfaceType)) {
+    if (!(pObj instanceof JClassOrInterfaceType)) {
       return false;
     }
 

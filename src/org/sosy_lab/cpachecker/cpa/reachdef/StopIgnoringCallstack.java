@@ -64,7 +64,7 @@ public class StopIgnoringCallstack implements StopOperator{
     for (String var : subset.keySet()) {
       setSub = subset.get(var);
       setSuper = superset.get(var);
-      if(setSub == setSuper) {
+      if (setSub == setSuper) {
         continue;
       }
       if (setSuper == null || Sets.intersection(setSub, setSuper).size()!=setSub.size()) {

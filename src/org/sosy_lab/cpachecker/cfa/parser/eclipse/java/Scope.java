@@ -269,7 +269,7 @@ class Scope {
       }
     }
 
-    if(fields.containsKey(name)) {
+    if (fields.containsKey(name)) {
       return fields.get(name);
     } else {
       return null;

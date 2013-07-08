@@ -127,7 +127,7 @@ public class ExplicitInterpolator {
     }
 
     // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
-    if(initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(skip(errorPath, offset + 1), new ExplicitState())) {
+    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(skip(errorPath, offset + 1), new ExplicitState())) {
       return Collections.emptySet();
     }
 
@@ -139,7 +139,7 @@ public class ExplicitInterpolator {
       // remove the value of the current and all already-found-to-be-irrelevant variables from the successor
       successor.forget(currentVariable);
       for (Pair<String, Long> interpolantVariable : interpolant) {
-        if(interpolantVariable.getSecond() == null) {
+        if (interpolantVariable.getSecond() == null) {
           successor.forget(interpolantVariable.getFirst());
         }
       }

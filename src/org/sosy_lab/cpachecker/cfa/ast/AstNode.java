@@ -58,11 +58,11 @@ public abstract class AstNode implements IAstNode, CAstNode {
 
   @Override
   public boolean equals(Object obj) {
-    if(this == obj) {
+    if (this == obj) {
       return true;
     }
 
-    if(obj instanceof AstNode) {
+    if (obj instanceof AstNode) {
       return true;
     }
 

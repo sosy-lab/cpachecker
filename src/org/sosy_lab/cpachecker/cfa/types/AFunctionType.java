@@ -108,7 +108,7 @@ public class AFunctionType implements IAFunctionType {
       return true;
     }
 
-    if(!(obj instanceof AFunctionType)) {
+    if (!(obj instanceof AFunctionType)) {
       return false;
     }
 

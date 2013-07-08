@@ -791,7 +791,7 @@ public class ASTConverter {
 
     List<JType> paramTypes = new ArrayList<>();
 
-    for(ITypeBinding type : paramBindings) {
+    for (ITypeBinding type : paramBindings) {
       paramTypes.add(convert(type));
     }
 
@@ -808,7 +808,7 @@ public class ASTConverter {
 
     List<JType> paramTypes = new ArrayList<>();
 
-    for(ITypeBinding type : paramBindings) {
+    for (ITypeBinding type : paramBindings) {
       paramTypes.add(convert(type));
     }
 
@@ -939,7 +939,7 @@ public class ASTConverter {
 
     if (declaration == null) {
 
-      if(canBeResolve) {
+      if (canBeResolve) {
         declaration = scope.createExternMethodDeclaration(
             convertMethodType(e.resolveMethodBinding()),
             methodName.toASTString(),

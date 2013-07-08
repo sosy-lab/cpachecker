@@ -81,7 +81,7 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
     checkArgument(!superInterfaces.contains(basisType));
 
     // Recursion stops, if the Set superInterfaces is empty
-    for(JInterfaceType directSuperInterface : superInterfaces) {
+    for (JInterfaceType directSuperInterface : superInterfaces) {
       directSuperInterface.checkInterfaceConsistencyRec(basisType);
     }
   }
@@ -140,7 +140,7 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
     result.addAll(superInterfaces);
 
     // Recursion stops, if the Set superInterfaces is empty
-    for(JInterfaceType directSuperInterface : superInterfaces) {
+    for (JInterfaceType directSuperInterface : superInterfaces) {
       result.addAll(directSuperInterface.getAllSuperInterfaces());
     }
 
@@ -158,11 +158,11 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
 
       interfaces.add(this);
 
-      for(JInterfaceType itInterface : interfaces) {
+      for (JInterfaceType itInterface : interfaces) {
 
         result.addAll(itInterface.getKnownInterfaceImplementingClasses());
 
-        for(JClassType implementingClasses :
+        for (JClassType implementingClasses :
           itInterface.getKnownInterfaceImplementingClasses()) {
           result.addAll(implementingClasses.getAllSubTypesOfClass());
         }

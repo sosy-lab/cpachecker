@@ -155,7 +155,7 @@ public class ReachingDefState implements AbstractState, Serializable {
     for (String var : subset.keySet()) {
       setSub = subset.get(var);
       setSuper = superset.get(var);
-      if(setSub == setSuper) {
+      if (setSub == setSuper) {
         continue;
       }
       if (setSuper == null || Sets.intersection(setSub, setSuper).size()!=setSub.size()) {
@@ -244,14 +244,14 @@ public class ReachingDefState implements AbstractState, Serializable {
     Map<String, Set<DefinitionPoint>> newMap = new HashMap<>();
     // every declared local variable of a function, global variable occurs in respective map, possibly undefined
     assert (map1.keySet().equals(map2.keySet()));
-    if(map1==map2) {
+    if (map1==map2) {
       return map1;
     }
     Set<DefinitionPoint> unionResult;
     boolean changed = false;
     for (String var : map1.keySet()) {
       // decrease merge time, avoid building union if unnecessary
-      if(map1.get(var)== map2.get(var)){
+      if (map1.get(var)== map2.get(var)){
         newMap.put(var, map2.get(var));
         continue;
       }
@@ -278,7 +278,7 @@ public class ReachingDefState implements AbstractState, Serializable {
   }
 
   private Object writeReplace() throws ObjectStreamException {
-    if(this==topElement){
+    if (this==topElement){
       return proxy;
     }else{
       return this;

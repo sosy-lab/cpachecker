@@ -157,7 +157,7 @@ public class ExplicitPrecision implements Precision {
       String name = variableNames.next();
       /* for tests with failing benchmarks in product-lines
        * //if(!name.equals("executiveFloor") && !name.startsWith("calls_") && !name.startsWith("personOnFloor_")) {
-      if(!name.startsWith("personOnFloor_0")
+      if (!name.startsWith("personOnFloor_0")
           && !name.startsWith("personOnFloor_1")
           && !name.startsWith("personOnFloor_2")
           && !name.startsWith("personOnFloor_3")
@@ -176,7 +176,7 @@ public class ExplicitPrecision implements Precision {
         variableNames.remove();
         continue;
       }
-      if(name.contains("___cpa_temp_result_var_")) {
+      if (name.contains("___cpa_temp_result_var_")) {
         variableNames.remove();
         continue;
       }*/
@@ -320,7 +320,7 @@ public class ExplicitPrecision implements Precision {
 
     @Override
     public LocalizedRefinablePrecision refine(Multimap<CFANode, String> increment) {
-      if(this.rawPrecision.entries().containsAll(increment.entries())) {
+      if (this.rawPrecision.entries().containsAll(increment.entries())) {
         return this;
       }
       else {
@@ -340,10 +340,10 @@ public class ExplicitPrecision implements Precision {
 
     @Override
     void serialize(Writer writer) throws IOException {
-      for(CFANode currentLocation : rawPrecision.keySet()) {
+      for (CFANode currentLocation : rawPrecision.keySet()) {
         writer.write("\n" + currentLocation + ":\n");
 
-        for(String variable : rawPrecision.get(currentLocation)) {
+        for (String variable : rawPrecision.get(currentLocation)) {
           writer.write(variable + "\n");
         }
       }
@@ -384,7 +384,7 @@ public class ExplicitPrecision implements Precision {
 
     @Override
     public ScopedRefinablePrecision refine(Multimap<CFANode, String> increment) {
-      if(this.rawPrecision.containsAll(increment.values())) {
+      if (this.rawPrecision.containsAll(increment.values())) {
         return this;
       }
       else {
@@ -402,10 +402,10 @@ public class ExplicitPrecision implements Precision {
 
       ArrayList<String> globals = new ArrayList<>();
       String previousScope      = null;
-      for(String variable : sortedPrecision) {
-        if(variable.contains("::")) {
+      for (String variable : sortedPrecision) {
+        if (variable.contains("::")) {
           String functionName = variable.substring(0, variable.indexOf("::"));
-          if(!functionName.equals(previousScope)) {
+          if (!functionName.equals(previousScope)) {
             writer.write("\n" + functionName + ":\n");
           }
           writer.write(variable + "\n");
@@ -417,7 +417,7 @@ public class ExplicitPrecision implements Precision {
         }
       }
 
-      if(previousScope != null) {
+      if (previousScope != null) {
         writer.write("\n");
       }
 

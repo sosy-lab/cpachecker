@@ -120,7 +120,7 @@ public class THDotBuilder {
     appendEdgeStyle(NORMAL, SOLID, ODOT);
 
     for (JClassOrInterfaceType type : types) {
-      if(!type.isTopLevel()) {
+      if (!type.isTopLevel()) {
         addEnclosingType(type);
       }
     }
@@ -182,7 +182,7 @@ public class THDotBuilder {
     Set<JInterfaceType> superTypes = pType.getSuperInterfaces();
     String typeName = NameConverter.getNodeName(pType);
 
-    for(JInterfaceType superType : superTypes) {
+    for (JInterfaceType superType : superTypes) {
       String superTypeName = NameConverter.getNodeName(superType);
       addEdge(typeName, superTypeName);
     }
@@ -200,7 +200,7 @@ public class THDotBuilder {
 
     JClassType superType = pType.getParentClass();
 
-    if(superType == null) {
+    if (superType == null) {
       return;
     }
 
@@ -281,7 +281,7 @@ public class THDotBuilder {
 
     List<String> parameterStrings = new ArrayList<>(pParameters.size());
 
-    for(JParameterDeclaration param : pParameters) {
+    for (JParameterDeclaration param : pParameters) {
       parameterStrings.add(getParameterLabel(param));
     }
 

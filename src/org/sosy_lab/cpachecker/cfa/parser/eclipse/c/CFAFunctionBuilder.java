@@ -1639,7 +1639,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // as a gnu c extension allows omitting the second operand and the implicitly adds the first operand
     // as the second also, this is checked here
-    if(condExp.getPositiveResultExpression() == null) {
+    if (condExp.getPositiveResultExpression() == null) {
       createEdgesForTernaryOperatorBranch(condExp.getLogicalConditionExpression(), lastNode, filelocStart, thenNode, tempVar);
     } else {
       createEdgesForTernaryOperatorBranch(condExp.getPositiveResultExpression(), lastNode, filelocStart, thenNode, tempVar);

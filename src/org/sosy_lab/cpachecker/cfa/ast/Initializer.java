@@ -41,11 +41,11 @@ public abstract class Initializer extends AstNode implements IAInitializer, CAst
 
   @Override
   public boolean equals(Object obj) {
-    if(obj == this) {
+    if (obj == this) {
       return true;
     }
 
-    if(!(obj instanceof Initializer)) {
+    if (!(obj instanceof Initializer)) {
       return false;
     }
 

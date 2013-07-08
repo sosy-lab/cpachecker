@@ -513,7 +513,7 @@ class ASTConverter {
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
     // if the owner is a FieldReference itself there's the need for a temporary Variable
     // but only if we are not in global scope, otherwise there will be parsing errors
-    if(simplifyPointerExpressions && owner instanceof CFieldReference && !scope.isGlobalScope() && (e.isPointerDereference())) {
+    if (simplifyPointerExpressions && owner instanceof CFieldReference && !scope.isGlobalScope() && (e.isPointerDereference())) {
       owner = createInitializedTemporaryVariable(e.getFieldOwner(), owner);
     }
 
@@ -547,16 +547,16 @@ class ASTConverter {
 
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
     // if there is a "var->field" convert it to (*var).field
-    if(simplifyPointerExpressions && e.isPointerDereference()) {
+    if (simplifyPointerExpressions && e.isPointerDereference()) {
       CType newType = null;
       CType typeDefType = owner.getExpressionType();
 
       //unpack typedefs
-      while(typeDefType instanceof CTypedefType){
+      while (typeDefType instanceof CTypedefType){
         typeDefType = ((CTypedefType)typeDefType).getRealType();
       }
 
-      if(typeDefType instanceof CPointerType) {
+      if (typeDefType instanceof CPointerType) {
         newType = ((CPointerType)typeDefType).getType();
       } else {
         throw new CFAGenerationRuntimeException("The owner of the struct with field dereference has an invalid type", owner);
@@ -658,10 +658,10 @@ class ASTConverter {
     case IASTUnaryExpression.op_star:
 
       // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
-      if(simplifyPointerExpressions) {
+      if (simplifyPointerExpressions) {
 
         // if there is a dereference on a field of a struct a temporary variable is needed
-        if(operand instanceof CFieldReference) {
+        if (operand instanceof CFieldReference) {
           CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
           return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
         }
@@ -697,7 +697,7 @@ class ASTConverter {
     case IASTUnaryExpression.op_amper:
       // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
       // in case of *& both can be left out
-      if(simplifyPointerExpressions && operand instanceof CUnaryExpression && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR ) {
+      if (simplifyPointerExpressions && operand instanceof CUnaryExpression && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR ) {
         return ((CUnaryExpression)operand).getOperand();
       }
 

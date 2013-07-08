@@ -164,7 +164,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     CExpression leftHandSide = assignment.getLeftHandSide();
 
     // if expression is an identifier expression, get qualified name from there
-    if(leftHandSide instanceof CIdExpression) {
+    if (leftHandSide instanceof CIdExpression) {
       return ((CIdExpression)leftHandSide).getDeclaration().getQualifiedName();
     }
 

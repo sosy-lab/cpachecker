@@ -101,7 +101,7 @@ public class THTypeConverter extends TypeConverter {
   @Override
   public JInterfaceType convertInterfaceType(ITypeBinding t) {
 
-    if(t.isClass()) {
+    if (t.isClass()) {
       return JInterfaceType.createUnresolvableType();
     }
 

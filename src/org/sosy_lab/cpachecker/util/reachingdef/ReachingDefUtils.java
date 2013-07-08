@@ -103,7 +103,7 @@ public class ReachingDefUtils {
         for (int i = 0; i < currentElement.getNumLeavingEdges(); i++) {
           out = currentElement.getLeavingEdge(i);
 
-          if(out instanceof FunctionReturnEdge){
+          if (out instanceof FunctionReturnEdge){
             continue;
           }
 

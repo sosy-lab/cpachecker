@@ -174,7 +174,7 @@ public class CFunctionType extends AFunctionType implements CType {
     List<CType> newParameterTypes = new ArrayList<>();
     Iterator<CType> it = getParameters().iterator();
 
-    while(it.hasNext()) {
+    while (it.hasNext()) {
       newParameterTypes.add(it.next().getCanonicalType());
     }
     return new CFunctionType(isConst || pForceConst, isVolatile || pForceVolatile, getReturnType().getCanonicalType(), newParameterTypes, takesVarArgs());

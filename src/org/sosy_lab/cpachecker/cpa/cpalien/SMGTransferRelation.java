@@ -787,7 +787,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       SMGAddress addressOfField = getAddressOfField(smgState, cfaEdge, fieldReference);
 
-      if(addressOfField.isUnknown() || field.isUnknown()) {
+      if (addressOfField.isUnknown() || field.isUnknown()) {
         return SMGAddress.UNKNOWN;
       }
 
@@ -890,7 +890,7 @@ public class SMGTransferRelation implements TransferRelation {
 
      SMGAddress addressOfFieldOwner = getAddressOfField(smgState, cfaEdge, ownerFieldReference);
 
-     if(addressOfFieldOwner.isUnknown()) {
+     if (addressOfFieldOwner.isUnknown()) {
       return SMGAddress.UNKNOWN;
      }
 
@@ -901,7 +901,7 @@ public class SMGTransferRelation implements TransferRelation {
 
      SMGField field = getField(cfaEdge, typeOfFieldOwnerOwner, fieldName);
 
-     if(field.isUnknown()) {
+     if (field.isUnknown()) {
        return SMGAddress.UNKNOWN;
      }
 
@@ -929,7 +929,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       SMGAddress fieldOwnerAddress = address.getAddress();
 
-      if(fieldReference.isPointerDereference()) {
+      if (fieldReference.isPointerDereference()) {
         SMGSymbolicValue address2 = readValue(smgState, fieldOwnerAddress.getObject(),
             fieldOwnerAddress.getOffset(), ownerType);
 
@@ -2264,7 +2264,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     private boolean isUnequal(SMGState pSmgState, SMGSymbolicValue pLVal, SMGSymbolicValue pRVal) {
 
-      if(pLVal.isUnknown() || pRVal.isUnknown()) {
+      if (pLVal.isUnknown() || pRVal.isUnknown()) {
         return false;
       }
 
@@ -2714,7 +2714,7 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public boolean equals(Object pObj) {
 
-      if(this == pObj) {
+      if (this == pObj) {
         return true;
       }
 
@@ -2865,7 +2865,7 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public SMGExplicitValue xor(SMGExplicitValue pRVal) {
 
-      if(pRVal.isUnknown()) {
+      if (pRVal.isUnknown()) {
         return SMGUnknownValue.getInstance();
       }
 
@@ -2875,7 +2875,7 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public SMGExplicitValue or(SMGExplicitValue pRVal) {
 
-      if(pRVal.isUnknown()) {
+      if (pRVal.isUnknown()) {
         return SMGUnknownValue.getInstance();
       }
 
@@ -2885,7 +2885,7 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public SMGExplicitValue and(SMGExplicitValue pRVal) {
 
-      if(pRVal.isUnknown()) {
+      if (pRVal.isUnknown()) {
         return SMGUnknownValue.getInstance();
       }
 
@@ -2895,7 +2895,7 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public SMGExplicitValue shiftLeft(SMGExplicitValue pRVal) {
 
-      if(pRVal.isUnknown()) {
+      if (pRVal.isUnknown()) {
         return SMGUnknownValue.getInstance();
       }
 
@@ -2905,7 +2905,7 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public SMGExplicitValue multiply(SMGExplicitValue pRVal) {
 
-      if(pRVal.isUnknown()) {
+      if (pRVal.isUnknown()) {
         return SMGUnknownValue.getInstance();
       }
 
@@ -2915,7 +2915,7 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public SMGExplicitValue divide(SMGExplicitValue pRVal) {
 
-      if(pRVal.isUnknown()) {
+      if (pRVal.isUnknown()) {
         return SMGUnknownValue.getInstance();
       }
 
@@ -2925,7 +2925,7 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public SMGExplicitValue subtract(SMGExplicitValue pRVal) {
 
-      if(pRVal.isUnknown()) {
+      if (pRVal.isUnknown()) {
         return SMGUnknownValue.getInstance();
       }
 
@@ -2935,7 +2935,7 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public SMGExplicitValue add(SMGExplicitValue pRVal) {
 
-      if(pRVal.isUnknown()) {
+      if (pRVal.isUnknown()) {
         return SMGUnknownValue.getInstance();
       }
 

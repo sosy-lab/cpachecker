@@ -275,7 +275,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     LogManager logger,
     AbstractionManager abstractionManager,
     CFA cfa) throws InvalidConfigurationException {
-    if(performInitialStaticRefinement) {
+    if (performInitialStaticRefinement) {
       return new PredicateStaticRefiner(config, logger, pathFormulaManager, formulaManager, abstractionManager, cfa);
     }
 

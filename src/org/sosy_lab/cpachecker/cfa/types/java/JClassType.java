@@ -229,11 +229,11 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
 
     classes.add(this);
 
-    for(JClassType iClass : classes) {
+    for (JClassType iClass : classes) {
 
       result.addAll(iClass.getImplementedInterfaces());
 
-      for(JInterfaceType implementedInterface : iClass.getImplementedInterfaces()) {
+      for (JInterfaceType implementedInterface : iClass.getImplementedInterfaces()) {
         result.addAll(implementedInterface.getAllSuperInterfaces());
       }
     }
@@ -256,7 +256,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
     result.addAll(directSubClasses);
 
     // Recursion stops, if the Set directSubClasses is empty
-    for(JClassType directSubClass : directSubClasses) {
+    for (JClassType directSubClass : directSubClasses) {
       result.addAll(directSubClass.getAllSubTypesOfClass());
     }
 

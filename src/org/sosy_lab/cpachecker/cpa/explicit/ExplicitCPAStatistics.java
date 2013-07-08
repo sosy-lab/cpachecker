@@ -130,7 +130,7 @@ public class ExplicitCPAStatistics implements Statistics {
     for (Precision precision : reached.getPrecisions()) {
       if (precision instanceof WrapperPrecision) {
         ExplicitPrecision prec = ((WrapperPrecision)precision).retrieveWrappedPrecision(ExplicitPrecision.class);
-        if(joinedPrecision == null) {
+        if (joinedPrecision == null) {
           joinedPrecision = prec.getRefinablePrecision().refine(HashMultimap.<CFANode, String>create());
         }
         else {

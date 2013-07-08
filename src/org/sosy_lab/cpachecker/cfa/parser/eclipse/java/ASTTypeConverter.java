@@ -51,7 +51,7 @@ public class ASTTypeConverter extends TypeConverter {
     @Override
     public JInterfaceType convertInterfaceType(ITypeBinding t) {
 
-      if(t.isClass()) {
+      if (t.isClass()) {
         return JInterfaceType.createUnresolvableType();
       }
 
@@ -59,7 +59,7 @@ public class ASTTypeConverter extends TypeConverter {
 
       String typeName = NameConverter.convertClassOrInterfaceName(t);
 
-      if(scope.containsInterfaceType(typeName)) {
+      if (scope.containsInterfaceType(typeName)) {
         return scope.getInterfaceType(typeName);
       } else {
         return scope.createNewInterfaceType(t);
@@ -81,7 +81,7 @@ public class ASTTypeConverter extends TypeConverter {
 
       String typeName = NameConverter.convertClassOrInterfaceName(t);
 
-      if(scope.containsClassType(typeName)) {
+      if (scope.containsClassType(typeName)) {
         return scope.getClassType(typeName);
       } else {
         return scope.createNewClassType(t);

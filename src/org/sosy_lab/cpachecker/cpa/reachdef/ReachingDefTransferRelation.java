@@ -93,7 +93,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         cfaedge = node.getLeavingEdge(i);
         if (!(cfaedge.getEdgeType() == CFAEdgeType.FunctionReturnEdge)) {
-          if(cfaedge.getEdgeType() == CFAEdgeType.StatementEdge || cfaedge.getEdgeType() == CFAEdgeType.DeclarationEdge){
+          if (cfaedge.getEdgeType() == CFAEdgeType.StatementEdge || cfaedge.getEdgeType() == CFAEdgeType.DeclarationEdge){
             definitions.add(node.getLeavingEdge(i));
           } else {
             successors.addAll(getAbstractSuccessors0(pState, pPrecision, node.getLeavingEdge(i)));
@@ -101,7 +101,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
         }
       }
     }
-    for(CFAEdge edge: definitions){
+    for (CFAEdge edge: definitions){
       successors.addAll(getAbstractSuccessors0(pState, pPrecision, edge));
     }
     return successors;

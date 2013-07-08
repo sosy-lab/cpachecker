@@ -190,7 +190,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
 
     CFANode location = getDefaultLocation(idToCfaNode);
     for (String currentLine : contents) {
-      if(currentLine.trim().isEmpty()) {
+      if (currentLine.trim().isEmpty()) {
         continue;
       }
 
