@@ -30,6 +30,7 @@ import java.util.List;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
@@ -77,11 +78,13 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
 
+    private CFA cfa = null;
     private ImmutableList<ConfigurableProgramAnalysis> cpas = null;
 
     @Override
     public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       Preconditions.checkState(cpas != null, "CompositeCPA needs wrapped CPAs!");
+      Preconditions.checkState(cfa != null, "CompositeCPA needs CFA information!");
 
       CompositeOptions options = new CompositeOptions();
       getConfiguration().inject(options);
@@ -140,7 +143,9 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       if (options.precAdjust.equals("OMNISCIENT")) {
         compositePrecisionAdjustment = new OmniscientCompositePrecisionAdjustment(
             precisionAdjustments.build(),
-            getConfiguration());
+            getConfiguration(),
+            cfa
+            );
       }
 
       else {
@@ -169,6 +174,14 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
       cpas = ImmutableList.copyOf(pChildren);
       return this;
+    }
+
+    @Override
+    public <T> CPAFactory set(T pObject, Class<T> pClass) throws UnsupportedOperationException {
+      if (pClass.equals(CFA.class)) {
+        cfa = (CFA)pObject;
+      }
+      return super.set(pObject, pClass);
     }
   }
 

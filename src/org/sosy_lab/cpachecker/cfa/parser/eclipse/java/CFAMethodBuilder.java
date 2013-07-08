@@ -105,10 +105,9 @@ import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * Builder to traverse AST.
@@ -216,9 +215,9 @@ class CFAMethodBuilder extends ASTVisitor {
 
   private void addNonStaticFieldMember() {
 
-    String currentClassName = scope.getCurrentClassName();
+    JClassOrInterfaceType currentClassType = scope.getCurrentClassType();
 
-     Map<String, JFieldDeclaration> fieldDecl = scope.getNonStaticFieldDeclarationOfClass(currentClassName);
+    Map<String, JFieldDeclaration> fieldDecl = scope.getNonStaticFieldDeclarationOfClass(currentClassType);
 
     Collection<JFieldDeclaration> classFieldDeclaration =
       fieldDecl.values();
@@ -603,8 +602,6 @@ class CFAMethodBuilder extends ASTVisitor {
             resolveBooleanInitializer((JVariableDeclaration) newD, prevNode);
       }
 
-    } else if (newD instanceof JMethodDeclaration) {
-      scope.registerMethodDeclaration((JMethodDeclaration) newD);
     }
 
     return prevNode;
@@ -1366,10 +1363,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     if (isReachableNode(prevNode)) {
 
-      ImmutableList<CFAEdge> enteringEdges =
-          ImmutableList.copyOf(CFAUtils.allEnteringEdges(prevNode));
-
-      for (CFAEdge prevEdge : enteringEdges) {
+      for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
 
         boolean isBlankEdge = (prevEdge instanceof BlankEdge)
                                 && prevEdge.getDescription().equals("");

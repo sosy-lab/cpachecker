@@ -90,7 +90,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
 
     if (stopType.equals("sep")) {
       stopOp = new StopSepOperator(domain);
-    } else if (stopType.equals("join")){
+    } else if (stopType.equals("join")) {
       stopOp = new StopJoinOperator(domain);
     }
 

@@ -376,7 +376,7 @@ public class RTTTransferRelation implements TransferRelation {
 
     RTTState newElement = visitor.state;
 
-    if (nonStaticFieldVariables.contains(lParam) && lParamObjectScope == null) {
+    if (nonStaticFieldVariables.contains(lParam.getName()) && lParamObjectScope == null) {
       // can't resolve lParam variable, do nothing
       // TODO How to forget old Values?
       return;

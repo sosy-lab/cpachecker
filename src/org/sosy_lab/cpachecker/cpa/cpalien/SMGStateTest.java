@@ -57,6 +57,8 @@ public class SMGStateTest {
 
     when(mockType16b.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(16));
     when(mockType8b.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(8));
+    when(mockType16b.getCanonicalType()).thenReturn(mockType16b);
+    when(mockType8b.getCanonicalType()).thenReturn(mockType8b);
   }
 
   /*

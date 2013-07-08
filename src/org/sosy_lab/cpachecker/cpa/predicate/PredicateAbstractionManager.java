@@ -291,7 +291,7 @@ public class PredicateAbstractionManager {
       if (bfmgr.isFalse(predicateTerm)) {
         // Ignore predicate "false", it means "check for satisfiability".
         // We do this implicitly.
-        logger.log(Level.FINEST, "Ignoring predicate 'true'");
+        logger.log(Level.FINEST, "Ignoring predicate 'false'");
         continue;
       }
 
@@ -369,10 +369,9 @@ public class PredicateAbstractionManager {
       }
 
       if (!warnedOfCartesianAbstraction && !fmgr.isPurelyConjunctive(f)) {
-        logger
-            .log(
-                Level.WARNING,
-                "Using cartesian abstraction when formulas contain disjunctions may be imprecise. This might lead to failing refinements.");
+        logger.log(Level.WARNING,
+            "Using cartesian abstraction when formulas contain disjunctions may be imprecise. "
+            + "This might lead to failing refinements.");
         warnedOfCartesianAbstraction = true;
       }
 
@@ -725,7 +724,7 @@ public class PredicateAbstractionManager {
 
   // delegate methods
 
-  public Collection<AbstractionPredicate> extractPredicates(Region pRegion) {
+  public Set<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);
   }
 

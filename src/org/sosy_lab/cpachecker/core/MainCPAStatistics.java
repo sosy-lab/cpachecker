@@ -291,7 +291,7 @@ class MainCPAStatistics implements Statistics {
         }
 
         int locs = locations.size();
-        if(locs>0){
+        if (locs>0) {
         out.println("  Number of reached locations:   " + locs + " (" + StatisticsUtils.toPercent(locs, cfa.getAllNodes().size()) + ")");
         out.println("    Avg states per location:     " + reachedSize / locs);
         out.println("    Max states per location:     " + mostFrequentLocationCount + " (at node " + mostFrequentLocation + ")");
@@ -322,13 +322,14 @@ class MainCPAStatistics implements Statistics {
 
     private void printCfaStatistics(PrintStream out) {
       if (cfa != null) {
-        int loops = from(cfa.getAllNodes())
-                        .filter(CFAUtils.IS_LOOP_NODE)
-                        .size();
 
         out.println("Number of program locations:     " + cfa.getAllNodes().size());
         out.println("Number of functions:             " + cfa.getNumberOfFunctions());
-        out.println("Number of loops:                 " + loops);
+
+        if (cfa.getLoopStructure().isPresent()) {
+          int loops = cfa.getLoopStructure().get().values().size();
+          out.println("Number of loops:                 " + loops);
+        }
       }
     }
 

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.callstack;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -175,8 +177,7 @@ public class CallstackTransferRelation implements TransferRelation {
 
   private FunctionCallEdge findCallEdge(CFAEdge pCfaEdge, String functionName) {
     CFANode predNode = pCfaEdge.getPredecessor();
-    for (int i=0; i<predNode.getNumLeavingEdges(); i++) {
-      CFAEdge edge = predNode.getLeavingEdge(i);
+    for (CFAEdge edge : leavingEdges(predNode)) {
       if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
         String fcallname = edge.getSuccessor().getFunctionName();
         if (functionName.equals(fcallname)) {

@@ -65,8 +65,9 @@ public class ARGProofCheckerStrategy extends AbstractStrategy {
 
   @Override
   public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
-    if (correctReachedSetFormatForProof(pReached))
+    if (correctReachedSetFormatForProof(pReached)) {
       root = (ARGState) pReached.getFirstState();
+    }
   }
 
   @Override
@@ -211,9 +212,15 @@ public class ARGProofCheckerStrategy extends AbstractStrategy {
 
   @Override
   protected void prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
-    if (!(pReadProof instanceof ARGState))
+    try {
+      stats.preparationTimer.start();
+    if (!(pReadProof instanceof ARGState)) {
       throw new InvalidConfigurationException("Proof Strategy requires ARG.");
+    }
     root = (ARGState) pReadProof;
+    } finally {
+      stats.preparationTimer.stop();
+    }
   }
 
 }

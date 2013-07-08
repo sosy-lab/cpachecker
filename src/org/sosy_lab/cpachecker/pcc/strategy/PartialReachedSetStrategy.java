@@ -90,6 +90,7 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
   @Override
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    // TODO for parallelization use Runtime.getRuntime().availableProcessors(); to identify maximal number of parallel threads
       List<AbstractState> certificate = new ArrayList<>(reachedSet.length);
       for (AbstractState elem : reachedSet) {
         certificate.add(elem);

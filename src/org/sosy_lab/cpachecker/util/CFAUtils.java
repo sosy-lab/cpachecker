@@ -36,8 +36,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -46,7 +44,6 @@ import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
@@ -180,7 +177,7 @@ public class CFAUtils {
     };
   }
 
-  private static final Function<CFAEdge,  CFANode> TO_PREDECESSOR = new Function<CFAEdge,  CFANode>() {
+  static final Function<CFAEdge,  CFANode> TO_PREDECESSOR = new Function<CFAEdge,  CFANode>() {
       @Override
       public CFANode apply(CFAEdge pInput) {
         return pInput.getPredecessor();
@@ -188,7 +185,7 @@ public class CFAUtils {
     };
 
 
-  private static final Function<CFAEdge,  CFANode> TO_SUCCESSOR = new Function<CFAEdge,  CFANode>() {
+  static final Function<CFAEdge,  CFANode> TO_SUCCESSOR = new Function<CFAEdge,  CFANode>() {
     @Override
     public CFANode apply(CFAEdge pInput) {
       return pInput.getSuccessor();
@@ -226,16 +223,6 @@ public class CFAUtils {
   public static FluentIterable<CFANode> allSuccessorsOf(final CFANode node) {
     return allLeavingEdges(node).transform(TO_SUCCESSOR);
   }
-
-  /**
-   * A predicate delegating to {@link CFANode#isLoopStart()}.
-   */
-  public static final Predicate<CFANode> IS_LOOP_NODE = new Predicate<CFANode>() {
-    @Override
-    public boolean apply(@Nullable CFANode pInput) {
-      return pInput.isLoopStart();
-    }
-  };
 
   public static final Function<CFANode, String> GET_FUNCTION = new Function<CFANode, String>() {
     @Override
@@ -304,12 +291,8 @@ public class CFAUtils {
       Set<CFAEdge> outgoingEdges = new HashSet<>();
 
       for (CFANode n : nodes) {
-        for (int i = 0; i < n.getNumEnteringEdges(); i++) {
-          incomingEdges.add(n.getEnteringEdge(i));
-        }
-        for (int i = 0; i < n.getNumLeavingEdges(); i++) {
-          outgoingEdges.add(n.getLeavingEdge(i));
-        }
+        enteringEdges(n).copyInto(incomingEdges);
+        leavingEdges(n).copyInto(outgoingEdges);
       }
 
       innerLoopEdges = Sets.intersection(incomingEdges, outgoingEdges).immutableCopy();
@@ -381,6 +364,17 @@ public class CFAUtils {
     }
   }
 
+  /**
+   * Find all loops inside a given set of CFA nodes.
+   * The nodes in the given set may not be connected
+   * with any nodes outside of this set.
+   * This method tries to differentiate nested loops.
+   *
+   * @param nodes The set of nodes to look for loops in.
+   * @param language The source language.
+   * @return A collection of found loops.
+   * @throws ParserException
+   */
   public static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
     final int min = nodes.first().getNodeNumber();
     final int max = nodes.last().getNodeNumber();
@@ -406,8 +400,7 @@ public class CFAUtils {
       assert nodesArray[i] == null;
       nodesArray[i] = n;
 
-      for (int e = 0; e < n.getNumLeavingEdges(); e++) {
-        CFAEdge edge = n.getLeavingEdge(e);
+      for (CFAEdge edge : leavingEdges(n)) {
         CFANode succ = edge.getSuccessor();
         int j = succ.getNodeNumber() - min;
         edges[i][j] = new Edge();

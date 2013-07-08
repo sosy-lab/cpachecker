@@ -154,7 +154,12 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
         cgroupMemory = cgroups[MEMORY]
         memlimit = str(rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR) # MB to Byte
         _writeFile(memlimit, cgroupMemory, 'memory.limit_in_bytes')
-        _writeFile(memlimit, cgroupMemory, 'memory.memsw.limit_in_bytes')
+        try:
+            _writeFile(memlimit, cgroupMemory, 'memory.memsw.limit_in_bytes')
+        except IOError as e:
+            if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
+                sys.exit("Memory limit specified, but kernel does not allow limiting swap memory. Please set swapaccount=1 on your kernel command line.")
+            raise e
 
         memlimit = _readFile(cgroupMemory, 'memory.memsw.limit_in_bytes')
         logging.debug('Executing {0} with memory limit {1} bytes.'.format(args, memlimit))
@@ -238,8 +243,14 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
         # This measurement reads the maximum number of bytes of RAM+Swap the process used.
         # For more details, c.f. the kernel documentation:
         # https://www.kernel.org/doc/Documentation/cgroups/memory.txt
-        memUsage = _readFile(cgroups[MEMORY], 'memory.memsw.max_usage_in_bytes')
-        memUsage = int(memUsage)
+        try:
+            memUsage = _readFile(cgroups[MEMORY], 'memory.memsw.max_usage_in_bytes')
+            memUsage = int(memUsage)
+        except IOError as e:
+            if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
+                print("Kernel does not track swap memory usage, cannot measure memory usage. Please set swapaccount=1 on your kernel command line.")
+            else:
+                raise e
 
     for cgroup in set(cgroups.values()):
         # Need the set here to delete each cgroup only once.

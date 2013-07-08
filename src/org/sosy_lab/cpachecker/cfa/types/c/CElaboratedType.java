@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.util.Objects;
+
 
 public final class CElaboratedType implements CComplexType {
 
@@ -126,8 +128,39 @@ public final class CElaboratedType implements CComplexType {
     throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
   @Override
   public boolean equals(Object obj) {
-    return CTypeUtils.equals(this, obj);
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CElaboratedType)) {
+      return false;
+    }
+
+    CElaboratedType other = (CElaboratedType) obj;
+
+    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
+           && Objects.equals(kind, other.kind) && Objects.equals(name, other.name)
+           && Objects.equals(realType, other.realType);
+  }
+
+  @Override
+  public CType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    if (realType == null) {
+      return new CElaboratedType(isConst || pForceConst, isVolatile || pForceVolatile, kind, name, null);
+    } else {
+      return realType.getCanonicalType();
+    }
   }
 }

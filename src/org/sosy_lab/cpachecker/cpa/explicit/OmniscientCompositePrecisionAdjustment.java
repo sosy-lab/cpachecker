@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.PrintStream;
 import java.util.Collection;
 
@@ -33,7 +35,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -55,6 +59,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.explicit.blk")
@@ -69,13 +74,15 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   @Option(description="restrict abstractions to assume edges")
   private boolean alwaysAtAssumes = false;
 
+  private final ImmutableSet<CFANode> loopHeads;
+
   // statistics
   final Timer totalEnforceAbstraction         = new Timer();
   final Timer totalEnforcePathThreshold       = new Timer();
   final Timer totalEnforceReachedSetThreshold = new Timer();
   final Timer totalComposite                  = new Timer();
   final Timer total                           = new Timer();
-  int abstractions                           = 0;
+  int abstractionComputations                           = 0;
 
   private Statistics stats  = null;
   private boolean modified = false;
@@ -85,11 +92,17 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
     pStatsCollection.add(stats);
   }
 
-  public OmniscientCompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments, Configuration config)
+  public OmniscientCompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments, Configuration config, CFA cfa)
       throws InvalidConfigurationException {
     super(precisionAdjustments);
 
     config.inject(this);
+
+    if (alwaysAtLoops && cfa.getAllLoopHeads().isPresent()) {
+      loopHeads = cfa.getAllLoopHeads().get();
+    } else {
+      loopHeads = null;
+    }
 
     stats = new Statistics() {
       @Override
@@ -99,7 +112,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
         pOut.println("Total time for abstraction: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceAbstraction);
         pOut.println("Total time for reached set: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceReachedSetThreshold);
         pOut.println("Total time for path:        " + OmniscientCompositePrecisionAdjustment.this.totalEnforcePathThreshold);
-        pOut.println("abstractions:        " + OmniscientCompositePrecisionAdjustment.this.abstractions);
+        pOut.println("Number of abstractions:     " + OmniscientCompositePrecisionAdjustment.this.abstractionComputations);
       }
 
       @Override
@@ -148,7 +161,6 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
         // compute the abstraction for CEGAR
         totalEnforceAbstraction.start();
         explicitState = enforceAbstraction(explicitState, location, explicitPrecision);
-        abstractions++;
         totalEnforceAbstraction.stop();
 
         // compute the abstraction for reached set thresholds
@@ -207,11 +219,12 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    */
   private ExplicitState enforceAbstraction(ExplicitState state, LocationState location, ExplicitPrecision precision) {
     if (abstractAtEachLocation()
-    	|| abstractAtAssumes(location)
+        || abstractAtAssumes(location)
         || abstractAtFunction(location)
         || abstractAtLoopHead(location)) {
       state = precision.computeAbstraction(state, location.getLocationNode());
       state.clearDelta();
+      abstractionComputations++;
     }
 
     return state;
@@ -257,7 +270,8 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    * @return true, if at the current location an abstraction shall be computed, else false
    */
   private boolean abstractAtLoopHead(LocationState location) {
-    return alwaysAtLoops && location.getLocationNode().isLoopStart();
+    checkState(!alwaysAtLoops || loopHeads != null);
+    return alwaysAtLoops && loopHeads.contains(location.getLocationNode());
   }
 
   /**

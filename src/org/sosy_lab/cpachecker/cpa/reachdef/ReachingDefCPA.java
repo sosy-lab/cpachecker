@@ -92,18 +92,20 @@ public class ReachingDefCPA implements ConfigurableProgramAnalysis {
     domain = new ReachingDefDomain();
     transfer = new ReachingDefTransferRelation(logger);
 
-    if (stopType.equals("SEP"))
+    if (stopType.equals("SEP")) {
       stop = new StopSepOperator(domain);
-    else if (mergeType.equals("JOIN"))
+    } else if (mergeType.equals("JOIN")) {
       stop = new StopJoinOperator(domain);
-    else
+    } else {
       stop = new StopIgnoringCallstack();
-    if (mergeType.equals("SEP"))
+    }
+    if (mergeType.equals("SEP")) {
       merge = new MergeSepOperator();
-    else if (mergeType.equals("JOIN"))
+    } else if (mergeType.equals("JOIN")) {
       merge = new MergeJoinOperator(domain);
-    else
+    } else {
       merge = new MergeIgnoringCallstack();
+    }
   }
 
   @Override

@@ -26,7 +26,11 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-
+/**
+ * This class represents an assignment with a method invocation as right hand side.
+ * In the cfa, every method invocation in an expression is transformed to have its
+ * own JMethodInvocationAssignmentStatement and a temporary variable to simplify analysis.
+ */
 public class JMethodInvocationAssignmentStatement extends AFunctionCallAssignmentStatement implements JAssignment, JStatement, JMethodOrConstructorInvocation {
 
   public JMethodInvocationAssignmentStatement(FileLocation pFileLocation, JExpression pLeftHandSide,

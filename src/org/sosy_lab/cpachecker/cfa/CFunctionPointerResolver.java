@@ -498,7 +498,7 @@ public class CFunctionPointerResolver {
     // Type equality is too strong.
     // After this is implemented, change the default of functionSets
     // to USED_IN_CODE, EQ_PARAM_TYPES
-    return declaredType.equals(actualType);
+    return declaredType.getCanonicalType().equals(actualType.getCanonicalType());
   }
 
   private final boolean checkParamSizes(CFunctionCallExpression functionCallExpression,

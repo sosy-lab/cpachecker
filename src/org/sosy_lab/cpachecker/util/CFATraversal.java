@@ -93,22 +93,6 @@ public class CFATraversal {
         }
       };
 
-  private static final Function<CFAEdge, CFANode> FORWARD_SUCCESSOR_SUPPLIER
-      = new Function<CFAEdge, CFANode>() {
-        @Override
-        public CFANode apply(CFAEdge edge) {
-          return edge.getSuccessor();
-        }
-      };
-
-  private static final Function<CFAEdge, CFANode> BACKWARD_SUCCESSOR_SUPPLIER
-      = new Function<CFAEdge, CFANode>() {
-        @Override
-        public CFANode apply(CFAEdge edge) {
-          return edge.getPredecessor();
-        }
-      };
-
   // function providing the outgoing edges for a CFANode
   private final Function<CFANode, Iterable<CFAEdge>> edgeSupplier;
 
@@ -130,7 +114,7 @@ public class CFATraversal {
    * the CFA, visiting all nodes and edges in a DFS-like strategy.
    */
   public static final CFATraversal dfs() {
-    return new CFATraversal(FORWARD_EDGE_SUPPLIER, FORWARD_SUCCESSOR_SUPPLIER,
+    return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAUtils.TO_SUCCESSOR,
         Predicates.<CFAEdge>alwaysFalse());
   }
 
@@ -141,9 +125,9 @@ public class CFATraversal {
    */
   public CFATraversal backwards() {
     if (edgeSupplier == FORWARD_EDGE_SUPPLIER) {
-      return new CFATraversal(BACKWARD_EDGE_SUPPLIER, BACKWARD_SUCCESSOR_SUPPLIER, ignoreEdge);
+      return new CFATraversal(BACKWARD_EDGE_SUPPLIER, CFAUtils.TO_PREDECESSOR, ignoreEdge);
     } else if (edgeSupplier == BACKWARD_EDGE_SUPPLIER) {
-      return new CFATraversal(FORWARD_EDGE_SUPPLIER, FORWARD_SUCCESSOR_SUPPLIER, ignoreEdge);
+      return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAUtils.TO_SUCCESSOR, ignoreEdge);
     } else {
       throw new AssertionError();
     }

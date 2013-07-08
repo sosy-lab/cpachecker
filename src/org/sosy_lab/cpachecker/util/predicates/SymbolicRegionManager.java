@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.*;
+import static com.google.common.collect.FluentIterable.from;
 
 import java.io.PrintStream;
+import java.util.Set;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -80,6 +82,7 @@ public class SymbolicRegionManager implements RegionManager {
     }
   }
 
+  private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final Solver solver;
 
@@ -88,8 +91,9 @@ public class SymbolicRegionManager implements RegionManager {
 
   private int predicateCount = 0;
 
-  public SymbolicRegionManager(FormulaManagerView fmgr, Solver pSolver) {
+  public SymbolicRegionManager(FormulaManagerView pFmgr, Solver pSolver) {
     solver = pSolver;
+    fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     trueRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(true));
     falseRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(false));
@@ -177,6 +181,17 @@ public class SymbolicRegionManager implements RegionManager {
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region pF) {
     throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Set<Region> extractPredicates(Region f) {
+    return from(fmgr.extractAtoms(toFormula(f), false, false))
+        .transform(new Function<BooleanFormula, Region>() {
+          @Override
+          public Region apply(BooleanFormula input) {
+            return new SymbolicRegion(bfmgr, input);
+          }
+        }).toSet();
   }
 
   @Override

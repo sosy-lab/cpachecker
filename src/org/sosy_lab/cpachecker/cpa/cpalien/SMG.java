@@ -434,7 +434,7 @@ class SMGConsistencyVerifier {
     }
 
     // Verify that the value found in values is the one returned by getNullValue()
-    if (pSmg.getNullValue() != null_value){
+    if (pSmg.getNullValue() != null_value) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null value in values set not returned by getNullValue()");
       return false;
     }

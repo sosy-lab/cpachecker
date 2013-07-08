@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -107,9 +108,28 @@ public final class CSimpleType implements CType {
     throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
   @Override
   public boolean equals(Object obj) {
-    return CTypeUtils.equals(this, obj);
+    if (obj == this) {
+      return true;
+    }
+
+    if (!(obj instanceof CSimpleType)) {
+      return false;
+    }
+
+    CSimpleType other = (CSimpleType) obj;
+
+    return Objects.equals(isComplex, other.isComplex) && Objects.equals(isConst, other.isConst)
+           && Objects.equals(isVolatile, other.isVolatile) && Objects.equals(isImaginary, other.isImaginary)
+           && Objects.equals(isLong, other.isLong) && Objects.equals(isLongLong, other.isLongLong)
+           && Objects.equals(isShort, other.isShort) && Objects.equals(isSigned, other.isSigned)
+           && Objects.equals(isUnsigned, other.isUnsigned) && Objects.equals(type, other.type);
   }
 
   @Override
@@ -158,5 +178,20 @@ public final class CSimpleType implements CType {
     parts.add(Strings.emptyToNull(pDeclarator));
 
     return Joiner.on(' ').skipNulls().join(parts);
+  }
+
+  @Override
+  public CSimpleType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CSimpleType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    CBasicType newType = type;
+    if (newType == CBasicType.UNSPECIFIED && (isShort || isLong || isSigned || isUnsigned || isLongLong)) {
+      newType = CBasicType.INT;
+    }
+
+    return new CSimpleType(isConst || pForceConst, isVolatile || pForceVolatile, newType, isLong, isShort, isSigned, isUnsigned, isComplex, isImaginary, isLongLong);
   }
 }

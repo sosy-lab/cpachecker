@@ -867,8 +867,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
         Long lVal = lVarInBinaryExp.accept(this);
         Long rVal = rVarInBinaryExp.accept(this);
-        if (lVal == null || rVal == null)
+        if (lVal == null || rVal == null) {
           return null;
+        }
 
         long l = lVal;
         long r = rVal;
@@ -1443,7 +1444,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       } else {
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
-        newElement.forget(missingInformationLeftJVariable);
+        if (missingInformationLeftJVariable != null) {
+          newElement.forget(missingInformationLeftJVariable);
+        }
         return Collections.singleton(newElement);
       }
     }

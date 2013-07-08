@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -159,9 +161,7 @@ public class BDDPartitionOrderer {
     public TraversalProcess visitNode(CFANode pNode) {
       int numChildren = pNode.getNumLeavingEdges();
       if (numChildren > 1) { // split-point
-        for (int i = 0; i < numChildren; i++) {
-          edges.add(pNode.getLeavingEdge(i));
-        }
+        leavingEdges(pNode).copyInto(edges);
         return TraversalProcess.SKIP;
 
       } else {

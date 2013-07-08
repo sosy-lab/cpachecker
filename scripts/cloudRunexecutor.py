@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import signal
 import sys
 import benchmark.runexecutor as runexecutor
 
@@ -59,5 +60,11 @@ def main(argv=None):
     else:
         sys.exit("Wrong number of arguments, expected exactly 4 or 5: <command> <memlimit in MB> <timelimit in s> <output file name> <core limit(optional)>")
 
+def signal_handler_kill_script(signum, frame):
+    runexecutor.killAllProcesses()
+        
 if __name__ == "__main__":
+    
+    signal.signal(signal.SIGTERM, signal_handler_kill_script)
+    
     main()

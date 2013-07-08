@@ -25,11 +25,32 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
-
+/**
+ *
+ * This class represents the class instance creation expression AST node type.
+ *
+ * ClassInstanceCreation:
+ *       [ Expression . ]
+ *           new [ < Type { , Type } > ]
+ *           Type ( [ Expression { , Expression } ] )
+ *           [ AnonymousClassDeclaration ]
+ *
+ *  The functionname is in most cases a {@link JIdExpression}.
+ *
+ *  Not all node arragements will represent legal Java constructs.
+ *  In particular, it is nonsense if the functionname does not contain a {@link JIdExpression}.
+ *
+ *
+ *
+ */
 public class JClassInstanceCreation extends JMethodInvocationExpression implements JRightHandSide {
+
+  //TODO Type Variables , AnonymousClassDeclaration
 
   public JClassInstanceCreation(FileLocation pFileLocation, JClassType pType, JExpression pFunctionName,
       List<? extends JExpression> pParameters, JConstructorDeclaration pDeclaration) {
@@ -38,6 +59,7 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
   }
 
   @Override
+  @Nullable
   public JConstructorDeclaration getDeclaration() {
     return (JConstructorDeclaration) super.getDeclaration();
   }

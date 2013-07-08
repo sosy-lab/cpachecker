@@ -32,7 +32,12 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
+/**
+ * This class represents an expression unique to the java cfa.
+ * It evauates to true, if the run time type of the expression is the same
+ * as the type Definition. Otherwise, it evaluates to false.
+ *
+ */
 public class JRunTimeTypeEqualsType extends AExpression implements JExpression {
 
   private final JRunTimeTypeExpression runTimeTypeExpression;

@@ -30,7 +30,16 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 
-
+/**
+ *  This class represents a Array initializer AST node type.
+ *
+ * ArrayInitializer:
+ *   { [ Expression { , Expression} [ , ]] }
+ *
+ * The List of initializerExpressions gives the expression
+ * the array cell is initialized with from left to right.
+ *
+ */
 public class JArrayInitializer extends AExpression implements JAstNode, JInitializer, JExpression {
 
   private final List<JExpression> initializerExpressions;

@@ -38,6 +38,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public class JFieldAccess extends JIdExpression {
 
+  //TODO Investigate if this should be refactored.
+
   private final JIdExpression qualifier;
 
   public JFieldAccess(FileLocation pFileLocation, JType pType, String pName, JFieldDeclaration pDeclaration, JIdExpression pQualifier) {

@@ -1,4 +1,5 @@
 /*
+
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
@@ -23,21 +24,27 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
-import java.util.LinkedList;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.util.Set;
 
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.EnumDeclaration;
+import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.eclipse.jdt.core.dom.IVariableBinding;
+import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
+import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.ASTConverter.ModifierBean;
+import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser.JavaFileAST;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.TypeHierarchy.THTypeTable;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
-import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
+import org.sosy_lab.cpachecker.exceptions.JParserException;
 
 /**
  * This Visitor Iterates the Compilation Unit for top-level Type Declarations,
@@ -49,37 +56,109 @@ public class TypeHierachyCreator extends ASTVisitor {
 
   private static final boolean VISIT_CHILDREN = true;
 
-  private static final boolean SUCCESSFUL = true;
+  private static final String JAVA_FILE_SUFFIX = ".java";
 
-  private static final boolean UNSUCCESSFUL = false;
+  private static final boolean SKIP_CHILDREN = false;
+
+  private static final int FIRST = 0;
 
   @SuppressWarnings("unused")
   private final LogManager logger;
+  private final THTypeTable typeTable;
+  private final TypeHierachyConverter converter;
+
+  /*
+   * FileName of File, which was parsed into the currently visited Compilation Unit.
+   */
+  private String fileOfCU;
 
 
-  private final Map<String, JClassOrInterfaceType> types;
-  private final Map<String, String> typeOfFiles;
-  private  String fileOfCU;
+
+
+
+
+  /*
+   * Used for propagating Errors due to wrong naming of files for classes.
+   *
+   */
+  private boolean classNameException = false;
+  private String className;
+  private String expectedName;
+
+
+
 
 
 /**
- * Creates the Visitor. The types are inserted in the parameter type.
- * The parameter typeOfFile stores the files a type was extracted from.
+ * Creates the Visitor. The created Types are stored in the type table.
  *
  * @param pLogger Logger logging progress.
+ * @param pTypeTable The type table of the type hierarchy, to be filled with the created types
  * @param pTypes Resulting Types are inserted in this map.
  * @param pTypeOfFiles Maps types to the files they were extracted from.
  */
-  public TypeHierachyCreator(LogManager pLogger, Map<String, JClassOrInterfaceType> pTypes, Map<String, String> pTypeOfFiles) {
+  public TypeHierachyCreator(LogManager pLogger, THTypeTable pTypeTable) {
     logger = pLogger;
-    types = pTypes;
-    typeOfFiles = pTypeOfFiles;
+    typeTable = pTypeTable;
+    converter = new TypeHierachyConverter(logger, typeTable);
+  }
+
+  public void createTypeHierachy(List<JavaFileAST> pJavaProgram) throws JParserException {
+
+    for (JavaFileAST ast : pJavaProgram) {
+      fileOfCU = ast.getFileName();
+      CompilationUnit cu = ast.getAst();
+      cu.accept(this);
+
+      if (classNameException) {
+        throw new JParserException(
+          "The top-level class " + className + " is not declared within a file " +
+              "with the expected filename " + expectedName +
+              ".\n It is instead declared in " + fileOfCU);
+      }
+    }
+  }
+
+  @Override
+  public boolean visit(MethodDeclaration pMd) {
+
+    JMethodDeclaration decl = converter.convert(pMd, fileOfCU);
+    typeTable.registerMethodDeclaration(decl);
+
+    return SKIP_CHILDREN;
+  }
+
+  @Override
+  public boolean visit(FieldDeclaration fD) {
+
+    Set<JFieldDeclaration> decl = converter.convert(fD, fileOfCU);
+
+    VariableDeclarationFragment vdf = (VariableDeclarationFragment) fD.fragments().get(FIRST);
+
+    //TODO Add declaring class to JFielddeclaration
+    IVariableBinding variableBinding = vdf.resolveBinding();
+    checkNotNull(variableBinding);
+
+    ITypeBinding typeBinding = variableBinding.getDeclaringClass();
+    checkNotNull(typeBinding);
+
+    JClassOrInterfaceType declaringClass = converter.convertClassOrInterfaceType(typeBinding);
+
+    typeTable.registerFieldDeclaration(decl, declaringClass);
+
+    return SKIP_CHILDREN;
   }
 
   @Override
   public boolean visit(EnumDeclaration node) {
 
-    handleHierachy(node.resolveBinding());
+    ITypeBinding typeBinding = node.resolveBinding();
+
+    if (typeBinding != null) {
+      JClassOrInterfaceType type = converter.convertClassOrInterfaceType(typeBinding);
+      typeTable.registerFileNameOfType(type, fileOfCU);
+    }
+
     return VISIT_CHILDREN;
   }
 
@@ -88,264 +167,30 @@ public class TypeHierachyCreator extends ASTVisitor {
 
     ITypeBinding typeBinding = node.resolveBinding();
 
-    handleHierachy(typeBinding);
-
-    return VISIT_CHILDREN;
-  }
-
-  private void handleHierachy(ITypeBinding typeBinding) {
     if (typeBinding != null) {
-      if (typeBinding.isClass() || typeBinding.isEnum()) {
 
-        JClassType type =  convertClassType(typeBinding);
+      if (typeBinding.isTopLevel()) {
 
-        if (!(typeOfFiles.containsKey(type.getName()))) {
-          typeOfFiles.put(type.getName(), fileOfCU);
-        }
+        String simpleName = node.getName().getIdentifier();
+        String expectedFilename = simpleName + JAVA_FILE_SUFFIX;
 
-        boolean doesNotexist = add(type);
+        if (!expectedFilename.equals(fileOfCU)) {
+          classNameException = true;
+          expectedName = expectedFilename;
+          className = simpleName;
 
-        if (doesNotexist) {
-
-          JClassType nextType = type;
-          boolean finished = typeBinding.getSuperclass() == null;
-          while (!finished) {
-            JClassType parentType = convertClassType(typeBinding.getSuperclass());
-            //all Parents are already added if parent type already exists
-            // just connect this to parent
-            finished = types.containsValue(parentType);
-            add(nextType, parentType);
-
-
-            ITypeBinding[] interfaces = typeBinding.getInterfaces();
-            List<JInterfaceType> implementedInterfaces = new LinkedList<>();
-
-            for (ITypeBinding interfaceBinding : interfaces) {
-              // It seems that you don't get only interfaces with getInterfaces.
-              // TODO Investigate
-              if (interfaceBinding.isInterface()) {
-                JInterfaceType interfaceType = convertInterfaceType(interfaceBinding);
-                implementedInterfaces.add(interfaceType);
-              }
-            }
-
-            add(nextType, implementedInterfaces);
-
-            typeBinding = typeBinding.getSuperclass();
-            nextType = parentType;
-            finished = finished || typeBinding.getSuperclass() == null;
-          }
-
-        }
-      } else if (typeBinding.isInterface()) {
-
-        JInterfaceType type = convertInterfaceType(typeBinding);
-
-
-        boolean doesNotExist = add(type);
-
-        if (!(typeOfFiles.containsKey(type.getName()))) {
-          typeOfFiles.put(type.getName(), fileOfCU);
-        }
-
-        if (doesNotExist) {
-
-          Queue<Pair<JInterfaceType, ITypeBinding[]>> next = new LinkedList<>();
-          next.add(Pair.of(type, typeBinding.getInterfaces()));
-
-
-          while (!next.isEmpty()) {
-
-            ITypeBinding[] superInterfacesBinding = next.peek().getSecond();
-            JInterfaceType nextType = next.poll().getFirst();
-            List<JInterfaceType> superTypes = new LinkedList<>();
-
-            for (ITypeBinding binding : superInterfacesBinding) {
-              JInterfaceType superInterface = convertInterfaceType(binding);
-              superTypes.add(superInterface);
-              next.add(Pair.of(superInterface, binding.getInterfaces()));
-            }
-
-            add(nextType, superTypes);
-          }
+          return SKIP_CHILDREN;
         }
       }
+
+      JClassOrInterfaceType type = converter.convertClassOrInterfaceType(typeBinding);
+      typeTable.registerFileNameOfType(type, fileOfCU);
     }
+
+    return !classNameException;
   }
 
-  @SuppressWarnings("unused")
-  private void add(JInterfaceType pType, List<JClassType> pKnownInterfaceImplementingClasses, List<JInterfaceType> pSubInterfaces, List<JInterfaceType> pExtendedInterfaces)  {
-
-
-    add(pType, pExtendedInterfaces);
-
-    for (JClassType subClass : pKnownInterfaceImplementingClasses) {
-
-     if (!types.containsKey(subClass.getName())) {
-       add(subClass);
-     }
-
-     pType.registerSubType(subClass);
-     subClass.registerSuperType(pType);
-
-    }
-
-    for (JInterfaceType subInterface : pSubInterfaces) {
-
-      if (!types.containsKey(subInterface.getName())) {
-        add(subInterface);
-      }
-
-      pType.registerSubType(subInterface);
-      subInterface.registerSuperType(pType);
-     }
-
-  }
-
-  private void add(JInterfaceType pType, List<JInterfaceType> pExtendedInterfaces)  {
-
-    assert pExtendedInterfaces != null;
-
-    if (!types.containsKey(pType.getName())) {
-      add(pType);
-    }
-
-
-    for (JInterfaceType extendedInterfaces : pExtendedInterfaces) {
-
-     if (!types.containsKey(extendedInterfaces.getName())) {
-       add(extendedInterfaces);
-     }
-
-
-    pType.registerSuperType(extendedInterfaces);
-    extendedInterfaces.registerSubType(pType);
-
-    }
-
-  }
-
-  private boolean add(JInterfaceType pType)  {
-
-    if (!types.containsKey(pType.getName())) {
-      types.put(pType.getName(), pType);
-      return SUCCESSFUL;
-    } else {
-      return UNSUCCESSFUL;
-    }
-
-  }
-
-  @SuppressWarnings("unused")
-  private void add(JClassType pType, JClassType pParentClass, List<JClassType> pDirectSubClasses, List<JInterfaceType> pImplementedInterfaces) {
-
-      add(pType, pParentClass, pImplementedInterfaces);
-
-      for (JClassType subClass : pDirectSubClasses) {
-
-       if (!types.containsKey(subClass.getName())) {
-         add(subClass);
-       }
-
-       pType.registerSubType(subClass);
-       subClass.registerSuperType(pType);
-
-      }
-
-   }
-
-  private void add(JClassType pType, JClassType pParentClass, List<JInterfaceType> pImplementedInterfaces) {
-    add(pType, pParentClass);
-    add(pType, pImplementedInterfaces);
-  }
-
-
-  private void add(JClassType pType, List<JInterfaceType> pImplementedInterfaces) {
-
-
-    assert pImplementedInterfaces != null;
-
-    if (!types.containsKey(pType.getName())) {
-      add(pType);
-    }
-
-
-    for (JInterfaceType implementedType : pImplementedInterfaces) {
-
-     if (!types.containsKey(implementedType.getName())) {
-       add(implementedType);
-     }
-
-     pType.registerSuperType(implementedType);
-     implementedType.registerSubType(pType);
-
-    }
-
-  }
-
-  private void add(JClassType pType, JClassType pParentClass) {
-
-    assert pParentClass != null;
-
-    if (!types.containsKey(pType.getName())) {
-     add(pType);
-    }
-
-    if (!types.containsKey(pParentClass.getName())) {
-      add(pParentClass);
-    }
-
-    pType.registerSuperType(pParentClass);
-    pParentClass.registerSubType(pType);
-
-  }
-
-  private boolean add(JClassType pType) {
-
-    if (!types.containsKey(pType.getName())) {
-      types.put(pType.getName(), pType);
-      return SUCCESSFUL;
-    } else {
-      return UNSUCCESSFUL;
-    }
-  }
-
-  private JClassType convertClassType(ITypeBinding t) {
-
-    assert t.isClass() ||t.isEnum();
-
-    String name = ASTConverter.getFullyQualifiedClassOrInterfaceName(t);
-
-    if (types.containsKey(name)) {
-      return (JClassType) types.get(name);
-    }
-
-    ModifierBean mB = ModifierBean.getModifiers(t);
-    return new JClassType(name, mB.getVisibility(), mB.isFinal(), mB.isAbstract(), mB.isStrictFp());
-   }
-
-  private JInterfaceType convertInterfaceType(ITypeBinding t) {
-
-    assert t.isInterface();
-
-    String name = ASTConverter.getFullyQualifiedClassOrInterfaceName(t);
-
-    if (types.containsKey(name)) {
-      return (JInterfaceType) types.get(name);
-    }
-
-    ModifierBean mB = ModifierBean.getModifiers(t);
-    return new JInterfaceType(ASTConverter.getFullyQualifiedClassOrInterfaceName(t), mB.getVisibility());
-
-  }
-
-  /**
-   * Sets the File this Visitor visits at the moment.
-   * Necessary to map types to files.
-   *
-   * @param fileOfCU the file the Compilation Unit was extracted from.
-   */
-  public void setFileOfCU(String fileOfCU) {
-    this.fileOfCU = fileOfCU;
+  public THTypeTable getTypeTable() {
+    return typeTable;
   }
 }

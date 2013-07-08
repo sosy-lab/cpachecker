@@ -23,22 +23,81 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
+import static com.google.common.base.Preconditions.*;
+
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
+
+import com.google.common.collect.ImmutableSet;
 
 
 public abstract class  JClassOrInterfaceType implements JReferenceType {
 
   private final VisibilityModifier visibility;
   private final String name;
+  private final String simpleName;
 
-  protected JClassOrInterfaceType(String fullyQualifiedName, final VisibilityModifier pVisibility) {
+  private final JClassOrInterfaceType enclosingType;
+  private final Set<JClassOrInterfaceType> nestedTypes = new HashSet<>();
+
+  protected JClassOrInterfaceType(String fullyQualifiedName, String pSimpleName,
+      final VisibilityModifier pVisibility) {
     name = fullyQualifiedName;
     visibility = pVisibility;
+    simpleName = pSimpleName;
+    enclosingType = null;
 
-    assert (getVisibility() != VisibilityModifier.PRIVATE) || (getVisibility() != VisibilityModifier.PROTECTED) : " Interfaces can't be private or protected";
+    checkNotNull(fullyQualifiedName);
+    checkNotNull(pSimpleName);
+    //checkArgument(fullyQualifiedName.endsWith(pSimpleName));
+
+    checkArgument((getVisibility() != VisibilityModifier.PRIVATE)
+        || (getVisibility() != VisibilityModifier.PROTECTED),
+        " Interfaces can't be private or protected");
+  }
+
+  protected JClassOrInterfaceType(String fullyQualifiedName, String pSimpleName,
+      final VisibilityModifier pVisibility,
+      JClassOrInterfaceType pEnclosingType) {
+    name = fullyQualifiedName;
+    simpleName = pSimpleName;
+    visibility = pVisibility;
+    enclosingType = pEnclosingType;
+
+
+    checkNotNull(fullyQualifiedName);
+    checkNotNull(pSimpleName);
+    checkArgument(fullyQualifiedName.endsWith(pSimpleName));
+
+    checkNotNull(pEnclosingType);
+    checkArgument((getVisibility() != VisibilityModifier.PRIVATE)
+        || (getVisibility() != VisibilityModifier.PROTECTED),
+        " Interfaces can't be private or protected");
+
+    enclosingType.notifyEnclosingTypeOfNestedType(enclosingType);
+    checkEnclosingTypeConsistency();
+  }
+
+  private void checkEnclosingTypeConsistency() {
+
+    checkArgument(!isTopLevel());
+
+    Set<JClassOrInterfaceType> found = new HashSet<>();
+
+    JClassOrInterfaceType nextEnclosingType = enclosingType;
+
+    found.add(enclosingType);
+
+    while (!nextEnclosingType.isTopLevel()) {
+      nextEnclosingType = nextEnclosingType.getEnclosingType();
+      checkArgument(!found.contains(this),
+          "Class " + getName() + " may not be a nested type of itself.");
+      found.add(nextEnclosingType);
+    }
   }
 
   @Override
@@ -57,29 +116,38 @@ public abstract class  JClassOrInterfaceType implements JReferenceType {
   @Override
   public boolean equals(Object pObj) {
 
-    return pObj instanceof JClassOrInterfaceType && ((JClassOrInterfaceType) pObj).getName().equals(name);
-  }
+    if (this == pObj) {
+      return true;
+    }
 
+    if (!(pObj instanceof JClassOrInterfaceType)) {
+      return false;
+    }
+
+    JClassOrInterfaceType otherObject = (JClassOrInterfaceType) pObj;
+
+    return otherObject.getName().equals(name);
+  }
 
   @Override
   public int hashCode() {
-    return name.hashCode();
+    int result = 5;
+    result = 31 * result + name.hashCode();
+    return result;
   }
 
   @Override
   public String toString() {
-        return name;
+    return name;
   }
 
   public List<JClassOrInterfaceType> getAllSuperTypesOfType() {
-
-    //TODO Maybe dynamic Binding of getAllSuperTypes here?
     List<JClassOrInterfaceType> result = new LinkedList<>();
 
     if (this instanceof JClassType) {
-      result.addAll(((JClassType)this).getAllSuperTypesOfClass()) ;
+      result.addAll(((JClassType) this).getAllSuperTypesOfClass());
     } else if (this instanceof JInterfaceType) {
-      result.addAll(((JInterfaceType)this).getAllSuperTypesOfInterface());
+      result.addAll(((JInterfaceType) this).getAllSuperInterfaces());
       return result;
     }
     return result;
@@ -90,14 +158,47 @@ public abstract class  JClassOrInterfaceType implements JReferenceType {
     List<JClassOrInterfaceType> result = new LinkedList<>();
 
     if (this instanceof JClassType) {
-      result.addAll(((JClassType)this).getAllSubTypesOfClass()) ;
+      result.addAll(((JClassType) this).getAllSubTypesOfClass());
     } else if (this instanceof JInterfaceType) {
-      result.addAll(((JInterfaceType)this).getAllSuperTypesOfInterface());
+      result.addAll(((JInterfaceType) this).getAllSuperInterfaces());
       return result;
     }
     return result;
   }
 
+  public JClassOrInterfaceType getEnclosingType() {
+    checkNotNull(enclosingType, "Top-level-classes do not have an enclosing type.");
+    return enclosingType;
+  }
 
+  public Set<JClassOrInterfaceType> getNestedTypes() {
+    return ImmutableSet.copyOf(nestedTypes);
+  }
 
+  public final Set<JClassOrInterfaceType> getAllEnclosingTypes() {
+
+    Set<JClassOrInterfaceType> result = new HashSet<>();
+
+    JClassOrInterfaceType nextEnclosingInstance = enclosingType;
+
+    while (!nextEnclosingInstance.isTopLevel()) {
+      result.add(nextEnclosingInstance);
+      nextEnclosingInstance = nextEnclosingInstance.getEnclosingType();
+    }
+
+    return result;
+  }
+
+  public boolean isTopLevel() {
+    return enclosingType == null;
+  }
+
+  private void notifyEnclosingTypeOfNestedType(JClassOrInterfaceType nestedType) {
+    checkArgument(!nestedTypes.contains(nestedType));
+    nestedTypes.add(nestedType);
+  }
+
+  public String getSimpleName() {
+    return simpleName;
+  }
 }

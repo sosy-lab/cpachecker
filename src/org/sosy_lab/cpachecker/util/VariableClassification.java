@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+
 import java.io.IOException;
 import java.io.Writer;
 import java.math.BigInteger;
@@ -330,8 +332,7 @@ public class VariableClassification {
   private void collectVars() {
     Collection<CFANode> nodes = cfa.getAllNodes();
     for (CFANode node : nodes) {
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFAEdge edge = node.getLeavingEdge(i);
+      for (CFAEdge edge : leavingEdges(node)) {
         handleEdge(edge);
       }
     }
@@ -878,8 +879,16 @@ public class VariableClassification {
 
       case EQUALS:
       case NOT_EQUALS: // ==, != work with boolean operands
-        operand1.putAll(operand2);
-        return operand1;
+        if (operand1.isEmpty() || operand2.isEmpty()) {
+          // one operand is Zero (or One, if allowed)
+          operand1.putAll(operand2);
+          return operand1;
+        }
+        // We compare 2 variables. There is no guarantee, that they are boolean!
+        // Example: (a!=b) && (b!=c) && (c!=a)
+        // -> FALSE for boolean, but TRUE for {1,2,3}
+
+        //$FALL-THROUGH$
 
       default: // +-*/ --> no boolean operators, a+b --> a and b are not boolean
         nonBooleanVars.putAll(operand1);
