@@ -191,7 +191,8 @@ class FunctionScope implements Scope {
     vars.put(name, declaration);
   }
 
-  public void registerTypeDeclaration(CComplexTypeDeclaration declaration) {
+  @Override
+  public boolean registerTypeDeclaration(CComplexTypeDeclaration declaration) {
     checkArgument(declaration.getName() == null);
 
     String typeName = declaration.getType().getQualifiedName();
@@ -201,6 +202,7 @@ class FunctionScope implements Scope {
     }
 
     typesStack.peekLast().put(typeName, declaration);
+    return true;
   }
 
   public String getCurrentFunctionName() {

@@ -263,6 +263,14 @@ class ASTConverter {
     return tmp;
   }
 
+  private CComplexTypeDeclaration addSideEffectDeclarationForType(CCompositeType type, FileLocation loc) {
+    CComplexTypeDeclaration decl = new CComplexTypeDeclaration(loc, scope.isGlobalScope(), type);
+
+    scope.registerTypeDeclaration(decl);
+    preSideAssignments.add(decl);
+    return decl;
+  }
+
   /**
    * Create an expression for the "1" literal that is used for example when
    * replacing "x++" with "x = x + 1";
@@ -976,6 +984,14 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unsupported storage class inside composite type", d);
     }
     CType type = specifier.getSecond();
+
+    if (type instanceof CCompositeType) {
+      // Nested struct declaration
+      CCompositeType compositeType = (CCompositeType)type;
+      addSideEffectDeclarationForType(compositeType, convert(d.getFileLocation()));
+      type = new CElaboratedType(compositeType.isConst(), compositeType.isVolatile(),
+          compositeType.getKind(), compositeType.getName(), compositeType);
+    }
 
     List<CCompositeTypeMemberDeclaration> result;
     IASTDeclarator[] declarators = sd.getDeclarators();

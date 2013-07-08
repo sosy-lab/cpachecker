@@ -45,6 +45,7 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -189,12 +190,21 @@ class CFABuilder extends ASTVisitor {
     final List<CDeclaration> newDs = astCreator.convert(sd);
     assert !newDs.isEmpty();
 
-    if (!astCreator.getAndResetPreSideAssignments().isEmpty()
+    if (!astCreator.getAndResetConditionalExpressions().isEmpty()
         || !astCreator.getAndResetPostSideAssignments().isEmpty()) {
       throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
     }
 
     String rawSignature = sd.getRawSignature();
+
+    for (CAstNode astNode : astCreator.getAndResetPreSideAssignments()) {
+      if (astNode instanceof CComplexTypeDeclaration) {
+        // already registered
+        globalDeclarations.add(Pair.of((IADeclaration)astNode, rawSignature));
+      } else {
+        throw new CFAGenerationRuntimeException("Initializer of global variable has side effect", sd);
+      }
+    }
 
     for (CDeclaration newD : newDs) {
       boolean used = true;
