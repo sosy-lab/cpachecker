@@ -86,10 +86,12 @@ public class CallstackPccState implements AbstractState, Partitionable, Abstract
 
   @Override
   public boolean equals(Object pOther) {
-    if (this == pOther)
+    if (this == pOther) {
       return true;
-    if (pOther == null)
+    }
+    if (pOther == null) {
       return false;
+    }
     if(pOther instanceof CallstackPccState){
       CallstackPccState other = (CallstackPccState) pOther;
       if (other.callerNode == callerNode

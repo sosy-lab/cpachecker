@@ -204,38 +204,43 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
              if (!elementStr.equals("0") && !elementStr.isEmpty()) {
                int elem = Integer.parseInt(elementStr);
                String predName = "";
-               if (elem > 0)
-                 predName = predicates.get(elem);
-               else
-                 predName = predicates.get(-elem);
+               if (elem > 0) {
+                predName = predicates.get(elem);
+              } else {
+                predName = predicates.get(-elem);
+              }
                int ssaIndex = ssa.getIndex(predName);
                BooleanFormula constraintPart = null;
                if (ssaIndex != -1) {
                  // this variable was already declared in the program
                  Formula formulaVar = conv.fmgr.makeVariable(conv.getFormulaTypeFromCType(ssa.getType(predName)), predName, ssaIndex);
-                 if (elem > 0)
-                   constraintPart = conv.fmgr.makeNot(conv.fmgr.makeEqual(formulaVar, zero)); // C semantics (x) <=> (x!=0)
-                 else
-                   constraintPart = conv.fmgr.makeEqual(formulaVar, zero);
+                 if (elem > 0) {
+                  constraintPart = conv.fmgr.makeNot(conv.fmgr.makeEqual(formulaVar, zero)); // C semantics (x) <=> (x!=0)
+                } else {
+                  constraintPart = conv.fmgr.makeEqual(formulaVar, zero);
+                }
                } else {
                  // var was not declared in the program
                  // get a new SMT-var for it (i have to pass a ssa index, choosing 1)
                  BooleanFormula formulaVar = conv.fmgr.makeVariable(FormulaType.BooleanType, predName, 1);
-                 if (elem > 0)
-                   constraintPart = formulaVar;
-                 else
-                   constraintPart = conv.bfmgr.not(formulaVar);
+                 if (elem > 0) {
+                  constraintPart = formulaVar;
+                } else {
+                  constraintPart = conv.bfmgr.not(formulaVar);
+                }
                }
-               if (constraint == null)
-                 constraint = constraintPart;
-               else
-                 constraint = conv.bfmgr.or(constraint, constraintPart);
+               if (constraint == null) {
+                constraint = constraintPart;
+              } else {
+                constraint = conv.bfmgr.or(constraint, constraintPart);
+              }
              }
            }
-           if (externalModel == null)
-             externalModel = constraint;
-           else
-             externalModel = conv.bfmgr.and(externalModel, constraint);
+           if (externalModel == null) {
+            externalModel = constraint;
+          } else {
+            externalModel = conv.bfmgr.and(externalModel, constraint);
+          }
          }
        }// end of while
       return externalModel;

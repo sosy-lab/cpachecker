@@ -51,16 +51,18 @@ public class SingleValueChecker implements PropertyChecker {
   public boolean satisfiesProperty(AbstractState pElemToCheck) throws UnsupportedOperationException {
     // check if value correctly specified at location
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
-    if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(labelLocVarVal))
+    if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(labelLocVarVal)) {
       if (AbstractStates.extractStateByType(pElemToCheck, ExplicitState.class).getValueFor(varValName) != varVal) { return false; }
+    }
     return true;
   }
 
   @Override
   public boolean satisfiesProperty(Collection<AbstractState> pCertificate) {
     for (AbstractState elem : pCertificate) {
-      if (!satisfiesProperty(elem))
+      if (!satisfiesProperty(elem)) {
         return false;
+      }
     }
     return true;
   }

@@ -143,20 +143,26 @@ public class SMGEdgeHasValue extends SMGEdge {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (!super.equals(obj))
+    }
+    if (!super.equals(obj)) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
     SMGEdgeHasValue other = (SMGEdgeHasValue) obj;
-    if (offset != other.offset)
+    if (offset != other.offset) {
       return false;
+    }
     if (type == null) {
-      if (other.type != null)
+      if (other.type != null) {
         return false;
-     } else if (!type.getCanonicalType().equals(other.type.getCanonicalType()))
+      }
+    } else if (!type.getCanonicalType().equals(other.type.getCanonicalType())) {
       return false;
+    }
     return true;
   }
 }

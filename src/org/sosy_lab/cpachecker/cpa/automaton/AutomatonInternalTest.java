@@ -111,25 +111,79 @@ public class AutomatonInternalTest {
     AutomatonBoolExpr myTrue= AutomatonBoolExpr.TRUE;
     AutomatonBoolExpr myFalse= AutomatonBoolExpr.FALSE;
 
-    ex = new AutomatonBoolExpr.And(myTrue, myTrue); if (!ex.eval(args).getValue().equals(Boolean.TRUE)) Assert.fail();
-    ex = new AutomatonBoolExpr.And(myTrue, myFalse); if (!ex.eval(args).getValue().equals(Boolean.FALSE)) Assert.fail();
-    ex = new AutomatonBoolExpr.And(myTrue, cannot); if (!ex.eval(args).canNotEvaluate()) Assert.fail();
-    ex = new AutomatonBoolExpr.And(myFalse, myTrue); if (!ex.eval(args).getValue().equals(Boolean.FALSE)) Assert.fail();
-    ex = new AutomatonBoolExpr.And(myFalse, myFalse); if (!ex.eval(args).getValue().equals(Boolean.FALSE)) Assert.fail();
-    ex = new AutomatonBoolExpr.And(myFalse, cannot); if (!ex.eval(args).getValue().equals(Boolean.FALSE)) Assert.fail();
-    ex = new AutomatonBoolExpr.And(cannot, myTrue); if (!ex.eval(args).canNotEvaluate()) Assert.fail();
-    ex = new AutomatonBoolExpr.And(cannot, myFalse); if (!ex.eval(args).getValue().equals(Boolean.FALSE)) Assert.fail();
-    ex = new AutomatonBoolExpr.And(cannot, cannot); if (!ex.eval(args).canNotEvaluate()) Assert.fail();
+    ex = new AutomatonBoolExpr.And(myTrue, myTrue);
+    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.And(myTrue, myFalse);
+    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.And(myTrue, cannot);
+    if (!ex.eval(args).canNotEvaluate()) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.And(myFalse, myTrue);
+    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.And(myFalse, myFalse);
+    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.And(myFalse, cannot);
+    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.And(cannot, myTrue);
+    if (!ex.eval(args).canNotEvaluate()) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.And(cannot, myFalse);
+    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.And(cannot, cannot);
+    if (!ex.eval(args).canNotEvaluate()) {
+      Assert.fail();
+    }
 
-    ex = new AutomatonBoolExpr.Or(myTrue, myTrue); if (!ex.eval(args).getValue().equals(Boolean.TRUE)) Assert.fail();
-    ex = new AutomatonBoolExpr.Or(myTrue, myFalse); if (!ex.eval(args).getValue().equals(Boolean.TRUE)) Assert.fail();
-    ex = new AutomatonBoolExpr.Or(myTrue, cannot); if (!ex.eval(args).getValue().equals(Boolean.TRUE)) Assert.fail();
-    ex = new AutomatonBoolExpr.Or(myFalse, myTrue); if (!ex.eval(args).getValue().equals(Boolean.TRUE)) Assert.fail();
-    ex = new AutomatonBoolExpr.Or(myFalse, myFalse); if (!ex.eval(args).getValue().equals(Boolean.FALSE)) Assert.fail();
-    ex = new AutomatonBoolExpr.Or(myFalse, cannot); if (!ex.eval(args).canNotEvaluate()) Assert.fail();
-    ex = new AutomatonBoolExpr.Or(cannot, myTrue); if (!ex.eval(args).getValue().equals(Boolean.TRUE)) Assert.fail();
-    ex = new AutomatonBoolExpr.Or(cannot, myFalse); if (!ex.eval(args).canNotEvaluate()) Assert.fail();
-    ex = new AutomatonBoolExpr.Or(cannot, cannot); if (!ex.eval(args).canNotEvaluate()) Assert.fail();
+    ex = new AutomatonBoolExpr.Or(myTrue, myTrue);
+    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.Or(myTrue, myFalse);
+    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.Or(myTrue, cannot);
+    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.Or(myFalse, myTrue);
+    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.Or(myFalse, myFalse);
+    if (!ex.eval(args).getValue().equals(Boolean.FALSE)) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.Or(myFalse, cannot);
+    if (!ex.eval(args).canNotEvaluate()) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.Or(cannot, myTrue);
+    if (!ex.eval(args).getValue().equals(Boolean.TRUE)) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.Or(cannot, myFalse);
+    if (!ex.eval(args).canNotEvaluate()) {
+      Assert.fail();
+    }
+    ex = new AutomatonBoolExpr.Or(cannot, cannot);
+    if (!ex.eval(args).canNotEvaluate()) {
+      Assert.fail();
+    }
 
   }
 

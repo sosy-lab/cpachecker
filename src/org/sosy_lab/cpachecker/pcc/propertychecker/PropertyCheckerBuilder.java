@@ -71,12 +71,13 @@ public class PropertyCheckerBuilder {
       Constructor<?> constructor = null;
       for (Constructor<?> con : cons) {
         paramTypes = con.getParameterTypes();
-        if (paramTypes.length != param.length)
+        if (paramTypes.length != param.length) {
           continue;
-        else {
+        } else {
           for (Class<?> paramType : paramTypes) {
-            if (paramType != String.class)
+            if (paramType != String.class) {
               continue;
+            }
           }
         }
         constructor = con;

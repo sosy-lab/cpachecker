@@ -161,9 +161,10 @@ public class CoreComponentsFactory {
       }
 
       if (usePropertyCheckingAlgorithm) {
-        if (!(cpa instanceof PropertyCheckerCPA))
+        if (!(cpa instanceof PropertyCheckerCPA)) {
           throw new InvalidConfigurationException(
               "Property checking algorithm requires CPAWithPropertyChecker as Top CPA");
+        }
         algorithm =
             new AlgorithmWithPropertyCheck(algorithm, logger, (PropertyCheckerCPA) cpa);
       }

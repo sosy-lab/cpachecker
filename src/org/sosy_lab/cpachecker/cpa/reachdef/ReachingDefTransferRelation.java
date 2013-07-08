@@ -79,11 +79,13 @@ public class ReachingDefTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision,
       CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
-    if (pCfaEdge != null)
+    if (pCfaEdge != null) {
       return getAbstractSuccessors0(pState, pPrecision, pCfaEdge);
+    }
     CFANode[] nodes = ReachingDefUtils.getAllNodesFromCFA();
-    if (nodes == null)
+    if (nodes == null) {
       throw new CPATransferException("CPA not properly initialized.");
+    }
     Vector<AbstractState> successors = new Vector<>();
     Vector<CFAEdge> definitions = new Vector<>();
     CFAEdge cfaedge;
@@ -119,8 +121,9 @@ public class ReachingDefTransferRelation implements TransferRelation {
     if (pCfaEdge == null) { throw new CPATransferException(
         "Expected an edge along which the successors should be computed"); }
 
-    if (pState == ReachingDefState.topElement)
+    if (pState == ReachingDefState.topElement) {
       return Collections.singleton(pState);
+    }
 
     ReachingDefState result;
 
@@ -200,11 +203,13 @@ public class ReachingDefTransferRelation implements TransferRelation {
     VariableExtractor varExtractor = new VariableExtractor(edge);
     varExtractor.resetWarning();
     String var = left.accept(varExtractor);
-    if (varExtractor.getWarning() != null)
+    if (varExtractor.getWarning() != null) {
       logger.log(Level.WARNING, varExtractor.getWarning());
+    }
 
-    if (var == null)
+    if (var == null) {
       return pState;
+    }
 
     logger.log(Level.FINE, "Edge provided a new definition of variable ", var, ". Update reaching definition.");
     if (pState.getGlobalReachingDefinitions().containsKey(var)) {

@@ -949,8 +949,9 @@ public class ExplicitTransferRelation implements TransferRelation {
 
         Long lVal = ((JExpression)lVarInBinaryExp).accept(this);
         Long rVal = ((JExpression)rVarInBinaryExp).accept(this);
-        if (lVal == null || rVal == null)
+        if (lVal == null || rVal == null) {
           return null;
+        }
 
         long l = lVal;
         long r = rVal;

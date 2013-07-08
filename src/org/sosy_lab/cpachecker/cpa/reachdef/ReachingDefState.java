@@ -122,10 +122,12 @@ public class ReachingDefState implements AbstractState, Serializable {
   }
 
   public boolean isSubsetOf(ReachingDefState superset) {
-    if (superset == this || superset == topElement)
+    if (superset == this || superset == topElement) {
       return true;
-    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall && !compareStackStates(this, superset))
+    }
+    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall && !compareStackStates(this, superset)) {
       return false;
+    }
     boolean isLocalSubset;
     isLocalSubset = isSubsetOf(localReachDefs, superset.localReachDefs);
     return isLocalSubset && isSubsetOf(globalReachDefs, superset.globalReachDefs);
@@ -134,8 +136,9 @@ public class ReachingDefState implements AbstractState, Serializable {
   private boolean compareStackStates(ReachingDefState sub, ReachingDefState sup){
     boolean result;
     do {
-      if (sub.stateOnLastFunctionCall == null || sup.stateOnLastFunctionCall == null)
+      if (sub.stateOnLastFunctionCall == null || sup.stateOnLastFunctionCall == null) {
         return false;
+      }
       result = isSubsetOf(sub.getLocalReachingDefinitions(), sup.getLocalReachingDefinitions());
       result = result && isSubsetOf(sub.getGlobalReachingDefinitions(), sup.getGlobalReachingDefinitions());
       sub = sub.stateOnLastFunctionCall;
@@ -146,14 +149,18 @@ public class ReachingDefState implements AbstractState, Serializable {
 
   private boolean isSubsetOf(Map<String, Set<DefinitionPoint>> subset, Map<String, Set<DefinitionPoint>> superset) {
     Set<DefinitionPoint> setSub, setSuper;
-    if (subset == superset || superset == topElement)
+    if (subset == superset || superset == topElement) {
       return true;
+    }
     for (String var : subset.keySet()) {
       setSub = subset.get(var);
       setSuper = superset.get(var);
-      if(setSub == setSuper) continue;
-      if (setSuper == null || Sets.intersection(setSub, setSuper).size()!=setSub.size())
+      if(setSub == setSuper) {
+        continue;
+      }
+      if (setSuper == null || Sets.intersection(setSub, setSuper).size()!=setSub.size()) {
         return false;
+      }
     }
     return true;
   }
@@ -162,14 +169,17 @@ public class ReachingDefState implements AbstractState, Serializable {
     Map<String, Set<DefinitionPoint>> newLocal = null;
     boolean changed = false;
     ReachingDefState lastFunctionCall = stateOnLastFunctionCall;
-    if (toJoin == this)
+    if (toJoin == this) {
       return this;
-    if (toJoin == topElement || this == topElement)
+    }
+    if (toJoin == topElement || this == topElement) {
       return topElement;
+    }
     if (stateOnLastFunctionCall != toJoin.stateOnLastFunctionCall) {
       lastFunctionCall = mergeStackStates(stateOnLastFunctionCall, toJoin.stateOnLastFunctionCall);
-      if (lastFunctionCall == topElement)
+      if (lastFunctionCall == topElement) {
         return topElement;
+      }
       if (lastFunctionCall != stateOnLastFunctionCall) {
         changed = true;
       }
@@ -200,8 +210,9 @@ public class ReachingDefState implements AbstractState, Serializable {
   private ReachingDefState mergeStackStates(ReachingDefState e1, ReachingDefState e2) {
     Vector<ReachingDefState> statesToMerge = new Vector<>();
     do {
-      if (e1.stateOnLastFunctionCall == null || e2.stateOnLastFunctionCall == null)
+      if (e1.stateOnLastFunctionCall == null || e2.stateOnLastFunctionCall == null) {
         return topElement;
+      }
       statesToMerge.add(e1);
       statesToMerge.add(e2);
       e1 = e1.stateOnLastFunctionCall;
@@ -233,7 +244,9 @@ public class ReachingDefState implements AbstractState, Serializable {
     Map<String, Set<DefinitionPoint>> newMap = new HashMap<>();
     // every declared local variable of a function, global variable occurs in respective map, possibly undefined
     assert (map1.keySet().equals(map2.keySet()));
-    if(map1==map2) return map1;
+    if(map1==map2) {
+      return map1;
+    }
     Set<DefinitionPoint> unionResult;
     boolean changed = false;
     for (String var : map1.keySet()) {
@@ -376,23 +389,30 @@ public class ReachingDefState implements AbstractState, Serializable {
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj)
+      if (this == obj) {
         return true;
-      if (obj == null)
+      }
+      if (obj == null) {
         return false;
-      if (getClass() != obj.getClass())
+      }
+      if (getClass() != obj.getClass()) {
         return false;
+      }
       ProgramDefinitionPoint other = (ProgramDefinitionPoint) obj;
       if (entry == null) {
-        if (other.entry != null)
+        if (other.entry != null) {
           return false;
-      } else if (!entry.equals(other.entry))
+        }
+      } else if (!entry.equals(other.entry)) {
         return false;
+      }
       if (exit == null) {
-        if (other.exit != null)
+        if (other.exit != null) {
           return false;
-      } else if (!exit.equals(other.exit))
+        }
+      } else if (!exit.equals(other.exit)) {
         return false;
+      }
       return true;
     }
 
