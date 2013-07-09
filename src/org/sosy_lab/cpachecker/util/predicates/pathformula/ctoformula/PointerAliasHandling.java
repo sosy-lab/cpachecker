@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 
@@ -858,7 +859,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
 
     if (!(lExpr instanceof CUnaryExpression)) {
       // NOTE: rightVariable is only the changed field, set it to the complete bitvector
-      rightVariable = conv.replaceField((CFieldReference) lExpr, lPtrVar, rightVariable);
+      rightVariable = conv.replaceField((CFieldReference) lExpr, lPtrVar, Optional.of(rightVariable));
 
       // We can't make a pointermask from the right side.
       doDeepUpdate = false;

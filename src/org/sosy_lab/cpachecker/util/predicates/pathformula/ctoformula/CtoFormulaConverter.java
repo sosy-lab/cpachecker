@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -107,6 +108,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CFie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.CtoFormulaSizeofVisitor;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -1463,52 +1465,48 @@ public class CtoFormulaConverter {
     return accessField(msb_Lsb, (BitvectorFormula)f);
   }
 
-  private Formula replaceField(Pair<Integer, Integer> msb_Lsb, Formula f, Formula newField) {
-
-    assert efmgr.getLength((BitvectorFormula) newField) == msb_Lsb.getFirst() + 1 - msb_Lsb.getSecond()
-        : "The new formula has not the right size";
-
-    assert handleFieldAccess : "Fieldaccess if only allowed with handleFieldAccess";
-
-    Pair<Formula, Formula> pre_after = getPreAfterFormulas(f, msb_Lsb);
-
-    return fmgr.makeConcat(ImmutableList.of(pre_after.getFirst(), newField, pre_after.getSecond()));
-  }
-
-  Formula replaceField(CFieldReference fExp, Formula pLVar, Formula pRightVariable) {
-    Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
-
-    return replaceField(msb_Lsb, pLVar, pRightVariable);
-  }
-
-
   /**
-   * Returns the given struct but without the bits indicated by the given
-   * CFieldReference.
+   * Return the bitvector for a struct with the bits for one field replaced
+   * by another bitvector, or left out completely.
+   * @param fExp The field of the struct to replace.
+   * @param pLVar The full struct.
+   * @param pRightVariable The replacement bitvector, or nothing.
+   * @return If pRightVariable is present, a formula of the same size as pLVar, but with some bits replaced.
+   * If pRightVariable is not present, a formula that is smaller then pLVar (with the field bits missing).
    */
-  Formula withoutField(CFieldReference fExp, Formula f) {
+  Formula replaceField(CFieldReference fExp, Formula pLVar, Optional<Formula> pRightVariable) {
     assert handleFieldAccess : "Fieldaccess if only allowed with handleFieldAccess";
-    Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
-    Pair<Formula, Formula> pre_after = getPreAfterFormulas(f, msb_Lsb);
-    return fmgr.makeConcat(pre_after.getFirst(), pre_after.getSecond());
-  }
 
-  private Pair<Formula, Formula> getPreAfterFormulas(Formula f, Pair<Integer, Integer> msb_Lsb) {
-    int size = efmgr.getLength((BitvectorFormula) f);
-    assert size > msb_Lsb.getFirst() : "f is too small";
+    Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
+
+    int size = efmgr.getLength((BitvectorFormula) pLVar);
+    assert size > msb_Lsb.getFirst() : "pLVar is too small";
     assert 0 <= msb_Lsb.getSecond() && msb_Lsb.getFirst() >= msb_Lsb.getSecond() : "msb_Lsb is invalid";
 
-    Formula pre = efmgr.makeBitvector(0, 0);
+    // create a list with three formulas:
+    // - prefix of struct (before the field)
+    // - the replaced field
+    // - suffix of struct (after the field)
+    List<Formula> parts = new ArrayList<>(3);
+
     if (msb_Lsb.getFirst() + 1 < size) {
-      pre = fmgr.makeExtract(f, size - 1, msb_Lsb.getFirst() + 1);
-    }
-    Formula after = efmgr.makeBitvector(0, 0);
-    if (msb_Lsb.getSecond() > 0) {
-      after = fmgr.makeExtract(f, msb_Lsb.getSecond() - 1, 0);
+      parts.add(fmgr.makeExtract(pLVar, size - 1, msb_Lsb.getFirst() + 1));
     }
 
-    Pair<Formula, Formula> pre_after = Pair.of(pre, after);
-    return pre_after;
+    if (pRightVariable.isPresent()) {
+      assert efmgr.getLength((BitvectorFormula) pRightVariable.get()) == msb_Lsb.getFirst() + 1 - msb_Lsb.getSecond() : "The new formula has not the right size";
+      parts.add(pRightVariable.get());
+    }
+
+    if (msb_Lsb.getSecond() > 0) {
+      parts.add(fmgr.makeExtract(pLVar, msb_Lsb.getSecond() - 1, 0));
+    }
+
+    if (parts.isEmpty()) {
+      // struct with no other fields, return empty bitvector
+      return efmgr.makeBitvector(0, 0);
+    }
+    return fmgr.makeConcat(parts);
   }
 
   /**
