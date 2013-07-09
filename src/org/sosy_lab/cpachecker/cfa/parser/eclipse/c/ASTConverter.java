@@ -176,7 +176,7 @@ class ASTConverter {
     config.inject(this);
     scope = pScope;
     logger = pLogger;
-    typeConverter = new ASTTypeConverter(scope);
+    typeConverter = new ASTTypeConverter(scope, this);
     literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
   }
 
