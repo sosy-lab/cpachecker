@@ -74,6 +74,9 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   @Option(description="restrict abstractions to assume edges")
   private boolean alwaysAtAssumes = false;
 
+  @Option(description="restrict abstractions to join points")
+  private boolean alwaysAtJoins = false;
+
   private final ImmutableSet<CFANode> loopHeads;
 
   // statistics
@@ -220,6 +223,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
   private ExplicitState enforceAbstraction(ExplicitState state, LocationState location, ExplicitPrecision precision) {
     if (abstractAtEachLocation()
         || abstractAtAssumes(location)
+        || abstractAtJoins(location)
         || abstractAtFunction(location)
         || abstractAtLoopHead(location)) {
       state = precision.computeAbstraction(state, location.getLocationNode());
@@ -236,7 +240,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    * @return true, if an abstraction should be computed at each location, else false
    */
   private boolean abstractAtEachLocation() {
-    return !alwaysAtAssumes && !alwaysAtFunctions && !alwaysAtLoops;
+    return !alwaysAtAssumes && !alwaysAtJoins && !alwaysAtFunctions && !alwaysAtLoops;
   }
 
   /**
@@ -248,6 +252,16 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
    */
   private boolean abstractAtAssumes(LocationState location) {
     return alwaysAtAssumes && location.getLocationNode().getEnteringEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge;
+  }
+
+  /**
+   * This method determines whether or not to abstract before a join point.
+   *
+   * @param location the current location
+   * @return true, if at the current location an abstraction shall be computed, else false
+   */
+  private boolean abstractAtJoins(LocationState location) {
+    return alwaysAtJoins && location.getLocationNode().getNumEnteringEdges() > 1;
   }
 
   /**
