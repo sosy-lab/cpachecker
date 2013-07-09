@@ -160,7 +160,7 @@ public final class CElaboratedType implements CComplexType {
     if (realType == null) {
       return new CElaboratedType(isConst || pForceConst, isVolatile || pForceVolatile, kind, name, null);
     } else {
-      return realType.getCanonicalType();
+      return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
     }
   }
 }
