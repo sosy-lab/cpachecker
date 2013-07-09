@@ -447,10 +447,8 @@ public class CtoFormulaConverter {
             "Variable " + name + " used with types of different sizes! " +
                 "(Type1: " + t + ", Type2: " + type + ")");
       } else {
-        log(Level.WARNING,
-            "Variable " + name + " was found with multiple types!"
-                + " Analysis with bitvectors could fail! "
-                + "(Type1: " + t + ", Type2: " + type + ")");
+        logger.logf(Level.FINEST, "Variable %s was found with multiple types!"
+                + " (Type1: %s, Type2: %s)", name, t, type);
       }
     }
   }
@@ -1246,10 +1244,8 @@ public class CtoFormulaConverter {
     CType expType = funcCallExp.getExpressionType();
     if (!areEqual(expType, retType)) {
       // Bit ignore for now because we sometimes just get ElaboratedType instead of CompositeType
-      log(
-          Level.SEVERE,
-          "Returntype and ExpressionType are not equal: "
-              + expType.toString() +  ", " + retType.toString());
+      log(Level.WARNING, getLogMessage("Return type of function " + funcDecl.getName()
+          + " is " + retType + ", but result is used as type " + expType, edge));
     }
     return expType;
   }

@@ -106,9 +106,17 @@ class PointerAliasHandling extends CtoFormulaConverter {
       // lookup in ssa map: Maybe we assigned a size to this current variable
       CType savedVarType = ssa.getType(ptrMask.getName());
       if (savedVarType != null) {
+
+        //assert isDereferenceType(savedVarType)
+        //    : "The savedVar should also be a DereferenceType!";
+
+        // The previous assertion would have failed if
+        // we previously had a real type for this variable.
+        // This should not happen in correct code,
+        // but may occur for example when a function pointer
+        // with mismatching return type is called.
+
         ptrMask = ptrMask.withType(savedVarType);
-        assert isDereferenceType(savedVarType)
-            : "The savedVar should also be a DereferenceType!";
       }
     }
     return ptrMask;
