@@ -1498,7 +1498,7 @@ def executeBenchmarkInCloud(benchmark):
                 stdoutFile = run.logFile + ".stdOut"
                 (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
                 
-                if(run.sourcefil in runToHostMap):
+                if(run.sourcefile in runToHostMap):
                     run.host = runToHostMap[run.sourcefile]
 
                 if returnValue is not None:
