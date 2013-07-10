@@ -1439,7 +1439,7 @@ def executeBenchmarkInCloud(benchmark):
         
     #os.path.commonprefix works on charakters not on the file system
     if(baseDir[-1]!='/'):
-        basDir = os.path.split(basDir)[0];
+        baseDir = os.path.split(baseDir)[0];
      
     numOfRunDefLinesAndPriorityStr = str(numOfRunDefLines)
     if(config.cloudPriority):
