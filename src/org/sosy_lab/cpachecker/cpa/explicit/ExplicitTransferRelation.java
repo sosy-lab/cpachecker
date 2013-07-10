@@ -1444,7 +1444,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       } else {
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
-        if (missingInformationLeftJVariable != null) {
+        if (missingInformationLeftJVariable != null) { // TODO why check this???
           newElement.forget(missingInformationLeftJVariable);
         }
         return Collections.singleton(newElement);
