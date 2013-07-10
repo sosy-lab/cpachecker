@@ -444,11 +444,26 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
+  protected static boolean isGlobal(final IAExpression exp) {
+    if (exp instanceof CExpression) {
+      return isGlobal((CExpression) exp);
+    } else if (exp instanceof JExpression) {
+      return isGlobal((JExpression) exp);
+    } else {
+      throw new AssertionError("unknown expression: " + exp);
+    }
+  }
+
   protected static boolean isGlobal(final CExpression exp) {
     if (exp instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
       if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
     }
+    return false;
+  }
+
+  protected static boolean isGlobal(final JExpression exp) {
+    // TODO what is 'global' in Java?
     return false;
   }
 
