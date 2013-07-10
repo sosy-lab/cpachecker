@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
 import javax.annotation.Nullable;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.bdd.BDDPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitCPA;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChecker;
@@ -215,6 +217,11 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     UnmodifiableReachedSet reachedSet   = reached.asReachedSet();
     Precision precision                 = reachedSet.getPrecision(reachedSet.getLastState());
     ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
+    BDDPrecision bddPrecision           = Precisions.extractPrecisionByType(precision, BDDPrecision.class);
+
+    ArrayList<Precision> precisions = new ArrayList<>(2);
+    ArrayList<Precision> refinedPrecisions = new ArrayList<>(2);
+    ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(2);
 
     ExplicitPrecision refinedExplicitPrecision;
     Pair<ARGState, CFAEdge> interpolationPoint;
@@ -228,11 +235,24 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       Multimap<CFANode, String> increment = interpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
 
       interpolationPoint        = interpolatingRefiner.determineInterpolationPoint(errorPath, increment);
+
+      //      if (explicitPrecision != null) { // TODO ExplicitRefiner without ExplicitPresicion, possible?
       refinedExplicitPrecision  = new ExplicitPrecision(explicitPrecision, increment);
+      precisions.add(explicitPrecision);
+      refinedPrecisions.add(refinedExplicitPrecision);
+      newPrecisionTypes.add(ExplicitPrecision.class);
+      //      }
+
+      if (bddPrecision != null) {
+        BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
+        precisions.add(bddPrecision);
+        refinedPrecisions.add(refinedBDDPrecision);
+        newPrecisionTypes.add(BDDPrecision.class);
+      }
     }
 
     if (refinementSuccessful(errorPath, explicitPrecision, refinedExplicitPrecision)) {
-      reached.removeSubtree(interpolationPoint.getFirst(), refinedExplicitPrecision, ExplicitPrecision.class);
+      reached.removeSubtree(interpolationPoint.getFirst(), refinedPrecisions, newPrecisionTypes);
       return true;
     }
     else {
