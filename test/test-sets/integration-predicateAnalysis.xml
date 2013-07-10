@@ -16,11 +16,6 @@
       <includesfile>integration-DeviceDrivers64.set</includesfile>
       <option name="-64"/>
     </sourcefiles>
-    <sourcefiles>
-      <includesfile>../programs/simple/simple.set</includesfile>
-      <option name="-setprop">cpa.predicate.ignoreCasts=false</option>
-      <option name="-setprop">cpa.predicate.replaceBitvectorWithRationalAndFunctionTheory=false</option>
-    </sourcefiles>
     <option name="-noout"/>
     <option name="-predicateAnalysis"/>
     <option name="-heap">2000M</option>

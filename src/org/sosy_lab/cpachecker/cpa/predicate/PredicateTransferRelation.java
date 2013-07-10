@@ -349,11 +349,6 @@ public class PredicateTransferRelation implements TransferRelation {
         }
         abstractionCheckTimer.stop();
       } else {
-
-        if (pCfaEdge.getSuccessor().isLoopStart()) { throw new CPATransferException(
-            "Currently proof checking only supports ARG with abstraction at loop start.");
-
-        }
         // check abstraction
         abstractionCheckTimer.start();
         if (!successor.getAbstractionFormula().equals(predicateElement.getAbstractionFormula())) {

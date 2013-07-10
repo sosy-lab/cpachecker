@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.io.IOException;
 import java.util.AbstractCollection;
@@ -107,10 +108,7 @@ public class ARGUtils {
     // that edge is not important so we pick the first even
     // if there are more outgoing edges
     CFANode loc = extractLocation(currentARGState);
-    CFAEdge lastEdge = null;
-    if (loc.getNumLeavingEdges() > 0) {
-      lastEdge = loc.getLeavingEdge(0);
-    }
+    CFAEdge lastEdge = leavingEdges(loc).first().orNull();
     path.addFirst(Pair.of(currentARGState, lastEdge));
     seenElements.add(currentARGState);
 
@@ -273,10 +271,7 @@ public class ARGUtils {
 
     // need to add another pair with target state and one (arbitrary) outgoing edge
     CFANode loc = extractLocation(currentElement);
-    CFAEdge lastEdge = null;
-    if (loc.getNumLeavingEdges() > 0) {
-      lastEdge = loc.getLeavingEdge(0);
-    }
+    CFAEdge lastEdge = leavingEdges(loc).first().orNull();
     result.add(Pair.of(currentElement, lastEdge));
 
     return result;

@@ -28,6 +28,7 @@ import static com.google.common.collect.Iterables.transform;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -109,8 +110,6 @@ public final class CEnumType implements CComplexType {
 
   public static final class CEnumerator extends ASimpleDeclarations implements CSimpleDeclaration {
 
-    private static final CType INT_TYPE = new CSimpleType(true, false, CBasicType.INT, false, false, true, false, false, false, false);
-
     private final Long           value;
     private CEnumType             enumType;
     private final String         qualifiedName;
@@ -118,7 +117,7 @@ public final class CEnumType implements CComplexType {
     public CEnumerator(final FileLocation pFileLocation,
                           final String pName, final String pQualifiedName,
         final Long pValue) {
-      super(pFileLocation, INT_TYPE, pName);
+      super(pFileLocation, CNumericTypes.SIGNED_INT, pName);
 
       checkNotNull(pName);
       value = pValue;
@@ -130,6 +129,33 @@ public final class CEnumType implements CComplexType {
      */
     public CEnumType getEnum() {
       return enumType;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+
+      if (!(obj instanceof CEnumerator) || !super.equals(obj)) {
+        return false;
+      }
+
+      CEnumerator other = (CEnumerator) obj;
+
+      return (value == other.value) && (qualifiedName.equals(other.qualifiedName))
+             && (enumType == other.enumType);
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(value);
+      result = prime * result + Objects.hashCode(enumType);
+      result = prime * result + Objects.hashCode(qualifiedName);
+      result = prime * result + super.hashCode();
+      return result ;
     }
 
     /**
@@ -177,8 +203,34 @@ public final class CEnumType implements CComplexType {
     throw new UnsupportedOperationException("Do not use hashCode of CType");
   }
 
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
   @Override
   public boolean equals(Object obj) {
-    return CTypeUtils.equals(this, obj);
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CEnumType)) {
+      return false;
+    }
+
+    CEnumType other = (CEnumType) obj;
+
+    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
+           && Objects.equals(name, other.name) && Objects.equals(enumerators, other.enumerators);
+  }
+
+  @Override
+  public CEnumType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CEnumType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return new CEnumType(isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name);
   }
 }

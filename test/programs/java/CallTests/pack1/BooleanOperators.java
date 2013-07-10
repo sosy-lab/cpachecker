@@ -4,7 +4,7 @@ package pack1;
 
 import pack3.*;
 
-public class DynamicBindingCall  {
+public class BooleanOperators  {
   
   public static void main(String[] args){
       

@@ -66,8 +66,9 @@ public class AlgorithmWithPropertyCheck implements Algorithm, StatisticsProvider
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if(analysis instanceof StatisticsProvider)
+    if (analysis instanceof StatisticsProvider) {
       ((StatisticsProvider) analysis).collectStatistics(pStatsCollection);
+    }
   }
 
 }

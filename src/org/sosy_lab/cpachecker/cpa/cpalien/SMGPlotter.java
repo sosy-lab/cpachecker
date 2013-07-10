@@ -38,7 +38,7 @@ public final class SMGPlotter {
 
   public SMGPlotter() {} /* utility class */
 
-  private String convertToValidDot(String original){
+  private String convertToValidDot(String original) {
     return original.replaceAll("[:]", "_");
   }
 
@@ -160,7 +160,7 @@ public final class SMGPlotter {
   private String smgObjectAsDot(SMGObject pObject, boolean pValidity) {
     String shape;
     String color;
-    if (pValidity){
+    if (pValidity) {
       shape="rectangle"; color="black";
     } else {
       shape="doubleoctagon"; color="red";

@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -67,7 +64,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -89,6 +85,8 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownT
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+
+import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.functionpointer")
 class FunctionPointerTransferRelation implements TransferRelation {
@@ -139,33 +137,11 @@ class FunctionPointerTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
 
     final FunctionPointerState oldState = (FunctionPointerState)pElement;
-    Collection<FunctionPointerState> results;
-
-    if (pCfaEdge == null) {
-      CFANode node = extractLocation(oldState);
-      results = new ArrayList<>(node.getNumLeavingEdges());
-
-      for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
-        CFAEdge edge = node.getLeavingEdge(edgeIdx);
-        getAbstractSuccessorForEdge(oldState, pPrecision, edge, results);
-      }
-
-    } else {
-      results = new ArrayList<>(1);
-      getAbstractSuccessorForEdge(oldState, pPrecision, pCfaEdge, results);
-
-    }
-    return results;
-  }
-
-  private void getAbstractSuccessorForEdge(
-      FunctionPointerState oldState, Precision pPrecision, CFAEdge pCfaEdge, Collection<FunctionPointerState> results)
-      throws CPATransferException, InterruptedException {
 
     //check assumptions about function pointers, like p == &h, where p is a function pointer, h  is a function
     if (!shouldGoByEdge(oldState, pCfaEdge)) {
       //should not go by the edge
-      return;//results is a empty set
+      return ImmutableSet.of();//results is a empty set
     }
 
     // print warning if we go by the default edge of a function pointer call
@@ -189,11 +165,9 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
     // now handle the edge
     FunctionPointerState.Builder newState = oldState.createBuilder();
-    newState = handleEdge(newState, pCfaEdge);
+    handleEdge(newState, pCfaEdge);
 
-    if (newState != null) {
-      results.add(newState.build());
-    }
+    return ImmutableSet.of(newState.build());
   }
 
   private boolean shouldGoByEdge(FunctionPointerState oldState, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
@@ -324,7 +298,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
     }
   }
 
-  private FunctionPointerState.Builder handleEdge(FunctionPointerState.Builder newState, CFAEdge pCfaEdge) throws CPATransferException {
+  private void handleEdge(final FunctionPointerState.Builder newState, CFAEdge pCfaEdge) throws CPATransferException {
 
     switch (pCfaEdge.getEdgeType()) {
 
@@ -373,7 +347,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
 
       case MultiEdge: {
         for (CFAEdge currentEdge : ((MultiEdge)pCfaEdge).getEdges()) {
-          newState = handleEdge(newState, currentEdge);
+          handleEdge(newState, currentEdge);
         }
         break;
       }
@@ -381,8 +355,6 @@ class FunctionPointerTransferRelation implements TransferRelation {
       default:
         throw new UnrecognizedCFAEdgeException(pCfaEdge);
     }
-
-    return newState;
   }
 
   private void handleDeclaration(FunctionPointerState.Builder pNewState, CDeclarationEdge declEdge) throws UnrecognizedCCodeException {

@@ -26,7 +26,20 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-
+/**
+ * This class represents the assignment expression AST node type.
+ *
+ *
+ * Assignment:
+ *   Expression = Expression
+ *
+ * Note that the assignment operator is always '='. All assignment expressions
+ * are transformed into an assignment with '=' and a {@link JBinaryExpression}.
+ *
+ * Note also, that the expressions have to be side-effect free.
+ *
+ *
+ */
 public class JExpressionAssignmentStatement extends AExpressionAssignmentStatement implements JAssignment, JStatement {
 
   public JExpressionAssignmentStatement(FileLocation pFileLocation, JExpression pLeftHandSide,

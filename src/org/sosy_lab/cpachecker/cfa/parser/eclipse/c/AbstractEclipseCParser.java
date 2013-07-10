@@ -43,6 +43,8 @@ import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -69,9 +71,13 @@ abstract class AbstractEclipseCParser<T> implements CParser {
   private final Timer parseTimer = new Timer();
   private final Timer cfaTimer = new Timer();
 
-  protected AbstractEclipseCParser(LogManager pLogger, Dialect dialect, MachineModel pMachine) {
+  private final Configuration config;
+
+  protected AbstractEclipseCParser(Configuration config, LogManager pLogger, Dialect dialect, MachineModel pMachine) {
     logger = pLogger;
     machine = pMachine;
+
+    this.config = config;
 
     switch (dialect) {
     case C99:
@@ -90,19 +96,19 @@ abstract class AbstractEclipseCParser<T> implements CParser {
   protected abstract T wrapFile(String pFilename) throws IOException;
 
   @Override
-  public ParseResult parseFile(String pFilename) throws CParserException, IOException {
+  public ParseResult parseFile(String pFilename) throws CParserException, IOException, InvalidConfigurationException {
 
     return buildCFA(parse(wrapFile(pFilename)));
   }
 
   @Override
-  public ParseResult parseString(String pCode) throws CParserException {
+  public ParseResult parseString(String pCode) throws CParserException, InvalidConfigurationException {
 
     return buildCFA(parse(wrapCode(pCode)));
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode) throws CParserException {
+  public CAstNode parseSingleStatement(String pCode) throws CParserException, InvalidConfigurationException {
 
     // parse
     IASTTranslationUnit ast = parse(wrapCode(pCode));
@@ -126,7 +132,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
       throw new CParserException("Not exactly one statement in function body: " + body);
     }
 
-    return new ASTConverter(new FunctionScope(), logger, machine).convert(statements[0]);
+    return new ASTConverter(config, new FunctionScope(), logger, machine).convert(statements[0]);
   }
 
   protected static final int PARSER_OPTIONS =
@@ -164,10 +170,10 @@ abstract class AbstractEclipseCParser<T> implements CParser {
 
   protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws CParserException, CFAGenerationRuntimeException, CoreException;
 
-  private ParseResult buildCFA(IASTTranslationUnit ast) throws CParserException {
+  private ParseResult buildCFA(IASTTranslationUnit ast) throws CParserException, InvalidConfigurationException {
     cfaTimer.start();
     try {
-      CFABuilder builder = new CFABuilder(logger, machine);
+      CFABuilder builder = new CFABuilder(config, logger, machine);
       try {
         ast.accept(builder);
       } catch (CFAGenerationRuntimeException e) {

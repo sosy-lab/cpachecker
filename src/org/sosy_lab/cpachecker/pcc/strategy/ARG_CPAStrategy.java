@@ -66,15 +66,17 @@ public class ARG_CPAStrategy extends AbstractStrategy {
 
   @Override
   public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
-    if (correctReachedSetFormatForProof(pReached))
+    if (correctReachedSetFormatForProof(pReached)) {
       root = (ARGState) pReached.getFirstState();
+    }
   }
 
   @Override
   public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     StopOperator stop = cpa.getWrappedCPAs().get(0).getStopOperator();
-    if (!singleCheck)
+    if (!singleCheck) {
       visitedStates = new Vector<>();
+    }
 
     logger.log(Level.INFO, "Proof check algorithm started");
 
@@ -96,10 +98,11 @@ public class ARG_CPAStrategy extends AbstractStrategy {
 
       stats.countIterations++;
       ARGState state = (ARGState) pReachedSet.popFromWaitlist();
-      if (!singleCheck)
+      if (!singleCheck) {
         visitedStates.add(root);
-      else
+      } else {
         cpa.getPropChecker().satisfiesProperty(state);
+      }
 
       logger.log(Level.FINE, "Looking at state", state);
 
@@ -147,8 +150,9 @@ public class ARG_CPAStrategy extends AbstractStrategy {
         stats.transferTimer.stop();
       }
     }
-    if (!singleCheck)
+    if (!singleCheck) {
       return cpa.getPropChecker().satisfiesProperty(visitedStates);
+    }
     return true;
   }
 
@@ -183,9 +187,15 @@ public class ARG_CPAStrategy extends AbstractStrategy {
 
   @Override
   protected void prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
-    if (!(pReadProof instanceof ARGState))
+    try {
+    stats.preparationTimer.start();
+    if (!(pReadProof instanceof ARGState)) {
       throw new InvalidConfigurationException("Proof Strategy requires ARG.");
+    }
     root = (ARGState) pReadProof;
+    } finally {
+      stats.preparationTimer.stop();
+    }
   }
 
 }

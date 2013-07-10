@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -101,8 +103,7 @@ public class ARGTransferRelation implements TransferRelation {
     }
 
     CFANode loc = AbstractStates.extractLocation(element);
-    for (int i = 0; i < loc.getNumLeavingEdges(); ++i) {
-      CFAEdge edge = loc.getLeavingEdge(i);
+    for (CFAEdge edge : leavingEdges(loc)) {
       if (!wrappedProofChecker.areAbstractSuccessors(wrappedState, edge, wrappedSuccessors.get(edge))) {
         return false;
       }

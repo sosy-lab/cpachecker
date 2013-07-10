@@ -145,7 +145,7 @@ class OctState implements AbstractState {
 
   public void assignConstant(String pVariableName, long pLongValue) {
 
-    if (pVariableName.contains("NONDET") || pVariableName.contains("NONDET")){
+    if (pVariableName.contains("NONDET") || pVariableName.contains("NONDET")) {
       forget(pVariableName);
     }
 
@@ -191,7 +191,7 @@ class OctState implements AbstractState {
 
   public void assignVariable(String pLeftVarName, String pRightVarName, int coef) {
 
-    if (pLeftVarName.contains("NONDET") || pRightVarName.contains("NONDET")){
+    if (pLeftVarName.contains("NONDET") || pRightVarName.contains("NONDET")) {
       forget(pLeftVarName);
     }
 
@@ -224,7 +224,7 @@ class OctState implements AbstractState {
 
     if (pAssignedVar.contains("NONDET") ||
         (pLeftVarName != null && pLeftVarName.contains("NONDET")) ||
-        (pRightVarName != null && pRightVarName.contains("NONDET"))){
+        (pRightVarName != null && pRightVarName.contains("NONDET"))) {
       forget(pAssignedVar);
     } else {
       if (pLeftVarName == null) {

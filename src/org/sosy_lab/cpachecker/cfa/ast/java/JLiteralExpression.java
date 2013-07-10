@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-
+/**
+ * Abstract interface representing literal expressions.
+ * E.g. {@link JIntegerLiteralExpression}, {@link JStringLiteralExpression}.
+ */
 public interface JLiteralExpression extends JExpression {
 
 }

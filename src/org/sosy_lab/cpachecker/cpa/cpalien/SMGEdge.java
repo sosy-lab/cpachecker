@@ -53,20 +53,26 @@ public abstract class SMGEdge {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
     SMGEdge other = (SMGEdge) obj;
     if (object == null) {
-      if (other.object != null)
+      if (other.object != null) {
         return false;
-    } else if (!object.equals(other.object))
+      }
+    } else if (!object.equals(other.object)) {
       return false;
-    if (value != other.value)
+    }
+    if (value != other.value) {
       return false;
+    }
     return true;
   }
 }

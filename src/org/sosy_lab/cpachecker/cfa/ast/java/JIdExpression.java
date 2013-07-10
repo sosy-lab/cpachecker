@@ -23,20 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
+/**
+ * Class for expressions that represent names of declared constructs.
+ * ( e.g. variables, names of methods in Invocation).
+ *
+ * If possible, it saves a reference to the declaration this name references.
+ *
+ */
 public class JIdExpression extends AIdExpression implements JExpression {
 
   public JIdExpression(FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName, pDeclaration);
-    // TODO check if code is necessary (it was already commented out before adding the todo)
+    // TODO Refactor, so we do not need null for declaration.
+    // (Insert extra classes or objects for unresolvable declarations)
     //assert pDeclaration != null;
   }
 
   @Override
+  @Nullable
   public JSimpleDeclaration getDeclaration() {
     return (JSimpleDeclaration) super.getDeclaration();
   }

@@ -76,12 +76,15 @@ import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -155,11 +158,11 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private boolean encounteredAsm = false;
 
-  public CFAFunctionBuilder(LogManager pLogger, FunctionScope pScope, MachineModel pMachine) {
+  public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope, MachineModel pMachine) throws InvalidConfigurationException {
 
     logger = pLogger;
     scope = pScope;
-    astCreator = new ASTConverter(pScope, pLogger, pMachine);
+    astCreator = new ASTConverter(config, pScope, pLogger, pMachine);
     checkBinding = new CheckBindingVisitor(pLogger);
 
     shouldVisitDeclarations = true;
@@ -281,6 +284,8 @@ class CFAFunctionBuilder extends ASTVisitor {
           init.accept(checkBinding);
         }
 
+      } else if (newD instanceof CComplexTypeDeclaration) {
+        scope.registerTypeDeclaration((CComplexTypeDeclaration)newD);
       } else {
         assert !(newD instanceof CFunctionDeclaration) : "Function declaration inside function";
       }
@@ -1634,7 +1639,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // as a gnu c extension allows omitting the second operand and the implicitly adds the first operand
     // as the second also, this is checked here
-    if(condExp.getPositiveResultExpression() == null) {
+    if (condExp.getPositiveResultExpression() == null) {
       createEdgesForTernaryOperatorBranch(condExp.getLogicalConditionExpression(), lastNode, filelocStart, thenNode, tempVar);
     } else {
       createEdgesForTernaryOperatorBranch(condExp.getPositiveResultExpression(), lastNode, filelocStart, thenNode, tempVar);

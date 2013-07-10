@@ -106,9 +106,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       CFAEdge currentEdge = errorPath.get(i).getSecond();
 
       if (currentEdge instanceof BlankEdge) {
-	    // add the current interpolant to the increment
-    	for (String variableName : currentInterpolant.keySet()) {
-    	  increment.put(currentEdge.getSuccessor(), variableName);
+        // add the current interpolant to the increment
+        for (String variableName : currentInterpolant.keySet()) {
+          increment.put(currentEdge.getSuccessor(), variableName);
         }
         continue;
       }
@@ -187,7 +187,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     // if doing lazy abstraction, use the node closest to the root node where new information is present
     if (doLazyAbstraction) {
       // try to find a more suitable cut-off point when cut-off is an assume edge, and this should be avoided
-      if(avoidAssumes && cutOffIsAssumeEdge(errorPath)) {
+      if (avoidAssumes && cutOffIsAssumeEdge(errorPath)) {
         HashSet<String> values = new HashSet<>(increment.values());
 
         for (Pair<ARGState, CFAEdge> currentElement : Lists.reverse(errorPath.subList(0, interpolationOffset - 1))) {
@@ -196,7 +196,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
           switch (currentElement.getSecond().getEdgeType()) {
             case StatementEdge:
             case DeclarationEdge:
-              if(isAssigningEdge(currentEdge, values)) {
+              if (isAssigningEdge(currentEdge, values)) {
                 return errorPath.get(errorPath.indexOf(currentElement) + 1);
               }
               break;
@@ -242,12 +242,12 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * @return true, if any of the given variables is assigned in the given edge
    */
   private boolean isAssigningEdge(CFAEdge currentEdge, Set<String> variableNames) {
-    if(currentEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+    if (currentEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       IAStatement statement = ((AStatementEdge)currentEdge).getStatement();
 
       if (statement instanceof IAssignment) {
         IAExpression assignedVariable = ((IAssignment)statement).getLeftHandSide();
-        if((assignedVariable instanceof AIdExpression) && variableNames.contains(((AIdExpression)assignedVariable).getName())) {
+        if ((assignedVariable instanceof AIdExpression) && variableNames.contains(((AIdExpression)assignedVariable).getName())) {
           return true;
         }
       }
@@ -255,9 +255,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
     else if (currentEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       ADeclarationEdge declEdge = ((ADeclarationEdge)currentEdge);
-      if(declEdge.getDeclaration() instanceof CVariableDeclaration) {
+      if (declEdge.getDeclaration() instanceof CVariableDeclaration) {
         String declaredVariable = ((CVariableDeclaration)declEdge.getDeclaration()).getQualifiedName();
-        if(variableNames.contains(declaredVariable)) {
+        if (variableNames.contains(declaredVariable)) {
           return true;
         }
       }

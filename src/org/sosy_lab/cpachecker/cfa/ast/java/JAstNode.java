@@ -25,7 +25,10 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 
-
+/**
+ * Interface for all AST Nodes of the Java AST.
+ * All classes representing Java AST Nodes have to implement this interface.
+ */
 public interface JAstNode extends IAstNode {
 
 }

@@ -77,12 +77,37 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
-/** This Transfer Relation forwards the method 'getAbstractSuccessors()'
- * to all edge-specific sub-methods ('AssumeEdge', 'DeclarationEdge', ...).
+/** This Transfer-Relation forwards the method 'getAbstractSuccessors()'
+ * to an edge-specific sub-methods ('AssumeEdge', 'DeclarationEdge', ...).
  * It handles all casting of the edges and their information.
  * There is always an abstract method, that calls either the matching
  * C- or Java-Methods, depending on the type of the edge.
- * A developer should override the methods to get a valid analysis. */
+ * A developer should override the methods to get a valid analysis.
+ *
+ * The following structure shows the control-flow (work-flow) of this class.
+ *
+ * The tuple (C,J) represents the call of C- or Java-specific methods.
+ * A user can either override the method itself, or the C- or Java-specific method.
+ * If a C- or Java-specific method is called, but not overridden, it throws an assertion.
+ *
+ * 1. setInfo
+ * 2. preCheck
+ *
+ * 3. getAbstractSuccessors:
+ *   - handleAssumption -> C,J
+ *   - handleFunctionCallEdge -> C,J
+ *   - handleFunctionReturnEdge -> C,J
+ *   - handleMultiEdge
+ *   - handleSimpleEdge:
+ *     -- handleDeclarationEdge -> C,J
+ *     -- handleStatementEdge -> C,J
+ *     -- handleReturnStatementEdge -> C,J
+ *     -- handleBlankEdge
+ *     -- handleFunctionSummaryEdge
+ *
+ * 4. postProcessing
+ * 5. resetInfo
+ */
 public abstract class ForwardingTransferRelation<S extends AbstractState, P extends Precision>
     implements TransferRelation {
 
@@ -119,7 +144,7 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
 
   @Override
   public Collection<S> getAbstractSuccessors(
-      AbstractState abstractState, Precision abstractPrecision, CFAEdge cfaEdge)
+      final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException {
 
     setInfo(abstractState, abstractPrecision, cfaEdge);
@@ -174,7 +199,8 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
 
 
   @SuppressWarnings("unchecked")
-  protected void setInfo(AbstractState abstractState, Precision abstractPrecision, CFAEdge cfaEdge) {
+  protected void setInfo(final AbstractState abstractState,
+      final Precision abstractPrecision, final CFAEdge cfaEdge) {
     edge = cfaEdge;
     state = (S) abstractState;
     precision = (P) abstractPrecision;
@@ -208,7 +234,7 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
       // this is a statement edge, which leads the function to the
       // last node of its CFA, where return edge is from that last node
       // to the return site of the caller function
-      AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
+      final AReturnStatementEdge returnEdge = (AReturnStatementEdge) cfaEdge;
       return handleReturnStatementEdge(returnEdge, returnEdge.getExpression());
 
     case BlankEdge:
@@ -224,7 +250,7 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
 
   /** This method just forwards the handling to every inner edge. */
   protected S handleMultiEdge(MultiEdge cfaEdge) throws CPATransferException {
-    for (CFAEdge innerEdge : cfaEdge) {
+    for (final CFAEdge innerEdge : cfaEdge) {
       state = handleSimpleEdge(innerEdge);
     }
     return state;
@@ -418,11 +444,26 @@ public abstract class ForwardingTransferRelation<S extends AbstractState, P exte
     throw new AssertionError(NOT_IMPLEMENTED);
   }
 
+  protected static boolean isGlobal(final IAExpression exp) {
+    if (exp instanceof CExpression) {
+      return isGlobal((CExpression) exp);
+    } else if (exp instanceof JExpression) {
+      return isGlobal((JExpression) exp);
+    } else {
+      throw new AssertionError("unknown expression: " + exp);
+    }
+  }
+
   protected static boolean isGlobal(final CExpression exp) {
     if (exp instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
       if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
     }
+    return false;
+  }
+
+  protected static boolean isGlobal(final JExpression exp) {
+    // TODO what is 'global' in Java?
     return false;
   }
 

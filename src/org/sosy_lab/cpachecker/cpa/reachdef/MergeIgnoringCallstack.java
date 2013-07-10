@@ -63,17 +63,19 @@ public class MergeIgnoringCallstack implements MergeOperator{
 
     HashSet<DefinitionPoint> unionResult;
     boolean changed = false;
-    if(map1 == map2) return map2;
+    if (map1 == map2) {
+      return map2;
+    }
     for (String var : vars) {
       // decrease merge time, avoid building union if unnecessary
-      if(map1.get(var)== map2.get(var)){
+      if (map1.get(var)== map2.get(var)) {
         newMap.put(var, map2.get(var));
         continue;
       }
 
-      if(map1.get(var)==null){
+      if (map1.get(var)==null) {
         newMap.put(var, map2.get(var));
-      } else if(map2.get(var)==null){
+      } else if(map2.get(var)==null) {
         newMap.put(var, map1.get(var));
         changed = true;
       }else{

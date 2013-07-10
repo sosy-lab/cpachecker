@@ -34,6 +34,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -81,14 +82,14 @@ class AutomatonASTComparator {
   private static final String NUMBERED_JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Num";
   private static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");
 
-  static ASTMatcher generatePatternAST(String pPattern, CParser parser) throws InvalidAutomatonException {
+  static ASTMatcher generatePatternAST(String pPattern, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException {
     // $?-Jokers, $1-Jokers and function declaration
     String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
 
     return parse(tmp, parser).accept(ASTMatcherGenerator.INSTANCE);
   }
 
-  static CStatement generateSourceAST(String pSource, CParser parser) throws InvalidAutomatonException {
+  static CStatement generateSourceAST(String pSource, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException {
     String tmp = addFunctionDeclaration(pSource);
 
     return parse(tmp, parser);
@@ -135,8 +136,9 @@ class AutomatonASTComparator {
    * @param code The C code to parse.
    * @return The AST.
    * @throws InvalidAutomatonException
+   * @throws InvalidConfigurationException
    */
-  private static CStatement parse(String code, CParser parser) throws InvalidAutomatonException {
+  private static CStatement parse(String code, CParser parser) throws InvalidAutomatonException, InvalidConfigurationException {
     try {
       CAstNode statement = parser.parseSingleStatement(code);
       if (!(statement instanceof CStatement)) {

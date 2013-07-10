@@ -26,7 +26,13 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-
+/**
+ *  This class represents the return statement AST node type.
+ *
+ *  ReturnStatement:
+ *   return [ Expression ] ;
+ *
+ */
 public class JReturnStatement extends AReturnStatement implements JAstNode {
 
   public JReturnStatement(FileLocation pFileLocation, JExpression pExpression) {

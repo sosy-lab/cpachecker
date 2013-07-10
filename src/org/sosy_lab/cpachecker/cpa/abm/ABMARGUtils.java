@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.abm;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.util.Deque;
 import java.util.HashMap;
@@ -99,8 +100,7 @@ class ABMARGUtils {
   }
 
   public static CFAEdge getEdgeTo(CFANode node1, CFANode node2) {
-    for (int i = 0; i < node1.getNumLeavingEdges(); i++) {
-      CFAEdge edge = node1.getLeavingEdge(i);
+    for (CFAEdge edge : leavingEdges(node1)) {
       if (edge.getSuccessor() == node2) {
         return edge;
       }

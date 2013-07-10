@@ -55,7 +55,7 @@ public interface CParser extends Parser {
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
   @Override
-  ParseResult parseFile(String filename) throws CParserException, IOException;
+  ParseResult parseFile(String filename) throws CParserException, IOException, InvalidConfigurationException;
 
   /**
    * Parse the content of a String into a CFA.
@@ -65,7 +65,7 @@ public interface CParser extends Parser {
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
   @Override
-  ParseResult parseString(String code) throws CParserException;
+  ParseResult parseString(String code) throws CParserException, InvalidConfigurationException;
 
   /**
    * Method for parsing a string that contains exactly one function with exactly
@@ -84,7 +84,7 @@ public interface CParser extends Parser {
    * @return The AST for the statement.
    * @throws ParserException If parsing fails.
    */
-  CAstNode parseSingleStatement(String code) throws CParserException;
+  CAstNode parseSingleStatement(String code) throws CParserException, InvalidConfigurationException;
 
   /**
    * Enum for clients of this class to choose the C dialect the parser uses.
@@ -121,8 +121,8 @@ public interface CParser extends Parser {
       return new ParserOptions();
     }
 
-    public static CParser getParser(LogManager logger, ParserOptions options, MachineModel machine) {
-      return EclipseParsers.getCParser(logger, options.dialect, machine);
+    public static CParser getParser(Configuration config, LogManager logger, ParserOptions options, MachineModel machine) {
+      return EclipseParsers.getCParser(config, logger, options.dialect, machine);
     }
   }
 }
