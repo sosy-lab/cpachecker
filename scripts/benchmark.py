@@ -236,6 +236,8 @@ class Benchmark:
                                         )
             self.requirements = Requirements.merge(self.requirements, requirements)
 
+        self.requirements = Requirements.mergeWithLimits(self.requirements, self.rlimits)
+
         # get benchmarks
         self.runSets = []
         i = 1
@@ -584,6 +586,19 @@ class Requirements:
         return cls(r1._cpuModel if r1._cpuModel is not None else r2._cpuModel,
                    r1._cpuCores or r2._cpuCores,
                    r1._memory or r2._memory)
+        
+    @classmethod
+    def mergeWithLimits(cls, r, l):
+        _cpuModel = r._cpuModel
+        _cpuCores = r._cpuCores
+        _memory = r._memory
+        
+        if(_cpuCores is None and CORELIMIT in l):
+            _cpuCores = l[CORELIMIT]
+        if(_memory is None and MEMLIMIT in l):
+            _memory = l[MEMLIMIT]
+
+        return cls(_cpuModel, _cpuCores, _memory)
 
     def __repr__(self):
         return "%s(%r)" % (self.__class__, self.__dict__)
@@ -1424,7 +1439,7 @@ def executeBenchmarkInCloud(benchmark):
         
     #os.path.commonprefix works on charakters not on the file system
     if(baseDir[-1]!='/'):
-        basDir = os.path.split(basDir)[0];
+        baseDir = os.path.split(baseDir)[0];
      
     numOfRunDefLinesAndPriorityStr = str(numOfRunDefLines)
     if(config.cloudPriority):
@@ -1482,7 +1497,9 @@ def executeBenchmarkInCloud(benchmark):
             try:
                 stdoutFile = run.logFile + ".stdOut"
                 (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
-                run.host = runToHostMap[run.sourcefile]
+                
+                if(run.sourcefile in runToHostMap):
+                    run.host = runToHostMap[run.sourcefile]
 
                 if returnValue is not None:
                     # Do not delete stdOut file if there was some problem

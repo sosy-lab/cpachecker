@@ -500,6 +500,9 @@ cpa.explicit.blk.alwaysAtAssumes = false
 # restrict abstractions to function calls/returns
 cpa.explicit.blk.alwaysAtFunctions = false
 
+# restrict abstractions to join points
+cpa.explicit.blk.alwaysAtJoins = false
+
 # restrict abstractions to loop heads
 cpa.explicit.blk.alwaysAtLoops = false
 

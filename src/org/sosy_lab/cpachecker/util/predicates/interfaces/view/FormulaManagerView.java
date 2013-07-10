@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -477,6 +477,7 @@ public class FormulaManagerView {
   }
 
   public <T extends Formula> T makeConcat(List<T> formulas) {
+    checkArgument(!formulas.isEmpty());
     T conc = null;
     for (T t : formulas) {
       if (conc == null) {

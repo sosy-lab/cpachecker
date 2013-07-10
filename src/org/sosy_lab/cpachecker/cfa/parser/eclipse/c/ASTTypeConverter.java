@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
@@ -78,9 +79,11 @@ import com.google.common.collect.Maps;
 class ASTTypeConverter {
 
   private final Scope scope;
+  private final ASTConverter converter;
 
-  ASTTypeConverter(Scope pScope) {
+  ASTTypeConverter(Scope pScope, ASTConverter pConverter) {
     scope = pScope;
+    converter = pConverter;
   }
 
   /** cache for all ITypes, so that they don't have to be parsed again and again
@@ -279,7 +282,11 @@ class ASTTypeConverter {
     if (v != null && v.numericalValue() != null) {
       length = new CIntegerLiteralExpression(null, CNumericTypes.INT, BigInteger.valueOf(v.numericalValue()));
     } else {
-      // TODO handle cases like int[x] by converting t.getArraySizeExpression()
+      try {
+        length = converter.convertExpressionWithoutSideEffects(t.getArraySizeExpression());
+      } catch (DOMException e) {
+        throw new CFAGenerationRuntimeException(e);
+      }
     }
     return new CArrayType(t.isConst(), t.isVolatile(), convert(t.getType()), length);
   }
