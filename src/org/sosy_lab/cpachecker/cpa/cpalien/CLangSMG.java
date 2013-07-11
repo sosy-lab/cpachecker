@@ -43,12 +43,6 @@ import com.google.common.collect.Sets;
  * Extending SMG with notions specific for programs in C language:
  *  - separation of global, heap and stack objects
  *  - null object and value
- *
- * TODO: [RUNTIME-CONSISTENCY-CHECKS]
- *       Implement configurable consistency checking on various places:
- *  - none
- *  - on interesting places
- *  - on every operation (=debug)
  */
 public class CLangSMG extends SMG {
   /**
