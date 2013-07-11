@@ -27,6 +27,7 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -102,6 +103,11 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     Multimap<CFANode, String> increment   = HashMultimap.create();
     interpolationOffset                   = -1;
 
+    List<CFAEdge> cfaTrace = Lists.newArrayList();
+    for(Pair<ARGState, CFAEdge> elem : errorPath) {
+      cfaTrace.add(elem.getSecond());
+    }
+
     for (int i = 0; i < errorPath.size(); i++) {
       CFAEdge currentEdge = errorPath.get(i).getSecond();
 
@@ -119,7 +125,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       // do interpolation
       Map<String, Long> inputInterpolant = new HashMap<>(currentInterpolant);
       try {
-        Set<Pair<String, Long>> interpolant = interpolator.deriveInterpolant(errorPath, i, inputInterpolant);
+        Set<Pair<String, Long>> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant);
         numberOfInterpolations += interpolator.getNumberOfInterpolations();
 
         // early stop once we are past the first statement that made a path feasible for the first time
