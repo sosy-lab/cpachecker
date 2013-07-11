@@ -71,6 +71,8 @@ public class CLangSMG extends SMG {
    */
   private boolean has_leaks = false;
 
+  static private LogManager logger = null;
+
   /**
    * A flag setting if the class should perform additional consistency checks.
    * It should be useful only during debugging, when is should find bad
@@ -79,8 +81,9 @@ public class CLangSMG extends SMG {
    */
   static private boolean perform_checks = false;
 
-  static public void setPerformChecks(boolean pSetting) {
+  static public void setPerformChecks(boolean pSetting, LogManager logger) {
     CLangSMG.perform_checks = pSetting;
+    CLangSMG.logger = logger;
   }
 
   static public boolean performChecks() {

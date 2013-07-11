@@ -66,7 +66,7 @@ public class CLangSMGTest {
     when(functionType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
 
     sf = new CLangStackFrame(functionDeclaration, MachineModel.LINUX64);
-    CLangSMG.setPerformChecks(true);
+    CLangSMG.setPerformChecks(true, logger);
   }
 
   @Test
@@ -218,7 +218,7 @@ public class CLangSMGTest {
 
   @Test
   public void CLangSMGaddHeapObjectTwiceWithoutChecksTest() {
-    CLangSMG.setPerformChecks(false);
+    CLangSMG.setPerformChecks(false, logger);
     CLangSMG smg = getNewCLangSMG64();
     SMGObject obj = new SMGObject(8, "label");
 

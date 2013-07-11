@@ -93,10 +93,10 @@ public class SMGState implements AbstractQueryableState {
   final public void setRuntimeCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
     runtimeCheckLevel = pLevel;
     if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.HALF)) {
-      CLangSMG.setPerformChecks(true);
+      CLangSMG.setPerformChecks(true, logger);
     }
     else {
-      CLangSMG.setPerformChecks(false);
+      CLangSMG.setPerformChecks(false, logger);
     }
     this.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
