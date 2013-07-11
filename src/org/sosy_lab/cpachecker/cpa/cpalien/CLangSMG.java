@@ -228,6 +228,81 @@ public class CLangSMG extends SMG {
     }
   }
 
+  /**
+   * Prune the SMG: remove all unreachable objects (heap ones: global and stack
+   * are always reachable) and values.
+   *
+   * TODO: Too large. Refactor into fewer pieces
+   *
+   * Keeps consistency: yes
+   */
+  public void pruneUnreachable() {
+    Set<SMGObject> seen = new HashSet<>();
+    Set<Integer> seen_values = new HashSet<>();
+    Queue<SMGObject> workqueue = new ArrayDeque<>();
+
+    // TODO: wrap to getStackObjects(), perhaps just internally?
+    for (CLangStackFrame frame : this.getStackFrames()) {
+      for (SMGObject stack_object : frame.getAllObjects()) {
+        workqueue.add(stack_object);
+      }
+    }
+
+    workqueue.addAll(this.getGlobalObjects().values());
+
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+
+    /*
+     * TODO: Refactor into generic methods for obtaining reachable/unreachable
+     * subSMGs
+     *
+     * TODO: Perhaps introduce a SubSMG class which would be a SMG tied
+     * to a certain (Clang)SMG and guaranteed to be a subset of it?
+     */
+
+    while ( ! workqueue.isEmpty()) {
+      SMGObject processed = workqueue.remove();
+      if ( ! seen.contains(processed)) {
+        seen.add(processed);
+        filter.filterByObject(processed);
+        for (SMGEdgeHasValue outbound : this.getHVEdges(filter)) {
+          SMGObject pointedObject = this.getObjectPointedBy(outbound.getValue());
+          if ( pointedObject != null && ! seen.contains(pointedObject)) {
+            workqueue.add(pointedObject);
+          }
+          if ( ! seen_values.contains(Integer.valueOf(outbound.getValue()))) {
+            seen_values.add(Integer.valueOf(outbound.getValue()));
+          }
+        }
+      }
+    }
+
+    /*
+     * TODO: Refactor into generic methods for substracting SubSMGs (see above)
+     */
+    Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(this.getObjects(), seen));
+    for (SMGObject stray_object : stray_objects) {
+      if (stray_object.notNull()) {
+        if (this.isObjectValid(stray_object)) {
+          this.setMemoryLeak();
+        }
+        this.removeObjectAndEdges(stray_object);
+        this.heap_objects.remove(stray_object);
+
+      }
+    }
+    Set<Integer> stray_values = new HashSet<>(Sets.difference(this.getValues(), seen_values));
+    for (Integer stray_value : stray_values) {
+      if (stray_value != this.getNullValue()) {
+        this.removeValue(stray_value);
+      }
+    }
+
+    if (CLangSMG.performChecks()) {
+      CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
+    }
+  }
+
   /* ********************************************* */
   /* Non-modifying functions: getters and the like */
   /* ********************************************* */
@@ -318,58 +393,6 @@ public class CLangSMG extends SMG {
    */
   public SMGObject getFunctionReturnObject() {
     return stack_objects.peek().getReturnObject();
-  }
-
-  public void pruneUnreachable() {
-    Set<SMGObject> seen = new HashSet<>();
-    Set<Integer> seen_values = new HashSet<>();
-    Queue<SMGObject> workqueue = new ArrayDeque<>();
-
-    for (CLangStackFrame frame : this.getStackFrames()) {
-      for (SMGObject stack_object : frame.getAllObjects()) {
-        workqueue.add(stack_object);
-      }
-    }
-    for (SMGObject global_object : this.getGlobalObjects().values()) {
-      workqueue.add(global_object);
-    }
-
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
-
-    while ( ! workqueue.isEmpty()) {
-      SMGObject processed = workqueue.remove();
-      if ( ! seen.contains(processed)) {
-        seen.add(processed);
-        filter.filterByObject(processed);
-        for (SMGEdgeHasValue outbound : this.getHVEdges(filter)) {
-          SMGObject pointedObject = this.getObjectPointedBy(outbound.getValue());
-          if ( pointedObject != null && ! seen.contains(pointedObject)) {
-            workqueue.add(pointedObject);
-          }
-          if ( ! seen_values.contains(Integer.valueOf(outbound.getValue()))) {
-            seen_values.add(Integer.valueOf(outbound.getValue()));
-          }
-        }
-      }
-    }
-
-    Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(this.getObjects(), seen));
-    for (SMGObject stray_object : stray_objects) {
-      if (stray_object.notNull()) {
-        if (this.isObjectValid(stray_object)) {
-          this.setMemoryLeak();
-        }
-        this.removeObjectAndEdges(stray_object);
-        this.heap_objects.remove(stray_object);
-
-      }
-    }
-    Set<Integer> stray_values = new HashSet<>(Sets.difference(this.getValues(), seen_values));
-    for (Integer stray_value : stray_values) {
-      if (stray_value != this.getNullValue()) {
-        this.removeValue(stray_value);
-      }
-    }
   }
 }
 
