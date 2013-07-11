@@ -84,7 +84,7 @@ public class ExplicitPrecision implements Precision {
       + "tracked with another CPA, i.e. with BDDCPA.")
   private boolean ignoreIntAdd = false;
 
-  private Optional<VariableClassification> varClass;
+  private final Optional<VariableClassification> varClass;
 
   public ExplicitPrecision(String variableBlacklist, Configuration config,
       Optional<VariableClassification> vc,
@@ -117,7 +117,6 @@ public class ExplicitPrecision implements Precision {
     reachedSetThreshold   = original.reachedSetThreshold;
 
     scoped                = original.scoped;
-
     varClass              = original.varClass;
     ignoreBoolean         = original.ignoreBoolean;
     ignoreIntEqual        = original.ignoreIntEqual;
@@ -229,7 +228,7 @@ public class ExplicitPrecision implements Precision {
   }
 
   /** split var into function and varName */
-  private Pair<String, String> splitVar(String variable) {
+  private static Pair<String, String> splitVar(String variable) {
     int i = variable.indexOf("::");
     String function;
     String varName;

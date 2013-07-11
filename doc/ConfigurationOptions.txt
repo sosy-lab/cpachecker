@@ -398,6 +398,10 @@ cpa.bdd.initPartitionsOrdered = true
 # Dump tracked variables to a file.
 cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 
+# whether or not to add newly-found variables only to the exact program
+# location or to the whole scope of the variable.
+cpa.bdd.precision.refinement.useScopedInterpolation = false
+
 # track boolean variables from cfa
 cpa.bdd.trackBoolean = true
 
@@ -499,6 +503,9 @@ cpa.explicit.blk.alwaysAtAssumes = false
 
 # restrict abstractions to function calls/returns
 cpa.explicit.blk.alwaysAtFunctions = false
+
+# restrict abstractions to join points
+cpa.explicit.blk.alwaysAtJoins = false
 
 # restrict abstractions to loop heads
 cpa.explicit.blk.alwaysAtLoops = false

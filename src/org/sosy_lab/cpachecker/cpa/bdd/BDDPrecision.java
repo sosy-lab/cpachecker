@@ -25,14 +25,19 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 @Options(prefix = "cpa.bdd")
 public class BDDPrecision implements Precision {
@@ -48,15 +53,17 @@ public class BDDPrecision implements Precision {
       "(add, sub, gt, lt, eq,...) from cfa as bitvectors with (default) 32 bits")
   private boolean trackIntAdd = true;
 
-  @Option(name="forceTrackingPattern",
-      description="Pattern for variablenames that will always be tracked with BDDs." +
+  @Option(name = "forceTrackingPattern",
+      description = "Pattern for variablenames that will always be tracked with BDDs." +
           "This pattern should only be used for known variables, i.e. for boolean vars.")
   private String forceTrackingPatternStr = "";
 
   private final Pattern forceTrackingPattern;
+  private CegarPrecision cegarPrecision;
 
   private final Optional<VariableClassification> varClass;
 
+  /** initial constructor */
   public BDDPrecision(Configuration config, Optional<VariableClassification> vc)
       throws InvalidConfigurationException {
     config.inject(this);
@@ -65,13 +72,26 @@ public class BDDPrecision implements Precision {
     } else {
       this.forceTrackingPattern = null;
     }
+    this.cegarPrecision = new CegarPrecision(config);
     this.varClass = vc;
   }
 
+  /** copy-constructor, that allows to add new variables to cegar-precision. */
+  public BDDPrecision(BDDPrecision original, Multimap<CFANode, String> increment) {
+    this.varClass = original.varClass;
+    this.forceTrackingPattern = original.forceTrackingPattern;
+    this.trackBoolean = original.trackBoolean;
+    this.trackIntEqual = original.trackIntEqual;
+    this.trackIntAdd = original.trackIntAdd;
+    this.cegarPrecision = new CegarPrecision(original.cegarPrecision);
+
+    cegarPrecision.addToMapping(increment);
+  }
+
   public boolean isDisabled() {
-    if (forceTrackingPattern != null) {
-      return false;
-    }
+    if (forceTrackingPattern != null) { return false; }
+
+	if (cegarPrecision.isEmpty()) { return true; }
 
     if (!varClass.isPresent()) { return true; }
 
@@ -92,7 +112,7 @@ public class BDDPrecision implements Precision {
    * @param variable function of current scope or null, if variable is global
    * @return true, if the variable has to be tracked, else false
    */
-  public boolean isTracking(String function, String var) {
+  public boolean isTracking(@Nullable String function, String var) {
 
     // this pattern should only be used, if we know the class of the matching variables
     if (this.forceTrackingPattern != null &&
@@ -100,6 +120,14 @@ public class BDDPrecision implements Precision {
       return true;
     }
 
+    if (!cegarPrecision.allowsTrackingAt(function, var)) {
+      return false;
+    }
+
+    return isInTrackedClass(function, var);
+  }
+
+  private boolean isInTrackedClass(@Nullable String function, String var) {
     if (!varClass.isPresent()) { return false; }
 
     final boolean isBoolean = varClass.get().getBooleanVars().containsEntry(function, var);
@@ -115,5 +143,79 @@ public class BDDPrecision implements Precision {
     final boolean isTrackedIntAdd = trackIntAdd && !isBoolean && !isIntEqual && isIntAdd;
 
     return isTrackedBoolean || isTrackedIntEqual || isTrackedIntAdd;
+  }
+
+  public CegarPrecision getCegarPrecision() {
+    return cegarPrecision;
+  }
+
+
+  @Options(prefix = "cpa.bdd.precision.refinement")
+  public class CegarPrecision {
+
+    /** the collection that determines which variables are tracked at
+     *  a specific location - if it is null, all variables are tracked */
+    private HashMultimap<CFANode, String> mapping = null;
+
+    @Option(description = "whether or not to add newly-found variables " +
+        "only to the exact program location or to the whole scope of the variable.")
+    private boolean useScopedInterpolation = false;
+
+    private CegarPrecision(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+
+      if (Boolean.parseBoolean(config.getProperty("analysis.useRefinement"))) {
+        mapping = HashMultimap.create();
+      }
+    }
+
+    /** copy constructor */
+    private CegarPrecision(CegarPrecision original) {
+      if (original.mapping != null) {
+        mapping = HashMultimap.create(original.mapping);
+        useScopedInterpolation = original.useScopedInterpolation;
+      }
+    }
+
+    /** returns, if nothing should be tracked. */
+    public boolean isEmpty() {
+      return mapping != null && mapping.isEmpty();
+    }
+
+    /**
+     * This method determines if the given variable is being
+     * tracked at the given location.
+     *
+     * @param location the location to check at
+     * @param function the function of the variable or null, if global scope
+     * @param var the variable to check for
+     * @return if the given variable is being tracked at the given location
+     */
+    public boolean allowsTrackingAt(@Nullable String function, String var) {
+      if (mapping == null) { return true; }
+
+      final String variable = (function == null ? "" : function + "::") + var;
+      // when using scoped interpolation, it suffices to have the (scoped) variable identifier in the precision
+      if (useScopedInterpolation) {
+        return mapping.containsValue(variable);
+      }
+
+      // when not using scoped interpolation, there must a pair of location -> variable identifier in the mapping
+      else {
+        return mapping.containsValue(variable);
+        // TODO support for location-based tracking
+        // return mapping.containsEntry(location, variable);
+      }
+    }
+
+    /**
+     * This method adds the additional mapping to the current mapping,
+     * i.e., this precision can only grow in size, and never gets smaller.
+     *
+     * @param additionalMapping to be added to the current mapping
+     */
+    public void addToMapping(Multimap<CFANode, String> additionalMapping) {
+      mapping.putAll(additionalMapping);
+    }
   }
 }
