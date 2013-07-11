@@ -191,8 +191,7 @@ public class ARGReachedSet {
 
   private Set<ARGState> removeSubtree0(ARGState e) {
     Preconditions.checkNotNull(e);
-    Preconditions.checkArgument(!e.getParents().isEmpty(),
-        "May not remove the initial element from the ARG/reached set");
+    Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ARG/reached set");
 
     dumpSubgraph(e);
 
@@ -212,10 +211,14 @@ public class ARGReachedSet {
   }
 
   private void dumpSubgraph(ARGState e) {
-    if (cpa == null) { return; }
+    if (cpa == null) {
+      return;
+    }
 
     ARGToDotWriter refinementGraph = cpa.getRefinementGraphWriter();
-    if (refinementGraph == null) { return; }
+    if (refinementGraph == null) {
+      return;
+    }
 
     SetMultimap<ARGState, ARGState> successors = ARGUtils.projectARG(e,
         ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
@@ -225,10 +228,10 @@ public class ARGReachedSet {
 
     try {
       refinementGraph.enterSubgraph("cluster_" + refinementNumber,
-          "Refinement " + refinementNumber);
+                                    "Refinement " + refinementNumber);
 
       refinementGraph.writeSubgraph(e,
-          Functions.forMap(successors.asMap(), ImmutableSet.<ARGState> of()),
+          Functions.forMap(successors.asMap(), ImmutableSet.<ARGState>of()),
           Predicates.alwaysTrue(),
           Predicates.alwaysFalse());
 
