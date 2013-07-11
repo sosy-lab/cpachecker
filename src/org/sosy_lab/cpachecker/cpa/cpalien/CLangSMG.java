@@ -207,6 +207,27 @@ public class CLangSMG extends SMG {
     has_leaks = true;
   }
 
+  /**
+   * Remove a top stack frame from the SMG, along with all objects in it, and
+   * any edges leading from/to it.
+   *
+   * TODO: A testcase with (invalid) passing of an address of a dropped frame object
+   * outside, and working with them. For that, we should probably keep those as invalid, so
+   * we can spot such bug.
+   *
+   * Keeps consistency: yes
+   */
+  public void dropStackFrame() {
+    CLangStackFrame frame = stack_objects.pop();
+    for (SMGObject object : frame.getAllObjects()) {
+      this.removeObjectAndEdges(object);
+    }
+
+    if (CLangSMG.performChecks()) {
+      CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
+    }
+  }
+
   /* ********************************************* */
   /* Non-modifying functions: getters and the like */
   /* ********************************************* */
@@ -297,13 +318,6 @@ public class CLangSMG extends SMG {
    */
   public SMGObject getFunctionReturnObject() {
     return stack_objects.peek().getReturnObject();
-  }
-
-  public void dropStackFrame() {
-    CLangStackFrame frame = stack_objects.pop();
-    for (SMGObject object : frame.getAllObjects()) {
-      this.removeObjectAndEdges(object);
-    }
   }
 
   public void pruneUnreachable() {
