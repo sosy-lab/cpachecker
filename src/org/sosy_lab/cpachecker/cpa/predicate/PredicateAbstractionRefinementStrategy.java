@@ -91,13 +91,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
           + "and not the whole interpolant")
   private boolean atomicPredicates = true;
 
-  @Option(name="refinement.addPredicatesGlobally",
-      description="Add all discovered predicates to all the locations in the abstract trace. "
-          + "DEPRECATED: use cpa.predicate.predicateSharing instead which offers more flexibility.")
-  @Deprecated
-  private boolean addPredicatesGlobally = false;
-
-  @Option(name="refinement.predicateSharing",
+  @Option(name="precision.sharing",
       description="Where to apply the found predicates to?")
   private PredicateSharing predicateSharing = PredicateSharing.LOCATION;
   private static enum PredicateSharing {
@@ -184,9 +178,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     super(pFormulaManager.getBooleanFormulaManager(), pSolver);
 
     config.inject(this, PredicateAbstractionRefinementStrategy.class);
-    if (addPredicatesGlobally) {
-      predicateSharing = PredicateSharing.GLOBAL;
-    }
 
     logger = pLogger;
     fmgr = pFormulaManager;
