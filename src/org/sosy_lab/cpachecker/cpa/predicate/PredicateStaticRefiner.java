@@ -84,7 +84,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
    */
   @Override
   public PredicatePrecision extractPrecisionFromCfa() throws CPATransferException {
-    logger.log(Level.INFO, "Extracting precision from CFA...");
+    logger.log(Level.FINER, "Extracting precision from CFA...");
 
     Multimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
     Collection<AbstractionPredicate> globalPredicates         = Lists.newArrayList();
@@ -101,12 +101,12 @@ public class PredicateStaticRefiner extends StaticRefiner {
         boolean applyGlobal = true;
         if (applyScoped) {
           for (String var : getQualifiedVariablesOfAssume(assume)) {
-            logger.log(Level.FINE, "Checking scope of ", function, var);
+            logger.log(Level.FINER, "Checking scope of", function, var);
             if (isDeclaredInFunction(function, var)) {
               // Apply the predicate in function scope
               // as soon one of the variable the assumption talks about is local.
               applyGlobal = false;
-              logger.log(Level.INFO, "Local scoped variable mined", function, var);
+              logger.log(Level.FINEST, "Local scoped variable mined", function, var);
               break;
             }
           }
@@ -117,15 +117,15 @@ public class PredicateStaticRefiner extends StaticRefiner {
         }
 
         if (applyGlobal) {
-          logger.log(Level.FINE, "Global predicate mined", predicate);
+          logger.log(Level.FINEST, "Global predicate mined", predicate);
           globalPredicates.add(predicate);
         }
 
-        logger.log(Level.FINE, "Extraction result", "Function:", function, "Predicate:", predicate);
+        logger.log(Level.FINER, "Extraction result", "Function:", function, "Predicate:", predicate);
       }
     }
 
-    logger.log(Level.INFO, "Extracting finished.");
+    logger.log(Level.FINER, "Extracting finished.");
 
     return new PredicatePrecision(
         ImmutableSetMultimap.<Pair<CFANode,Integer>,
