@@ -541,9 +541,10 @@ cpa.explicit.precision.ignoreIntEqual = false
 cpa.explicit.precision.reachedSetThreshold = -1
 
 # whether or not to add newly-found variables only to the exact program
-# location (i.e. scoped=false) or to their respective scope (i.e.
-# scoped=true).
-cpa.explicit.precision.scoped = true
+# location, i.e., sharing = location, or to their respective sharing, i.e.,
+# sharing = scoped.
+cpa.explicit.precision.sharing = "scope"
+  allowed values: [location, scope]
 
 # target file to hold the exported precision
 cpa.explicit.precisionFile = no default value

@@ -65,8 +65,10 @@ public class ExplicitPrecision implements Precision {
   @Option(description = "the threshold which controls whether or not variable valuations ought to be abstracted once the specified number of valuations per variable is reached in the set of reached states")
   private int reachedSetThreshold = -1;
 
-  @Option(description = "whether or not to add newly-found variables only to the exact program location (i.e. scoped=false) or to their respective scope (i.e. scoped=true).")
-  private boolean scoped = true;
+  @Option(values={"location", "scope"},
+		  description = "whether or not to add newly-found variables only to the exact program location, " +
+		  		"i.e., sharing = location, or to their respective sharing, i.e., sharing = scoped.")
+  private String sharing = "scope";
 
   @Option(description = "ignore boolean variables. if this option is used, "
       + "booleans from the cfa should tracked with another CPA, "
@@ -116,7 +118,7 @@ public class ExplicitPrecision implements Precision {
     blackListPattern      = original.blackListPattern;
     reachedSetThreshold   = original.reachedSetThreshold;
 
-    scoped                = original.scoped;
+    sharing               = original.sharing;
     varClass              = original.varClass;
     ignoreBoolean         = original.ignoreBoolean;
     ignoreIntEqual        = original.ignoreIntEqual;
@@ -242,8 +244,19 @@ public class ExplicitPrecision implements Precision {
     return Pair.of(function, varName);
   }
 
-  RefinablePrecision createInstance() {
-    return scoped ? new ScopedRefinablePrecision() : new LocalizedRefinablePrecision();
+  private RefinablePrecision createInstance() {
+	if(sharing.equals("scope")) {
+      return new ScopedRefinablePrecision();
+	}
+
+    else if(sharing.equals("location")) {
+      return new LocalizedRefinablePrecision();
+	}
+
+    else {
+      throw new InternalError("Wrong value for precison sharing strategy given (was " + sharing + ")," +
+      		"or allowed options out-dated.");
+    }
   }
 
   abstract public static class RefinablePrecision {
