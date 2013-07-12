@@ -66,8 +66,8 @@ public class ExplicitPrecision implements Precision {
   private int reachedSetThreshold = -1;
 
   @Option(values={"location", "scope"},
-		  description = "whether or not to add newly-found variables only to the exact program location, " +
-		  		"i.e., sharing = location, or to their respective sharing, i.e., sharing = scoped.")
+		  description = "whether to track relevant variables only at the exact program location (sharing=location), " +
+		  		"or within their respective (function-/global-) scope (sharing=scoped).")
   private String sharing = "scope";
 
   @Option(description = "ignore boolean variables. if this option is used, "

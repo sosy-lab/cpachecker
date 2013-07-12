@@ -540,9 +540,9 @@ cpa.explicit.precision.ignoreIntEqual = false
 # in the set of reached states
 cpa.explicit.precision.reachedSetThreshold = -1
 
-# whether or not to add newly-found variables only to the exact program
-# location, i.e., sharing = location, or to their respective sharing, i.e.,
-# sharing = scoped.
+# whether to track relevant variables only at the exact program location
+# (sharing=location), or within their respective (function-/global-) scope
+# (sharing=scoped).
 cpa.explicit.precision.sharing = "scope"
   allowed values: [location, scope]
 
