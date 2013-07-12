@@ -83,19 +83,22 @@ import com.google.common.collect.Sets;
  * abstraction (adding the predicates from the interpolant to the precision
  * and removing the relevant parts of the ARG).
  */
-@Options(prefix="cpa.predicate.refinement")
+@Options(prefix="cpa.predicate")
 public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
-  @Option(description="use only the atoms from the interpolants as predicates, "
-    + "and not the whole interpolant")
+  @Option(name="refinement.atomicPredicates",
+      description="use only the atoms from the interpolants as predicates, "
+          + "and not the whole interpolant")
   private boolean atomicPredicates = true;
 
-  @Option(description="Add all discovered predicates to all the locations in the abstract trace. "
-      + "DEPRECATED: use cpa.predicate.predicateSharing instead which offers more flexibility.")
+  @Option(name="refinement.addPredicatesGlobally",
+      description="Add all discovered predicates to all the locations in the abstract trace. "
+          + "DEPRECATED: use cpa.predicate.predicateSharing instead which offers more flexibility.")
   @Deprecated
   private boolean addPredicatesGlobally = false;
 
-  @Option(description="Where to apply the found predicates to?")
+  @Option(name="refinement.predicateSharing",
+      description="Where to apply the found predicates to?")
   private PredicateSharing predicateSharing = PredicateSharing.LOCATION;
   private static enum PredicateSharing {
     GLOBAL,            // at all locations
@@ -105,27 +108,33 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     ;
   }
 
-  @Option(description="During refinement, keep predicates from all removed parts " +
-                      "of the ARG. Otherwise, only predicates from the error path " +
-                      "are kept.")
+  @Option(name="refinement.keepAllPredicates",
+      description="During refinement, keep predicates from all removed parts "
+          + "of the ARG. Otherwise, only predicates from the error path are kept.")
   private boolean keepAllPredicates = false;
 
-  @Option(description="Do a complete restart (clearing the reached set) " +
-                      "after N refinements. 0 to disable, 1 for always.")
+  @Option(name="refinement.restartAfterRefinements",
+      description="Do a complete restart (clearing the reached set) "
+          + "after N refinements. 0 to disable, 1 for always.")
   @IntegerOption(min=0)
   private int restartAfterRefinements = 0;
 
-  @Option(description="During refinement, add all new predicates to the precisions " +
-                      "of all abstract states in the reached set.")
+  @Option(name="refinement.sharePredicates",
+      description="During refinement, add all new predicates to the precisions "
+          + "of all abstract states in the reached set.")
   private boolean sharePredicates = false;
 
-  @Option(description="Use BDDs to simplify interpolants (removing irrelevant predicates)")
+  @Option(name="refinement.useBddInterpolantSimplification",
+      description="Use BDDs to simplify interpolants "
+          + "(removing irrelevant predicates)")
   private boolean useBddInterpolantSimplification = false;
 
-  @Option(description="After each refinement, dump the newly found predicates.")
+  @Option(name="refinement.dumpPredicates",
+      description="After each refinement, dump the newly found predicates.")
   private boolean dumpPredicates = false;
 
-  @Option(description="File name for the predicates dumped after refinements.")
+  @Option(name="refinement.dumpPredicatesFile",
+      description="File name for the predicates dumped after refinements.")
   @FileOption(Type.OUTPUT_FILE)
   private File dumpPredicatesFile = new File("refinement%04d-predicates.prec");
 
