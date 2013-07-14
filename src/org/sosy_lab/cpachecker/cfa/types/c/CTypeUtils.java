@@ -36,63 +36,6 @@ import com.google.common.base.Function;
 
 
 public class CTypeUtils {
-  private static CTypeVisitor<CType, RuntimeException> simplifyType = new BaseCTypeSimplifyVisitor();
-
-  public static class BaseCTypeSimplifyVisitor implements CTypeVisitor<CType, RuntimeException> {
-    @Override
-    public CType visit(CArrayType pArrayType) {
-      // We do not support arrays, so simplify to pointer
-      return new CPointerType(pArrayType.isConst(), pArrayType.isVolatile(), pArrayType.getType());
-    }
-
-    @Override
-    public CType visit(CCompositeType pCompositeType) {
-      return pCompositeType;
-    }
-
-    @Override
-    public CType visit(CElaboratedType pElaboratedType) {
-      if (pElaboratedType.getRealType() != null) {
-        return pElaboratedType.getRealType();
-      }
-
-      return pElaboratedType;
-    }
-
-    @Override
-    public CType visit(CEnumType pEnumType) {
-      return pEnumType;
-    }
-
-    @Override
-    public CType visit(CFunctionType pFunctionType) {
-      return pFunctionType;
-    }
-
-    @Override
-    public CType visit(CPointerType pPointerType) {
-      return pPointerType;
-    }
-
-    @Override
-    public CType visit(CProblemType pProblemType) {
-      return pProblemType;
-    }
-
-    @Override
-    public CType visit(CSimpleType pSimpleType) {
-      return pSimpleType;
-    }
-
-    @Override
-    public CType visit(CTypedefType pTypedefType) {
-      return pTypedefType.getRealType().accept(this);
-    }
-  }
-
-  public static CType simplifyType(CType t1) {
-    return t1.accept(simplifyType);
-  }
 
   public static class BaseCTypeEqualsVisitor implements CTypeVisitor<Boolean, RuntimeException> {
     final Object obj;
@@ -106,13 +49,9 @@ public class CTypeUtils {
       return obj;
     }
 
-    protected CType simplifyType(CType t1) {
-      return CTypeUtils.simplifyType(t1);
-    }
-
     protected BaseCTypeEqualsVisitor copyWith(Object other) {
       if (other instanceof CType) {
-        other = simplifyType((CType)other);
+        other = ((CType)other).getCanonicalType();
       }
 
       return new BaseCTypeEqualsVisitor(other);
@@ -125,7 +64,7 @@ public class CTypeUtils {
     }
 
     protected boolean compareTypes(CType t1, CType t2) {
-      return simplifyType(t1).accept(this.workCopy(t2, stack));
+      return t1.getCanonicalType().accept(this.workCopy(t2, stack));
     }
     @Override
     public Boolean visit(CArrayType pThis) {
@@ -366,7 +305,7 @@ public class CTypeUtils {
       return t1 == t2;
     }
 
-    BaseCTypeEqualsVisitor visitor = new BaseCTypeEqualsVisitor(simplifyType(t2));
-    return simplifyType(t1).accept(visitor);
+    BaseCTypeEqualsVisitor visitor = new BaseCTypeEqualsVisitor(t2.getCanonicalType());
+    return t1.getCanonicalType().accept(visitor);
   }
 }

@@ -976,7 +976,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
     } else {
       // no deep update of pointers required
       Map<String, Formula> memberMaskMap = null;
-      CType expType = simplifyType(leftSide.getExpressionType());
+      CType expType = leftSide.getExpressionType().getCanonicalType();
       if (conv.handleFieldAliasing) {
         // Read comment below.
         if (expType instanceof CCompositeType) {

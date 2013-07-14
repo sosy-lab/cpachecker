@@ -666,8 +666,8 @@ public class CtoFormulaConverter {
       return formula; // No cast required;
     }
 
-    fromType = simplifyType(fromType);
-    toType = simplifyType(toType);
+    fromType = fromType.getCanonicalType();
+    toType = toType.getCanonicalType();
 
     if (fromType instanceof CFunctionType) {
       // references to functions can be seen as function pointers
@@ -828,8 +828,8 @@ public class CtoFormulaConverter {
    * @return
    */
   CType getImplicitCType(CType pT1, CType pT2) {
-    pT1 = simplifyType(pT1);
-    pT2 = simplifyType(pT2);
+    pT1 = pT1.getCanonicalType();
+    pT2 = pT2.getCanonicalType();
 
     // UNDEFINED: What should happen when we have two pointer?
     // For example when two pointers get multiplied or added
@@ -931,7 +931,7 @@ public class CtoFormulaConverter {
   }
 
   CType getPromotedCType(CType t) {
-    t = simplifyType(t);
+    t = t.getCanonicalType();
     if (t instanceof CSimpleType) {
       // Integer types smaller than int are promoted when an operation is performed on them.
       // If all values of the original type can be represented as an int, the value of the smaller type is converted to an int;
@@ -1229,7 +1229,7 @@ public class CtoFormulaConverter {
     if (funcDecl == null) {
       // Check if we have a function pointer here.
       CExpression functionNameExpression = funcCallExp.getFunctionNameExpression();
-      CType expressionType = simplifyType(functionNameExpression.getExpressionType());
+      CType expressionType = functionNameExpression.getExpressionType().getCanonicalType();
       if (expressionType instanceof CFunctionType) {
         CFunctionType funcPtrType = (CFunctionType)expressionType;
         retType = funcPtrType.getReturnType();
@@ -1510,7 +1510,7 @@ public class CtoFormulaConverter {
    */
   private Pair<Integer, Integer> getFieldOffsetMsbLsb(CFieldReference fExp) {
     CExpression fieldRef = getRealFieldOwner(fExp);
-    CCompositeType structType = (CCompositeType)simplifyType(fieldRef.getExpressionType());
+    CCompositeType structType = (CCompositeType)fieldRef.getExpressionType().getCanonicalType();
 
     // f is now the structure, access it:
     int bitsPerByte = machineModel.getSizeofCharInBits();

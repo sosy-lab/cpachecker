@@ -38,17 +38,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 public class CtoFormulaTypeUtils {
 
-  private static final CtoFormulaTypeVisitor<CType, RuntimeException> simplifyType = new CtoFormulaCTypeSimplifyVisitor();
-  public static class CtoFormulaCTypeSimplifyVisitor
-    extends CTypeUtils.BaseCTypeSimplifyVisitor
-    implements CtoFormulaTypeVisitor<CType, RuntimeException> {
-
-    @Override
-    public CType visit(CDereferenceType pCDereferenceType) throws RuntimeException {
-      return pCDereferenceType;
-    }
-  }
-
   public static class CtoFormulaSizeofVisitor
     extends BaseSizeofVisitor
     implements CtoFormulaTypeVisitor<Integer, IllegalArgumentException> {
@@ -69,10 +58,6 @@ public class CtoFormulaTypeUtils {
     }
   }
 
-  public static CType simplifyType(CType t1) {
-    return t1.accept(simplifyType);
-  }
-
   public static class CtoFormulaCTypeEqualsVisitor
     extends CTypeUtils.BaseCTypeEqualsVisitor
     implements CtoFormulaTypeVisitor<Boolean, RuntimeException> {
@@ -81,14 +66,9 @@ public class CtoFormulaTypeUtils {
     }
 
     @Override
-    protected CType simplifyType(CType t1) {
-      return CtoFormulaTypeUtils.simplifyType(t1);
-    }
-
-    @Override
     public CtoFormulaCTypeEqualsVisitor copyWith(Object other) {
       if (other instanceof CType) {
-        other = simplifyType((CType)other);
+        other = ((CType)other).getCanonicalType();
       }
 
       return new CtoFormulaCTypeEqualsVisitor(other);
@@ -111,8 +91,8 @@ public class CtoFormulaTypeUtils {
       return
           compareTypes(pThis.getType(), other.getType());
     }
-
   }
+
   public static boolean equals(CType t1, Object other) {
     if (t1 == null || other == null) {
       return t1 == other;
@@ -129,8 +109,7 @@ public class CtoFormulaTypeUtils {
       return t1 == t2;
     }
 
-    CtoFormulaCTypeEqualsVisitor visitor = new CtoFormulaCTypeEqualsVisitor(simplifyType(t2));
-    return simplifyType(t1).accept(visitor);
+    return t1.getCanonicalType().equals(t2.getCanonicalType());
   }
 
   public static CType dereferencedType(CType t) {
@@ -139,7 +118,7 @@ public class CtoFormulaTypeUtils {
       return new CFieldDereferenceTrackType(dereferencedType(((CFieldTrackType) t).getType()), t);
     }
 
-    CType simple = CtoFormulaTypeUtils.simplifyType(t);
+    CType simple = t.getCanonicalType();
     if (simple instanceof CPointerType) {
       CType inner = ((CPointerType)simple).getType();
       if (areEqual(inner, CNumericTypes.VOID)) {
