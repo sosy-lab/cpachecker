@@ -405,10 +405,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       CVariableDeclaration vdecl = (CVariableDeclaration) decl;
       CInitializer initializer = vdecl.getInitializer();
 
-      CExpression init = null;
       if (initializer == null && initAllVars) { // auto-initialize variables to zero
-        init = CDefaults.forType(decl.getType(), decl.getFileLocation());
-      } else if (initializer instanceof CInitializerExpression) {
+        initializer = CDefaults.forType(decl.getType(), decl.getFileLocation());
+      }
+
+      CExpression init = null;
+      if (initializer instanceof CInitializerExpression) {
         init = ((CInitializerExpression) initializer).getExpression();
       }
 

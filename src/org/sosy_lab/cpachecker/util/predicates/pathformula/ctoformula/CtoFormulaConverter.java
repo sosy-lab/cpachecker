@@ -1160,16 +1160,15 @@ public class CtoFormulaConverter {
     // if there is an initializer associated to this variable,
     // take it into account
     CInitializer initializer = decl.getInitializer();
+
+    if (initializer == null && initAllVars) {
+      // auto-initialize variables to zero
+      logDebug("AUTO-INITIALIZING VAR: ", edge);
+      initializer = CDefaults.forType(decl.getType(), decl.getFileLocation());
+    }
+
     CExpression init = null;
-
-    if (initializer == null) {
-      if (initAllVars) {
-        // auto-initialize variables to zero
-        logDebug("AUTO-INITIALIZING VAR: ", edge);
-        init = CDefaults.forType(decl.getType(), null);
-      }
-
-    } else if (initializer instanceof CInitializerExpression) {
+    if (initializer instanceof CInitializerExpression) {
       init = ((CInitializerExpression)initializer).getExpression();
 
     } else {
