@@ -234,8 +234,9 @@ class Benchmark:
                                         requireTag.get('cpuCores', None),
                                         requireTag.get('memory',   None)
                                         )
-            self.requirements = Requirements.merge(self.requirements, requirements)
-
+            self.requirements = Requirements.merge(self.requirements, config.cloudCpuModel)
+        
+        self.requirements = Requirements.mergeWithCpuModel(self.requirements, config.cloudCpuModel)
         self.requirements = Requirements.mergeWithLimits(self.requirements, self.rlimits)
 
         # get benchmarks
@@ -593,6 +594,17 @@ class Requirements:
             _memory = l[MEMLIMIT]
 
         return cls(_cpuModel, _cpuCores, _memory)
+
+    @classmethod
+    def mergeWithCpuModel(cls, r, cpuModel):
+        _cpuCores = r._cpuCores
+        _memory = r._memory
+        
+        if(cpuModel is None):
+            return r
+        else:
+            return cls(cpuModel, _cpuCores, _memory)
+
 
     def __repr__(self):
         return "%s(%r)" % (self.__class__, self.__dict__)
@@ -1631,6 +1643,11 @@ def main(argv=None):
                       dest="cloudPriority",
                       metavar="PRIORITY",
                       help="Sets the priority for this benchmark used in the cloud.")
+    
+    parser.add_argument("--cloudCpuModel",
+                      dest="cloudCpuModel",
+                      metavar="CPU_MODEL",
+                      help="Sets a string that musst be part of the CPU name of the used maschine in the cloud.")
 
     global config, OUTPUT_PATH
     config = parser.parse_args(argv[1:])
