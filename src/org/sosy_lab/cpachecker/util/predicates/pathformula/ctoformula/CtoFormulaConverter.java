@@ -77,7 +77,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -140,9 +139,6 @@ public class CtoFormulaConverter {
       return new CtoFormulaConverter(config, pFmgr, pMachineModel, pLogger);
     }
   }
-
-  @Option(description="initialize all variables to 0 when they are declared")
-  private boolean initAllVars = false;
 
   // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
   // use variables
@@ -1160,13 +1156,6 @@ public class CtoFormulaConverter {
     // if there is an initializer associated to this variable,
     // take it into account
     CInitializer initializer = decl.getInitializer();
-
-    if (initializer == null && initAllVars) {
-      // auto-initialize variables to zero
-      logDebug("AUTO-INITIALIZING VAR: ", edge);
-      initializer = CDefaults.forType(decl.getType(), decl.getFileLocation());
-    }
-
     CExpression init = null;
     if (initializer instanceof CInitializerExpression) {
       init = ((CInitializerExpression)initializer).getExpression();

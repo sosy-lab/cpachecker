@@ -80,7 +80,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.forwarding.ForwardingTransferRelation;
@@ -103,9 +102,6 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   private Path dumpfile = Paths.get("BDDCPA_tracked_variables.log");
 
   private static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
-
-  @Option(description = "initialize all variables to 0 when they are declared")
-  private boolean initAllVars = false;
 
   @Option(description = "declare first bit of all vars, then second bit,...")
   private boolean initBitwise = true;
@@ -404,10 +400,6 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     if (decl instanceof CVariableDeclaration) {
       CVariableDeclaration vdecl = (CVariableDeclaration) decl;
       CInitializer initializer = vdecl.getInitializer();
-
-      if (initializer == null && initAllVars) { // auto-initialize variables to zero
-        initializer = CDefaults.forType(decl.getType(), decl.getFileLocation());
-      }
 
       CExpression init = null;
       if (initializer instanceof CInitializerExpression) {

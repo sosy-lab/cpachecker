@@ -78,6 +78,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -113,6 +115,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -127,6 +130,7 @@ import com.google.common.collect.Multimap;
  * -- K&R style function definitions not implemented
  * -- Inlined assembler code is ignored
  */
+@Options(prefix="cfa")
 class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structure for maintaining our scope stack in a function
@@ -158,7 +162,12 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private boolean encounteredAsm = false;
 
+  @Option(description="Also initialize local variables with default values, "
+      + "or leave them uninitialized.")
+  private boolean initializeAllVariables = false;
+
   public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope, MachineModel pMachine) throws InvalidConfigurationException {
+    config.inject(this);
 
     logger = pLogger;
     scope = pScope;
@@ -282,6 +291,16 @@ class CFAFunctionBuilder extends ASTVisitor {
         CInitializer init = ((CVariableDeclaration) newD).getInitializer();
         if (init != null) {
           init.accept(checkBinding);
+        } else if (initializeAllVariables) {
+          CInitializer initializer = CDefaults.forType(newD.getType(), newD.getFileLocation());
+          newD = new CVariableDeclaration(newD.getFileLocation(),
+                                          newD.isGlobal(),
+                                          ((CVariableDeclaration) newD).getCStorageClass(),
+                                          newD.getType(),
+                                          newD.getName(),
+                                          newD.getOrigName(),
+                                          newD.getQualifiedName(),
+                                          initializer);
         }
 
       } else if (newD instanceof CComplexTypeDeclaration) {

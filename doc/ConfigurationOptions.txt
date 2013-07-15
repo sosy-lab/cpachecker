@@ -266,6 +266,10 @@ cfa.exportPerFunction = true
 # export CFA as .dot file
 cfa.file = "cfa.dot"
 
+# Also initialize local variables with default values, or leave them
+# uninitialized.
+cfa.initializeAllVariables = false
+
 # remove paths from CFA that cannot lead to a specification violation
 cfa.removeIrrelevantForSpecification = false
 
@@ -379,9 +383,6 @@ cpa.bdd.compressIntEqual = true
 # Pattern for variablenames that will always be tracked with BDDs.This
 # pattern should only be used for known variables, i.e. for boolean vars.
 cpa.bdd.forceTrackingPattern = ""
-
-# initialize all variables to 0 when they are declared
-cpa.bdd.initAllVars = false
 
 # declare the bits of a var from 0 to N or from N to 0
 cpa.bdd.initBitsIncreasing = true
@@ -712,9 +713,6 @@ cpa.predicate.handlePointerAliasing = true
 # Allows to ignore Concat and Extract Calls when Bitvector theory was
 # replaced.
 cpa.predicate.ignoreExtractConcat = true
-
-# initialize all variables to 0 when they are declared
-cpa.predicate.initAllVars = false
 
 # export final loop invariants
 cpa.predicate.invariants.export = true
