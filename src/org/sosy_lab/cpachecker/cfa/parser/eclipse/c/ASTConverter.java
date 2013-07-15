@@ -102,7 +102,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CEmptyDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -1344,33 +1343,31 @@ class ASTConverter {
 
     FileLocation fileLoc = cInit.getFileLocation();
 
-    // make initial variable
-    CDesignator exp = new CEmptyDesignator(fileLoc);
+    List<CDesignator> designators = new ArrayList<>(desInit.length);
 
     // convert all designators
-    for (int i = 0; i < desInit.length; i++) {
-      if (desInit[i] instanceof ICASTFieldDesignator) {
-       exp = new CFieldDesignator(fileLoc,
-           convert(((ICASTFieldDesignator) desInit[i]).getName()),
-           exp);
+    for (ICASTDesignator designator : desInit) {
+      CDesignator r;
+      if (designator instanceof ICASTFieldDesignator) {
+       r = new CFieldDesignator(fileLoc,
+           convert(((ICASTFieldDesignator) designator).getName()));
 
-      } else if (desInit[i] instanceof ICASTArrayDesignator) {
-        exp = new CArrayDesignator(fileLoc,
-            convertExpressionWithoutSideEffects(((ICASTArrayDesignator) desInit[i]).getSubscriptExpression()),
-            exp);
+      } else if (designator instanceof ICASTArrayDesignator) {
+        r = new CArrayDesignator(fileLoc,
+            convertExpressionWithoutSideEffects(((ICASTArrayDesignator) designator).getSubscriptExpression()));
 
-      } else if (desInit[i] instanceof IGCCASTArrayRangeDesignator) {
-        exp = new CArrayRangeDesignator(fileLoc,
-            convertExpressionWithoutSideEffects(((IGCCASTArrayRangeDesignator) desInit[i]).getRangeFloor()),
-            convertExpressionWithoutSideEffects(((IGCCASTArrayRangeDesignator) desInit[i]).getRangeCeiling()),
-            exp);
+      } else if (designator instanceof IGCCASTArrayRangeDesignator) {
+        r = new CArrayRangeDesignator(fileLoc,
+            convertExpressionWithoutSideEffects(((IGCCASTArrayRangeDesignator) designator).getRangeFloor()),
+            convertExpressionWithoutSideEffects(((IGCCASTArrayRangeDesignator) designator).getRangeCeiling()));
 
       } else {
-        throw new CFAGenerationRuntimeException("Unsupported Designator", desInit[i]);
+        throw new CFAGenerationRuntimeException("Unsupported Designator", designator);
       }
+      designators.add(r);
     }
 
-    return new CDesignatedInitializer(fileLoc, exp, cInit);
+    return new CDesignatedInitializer(fileLoc, designators, cInit);
   }
 
   private CInitializerList convert(IASTInitializerList iList, @Nullable CVariableDeclaration declaration) {

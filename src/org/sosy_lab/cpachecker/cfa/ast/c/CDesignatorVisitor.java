@@ -32,6 +32,4 @@ public interface CDesignatorVisitor<R, X extends Exception> extends CExpressionV
   R visit(CArrayRangeDesignator pArrayRangeDesignator) throws X;
 
   R visit(CFieldDesignator pFieldDesignator) throws X;
-
-  R visit(CEmptyDesignator pCEmptyDesignator) throws X;
 }

@@ -33,20 +33,13 @@ public class CArrayRangeDesignator extends CDesignator {
 
   private final IAExpression rangeFloor;
   private final IAExpression rangeCeiling;
-  private final CDesignator arrayDesignator;
 
   public CArrayRangeDesignator(final FileLocation pFileLocation,
                           final CExpression pRangeFloor,
-                          final CExpression pRangeCeiling,
-                          final CDesignator pArrayDesignator) {
+                          final CExpression pRangeCeiling) {
      super(pFileLocation);
      rangeFloor = pRangeFloor;
      rangeCeiling = pRangeCeiling;
-     arrayDesignator = pArrayDesignator;
-  }
-
-  public CDesignator getArrayDesignator() {
-    return arrayDesignator;
   }
 
   public CExpression getFloorExpression() {
@@ -79,7 +72,6 @@ public class CArrayRangeDesignator extends CDesignator {
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(arrayDesignator);
     result = prime * result + Objects.hashCode(rangeCeiling);
     result = prime * result + Objects.hashCode(rangeFloor);
     result = prime * result + super.hashCode();
@@ -102,9 +94,8 @@ public class CArrayRangeDesignator extends CDesignator {
 
     CArrayRangeDesignator other = (CArrayRangeDesignator) obj;
 
-    return Objects.equals(other.arrayDesignator, arrayDesignator)
-            && Objects.equals(other.rangeCeiling, rangeCeiling)
-            && Objects.equals(other.rangeFloor, rangeFloor);
+    return Objects.equals(other.rangeCeiling, rangeCeiling)
+        && Objects.equals(other.rangeFloor, rangeFloor);
   }
 
 }
