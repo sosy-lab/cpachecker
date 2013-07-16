@@ -1062,7 +1062,7 @@ public class SMGTransferRelation implements TransferRelation {
       return;
     }
 
-    pNewState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue.getAsInt());
+    pNewState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue);
   }
 
   private void copy(SMGState pNewState, SMGObject pMemoryOfField, SMGObject pObject) {

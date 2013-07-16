@@ -26,11 +26,16 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class SMGState implements AbstractQueryableState {
@@ -295,6 +300,62 @@ public class SMGState implements AbstractQueryableState {
 
   /**
    * Write a value into a field (offset, type) of an Object.
+   * Additionally, this method writes a points-to edge into the
+   * SMG, if the given symbolic value points to an address, and
+   *
+   *
+   * @param object SMGObject representing the memory the field belongs to.
+   * @param offset offset of field written into.
+   * @param type type of field written into.
+   * @param value value to be written into field.
+   * @param machineModel Currently used Machine Model
+   * @throws SMGInconsistentException
+   */
+  public SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset,
+      CType pType, SMGSymbolicValue pValue) throws SMGInconsistentException {
+
+    int value;
+
+    // If the value is not yet known by the SMG
+    // create a unconstrained new symbolic value
+    if (pValue.isUnknown()) {
+      value = SMGValueFactory.getNewValue();
+    } else {
+      value = pValue.getAsInt();
+    }
+
+    // If the value represents an address, and the address is known,
+    // add the neccessary points-To edge.
+    if (pValue instanceof SMGAddressValue) {
+      if (!containsValue(value)) {
+        SMGAddress address = ((SMGAddressValue) pValue).getAddress();
+
+        if (!address.isUnknown()) {
+          addPointsToEdge(
+              address.getObject(),
+              address.getOffset().getAsInt(),
+              value);
+        }
+      }
+    }
+
+    return writeValue(pObject, pOffset, pType, value);
+  }
+
+  private void addPointsToEdge(SMGObject pObject, int pOffset, int pValue) {
+
+    // If the value is not known by the SMG, add it.
+    if(!containsValue(pValue)) {
+      heap.addValue(pValue);
+    }
+
+    SMGEdgePointsTo pointsToEdge = new SMGEdgePointsTo(pValue, pObject, pOffset);
+    heap.addPointsToEdge(pointsToEdge);
+
+  }
+
+  /**
+   * Write a value into a field (offset, type) of an Object.
    *
    *
    * @param object SMGObject representing the memory the field belongs to.
@@ -306,6 +367,7 @@ public class SMGState implements AbstractQueryableState {
    */
   public SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
+    //TODO Does this method need to be public?
 
     if (pValue == null) {
       pValue = heap.getNullValue();
@@ -461,15 +523,31 @@ public class SMGState implements AbstractQueryableState {
  }
 
   /**
-   * Get address of the given memory with the given offset.
+   * Get the symbolic value, that represents the address
+   * pointing to the given memory with the given offset, if it exists.
    *
-   * @param memory get address belonging to this memory.
-   * @param offset get address with this offset relative to the beginning of the memory.
-   * @return Address of the given field, or null, if such an address
-   * does not yet exist in the SMG.
+   * @param memory
+   *          get address belonging to this memory.
+   * @param offset
+   *          get address with this offset relative to the beginning of the
+   *          memory.
+   * @return Address of the given field, or null, if such an address does not
+   *         yet exist in the SMG.
    */
-  public Integer getAddress(SMGObject memory, Integer offset) {
-    // TODO Auto-generated method stub
+  @Nullable
+  public Integer getAddress(SMGObject memory, int offset) {
+
+    // TODO A better way of getting those edges, maybe with a filter
+    // like the Has-Value-Edges
+
+    Set<SMGEdgePointsTo> pointsToEdges = heap.getPTEdges();
+
+    for (SMGEdgePointsTo edge : pointsToEdges) {
+      if (edge.getObject().equals(memory) && edge.getOffset() == offset) {
+        return edge.getValue();
+      }
+    }
+
     return null;
   }
 
