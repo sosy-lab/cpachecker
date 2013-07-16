@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -203,7 +202,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     public void evaluateVBPlot(CFunctionCallExpression functionCall, SMGState currentState) {
-      String name = ((CStringLiteralExpression) functionCall.getParameterExpressions().get(0)).getContentString();
+      String name = functionCall.getParameterExpressions().get(0).toASTString();
       this.dumpSMGPlot(name, currentState, functionCall.toString());
     }
 
