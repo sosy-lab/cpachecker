@@ -47,7 +47,7 @@ public final class SMGPlotter {
 
     sb.append("digraph gr_" + name.replace('-', '_') + "{\n");
     offset += 2;
-    sb.append(newLineWithOffset("label = \"Location: " + location + "\";"));
+    sb.append(newLineWithOffset("label = \"Location: " + location.replace("\"", "\\\"") + "\";"));
 
     addStackSubgraph(smg, sb);
 
