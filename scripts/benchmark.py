@@ -1647,7 +1647,7 @@ def main(argv=None):
     parser.add_argument("--cloudCpuModel",
                       dest="cloudCpuModel",
                       metavar="CPU_MODEL",
-                      help="Sets a string that musst be part of the CPU name of the used maschine in the cloud.")
+                      help="Only execute runs on CPU models that contain the given string.")
 
     global config, OUTPUT_PATH
     config = parser.parse_args(argv[1:])
