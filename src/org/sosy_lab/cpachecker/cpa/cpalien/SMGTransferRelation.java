@@ -192,6 +192,7 @@ public class SMGTransferRelation implements TransferRelation {
             name = String.format("%03d-%03d", currentState.getPredecessor().getId(), currentState.getId());
           }
         }
+        name = name.replace("\"", "");
         File outputFile = new File(String.format(exportSMGFilePattern.getAbsolutePath(), name));
         try {
           Files.writeFile(outputFile, currentState.toDot(name, location));
