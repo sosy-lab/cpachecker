@@ -382,8 +382,8 @@ public class SMGState implements AbstractQueryableState {
     SMGEdgeHasValue new_edge = new SMGEdgeHasValue(pType, pOffset, pObject, pValue);
 
     // Check if the edge is  not present already
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
-    filter.filterByObject(pObject);
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
+
     Set<SMGEdgeHasValue> edges = heap.getHVEdges(filter);
     if (edges.contains(new_edge)) {
       this.performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -568,8 +568,8 @@ public class SMGState implements AbstractQueryableState {
       this.setInvalidFree();
     }
     heap.setValidity(smgObject, false);
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
-    filter.filterByObject(smgObject);
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(smgObject);
+
     for (SMGEdgeHasValue edge : heap.getHVEdges(filter)) {
       heap.removeHasValueEdge(edge);
     }

@@ -168,6 +168,14 @@ public class SMGEdgeHasValue extends SMGEdge {
 }
 
 class SMGEdgeHasValueFilter {
+
+  public static SMGEdgeHasValueFilter objectFilter(SMGObject pObject) {
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    filter.filterByObject(pObject);
+
+    return filter;
+  }
+
   private SMGObject object = null;
 
   private Integer value = null;

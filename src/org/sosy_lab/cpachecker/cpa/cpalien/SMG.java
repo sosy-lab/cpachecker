@@ -456,8 +456,7 @@ class SMGConsistencyVerifier {
     }
 
     // Verify that NULL object has no value
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
-    filter.filterByObject(pSmg.getNullObject());
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pSmg.getNullObject());
 
     if (! pSmg.getHVEdges(filter).isEmpty()) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object has some value");
@@ -493,8 +492,7 @@ class SMGConsistencyVerifier {
         continue;
       }
       // Verify that the HasValue edge set for this invalid object is empty
-      SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
-      filter.filterByObject(obj);
+      SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj);
 
       if (pSmg.getHVEdges(filter).size() > 0) {
         pLogger.log(Level.SEVERE, "SMG inconsistent: invalid object has a HVEdge");
@@ -517,8 +515,7 @@ class SMGConsistencyVerifier {
   static private boolean checkSingleFieldConsistency(LogManager pLogger, SMGObject pObject, SMG pSmg) {
 
     // For all fields in the object, verify that sizeof(type)+field_offset < object_size
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
-    filter.filterByObject(pObject);
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
 
     for (SMGEdgeHasValue hvEdge : pSmg.getHVEdges(filter)) {
       if ((hvEdge.getOffset() + hvEdge.getSizeInBytes(pSmg.getMachineModel())) > pObject.getSizeInBytes()) {
