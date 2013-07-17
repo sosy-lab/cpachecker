@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+import com.google.common.base.Objects;
+
 public final class CIdExpression extends AIdExpression implements CExpression {
 
 
@@ -79,6 +81,13 @@ public final class CIdExpression extends AIdExpression implements CExpression {
       return false;
     }
 
-    return super.equals(obj);
+    // Don't call super.equals() here,
+    // it compares the declaration field.
+    // In C, there might be several declarations declaring the same variable,
+    // so we sometimes need to return true even with different declarations.
+
+    CIdExpression other = (CIdExpression)obj;
+
+    return Objects.equal(getDeclaration().getQualifiedName(), other.getDeclaration().getQualifiedName());
   }
 }
