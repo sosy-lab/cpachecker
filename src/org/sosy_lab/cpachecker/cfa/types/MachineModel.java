@@ -230,7 +230,11 @@ public enum MachineModel {
       // TODO: This has to be checked (Example: Char pathbuf[1 + 1];)
       // TODO: Take possible padding into account
 
-      /*
+      // [CPAlien] TODO: Implement an option for different treating of arrays: some CPAs
+      // treat sizeof array as pointer, and therefore the following code was commented out.
+      // CPAlien uses arrays in the real way, so we now need the option. I guess the proper
+      // behavior should be default, and the treat-array-as-pointer should be optional.
+
       CExpression arrayLength = pArrayType.getLength();
 
       Integer length = null;
@@ -247,7 +251,6 @@ public enum MachineModel {
           return length * sizeOfType;
         }
       }
-     */
 
       // We do not support arrays with variable length, so treat them as pointer.
       return model.getSizeofPtr();
