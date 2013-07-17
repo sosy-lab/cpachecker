@@ -109,6 +109,13 @@ public class CtoFormulaTypeUtils {
       return t1 == t2;
     }
 
+    while (t1 instanceof CFieldTrackType) {
+      t1 = ((CFieldTrackType)t1).getType();
+    }
+    while (t2 instanceof CFieldTrackType) {
+      t2 = ((CFieldTrackType)t2).getType();
+    }
+
     return t1.getCanonicalType().equals(t2.getCanonicalType());
   }
 

@@ -41,6 +41,8 @@ public class CFieldTrackType extends CtoFormulaCType {
     structType = pStructType;
     fieldType = pFieldType;
     structTypeRepectingCasts = pStructTypeRepectingCasts;
+    assert !(fieldType instanceof CFieldTrackType);
+    assert !(structTypeRepectingCasts instanceof CFieldTrackType);
   }
 
   @Override
