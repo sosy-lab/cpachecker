@@ -25,10 +25,12 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -39,7 +41,7 @@ public class SMG {
   final private HashSet<SMGObject> objects = new HashSet<>();
   final private HashSet<Integer> values = new HashSet<>();
   final private HashSet<SMGEdgeHasValue> hv_edges = new HashSet<>();
-  final private HashSet<SMGEdgePointsTo> pt_edges = new HashSet<>();
+  final private HashMap<Integer, SMGEdgePointsTo> pt_edges = new HashMap<>();
   final private HashMap<SMGObject, Boolean> object_validity = new HashMap<>();
 
   final private MachineModel machine_model;
@@ -85,7 +87,7 @@ public class SMG {
     this.objects.addAll(pHeap.objects);
     this.values.addAll(pHeap.values);
     this.hv_edges.addAll(pHeap.hv_edges);
-    this.pt_edges.addAll(pHeap.pt_edges);
+    this.pt_edges.putAll(pHeap.pt_edges);
 
     this.object_validity.putAll(pHeap.object_validity);
 
@@ -138,7 +140,7 @@ public class SMG {
   final public void removeObjectAndEdges(final SMGObject pObj) {
     this.removeObject(pObj);
     Iterator<SMGEdgeHasValue> hv_iter = this.hv_edges.iterator();
-    Iterator<SMGEdgePointsTo> pt_iter = this.pt_edges.iterator();
+    Iterator<SMGEdgePointsTo> pt_iter = this.pt_edges.values().iterator();
     while (hv_iter.hasNext()) {
       if (hv_iter.next().getObject() == pObj) {
         hv_iter.remove();
@@ -185,7 +187,7 @@ public class SMG {
    * @param pEdge Points-To edge to add.
    */
   final public void addPointsToEdge(SMGEdgePointsTo pEdge) {
-    this.pt_edges.add(pEdge);
+    this.pt_edges.put(pEdge.getValue(), pEdge);
   }
 
   /**
@@ -321,8 +323,8 @@ public class SMG {
    * Getter for obtaining unmodifiable view on Points-To edges set. Constant.
    * @return Unmodifiable view on Points-To edges set.
    */
-  final public Set<SMGEdgePointsTo> getPTEdges() {
-    return Collections.unmodifiableSet(this.pt_edges);
+  final public Map<Integer, SMGEdgePointsTo> getPTEdges() {
+    return Collections.unmodifiableMap(this.pt_edges );
   }
 
   /**
@@ -345,7 +347,7 @@ public class SMG {
       throw new IllegalArgumentException("Value [" + pValue + "] not in SMG");
     }
 
-    for (SMGEdgePointsTo edge: this.pt_edges) {
+    for (SMGEdgePointsTo edge: this.pt_edges.values()) {
       if (pValue == edge.getValue()) {
         return edge.getObject();
       }
@@ -400,6 +402,14 @@ public class SMG {
     }
 
     return bs;
+  }
+
+  public boolean isPointer(Integer value) {
+    return this.pt_edges.containsKey(value);
+  }
+
+  public SMGEdgePointsTo getPointer(Integer value) {
+    return this.pt_edges.get(value);
   }
 }
 
@@ -552,7 +562,7 @@ class SMGConsistencyVerifier {
    * @param pEdges A set of edges for consistency verification
    * @return True, if all edges in {@link pEdges} satisfy consistency criteria. False otherwise.
    */
-  static private boolean verifyEdgeConsistency(LogManager pLogger, SMG pSmg, Set<? extends SMGEdge> pEdges) {
+  static private boolean verifyEdgeConsistency(LogManager pLogger, SMG pSmg, Collection<? extends SMGEdge> pEdges) {
     ArrayList<SMGEdge> to_verify = new ArrayList<>();
     to_verify.addAll(pEdges);
 
@@ -640,7 +650,7 @@ class SMGConsistencyVerifier {
         pLogger,
         "Has Value edge consistency");
     toReturn = toReturn && verifySMGProperty(
-        verifyEdgeConsistency(pLogger, pSmg, pSmg.getPTEdges()),
+        verifyEdgeConsistency(pLogger, pSmg, pSmg.getPTEdges().values()),
         pLogger,
         "Points To edge consistency");
     toReturn = toReturn && verifySMGProperty(

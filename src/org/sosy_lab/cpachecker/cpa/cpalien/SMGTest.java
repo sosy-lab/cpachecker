@@ -199,7 +199,7 @@ public class SMGTest {
     Assert.assertFalse(smg.getObjects().contains(object));
     Assert.assertTrue(smg.getHVEdges().contains(hv0));
     Assert.assertTrue(smg.getHVEdges().contains(hv4));
-    Assert.assertTrue(smg.getPTEdges().contains(pt));
+    Assert.assertTrue(smg.getPTEdges().values().contains(pt));
   }
 
   @Test
@@ -223,7 +223,7 @@ public class SMGTest {
     Assert.assertFalse(smg.getObjects().contains(object));
     Assert.assertFalse(smg.getHVEdges().contains(hv0));
     Assert.assertFalse(smg.getHVEdges().contains(hv4));
-    Assert.assertFalse(smg.getPTEdges().contains(pt));
+    Assert.assertFalse(smg.getPTEdges().values().contains(pt));
   }
 
   @Test
@@ -432,7 +432,7 @@ public class SMGTest {
     HashSet<SMGEdgePointsTo> set = new HashSet<>();
     set.add(pt1to1);
 
-    Assert.assertTrue(smg.getPTEdges().containsAll(set));
+    Assert.assertTrue(smg.getPTEdges().values().containsAll(set));
   }
 
   @Test

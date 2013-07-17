@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -251,10 +252,8 @@ public class SMGState implements AbstractQueryableState {
    * @throws SMGInconsistentException When the value passed does not have a Points-To edge.
    */
   public SMGEdgePointsTo getPointerFromValue(Integer pValue) throws SMGInconsistentException {
-    for (SMGEdgePointsTo edge : heap.getPTEdges()) {
-      if (edge.getValue() == pValue) {
-        return edge;
-      }
+    if (heap.isPointer(pValue)) {
+      return heap.getPointer(pValue);
     }
 
     throw new SMGInconsistentException("Asked for a Points-To edge for a non-pointer value");
@@ -540,9 +539,9 @@ public class SMGState implements AbstractQueryableState {
     // TODO A better way of getting those edges, maybe with a filter
     // like the Has-Value-Edges
 
-    Set<SMGEdgePointsTo> pointsToEdges = heap.getPTEdges();
+    Map<Integer, SMGEdgePointsTo> pointsToEdges = heap.getPTEdges();
 
-    for (SMGEdgePointsTo edge : pointsToEdges) {
+    for (SMGEdgePointsTo edge : pointsToEdges.values()) {
       if (edge.getObject().equals(memory) && edge.getOffset() == offset) {
         return edge.getValue();
       }

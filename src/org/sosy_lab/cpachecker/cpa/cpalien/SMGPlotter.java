@@ -70,7 +70,7 @@ public final class SMGPlotter {
       sb.append(newLineWithOffset(smgHVEdgeAsDot(edge)));
     }
 
-    for (SMGEdgePointsTo edge: smg.getPTEdges()) {
+    for (SMGEdgePointsTo edge: smg.getPTEdges().values()) {
       if (edge.getValue() != smg.getNullValue()) {
         sb.append(newLineWithOffset(smgPTEdgeAsDot(edge)));
       }
