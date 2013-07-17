@@ -114,8 +114,10 @@ public class AFunctionType implements IAFunctionType {
 
     AFunctionType other = (AFunctionType) obj;
 
+    // We don't compare takesVarArgs here,
+    // because it's not really relevant for type equality.
     return Objects.equals(name, other.name) && Objects.equals(parameters, other.parameters)
-           && Objects.equals(returnType, other.returnType) && Objects.equals(takesVarArgs, other.takesVarArgs);
+           && Objects.equals(returnType, other.returnType);
   }
 
 }
