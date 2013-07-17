@@ -46,6 +46,7 @@ final class CDereferenceType extends CtoFormulaCType {
     isVolatile = pVolatile;
     type = pType;
     guessedType = pGuessedType;
+    assert !(guessedType instanceof CDereferenceType);
   }
 
   public CType getGuessedType() {

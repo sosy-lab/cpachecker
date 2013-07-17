@@ -418,18 +418,31 @@ class PointerAliasHandling extends CtoFormulaConverter {
           if (leftT) {
             if (rightT) {
               // Right is actually no pointer but was used as pointer before, so we can use its type.
-            }
+              CType currentLeftGuess = getGuessedType(leftPtrType);
+              CType currentRightGuess = getGuessedType(rPtrVarName.getType());
+              if (currentLeftGuess == null) {
+                if (currentRightGuess != null) {
+                  lPtrVarName =
+                    lPtrVarName.withType(setGuessedType(leftPtrType, currentRightGuess));
+                }
+              } else {
+                if (getSizeof(currentRightGuess) != getSizeof(currentLeftGuess)) {
+                  log(Level.WARNING, "Second assignment of an variable that is no pointer with different size");
+                }
+              }
 
-            // OK left is no pointer, but right is, for example:
-            // l = r; // l is unsigned int and r is *long
-            // now we assign *l to the type of *r if *l was not assigned before
-            CType currentGuess = getGuessedType(leftPtrType);
-            if (currentGuess == null) {
-              lPtrVarName =
-                  lPtrVarName.withType(setGuessedType(leftPtrType, rPtrVarName.getType()));
             } else {
-              if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
-                log(Level.WARNING, "Second assignment of an variable that is no pointer with different size");
+              // OK left is no pointer, but right is, for example:
+              // l = r; // l is unsigned int and r is *long
+              // now we assign *l to the type of *r if *l was not assigned before
+              CType currentGuess = getGuessedType(leftPtrType);
+              if (currentGuess == null) {
+                lPtrVarName =
+                    lPtrVarName.withType(setGuessedType(leftPtrType, rPtrVarName.getType()));
+              } else {
+                if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
+                  log(Level.WARNING, "Second assignment of an variable that is no pointer with different size");
+                }
               }
             }
           } else {
