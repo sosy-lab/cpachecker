@@ -228,6 +228,17 @@ public class SMG {
     this.object_validity.put(pObject, pValidity);
   }
 
+  /**
+   * Replaces whole HasValue edge set with new set.
+   * @param pNewHV
+   *
+   * Keeps consistency: no
+   */
+  public void replaceHVSet(Set<SMGEdgeHasValue> pNewHV) {
+    hv_edges.clear();
+    hv_edges.addAll(pNewHV);
+  }
+
   /* ********************************************* */
   /* Non-modifying functions: getters and the like */
   /* ********************************************* */
@@ -367,6 +378,16 @@ public class SMG {
     return this.machine_model;
   }
 
+  /**
+   * Obtains a bitset signifying where the object bytes are nullified.
+   *
+   * Constant.
+   *
+   * @param pObj SMGObject for which the information is to be obtained
+   * @return A bitset. A bit has 1 value if the appropriate byte is guaranteed
+   * to be NULL (is covered by a HasValue edge leading from an object to null value,
+   * 0 otherwise.
+   */
   public BitSet getNullBytesForObject(SMGObject pObj) {
     BitSet bs = new BitSet(pObj.getSizeInBytes());
     bs.clear();
@@ -379,11 +400,6 @@ public class SMG {
     }
 
     return bs;
-  }
-
-  public void replaceHVSet(Set<SMGEdgeHasValue> pNewHV) {
-    hv_edges.clear();
-    hv_edges.addAll(pNewHV);
   }
 }
 

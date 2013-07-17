@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.*;
 
+import java.util.BitSet;
 import java.util.HashSet;
+import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -80,6 +82,33 @@ public class SMGTest {
     smg.addHasValueEdge(hv2has1at4);
 
     when(mockType.accept((CTypeVisitor<Integer, IllegalArgumentException>)(anyObject()))).thenReturn(Integer.valueOf(4));
+  }
+
+  @Test
+  public void getNullBytesForObjectTest() {
+    SMG smg = getNewSMG64();
+    smg.addObject(obj1);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 4, obj1, smg.getNullValue());
+    smg.addHasValueEdge(hv);
+
+    BitSet bs = smg.getNullBytesForObject(obj1);
+    Assert.assertFalse(bs.get(0));
+    Assert.assertFalse(bs.get(3));
+    Assert.assertTrue(bs.get(4));
+    Assert.assertTrue(bs.get(7));
+  }
+
+  @Test
+  public void replaceHVSetTest(){
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 2, obj1, val1.intValue());
+    Set<SMGEdgeHasValue> hvSet = new HashSet<>();
+    hvSet.add(hv);
+
+    smg.replaceHVSet(hvSet);
+
+    Set<SMGEdgeHasValue> newHVSet = smg.getHVEdges();
+
+    Assert.assertTrue(hvSet.equals(newHVSet));
   }
 
   @Test
