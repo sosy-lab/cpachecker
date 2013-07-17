@@ -94,6 +94,72 @@ public class SMG {
     this.machine_model = pHeap.machine_model;
   }
 
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((hv_edges == null) ? 0 : hv_edges.hashCode());
+    result = prime * result + ((machine_model == null) ? 0 : machine_model.hashCode());
+    result = prime * result + ((object_validity == null) ? 0 : object_validity.hashCode());
+    result = prime * result + ((objects == null) ? 0 : objects.hashCode());
+    result = prime * result + ((pt_edges == null) ? 0 : pt_edges.hashCode());
+    result = prime * result + ((values == null) ? 0 : values.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    SMG other = (SMG) obj;
+    if (hv_edges == null) {
+      if (other.hv_edges != null) {
+        return false;
+      }
+    } else if (!hv_edges.equals(other.hv_edges)) {
+      return false;
+    }
+    if (machine_model != other.machine_model) {
+      return false;
+    }
+    if (object_validity == null) {
+      if (other.object_validity != null) {
+        return false;
+      }
+    } else if (!object_validity.equals(other.object_validity)) {
+      return false;
+    }
+    if (objects == null) {
+      if (other.objects != null) {
+        return false;
+      }
+    } else if (!objects.equals(other.objects)) {
+      return false;
+    }
+    if (pt_edges == null) {
+      if (other.pt_edges != null) {
+        return false;
+      }
+    } else if (!pt_edges.equals(other.pt_edges)) {
+      return false;
+    }
+    if (values == null) {
+      if (other.values != null) {
+        return false;
+      }
+    } else if (!values.equals(other.values)) {
+      return false;
+    }
+    return true;
+  }
+
   /**
    * Add an object {@link pObj} to the SMG.
    *
