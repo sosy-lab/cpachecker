@@ -44,6 +44,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -53,8 +54,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -1155,30 +1154,15 @@ public class CtoFormulaConverter {
 
     // if there is an initializer associated to this variable,
     // take it into account
-    CInitializer initializer = decl.getInitializer();
-    CExpression init = null;
-    if (initializer instanceof CInitializerExpression) {
-      init = ((CInitializerExpression)initializer).getExpression();
-
-    } else {
-      logDebug("Ignoring unsupported initializer", initializer);
-    }
-
-    if (init == null) {
-      return bfmgr.makeBoolean(true);
-    }
-
-    // initializer value present
-    // Do a regular assignment
-    CExpressionAssignmentStatement assign =
-        new CExpressionAssignmentStatement(
-            decl.getFileLocation(),
-            new CIdExpression(decl.getFileLocation(), decl.getType(), decl.getName(), decl),
-            init);
+    BooleanFormula result = bfmgr.makeBoolean(true);
     StatementToFormulaVisitor v = getStatementVisitor(edge, function, ssa, constraints);
-    return assign.accept(v);
-  }
 
+    for (CExpressionAssignmentStatement assignment : CInitializers.convertToAssignments(decl, edge)) {
+      result = bfmgr.and(result, assignment.accept(v));
+    }
+
+    return result;
+  }
 
   protected BooleanFormula makeExitFunction(CFunctionSummaryEdge ce, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
