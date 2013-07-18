@@ -146,6 +146,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
 
         CType paramType= it1.next();
         CExpression pexp = it2.next();
+        pexp = conv.makeCastFromArrayToPointerIfNecessary(pexp, paramType);
 
         Formula arg = pexp.accept(this);
         args.add(conv.makeCast(pexp.getExpressionType(), paramType, arg));

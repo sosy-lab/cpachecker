@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -724,6 +725,26 @@ public class CtoFormulaConverter {
     return makeCast(before, after, inner);
   }
 
+  CExpression makeCastFromArrayToPointerIfNecessary(CExpression exp, CType targetType) {
+    if (exp.getExpressionType().getCanonicalType() instanceof CArrayType) {
+      targetType = targetType.getCanonicalType();
+      if (targetType instanceof CPointerType || targetType instanceof CSimpleType) {
+        return makeCastFromArrayToPointer(exp);
+      }
+    }
+    return exp;
+  }
+
+  private static CExpression makeCastFromArrayToPointer(CExpression arrayExpression) {
+    // array-to-pointer conversion
+    CArrayType arrayType = (CArrayType)arrayExpression.getExpressionType().getCanonicalType();
+    CPointerType pointerType = new CPointerType(arrayType.isConst(),
+        arrayType.isVolatile(), arrayType.getType());
+
+    return new CUnaryExpression(arrayExpression.getFileLocation(), pointerType,
+        arrayExpression, UnaryOperator.AMPER);
+  }
+
   /**
    * Change the size of the given formula from fromType to toType.
    * This method extracts or concats with nondet-bits.
@@ -1252,17 +1273,19 @@ public class CtoFormulaConverter {
     int i = 0;
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (CParameterDeclaration formalParam : formalParams) {
-      if (formalParam.getType() instanceof CPointerType) {
+      final String varName = formalParam.getQualifiedName();
+      final CType paramType = formalParam.getType();
+      if (paramType.getCanonicalType() instanceof CPointerType) {
         log(Level.WARNING, "Program contains pointer parameter; analysis is imprecise in case of aliasing.");
         logDebug("Ignoring the semantics of pointer for parameter "
             + formalParam.getName(), fn.getFunctionDefinition());
       }
       CExpression paramExpression = actualParams.get(i++);
+      paramExpression = makeCastFromArrayToPointerIfNecessary(paramExpression, paramType);
+
       // get value of actual parameter
       Formula actualParam = buildTerm(paramExpression, edge, callerFunction, ssa, constraints);
 
-      final String varName = formalParam.getQualifiedName();
-      CType paramType = formalParam.getType();
       BooleanFormula eq =
           makeAssignment(
               varName, paramType,

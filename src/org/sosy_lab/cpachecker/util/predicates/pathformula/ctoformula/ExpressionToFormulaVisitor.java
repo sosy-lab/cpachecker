@@ -79,14 +79,17 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
   @Override
   public Formula visit(CBinaryExpression exp) throws UnrecognizedCCodeException {
     BinaryOperator op = exp.getOperator();
-    CExpression e1 = exp.getOperand1();
-    CExpression e2 = exp.getOperand2();
 
     // these operators expect numeric arguments
-    CType t1 = e1.getExpressionType();
-    CType t2 = e2.getExpressionType();
     CType returnType = exp.getExpressionType();
     FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+
+    CExpression e1 = exp.getOperand1();
+    CExpression e2 = exp.getOperand2();
+    e1 = conv.makeCastFromArrayToPointerIfNecessary(e1, returnType);
+    e2 = conv.makeCastFromArrayToPointerIfNecessary(e2, returnType);
+    CType t1 = e1.getExpressionType();
+    CType t2 = e2.getExpressionType();
 
     Formula f1 = e1.accept(this);
     Formula f2 = e2.accept(this);
@@ -203,8 +206,14 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
 
   @Override
   public Formula visit(CCastExpression cexp) throws UnrecognizedCCodeException {
-    Formula operand = cexp.getOperand().accept(this);
-    return conv.makeCast(cexp, operand);
+    CExpression op = cexp.getOperand();
+    op = conv.makeCastFromArrayToPointerIfNecessary(op, cexp.getExpressionType());
+
+    Formula operand = op.accept(this);
+
+    CType after = cexp.getExpressionType();
+    CType before = op.getExpressionType();
+    return conv.makeCast(before, after, operand);
   }
 
   @Override

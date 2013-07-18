@@ -32,10 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -63,17 +59,8 @@ class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements
     CRightHandSide rhs = assignment.getRightHandSide();
     CExpression lhs = assignment.getLeftHandSide();
 
-    if ((rhs.getExpressionType().getCanonicalType() instanceof CArrayType)
-        && (rhs instanceof CExpression)
-        && (lhs.getExpressionType().getCanonicalType() instanceof CPointerType)) {
-
-      // array-to-pointer conversion
-      CArrayType arrayType = (CArrayType)rhs.getExpressionType().getCanonicalType();
-      CPointerType pointerType = new CPointerType(arrayType.isConst(),
-          arrayType.isVolatile(), arrayType.getType());
-
-      rhs = new CUnaryExpression(rhs.getFileLocation(), pointerType,
-          (CExpression)rhs, UnaryOperator.AMPER);
+    if (rhs instanceof CExpression) {
+      rhs = conv.makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhs.getExpressionType());
     }
 
     Formula r = rhs.accept(this);
