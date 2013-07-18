@@ -104,19 +104,49 @@ public class CtoFormulaTypeUtils {
     return areEqual(t1, (CType)other);
   }
 
+  private static CType getCanonicalType(CType t) {
+    while (t instanceof CFieldTrackType) {
+      t = ((CFieldTrackType)t).getType();
+    }
+    return t.getCanonicalType();
+  }
+
   public static boolean areEqual(CType t1, CType t2) {
     if (t1 == null || t2 == null) {
       return t1 == t2;
     }
 
-    while (t1 instanceof CFieldTrackType) {
-      t1 = ((CFieldTrackType)t1).getType();
-    }
-    while (t2 instanceof CFieldTrackType) {
-      t2 = ((CFieldTrackType)t2).getType();
+    t1 = getCanonicalType(t1);
+    t2 = getCanonicalType(t2);
+
+    return t1.equals(t2);
+  }
+
+  public static boolean areEqualWithMatchingPointerArray(CType t1, CType t2) {
+    if (t1 == null || t2 == null) {
+      return t1 == t2;
     }
 
-    return t1.getCanonicalType().equals(t2.getCanonicalType());
+    t1 = getCanonicalType(t1);
+    t2 = getCanonicalType(t2);
+
+    return t1.equals(t2)
+        || areMatchingPointerArrayTypes(t1, t2)
+        || areMatchingPointerArrayTypes(t2, t1);
+  }
+
+  private static boolean areMatchingPointerArrayTypes(CType t1, CType t2) {
+    if ((t1 instanceof CPointerType) && (t2 instanceof CArrayType)) {
+
+      CType componentType1 = ((CPointerType)t1).getType();
+      CType componentType2 = ((CArrayType)t2).getType();
+
+      return (t1.isConst() == t2.isConst())
+          && (t1.isVolatile() == t2.isVolatile())
+          && componentType1.equals(componentType2);
+    } else {
+      return false;
+    }
   }
 
   public static CType dereferencedType(CType t) {
