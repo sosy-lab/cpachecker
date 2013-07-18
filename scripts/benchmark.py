@@ -1642,7 +1642,7 @@ def main(argv=None):
     parser.add_argument("--cloudPriority",
                       dest="cloudPriority",
                       metavar="PRIORITY",
-                      help="Sets the priority for this benchmark used in the cloud.")
+                      help="Sets the priority for this benchmark used in the cloud. Possible values are IDLE, LOW, HIGH, URGENT.")
     
     parser.add_argument("--cloudCpuModel",
                       dest="cloudCpuModel",
