@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.cpa.explicit.OmniscientCompositePrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.explicit.ComponentAwareExplicitPrecisionAdjustment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -68,12 +68,12 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
           + "merging if all cpas agree on this. This is probably what you want.")
     private String merge = "AGREE";
 
-    @Option(toUppercase=true, values={"IGNORANT", "OMNISCIENT"},
-    description="which precision adjustment strategy to use (ignorant or omniscient)\n"
-      + "While an ignorant strategy keeps the domain knowledge seperated, "
-      + "and delegates to the component precision adjustment operators, "
-      + "the omniscient strategy may operate on global knowledge.")
-    private String precAdjust = "IGNORANT";
+    @Option(toUppercase=true, values={"COMPOSITE", "COMPONENT"},
+    description="which precision adjustment strategy to use (COMPOSITE or COMPONENT)\n"
+      + "While the COMPOSITE strategy keeps the domain knowledge seperated, "
+      + "and only delegates to each component's precision adjustment operator individually, "
+      + "the COMPONENT strategy operates with knowledge about all components.")
+    private String precAdjust = "COMPOSITE";
   }
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
@@ -140,8 +140,8 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
 
       PrecisionAdjustment compositePrecisionAdjustment;
-      if (options.precAdjust.equals("OMNISCIENT")) {
-        compositePrecisionAdjustment = new OmniscientCompositePrecisionAdjustment(
+      if (options.precAdjust.equals("COMPONENT")) {
+        compositePrecisionAdjustment = new ComponentAwareExplicitPrecisionAdjustment(
             precisionAdjustments.build(),
             getConfiguration(),
             cfa

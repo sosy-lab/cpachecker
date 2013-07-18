@@ -63,7 +63,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="cpa.explicit.blk")
-public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAdjustment implements StatisticsProvider {
+public class ComponentAwareExplicitPrecisionAdjustment extends CompositePrecisionAdjustment implements StatisticsProvider {
 
   @Option(description="restrict abstractions to loop heads")
   private boolean alwaysAtLoops = false;
@@ -95,7 +95,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
     pStatsCollection.add(stats);
   }
 
-  public OmniscientCompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments, Configuration config, CFA cfa)
+  public ComponentAwareExplicitPrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments, Configuration config, CFA cfa)
       throws InvalidConfigurationException {
     super(precisionAdjustments);
 
@@ -110,17 +110,17 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
     stats = new Statistics() {
       @Override
       public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-        pOut.println("Total time:                 " + OmniscientCompositePrecisionAdjustment.this.total);
-        pOut.println("Total time for composite:   " + OmniscientCompositePrecisionAdjustment.this.totalComposite);
-        pOut.println("Total time for abstraction: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceAbstraction);
-        pOut.println("Total time for reached set: " + OmniscientCompositePrecisionAdjustment.this.totalEnforceReachedSetThreshold);
-        pOut.println("Total time for path:        " + OmniscientCompositePrecisionAdjustment.this.totalEnforcePathThreshold);
-        pOut.println("Number of abstractions:     " + OmniscientCompositePrecisionAdjustment.this.abstractionComputations);
+        pOut.println("Total time:                 " + ComponentAwareExplicitPrecisionAdjustment.this.total);
+        pOut.println("Total time for composite:   " + ComponentAwareExplicitPrecisionAdjustment.this.totalComposite);
+        pOut.println("Total time for abstraction: " + ComponentAwareExplicitPrecisionAdjustment.this.totalEnforceAbstraction);
+        pOut.println("Total time for reached set: " + ComponentAwareExplicitPrecisionAdjustment.this.totalEnforceReachedSetThreshold);
+        pOut.println("Total time for path:        " + ComponentAwareExplicitPrecisionAdjustment.this.totalEnforcePathThreshold);
+        pOut.println("Number of abstractions:     " + ComponentAwareExplicitPrecisionAdjustment.this.abstractionComputations);
       }
 
       @Override
       public String getName() {
-        return "OmniscientCompositePrecisionAdjustment Stats";
+        return "ComponentAwareExplicitPrecisionAdjustment Statistics";
       }
     };
   }
@@ -141,7 +141,7 @@ public class OmniscientCompositePrecisionAdjustment extends CompositePrecisionAd
 
     int indexOfExplicitState = getIndexOfExplicitState(composite);
     if (indexOfExplicitState == -1) {
-      throw new CPAException("The OmniscientCompositePrecisionAdjustment needs an ExplicitState");
+      throw new CPAException("The ComponentAwareExplicitPrecisionAdjustment needs an ExplicitState");
     }
 
     ImmutableList.Builder<AbstractState> outElements  = ImmutableList.builder();

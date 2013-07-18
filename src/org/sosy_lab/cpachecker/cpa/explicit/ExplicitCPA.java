@@ -164,11 +164,26 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
   }
 
   private ExplicitPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
+    if(refinementWithoutAbstraction(config)) {
+      logger.log(Level.WARNING, "Explicit-Value analysis with refinement needs " +
+            "ComponentAwareExplicitPrecisionAdjustment. Please set option cpa.composite.precAdjust to 'COMPONENT'");
+    }
     ExplicitPrecision prec = new ExplicitPrecision(variableBlacklist, config, cfa.getVarClassification(), restoreMappingFromFile(cfa));
 
     prec = new ExplicitPrecision(prec, restoreMappingFromFile(cfa));
 
     return prec;
+  }
+
+  /**
+   * This method checks if refinement is enabled, but the proper precision adjustment operator is not in use.
+   *
+   * @param config the current configuration
+   * @return true, if refinement is enabled, but abstraction is not available, else false
+   */
+  private boolean refinementWithoutAbstraction(Configuration config) {
+    return Boolean.parseBoolean(config.getProperty("analysis.useRefinement")) &&
+            !config.getProperty("cpa.composite.precAdjust").equals("COMPONENT");
   }
 
   private Multimap<CFANode, String> restoreMappingFromFile(CFA cfa) throws InvalidConfigurationException {

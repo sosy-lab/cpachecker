@@ -427,12 +427,12 @@ cpa.callstack.skipRecursion = false
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
 
-# which precision adjustment strategy to use (ignorant or omniscient)
-# While an ignorant strategy keeps the domain knowledge seperated, and
-# delegates to the component precision adjustment operators, the omniscient
-# strategy may operate on global knowledge.
-cpa.composite.precAdjust = "IGNORANT"
-  allowed values: [IGNORANT, OMNISCIENT]
+# which precision adjustment strategy to use (COMPOSITE or COMPONENT)
+# While the COMPOSITE strategy keeps the domain knowledge seperated, and only
+# delegates to each component's precision adjustment operator individually,
+# the COMPONENT strategy operates with knowledge about all components.
+cpa.composite.precAdjust = "COMPOSITE"
+  allowed values: [COMPOSITE, COMPONENT]
 
 # Limit for Java heap memory used by CPAchecker (in MiB; -1 for infinite)
 cpa.conditions.global.memory.heap = -1
@@ -500,15 +500,19 @@ cpa.defuse.merge = "sep"
   allowed values: [sep, join]
 
 # restrict abstractions to assume edges
+cpa.explicit.blk.alwaysAtAssumes = no default value
 cpa.explicit.blk.alwaysAtAssumes = false
 
 # restrict abstractions to function calls/returns
+cpa.explicit.blk.alwaysAtFunctions = no default value
 cpa.explicit.blk.alwaysAtFunctions = false
 
 # restrict abstractions to join points
+cpa.explicit.blk.alwaysAtJoins = no default value
 cpa.explicit.blk.alwaysAtJoins = false
 
 # restrict abstractions to loop heads
+cpa.explicit.blk.alwaysAtLoops = no default value
 cpa.explicit.blk.alwaysAtLoops = false
 
 # if there is an assumption like (x!=0), this option sets unknown
