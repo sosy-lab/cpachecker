@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -253,6 +255,11 @@ class CFABuilder extends ASTVisitor {
     ImmutableMap<String, CFunctionDeclaration> functions = scope.getFunctions();
     ImmutableMap<String, CComplexTypeDeclaration> types = scope.getTypes();
     ImmutableMap<String, CSimpleDeclaration> globalVars = scope.getGlobalVars();
+
+    FillInAllBindingsVisitor fillInAllBindingsVisitor = new FillInAllBindingsVisitor(scope);
+    for (IADeclaration decl : from(globalDeclarations).transform(Pair.<IADeclaration>getProjectionToFirst())) {
+      ((CDeclaration)decl).getType().accept(fillInAllBindingsVisitor);
+    }
 
     for (IASTFunctionDefinition declaration : functionDeclarations) {
       FunctionScope localScope = new FunctionScope(functions, types, globalVars);

@@ -79,6 +79,7 @@ public final class CElaboratedType implements CComplexType {
   public void setRealType(CComplexType pRealType) {
     checkState(getRealType() == null);
     checkNotNull(pRealType);
+    checkArgument(pRealType != this);
     checkArgument(pRealType.getKind() == kind);
     checkArgument(pRealType.getName().equals(name));
     realType = pRealType;
