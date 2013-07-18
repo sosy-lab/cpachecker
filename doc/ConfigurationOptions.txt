@@ -500,19 +500,15 @@ cpa.defuse.merge = "sep"
   allowed values: [sep, join]
 
 # restrict abstractions to assume edges
-cpa.explicit.blk.alwaysAtAssumes = no default value
 cpa.explicit.blk.alwaysAtAssumes = false
 
 # restrict abstractions to function calls/returns
-cpa.explicit.blk.alwaysAtFunctions = no default value
 cpa.explicit.blk.alwaysAtFunctions = false
 
 # restrict abstractions to join points
-cpa.explicit.blk.alwaysAtJoins = no default value
 cpa.explicit.blk.alwaysAtJoins = false
 
 # restrict abstractions to loop heads
-cpa.explicit.blk.alwaysAtLoops = no default value
 cpa.explicit.blk.alwaysAtLoops = false
 
 # if there is an assumption like (x!=0), this option sets unknown
