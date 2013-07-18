@@ -219,7 +219,6 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     ExplicitPrecision explicitPrecision = Precisions.extractPrecisionByType(precision, ExplicitPrecision.class);
     BDDPrecision bddPrecision           = Precisions.extractPrecisionByType(precision, BDDPrecision.class);
 
-    ArrayList<Precision> precisions = new ArrayList<>(2);
     ArrayList<Precision> refinedPrecisions = new ArrayList<>(2);
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(2);
 
@@ -238,14 +237,12 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
 
       //      if (explicitPrecision != null) { // TODO ExplicitRefiner without ExplicitPresicion, possible?
       refinedExplicitPrecision  = new ExplicitPrecision(explicitPrecision, increment);
-      precisions.add(explicitPrecision);
       refinedPrecisions.add(refinedExplicitPrecision);
       newPrecisionTypes.add(ExplicitPrecision.class);
       //      }
 
       if (bddPrecision != null) {
         BDDPrecision refinedBDDPrecision = new BDDPrecision(bddPrecision, increment);
-        precisions.add(bddPrecision);
         refinedPrecisions.add(refinedBDDPrecision);
         newPrecisionTypes.add(BDDPrecision.class);
       }
