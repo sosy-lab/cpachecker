@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -1176,6 +1177,20 @@ public class CtoFormulaConverter {
     // if there is an initializer associated to this variable,
     // take it into account
     BooleanFormula result = bfmgr.makeBoolean(true);
+
+    if (decl.getInitializer() instanceof CInitializerList) {
+      // If there is an initializer, all fields/elements not mentioned
+      // in the initializer are set to 0 (C standard § 6.7.9 (21)
+
+      int size = machineModel.getSizeof(decl.getType());
+      if (size > 0) {
+        Variable v = Variable.create(varName, decl.getType());
+        Formula var = makeVariable(v, ssa);
+        Formula zero = fmgr.makeNumber(getFormulaTypeFromCType(decl.getType()), 0L);
+        result = bfmgr.and(result, fmgr.assignment(var, zero));
+      }
+    }
+
     StatementToFormulaVisitor v = getStatementVisitor(edge, function, ssa, constraints);
 
     for (CExpressionAssignmentStatement assignment : CInitializers.convertToAssignments(decl, edge)) {
