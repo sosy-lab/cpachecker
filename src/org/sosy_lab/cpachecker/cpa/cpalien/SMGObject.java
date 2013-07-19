@@ -63,4 +63,28 @@ public class SMGObject {
   public boolean notNull() {
     return !nullObject;
   }
+
+  public boolean propertiesEqual(SMGObject other) {
+    if (this == other) {
+      return true;
+    }
+    if (other == null) {
+      return false;
+    }
+
+    if (label == null) {
+      if (other.label != null) {
+        return false;
+      }
+    } else if (!label.equals(other.label)) {
+      return false;
+    }
+    if (nullObject != other.nullObject) {
+      return false;
+    }
+    if (size_in_bytes != other.size_in_bytes) {
+      return false;
+    }
+    return true;
+  }
 }
