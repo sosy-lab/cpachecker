@@ -1,4 +1,7 @@
 int main() {
+	struct empty {
+	} empty = { };
+
 	struct u {
 		struct v {
 			int j;
