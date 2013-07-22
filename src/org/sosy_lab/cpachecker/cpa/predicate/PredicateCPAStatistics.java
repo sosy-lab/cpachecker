@@ -265,9 +265,13 @@ class PredicateCPAStatistics implements Statistics {
       }
       int numAbstractions = as.numCallsAbstraction-as.numSymbolicAbstractions;
       if (numAbstractions > 0) {
+        out.println("Total predicates per abstraction:         " + prec.totalPredsPerAbstraction);
         out.println("Max number of predicates per abstraction: " + prec.maxPredsPerAbstraction);
         out.println("Avg number of predicates per abstraction: " + div(prec.totalPredsPerAbstraction, prec.numAbstractions));
         out.println("Number of irrelevant predicates:          " + as.numIrrelevantPredicates + " (Avg: " + div(as.numIrrelevantPredicates, prec.numAbstractions) + ")");
+        if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
+          out.println("Number of trivially used predicates:      " + as.numTrivialPredicates + " (Avg: " + div(as.numTrivialPredicates, prec.numAbstractions) + ")");
+        }
         out.println("Total number of models for allsat:        " + as.allSatCount);
         out.println("Max number of models for allsat:          " + as.maxAllSatCount);
         out.println("Avg number of models for allsat:          " + div(as.allSatCount, numAbstractions));
@@ -299,6 +303,9 @@ class PredicateCPAStatistics implements Statistics {
       out.println("Time for prec operator:              " + prec.totalPrecTime);
       if (prec.numAbstractions > 0) {
         out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
+        if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
+          out.println("    Relevant predicate analysis:     " + as.trivialPredicatesTime);
+        }
         out.println("    Solving time:                    " + as.abstractionSolveTime + " (Max: " + as.abstractionSolveTime.printMaxTime() + ")");
         out.println("    Model enumeration time:          " + as.abstractionEnumTime.printOuterSumTime());
         out.println("    Time for BDD construction:       " + as.abstractionEnumTime.printInnerSumTime()   + " (Max: " + as.abstractionEnumTime.printInnerMaxTime() + ")");

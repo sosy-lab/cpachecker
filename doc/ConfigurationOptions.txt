@@ -642,6 +642,10 @@ cpa.predicate.abstraction.cartesian = false
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
 
+# Identify those predicates where the result is trivially known before
+# abstraction computation and omit them.
+cpa.predicate.abstraction.identifyTrivialPredicates = false
+
 # get an initial map of predicates from a list of files (see source
 # doc/examples/predmap.txt for an example)
 cpa.predicate.abstraction.initialPredicates = ImmutableList.of()
