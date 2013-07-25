@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 
 /**
  * Instances of this class represent states in the light-weight invariants analysis.
@@ -203,10 +204,17 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * @return a new state representing the given assignment applied to the current state.
    */
   public InvariantsState assign(String pVarName, InvariantsFormula<CompoundState> pValue, String pEdge) {
+    Preconditions.checkNotNull(pValue);
 
     InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
     final InvariantsState result;
     if (!mayEvaluate(pEdge)) {
+      /*
+       * No more evaluations allowed!
+       *
+       * Create a completely new state with the old assumptions and variables, but
+       * rename the assigned variables.
+       */
       FormulaEvaluationVisitor<CompoundState> evaluationVisitor = getFormulaResolver(pEdge);
       result = new InvariantsState(evaluationThreshold, useBitvectors);
       Variable<CompoundState> variable = ifm.asVariable(pVarName);
@@ -250,86 +258,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
       // Forbid further exact evaluations of this edge
       result.remainingEvaluations.put(pEdge, 0);
-      /*
-       * No more evaluations allowed!
-       *
-       * Create a completely new state with the old assumptions, but rename all
-       * normal variables and initialize the environment with a mapping of the
-       * variable names to the renamed variables.
-       *
-       * This deliberately omits almost all previous environment information but
-       * allows for recording exactly how a loop modifies the environment.
-       *//*
-      result = new InvariantsState(evaluationThreshold, useBitvectors);
-      // Transfer environment and record detailed values in a shadow environment
-      Map<String, InvariantsFormula<CompoundState>> shadowEnvironment = new HashMap<>();
-      for (Map.Entry<String, InvariantsFormula<CompoundState>> entry : this.environment.entrySet()) {
-        String varName = entry.getKey();
-        // Transfer only original variables, not remained ones
-        if (!isPrevVarName(varName)) {
-          InvariantsFormula<CompoundState> oldValue = entry.getValue();
-          // Expose all renamed variables
-          oldValue = exposeRenamed(oldValue);
-          // Resolve all occurrences of renamed variables in the value
-          oldValue = resolveRenamed(oldValue);
-          // Rename all original variables in the value
-          oldValue = renameVariables(oldValue);
-          // Put the resolved value as the value of the renamed variable into the environment
-          String renamedVariableName = renameVariable(varName);
-          final FormulaEvaluationVisitor<CompoundState> evaluator = getFormulaResolver();
-          oldValue = oldValue.accept(PartialEvaluator.INSTANCE, evaluator);
-          result.environment.put(renamedVariableName, TOP);
-          shadowEnvironment.put(renamedVariableName, oldValue);
-          // Add a reference of the new value to the old value
-          InvariantsFormula<CompoundState> renamedVariable = ifm.asVariable(renamedVariableName);
-          result.environment.put(varName, renamedVariable);
-        }
-      }
-      // Handle the actual assignment
-      InvariantsFormula<CompoundState> newValue = pValue;
-      // Resolve all occurrences of renamed variables in the value
-      newValue = resolveRenamed(newValue);
-      // Rename all original variables in the value
-      newValue = renameVariables(newValue);*/
-      /*
-       * Put the assignment value (that now refers to only renamed variables of
-       * the new environment) as the value of the original variable it is
-       * assigned to.
-       */
-      /*newValue = newValue.accept(PartialEvaluator.INSTANCE, getFormulaResolver(pEdge));
-      result.environment.put(pVarName, newValue);
-
-      // Refine the shadow environment by the current result environment
-      for (Map.Entry<String, InvariantsFormula<CompoundState>> entry : result.environment.entrySet()) {
-        String key = entry.getKey();
-        InvariantsFormula<CompoundState> value = entry.getValue();
-        if (!shadowEnvironment.containsKey(key)) {
-          shadowEnvironment.put(key, value);
-        }
-      }
-
-      // Transfer assumptions
-      for (InvariantsFormula<CompoundState> assumption : this.assumptions) {
-        // Any previously renamed variables have to be resolved, so the others can be renamed
-        InvariantsFormula<CompoundState> modifiedAssumption = resolveRenamed(assumption);
-        // Rename the remaining variables
-        modifiedAssumption = renameVariables(modifiedAssumption);
-        // Simplify the assumption by evaluating constant or trivial parts
-        modifiedAssumption = modifiedAssumption.accept(PartialEvaluator.INSTANCE, getFormulaResolver());
-        // The assumption can now safely be made for the new state, because it only uses renamed
-        // variables representing the previous state (this current state), in which it was made
-        assert result.assumeInternal(modifiedAssumption, getFormulaResolver());
-        for (InvariantsFormula<CompoundState> guessedAssumption : modifiedAssumption
-            .accept(new GuessAssumptionVisitor())) {
-          CompoundState evaluated = guessedAssumption.accept(getFormulaResolver(), shadowEnvironment);
-          if (evaluated.isDefinitelyTrue()) {
-            assert result.assumeInternal(guessedAssumption, getFormulaResolver());
-          }
-        }
-      }
-
-      // Forbid further exact evaluations of this edge
-      result.remainingEvaluations.put(pEdge, 0);*/
     } else {
       /*
        * A variable is newly assigned, so the appearances of this variable
