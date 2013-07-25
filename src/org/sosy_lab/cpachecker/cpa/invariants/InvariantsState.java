@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ContainsVarVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.ExposeVarVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaAbstractionVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
@@ -183,70 +182,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    */
   private static boolean isPrevVarName(String pVarName) {
     return pVarName.startsWith("__prev_");
-  }
-
-  /**
-   * Creates a new formula equivalent to the given formula, exposing all related renamed variables.
-   *
-   * For example, a formula <code>x == 2</code> does not show a renamed variable directly, but the environment might show
-   * <code>x == __prev_x + 1</code>. This function would produce the formula <code>__prev_x + 1 == 1</code>, showing the renamed
-   * variable <code>__prev_x</code>.
-   *
-   * @param pFormula the formula to expose renamed variables in.
-   * @return a formula equivalent to the given formula, exposing all related renamed variables.
-   */
-  private InvariantsFormula<CompoundState> exposeRenamed(InvariantsFormula<CompoundState> pFormula) {
-    InvariantsFormula<CompoundState> formula = pFormula;
-    ExposeVarVisitor<CompoundState> exposer = new ExposeVarVisitor<>(getEnvironment());
-    for (String varName : this.environment.keySet()) {
-      if (isPrevVarName(varName)) {
-        formula = formula.accept(exposer, varName);
-      }
-    }
-    return formula;
-  }
-
-  /**
-   * Resolves each renamed variable in the given formula to produce a new formula and
-   * repeats the procedure for the new formula until no more renamed variables are contained.
-   *
-   * @param pFormula the formula in which to resolve renamed variables.
-   * @return a formula produced by resolving all renamed variables in the given formula.
-   */
-  private InvariantsFormula<CompoundState> resolveRenamed(InvariantsFormula<CompoundState> pFormula) {
-    InvariantsFormula<CompoundState> formula = pFormula;
-    CollectVarsVisitor<CompoundState> varCollector = new CollectVarsVisitor<>();
-    InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
-    for (String varName : formula.accept(varCollector)) {
-      if (isPrevVarName(varName)) {
-        InvariantsFormula<CompoundState> renamedVariable = ifm.asVariable(varName);
-        InvariantsFormula<CompoundState> renamedVariableValue = getEnvironmentValue(varName);
-        ReplaceVisitor<CompoundState> renamedVarResolver = new ReplaceVisitor<>(renamedVariable, renamedVariableValue);
-        formula = formula.accept(renamedVarResolver);
-      }
-    }
-    return formula;
-  }
-
-  /**
-   * Renames all variables used in the given formula to create a new formula. Renaming
-   * is only considered sound if the given formula does not already use any renamed variables.
-   *
-   * @param pFormula the formula in which to rename all used variables.
-   * @return a formula similar to the given formula, but with all used variables renamed.
-   */
-  private static InvariantsFormula<CompoundState> renameVariables(InvariantsFormula<CompoundState> pFormula) {
-    InvariantsFormula<CompoundState> formula = pFormula;
-    CollectVarsVisitor<CompoundState> varCollector = new CollectVarsVisitor<>();
-    InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
-    for (String varName : formula.accept(varCollector)) {
-      assert !isPrevVarName(varName);
-      InvariantsFormula<CompoundState> variable = ifm.asVariable(varName);
-      InvariantsFormula<CompoundState> renamedVariable = ifm.asVariable(renameVariable(varName));
-      ReplaceVisitor<CompoundState> renamedVarResolver = new ReplaceVisitor<>(variable, renamedVariable);
-      formula = formula.accept(renamedVarResolver);
-    }
-    return formula;
   }
 
   /**
