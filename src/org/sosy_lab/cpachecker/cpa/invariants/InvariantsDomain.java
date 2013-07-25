@@ -47,7 +47,7 @@ enum InvariantsDomain implements AbstractDomain {
     InvariantsState element1 = (InvariantsState)pElement1;
     InvariantsState element2 = (InvariantsState)pElement2;
 
-    if (element1.equals(element2)) {
+    if (isLessOrEqual(element1, element2)) {
       return element2;
     }
 
@@ -91,12 +91,36 @@ enum InvariantsDomain implements AbstractDomain {
 
     return InvariantsState.from(resultRemainingEvaluations,
         newThreshold, resultAssumptions, resultEnvironment,
-        resultCandidateAssumptions, element1.getUseBitvectors());
+        resultCandidateAssumptions, element1.getUseBitvectors(),
+        element1.getIdentityMap());
   }
 
   @Override
   public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) {
-    return pElement1.equals(pElement2);
+    if (pElement1.equals(pElement2)) {
+      return true;
+    }
+    /*InvariantsState leftState = (InvariantsState) pElement1;
+    InvariantsState rightState = (InvariantsState) pElement2;
+    if (!leftState.getAssumptions().containsAll(rightState.getAssumptions())) {
+      return false;
+    }
+    Map<? extends String, ? extends InvariantsFormula<CompoundState>> leftEnvironment = leftState.getEnvironment();
+    for (Entry<? extends String, ? extends InvariantsFormula<CompoundState>> rightEnvElement : rightState.getEnvironment().entrySet()) {
+      String rightVarName = rightEnvElement.getKey();
+      InvariantsFormula<CompoundState> leftVarFormula = leftEnvironment.get(rightVarName);
+      if (leftVarFormula == null) {
+        return false;
+      }
+      InvariantsFormula<CompoundState> rightVarFormula = rightEnvElement.getValue();
+      CompoundState leftVarValue = leftVarFormula.accept(new FormulaCompoundStateEvaluationVisitor(), leftState.getEnvironment());
+      CompoundState rightVarValue = rightVarFormula.accept(new FormulaCompoundStateEvaluationVisitor(), rightState.getEnvironment());
+      if (!rightVarValue.contains(leftVarValue)) {
+        return false;
+      }
+    }
+    return true;
+    */return false;
   }
 
 }

@@ -150,14 +150,6 @@ enum InvariantsTransferRelation implements TransferRelation {
       varName = scope(varName, pEdge.getSuccessor().getFunctionName());
     }
 
-    /*
-    CompoundState value = CompoundState.top();
-    if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
-      CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
-      value = init.accept(createExpressionToStateVisitor(pElement, pEdge));
-    }
-    */
-
     final InvariantsFormula<CompoundState> value;
     if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
       CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();

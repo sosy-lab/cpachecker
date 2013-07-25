@@ -41,13 +41,13 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ContainsVarVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaAbstractionVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.GuessAssumptionVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PartialEvaluator;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.PushAssumptionToEnvironmentVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ReplaceVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.SplitConjunctionsVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.StateEqualsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ToBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
@@ -122,6 +122,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    */
   private final boolean useBitvectors;
 
+  private final IdentityMap identityMap;
+
   /**
    * Creates a new pristine invariants state with just a value for the evaluation threshold and the flag indicating whether or not to use bit vectors for representing states.
    *
@@ -130,12 +132,25 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    */
   public InvariantsState(int pEvaluationThreshold,
       boolean pUseBitvectors) {
+    this(pEvaluationThreshold, pUseBitvectors, new IdentityMap());
+  }
+
+  /**
+   * Creates a new pristine invariants state with just a value for the evaluation threshold and the flag indicating whether or not to use bit vectors for representing states.
+   *
+   * @param pEvaluationThreshold the number of times an edge is evaluated exactly before switching to the formula abstraction visitor.
+   * @param pUseBitvectors the flag indicating whether or not to use bit vectors for representing states.
+   * @param pIdentityMap a map used to store state identities, used to avoid keeping multiple equal states.
+   */
+  public InvariantsState(int pEvaluationThreshold,
+      boolean pUseBitvectors, IdentityMap pIdentityMap) {
     this.evaluationThreshold = pEvaluationThreshold;
     this.remainingEvaluations = new HashMap<>();
     this.assumptions = new HashSet<>();
     this.environment = new HashMap<>();
     this.candidateAssumptions = new HashSet<>();
     this.useBitvectors = pUseBitvectors;
+    this.identityMap = pIdentityMap;
   }
 
   /**
@@ -147,7 +162,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   public static InvariantsState copy(InvariantsState pToCopy) {
     return from(pToCopy.remainingEvaluations, pToCopy.evaluationThreshold,
         pToCopy.assumptions, pToCopy.environment, pToCopy.candidateAssumptions,
-        pToCopy.useBitvectors);
+        pToCopy.useBitvectors, pToCopy.identityMap);
   }
 
   /**
@@ -159,6 +174,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    * @param pEnvironment the current environment.
    * @param pCandidateAssumptions a set of assumptions that might be helpful to be made, but need not hold for the current state.
    * @param pUseBitvectors a flag indicating whether or not to use bit vectors to represent states.
+   * @param pIdentityMap a map used to store state identities, used to avoid keeping multiple equal states.
    * @return a new state from the given state properties.
    */
   public static InvariantsState from(Map<String, Integer> pRemainingEvaluations,
@@ -166,13 +182,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       Collection<InvariantsFormula<CompoundState>> pAssumptions,
       Map<String, InvariantsFormula<CompoundState>> pEnvironment,
       Set<InvariantsFormula<CompoundState>> pCandidateAssumptions,
-      boolean pUseBitvectors) {
-    InvariantsState result = new InvariantsState(pEvaluationThreshold, pUseBitvectors);
+      boolean pUseBitvectors,
+      IdentityMap pIdentityMap) {
+    InvariantsState result = new InvariantsState(pEvaluationThreshold, pUseBitvectors, pIdentityMap);
     if (!result.assumeInternal(pAssumptions, result.getFormulaResolver())) { return null; }
     result.remainingEvaluations.putAll(pRemainingEvaluations);
     result.putEnvironmentValuesInternal(pEnvironment);
     result.candidateAssumptions.addAll(pCandidateAssumptions);
-    return result;
+    return pIdentityMap.get(result);
   }
 
   /**
@@ -207,7 +224,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     Preconditions.checkNotNull(pValue);
 
     InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
-    final InvariantsState result;
+    Variable<CompoundState> variable = ifm.asVariable(pVarName);
+
+    // Optimization: If the value being assigned is equivalent to the value already stored, do nothing
+    if (variable.accept(new StateEqualsVisitor(getFormulaResolver(), this.environment), pValue)) {
+      return this;
+    }
+
+    final InvariantsState result = new InvariantsState(evaluationThreshold, useBitvectors, identityMap);
     if (!mayEvaluate(pEdge)) {
       /*
        * No more evaluations allowed!
@@ -216,12 +240,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
        * rename the assigned variables.
        */
       FormulaEvaluationVisitor<CompoundState> evaluationVisitor = getFormulaResolver(pEdge);
-      result = new InvariantsState(evaluationThreshold, useBitvectors);
-      Variable<CompoundState> variable = ifm.asVariable(pVarName);
       String renamedVariableName = renameVariable(pVarName);
       Variable<CompoundState> renamedVariable = ifm.asVariable(renamedVariableName);
       ReplaceVisitor<CompoundState> renamer = new ReplaceVisitor<>(variable, renamedVariable);
-      InvariantsFormula<CompoundState> renamedValue = ifm.asConstant(getEnvironmentValue(renamedVariableName).accept(evaluationVisitor, this.environment));
+      InvariantsFormula<CompoundState> renamedValue = getEnvironmentValue(renamedVariableName);
       ReplaceVisitor<CompoundState> renamedEvaluater = new ReplaceVisitor<>(renamedVariable, renamedValue);
       InvariantsFormula<CompoundState> oldValue = getEnvironmentValue(pVarName);
       for (Map.Entry<String, InvariantsFormula<CompoundState>> entry : this.environment.entrySet()) {
@@ -238,7 +260,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       }
 
       for (InvariantsFormula<CompoundState> assumption : this.assumptions) {
-        assert result.assumeInternal(assumption.accept(renamedEvaluater).accept(renamer).accept(PartialEvaluator.INSTANCE, evaluationVisitor), evaluationVisitor);
+        InvariantsFormula<CompoundState> modifiedAssumption = assumption.accept(renamedEvaluater).accept(renamer).accept(PartialEvaluator.INSTANCE, evaluationVisitor);
+        // result.assumeInternal(assumption.accept(renamedEvaluater).accept(renamer).accept(PartialEvaluator.INSTANCE, evaluationVisitor), evaluationVisitor);
+        boolean ass = result.assumeInternal(modifiedAssumption, evaluationVisitor);
+        if (!ass) {
+          result.assumeInternal(modifiedAssumption, evaluationVisitor);
+          return null;
+        }
       }
 
       result.putEnvironmentValueInternal(pVarName, pValue.accept(renamedEvaluater).accept(renamer));
@@ -264,10 +292,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
        * in any previously collected invariants (including its new new value)
        * have to be resolved with the variable's previous value.
        */
-      InvariantsFormula<CompoundState> variable = ifm.asVariable(pVarName);
       ReplaceVisitor<CompoundState> replaceVisitor;
       InvariantsFormula<CompoundState> previousValue = getEnvironmentValue(pVarName);
-      result = new InvariantsState(evaluationThreshold, useBitvectors);
       replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
       InvariantsFormula<CompoundState> newSubstitutedValue =
           pValue.accept(replaceVisitor).accept(PartialEvaluator.INSTANCE, getFormulaResolver(pEdge));
@@ -288,7 +314,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
     result.remainingEvaluations.putAll(this.remainingEvaluations);
     result.removeUnusedRenamedVariables();
-    return result;
+
+    return this.identityMap.get(result);
   }
 
   /**
@@ -476,7 +503,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     InvariantsFormula<CompoundState> assumption = pAssumption.accept(PartialEvaluator.INSTANCE, getFormulaResolver());
     if (!this.candidateAssumptions.contains(assumption)
         && (assumption.accept(new CollectVarsVisitor<CompoundState>()).size() > 0)) {
-      this.candidateAssumptions.addAll(assumption.accept(new GuessAssumptionVisitor()));
+      //this.candidateAssumptions.addAll(assumption.accept(new GuessAssumptionVisitor()));
+      this.candidateAssumptions.add(assumption);
     }
   }
 
@@ -514,10 +542,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
     // If the assumption is an obvious contradiction, it cannot be validly
     // assumed
-    if (assumption.equals(BOTTOM)
-        || this.assumptions.contains(
-            InvariantsFormulaManager.INSTANCE.logicalNot(assumption).accept(
-                PartialEvaluator.INSTANCE, pEvaluationVisitor))) { return false; }
+    if (assumption.equals(BOTTOM)) { return false; }
 
     CompoundState invariantEvaluation = assumption.accept(pEvaluationVisitor, getEnvironment());
     // If the invariant evaluates to false or is bottom, it represents an invalid state
@@ -576,7 +601,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       if (!result.assumeInternal(invariant, evaluator)) { return null; }
       result.removeUnusedRenamedVariables();
     }
-    return result;
+    return this.identityMap.get(result);
   }
 
   @Override
@@ -631,7 +656,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
 
   @Override
   public String toString() {
-    return String.format("Environment: %s; Invariants: %s",
+    return String.format("Environment: %s; Assumptions: %s",
         Joiner.on(", ").withKeyValueSeparator("=").join(environment),
         Joiner.on(", ").join(assumptions));
   }
@@ -726,6 +751,42 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
    */
   public boolean getUseBitvectors() {
     return useBitvectors;
+  }
+
+  /**
+   * Gets the identity map of this cluster of states.
+   *
+   * @return the identity map of this cluster of states.
+   */
+  public IdentityMap getIdentityMap() {
+    return this.identityMap;
+  }
+
+  /**
+   * Instances of this class wrap invariants state identity maps.
+   */
+  public static class IdentityMap {
+
+    /**
+     * The actual identity map.
+     */
+    private Map<InvariantsState, InvariantsState> identityMap = new HashMap<>();
+
+    /**
+     * Gets the identity state of the given state.
+     *
+     * @param pKey the state to get the identity for.
+     * @return the identity state of the given state.
+     */
+    private InvariantsState get(InvariantsState pKey) {
+      InvariantsState value = this.identityMap.get(pKey);
+      if (value != null) {
+        return value;
+      }
+      this.identityMap.put(pKey, pKey);
+      return pKey;
+    }
+
   }
 
 }
