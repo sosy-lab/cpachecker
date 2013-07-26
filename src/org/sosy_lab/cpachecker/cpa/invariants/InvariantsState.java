@@ -781,7 +781,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     private InvariantsState get(InvariantsState pKey) {
       InvariantsState value = this.identityMap.get(pKey);
       if (value != null) {
-        return value;
+        return pKey; // return value;
       }
       this.identityMap.put(pKey, pKey);
       return pKey;
