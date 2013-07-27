@@ -6,4 +6,5 @@
 # Place latest bugs first; the first n bugs will be shown on the CPAchecker web page.
 
 2013-03-04: Bug found in the Linux kernel: <a href="https://patchwork.kernel.org/patch/2204681/">https://patchwork.kernel.org/patch/2204681/</a>
+2012-02-13: Bug found in the Linux kernel: <a href="https://linuxtv.org/patch/9871/">https://linuxtv.org/patch/9871/</a>
 
