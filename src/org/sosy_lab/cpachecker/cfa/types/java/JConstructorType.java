@@ -43,4 +43,17 @@ public class JConstructorType extends JMethodType implements JType {
   public static JConstructorType createUnresolvableConstructorType() {
     return UNRESOLVABLE_TYPE;
   }
+
+  @Override
+  public int hashCode() {
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + super.hashCode();
+      return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+      return super.equals(obj);
+  }
 }

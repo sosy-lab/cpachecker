@@ -30,4 +30,16 @@ public class JNullType implements JReferenceType {
   public String toASTString(String pDeclarator) {
     return "null";
   }
+
+  @Override
+  public int hashCode() {
+      final int prime = 31;
+      int result = 7;
+      return prime * result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+      return obj instanceof JNullType;
+  }
 }

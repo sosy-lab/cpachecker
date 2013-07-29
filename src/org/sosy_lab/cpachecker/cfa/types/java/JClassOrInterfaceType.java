@@ -25,10 +25,7 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
@@ -124,16 +121,17 @@ public abstract class  JClassOrInterfaceType implements JReferenceType {
       return false;
     }
 
-    JClassOrInterfaceType otherObject = (JClassOrInterfaceType) pObj;
+    JClassOrInterfaceType other = (JClassOrInterfaceType) pObj;
 
-    return otherObject.getName().equals(name);
+    return Objects.equals(name, other.name);
   }
 
   @Override
   public int hashCode() {
-    int result = 5;
-    result = 31 * result + name.hashCode();
-    return result;
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(name);
+      return result;
   }
 
   @Override
