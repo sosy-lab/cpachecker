@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -33,10 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
-
-import com.google.common.collect.MapDifference;
-import com.google.common.collect.MapDifference.ValueDifference;
-import com.google.common.collect.Maps;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.PartialEvaluator;
 
 enum InvariantsDomain implements AbstractDomain {
 
@@ -44,61 +42,82 @@ enum InvariantsDomain implements AbstractDomain {
 
   @Override
   public InvariantsState join(AbstractState pElement1, AbstractState pElement2) {
-    InvariantsState element1 = (InvariantsState)pElement1;
-    InvariantsState element2 = (InvariantsState)pElement2;
+    InvariantsState element1 = (InvariantsState) pElement1;
+    InvariantsState element2 = (InvariantsState) pElement2;
 
-    if (isLessOrEqual(element1, element2)) {
-      return element2;
-    }
+    if (isLessOrEqual(element1, element2)) { return element2; }
 
-    MapDifference<String, Integer> remainingEvaluationDifferences =
-        Maps.difference(element1.getRemainingEvaluations(), element2.getRemainingEvaluations());
     Map<String, Integer> resultRemainingEvaluations =
-        new HashMap<>(element1.getRemainingEvaluations().size());
-    resultRemainingEvaluations.putAll(remainingEvaluationDifferences.entriesInCommon());
-    resultRemainingEvaluations.putAll(remainingEvaluationDifferences.entriesOnlyOnLeft());
-    resultRemainingEvaluations.putAll(remainingEvaluationDifferences.entriesOnlyOnRight());
-    for (Entry<String, ValueDifference<Integer>> entry : remainingEvaluationDifferences.entriesDiffering().entrySet()) {
-      ValueDifference<Integer> difference = entry.getValue();
-      int newValue = Math.min(difference.leftValue(), difference.rightValue());
-      resultRemainingEvaluations.put(entry.getKey(), newValue);
+        new HashMap<>(element1.getRemainingEvaluations());
+    for (Entry<String, Integer> entry : element2.getRemainingEvaluations().entrySet()) {
+      Integer leftValue = resultRemainingEvaluations.get(entry.getKey());
+      if (leftValue != null) {
+        resultRemainingEvaluations.put(entry.getKey(), Math.min(leftValue, entry.getValue()));
+      } else {
+        resultRemainingEvaluations.put(entry.getKey(), entry.getValue());
+      }
     }
 
-    MapDifference<String, InvariantsFormula<CompoundState>> environmentDifferences =
-        Maps.difference(element1.getEnvironment(), element2.getEnvironment());
+    Map<? extends String, ? extends InvariantsFormula<CompoundState>> environment1 = element1.getEnvironment();
+    Map<? extends String, ? extends InvariantsFormula<CompoundState>> environment2 = element2.getEnvironment();
     Map<String, InvariantsFormula<CompoundState>> resultEnvironment =
         new HashMap<>(element1.getEnvironment().size());
-    resultEnvironment.putAll(environmentDifferences.entriesInCommon());
-    for (Entry<String, ValueDifference<InvariantsFormula<CompoundState>>> entry : environmentDifferences.entriesDiffering().entrySet()) {
-      InvariantsFormula<CompoundState> newValue =
-          InvariantsFormulaManager.INSTANCE.union(
-              entry.getValue().leftValue(), entry.getValue().rightValue());
-      resultEnvironment.put(entry.getKey(), newValue);
+
+    for (Entry<? extends String, ? extends InvariantsFormula<CompoundState>> entry : environment2.entrySet()) {
+      InvariantsFormula<CompoundState> leftValue = environment1.get(entry.getKey());
+      if (leftValue != null) {
+        InvariantsFormula<CompoundState> value = InvariantsFormulaManager.INSTANCE.union(leftValue, entry.getValue());
+        value = value.accept(PartialEvaluator.INSTANCE, InvariantsState.EVALUATION_VISITOR);
+        resultEnvironment.put(entry.getKey(), value);
+      }
     }
-
-    Set<InvariantsFormula<CompoundState>> resultAssumptions =
-        new HashSet<>(element1.getAssumptions());
-    resultAssumptions.retainAll(element2.getAssumptions());
-
-    int newThreshold = Math.min(element1.getEvaluationThreshold(), element2.getEvaluationThreshold());
 
     Set<InvariantsFormula<CompoundState>> resultCandidateAssumptions =
         new HashSet<>();
     resultCandidateAssumptions.addAll(element1.getCandidateAssumptions());
     resultCandidateAssumptions.addAll(element2.getCandidateAssumptions());
 
+    int newThreshold = Math.min(element1.getEvaluationThreshold(), element2.getEvaluationThreshold());
+
+    Set<InvariantsFormula<CompoundState>> resultAssumptions = new HashSet<>();
+
+    if (!element1.getAssumptions().isEmpty() && !element2.getAssumptions().isEmpty()) {
+      Iterator<InvariantsFormula<CompoundState>> leftAssumptionIterator = element1.getAssumptions().iterator();
+      InvariantsFormula<CompoundState> leftTotalAssumption = leftAssumptionIterator.next();
+      while (leftAssumptionIterator.hasNext()) {
+        leftTotalAssumption = InvariantsFormulaManager.INSTANCE.logicalAnd(leftTotalAssumption, leftAssumptionIterator.next());
+      }
+      Iterator<InvariantsFormula<CompoundState>> rightAssumptionIterator = element2.getAssumptions().iterator();
+      InvariantsFormula<CompoundState> rightTotalAssumption = rightAssumptionIterator.next();
+      while (rightAssumptionIterator.hasNext()) {
+        rightTotalAssumption = InvariantsFormulaManager.INSTANCE.logicalAnd(rightTotalAssumption, rightAssumptionIterator.next());
+      }
+      resultAssumptions.add(InvariantsFormulaManager.INSTANCE.logicalOr(leftTotalAssumption, rightTotalAssumption));
+    }
+
+
     assert element1.getUseBitvectors() == element2.getUseBitvectors();
 
-    return InvariantsState.from(resultRemainingEvaluations,
+    InvariantsState result = InvariantsState.from(resultRemainingEvaluations,
         newThreshold, resultAssumptions, resultEnvironment,
-        resultCandidateAssumptions, element1.getUseBitvectors(),
-        element1.getIdentityMap());
+        resultCandidateAssumptions, element1.getUseBitvectors());
+    if (result == null) {
+      return result;
+    }
+    if (result.equals(element2)) {
+      return element2;
+    }
+    if (result.equals(element1)) {
+      return element1;
+    }
+    return result;
   }
 
   @Override
   public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) {
-    if (pElement1.equals(pElement2)) {
-      return true;
+    if (pElement1 == pElement2 || pElement1 != null && pElement1.equals(pElement2)) { return true; }
+    if (pElement1 == null || pElement2 == null) {
+      return false;
     }
     /*InvariantsState leftState = (InvariantsState) pElement1;
     InvariantsState rightState = (InvariantsState) pElement2;
@@ -120,7 +139,8 @@ enum InvariantsDomain implements AbstractDomain {
       }
     }
     return true;
-    */return false;
+    */
+    return false;
   }
 
 }
