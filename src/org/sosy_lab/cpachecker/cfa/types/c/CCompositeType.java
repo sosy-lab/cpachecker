@@ -127,9 +127,9 @@ public final class CCompositeType implements CComplexType {
     @Override
     public int hashCode() {
       final int prime = 31;
-      int result = 1;
-      result = prime * result + ((name == null) ? 0 : name.hashCode());
-      result = prime * result + ((type == null) ? 0 : type.hashCode());
+      int result = 7;
+      result = prime * result + Objects.hashCode(name);
+      result = prime * result + Objects.hashCode(type);
       return result;
     }
 
