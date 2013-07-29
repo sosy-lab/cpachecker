@@ -32,9 +32,9 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.PartialEvaluator;
 
 enum InvariantsDomain implements AbstractDomain {
 
@@ -57,19 +57,33 @@ enum InvariantsDomain implements AbstractDomain {
         resultRemainingEvaluations.put(entry.getKey(), entry.getValue());
       }
     }
-
-    Map<? extends String, ? extends InvariantsFormula<CompoundState>> environment1 = element1.getEnvironment();
-    Map<? extends String, ? extends InvariantsFormula<CompoundState>> environment2 = element2.getEnvironment();
     Map<String, InvariantsFormula<CompoundState>> resultEnvironment =
         new HashMap<>(element1.getEnvironment().size());
 
-    for (Entry<? extends String, ? extends InvariantsFormula<CompoundState>> entry : environment2.entrySet()) {
-      InvariantsFormula<CompoundState> leftValue = environment1.get(entry.getKey());
-      if (leftValue != null) {
-        InvariantsFormula<CompoundState> value = InvariantsFormulaManager.INSTANCE.union(leftValue, entry.getValue());
-        value = value.accept(PartialEvaluator.INSTANCE, InvariantsState.EVALUATION_VISITOR);
-        resultEnvironment.put(entry.getKey(), value);
+    /*
+     * The environment is not joined directly, but instead it is treated as an extension to the set of assumptions.
+     * This way, it is possible to join the information with a single "or" between the two sets of assumptions,
+     * retaining far more information than joining element by element.
+     */
+    Set<InvariantsFormula<CompoundState>> resultAssumptions = new HashSet<>();
+
+    Set<InvariantsFormula<CompoundState>> assumptions1 = new HashSet<>(element1.getEnvironmentAsAssumptions());
+    assumptions1.addAll(element1.getAssumptions());
+    Set<InvariantsFormula<CompoundState>> assumptions2 = new HashSet<>(element2.getEnvironmentAsAssumptions());
+    assumptions2.addAll(element2.getAssumptions());
+
+    if (!assumptions1.isEmpty() && !assumptions2.isEmpty()) {
+      Iterator<InvariantsFormula<CompoundState>> leftAssumptionIterator = assumptions1.iterator();
+      InvariantsFormula<CompoundState> leftTotalAssumption = leftAssumptionIterator.next();
+      while (leftAssumptionIterator.hasNext()) {
+        leftTotalAssumption = InvariantsFormulaManager.INSTANCE.logicalAnd(leftTotalAssumption, leftAssumptionIterator.next());
       }
+      Iterator<InvariantsFormula<CompoundState>> rightAssumptionIterator = assumptions2.iterator();
+      InvariantsFormula<CompoundState> rightTotalAssumption = rightAssumptionIterator.next();
+      while (rightAssumptionIterator.hasNext()) {
+        rightTotalAssumption = InvariantsFormulaManager.INSTANCE.logicalAnd(rightTotalAssumption, rightAssumptionIterator.next());
+      }
+      resultAssumptions.add(InvariantsFormulaManager.INSTANCE.logicalOr(leftTotalAssumption, rightTotalAssumption));
     }
 
     Set<InvariantsFormula<CompoundState>> resultCandidateAssumptions =
@@ -78,23 +92,6 @@ enum InvariantsDomain implements AbstractDomain {
     resultCandidateAssumptions.addAll(element2.getCandidateAssumptions());
 
     int newThreshold = Math.min(element1.getEvaluationThreshold(), element2.getEvaluationThreshold());
-
-    Set<InvariantsFormula<CompoundState>> resultAssumptions = new HashSet<>();
-
-    if (!element1.getAssumptions().isEmpty() && !element2.getAssumptions().isEmpty()) {
-      Iterator<InvariantsFormula<CompoundState>> leftAssumptionIterator = element1.getAssumptions().iterator();
-      InvariantsFormula<CompoundState> leftTotalAssumption = leftAssumptionIterator.next();
-      while (leftAssumptionIterator.hasNext()) {
-        leftTotalAssumption = InvariantsFormulaManager.INSTANCE.logicalAnd(leftTotalAssumption, leftAssumptionIterator.next());
-      }
-      Iterator<InvariantsFormula<CompoundState>> rightAssumptionIterator = element2.getAssumptions().iterator();
-      InvariantsFormula<CompoundState> rightTotalAssumption = rightAssumptionIterator.next();
-      while (rightAssumptionIterator.hasNext()) {
-        rightTotalAssumption = InvariantsFormulaManager.INSTANCE.logicalAnd(rightTotalAssumption, rightAssumptionIterator.next());
-      }
-      resultAssumptions.add(InvariantsFormulaManager.INSTANCE.logicalOr(leftTotalAssumption, rightTotalAssumption));
-    }
-
 
     assert element1.getUseBitvectors() == element2.getUseBitvectors();
 
@@ -119,7 +116,7 @@ enum InvariantsDomain implements AbstractDomain {
     if (pElement1 == null || pElement2 == null) {
       return false;
     }
-    /*InvariantsState leftState = (InvariantsState) pElement1;
+    InvariantsState leftState = (InvariantsState) pElement1;
     InvariantsState rightState = (InvariantsState) pElement2;
     if (!leftState.getAssumptions().containsAll(rightState.getAssumptions())) {
       return false;
@@ -139,8 +136,7 @@ enum InvariantsDomain implements AbstractDomain {
       }
     }
     return true;
-    */
-    return false;
+    //return false;
   }
 
 }
