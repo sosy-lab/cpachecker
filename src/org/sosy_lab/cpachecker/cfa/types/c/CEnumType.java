@@ -200,7 +200,13 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(isConst);
+      result = prime * result + Objects.hashCode(isVolatile);
+      result = prime * result + Objects.hashCode(name);
+      result = prime * result + Objects.hashCode(enumerators);
+      return result;
   }
 
   /**

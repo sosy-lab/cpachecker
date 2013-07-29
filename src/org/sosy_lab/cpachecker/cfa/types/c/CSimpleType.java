@@ -105,7 +105,19 @@ public final class CSimpleType implements CType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(isComplex);
+      result = prime * result + Objects.hashCode(isConst);
+      result = prime * result + Objects.hashCode(isVolatile);
+      result = prime * result + Objects.hashCode(isImaginary);
+      result = prime * result + Objects.hashCode(isLong);
+      result = prime * result + Objects.hashCode(isLongLong);
+      result = prime * result + Objects.hashCode(isShort);
+      result = prime * result + Objects.hashCode(isSigned);
+      result = prime * result + Objects.hashCode(isUnsigned);
+      result = prime * result + Objects.hashCode(type);
+      return result;
   }
 
   /**

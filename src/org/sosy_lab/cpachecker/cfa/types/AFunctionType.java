@@ -99,7 +99,12 @@ public class AFunctionType implements IAFunctionType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CTypes");
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(name);
+      result = prime * result + Objects.hashCode(parameters);
+      result = prime * result + Objects.hashCode(returnType);
+      return result;
   }
 
   @Override

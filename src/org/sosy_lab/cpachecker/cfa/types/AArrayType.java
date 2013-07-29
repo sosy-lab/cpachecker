@@ -43,7 +43,10 @@ public abstract class AArrayType implements Type {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(elementType);
+      return result;
   }
 
   @Override
