@@ -324,7 +324,7 @@ class _TimelimitThread(threading.Thread):
         self.process = process
         self.finished = threading.Event()
 
-    def run(self): 
+    def run(self):
         while not self.finished.is_set():
             usedTime = _readCpuTime(self.cgroupCpuacct)
             if usedTime >= self.timelimit:
@@ -332,7 +332,7 @@ class _TimelimitThread(threading.Thread):
                 self.finished.set()
                 return
 
-            remainingTime = self.timelimit - usedTime + 1 
+            remainingTime = self.timelimit - usedTime + 1
             self.finished.wait(remainingTime/self.cpuCount)
 
     def cancel(self):

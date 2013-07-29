@@ -235,7 +235,7 @@ class Benchmark:
                                         requireTag.get('memory',   None)
                                         )
             self.requirements = Requirements.merge(self.requirements, config.cloudCpuModel)
-        
+
         self.requirements = Requirements.mergeWithCpuModel(self.requirements, config.cloudCpuModel)
         self.requirements = Requirements.mergeWithLimits(self.requirements, self.rlimits)
 
@@ -462,7 +462,7 @@ class Run():
         self.wallTime = 0
         self.memUsage = None
         self.host = None
-        
+
         self.tool = self.benchmark.tool
         args = self.tool.getCmdline(self.benchmark.executable, self.options, self.sourcefile)
         args = [os.path.expandvars(arg) for arg in args]
@@ -472,9 +472,9 @@ class Run():
 
 
     def afterExecution(self, returnvalue, output):
-        
+
         rlimits = self.benchmark.rlimits
-        
+
         # calculation: returnvalue == (returncode * 256) + returnsignal
         # highest bit of returnsignal shows only whether a core file was produced, we clear it
         returnsignal = returnvalue & 0x7F
@@ -482,7 +482,7 @@ class Run():
         logging.debug("My subprocess returned {0}, code {1}, signal {2}.".format(returnvalue, returncode, returnsignal))
         self.status = self.tool.getStatus(returncode, returnsignal, output, self._isTimeout())
         self.tool.addColumnValues(output, self.columns)
-       
+
         # Tools sometimes produce a result even after a timeout.
         # This should not be counted, so we overwrite the result with TIMEOUT
         # here. if this is the case.
@@ -581,13 +581,13 @@ class Requirements:
         return cls(r1._cpuModel if r1._cpuModel is not None else r2._cpuModel,
                    r1._cpuCores or r2._cpuCores,
                    r1._memory or r2._memory)
-        
+
     @classmethod
     def mergeWithLimits(cls, r, l):
         _cpuModel = r._cpuModel
         _cpuCores = r._cpuCores
         _memory = r._memory
-        
+
         if(_cpuCores is None and CORELIMIT in l):
             _cpuCores = l[CORELIMIT]
         if(_memory is None and MEMLIMIT in l):
@@ -599,7 +599,7 @@ class Requirements:
     def mergeWithCpuModel(cls, r, cpuModel):
         _cpuCores = r._cpuCores
         _memory = r._memory
-        
+
         if(cpuModel is None):
             return r
         else:
@@ -1238,7 +1238,7 @@ class Worker(threading.Thread):
             except BaseException as e:
                 print(e)
             Worker.workingQueue.task_done()
-            
+
 def executeBenchmarkLocaly(benchmark):
     outputHandler = benchmark.outputHandler
     runSetsExecuted = 0
@@ -1307,12 +1307,12 @@ def executeBenchmarkLocaly(benchmark):
 
 
 def parseCloudResultFile(filePath):
-    
+
     wallTime = None
     cpuTime = None
     memUsage = None
     returnValue = None
-    
+
     with open(filePath, 'rt') as file:
 
         try:
@@ -1331,7 +1331,7 @@ def parseCloudResultFile(filePath):
             returnValue = int(file.readline().split(":")[-1])
         except ValueError:
             pass
-    
+
     return (wallTime, cpuTime, memUsage, returnValue)
 
 def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
@@ -1340,7 +1340,7 @@ def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
     try:
         with open(filePath, 'rt') as file:
             outputHandler.allCreatedFiles.append(filePath)
-            
+
             name = file.readline().split("=")[-1].strip()
             osName = file.readline().split("=")[-1].strip()
             memory = file.readline().split("=")[-1].strip()
@@ -1364,9 +1364,9 @@ def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
     except IOError:
         logging.warning("Host information file not found: " + filePath)
     return runToHostMap
- 
+
 def executeBenchmarkInCloud(benchmark):
-    
+
     outputHandler = benchmark.outputHandler
 
     absWorkingDir = os.path.abspath(os.curdir)
@@ -1379,10 +1379,10 @@ def executeBenchmarkInCloud(benchmark):
 
     requirements = str(benchmark.requirements.memory()) + "\t" + \
                 str(benchmark.requirements.cpuCores())
-                    
+
     if(benchmark.requirements.cpuModel() is not ""):
-        requirements += "\t" + benchmark.requirements.cpuModel()                         
-                            
+        requirements += "\t" + benchmark.requirements.cpuModel()
+
     cloudRunExecutorDir = os.path.abspath(os.path.dirname(__file__))
     outputDir = benchmark.logFolder
     absOutputDir = os.path.abspath(outputDir)
@@ -1390,33 +1390,33 @@ def executeBenchmarkInCloud(benchmark):
     runDefinitions = []
     absSourceFiles = []
     numOfRunDefLines = 0
-    
+
     # iterate over run sets
     for runSet in benchmark.runSets:
         if not runSet.shouldBeExecuted():
             continue
 
         if STOPPED_BY_INTERRUPT: break
-        
+
         numOfRunDefLines += (len(runSet.runs) + 1)
-        
+
         timeLimit = str(DEFAULT_CLOUD_TIMELIMIT)
         memLimit = str(DEFAULT_CLOUD_MEMLIMIT)
         if(TIMELIMIT in benchmark.rlimits):
             timeLimit = str(benchmark.rlimits[TIMELIMIT])
         if(MEMLIMIT in benchmark.rlimits):
             memLimit = str(benchmark.rlimits[MEMLIMIT])
-            
+
         runSetHeadLine = str(len(runSet.runs)) + "\t" + \
                         timeLimit + "\t" + \
                        memLimit
-                       
+
         if(CORELIMIT in benchmark.rlimits):
            coreLimit = str(benchmark.rlimits[CORELIMIT])
            runSetHeadLine += ("\t" + coreLimit)
-         
+
         runDefinitions.append(runSetHeadLine)
-        
+
         # iterate over runs
         for run in runSet.runs:
             #escape delimiter char
@@ -1424,7 +1424,7 @@ def executeBenchmarkInCloud(benchmark):
             for arg in run.args:
                 args.append(arg.replace(" ", "  "))
             argString = " ".join(args)
-            
+
             logFile = os.path.relpath(run.logFile, outputDir)
             runDefinitions.append(argString + "\t" + run.sourcefile + "\t" + \
                                     logFile)
@@ -1439,14 +1439,14 @@ def executeBenchmarkInCloud(benchmark):
     sourceFilesBaseDir = os.path.commonprefix(absSourceFiles)
     toolPathsBaseDir = os.path.commonprefix(absToolpaths)
     baseDir = os.path.commonprefix([sourceFilesBaseDir, toolPathsBaseDir, cloudRunExecutorDir])
-    
+
     if(baseDir == ""):
         sys.exit("No common base dir found.")
-        
+
     #os.path.commonprefix works on charakters not on the file system
     if(baseDir[-1]!='/'):
         baseDir = os.path.split(baseDir)[0];
-     
+
     numOfRunDefLinesAndPriorityStr = str(numOfRunDefLines)
     if(config.cloudPriority):
         numOfRunDefLinesAndPriorityStr += "\t" + config.cloudPriority
@@ -1488,9 +1488,9 @@ def executeBenchmarkInCloud(benchmark):
     #Write worker host informations in xml
     filePath = os.path.join(outputDir, "hostInformation.txt")
     runToHostMap = parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
-    
+
     executedAllRuns = True;
-    
+
     #write results in runs and
     #handle output after all runs are done
     for runSet in benchmark.runSets:
@@ -1498,12 +1498,12 @@ def executeBenchmarkInCloud(benchmark):
             outputHandler.outputForSkippingRunSet(runSet)
             continue
 
-        outputHandler.outputBeforeRunSet(runSet)     
+        outputHandler.outputBeforeRunSet(runSet)
         for run in runSet.runs:
             try:
                 stdoutFile = run.logFile + ".stdOut"
                 (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
-                
+
                 if(run.sourcefile in runToHostMap):
                     run.host = runToHostMap[run.sourcefile]
 
@@ -1512,7 +1512,7 @@ def executeBenchmarkInCloud(benchmark):
                     os.remove(stdoutFile)
                 else:
                     executedAllRuns = False;
-                    
+
             except EnvironmentError as e:
                 logging.warning("Cannot extract measured values from output for file {0}: {1}".format(run.sourcefile, e))
                 executedAllRuns = False;
@@ -1528,9 +1528,9 @@ def executeBenchmarkInCloud(benchmark):
 
             run.afterExecution(returnValue, output)
         outputHandler.outputAfterRunSet(runSet, None, None)
-        
+
     outputHandler.outputAfterBenchmark()
-    
+
     if not executedAllRuns:
          logging.warning("Not all runs were executed in the cloud!")
 
@@ -1544,7 +1544,7 @@ def executeBenchmark(benchmarkFile):
 
     logging.debug("I'm benchmarking {0} consisting of {1} run sets.".format(
             repr(benchmarkFile), len(benchmark.runSets)))
-    
+
     if(config.cloud):
         executeBenchmarkInCloud(benchmark)
     else:
@@ -1633,17 +1633,17 @@ def main(argv=None):
                       dest="commitMessage", type=str,
                       default="Results for benchmark run",
                       help="Commit message if --commit is used.")
-    
+
     parser.add_argument("--cloud",
                       dest="cloud",
                       metavar="HOST",
                       help="Use cloud with given host as master.")
-    
+
     parser.add_argument("--cloudPriority",
                       dest="cloudPriority",
                       metavar="PRIORITY",
                       help="Sets the priority for this benchmark used in the cloud. Possible values are IDLE, LOW, HIGH, URGENT.")
-    
+
     parser.add_argument("--cloudCpuModel",
                       dest="cloudCpuModel",
                       metavar="CPU_MODEL",

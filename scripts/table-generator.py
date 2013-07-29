@@ -601,7 +601,7 @@ def filterRowsWithDifferences(rows):
     if len(rows[0].results) == 1:
         # table with single column
         return []
-    
+
     def allEqualResult(listOfResults):
         for result in listOfResults:
             if listOfResults[0].status != result.status:
@@ -692,7 +692,7 @@ def getStats(rows):
 def getStatsOfRunSet(runResults):
     """
     This function returns the numbers of the statistics.
-    @param runResults: All the results of the execution of one run set (as list of RunResult objects) 
+    @param runResults: All the results of the execution of one run set (as list of RunResult objects)
     """
 
     # convert:
