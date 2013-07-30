@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 import static com.google.common.base.Preconditions.*;
 
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -272,30 +271,12 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
   public int hashCode() {
       final int prime = 31;
       int result = 7;
-      result = prime * result + Objects.hashCode(isFinal);
-      result = prime * result + Objects.hashCode(isAbstract);
-      result = prime * result + Objects.hashCode(isStrictFp);
-      result = prime * result + Objects.hashCode(superClass);
-      result = prime * result + Objects.hashCode(directSubClasses);
-      result = prime * result + Objects.hashCode(implementedInterfaces);
       result = prime * result + super.hashCode();
       return result;
   }
 
   @Override
   public boolean equals(Object obj) {
-      if (this == obj) {
-          return true;
-      }
-
-      if (!(obj instanceof JClassType) && !super.equals(obj)) {
-          return false;
-      }
-
-      JClassType other = (JClassType) obj;
-
-      return Objects.equals(isFinal, other.isFinal) && Objects.equals(isAbstract, other.isAbstract)
-              && Objects.equals(isStrictFp, other.isStrictFp) && Objects.equals(superClass, other.superClass)
-              && Objects.equals(directSubClasses, other.directSubClasses) && Objects.equals(implementedInterfaces, other.implementedInterfaces);
+      return this == obj || super.equals(obj);
     }
 }

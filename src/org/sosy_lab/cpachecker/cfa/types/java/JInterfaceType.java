@@ -201,27 +201,12 @@ public final class JInterfaceType extends JClassOrInterfaceType implements JRefe
   public int hashCode() {
       final int prime = 31;
       int result = 7;
-      result = prime * result + Objects.hashCode(interfaceImplementingClasses);
-      result = prime * result + Objects.hashCode(superInterfaces);
-      result = prime * result + Objects.hashCode(directSubInterfaces);
       result = prime * result + super.hashCode();
       return result;
   }
 
   @Override
   public boolean equals(Object obj) {
-     if (this == obj) {
-         return true;
-     }
-
-     if (!(obj instanceof JInterfaceType) && !super.equals(obj)) {
-          return false;
-      }
-
-      JInterfaceType other = (JInterfaceType) obj;
-
-      return Objects.equals(interfaceImplementingClasses, other.interfaceImplementingClasses)
-              && Objects.equals(superInterfaces, other.superInterfaces)
-              && Objects.equals(directSubInterfaces, other.directSubInterfaces);
+     return this == obj || super.equals(obj);
   }
 }
