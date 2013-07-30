@@ -235,7 +235,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
           InvariantsFormula<CompoundState> envVarValue = entry.getValue();
           // Evaluate the old renamed variable and rename the (as yet unrenamed) actual variable
           envVarValue = envVarValue.accept(renamedEvaluater).accept(renamer).accept(PartialEvaluator.INSTANCE, evaluationVisitor);
-          result.putEnvironmentValueInternal(pVarName, envVarValue);
+          result.putEnvironmentValueInternal(envVarName, envVarValue);
         }
       }
       if (oldValue != null) {

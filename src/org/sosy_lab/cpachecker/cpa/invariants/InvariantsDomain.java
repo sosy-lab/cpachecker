@@ -72,6 +72,13 @@ enum InvariantsDomain implements AbstractDomain {
     Set<InvariantsFormula<CompoundState>> assumptions2 = new HashSet<>(element2.getEnvironmentAsAssumptions());
     assumptions2.addAll(element2.getAssumptions());
 
+    // Add all common assumptions first
+    resultAssumptions.addAll(assumptions1);
+    resultAssumptions.retainAll(assumptions2);
+    assumptions1.removeAll(resultAssumptions);
+    assumptions2.removeAll(resultAssumptions);
+
+    // Apply the aforementioned "or" to the two remaining sets of assumptions
     if (!assumptions1.isEmpty() && !assumptions2.isEmpty()) {
       Iterator<InvariantsFormula<CompoundState>> leftAssumptionIterator = assumptions1.iterator();
       InvariantsFormula<CompoundState> leftTotalAssumption = leftAssumptionIterator.next();
