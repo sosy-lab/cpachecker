@@ -509,7 +509,11 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTCastExpression e) {
-    return new CCastExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getOperand()), convert(e.getTypeId()));
+    CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+    if (e.getOperand() instanceof IASTFieldReference && ((IASTFieldReference)e.getOperand()).isPointerDereference()) {
+      operand = createInitializedTemporaryVariable(e, new CCastExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), operand, convert(e.getTypeId())));
+    }
+    return operand;
   }
 
   private CFieldReference convert(IASTFieldReference e) {
