@@ -35,42 +35,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
-import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.*;
+import org.sosy_lab.cpachecker.cfa.ast.c.*;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
@@ -273,7 +241,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       }
 
       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
-      else if (op1 instanceof AUnaryExpression && ((AUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
+      else if (op1 instanceof APointerExpression) {
       }
 
       // a[x] = b(); TODO: for now, nothing is done here, but cloning the current element
@@ -446,10 +414,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         }
 
         return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor());
-    } else if (op1 instanceof AUnaryExpression && ((AUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
+    } else if (op1 instanceof APointerExpression) {
       // *a = ...
 
-      op1 = ((AUnaryExpression)op1).getOperand();
+      op1 = ((APointerExpression)op1).getOperand();
 
       // Cil produces code like
       // *((int*)__cil_tmp5) = 1;
@@ -748,10 +716,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       case AMPER:
         return null; // valid expression, but it's a pointer value
 
-      case STAR:
-        missingPointer = true;
-        return null;
-
       case SIZEOF:
       case TILDE:
       default:
@@ -759,6 +723,12 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         return null;
       }
     }
+
+   @Override
+   public Long visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
+         missingPointer = true;
+         return null;
+   }
 
     @Override
     public Long visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
@@ -1205,34 +1175,36 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     @Override
     public Long visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-      if (unaryExpression.getOperator() != UnaryOperator.STAR) {
         return super.visit(unaryExpression);
-      }
-
-      // Cil produces code like
-      // __cil_tmp8 = *((int *)__cil_tmp7);
-      // so remove cast
-      CExpression unaryOperand = unaryExpression.getOperand();
-      if (unaryOperand instanceof CCastExpression) {
-        unaryOperand = ((CCastExpression)unaryOperand).getOperand();
-      }
-
-      if (unaryOperand instanceof CIdExpression) {
-        String rightVar = derefPointerToVariable(pointerState, ((CIdExpression)unaryOperand).getName());
-        if (rightVar != null) {
-          rightVar = getScopedVariableName(rightVar, functionName);
-
-          if (state.contains(rightVar)) {
-            return state.getValueFor(rightVar);
-          }
-        }
-      } else {
-        throw new UnrecognizedCCodeException("Pointer dereference of something that is not a variable", edge, unaryExpression);
-      }
-
-      return null;
     }
+
+  @Override
+  public Long visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
+
+    // Cil produces code like
+    // __cil_tmp8 = *((int *)__cil_tmp7);
+    // so remove cast
+    CExpression operand = pointerExpression.getOperand();
+    if (operand instanceof CCastExpression) {
+      operand = ((CCastExpression)operand).getOperand();
+    }
+
+    if (operand instanceof CIdExpression) {
+      String rightVar = derefPointerToVariable(pointerState, ((CIdExpression)operand).getName());
+      if (rightVar != null) {
+        rightVar = getScopedVariableName(rightVar, functionName);
+
+        if (state.contains(rightVar)) {
+          return state.getValueFor(rightVar);
+        }
+      }
+    } else {
+      throw new UnrecognizedCCodeException("Pointer dereference of something that is not a variable", edge, pointerExpression);
+    }
+
+    return null;
   }
+}
 
   private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
     private final RTTState jortState;

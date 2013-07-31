@@ -34,33 +34,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.*;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -216,7 +192,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
       }
 
       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
-      else if (operand1 instanceof CUnaryExpression && ((CUnaryExpression)operand1).getOperator() == UnaryOperator.STAR) {
+      else if (operand1 instanceof CPointerExpression) {
         return IntervalAnalysisState.copyOf(element);
       } else {
         throw new UnrecognizedCCodeException("on function return", summaryEdge, operand1);
@@ -322,13 +298,14 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
         case NOT:
           return handleAssumption(element, unaryExp.getOperand(), cfaEdge, !truthValue);
 
-        case STAR:
-          // *exp - don't know anything
-          return soleSuccessor(IntervalAnalysisState.copyOf(element));
-
         default:
           throw new UnrecognizedCCodeException(cfaEdge, unaryExp);
       }
+    }
+
+    // -> *exp - don't know anything
+    else if (expression instanceof CPointerExpression) {
+      return soleSuccessor(IntervalAnalysisState.copyOf(element));
     }
 
     // a plain (boolean) identifier, e.g. if (a)
@@ -654,7 +631,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
     }
 
     // TODO: assignment to pointer, *a = ?
-    else if (op1 instanceof CUnaryExpression && ((CUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
+    else if (op1 instanceof CPointerExpression) {
       return IntervalAnalysisState.copyOf(element);
     } else if (op1 instanceof CFieldReference) {
       return IntervalAnalysisState.copyOf(element);
@@ -726,6 +703,10 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
         default:
           throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);
       }
+    }
+    // clause for CPointerexpression does the same, as UnaryExpression clause would have done for the star operator
+    else if (expression instanceof CPointerExpression) {
+      throw new UnrecognizedCCodeException("PointerExpressions are not allowed at this place", cfaEdge, expression);
     }
 
     // added for expression "if (! (req_a___0 + 50 == rsp_d___0))" in "systemc/mem_slave_tlm.1.cil.c"
@@ -969,12 +950,17 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
       case AMPER:
         return Interval.createUnboundInterval(); // valid expression, but it's a pointer value
 
-      case STAR:
-        return Interval.createUnboundInterval();
-
       default:
         throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);
       }
+    }
+
+    @Override
+    public Interval visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
+      CExpression operand = pointerExpression.getOperand();
+
+      Interval interval = operand.accept(this);
+      return Interval.createUnboundInterval();
     }
   }
 }

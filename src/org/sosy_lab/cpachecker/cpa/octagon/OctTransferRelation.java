@@ -28,32 +28,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.*;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -280,7 +257,12 @@ class OctTransferRelation implements TransferRelation {
 
       else if (arg instanceof CUnaryExpression) {
         CUnaryExpression unaryExp = (CUnaryExpression) arg;
-        assert (unaryExp.getOperator() == UnaryOperator.STAR || unaryExp.getOperator() == UnaryOperator.AMPER);
+        assert (unaryExp.getOperator() == UnaryOperator.AMPER);
+      }
+
+      else if (arg instanceof CPointerExpression) {
+        // do nothing
+        //TODO check this, while introducing CPointerExpression this was created out of the assert from the UnaryExpression
       }
 
       else if (arg instanceof CFieldReference) {
@@ -461,9 +443,8 @@ class OctTransferRelation implements TransferRelation {
       }
       // a (bop) b
       else if (op2 instanceof CIdExpression ||
-          (op2 instanceof CUnaryExpression && (
-              (((CUnaryExpression)op2).getOperator() == UnaryOperator.AMPER) ||
-              (((CUnaryExpression)op2).getOperator() == UnaryOperator.STAR)))) {
+          (op2 instanceof CUnaryExpression && ((((CUnaryExpression)op2).getOperator() == UnaryOperator.AMPER))) ||
+           op2 instanceof CPointerExpression) {
         String leftVarName = op1.toASTString();
         String rightVarName = op2.toASTString();
 
@@ -855,11 +836,10 @@ class OctTransferRelation implements TransferRelation {
       // a = ...
       return handleAssignmentToVariable(pElement, ((CIdExpression)op1).getName(), op2, cfaEdge);
 
-    } else if (op1 instanceof CUnaryExpression
-        && ((CUnaryExpression)op1).getOperator() == UnaryOperator.STAR) {
+    } else if (op1 instanceof CPointerExpression) {
       // *a = ...
 
-      op1 = ((CUnaryExpression)op1).getOperand();
+      op1 = ((CPointerExpression)op1).getOperand();
 
       // Cil produces code like
       // *((int*)__cil_tmp5) = 1;
@@ -910,6 +890,22 @@ class OctTransferRelation implements TransferRelation {
     else if (rightExp instanceof CUnaryExpression) {
       return handleAssignmentOfUnaryExp(pElement, lParam, (CUnaryExpression)rightExp, cfaEdge);
     }
+    // a = *b
+    else if (rightExp instanceof CPointerExpression) {
+      CExpression operand = ((CPointerExpression)rightExp).getOperand();
+
+      if (operand instanceof CCastExpression) {
+        operand = ((CCastExpression)operand).getOperand();
+      }
+
+      if (operand instanceof CIdExpression) {
+//        missingInformationLeftVariable = assignedVar;
+//        missingInformationRightPointer = unaryOperand.getRawSignature();
+      } else {
+        throw new UnrecognizedCCodeException(cfaEdge, operand);
+      }
+      return null;
+    }
     // a = b op c
     else if (rightExp instanceof CBinaryExpression) {
       CBinaryExpression binExp = (CBinaryExpression)rightExp;
@@ -950,40 +946,17 @@ class OctTransferRelation implements TransferRelation {
     //    OctState newElement = element.clone();
 
     CExpression unaryOperand = unaryExp.getOperand();
-    UnaryOperator unaryOperator = unaryExp.getOperator();
 
-    if (unaryOperator == UnaryOperator.STAR) {
-      // a = * b
-      // TODO what is this?
-//      OctState newElement = forget(pElement, assignedVar);
-
-      // Cil produces code like
-      // __cil_tmp8 = *((int *)__cil_tmp7);
-      // so remove cast
-      if (unaryOperand instanceof CCastExpression) {
-        unaryOperand = ((CCastExpression)unaryOperand).getOperand();
-      }
-
-      if (unaryOperand instanceof CIdExpression) {
-//        missingInformationLeftVariable = assignedVar;
-//        missingInformationRightPointer = unaryOperand.getRawSignature();
-      } else {
-        throw new UnrecognizedCCodeException(cfaEdge, unaryOperand);
-      }
-
+    // a = -b or similar
+    Long value = getExpressionValue(pElement, unaryExp, functionName, cfaEdge);
+    if (value != null) {
+      return assignConstant(pElement, assignedVar, value);
     } else {
-      // a = -b or similar
-      Long value = getExpressionValue(pElement, unaryExp, functionName, cfaEdge);
-      if (value != null) {
-        return assignConstant(pElement, assignedVar, value);
-      } else {
-        String rVarName = unaryOperand.toASTString();
-        return assignVariable(pElement, assignedVar, rVarName, -1);
-      }
+      String rVarName = unaryOperand.toASTString();
+      return assignVariable(pElement, assignedVar, rVarName, -1);
     }
 
     //TODO ?
-    return null;
   }
 
   private OctState handleAssignmentOfBinaryExp(OctState pElement,

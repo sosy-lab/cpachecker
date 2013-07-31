@@ -21,27 +21,19 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.ast.java;
 
+/**
+ * Interface for the visitor pattern. Typically used with {@link org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor}
+ * to evaluate expressions.
+ *
+ *
+ * @param <R> the return type of an evaluation.
+ * @param <X> the exception thrown, if there are errors while evaluating an expression.
+ */
+public interface JLeftHandSideVisitor<R, X extends Exception> {
 
-public interface CExpressionVisitor<R, X extends Exception> extends CLeftHandSideVisitor<R, X> {
+  R visit(JArraySubscriptExpression pAArraySubscriptExpression) throws X;
 
-  R visit(CBinaryExpression pIastBinaryExpression) throws X;
-
-  R visit(CCastExpression pIastCastExpression) throws X;
-
-  R visit(CCharLiteralExpression pIastCharLiteralExpression) throws X;
-
-  R visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws X;
-
-  R visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws X;
-
-  R visit(CStringLiteralExpression pIastStringLiteralExpression) throws X;
-
-  R visit(CTypeIdExpression pIastTypeIdExpression) throws X;
-
-  R visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws X;
-
-  R visit(CUnaryExpression pIastUnaryExpression) throws X;
-
+  R visit(JIdExpression pJIdExpression) throws X;
 }

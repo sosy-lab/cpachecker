@@ -71,29 +71,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
-import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.*;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -911,7 +889,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
 
   private void resolveBooleanAssignment(Expression condition,
-              JExpression variableExpression, CFANode prevNode,
+              JLeftHandSide variableExpression, CFANode prevNode,
                     CFANode afterResolvedBooleanExpressionNode) {
 
     resolveBooleanAssignment(astCreator.convertBooleanExpression(condition),
@@ -919,7 +897,7 @@ class CFAMethodBuilder extends ASTVisitor {
   }
 
   private void resolveBooleanAssignment(JExpression condition,
-      JExpression variableExpression, CFANode prevNode,
+      JLeftHandSide variableExpression, CFANode prevNode,
       CFANode afterResolvedBooleanExpressionNode) {
 
     int fileLocStart =

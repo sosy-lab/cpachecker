@@ -342,5 +342,10 @@ abstract public class StaticRefiner {
     public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression pIastUnaryExpression) throws CPATransferException {
       return pIastUnaryExpression.getOperand().accept(this);
     }
+
+    @Override
+    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression pIastUnaryExpression) throws CPATransferException {
+      return pIastUnaryExpression.getOperand().accept(this);
+    }
   };
 }

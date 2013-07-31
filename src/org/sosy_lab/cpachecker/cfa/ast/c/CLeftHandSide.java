@@ -24,24 +24,9 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 
-public interface CExpressionVisitor<R, X extends Exception> extends CLeftHandSideVisitor<R, X> {
+import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
 
-  R visit(CBinaryExpression pIastBinaryExpression) throws X;
+public interface CLeftHandSide extends CExpression, IALeftHandSide {
 
-  R visit(CCastExpression pIastCastExpression) throws X;
-
-  R visit(CCharLiteralExpression pIastCharLiteralExpression) throws X;
-
-  R visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws X;
-
-  R visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws X;
-
-  R visit(CStringLiteralExpression pIastStringLiteralExpression) throws X;
-
-  R visit(CTypeIdExpression pIastTypeIdExpression) throws X;
-
-  R visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws X;
-
-  R visit(CUnaryExpression pIastUnaryExpression) throws X;
-
+  public  <R, X extends Exception> R accept(CLeftHandSideVisitor<R, X> v) throws X;
 }

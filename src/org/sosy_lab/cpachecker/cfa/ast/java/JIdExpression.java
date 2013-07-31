@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * If possible, it saves a reference to the declaration this name references.
  *
  */
-public class JIdExpression extends AIdExpression implements JExpression {
+public class JIdExpression extends AIdExpression implements JLeftHandSide {
 
   public JIdExpression(FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName, pDeclaration);
@@ -63,6 +63,11 @@ public class JIdExpression extends AIdExpression implements JExpression {
 
   @Override
   public <R, X extends Exception> R accept(JExpressionVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(JLeftHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 

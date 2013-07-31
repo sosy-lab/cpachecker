@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 public interface CAssignment extends IAssignment {
 
   @Override
-  CExpression getLeftHandSide();
+  CLeftHandSide getLeftHandSide();
 
   @Override
   CRightHandSide getRightHandSide();

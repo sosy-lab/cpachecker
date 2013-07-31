@@ -97,7 +97,7 @@ public final class CInitializers {
       return ImmutableList.of();
     }
 
-    CExpression lhs = new CIdExpression(decl.getFileLocation(), decl.getType(),
+    CLeftHandSide lhs = new CIdExpression(decl.getFileLocation(), decl.getType(),
         decl.getName(), decl);
 
     if (init instanceof CInitializerExpression) {
@@ -211,7 +211,8 @@ public final class CInitializers {
         // so we build the stacks if necessary.
         findFirstSubobjectWithType(initType, currentSubobjects, nextSubobjects, loc, edge);
 
-        final CExpression currentSubobject = currentSubobjects.pop();
+        assert currentSubobjects.peek() instanceof CLeftHandSide : "Object hast to be a LeftHandSide";
+        final CLeftHandSide currentSubobject = (CLeftHandSide) currentSubobjects.pop();
 
         // Do a regular assignment
         CExpressionAssignmentStatement assignment =
@@ -246,7 +247,7 @@ public final class CInitializers {
    * such that the designated field/element is the next that will be accessed.
    * Prior to that, both stacks are reset.
    * @param designators A list of designators (e.g. ".f[2][1-4].t")
-   * @param currentSubobject the "current object" with which this whole chain of initializers is associated
+   * @param currentObject the "current object" with which this whole chain of initializers is associated
    * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
    * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge, StatementToFormulaVisitor)}
    */

@@ -52,32 +52,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.*;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -840,6 +816,17 @@ public class VariableClassification {
         return null;
       }
     }
+
+    @Override
+    public Multimap<String, String> visit(CPointerExpression exp) {
+      BigInteger val = getNumber(exp);
+      if (val == null) {
+        return exp.getOperand().accept(this);
+      } else {
+        values.add(val);
+        return null;
+      }
+    }
   }
 
 
@@ -918,6 +905,18 @@ public class VariableClassification {
         // boolean operation, return inner vars
         return inner;
       } else { // PLUS, MINUS, etc --> not boolean
+        nonBooleanVars.putAll(inner);
+        return null;
+      }
+    }
+
+    @Override
+    public Multimap<String, String> visit(CPointerExpression exp) {
+      Multimap<String, String> inner = exp.getOperand().accept(this);
+
+      if (inner == null) {
+        return null;
+      } else {
         nonBooleanVars.putAll(inner);
         return null;
       }
@@ -1025,6 +1024,24 @@ public class VariableClassification {
         return null;
       }
     }
+
+    @Override
+    public Multimap<String, String> visit(CPointerExpression exp) {
+
+      // if exp is numeral
+      BigInteger val = getNumber(exp);
+      if (val != null) { return HashMultimap.create(0, 0); }
+
+      // if exp is binary expression
+      Multimap<String, String> inner = exp.getOperand().accept(this);
+      if (isNestedBinaryExp(exp)) { return inner; }
+
+      // if exp is unknown
+      if (inner == null) { return null; }
+
+      nonIntEqualVars.putAll(inner);
+      return null;
+    }
   }
 
 
@@ -1108,6 +1125,15 @@ public class VariableClassification {
         nonIntAddVars.putAll(inner);
         return null;
       }
+    }
+
+    @Override
+    public Multimap<String, String> visit(CPointerExpression exp) {
+      Multimap<String, String> inner = exp.getOperand().accept(this);
+      if (inner == null) { return null; }
+
+      nonIntAddVars.putAll(inner);
+      return null;
     }
   }
 

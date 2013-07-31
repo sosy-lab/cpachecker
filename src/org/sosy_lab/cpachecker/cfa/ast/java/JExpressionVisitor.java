@@ -31,7 +31,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
  * @param <R> the return type of an evaluation.
  * @param <X> the exception thrown, if there are errors while evaluating an expression.
  */
-public interface JExpressionVisitor<R, X extends Exception>  {
+public interface JExpressionVisitor<R, X extends Exception> extends JLeftHandSideVisitor<R, X> {
 
   R visit(JCharLiteralExpression paCharLiteralExpression) throws X;
 
@@ -51,11 +51,7 @@ public interface JExpressionVisitor<R, X extends Exception>  {
 
   R visit(JArrayInitializer pJArrayInitializer) throws X;
 
-  R visit(JArraySubscriptExpression pAArraySubscriptExpression) throws X;
-
   R visit(JVariableRunTimeType pJThisRunTimeType) throws X;
-
-  R visit(JIdExpression pJIdExpression) throws X;
 
   R visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws X;
 

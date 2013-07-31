@@ -28,10 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.typ
 import java.util.Arrays;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.*;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -100,13 +97,8 @@ class ExpressionToFormulaVisitorUIF extends ExpressionToFormulaVisitor {
     UnaryOperator op = exp.getOperator();
     switch (op) {
     case AMPER:
-    case STAR:
-      String opname;
-      if (op == UnaryOperator.AMPER) {
-        opname = CtoFormulaWithUIF.OP_ADDRESSOF_NAME;
-      } else {
-        opname = CtoFormulaWithUIF.OP_STAR_NAME;
-      }
+      String opname = CtoFormulaWithUIF.OP_ADDRESSOF_NAME;
+
       Formula term = exp.getOperand().accept(this);
 
       CType expType = exp.getExpressionType();
@@ -124,6 +116,24 @@ class ExpressionToFormulaVisitorUIF extends ExpressionToFormulaVisitor {
     default:
       return super.visit(exp);
     }
+  }
+
+  @Override
+  public Formula visit(CPointerExpression exp) throws UnrecognizedCCodeException {
+
+        Formula term = exp.getOperand().accept(this);
+
+        CType expType = exp.getExpressionType();
+
+        // PW make SSA index of * independent from argument
+        int idx = conv.getIndex(CtoFormulaWithUIF.OP_STAR_NAME, expType, ssa);
+        //int idx = getIndex(
+        //    opname, term, ssa, absoluteSSAIndices);
+
+        // build the  function corresponding to this operation.
+
+        return conv.ffmgr.createFuncAndCall(
+            CtoFormulaWithUIF.OP_STAR_NAME, idx, conv.getFormulaTypeFromCType(expType), ImmutableList.of(term));
   }
 }
 
@@ -145,11 +155,6 @@ class LvalueVisitorUIF extends LvalueVisitor {
       opname = CtoFormulaWithUIF.OP_ADDRESSOF_NAME;
       result = new CPointerType(false, false, opType);
       break;
-    case STAR:
-      opname = CtoFormulaWithUIF.OP_STAR_NAME;
-      CPointerType opTypeP = (CPointerType)opType;
-      result = opTypeP.getType();
-      break;
     default:
       throw new UnrecognizedCCodeException("Invalid unary operator for lvalue", edge, uExp);
     }
@@ -167,6 +172,29 @@ class LvalueVisitorUIF extends LvalueVisitor {
     // ...
     // &(*x) = 2    |     <ptr_&>::2(<ptr_*>::1(x)) = 2
     return conv.ffmgr.createFuncAndCall(opname, idx, formulaType, ImmutableList.of(term));
+  }
+
+  @Override
+  public Formula visit(CPointerExpression uExp) throws UnrecognizedCCodeException {
+    CExpression operand = uExp.getOperand();
+    CType opType = operand.getExpressionType();
+    CPointerType opTypeP = (CPointerType)opType;
+    CType result = opTypeP.getType();
+
+    Formula term = conv.buildTerm(operand, edge, function, ssa, constraints);
+
+    FormulaType<?> formulaType = conv.getFormulaTypeFromCType(result);
+    // PW make SSA index of * independent from argument
+    int idx = conv.makeFreshIndex(CtoFormulaWithUIF.OP_STAR_NAME, result, ssa);
+    //int idx = makeLvalIndex(opname, term, ssa, absoluteSSAIndices);
+
+    // build the "updated" function corresponding to this operation.
+    // what we do is the following:
+    // C            |     MathSAT
+    // *x = 1       |     <ptr_*>::2(x) = 1
+    // ...
+    // &(*x) = 2    |     <ptr_&>::2(<ptr_*>::1(x)) = 2
+    return conv.ffmgr.createFuncAndCall(CtoFormulaWithUIF.OP_STAR_NAME, idx, formulaType, ImmutableList.of(term));
   }
 
   @Override

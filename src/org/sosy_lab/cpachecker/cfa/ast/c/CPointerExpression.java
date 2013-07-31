@@ -23,29 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CUnaryExpression extends AUnaryExpression implements CExpression {
+public class CPointerExpression extends APointerExpression implements CLeftHandSide {
 
 
-
-  public CUnaryExpression(final FileLocation pFileLocation,
-                             final CType pType, final CExpression pOperand,
-                             final UnaryOperator pOperator) {
-    super(pFileLocation, pType, pOperand, pOperator);
+  public CPointerExpression(final FileLocation pFileLocation,
+                            final CType pType, final CExpression pOperand) {
+    super(pFileLocation, pType, pOperand);
 
   }
 
   @Override
   public CExpression getOperand() {
     return (CExpression) super.getOperand();
-  }
-
-  @Override
-  public UnaryOperator getOperator() {
-    return (UnaryOperator) super.getOperator();
   }
 
   @Override
@@ -63,29 +57,11 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
     return v.visit(this);
   }
 
-  public static enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
-    PLUS   ("+"),
-    MINUS  ("-"),
-    AMPER  ("&"),
-    TILDE  ("~"),
-    NOT    ("!"),
-    SIZEOF ("sizeof"),
-    ;
-
-    private final String mOp;
-
-    private UnaryOperator(String pOp) {
-      mOp = pOp;
-    }
-
-    /**
-     * Returns the string representation of this operator (e.g. "*", "+").
-     */
-    @Override
-    public String getOperator() {
-      return mOp;
-    }
+  @Override
+  public <R, X extends Exception> R accept(CLeftHandSideVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
+
 
   @Override
   public int hashCode() {
@@ -100,7 +76,7 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
       return true;
     }
 
-    if (!(obj instanceof CUnaryExpression)) {
+    if (!(obj instanceof CPointerExpression)) {
       return false;
     }
 

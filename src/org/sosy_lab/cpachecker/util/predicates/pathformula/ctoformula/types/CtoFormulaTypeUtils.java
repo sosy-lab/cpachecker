@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -180,7 +181,7 @@ public class CtoFormulaTypeUtils {
     if (fExp.isPointerDereference()) {
       CType dereferencedType = CtoFormulaTypeUtils.dereferencedType(fieldOwner.getExpressionType());
       assert !(dereferencedType instanceof CDereferenceType) : "We should be able to dereference!";
-      fieldOwner = new CUnaryExpression(null, dereferencedType, fieldOwner, UnaryOperator.STAR);
+      fieldOwner = new CPointerExpression(null, dereferencedType, fieldOwner);
     }
     return fieldOwner;
   }
@@ -190,7 +191,7 @@ public class CtoFormulaTypeUtils {
       return true;
     }
 
-    if (fexp.getFieldOwner() instanceof CUnaryExpression) {
+    if (fexp.getFieldOwner() instanceof CUnaryExpression || fexp.getFieldOwner() instanceof CPointerExpression) {
       return true;
     }
 

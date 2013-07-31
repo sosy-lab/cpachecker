@@ -26,16 +26,8 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.*;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -125,6 +117,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
     default:
       return super.visit(pCUnaryExpression);
     }
+  }
+
+  @Override
+  public InvariantsFormula<CompoundState> visit(CPointerExpression pCPointerExpression) throws UnrecognizedCCodeException {
+    return super.visit(pCPointerExpression);
   }
 
   @Override

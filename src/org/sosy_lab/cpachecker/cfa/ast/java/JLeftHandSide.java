@@ -21,27 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 
-public interface CExpressionVisitor<R, X extends Exception> extends CLeftHandSideVisitor<R, X> {
+/**
+ * Interface for all possible right-hand sides of an assignment.
+ */
+public interface JLeftHandSide extends JExpression, IALeftHandSide {
 
-  R visit(CBinaryExpression pIastBinaryExpression) throws X;
-
-  R visit(CCastExpression pIastCastExpression) throws X;
-
-  R visit(CCharLiteralExpression pIastCharLiteralExpression) throws X;
-
-  R visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws X;
-
-  R visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws X;
-
-  R visit(CStringLiteralExpression pIastStringLiteralExpression) throws X;
-
-  R visit(CTypeIdExpression pIastTypeIdExpression) throws X;
-
-  R visit(CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws X;
-
-  R visit(CUnaryExpression pIastUnaryExpression) throws X;
+  public <R, X extends Exception> R accept(JLeftHandSideVisitor<R, X> pV) throws X;
 
 }

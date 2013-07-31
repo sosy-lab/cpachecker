@@ -23,39 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import java.util.Objects;
-
+import com.google.common.base.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
-public abstract class AArraySubscriptExpression extends ALeftHandSide {
+public abstract class APointerExpression extends ALeftHandSide {
 
+  private final IAExpression operand;
 
-  private final IAExpression arrayExpression;
-  private final IAExpression subscriptExpression;
-
-  public AArraySubscriptExpression(FileLocation pFileLocation,
-      Type pType,
-      final IAExpression pArrayExpression,
-      final IAExpression pSubscriptExpression) {
+  public APointerExpression(FileLocation pFileLocation, Type pType, final IAExpression pOperand) {
     super(pFileLocation, pType);
-    arrayExpression = pArrayExpression;
-    subscriptExpression = pSubscriptExpression;
-
+    operand = pOperand;
   }
 
-  public IAExpression getArrayExpression() {
-    return arrayExpression;
-  }
-
-  public IAExpression getSubscriptExpression() {
-    return subscriptExpression;
+  public IAExpression getOperand() {
+    return operand;
   }
 
   @Override
   public String toASTString() {
-    String left = (arrayExpression instanceof AArraySubscriptExpression) ? arrayExpression.toASTString() : arrayExpression.toParenthesizedASTString();
-    return left + "[" + subscriptExpression.toASTString() + "]";
+      return "*" + operand.toParenthesizedASTString();
   }
 
   /* (non-Javadoc)
@@ -65,8 +52,7 @@ public abstract class AArraySubscriptExpression extends ALeftHandSide {
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(arrayExpression);
-    result = prime * result + Objects.hashCode(subscriptExpression);
+    result = prime * result + Objects.hashCode(operand);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -80,15 +66,14 @@ public abstract class AArraySubscriptExpression extends ALeftHandSide {
       return true;
     }
 
-    if (!(obj instanceof AArraySubscriptExpression)
+    if (!(obj instanceof APointerExpression)
         || !super.equals(obj)) {
       return false;
     }
 
-    AArraySubscriptExpression other = (AArraySubscriptExpression) obj;
+    APointerExpression other = (APointerExpression) obj;
 
-    return Objects.equals(other.arrayExpression, arrayExpression)
-            && Objects.equals(other.subscriptExpression, subscriptExpression);
+    return Objects.equal(other.operand, operand);
   }
 
 }

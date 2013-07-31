@@ -93,4 +93,9 @@ public abstract class ForwardingCExpressionVisitor<R, X extends Exception>
   public R visit(CUnaryExpression e) throws X {
     return delegate.visit(e);
   }
+
+  @Override
+  public R visit(CPointerExpression e) throws X {
+    return delegate.visit(e);
+  }
 }

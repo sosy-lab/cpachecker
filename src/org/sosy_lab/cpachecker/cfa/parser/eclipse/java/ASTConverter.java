@@ -84,50 +84,9 @@ import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.*;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
-import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
-import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JObjectReferenceReturn;
-import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
-import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JSuperConstructorInvocation;
-import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
-import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.util.NameConverter;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
@@ -1620,8 +1579,8 @@ public class ASTConverter {
 
     FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
-    JExpression leftHandSide =
-        convertExpressionWithoutSideEffects(e.getLeftHandSide());
+    JLeftHandSide leftHandSide =
+        (JLeftHandSide) convertExpressionWithoutSideEffects(e.getLeftHandSide());
 
     BinaryOperator op = convert(e.getOperator());
 
@@ -1745,7 +1704,7 @@ public class ASTConverter {
 
     FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
-    JExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+    JLeftHandSide operand = (JLeftHandSide) convertExpressionWithoutSideEffects(e.getOperand());
 
     JExpression preOne = new JIntegerLiteralExpression(fileLoc, BigInteger.ONE);
     JBinaryExpression preExp =
@@ -1767,7 +1726,7 @@ public class ASTConverter {
 
     FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
-    JExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+    JLeftHandSide operand = (JLeftHandSide) convertExpressionWithoutSideEffects(e.getOperand());
 
     JExpression preOne = new JIntegerLiteralExpression(fileLoc, BigInteger.ONE);
     JBinaryExpression preExp = new JBinaryExpression(fileLoc, type,
@@ -2172,7 +2131,7 @@ public class ASTConverter {
     methodInvocation.setRunTimeBinding(returnType);
   }
 
-  public JExpressionAssignmentStatement getBooleanAssign(JExpression pLeftHandSide, boolean booleanLiteral) {
+  public JExpressionAssignmentStatement getBooleanAssign(JLeftHandSide pLeftHandSide, boolean booleanLiteral) {
     return new JExpressionAssignmentStatement(pLeftHandSide.getFileLocation(), pLeftHandSide,
         new JBooleanLiteralExpression(pLeftHandSide.getFileLocation(), booleanLiteral));
   }

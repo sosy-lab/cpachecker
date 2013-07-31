@@ -32,24 +32,8 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.*;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -343,10 +327,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         }
       }
 
-    } else if (
-
-        ((op1 instanceof CUnaryExpression)
-            && (((CUnaryExpression)op1).getOperator() == UnaryOperator.STAR))
+    } else if ((op1 instanceof CPointerExpression)
             || (op1 instanceof CArraySubscriptExpression)) {
       // assignment to the target of a pointer or an array element,
       // this does not change the initialization status of the variable
@@ -411,6 +392,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       } else {
         return isExpressionUninitialized(element, unaryExpression.getOperand(), cfaEdge);
       }
+
+    } else if (expression instanceof  CPointerExpression) {
+      return isExpressionUninitialized(element, ((CPointerExpression)expression).getOperand(), cfaEdge);
 
     } else if (expression instanceof CBinaryExpression) {
       CBinaryExpression binExpression = (CBinaryExpression) expression;

@@ -21,42 +21,21 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
- * AST node for the expression "a = b".
- */
-public class CExpressionAssignmentStatement extends AExpressionAssignmentStatement implements CAssignment, CStatement {
+*
+* Abstract class for side-effect free expressions.
+* This class is only SuperClass of all abstract Classes and their Subclasses.
+* The Interface {@link org.sosy_lab.cpachecker.cfa.ast.IAExpression} contains all language specific
+* AST Nodes as well.
+*/
+public abstract class ALeftHandSide extends AExpression implements IALeftHandSide {
 
-  public CExpressionAssignmentStatement(FileLocation pFileLocation,
-                                           CLeftHandSide pLeftHandSide,
-                                           CExpression pRightHandSide) {
-    super(pFileLocation, pLeftHandSide, pRightHandSide);
-
-  }
-
-  @Override
-  public CLeftHandSide getLeftHandSide() {
-    return (CLeftHandSide)super.getLeftHandSide();
-  }
-
-  @Override
-  public CExpression getRightHandSide() {
-    return (CExpression)super.getRightHandSide();
-  }
-
-  @Override
-  public CStatement asStatement() {
-    return this;
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(CStatementVisitor<R, X> v) throws X {
-    return v.visit(this);
+  public ALeftHandSide(FileLocation pFileLocation, Type pType) {
+    super(pFileLocation, pType);
   }
 
   @Override
@@ -72,7 +51,7 @@ public class CExpressionAssignmentStatement extends AExpressionAssignmentStateme
       return true;
     }
 
-    if (!(obj instanceof CExpressionAssignmentStatement)) {
+    if (!(obj instanceof ALeftHandSide)) {
       return false;
     }
 
