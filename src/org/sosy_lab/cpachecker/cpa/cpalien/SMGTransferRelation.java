@@ -45,10 +45,38 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.c.*;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -1343,8 +1371,6 @@ public class SMGTransferRelation implements TransferRelation {
 
       UnaryOperator unaryOperator = unaryExpression.getOperator();
       CExpression unaryOperand = unaryExpression.getOperand();
-      CType unaryOperandType = getRealExpressionType(unaryOperand);
-      CType expType = getRealExpressionType(unaryExpression);
 
       switch (unaryOperator) {
 
@@ -1673,10 +1699,6 @@ public class SMGTransferRelation implements TransferRelation {
     public SMGAddress visit(CUnaryExpression unaryExpression) throws CPATransferException {
 
       UnaryOperator unaryOperator = unaryExpression.getOperator();
-      CExpression unaryOperand = unaryExpression.getOperand();
-      CType unaryOperandType = getRealExpressionType(unaryOperand);
-
-      boolean unaryOperandIsPointer = unaryOperandType instanceof CPointerType;
 
       switch (unaryOperator) {
 
@@ -2075,8 +2097,6 @@ public class SMGTransferRelation implements TransferRelation {
 
       UnaryOperator unaryOperator = unaryExpression.getOperator();
       CExpression unaryOperand = unaryExpression.getOperand();
-      CType unaryOperandType = getRealExpressionType(unaryOperand);
-      CType expType = getRealExpressionType(unaryExpression);
 
       switch (unaryOperator) {
 
