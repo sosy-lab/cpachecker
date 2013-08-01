@@ -124,7 +124,7 @@ public abstract class AbstractUnsafeFormulaManager<TFormulaInfo> extends Abstrac
   @Override
   public boolean isUF(Formula pF) {
     TFormulaInfo t = getTerm(pF);
-    return isVariable(t);
+    return isUF(t);
   }
 
   protected abstract boolean isUF(TFormulaInfo pT);
