@@ -48,6 +48,7 @@ public final class CEnumType implements CComplexType {
                                                      // (as a hash code of an enumerator takes into account the hash
                                                      // code of the container enumeration and vice versa,
                                                      // this would otherwise lead to an infinite recursion)
+  private Integer hashCode = null; // to speed up hash code computation (since the objects are immutable)
 
   public CEnumType(final boolean pConst, final boolean pVolatile,
       final List<CEnumerator> pEnumerators, final String pName) {
@@ -205,20 +206,24 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public int hashCode() {
-      final int prime = 31;
-      // For computing hash codes, see comment in the declaration of isInHashCodeComputation
-      if (isInHashCodeComputation) {
-        return prime;
-      } else {
-        isInHashCodeComputation = true;
-      }
-      int result = 7;
-      result = prime * result + Objects.hashCode(isConst);
-      result = prime * result + Objects.hashCode(isVolatile);
-      result = prime * result + Objects.hashCode(name);
-      result = prime * result + Objects.hashCode(enumerators);
-      isInHashCodeComputation = false;
-      return result;
+    if (hashCode != null) {
+      return hashCode;
+    }
+    final int prime = 31;
+    // For computing hash codes, see comment in the declaration of isInHashCodeComputation
+    if (isInHashCodeComputation) {
+      return prime;
+    } else {
+      isInHashCodeComputation = true;
+    }
+    int result = 7;
+    result = prime * result + Objects.hashCode(isConst);
+    result = prime * result + Objects.hashCode(isVolatile);
+    result = prime * result + Objects.hashCode(name);
+    result = prime * result + Objects.hashCode(enumerators);
+    isInHashCodeComputation = false;
+    hashCode = result;
+    return result;
   }
 
   /**

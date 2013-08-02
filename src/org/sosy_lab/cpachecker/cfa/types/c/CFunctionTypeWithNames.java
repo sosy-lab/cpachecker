@@ -43,6 +43,8 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
 
   private final List<CParameterDeclaration> parameters;
 
+  private Integer hashCode = null; // to speed up hash code computation (since the objects are immutable)
+
   public CFunctionTypeWithNames(
       boolean pConst,
       boolean pVolatile,
@@ -109,11 +111,15 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
 
   @Override
   public int hashCode() {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + Objects.hashCode(parameters);
-      result = prime * result + super.hashCode();
-      return result;
+    if (hashCode != null) {
+      return hashCode;
+    }
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(parameters);
+    result = prime * result + super.hashCode();
+    hashCode = result;
+    return result;
   }
 
   /**

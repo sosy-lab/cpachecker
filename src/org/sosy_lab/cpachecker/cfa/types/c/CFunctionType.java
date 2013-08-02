@@ -43,6 +43,8 @@ public class CFunctionType extends AFunctionType implements CType {
   private boolean   isVolatile;
   private String name = null;
 
+  private Integer hashCode = null; // to speed up hash code computation (since the objects are immutable)
+
   public CFunctionType(
       boolean pConst,
       boolean pVolatile,
@@ -151,13 +153,17 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public int hashCode() {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + Objects.hashCode(isConst);
-      result = prime * result + Objects.hashCode(isVolatile);
-      result = prime * result + Objects.hashCode(name);
-      result = prime * result + super.hashCode();
-      return result;
+    if (hashCode != null) {
+      return hashCode;
+    }
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(isConst);
+    result = prime * result + Objects.hashCode(isVolatile);
+    result = prime * result + Objects.hashCode(name);
+    result = prime * result + super.hashCode();
+    hashCode = result;
+    return result;
   }
 
   /**
