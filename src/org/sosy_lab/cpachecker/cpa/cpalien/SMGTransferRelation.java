@@ -143,29 +143,7 @@ public class SMGTransferRelation implements TransferRelation {
    */
   public static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
 
-
-  /**
-   * Determines, whether to search for a explicit Value for a symbolic one.
-   */
-  private boolean searchForExplicitValue = false;
-
-  /**
-   * Search for the explicit Value of this symbolic Value
-   */
-  private SMGSymbolicValue symbolicValue = null;
-
-  /**
-   * Contains the LValue String to be read from an explicit State
-   */
-  private String lParam = null;
-
-  /**
-   * Determines whether the lValue to be read vom explicit State  is global.
-   */
-  private boolean lParamIsGlobal = false;
-
-
-  private final class SMGBuiltins {
+  private /*static*/ final class SMGBuiltins {
 
     private static final int MEMSET_BUFFER_PARAMETER = 0;
     private static final int MEMSET_CHAR_PARAMETER = 1;
@@ -714,7 +692,7 @@ public class SMGTransferRelation implements TransferRelation {
     return newState;
   }
 
-  private class LValueAssignmentVisitor extends DefaultCExpressionVisitor<SMGAddress, CPATransferException> {
+  private /*static*/ class LValueAssignmentVisitor extends DefaultCExpressionVisitor<SMGAddress, CPATransferException> {
 
     private final CFAEdge cfaEdge;
     private final SMGState smgState;
@@ -738,9 +716,6 @@ public class SMGTransferRelation implements TransferRelation {
 
     private SMGAddress handleVariableAssignment(CIdExpression variableName) throws CPATransferException {
       logger.log(Level.FINEST, ">>> Handling statement: variable assignment");
-
-      lParam = variableName.toASTString();
-      lParamIsGlobal = smgState.isGlobal(variableName.getName());
 
       SMGObject object = smgState.getObjectForVisibleVariable(variableName.getName());
 
@@ -1201,8 +1176,10 @@ public class SMGTransferRelation implements TransferRelation {
         if (newInitializer instanceof CInitializerExpression) {
           newState = handleAssignmentToField(newState, edge, newObject, 0, cType,
               ((CInitializerExpression) newInitializer).getExpression());
+          /*
           lParam = cVarDecl.toASTString();
           lParamIsGlobal = cVarDecl.isGlobal();
+          */
         }
         //TODO handle other Cases
       }
@@ -1322,7 +1299,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
   }
 
-  private class PointerAddressVisitor extends ExpressionValueVisitor
+  private /*static*/ class PointerAddressVisitor extends ExpressionValueVisitor
       implements CRightHandSideVisitor<SMGSymbolicValue, CPATransferException> {
 
     private final CFAEdge cfaEdge;
@@ -1995,7 +1972,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
   }
 
-  private class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGSymbolicValue, CPATransferException>
+  private /*static*/ class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGSymbolicValue, CPATransferException>
       implements CRightHandSideVisitor<SMGSymbolicValue, CPATransferException> {
 
     private final CFAEdge cfaEdge;
@@ -2619,7 +2596,7 @@ public class SMGTransferRelation implements TransferRelation {
       throws UnrecognizedCCodeException {
 
     Collection<SMGState> sharpenedStates = null;
-
+/*
     if (searchForExplicitValue && !symbolicValue.isUnknown() && lParam != null) {
       sharpenedStates = searchForExplicitValue(smgState, explState, cfaEdge, symbolicValue, lParam);
     }
@@ -2627,7 +2604,7 @@ public class SMGTransferRelation implements TransferRelation {
     searchForExplicitValue = false;
     symbolicValue = SMGUnknownValue.getInstance();
     lParam = null;
-
+*/
     return sharpenedStates;
   }
 
@@ -2643,6 +2620,8 @@ public class SMGTransferRelation implements TransferRelation {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
+    // added to avoid compile error
+    boolean lParamIsGlobal = false;
     String scopedVariableName = getScopedVariableName(lParam, functionName, lParamIsGlobal);
 
     @SuppressWarnings("unused")

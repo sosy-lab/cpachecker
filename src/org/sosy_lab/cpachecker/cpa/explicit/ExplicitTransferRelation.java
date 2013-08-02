@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -35,10 +38,44 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.ast.*;
-import org.sosy_lab.cpachecker.cfa.ast.c.*;
+import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
+import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
+import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
@@ -83,6 +120,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGState;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.forwarding.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer.Memory;
 import org.sosy_lab.cpachecker.cpa.pointer.Pointer;
@@ -120,7 +159,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
    */
   public static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
 
-
   private JRightHandSide missingInformationRightJExpression = null;
   private String missingInformationLeftJVariable = null;
 
@@ -133,6 +171,18 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   private boolean missingAssumeInformation;
 
+  /**
+   * This List is used to communicate the missing
+   * Information needed from other cpas.
+   * (at the moment specifically SMG)
+   */
+  private List<MissingInformation> missingInformationList;
+
+  /**
+   * Save the old State for strengthen.
+   */
+  private ExplicitState oldState;
+
   public ExplicitTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
@@ -142,6 +192,20 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     if (successor != null){
       successor.addToDelta(state);
     }
+  }
+
+
+  @Override
+  protected void setInfo(AbstractState pAbstractState,
+      Precision pAbstractPrecision, CFAEdge pCfaEdge) {
+    super.setInfo(pAbstractState, pAbstractPrecision, pCfaEdge);
+    // More than 5 function parameters is sufficiently seldom.
+    // For any other cfaEdge we need only a list of length 1.
+    // In principle it is unnecessary to always create a new list
+    // but I'm not sure of the behavior of calling strengthen, so
+    // it is more secure.
+    missingInformationList = new ArrayList<>(5);
+    oldState = ((ExplicitState) pAbstractState).clone();
   }
 
   @Override
@@ -185,9 +249,16 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       if (value == null) {
         newElement.forget(formalParamName);
+
+        if(isMissingCExpressionInformation(visitor, exp)) {
+          addMissingInformation(formalParamName, exp);
+        }
       } else {
         newElement.assignConstant(formalParamName, value);
       }
+
+      visitor.reset();
+
     }
 
     return newElement;
@@ -257,15 +328,17 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     return newElement;
   }
 
-
   @Override
   protected ExplicitState handleAssumption(AssumeEdge cfaEdge, IAExpression expression, boolean truthValue)
     throws UnrecognizedCCodeException {
     // convert an expression like [a + 753 != 951] to [a != 951 - 753]
     expression = optimizeAssumeForEvaluation(expression);
 
+    // We need the visitor for missingInfoInformation
+    ExpressionValueVisitor evv = new ExpressionValueVisitor();
+
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
-    Long value = getExpressionValue(expression);
+    Long value = getExpressionValue(expression, evv);
 
     // value is null, try to derive further information
     if (value == null) {
@@ -285,6 +358,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       } else {
         ((CExpression)expression).accept(avv);
       }
+
+      if(isMissingCExpressionInformation(evv, expression)) {
+        missingInformationList.add(new MissingInformation(truthValue, expression));
+      }
+
       return element;
 
     } else if ((truthValue && value == 1L) || (!truthValue && value == 0L)) {
@@ -334,16 +412,24 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     // get initial value
     IAInitializer init = decl.getInitializer();
 
+    // assign initial value if necessary
+    String scopedVarName = decl.isGlobal() ? varName : functionName + "::" + varName;
+
     if (init instanceof AInitializerExpression) {
-      IAExpression exp = ((AInitializerExpression)init).getExpression();
-      initialValue = getExpressionValue(exp);
+
+      // We need information from the expression evaluation,
+      // so crate visitor here
+      ExpressionValueVisitor evv = new ExpressionValueVisitor();
+
+      IAExpression exp = ((AInitializerExpression) init).getExpression();
+      initialValue = getExpressionValue(exp, evv);
+
+      if (isMissingCExpressionInformation(evv, exp)) {
+        addMissingInformation(scopedVarName, exp);
+      }
     }
 
-    // assign initial value if necessary
-      String scopedVarName = decl.isGlobal() ? varName : functionName + "::" + varName;
-
-
-      boolean complexType = decl.getType() instanceof JClassOrInterfaceType || decl.getType() instanceof JArrayType;
+    boolean complexType = decl.getType() instanceof JClassOrInterfaceType || decl.getType() instanceof JArrayType;
 
 
     if (!complexType  && (missingInformationRightJExpression != null || initialValue != null)) {
@@ -359,12 +445,20 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       // If variable not tracked, its Object is irrelevant
       missingFieldVariableObject = false;
       newElement.forget(scopedVarName);
-
     }
 
     return newElement;
   }
 
+
+  private boolean isMissingCExpressionInformation(ExpressionValueVisitor pEvv,
+      IARightHandSide pExp) {
+
+    return pExp instanceof CExpression
+        && (pEvv.containsFieldReference
+            || pEvv.containsSubscriptExpression
+            || pEvv.missingPointer);
+  }
 
   @Override
   protected ExplicitState handleStatementEdge(AStatementEdge cfaEdge, IAStatement expression)
@@ -430,17 +524,32 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       if (op1 instanceof AIdExpression) {
         missingInformationLeftPointer = ((AIdExpression)op1).getName();
         missingInformationRightExpression = op2;
+
+        if (op1 instanceof CExpression) {
+          assert op2 instanceof CRightHandSide;
+          missingInformationList.add(new MissingInformation(op1, op2));
+        }
       }
     }
 
     else if (op1 instanceof CFieldReference) {
       // a->b = ...
+
+      assert op2 instanceof CRightHandSide;
+      missingInformationList.add(new MissingInformation(op1, op2));
+
+      //TODO Investigate if this can be erased safely
       return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor());
     }
 
     // TODO assignment to array cell
     else if (op1 instanceof CArraySubscriptExpression || op1 instanceof AArraySubscriptExpression) {
       // array cell
+
+      if (op1 instanceof CArraySubscriptExpression) {
+        assert op2 instanceof CRightHandSide;
+        missingInformationList.add(new MissingInformation(op1, op2));
+      }
     } else {
       throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
     }
@@ -453,7 +562,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
    private ExplicitState handleAssignmentToVariable(String lParam, IARightHandSide exp, ExpressionValueVisitor visitor)
     throws UnrecognizedCCodeException {
 
-
     Long value;
 
     if (exp instanceof JRightHandSide && !(exp instanceof CRightHandSide)) {
@@ -462,11 +570,15 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
        value = ((CRightHandSide) exp).accept(visitor);
     }
 
-
-
     if (visitor.missingPointer) {
       missingInformationRightExpression = exp;
       assert value == null;
+    }
+
+    if (isMissingCExpressionInformation(visitor, exp)) {
+      // TODO may still evaluate to an expression for the old explicit
+      // Evaluation
+      addMissingInformation(lParam, exp);
     }
 
     // here we clone the state, because we get new information or must forget it.
@@ -505,21 +617,40 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     return newElement;
   }
 
- /**
+  private void addMissingInformation(String pLParam, IARightHandSide pExp) {
+    if (pExp instanceof CExpression) {
+      MemoryLocation memloc = MemoryLocation.valueOf(pLParam);
+
+      missingInformationList.add(new MissingInformation(memloc,
+          (CExpression) pExp));
+    }
+  }
+
+/**
    * Visitor that get's the value from an expression.
    * The result may be null, i.e., the value is unknown.
    */
-  private class ExpressionValueVisitor extends DefaultCExpressionVisitor<Long, UnrecognizedCCodeException>
+  private static class ExpressionValueVisitor extends DefaultCExpressionVisitor<Long, UnrecognizedCCodeException>
                                        implements CRightHandSideVisitor<Long, UnrecognizedCCodeException>,
                                                    JRightHandSideVisitor<Long, UnrecognizedCCodeException>,
                                                    JExpressionVisitor<Long, UnrecognizedCCodeException> {
     private boolean missingPointer = false;
     protected boolean missingFieldAccessInformation = false;
     protected boolean missingEnumComparisonInformation = false;
+    private boolean containsFieldReference = false;
+    private boolean containsSubscriptExpression = false;
 
     @Override
     protected Long visitDefault(CExpression pExp) {
       return null;
+    }
+
+    public void reset() {
+      missingPointer = false;
+      missingFieldAccessInformation = false;
+      missingEnumComparisonInformation = false;
+      containsFieldReference = false;
+      containsSubscriptExpression = false;
     }
 
     @Override
@@ -732,13 +863,24 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     @Override
     public Long visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
-      String varName = getScopedVariableName(fieldReferenceExpression.toASTString(), functionName);
+
+      containsFieldReference = true;
+
+      String varName = getScopedVariableName(
+          fieldReferenceExpression.toASTString(), functionName);
 
       if (state.contains(varName)) {
         return state.getValueFor(varName);
       } else {
         return null;
       }
+    }
+
+    @Override
+    public Long visit(CArraySubscriptExpression pE)
+        throws UnrecognizedCCodeException {
+      containsSubscriptExpression = true;
+      return super.visit(pE);
     }
 
     @Override
@@ -1311,22 +1453,36 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
   }
 
+  private Long getExpressionValue(IAExpression expression,
+      ExpressionValueVisitor evv) throws UnrecognizedCCodeException {
 
-  private Long getExpressionValue(IAExpression expression)
-    throws UnrecognizedCCodeException {
-    if (expression instanceof JRightHandSide && !(expression instanceof CRightHandSide)) {
+    if (expression instanceof JRightHandSide
+        && !(expression instanceof CRightHandSide)) {
 
-        ExpressionValueVisitor evv = new ExpressionValueVisitor();
-        Long value =  ((JRightHandSide) expression).accept(evv);
-        if (evv.missingFieldAccessInformation || evv.missingEnumComparisonInformation) {
-          missingInformationRightJExpression = (JRightHandSide) expression;
-          return null;
-        } else {
-          return value;
-        }
+      Long value = ((JRightHandSide) expression).accept(evv);
+
+      if (evv.missingFieldAccessInformation
+          || evv.missingEnumComparisonInformation) {
+        missingInformationRightJExpression = (JRightHandSide) expression;
+        return null;
+      } else {
+        return value;
+      }
     } else {
-      return ((CRightHandSide) expression).accept(new ExpressionValueVisitor());
+
+      Long value = ((CRightHandSide) expression).accept(evv);
+
+      return value;
     }
+  }
+
+  @SuppressWarnings("unused")
+  private Long getExpressionValue(IAExpression expression)
+      throws UnrecognizedCCodeException {
+
+    ExpressionValueVisitor evv = new ExpressionValueVisitor();
+
+    return getExpressionValue(expression, evv);
   }
 
   public String getScopedVariableName(String variableName, String functionName) {
@@ -1343,6 +1499,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     throws UnrecognizedCCodeException {
     assert element instanceof ExplicitState;
 
+    ExplicitState oldState = this.oldState;
+    this.oldState = null;
+
     super.setInfo(element, precision, cfaEdge);
 
     Collection<? extends AbstractState> retVal = null;
@@ -1354,12 +1513,93 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       } else if (ae instanceof RTTState) {
         retVal =  strengthen((RTTState)ae);
         break;
+      } else if(ae instanceof SMGState) {
+        retVal = strengthen((SMGState) ae);
       }
     }
 
     super.resetInfo();
 
     return retVal;
+  }
+
+  private Collection<? extends AbstractState> strengthen(SMGState smgState) {
+
+    ExplicitState newElement = state.clone();
+
+    for(MissingInformation missingInformation : missingInformationList) {
+      if(missingInformation.isMissingAssumption()) {
+        newElement = resolvingAssumption(newElement, smgState, missingInformation);
+      } else if(missingInformation.isMissingAssignment()) {
+        newElement = resolvingAssignment(newElement, smgState, missingInformation);
+      }
+    }
+
+    //TODO More common handling of missing information (erase missing Information if other cpas solved it).
+    missingInformationList.clear();
+
+    return state.equals(newElement) ? null : Collections.singleton(newElement);
+  }
+
+  //TODO Better Name, these are not just Assignments, but also calls, etc
+  private ExplicitState resolvingAssignment(ExplicitState pNewElement,
+      SMGState pSmgState, MissingInformation pMissingInformation) {
+
+    MemoryLocation memoryLocation = null;
+
+    if (pMissingInformation.hasKnownMemoryLocation()) {
+      memoryLocation = pMissingInformation.getcLeftMemoryLocation();
+    } else if (pMissingInformation.hasUnknownMemoryLocation()) {
+      memoryLocation = resolveMemoryLocation(pNewElement, pSmgState,
+          pMissingInformation);
+    }
+
+    if (memoryLocation == null) {
+      // Always return the new Element
+      // if you want to interrupt the calculation
+      // in case it was changed before
+      return pNewElement;
+    }
+
+    Long explicitValue = null;
+
+    if (pMissingInformation.hasKnownValue()) {
+      explicitValue = pMissingInformation.getcExpressionValue();
+    } else if (pMissingInformation.hasUnknownValue()) {
+      explicitValue = resolveValue(pNewElement, pSmgState, pMissingInformation);
+    }
+
+    if (explicitValue == null) {
+      // Always return the new Element
+      // if you want to interrupt the calculation
+      // in case it was changed before
+      if (pNewElement.contains(memoryLocation)) {
+        pNewElement.forget(memoryLocation);
+      }
+      return pNewElement;
+    }
+
+    pNewElement.assignConstant(memoryLocation, explicitValue);
+
+    return pNewElement;
+  }
+
+  private Long resolveValue(ExplicitState pNewElement, SMGState pSmgState,
+      MissingInformation pMissingInformation) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  private MemoryLocation resolveMemoryLocation(ExplicitState pNewElement,
+      SMGState pSmgState, MissingInformation pMissingInformation) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  private ExplicitState resolvingAssumption(ExplicitState pNewElement,
+      SMGState pSmgState, MissingInformation pMissingInformation) {
+    // TODO Auto-generated method stub
+    return null;
   }
 
   private Collection<? extends AbstractState> strengthen(RTTState rttState)
@@ -1635,5 +1875,156 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     return expression;
+  }
+
+
+  private static class MissingInformation {
+
+    /**
+     * This field stores the Expression of the Memory Location that
+     * could not be evaluated.
+     */
+    private final CExpression missingCLeftMemoryLocation;
+
+    /**
+     *  This expression stores the Memory Location
+     *  to be assigned.
+     */
+    private final MemoryLocation cLeftMemoryLocation;
+
+    /**
+     * Expression could not be evaluated due to missing information. (e.g.
+     * missing pointer alias).
+     */
+    private final CExpression missingCExpressionInformation;
+
+    /**
+     * Expression could not be evaluated due to missing information. (e.g.
+     * missing pointer alias).
+     */
+    private final Long cExpressionValue;
+
+    /**
+     * The truth Assumption made in this assume edge.
+     */
+    private final Boolean truthAssumption;
+
+    @SuppressWarnings("unused")
+    public MissingInformation(CExpression pMissingCLeftMemoryLocation,
+        CExpression pMissingCExpressionInformation) {
+      missingCExpressionInformation = pMissingCExpressionInformation;
+      missingCLeftMemoryLocation = pMissingCLeftMemoryLocation;
+      cExpressionValue = null;
+      cLeftMemoryLocation = null;
+      truthAssumption = null;
+    }
+
+    //TODO Better checks...don't be lazy, just because class
+    // will likely change.
+
+    public boolean hasUnknownValue() {
+      return missingCExpressionInformation != null;
+    }
+
+    public boolean hasKnownValue() {
+      return cExpressionValue != null;
+    }
+
+    public boolean hasUnknownMemoryLocation() {
+      return missingCLeftMemoryLocation != null;
+    }
+
+    public boolean hasKnownMemoryLocation() {
+      return cLeftMemoryLocation != null;
+    }
+
+    public boolean isMissingAssignment() {
+      // TODO Better Name for this method.
+      // Checks if a variable needs to be assigned a value,
+      // but to evaluate the MemoryLocation, or the value,
+      // we lack information.
+
+      return (missingCExpressionInformation != null
+              || missingCLeftMemoryLocation != null)
+          && truthAssumption == null;
+    }
+
+    public boolean isMissingAssumption() {
+      return truthAssumption != null && missingCExpressionInformation != null;
+    }
+
+    @SuppressWarnings("unused")
+    public MissingInformation(CExpression pMissingCLeftMemoryLocation,
+        Long pCExpressionValue) {
+      missingCExpressionInformation = null;
+      missingCLeftMemoryLocation = pMissingCLeftMemoryLocation;
+      cExpressionValue = pCExpressionValue;
+      cLeftMemoryLocation = null;
+      truthAssumption = null;
+    }
+
+    public MissingInformation(MemoryLocation pCLeftMemoryLocation,
+        CExpression pMissingCExpressionInformation) {
+      missingCExpressionInformation = pMissingCExpressionInformation;
+      missingCLeftMemoryLocation = null;
+      cExpressionValue = null;
+      cLeftMemoryLocation = pCLeftMemoryLocation;
+      truthAssumption = null;
+    }
+
+    public MissingInformation(IAExpression pMissingCLeftMemoryLocation,
+        IARightHandSide pMissingCExpressionInformation) {
+      // This constructor casts to CExpression, just to have as few
+      // as possible pieces of code for communication cluttering
+      // up the transfer relation.
+      // Especially, since this class will later be used to
+      // communicate missing Information independent of language
+
+      missingCExpressionInformation = (CExpression) pMissingCExpressionInformation;
+      missingCLeftMemoryLocation = (CExpression) pMissingCLeftMemoryLocation;
+      cExpressionValue = null;
+      cLeftMemoryLocation = null;
+      truthAssumption = null;
+    }
+
+    public MissingInformation(Boolean pTruthAssumption,
+        IARightHandSide pMissingCExpressionInformation) {
+      // This constructor casts to CExpression, just to have as few
+      // as possible pieces of code for communication cluttering
+      // up the transfer relation.
+      // Especially, since this class will later be used to
+      // communicate missing Information independent of language
+
+      missingCExpressionInformation = (CExpression) pMissingCExpressionInformation;
+      missingCLeftMemoryLocation = null;
+      cExpressionValue = null;
+      cLeftMemoryLocation = null;
+      truthAssumption = pTruthAssumption;
+    }
+
+    public Long getcExpressionValue() {
+      checkNotNull(cExpressionValue);
+      return cExpressionValue;
+    }
+
+    public MemoryLocation getcLeftMemoryLocation() {
+      checkNotNull(cLeftMemoryLocation);
+      return cLeftMemoryLocation;
+    }
+
+    public CExpression getMissingCExpressionInformation() {
+      checkNotNull(missingCExpressionInformation);
+      return missingCExpressionInformation;
+    }
+
+    public CExpression getMissingCLeftMemoryLocation() {
+      checkNotNull(missingCLeftMemoryLocation);
+      return missingCLeftMemoryLocation;
+    }
+
+    public Boolean getTruthAssumption() {
+      checkNotNull(truthAssumption);
+      return truthAssumption;
+    }
   }
 }

@@ -91,12 +91,33 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   }
 
   /**
+   * This method assigns a value to the variable and puts it in the map.
+   *
+   * @param pMemoryLocation the location in the memory.
+   * @param value value to be assigned.
+   */
+  void assignConstant(MemoryLocation pMemoryLocation, Long value) {
+    constantsMap = constantsMap.putAndCopy(
+        pMemoryLocation, checkNotNull(value));
+  }
+
+  /**
    * This method removes a variable and its value from the underlying map.
    *
    * @param variableName the name of the variable to be removed
    */
   public void forget(String variableName) {
     constantsMap = constantsMap.removeAndCopy(MemoryLocation.valueOf(variableName));
+  }
+
+  /**
+   * This method removes a memory Location and its value from
+   * the underlying map.
+   *
+   * @param variableName the name of the variable to be removed
+   */
+  public void forget(MemoryLocation pMemoryLocation) {
+    constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
   }
 
   /**
@@ -148,6 +169,17 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
    */
   public boolean contains(String variableName) {
     return constantsMap.containsKey( MemoryLocation.valueOf(variableName));
+  }
+
+  /**
+   * This method checks whether or not the given Memory Location
+   * is contained in this state.
+   *
+   * @param pMemoryLocation the location in the Memory to check for
+   * @return true, if the variable is contained, else false
+   */
+  public boolean contains(MemoryLocation pMemoryLocation) {
+    return constantsMap.containsKey(pMemoryLocation);
   }
 
   /**
@@ -551,7 +583,8 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
       int hc = 17;
       int hashMultiplier = 59;
 
-      hc = hc * hashMultiplier + ((functionName == null) ? 0 : functionName.hashCode());
+      hc = hc * hashMultiplier + ((functionName != null) ? functionName.hashCode() : 0);
+      hc = hc * hashMultiplier + identifier.hashCode();
       hc = hc * hashMultiplier + identifier.hashCode();
       hc = hc * hashMultiplier + ((int) (offset ^ (offset >>> 32)));
 
@@ -627,12 +660,18 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     @Override
     public int compareTo(MemoryLocation other) {
 
-      int result = this.getAsSimpleString().compareTo(other.getAsSimpleString());
+      int result = 0;
 
-      // if their string representation is identical, compare their offsets
+      result = isOnFunctionStack() ? functionName.compareTo(other.functionName) : 0;
+
       if (result == 0) {
-        long difference = offset - other.offset;
-        result = (difference == 0) ? 0 : ((difference < 0) ? -1 : 1);
+        result = identifier.compareTo(other.identifier);
+      }
+
+      if (result == 0) {
+        long value = offset - other.offset;
+        // If value > 0 return 1, if value < 0 return -1, if value == 0 return 0
+        result = value == 0 ? 0 : (value > 0 ? 1 : -1);
       }
 
       return result;
