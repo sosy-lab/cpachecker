@@ -630,7 +630,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
    * Visitor that get's the value from an expression.
    * The result may be null, i.e., the value is unknown.
    */
-  private static class ExpressionValueVisitor extends DefaultCExpressionVisitor<Long, UnrecognizedCCodeException>
+  private /*static*/ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Long, UnrecognizedCCodeException>
                                        implements CRightHandSideVisitor<Long, UnrecognizedCCodeException>,
                                                    JRightHandSideVisitor<Long, UnrecognizedCCodeException>,
                                                    JExpressionVisitor<Long, UnrecognizedCCodeException> {
@@ -1499,6 +1499,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     throws UnrecognizedCCodeException {
     assert element instanceof ExplicitState;
 
+    @SuppressWarnings("unused")
     ExplicitState oldState = this.oldState;
     this.oldState = null;
 
@@ -2012,16 +2013,19 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       return cLeftMemoryLocation;
     }
 
+    @SuppressWarnings("unused")
     public CExpression getMissingCExpressionInformation() {
       checkNotNull(missingCExpressionInformation);
       return missingCExpressionInformation;
     }
 
+    @SuppressWarnings("unused")
     public CExpression getMissingCLeftMemoryLocation() {
       checkNotNull(missingCLeftMemoryLocation);
       return missingCLeftMemoryLocation;
     }
 
+    @SuppressWarnings("unused")
     public Boolean getTruthAssumption() {
       checkNotNull(truthAssumption);
       return truthAssumption;

@@ -2608,6 +2608,7 @@ public class SMGTransferRelation implements TransferRelation {
     return sharpenedStates;
   }
 
+  @SuppressWarnings("unused")
   private Collection<SMGState> searchForExplicitValue(SMGState smgState, ExplicitState explState, CFAEdge cfaEdge,
       SMGSymbolicValue symbolicValue, String lParam) throws UnrecognizedCCodeException {
 
