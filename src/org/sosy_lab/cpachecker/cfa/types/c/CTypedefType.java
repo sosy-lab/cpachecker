@@ -37,8 +37,6 @@ public final class CTypedefType implements CType {
   private boolean   isConst;
   private boolean   isVolatile;
 
-  private Integer hashCode = null; // to speed up hash code computation (since the objects are immutable)
-
   public CTypedefType(final boolean pConst, final boolean pVolatile,
       final String pName, CType pRealType) {
 
@@ -85,16 +83,12 @@ public final class CTypedefType implements CType {
 
   @Override
   public int hashCode() {
-    if (hashCode != null) {
-      return hashCode;
-    }
     final int prime = 31;
     int result = 7;
     result = prime * result + Objects.hashCode(name);
     result = prime * result + Objects.hashCode(isConst);
     result = prime * result + Objects.hashCode(isVolatile);
     result = prime * result + Objects.hashCode(realType);
-    hashCode = result;
     return result;
   }
 
