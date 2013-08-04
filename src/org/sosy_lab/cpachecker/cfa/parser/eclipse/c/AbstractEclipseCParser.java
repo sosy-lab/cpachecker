@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.SortedSetMultimap;
@@ -227,6 +225,16 @@ abstract class AbstractEclipseCParser<T> implements CParser {
         cfaNodes.putAll(b.getCFANodes());
         globalDeclarations.addAll(b.getGlobalDeclarations());
       }
+
+      // remove global elements which are declarated in several files
+      Iterator<Pair<IADeclaration, String>> it = globalDeclarations.iterator();
+      HashSet<IADeclaration> globals = new HashSet<>();
+      while(it.hasNext()) {
+        Pair<IADeclaration, String> p = it.next();
+        if(globals.contains(p.getFirst())) it.remove();
+        else globals.add(p.getFirst());
+      }
+
       return new ParseResult(cfas, cfaNodes, globalDeclarations, Language.C);
     } finally {
       cfaTimer.stop();
