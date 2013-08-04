@@ -162,6 +162,17 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   }
 
   /**
+   * This method returns the value for the given variable.
+   *
+   * @param variableName the name of the variable for which to get the value
+   * @throws NullPointerException - if no value is present in this state for the given variable
+   * @return the value associated with the given variable
+   */
+  public Long getValueFor(MemoryLocation variableName) {
+    return checkNotNull(constantsMap.get(variableName));
+  }
+
+  /**
    * This method checks whether or not the given variable is contained in this state.
    *
    * @param variableName the name of variable to check for

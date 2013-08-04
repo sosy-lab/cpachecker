@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class SMGState implements AbstractQueryableState {
@@ -641,5 +642,10 @@ public class SMGState implements AbstractQueryableState {
 
   public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
     return this.heap.getHVEdges(pFilter);
+  }
+
+  public MemoryLocation resolveMemLoc(SMGAddress pValue) {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

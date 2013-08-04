@@ -53,56 +53,30 @@ import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
 import org.sosy_lab.cpachecker.cfa.ast.IAInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 import org.sosy_lab.cpachecker.cfa.ast.IAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -112,7 +86,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
@@ -183,7 +156,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
    */
   private ExplicitState oldState;
 
-  public ExplicitTransferRelation(Configuration config) throws InvalidConfigurationException {
+  public ExplicitTransferRelation(Configuration config)
+      throws InvalidConfigurationException {
     config.inject(this);
   }
 
@@ -626,525 +600,17 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
   }
 
-/**
+  /**
    * Visitor that get's the value from an expression.
    * The result may be null, i.e., the value is unknown.
    */
-  private /*static*/ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Long, UnrecognizedCCodeException>
-                                       implements CRightHandSideVisitor<Long, UnrecognizedCCodeException>,
-                                                   JRightHandSideVisitor<Long, UnrecognizedCCodeException>,
-                                                   JExpressionVisitor<Long, UnrecognizedCCodeException> {
-    private boolean missingPointer = false;
-    protected boolean missingFieldAccessInformation = false;
-    protected boolean missingEnumComparisonInformation = false;
-    private boolean containsFieldReference = false;
-    private boolean containsSubscriptExpression = false;
+  private class ExpressionValueVisitor extends org.sosy_lab.cpachecker.cpa.explicit.ExpressionValueVisitor {
 
-    @Override
-    protected Long visitDefault(CExpression pExp) {
-      return null;
+    public ExpressionValueVisitor() {
+      super(state, functionName);
+
     }
 
-    public void reset() {
-      missingPointer = false;
-      missingFieldAccessInformation = false;
-      missingEnumComparisonInformation = false;
-      containsFieldReference = false;
-      containsSubscriptExpression = false;
-    }
-
-    @Override
-    public Long visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
-      BinaryOperator binaryOperator = pE.getOperator();
-      CExpression lVarInBinaryExp = pE.getOperand1();
-      CExpression rVarInBinaryExp = pE.getOperand2();
-
-      switch (binaryOperator) {
-      case PLUS:
-      case MINUS:
-      case DIVIDE:
-      case MODULO:
-      case MULTIPLY:
-      case SHIFT_LEFT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR: {
-        Long lVal = lVarInBinaryExp.accept(this);
-        if (lVal == null) {
-          return null;
-        }
-
-        Long rVal = rVarInBinaryExp.accept(this);
-        if (rVal == null) {
-          return null;
-        }
-
-        switch (binaryOperator) {
-        case PLUS:
-          return lVal + rVal;
-
-        case MINUS:
-          return lVal - rVal;
-
-        case DIVIDE:
-          // TODO maybe we should signal a division by zero error?
-          if (rVal == 0) {
-            return null;
-          }
-
-          return lVal / rVal;
-
-        case MODULO:
-          return lVal % rVal;
-
-        case MULTIPLY:
-          return lVal * rVal;
-
-        case SHIFT_LEFT:
-          return lVal << rVal;
-
-        case BINARY_AND:
-          return lVal & rVal;
-
-        case BINARY_OR:
-          return lVal | rVal;
-
-        case BINARY_XOR:
-          return lVal ^ rVal;
-
-        default:
-          throw new AssertionError();
-        }
-      }
-
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL: {
-
-        Long lVal = lVarInBinaryExp.accept(this);
-        if (lVal == null) {
-          return null;
-        }
-
-        Long rVal = rVarInBinaryExp.accept(this);
-        if (rVal == null) {
-          return null;
-        }
-
-        long l = lVal;
-        long r = rVal;
-
-        boolean result;
-        switch (binaryOperator) {
-        case EQUALS:
-          result = (l == r);
-          break;
-        case NOT_EQUALS:
-          result = (l != r);
-          break;
-        case GREATER_THAN:
-          result = (l > r);
-          break;
-        case GREATER_EQUAL:
-          result = (l >= r);
-          break;
-        case LESS_THAN:
-          result = (l < r);
-          break;
-        case LESS_EQUAL:
-          result = (l <= r);
-          break;
-
-        default:
-          throw new AssertionError();
-        }
-
-        // return 1 if expression holds, 0 otherwise
-        return (result ? 1L : 0L);
-      }
-
-      case SHIFT_RIGHT:
-      default:
-        // TODO check which cases can be handled (I think all)
-        return null;
-      }
-    }
-
-    @Override
-    public Long visit(CCastExpression pE) throws UnrecognizedCCodeException {
-      return pE.getOperand().accept(this);
-    }
-
-    @Override
-    public Long visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
-      return null;
-    }
-
-    @Override
-    public Long visit(CCharLiteralExpression pE) throws UnrecognizedCCodeException {
-      return (long)pE.getCharacter();
-    }
-
-    @Override
-    public Long visit(CFloatLiteralExpression pE) throws UnrecognizedCCodeException {
-      return null;
-    }
-
-    @Override
-    public Long visit(CIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
-      return pE.asLong();
-    }
-
-    @Override
-    public Long visit(CStringLiteralExpression pE) throws UnrecognizedCCodeException {
-      return null;
-    }
-
-    @Override
-    public Long visit(CIdExpression idExp) throws UnrecognizedCCodeException {
-      if (idExp.getDeclaration() instanceof CEnumerator) {
-        CEnumerator enumerator = (CEnumerator)idExp.getDeclaration();
-        if (enumerator.hasValue()) {
-          return enumerator.getValue();
-        } else {
-          return null;
-        }
-      }
-
-      String varName = getScopedVariableName(idExp.getName(), functionName);
-
-      if (state.contains(varName)) {
-        return state.getValueFor(varName);
-      } else {
-        return null;
-      }
-    }
-
-    @Override
-    public Long visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-      UnaryOperator unaryOperator = unaryExpression.getOperator();
-      CExpression unaryOperand = unaryExpression.getOperand();
-
-      Long value = null;
-
-      switch (unaryOperator) {
-      case MINUS:
-        value = unaryOperand.accept(this);
-        return (value != null) ? -value : null;
-
-      case NOT:
-        value = unaryOperand.accept(this);
-
-        if (value == null) {
-          return null;
-        } else {
-          return (value == 0L) ? 1L : 0L;
-        }
-
-      case AMPER:
-        return null; // valid expression, but it's a pointer value
-
-      case SIZEOF:
-      case TILDE:
-      default:
-        // TODO handle unimplemented operators
-        return null;
-      }
-    }
-
-   @Override
-   public Long visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
-         missingPointer = true;
-         return null;
-   }
-
-    @Override
-    public Long visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
-
-      containsFieldReference = true;
-
-      String varName = getScopedVariableName(
-          fieldReferenceExpression.toASTString(), functionName);
-
-      if (state.contains(varName)) {
-        return state.getValueFor(varName);
-      } else {
-        return null;
-      }
-    }
-
-    @Override
-    public Long visit(CArraySubscriptExpression pE)
-        throws UnrecognizedCCodeException {
-      containsSubscriptExpression = true;
-      return super.visit(pE);
-    }
-
-    @Override
-    public Long visit(JCharLiteralExpression pE) throws UnrecognizedCCodeException {
-      return (long)pE.getCharacter();
-    }
-
-    @Override
-    public Long visit(JThisExpression thisExpression) throws UnrecognizedCCodeException {
-      return null;
-    }
-
-    @Override
-    public Long visit(JStringLiteralExpression pPaStringLiteralExpression) throws UnrecognizedCCodeException {
-      return null;
-    }
-
-    @Override
-    public Long visit(JBinaryExpression pE) throws UnrecognizedCCodeException {
-
-      org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
-      JExpression lVarInBinaryExp = pE.getOperand1();
-      JExpression rVarInBinaryExp = pE.getOperand2();
-
-      switch (binaryOperator) {
-      case PLUS:
-      case MINUS:
-      case DIVIDE:
-      case MULTIPLY:
-      case SHIFT_LEFT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-      case MODULO:
-      case SHIFT_RIGHT_SIGNED:
-      case SHIFT_RIGHT_UNSIGNED: {
-        Long lVal =    lVarInBinaryExp.accept(this);
-        if (lVal == null) {
-          return null;
-        }
-
-        Long rVal = rVarInBinaryExp.accept(this);
-        if (rVal == null) {
-          return null;
-        }
-
-        switch (binaryOperator) {
-        case PLUS:
-          return lVal + rVal;
-
-        case MINUS:
-          return lVal - rVal;
-
-        case DIVIDE:
-          // TODO maybe we should signal a division by zero error?
-          if (rVal == 0) {
-            return null;
-          }
-
-          return lVal / rVal;
-
-        case MULTIPLY:
-          return lVal * rVal;
-
-        case SHIFT_LEFT:
-          return lVal << rVal;
-
-        case BINARY_AND:
-          return lVal & rVal;
-
-        case BINARY_OR:
-          return lVal | rVal;
-
-        case BINARY_XOR:
-          return lVal ^ rVal;
-
-        case MODULO:
-          return lVal % rVal;
-
-        case SHIFT_RIGHT_SIGNED:
-          return lVal >> rVal;
-        case SHIFT_RIGHT_UNSIGNED:
-          return lVal >>> rVal;
-
-        default:
-          throw new AssertionError();
-        }
-      }
-
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL: {
-
-        Long lVal = lVarInBinaryExp.accept(this);
-        Long rVal = rVarInBinaryExp.accept(this);
-        if (lVal == null || rVal == null) {
-          return null;
-        }
-
-        long l = lVal;
-        long r = rVal;
-
-        boolean result;
-        switch (binaryOperator) {
-        case EQUALS:
-          result = (l == r);
-          break;
-        case NOT_EQUALS:
-          result = (l != r);
-          break;
-        case GREATER_THAN:
-          result = (l > r);
-          break;
-        case GREATER_EQUAL:
-          result = (l >= r);
-          break;
-        case LESS_THAN:
-          result = (l < r);
-          break;
-        case LESS_EQUAL:
-          result = (l <= r);
-          break;
-
-        default:
-          throw new AssertionError();
-        }
-
-        // return 1 if expression holds, 0 otherwise
-        return (result ? 1L : 0L);
-      }
-      default:
-        // TODO check which cases can be handled
-        return null;
-      }
-    }
-
-    @Override
-    public Long visit(JIdExpression idExp) throws UnrecognizedCCodeException {
-
-
-      IASimpleDeclaration decl = idExp.getDeclaration();
-
-      // Java IdExpression could not be resolved
-      if (decl == null) {
-        return null;
-      }
-
-      if (decl instanceof JFieldDeclaration
-          && !((JFieldDeclaration) decl).isStatic()) {
-        missingFieldAccessInformation = true;
-      }
-
-      String varName = getScopedVariableName(idExp.getName(), functionName);
-
-      if (state.contains(varName)) {
-        return state.getValueFor(varName);
-      } else {
-        return null;
-      }
-    }
-
-    @Override
-    public Long visit(JUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-
-      JUnaryExpression.UnaryOperator unaryOperator = unaryExpression.getOperator();
-      JExpression unaryOperand = unaryExpression.getOperand();
-
-      Long value = null;
-
-      switch (unaryOperator) {
-      case MINUS:
-        value = unaryOperand.accept(this);
-        return (value != null) ? -value : null;
-
-      case NOT:
-        value = unaryOperand.accept(this);
-
-        if (value == null) {
-          return null;
-        } else {
-          // if the value is 0, return 1, if it is anything other than 0, return 0
-          return (value == 0L) ? 1L : 0L;
-        }
-
-      case COMPLEMENT:
-        value = unaryOperand.accept(this);
-        return (value != null) ? ~value : null;
-
-      case PLUS:
-        value = unaryOperand.accept(this);
-        return value;
-      default:
-        return null;
-      }
-    }
-
-    @Override
-    public Long visit(JIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
-      return pE.asLong();
-    }
-
-    @Override
-    public Long visit(JBooleanLiteralExpression pE) throws UnrecognizedCCodeException {
-      return ((pE.getValue()) ? 1l : 0l);
-    }
-
-    @Override
-    public Long visit(JFloatLiteralExpression pJBooleanLiteralExpression) throws UnrecognizedCCodeException {
-      return null;
-    }
-
-    @Override
-    public Long visit(JMethodInvocationExpression pAFunctionCallExpression) throws UnrecognizedCCodeException {
-      return null;
-    }
-
-    @Override
-    public Long visit(JArrayCreationExpression aCE) throws UnrecognizedCCodeException {
-      return null;
-    }
-
-    @Override
-    public Long visit(JArrayInitializer pJArrayInitializer) throws UnrecognizedCCodeException {
-      return null;
-    }
-
-    @Override
-    public Long visit(JArraySubscriptExpression pAArraySubscriptExpression) throws UnrecognizedCCodeException {
-      return  pAArraySubscriptExpression.getSubscriptExpression().accept(this);
-    }
-
-    @Override
-    public Long visit(JClassInstanceCreation pJClassInstanzeCreation) throws UnrecognizedCCodeException {
-      return null;
-    }
-
-    @Override
-    public Long visit(JVariableRunTimeType pJThisRunTimeType) throws UnrecognizedCCodeException {
-      return null;
-    }
-
-    @Override
-    public Long visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType) throws UnrecognizedCCodeException {
-      return null;
-    }
-
-    @Override
-    public Long visit(JNullLiteralExpression pJNullLiteralExpression) throws UnrecognizedCCodeException {
-      return null;
-    }
-
-    @Override
-    public Long visit(JEnumConstantExpression pJEnumConstantExpression) throws UnrecognizedCCodeException {
-      missingEnumComparisonInformation = true;
-      return null;
-    }
-
-    @Override
-    public Long visit(JCastExpression pJCastExpression) throws UnrecognizedCCodeException {
-      return pJCastExpression.getOperand().accept(this);
-    }
   }
 
 
@@ -1524,7 +990,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     return retVal;
   }
 
-  private Collection<? extends AbstractState> strengthen(SMGState smgState) {
+  private Collection<? extends AbstractState> strengthen(SMGState smgState) throws UnrecognizedCCodeException {
 
     ExplicitState newElement = state.clone();
 
@@ -1544,15 +1010,15 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   //TODO Better Name, these are not just Assignments, but also calls, etc
   private ExplicitState resolvingAssignment(ExplicitState pNewElement,
-      SMGState pSmgState, MissingInformation pMissingInformation) {
+      SMGState pSmgState, MissingInformation pMissingInformation) throws UnrecognizedCCodeException {
 
     MemoryLocation memoryLocation = null;
 
     if (pMissingInformation.hasKnownMemoryLocation()) {
       memoryLocation = pMissingInformation.getcLeftMemoryLocation();
     } else if (pMissingInformation.hasUnknownMemoryLocation()) {
-      memoryLocation = resolveMemoryLocation(pNewElement, pSmgState,
-          pMissingInformation);
+      memoryLocation = resolveMemoryLocation(pSmgState,
+          pMissingInformation.getMissingCLeftMemoryLocation());
     }
 
     if (memoryLocation == null) {
@@ -1567,7 +1033,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     if (pMissingInformation.hasKnownValue()) {
       explicitValue = pMissingInformation.getcExpressionValue();
     } else if (pMissingInformation.hasUnknownValue()) {
-      explicitValue = resolveValue(pNewElement, pSmgState, pMissingInformation);
+      explicitValue = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
     }
 
     if (explicitValue == null) {
@@ -1585,22 +1051,31 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     return pNewElement;
   }
 
-  private Long resolveValue(ExplicitState pNewElement, SMGState pSmgState,
-      MissingInformation pMissingInformation) {
-    // TODO Auto-generated method stub
-    return null;
+  private Long resolveValue(SMGState pSmgState, CExpression rValue) throws UnrecognizedCCodeException {
+
+    SMGExplicitCommunicator cc = new SMGExplicitCommunicator();
+
+    return cc.evaluateExpression(oldState, functionName, pSmgState, machineModel, logger, edge, rValue);
   }
 
-  private MemoryLocation resolveMemoryLocation(ExplicitState pNewElement,
-      SMGState pSmgState, MissingInformation pMissingInformation) {
-    // TODO Auto-generated method stub
-    return null;
+  private MemoryLocation resolveMemoryLocation(SMGState pSmgState, CExpression lValue) {
+    SMGExplicitCommunicator cc = new SMGExplicitCommunicator();
+
+    return cc.evaluateLeftHandSide(oldState, functionName, pSmgState, machineModel, logger, edge, lValue);
   }
 
   private ExplicitState resolvingAssumption(ExplicitState pNewElement,
-      SMGState pSmgState, MissingInformation pMissingInformation) {
-    // TODO Auto-generated method stub
-    return null;
+      SMGState pSmgState, MissingInformation pMissingInformation) throws UnrecognizedCCodeException {
+
+    long truthValue = pMissingInformation.getTruthAssumption() ? 1 : 0;
+
+    Long value = resolveValue(pSmgState, pMissingInformation.getMissingCExpressionInformation());
+
+    if(value != null && value != truthValue) {
+      return null;
+    } else {
+      return pNewElement;
+    }
   }
 
   private Collection<? extends AbstractState> strengthen(RTTState rttState)
