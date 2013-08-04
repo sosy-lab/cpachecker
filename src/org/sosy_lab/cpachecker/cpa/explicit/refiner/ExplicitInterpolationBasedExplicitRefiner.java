@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -50,13 +53,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
@@ -87,18 +93,32 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private int numberOfSuccessfulRefinements = 0;
   private int numberOfInterpolations        = 0;
   private Timer timerInterpolation          = new Timer();
+  
+  /**
+   * the logger in use
+   */
+  private final LogManager logger;
+ 
+  /**
+   * the current machine model
+  */
+  private final MachineModel machineModel;
 
-  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config, PathFormulaManager pathFormulaManager)
+  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config, final LogManager pLogger,
+		  PathFormulaManager pathFormulaManager, final MachineModel pMachineModel)
       throws InvalidConfigurationException {
     config.inject(this);
+    
+    logger       = pLogger;
+    machineModel = pMachineModel;
   }
-
+  
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
       ARGPath errorPath) throws CPAException {
     timerInterpolation.start();
     numberOfRefinements++;
 
-    ExplicitInterpolator interpolator     = new ExplicitInterpolator();
+    ExplicitInterpolator interpolator     = new ExplicitInterpolator(logger, machineModel);
     Map<String, Long> currentInterpolant  = new HashMap<>();
     Multimap<CFANode, String> increment   = HashMultimap.create();
     interpolationOffset                   = -1;

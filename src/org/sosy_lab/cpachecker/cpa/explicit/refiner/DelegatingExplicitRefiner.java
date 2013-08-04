@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -73,6 +74,11 @@ import com.google.common.collect.Multimap;
 @Options(prefix="cpa.explicit.refiner")
 public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
   /**
+    * the logger in use
+   */
+  private final LogManager logger;
+
+  /**
    * the flag to determine if initial refinement was done already
    */
   private boolean initialStaticRefinementDone = false;
@@ -96,6 +102,11 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    * the hash code of the previous error path
    */
   private int previousErrorPathID = -1;
+
+  /**
+   * the current machine model
+   */
+   private final MachineModel machineModel;
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -168,22 +179,26 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
         cpa,
         pathFormulaManager,
         backupRefiner,
-        explicitCpa.getStaticRefiner());
+        explicitCpa.getStaticRefiner(),
+        explicitCpa.getMachineModel());
   }
 
   protected DelegatingExplicitRefiner(
-      final Configuration config,
-      final LogManager logger,
-      final ConfigurableProgramAnalysis cpa,
-      final PathFormulaManager pathFormulaManager,
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ConfigurableProgramAnalysis pCpa,
+      final PathFormulaManager pPathFormulaManager,
       @Nullable final PredicateCPARefiner pBackupRefiner,
-      ExplicitStaticRefiner explicitStaticRefiner) throws CPAException, InvalidConfigurationException {
-    super(cpa);
-    config.inject(this);
+      ExplicitStaticRefiner pExplicitStaticRefiner,
+      final MachineModel pMachineModel) throws CPAException, InvalidConfigurationException {
+    super(pCpa);
+    pConfig.inject(this);
 
-    interpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(config, pathFormulaManager);
+    logger                = pLogger;
+    machineModel          = pMachineModel;
+    interpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(pConfig, pLogger, pPathFormulaManager, pMachineModel);
     predicatingRefiner    = pBackupRefiner;
-    staticRefiner         = explicitStaticRefiner;
+    staticRefiner         = pExplicitStaticRefiner;
   }
 
   @Override
@@ -298,7 +313,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       // create a new ExplicitPathChecker, which does not track any of the given variables
       ExplictFeasibilityChecker checker = new ExplictFeasibilityChecker();
 
-      return checker.isFeasible(path);
+      return checker.isFeasible(path, logger, machineModel);
     }
     catch (InterruptedException e) {
       throw new CPAException("counterexample-check failed: ", e);

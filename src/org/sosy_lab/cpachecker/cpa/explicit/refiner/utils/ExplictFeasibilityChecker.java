@@ -25,11 +25,13 @@ package org.sosy_lab.cpachecker.cpa.explicit.refiner.utils;
 
 import java.util.Collection;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -60,12 +62,12 @@ public class ExplictFeasibilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean isFeasible(ARGPath path)
+  public boolean isFeasible(final ARGPath path, final LogManager pLogger, final MachineModel pMachineModel)
       throws CPAException, InterruptedException {
     try {
       Configuration config = Configuration.builder().build();
 
-      TransferRelation transfer   = new ExplicitTransferRelation(config);
+      TransferRelation transfer   = new ExplicitTransferRelation(config, pLogger, pMachineModel);
       AbstractState next          = new ExplicitState();
       ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
 

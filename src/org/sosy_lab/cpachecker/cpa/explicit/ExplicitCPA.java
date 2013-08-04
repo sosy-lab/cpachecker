@@ -117,7 +117,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     config.inject(this);
 
     abstractDomain      = new ExplicitDomain();
-    transferRelation    = new ExplicitTransferRelation(config);
+    transferRelation    = new ExplicitTransferRelation(config, logger, machineModel);
     precision           = initializePrecision(config, cfa);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();

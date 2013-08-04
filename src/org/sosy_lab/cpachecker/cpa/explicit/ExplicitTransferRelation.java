@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -86,6 +87,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
@@ -143,6 +145,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   private Long notScopedFieldValue;
 
   private boolean missingAssumeInformation;
+  
+  private final LogManager logger;
+  private final MachineModel machineModel;
 
   /**
    * This List is used to communicate the missing
@@ -156,9 +161,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
    */
   private ExplicitState oldState;
 
-  public ExplicitTransferRelation(Configuration config)
+  public ExplicitTransferRelation(Configuration config, LogManager pLogger, MachineModel pMachineModel)
       throws InvalidConfigurationException {
     config.inject(this);
+    logger= pLogger;
+    machineModel = pMachineModel;    
   }
 
   @Override
@@ -1058,7 +1065,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     return cc.evaluateExpression(oldState, functionName, pSmgState, machineModel, logger, edge, rValue);
   }
 
-  private MemoryLocation resolveMemoryLocation(SMGState pSmgState, CExpression lValue) {
+  private MemoryLocation resolveMemoryLocation(SMGState pSmgState, CExpression lValue) throws UnrecognizedCCodeException {
     SMGExplicitCommunicator cc = new SMGExplicitCommunicator();
 
     return cc.evaluateLeftHandSide(oldState, functionName, pSmgState, machineModel, logger, edge, lValue);
