@@ -24,8 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
@@ -42,14 +47,20 @@ import org.eclipse.cdt.core.parser.IScannerInfo;
 import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.*;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 import com.google.common.collect.ImmutableMap;
@@ -96,20 +107,44 @@ abstract class AbstractEclipseCParser<T> implements CParser {
   protected abstract T wrapFile(String pFilename) throws IOException;
 
   @Override
+  public ParseResult parseFile(String[] pFilenames, String[] staticVariablePrefixes) throws CParserException, IOException, InvalidConfigurationException {
+
+    IASTTranslationUnit[] astUnits = new IASTTranslationUnit[pFilenames.length];
+    for(int i = 0; i < pFilenames.length; i++) {
+      astUnits[i] = parse(wrapFile(pFilenames[i]));
+    }
+    return buildCFA(astUnits, staticVariablePrefixes);
+  }
+
+  @Override
+  public ParseResult parseString(String[] pCode, String[] staticVariablePrefixes) throws CParserException, InvalidConfigurationException {
+
+    IASTTranslationUnit[] astUnits = new IASTTranslationUnit[pCode.length];
+    for(int i = 0; i < pCode.length; i++) {
+      astUnits[i] = parse(wrapCode(pCode[i]));
+    }
+    return buildCFA(astUnits, staticVariablePrefixes);
+  }
+
+  @Override
   public ParseResult parseFile(String pFilename) throws CParserException, IOException, InvalidConfigurationException {
 
-    return buildCFA(parse(wrapFile(pFilename)));
+    IASTTranslationUnit[] unit = {parse(wrapFile(pFilename))};
+    String[] prefix = {""};
+    return buildCFA(unit, prefix);
   }
 
   @Override
   public ParseResult parseString(String pCode) throws CParserException, InvalidConfigurationException {
 
-    return buildCFA(parse(wrapCode(pCode)));
+    IASTTranslationUnit[] unit = {parse(wrapCode(pCode))};
+    String[] prefix = {""};
+    return buildCFA(unit, prefix);
   }
 
   @Override
   public CAstNode parseSingleStatement(String pCode) throws CParserException, InvalidConfigurationException {
-
+    System.out.println(pCode);
     // parse
     IASTTranslationUnit ast = parse(wrapCode(pCode));
 
@@ -131,8 +166,8 @@ abstract class AbstractEclipseCParser<T> implements CParser {
     if (!(statements.length == 2 && statements[1] == null || statements.length == 1)) {
       throw new CParserException("Not exactly one statement in function body: " + body);
     }
-
-    return new ASTConverter(config, new FunctionScope(), logger, machine).convert(statements[0]);
+//TODO
+    return new ASTConverter(config, new FunctionScope(), logger, machine, "").convert(statements[0]);
   }
 
   protected static final int PARSER_OPTIONS =
@@ -170,17 +205,29 @@ abstract class AbstractEclipseCParser<T> implements CParser {
 
   protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws CParserException, CFAGenerationRuntimeException, CoreException;
 
-  private ParseResult buildCFA(IASTTranslationUnit ast) throws CParserException, InvalidConfigurationException {
+  private ParseResult buildCFA(IASTTranslationUnit[] ast, String[] staticVariablePrefix) throws CParserException, InvalidConfigurationException {
     cfaTimer.start();
     try {
-      CFABuilder builder = new CFABuilder(config, logger, machine);
-      try {
-        ast.accept(builder);
-      } catch (CFAGenerationRuntimeException e) {
-        throw new CParserException(e);
+      CFABuilder[] builder = new CFABuilder[ast.length];
+      for(int i = 0; i < ast.length; i++) {
+
+        builder[i] = new CFABuilder(config, logger, machine, staticVariablePrefix[i]);
+        try {
+          ast[i].accept(builder[i]);
+        } catch (CFAGenerationRuntimeException e) {
+          throw new CParserException(e);
+        }
       }
 
-      return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations(), Language.C);
+      Map<String, FunctionEntryNode> cfas = new HashMap<>();
+      SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
+      List<Pair<IADeclaration, String>> globalDeclarations = Lists.newArrayList();
+      for(CFABuilder b : builder) {
+        cfas.putAll(b.getCFAs());
+        cfaNodes.putAll(b.getCFANodes());
+        globalDeclarations.addAll(b.getGlobalDeclarations());
+      }
+      return new ParseResult(cfas, cfaNodes, globalDeclarations, Language.C);
     } finally {
       cfaTimer.stop();
     }

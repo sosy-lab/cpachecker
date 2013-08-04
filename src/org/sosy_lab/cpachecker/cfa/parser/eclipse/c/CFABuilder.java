@@ -91,16 +91,18 @@ class CFABuilder extends ASTVisitor {
   private final MachineModel machine;
   private final LogManager logger;
   private final CheckBindingVisitor checkBinding;
+  private final String staticVariablePrefix;
 
   private final Configuration config;
 
   private boolean encounteredAsm = false;
 
-  public CFABuilder(Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
+  public CFABuilder(Configuration config, LogManager pLogger, MachineModel pMachine, String staticVariablePrefix) throws InvalidConfigurationException {
     logger = pLogger;
     machine = pMachine;
     this.config = config;
-    astCreator = new ASTConverter(config, scope, logger, pMachine);
+    this.staticVariablePrefix = staticVariablePrefix;
+    astCreator = new ASTConverter(config, scope, logger, pMachine, staticVariablePrefix);
     checkBinding = new CheckBindingVisitor(pLogger);
 
     shouldVisitDeclarations = true;
@@ -266,7 +268,7 @@ class CFABuilder extends ASTVisitor {
       CFAFunctionBuilder functionBuilder;
 
       try {
-        functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine);
+        functionBuilder = new CFAFunctionBuilder(config, logger, localScope, machine, staticVariablePrefix);
       } catch (InvalidConfigurationException e) {
         throw new CFAGenerationRuntimeException("Invalid configuration");
       }

@@ -26,10 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -133,16 +130,20 @@ class ASTConverter {
 
   private final List<CAstNode> preSideAssignments = new ArrayList<>();
   private final List<CAstNode> postSideAssignments = new ArrayList<>();
+  private static final HashMap<String, String> replacedStaticNames = new HashMap<>();
+  private boolean isStaticNameExpression = false;
+  private String staticVariablePrefix;
 
   // this list is for ternary operators, &&, etc.
   private final List<Pair<IASTExpression, CIdExpression>> conditionalExpressions = new ArrayList<>();
 
-  public ASTConverter(Configuration config, Scope pScope, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
+  public ASTConverter(Configuration config, Scope pScope, LogManager pLogger, MachineModel pMachineModel, String staticVariablePrefix) throws InvalidConfigurationException {
     config.inject(this);
     scope = pScope;
     logger = pLogger;
     typeConverter = new ASTTypeConverter(scope, this);
     literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
+    this.staticVariablePrefix = staticVariablePrefix;
   }
 
   public List<CAstNode> getAndResetPreSideAssignments() {
@@ -555,6 +556,10 @@ class ASTConverter {
       params.add(convertExpressionWithoutSideEffects(toExpression(i)));
     }
 
+    if (replacedStaticNames.containsKey(e.getFunctionNameExpression().getRawSignature())) {
+      isStaticNameExpression = true;
+    }
+
     CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
     CFunctionDeclaration declaration = null;
 
@@ -577,12 +582,19 @@ class ASTConverter {
       }
     }
 
+
     return new CFunctionCallExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), functionName, params, declaration);
   }
 
   private CIdExpression convert(IASTIdExpression e) {
     String name = convert(e.getName());
 
+    if (isStaticNameExpression) {
+      if (replacedStaticNames.containsKey(name)) {
+        name = replacedStaticNames.get(name);
+      }
+      isStaticNameExpression = false;
+    }
     // Try to find declaration.
     // Variables per se actually do not bind stronger than function,
     // but local variables do.
@@ -815,6 +827,11 @@ class ASTConverter {
     CFunctionTypeWithNames declSpec = (CFunctionTypeWithNames)declarator.getFirst();
     String name = declarator.getThird();
 
+    if(cStorageClass == CStorageClass.STATIC) {
+      String replacedBy = staticVariablePrefix + name;
+      replacedStaticNames.put(name, replacedBy);
+      name = replacedBy;
+    }
 
     FileLocation fileLoc = getLocation(f);
 
@@ -910,6 +927,8 @@ class ASTConverter {
         if (!isGlobal) {
           isGlobal = true;
           name = "static__" + ((FunctionScope)scope).getCurrentFunctionName() + "__" + name;
+        } else {
+          name = staticVariablePrefix + name;
         }
         cStorageClass = CStorageClass.AUTO;
       }
