@@ -500,19 +500,15 @@ cpa.defuse.merge = "sep"
   allowed values: [sep, join]
 
 # restrict abstractions to assume edges
-cpa.explicit.blk.alwaysAtAssumes = no default value
 cpa.explicit.blk.alwaysAtAssumes = false
 
 # restrict abstractions to function calls/returns
-cpa.explicit.blk.alwaysAtFunctions = no default value
 cpa.explicit.blk.alwaysAtFunctions = false
 
 # restrict abstractions to join points
-cpa.explicit.blk.alwaysAtJoins = no default value
 cpa.explicit.blk.alwaysAtJoins = false
 
 # restrict abstractions to loop heads
-cpa.explicit.blk.alwaysAtLoops = no default value
 cpa.explicit.blk.alwaysAtLoops = false
 
 # if there is an assumption like (x!=0), this option sets unknown
@@ -969,12 +965,6 @@ parser.dialect = GNUC
 # appended to this string. The preprocessor needs to print the output to
 # stdout.
 parser.preprocessor = "cpp"
-
-# The command line for calling the sourceFileCombiner. May contain binary
-# name and arguments, but won't be expanded by a shell. The source file name
-# will be appended to this string. The sourceFileCombiner needs to print the
-# output to stdout.
-parser.sourceFileCombiner = no default value
 
 # For C files, run the preprocessor on them before parsing. Note that all
 # file numbers printed by CPAchecker will refer to the pre-processed file,
