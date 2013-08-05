@@ -967,12 +967,12 @@ public class ABMTransferRelation implements TransferRelation {
   //returns root of a subtree leading from the root element of the given reachedSet to the target state
   //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGState
   //in the constructed subtree that represents target
-  ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet reachedSet, ARGState newTreeTarget,
+  ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet reachedSet, BackwardARGState newTreeTarget,
       Map<ARGState, ARGState> pPathElementToReachedState) throws InterruptedException, RecursiveAnalysisFailedException {
     assert reachedSet.asReachedSet().contains(target);
 
     //start by creating ARGElements for each node needed in the tree
-    Map<ARGState, ARGState> elementsMap = new HashMap<>();
+    Map<ARGState, BackwardARGState> elementsMap = new HashMap<>();
     Stack<ARGState> openElements = new Stack<>();
     ARGState root = null;
 
@@ -987,7 +987,7 @@ public class ABMTransferRelation implements TransferRelation {
       for (ARGState parent : currentElement.getParents()) {
         if (!elementsMap.containsKey(parent)) {
           //create node for parent in the new subtree
-          elementsMap.put(parent, new ARGState(parent.getWrappedState(), null));
+          elementsMap.put(parent, new BackwardARGState(parent.getWrappedState(), null));
           pPathElementToReachedState.put(elementsMap.get(parent), parent);
           //and remember to explore the parent later
           openElements.push(parent);
@@ -1008,6 +1008,7 @@ public class ABMTransferRelation implements TransferRelation {
             child.addParent(elementsMap.get(parent));
           }
           innerTree.removeFromARG();
+          elementsMap.get(parent).updateDecreaseId();
         } else {
           //normal edge
           //create an edge from parent to current
@@ -1028,7 +1029,7 @@ public class ABMTransferRelation implements TransferRelation {
    * (recursively, if needed).
    * @throws RecursiveAnalysisFailedException
    */
-  private ARGState computeCounterexampleSubgraph(ARGState root, Precision rootPrecision, ARGState newTreeTarget,
+  private ARGState computeCounterexampleSubgraph(ARGState root, Precision rootPrecision, BackwardARGState newTreeTarget,
       Map<ARGState, ARGState> pPathElementToReachedState) throws InterruptedException, RecursiveAnalysisFailedException {
     CFANode rootNode = extractLocation(root);
     Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
@@ -1085,6 +1086,7 @@ public class ABMTransferRelation implements TransferRelation {
     return areAbstractSuccessors0(pState, pCfaEdge, pSuccessors, pWrappedProofChecker);
   }
 
+  // TODO currentBlock als Methodenparameter
   private boolean areAbstractSuccessors0(AbstractState pState, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors, ProofChecker pWrappedProofChecker) throws CPATransferException,
       InterruptedException {
@@ -1106,7 +1108,8 @@ public class ABMTransferRelation implements TransferRelation {
             && (!pred.isAbstractionState() || !extractStateByType(((ABMARGBlockStartState) pState).getAnalyzedBlock(),
                 PredicateAbstractState.class).isAbstractionState()))
             || !abmCPA.isCoveredBy(wrappedReducer.getVariableReducedStateForProofChecking(pState, currentBlock, node),
-                ((ABMARGBlockStartState) pState).getAnalyzedBlock())) { return false; }
+                ((ABMARGBlockStartState) pState).getAnalyzedBlock())) {
+          return false; }
       } catch (CPAException e) {
         throw new CPATransferException("Missing information about block whose analysis is expected to be started at "
             + pState);
@@ -1119,7 +1122,8 @@ public class ABMTransferRelation implements TransferRelation {
         } else {
           Pair<Boolean, Collection<ARGState>> result =
               checkARGBlock(((ABMARGBlockStartState) pState).getAnalyzedBlock(), pWrappedProofChecker);
-          if (!result.getFirst()) { return false; }
+          if (!result.getFirst()) {
+            return false; }
           endOfBlock = result.getSecond();
           if (correctARGsForBlocks == null) {
             correctARGsForBlocks = new HashMap<>();
@@ -1136,14 +1140,16 @@ public class ABMTransferRelation implements TransferRelation {
           ARGState successorElem = (ARGState) absElement;
           blockSuccessors.put(extractLocation(absElement), successorElem);
           pred = extractStateByType(absElement, PredicateAbstractState.class);
-          if (pred != null && !pred.isAbstractionState()) { return false; }
+          if (pred != null && !pred.isAbstractionState()) {
+            return false; }
         }
 
 
         for (ARGState leaveB : endOfBlock) {
           successorExists = false;
           pred = extractStateByType(leaveB, PredicateAbstractState.class);
-          if (pred != null && !pred.isAbstractionState()) { return false; }
+          if (pred != null && !pred.isAbstractionState()) {
+            return false; }
           expandedState = wrappedReducer.getVariableExpandedStateForProofChecking(pState, currentBlock, leaveB);
           for (AbstractState next : blockSuccessors.get(extractLocation(leaveB))) {
             if (abmCPA.isCoveredBy(expandedState, next)) {
@@ -1151,10 +1157,12 @@ public class ABMTransferRelation implements TransferRelation {
               notFoundSuccessors.remove(next);
             }
           }
-          if (!successorExists) { return false; }
+          if (!successorExists) {
+            return false; }
         }
 
-        if (!notFoundSuccessors.isEmpty()) { return false; }
+        if (!notFoundSuccessors.isEmpty()) {
+          return false; }
 
         currentBlock = analyzedBlock;
       } catch (CPAException e) {
@@ -1174,16 +1182,20 @@ public class ABMTransferRelation implements TransferRelation {
         Block currentNodeBlock = partitioning.getBlockForReturnNode(node);
         if (currentNodeBlock != null && !currentBlock.equals(currentNodeBlock)
             && currentNodeBlock.getNodes().contains(node.getLeavingEdge(i).getSuccessor())) {
-          if (usedEdges.contains(node.getLeavingEdge(i))) { return false; }
+          if (usedEdges.contains(node.getLeavingEdge(i))) {
+            return false; }
           continue;
         }
         // edge leaves block, do not analyze, check for call node since if call node is also return node analysis will go beyond current block
         if (!currentBlock.isCallNode(node) && currentBlock.isReturnNode(node)
             && !currentBlock.getNodes().contains(node.getLeavingEdge(i).getSuccessor())) {
-          if (usedEdges.contains(node.getLeavingEdge(i))) { return false; }
+          if (usedEdges.contains(node.getLeavingEdge(i))) {
+            return false; }
           continue;
         }
-        if (!pWrappedProofChecker.areAbstractSuccessors(pState, node.getLeavingEdge(i), pSuccessors)) { return false; }
+        if (!pWrappedProofChecker.areAbstractSuccessors(pState, node.getLeavingEdge(i), pSuccessors)) {
+          pWrappedProofChecker.areAbstractSuccessors(pState, node.getLeavingEdge(i), pSuccessors);
+          return false; }
       }
     }
     return true;
@@ -1280,5 +1292,31 @@ public class ABMTransferRelation implements TransferRelation {
       return Pair.of(false, returnNodes);
     }
     return Pair.of(true, returnNodes);
+  }
+
+  static class BackwardARGState extends ARGState{
+
+    private static final long serialVersionUID = -3279533907385516993L;
+    private int decreasingStateID;
+    private static int nextDecreaseID = Integer.MAX_VALUE;
+
+    public BackwardARGState(AbstractState pWrappedState, ARGState pParentElement) {
+      super(pWrappedState, pParentElement);
+      decreasingStateID = nextDecreaseID--;
+    }
+
+    @Override
+    public boolean isOlderThan(ARGState other) {
+      if(other instanceof BackwardARGState){
+        return decreasingStateID < ((BackwardARGState) other).decreasingStateID;
+      }
+      return super.isOlderThan(other);
+    }
+
+    void updateDecreaseId(){
+      decreasingStateID = nextDecreaseID--;
+    }
+
+
   }
 }
