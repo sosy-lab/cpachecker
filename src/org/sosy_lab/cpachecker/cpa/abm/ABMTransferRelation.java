@@ -1086,9 +1086,9 @@ public class ABMTransferRelation implements TransferRelation {
     return areAbstractSuccessors0(pState, pCfaEdge, pSuccessors, pWrappedProofChecker, partitioning.getMainBlock());
   }
 
-  // TODO currentBlock als Methodenparameter
   private boolean areAbstractSuccessors0(AbstractState pState, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors, ProofChecker pWrappedProofChecker, final Block currentBlock) throws CPATransferException,
+      Collection<? extends AbstractState> pSuccessors, ProofChecker pWrappedProofChecker, final Block currentBlock)
+      throws CPATransferException,
       InterruptedException {
     // currently cannot deal with blocks for which the set of call nodes and return nodes of that block is not disjunct
     boolean successorExists;
@@ -1107,8 +1107,7 @@ public class ABMTransferRelation implements TransferRelation {
             && (!pred.isAbstractionState() || !extractStateByType(((ABMARGBlockStartState) pState).getAnalyzedBlock(),
                 PredicateAbstractState.class).isAbstractionState()))
             || !abmCPA.isCoveredBy(wrappedReducer.getVariableReducedStateForProofChecking(pState, analyzedBlock, node),
-                ((ABMARGBlockStartState) pState).getAnalyzedBlock())) {
-          return false; }
+                ((ABMARGBlockStartState) pState).getAnalyzedBlock())) { return false; }
       } catch (CPAException e) {
         throw new CPATransferException("Missing information about block whose analysis is expected to be started at "
             + pState);
@@ -1121,8 +1120,7 @@ public class ABMTransferRelation implements TransferRelation {
         } else {
           Pair<Boolean, Collection<ARGState>> result =
               checkARGBlock(((ABMARGBlockStartState) pState).getAnalyzedBlock(), pWrappedProofChecker, analyzedBlock);
-          if (!result.getFirst()) {
-            return false; }
+          if (!result.getFirst()) { return false; }
           endOfBlock = result.getSecond();
           if (correctARGsForBlocks == null) {
             correctARGsForBlocks = new HashMap<>();
@@ -1139,16 +1137,14 @@ public class ABMTransferRelation implements TransferRelation {
           ARGState successorElem = (ARGState) absElement;
           blockSuccessors.put(extractLocation(absElement), successorElem);
           pred = extractStateByType(absElement, PredicateAbstractState.class);
-          if (pred != null && !pred.isAbstractionState()) {
-            return false; }
+          if (pred != null && !pred.isAbstractionState()) { return false; }
         }
 
 
         for (ARGState leaveB : endOfBlock) {
           successorExists = false;
           pred = extractStateByType(leaveB, PredicateAbstractState.class);
-          if (pred != null && !pred.isAbstractionState()) {
-            return false; }
+          if (pred != null && !pred.isAbstractionState()) { return false; }
           expandedState = wrappedReducer.getVariableExpandedStateForProofChecking(pState, analyzedBlock, leaveB);
           for (AbstractState next : blockSuccessors.get(extractLocation(leaveB))) {
             if (abmCPA.isCoveredBy(expandedState, next)) {
@@ -1156,12 +1152,10 @@ public class ABMTransferRelation implements TransferRelation {
               notFoundSuccessors.remove(next);
             }
           }
-          if (!successorExists) {
-            return false; }
+          if (!successorExists) { return false; }
         }
 
-        if (!notFoundSuccessors.isEmpty()) {
-          return false; }
+        if (!notFoundSuccessors.isEmpty()) { return false; }
 
       } catch (CPAException e) {
         throw new CPATransferException("Checking ARG with root " + ((ABMARGBlockStartState) pState).getAnalyzedBlock()
@@ -1180,26 +1174,26 @@ public class ABMTransferRelation implements TransferRelation {
         Block currentNodeBlock = partitioning.getBlockForReturnNode(node);
         if (currentNodeBlock != null && !currentBlock.equals(currentNodeBlock)
             && currentNodeBlock.getNodes().contains(node.getLeavingEdge(i).getSuccessor())) {
-          if (usedEdges.contains(node.getLeavingEdge(i))) {
-            return false; }
+          if (usedEdges.contains(node.getLeavingEdge(i))) { return false; }
           continue;
         }
         // edge leaves block, do not analyze, check for call node since if call node is also return node analysis will go beyond current block
         if (!currentBlock.isCallNode(node) && currentBlock.isReturnNode(node)
             && !currentBlock.getNodes().contains(node.getLeavingEdge(i).getSuccessor())) {
-          if (usedEdges.contains(node.getLeavingEdge(i))) {
-            return false; }
+          if (usedEdges.contains(node.getLeavingEdge(i))) { return false; }
           continue;
         }
         if (!pWrappedProofChecker.areAbstractSuccessors(pState, node.getLeavingEdge(i), pSuccessors)) {
           pWrappedProofChecker.areAbstractSuccessors(pState, node.getLeavingEdge(i), pSuccessors);
-          return false; }
+          return false;
+        }
       }
     }
     return true;
   }
 
-  private Pair<Boolean, Collection<ARGState>> checkARGBlock(ARGState rootNode, ProofChecker pWrappedProofChecker, final Block currentBlock)
+  private Pair<Boolean, Collection<ARGState>> checkARGBlock(ARGState rootNode, ProofChecker pWrappedProofChecker,
+      final Block currentBlock)
       throws CPAException, InterruptedException {
     Collection<ARGState> returnNodes = new ArrayList<>();
     Set<ARGState> waitingForUnexploredParents = new HashSet<>();
@@ -1292,7 +1286,7 @@ public class ABMTransferRelation implements TransferRelation {
     return Pair.of(true, returnNodes);
   }
 
-  static class BackwardARGState extends ARGState{
+  static class BackwardARGState extends ARGState {
 
     private static final long serialVersionUID = -3279533907385516993L;
     private int decreasingStateID;
@@ -1305,16 +1299,12 @@ public class ABMTransferRelation implements TransferRelation {
 
     @Override
     public boolean isOlderThan(ARGState other) {
-      if(other instanceof BackwardARGState){
-        return decreasingStateID < ((BackwardARGState) other).decreasingStateID;
-      }
+      if (other instanceof BackwardARGState) { return decreasingStateID < ((BackwardARGState) other).decreasingStateID; }
       return super.isOlderThan(other);
     }
 
-    void updateDecreaseId(){
+    void updateDecreaseId() {
       decreasingStateID = nextDecreaseID--;
     }
-
-
   }
 }
