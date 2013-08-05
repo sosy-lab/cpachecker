@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.abm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -458,7 +457,8 @@ public class ABMTransferRelation implements TransferRelation {
         return attachAdditionalInfoToCallNodes(expandedResult);
       } else {
         List<AbstractState> result = new ArrayList<>();
-        for (CFAEdge e : leavingEdges(node)) {
+        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+          CFAEdge e = node.getLeavingEdge(i);
           result.addAll(getAbstractSuccessors0(pElement, pPrecision, e));
         }
         return attachAdditionalInfoToCallNodes(result);
@@ -1083,23 +1083,22 @@ public class ABMTransferRelation implements TransferRelation {
       Collection<? extends AbstractState> pSuccessors, ProofChecker pWrappedProofChecker) throws CPATransferException,
       InterruptedException {
     if (pCfaEdge != null) { return pWrappedProofChecker.areAbstractSuccessors(pState, pCfaEdge, pSuccessors); }
-    return areAbstractSuccessors0(pState, pCfaEdge, pSuccessors, pWrappedProofChecker);
+    return areAbstractSuccessors0(pState, pCfaEdge, pSuccessors, pWrappedProofChecker, partitioning.getMainBlock());
   }
 
   // TODO currentBlock als Methodenparameter
   private boolean areAbstractSuccessors0(AbstractState pState, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors, ProofChecker pWrappedProofChecker) throws CPATransferException,
+      Collection<? extends AbstractState> pSuccessors, ProofChecker pWrappedProofChecker, final Block currentBlock) throws CPATransferException,
       InterruptedException {
     // currently cannot deal with blocks for which the set of call nodes and return nodes of that block is not disjunct
     boolean successorExists;
 
-    Block analyzedBlock = currentBlock;
     CFANode node = extractLocation(pState);
 
     if (partitioning.isCallNode(node) && !isHeadOfMainFunction(node)
         && !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
       // do not support nodes which are call nodes of multiple blocks
-      currentBlock = partitioning.getBlockForCallNode(node);
+      Block analyzedBlock = partitioning.getBlockForCallNode(node);
       try {
         PredicateAbstractState pred = extractStateByType(pState, PredicateAbstractState.class);
         if (!(pState instanceof ABMARGBlockStartState)
@@ -1107,7 +1106,7 @@ public class ABMTransferRelation implements TransferRelation {
             || (pred != null
             && (!pred.isAbstractionState() || !extractStateByType(((ABMARGBlockStartState) pState).getAnalyzedBlock(),
                 PredicateAbstractState.class).isAbstractionState()))
-            || !abmCPA.isCoveredBy(wrappedReducer.getVariableReducedStateForProofChecking(pState, currentBlock, node),
+            || !abmCPA.isCoveredBy(wrappedReducer.getVariableReducedStateForProofChecking(pState, analyzedBlock, node),
                 ((ABMARGBlockStartState) pState).getAnalyzedBlock())) {
           return false; }
       } catch (CPAException e) {
@@ -1116,12 +1115,12 @@ public class ABMTransferRelation implements TransferRelation {
       }
       try {
         Collection<ARGState> endOfBlock;
-        Pair<ARGState, Block> key = Pair.of(((ABMARGBlockStartState) pState).getAnalyzedBlock(), currentBlock);
+        Pair<ARGState, Block> key = Pair.of(((ABMARGBlockStartState) pState).getAnalyzedBlock(), analyzedBlock);
         if (correctARGsForBlocks != null && correctARGsForBlocks.containsKey(key)) {
           endOfBlock = correctARGsForBlocks.get(key);
         } else {
           Pair<Boolean, Collection<ARGState>> result =
-              checkARGBlock(((ABMARGBlockStartState) pState).getAnalyzedBlock(), pWrappedProofChecker);
+              checkARGBlock(((ABMARGBlockStartState) pState).getAnalyzedBlock(), pWrappedProofChecker, analyzedBlock);
           if (!result.getFirst()) {
             return false; }
           endOfBlock = result.getSecond();
@@ -1150,7 +1149,7 @@ public class ABMTransferRelation implements TransferRelation {
           pred = extractStateByType(leaveB, PredicateAbstractState.class);
           if (pred != null && !pred.isAbstractionState()) {
             return false; }
-          expandedState = wrappedReducer.getVariableExpandedStateForProofChecking(pState, currentBlock, leaveB);
+          expandedState = wrappedReducer.getVariableExpandedStateForProofChecking(pState, analyzedBlock, leaveB);
           for (AbstractState next : blockSuccessors.get(extractLocation(leaveB))) {
             if (abmCPA.isCoveredBy(expandedState, next)) {
               successorExists = true;
@@ -1164,7 +1163,6 @@ public class ABMTransferRelation implements TransferRelation {
         if (!notFoundSuccessors.isEmpty()) {
           return false; }
 
-        currentBlock = analyzedBlock;
       } catch (CPAException e) {
         throw new CPATransferException("Checking ARG with root " + ((ABMARGBlockStartState) pState).getAnalyzedBlock()
             + " for block " + currentBlock + "failed.");
@@ -1201,7 +1199,7 @@ public class ABMTransferRelation implements TransferRelation {
     return true;
   }
 
-  private Pair<Boolean, Collection<ARGState>> checkARGBlock(ARGState rootNode, ProofChecker pWrappedProofChecker)
+  private Pair<Boolean, Collection<ARGState>> checkARGBlock(ARGState rootNode, ProofChecker pWrappedProofChecker, final Block currentBlock)
       throws CPAException, InterruptedException {
     Collection<ARGState> returnNodes = new ArrayList<>();
     Set<ARGState> waitingForUnexploredParents = new HashSet<>();
@@ -1259,7 +1257,7 @@ public class ABMTransferRelation implements TransferRelation {
         returnNodes.add(current);
       }
 
-      if (!areAbstractSuccessors0(current, null, current.getChildren(), pWrappedProofChecker)) {
+      if (!areAbstractSuccessors0(current, null, current.getChildren(), pWrappedProofChecker, currentBlock)) {
         returnNodes = Collections.emptyList();
         return Pair.of(false, returnNodes);
       }
