@@ -28,13 +28,16 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -183,18 +186,18 @@ enum InvariantsTransferRelation implements TransferRelation {
 
     if (pEdge.getStatement() instanceof CAssignment) {
       CAssignment assignment = (CAssignment)pEdge.getStatement();
-
+      ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge);
+      InvariantsFormula<CompoundState> value = assignment.getRightHandSide().accept(etfv);
       CExpression leftHandSide = assignment.getLeftHandSide();
-      if (leftHandSide instanceof CIdExpression) {
-        // a = ...
-
-        String varName = getVarName((CIdExpression)leftHandSide, pEdge);
-        InvariantsFormula<CompoundState> value = assignment.getRightHandSide().accept(getExpressionToFormulaVisitor(pEdge));
-        return pElement.assign(varName, value, pEdge.toString());
+      if (leftHandSide instanceof CArraySubscriptExpression) {
+        CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) leftHandSide;
+        String array = getVarName(arraySubscriptExpression.getArrayExpression(), pEdge);
+        InvariantsFormula<CompoundState> subscript = arraySubscriptExpression.getSubscriptExpression().accept(etfv);
+        return pElement.assignArray(array, subscript, value, pEdge.toString());
       } else {
-        throw new UnrecognizedCCodeException("unknown left-hand side of assignment", pEdge, leftHandSide);
+        String varName = getVarName(leftHandSide, pEdge);
+        return pElement.assign(varName, value, pEdge.toString());
       }
-
     }
 
     return pElement;
@@ -236,22 +239,44 @@ enum InvariantsTransferRelation implements TransferRelation {
       return pElement;
   }
 
-  static String getVarName(CIdExpression var, CFAEdge edge) throws UnrecognizedCCodeException {
-    String varName = var.getName();
-    if (var.getDeclaration() != null) {
-      CSimpleDeclaration decl = var.getDeclaration();
+  static String getVarName(CExpression lhs, CFAEdge edge) throws UnrecognizedCCodeException {
+    if (lhs instanceof CIdExpression) {
+      CIdExpression var = (CIdExpression) lhs;
+      String varName = var.getName();
+      if (var.getDeclaration() != null) {
+        CSimpleDeclaration decl = var.getDeclaration();
 
-      if (!(decl instanceof CDeclaration || decl instanceof CParameterDeclaration)) {
-        throw new UnrecognizedCCodeException("unknown variable declaration", edge, var);
-      }
+        if (!(decl instanceof CDeclaration || decl instanceof CParameterDeclaration)) {
+          throw new UnrecognizedCCodeException("unknown variable declaration", edge, var);
+        }
 
-      if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal()) {
+        if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal()) {
 
-      } else {
-        varName = scope(varName, edge.getPredecessor().getFunctionName());
-      }
+        } else {
+          varName = scope(varName, edge.getPredecessor().getFunctionName());
+        }
     }
     return varName;
+    } else if (lhs instanceof CFieldReference) {
+      CFieldReference fieldRef = (CFieldReference) lhs;
+      String varName = fieldRef.getFieldName();
+      CExpression owner = fieldRef.getFieldOwner();
+      if (owner != null) {
+        varName = getVarName(owner, edge) + "." + varName;
+      }
+      return varName;
+    } else if (lhs instanceof CArraySubscriptExpression) {
+      CArraySubscriptExpression arraySubscript = (CArraySubscriptExpression) lhs;
+      CExpression subscript = arraySubscript.getSubscriptExpression();
+      CExpression owner = arraySubscript.getArrayExpression();
+      if (subscript instanceof CIntegerLiteralExpression) {
+        CIntegerLiteralExpression literal = (CIntegerLiteralExpression) subscript;
+        return getVarName(owner, edge) + "[" + literal.asLong()  + "]";
+      } else {
+        return getVarName(owner, edge) + "[*]";
+      }
+    }
+    throw new UnrecognizedCCodeException("unknown left hand side of assignment", edge, lhs);
   }
 
   private static String scope(String var, String function) {
@@ -270,8 +295,8 @@ enum InvariantsTransferRelation implements TransferRelation {
     return new ExpressionToFormulaVisitor(new VariableNameExtractor() {
 
       @Override
-      public String extract(CIdExpression pCIdExpression) throws UnrecognizedCCodeException {
-        return getVarName(pCIdExpression, pEdge);
+      public String extract(CExpression pCExpression) throws UnrecognizedCCodeException {
+        return getVarName(pCExpression, pEdge);
       }
     });
   }
