@@ -79,7 +79,7 @@ COLOR_DIC = {result.RESULT_CORRECT_SAFE:   COLOR_GREEN,
 
 TERMINAL_TITLE=''
 _term = os.environ.get('TERM', '')
-if _term.startswith('xterm') or _term.startswith('rxvt'):
+if _term.startswith(('xterm', 'rxvt')):
     TERMINAL_TITLE = "\033]0;Benchmark {0}\007"
 elif _term.startswith('screen'):
     TERMINAL_TITLE = "\033kBenchmark {0}\033\\"
@@ -164,37 +164,23 @@ class Benchmark:
 
         self.rlimits = {}
         keys = list(rootTag.keys())
-        if MEMLIMIT in keys:
-            self.rlimits[MEMLIMIT] = int(rootTag.get(MEMLIMIT))
-        if TIMELIMIT in keys:
-            self.rlimits[TIMELIMIT] = int(rootTag.get(TIMELIMIT))
-        if CORELIMIT in keys:
-            self.rlimits[CORELIMIT] = int(rootTag.get(CORELIMIT))
+        for limit in [MEMLIMIT, TIMELIMIT, CORELIMIT]:
+            if limit in keys:
+                self.rlimits[limit] = int(rootTag.get(limit))
 
         # override limits from XML with values from command line
-        if config.memorylimit != None:
-            memorylimit = int(config.memorylimit)
-            if memorylimit == -1: # infinity
-                if MEMLIMIT in self.rlimits:
-                    self.rlimits.pop(MEMLIMIT)
-            else:
-                self.rlimits[MEMLIMIT] = memorylimit
+        def overrideLimit(configVal, limit):
+            if configVal != None:
+                val = int(configVal)
+                if val == -1: # infinity
+                    if limit in self.rlimits:
+                        self.rlimits.pop(limit)
+                else:
+                    self.rlimits[limit] = val
 
-        if config.timelimit != None:
-            timelimit = int(config.timelimit)
-            if timelimit == -1: # infinity
-                if TIMELIMIT in self.rlimits:
-                    self.rlimits.pop(TIMELIMIT)
-            else:
-                self.rlimits[TIMELIMIT] = timelimit
-
-        if config.corelimit != None:
-            corelimit = int(config.corelimit)
-            if corelimit == -1: # infinity
-                if CORELIMIT in self.rlimits:
-                    self.rlimits.pop(CORELIMIT)
-            else:
-                self.rlimits[CORELIMIT] = corelimit
+        overrideLimit(config.memorylimit, MEMLIMIT)
+        overrideLimit(config.timelimit, TIMELIMIT)
+        overrideLimit(config.corelimit, CORELIMIT)
 
         # get number of threads, default value is 1
         self.numOfThreads = int(rootTag.get("threads")) if ("threads" in keys) else 1
@@ -241,15 +227,12 @@ class Benchmark:
 
         # get benchmarks
         self.runSets = []
-        i = 1
-        for rundefinitionTag in rootTag.findall("rundefinition"):
-            self.runSets.append(RunSet(rundefinitionTag, self, i, globalSourcefilesTags))
-            i += 1
+        for (i, rundefinitionTag) in enumerate(rootTag.findall("rundefinition")):
+            self.runSets.append(RunSet(rundefinitionTag, self, i+1, globalSourcefilesTags))
 
         if not self.runSets:
-            for rundefinitionTag in rootTag.findall("test"):
-                self.runSets.append(RunSet(rundefinitionTag, self, i, globalSourcefilesTags))
-                i += 1
+            for (i, rundefinitionTag) in enumerate(rootTag.findall("test")):
+                self.runSets.append(RunSet(rundefinitionTag, self, i+1, globalSourcefilesTags))
             if self.runSets:
                 logging.warning("Benchmark file {0} uses deprecated <test> tags. Please rename them to <rundefinition>.".format(benchmarkFile))
             else:

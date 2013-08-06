@@ -26,8 +26,17 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.*;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -187,16 +196,16 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
   public interface VariableNameExtractor {
 
     /**
-     * Provides a variable name for the given c id expression.
+     * Provides a variable name for the given c expression.
      *
-     * @param pCIdExpression the c id expression to provide a variable name
+     * @param pCExpression the c id expression to provide a variable name
      * for.
      *
      * @return the variable name for the given c id expression.
      * @throws UnrecognizedCCodeException if the extraction process cannot be
      * completed because involved c code is unrecognized.
      */
-    String extract(CIdExpression pCIdExpression) throws UnrecognizedCCodeException;
+    String extract(CExpression pCExpression) throws UnrecognizedCCodeException;
 
   }
 }

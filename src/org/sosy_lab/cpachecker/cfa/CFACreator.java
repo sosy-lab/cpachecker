@@ -230,21 +230,52 @@ public class CFACreator {
       ParseResult c;
 
       if (language == Language.C) {
-        checkIfValidFile(programDenotation);
+        checkIfValidFiles(programDenotation);
       }
 
       if (language == Language.C && usePreprocessor) {
         CPreprocessor preprocessor = new CPreprocessor(config, logger);
-        String program = preprocessor.preprocess(programDenotation);
+        if(denotesOneFile(programDenotation)) {
+          String program = preprocessor.preprocess(programDenotation);
 
-        if (program.isEmpty()) {
-          throw new CParserException("Preprocessor returned empty program");
+          if (program.isEmpty()) {
+            throw new CParserException("Preprocessor returned empty program");
+          }
+
+          c = parser.parseString(program);
+        } else {
+          String staticVariablePrefix;
+          int counter = 0;
+          String[] paths = programDenotation.split(", ");
+          String[] programs = new String[paths.length];
+          String[] staticVarPrefixes = new String[paths.length];
+          for(int i = 0; i < paths.length; i++) {
+            String[] tmp = paths[i].split("/");
+            staticVarPrefixes[i] = tmp[tmp.length-1] + "__" + counter + "__";
+            programs[i] = preprocessor.preprocess(paths[i]);
+
+            if (programs[i].isEmpty()) {
+              throw new CParserException("Preprocessor returned empty program");
+            }
+          }
+          c = ((CParser)parser).parseString(programs, staticVarPrefixes);
         }
 
-        c = parser.parseString(program);
 
       } else {
-        c = parser.parseFile(programDenotation);
+        if(denotesOneFile(programDenotation)) {
+          c = parser.parseFile((programDenotation));
+        } else {
+          String staticVariablePrefix;
+          int counter = 0;
+          String[] paths = programDenotation.split(", ");
+          String[] staticVarPrefixes = new String[paths.length];
+          for(int i = 0; i < paths.length; i++) {
+            String[] tmp = paths[i].split("/");
+            staticVarPrefixes[i] = tmp[tmp.length-1] + "__" + counter + "__";
+          }
+          c = ((CParser)parser).parseFile(paths, staticVarPrefixes);
+        }
       }
 
       logger.log(Level.FINE, "Parser Finished");
@@ -386,12 +417,18 @@ public class CFACreator {
     return mainFunction;
   }
 
-  private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
-    if (!denotesOneFile(fileDenotation)) {
-      throw new InvalidConfigurationException(
-        "Exactly one code file has to be given.");
-    }
+  private void checkIfValidFiles(String fileDenotation) throws InvalidConfigurationException {
 
+    if (denotesOneFile(fileDenotation)) {
+      checkIfValidFile(fileDenotation);
+    } else {
+      for(String path : fileDenotation.split(", ")) {
+        checkIfValidFile(path);
+      }
+    }
+  }
+
+  private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
     File file = new File(fileDenotation);
 
     try {

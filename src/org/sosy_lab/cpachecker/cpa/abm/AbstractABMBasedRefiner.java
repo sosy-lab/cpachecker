@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.abm.ABMTransferRelation.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -94,7 +95,7 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
       ARGState subgraph;
       computeSubtreeTimer.start();
       try {
-        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new ARGState(pLastElement.getWrappedState(), null), pathStateToReachedState);
+        subgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, new BackwardARGState(pLastElement.getWrappedState(), null), pathStateToReachedState);
         if (subgraph == null) {
           return null;
         }

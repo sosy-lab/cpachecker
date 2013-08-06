@@ -79,12 +79,28 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public String toString() {
-    return toASTString(Strings.nullToEmpty(getName()));
+    return toASTString(Strings.nullToEmpty(getName()),
+                       new Function<CType, String>() {
+                         @Override
+                         public String apply(final CType pInput) {
+                           return pInput.toString();
+                         }
+                       });
   }
 
   @Override
-  public String toASTString(String pDeclarator) {
-    StringBuilder lASTString = new StringBuilder();
+  public String toASTString(final String pDeclarator) {
+    return toASTString(pDeclarator,
+                       new Function<CType, String>() {
+                         @Override
+                         public String apply(final CType pInput) {
+                           return pInput.toASTString("");
+                         }
+                        });
+  }
+
+  public String toASTString(final String pDeclarator, final Function<CType, String> pTypeToString) {
+    final StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {
       lASTString.append("const ");
@@ -93,7 +109,7 @@ public class CFunctionType extends AFunctionType implements CType {
       lASTString.append("volatile ");
     }
 
-    lASTString.append(getReturnType().toASTString(""));
+    lASTString.append(pTypeToString.apply(getReturnType()));
     lASTString.append(" ");
 
     if (pDeclarator.startsWith("*")) {
@@ -106,12 +122,7 @@ public class CFunctionType extends AFunctionType implements CType {
     }
 
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, transform(getParameters(), new Function<CType, String>() {
-                                                      @Override
-                                                      public String apply(CType pInput) {
-                                                        return pInput.toASTString("");
-                                                      }
-                                                    }));
+    Joiner.on(", ").appendTo(lASTString, transform(getParameters(), pTypeToString));
     if (takesVarArgs()) {
       if (!getParameters().isEmpty()) {
         lASTString.append(", ");
@@ -140,13 +151,13 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public int hashCode() {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + Objects.hashCode(isConst);
-      result = prime * result + Objects.hashCode(isVolatile);
-      result = prime * result + Objects.hashCode(name);
-      result = prime * result + super.hashCode();
-      return result;
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(isConst);
+    result = prime * result + Objects.hashCode(isVolatile);
+    result = prime * result + Objects.hashCode(name);
+    result = prime * result + super.hashCode();
+    return result;
   }
 
   /**

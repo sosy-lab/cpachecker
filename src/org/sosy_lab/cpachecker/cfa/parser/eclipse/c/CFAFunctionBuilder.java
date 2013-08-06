@@ -148,7 +148,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structures for handling goto
   private final Map<String, CLabelNode> labelMap = new HashMap<>();
-  private final Multimap<String, CFANode> gotoLabelNeeded = ArrayListMultimap.create();
+  private final Multimap<String, Pair<CFANode, Integer>> gotoLabelNeeded = ArrayListMultimap.create();
 
   // Data structures for handling function declarations
   private FunctionEntryNode cfa = null;
@@ -166,12 +166,12 @@ class CFAFunctionBuilder extends ASTVisitor {
       + "or leave them uninitialized.")
   private boolean initializeAllVariables = false;
 
-  public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope, MachineModel pMachine) throws InvalidConfigurationException {
+  public CFAFunctionBuilder(Configuration config, LogManager pLogger, FunctionScope pScope, MachineModel pMachine, String staticVariablePrefix) throws InvalidConfigurationException {
     config.inject(this);
 
     logger = pLogger;
     scope = pScope;
-    astCreator = new ASTConverter(config, pScope, pLogger, pMachine);
+    astCreator = new ASTConverter(config, pScope, pLogger, pMachine, staticVariablePrefix);
     checkBinding = new CheckBindingVisitor(pLogger);
 
     shouldVisitDeclarations = true;
@@ -611,10 +611,10 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     // Check if any goto's previously analyzed need connections to this label
-    for (CFANode gotoNode : gotoLabelNeeded.get(labelName)) {
+    for (Pair<CFANode, Integer> gotoNode : gotoLabelNeeded.get(labelName)) {
       String description = "Goto: " + labelName;
       BlankEdge gotoEdge = new BlankEdge(description,
-          gotoNode.getLineNumber(), gotoNode, labelNode, description);
+          gotoNode.getSecond(), gotoNode.getFirst(), labelNode, description);
       addToCFA(gotoEdge);
     }
     gotoLabelNeeded.removeAll(labelName);
@@ -645,7 +645,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       addToCFA(gotoEdge);
     } else {
-      gotoLabelNeeded.put(labelName, prevNode);
+      gotoLabelNeeded.put(labelName, Pair.of(prevNode, fileloc.getStartingLineNumber()));
     }
 
     CFANode nextNode = newCFANode(fileloc.getEndingLineNumber());

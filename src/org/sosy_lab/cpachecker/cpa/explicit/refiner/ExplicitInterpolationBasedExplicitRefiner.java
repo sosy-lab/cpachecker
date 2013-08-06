@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
@@ -55,14 +53,12 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
@@ -93,12 +89,12 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private int numberOfSuccessfulRefinements = 0;
   private int numberOfInterpolations        = 0;
   private Timer timerInterpolation          = new Timer();
-  
+
   /**
    * the logger in use
    */
   private final LogManager logger;
- 
+
   /**
    * the current machine model
   */
@@ -108,11 +104,11 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 		  PathFormulaManager pathFormulaManager, final MachineModel pMachineModel)
       throws InvalidConfigurationException {
     config.inject(this);
-    
+
     logger       = pLogger;
     machineModel = pMachineModel;
   }
-  
+
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
       ARGPath errorPath) throws CPAException {
     timerInterpolation.start();
@@ -204,39 +200,33 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   }
 
   /**
-   * This method determines the new interpolation point.
+   * This method determines the new refinement root.
    *
-   * @param errorPath the error path from where to determine the interpolation point
-   * @return the new interpolation point
+   * @param errorPath the error path from where to determine the refinement root
+   * @param increment the current precision increment
+   * @param isRepeatedRefinement the flag to determine whether or not this is a repeated refinement
+   * @return the new refinement root
    */
-  protected Pair<ARGState, CFAEdge> determineInterpolationPoint(ARGPath errorPath, Multimap<CFANode, String> increment) {
+  Pair<ARGState, CFAEdge> determineRefinementRoot(ARGPath errorPath, Multimap<CFANode, String> increment,
+      boolean isRepeatedRefinement) {
     // if doing lazy abstraction, use the node closest to the root node where new information is present
     if (doLazyAbstraction) {
-      // try to find a more suitable cut-off point when cut-off is an assume edge, and this should be avoided
-      if (avoidAssumes && cutOffIsAssumeEdge(errorPath)) {
-        HashSet<String> values = new HashSet<>(increment.values());
 
-        for (Pair<ARGState, CFAEdge> currentElement : Lists.reverse(errorPath.subList(0, interpolationOffset - 1))) {
-          CFAEdge currentEdge = currentElement.getSecond();
+      // try to find a more suitable cut-off point when we deal with a repeated refinement or
+      // cut-off is an assume edge, and this should be avoided
+      if (isRepeatedRefinement || (avoidAssumes && cutOffIsAssumeEdge(errorPath))) {
+        List<Pair<ARGState, CFAEdge>> trace = errorPath.subList(0, interpolationOffset - 1);
 
-          switch (currentElement.getSecond().getEdgeType()) {
-            case StatementEdge:
-            case DeclarationEdge:
-              if (isAssigningEdge(currentEdge, values)) {
-                return errorPath.get(errorPath.indexOf(currentElement) + 1);
-              }
-              break;
+        // check in reverse order only when avoiding assumes
+        if(avoidAssumes && cutOffIsAssumeEdge(errorPath)) {
+          trace = Lists.reverse(trace);
+        }
 
-            case MultiEdge:
-              for (CFAEdge singleEdge : ((MultiEdge)currentEdge)) {
-                if (isAssigningEdge(singleEdge, values)) {
-                  return errorPath.get(errorPath.indexOf(currentElement) + 1);
-                }
-              }
-              break;
-
-            default:
-              break;
+        // check each edge, if it assigns a "relevant" variable, if so, use that as new refinement root
+        Set<String> releventVariables = new HashSet<>(increment.values());
+        for (Pair<ARGState, CFAEdge> currentElement : trace) {
+          if(edgeAssignsVariable(currentElement.getSecond(), releventVariables)) {
+            return errorPath.get(errorPath.indexOf(currentElement) + 1);
           }
         }
       }
@@ -258,6 +248,31 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    */
   private boolean cutOffIsAssumeEdge(ARGPath errorPath) {
     return errorPath.get(Math.max(1, interpolationOffset - 1)).getSecond().getEdgeType() == CFAEdgeType.AssumeEdge;
+  }
+
+  /**
+   * This method determines whether or not the current edge is assigning any of the given variables.
+   *
+   * @param currentEdge the current edge to inspect
+   * @param variableNames the collection of variables to check for
+   * @return true, if any of the given variables is assigned in the given edge
+   */
+  private boolean edgeAssignsVariable(CFAEdge currentEdge, Set<String> variableNames) {
+    switch (currentEdge.getEdgeType()) {
+      case StatementEdge:
+      case DeclarationEdge:
+        return isAssigningEdge(currentEdge, variableNames);
+
+      case MultiEdge:
+        for (CFAEdge singleEdge : ((MultiEdge)currentEdge)) {
+          if (isAssigningEdge(singleEdge, variableNames)) {
+            return true;
+          }
+        }
+        break;
+    }
+
+    return false;
   }
 
   /**

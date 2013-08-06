@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -198,12 +199,57 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
   /**
    * Creates a new state representing the given assignment applied to the current state.
    *
+   * @param pArray the array being assigned.
+   * @param pSubscript the array subscript expression.
+   * @param pValue the new value of the variable.
+   * @param pEdge the edge containing the assignment.
+   * @return a new state representing the given assignment applied to the current state.
+   */
+  public InvariantsState assignArray(String pArray, InvariantsFormula<CompoundState> pSubscript, InvariantsFormula<CompoundState> pValue, String pEdge) {
+    FormulaEvaluationVisitor<CompoundState> fev = getFormulaResolver(pEdge);
+    // Edge is already counted by formula resolver access
+    boolean ignoreEdge = getRemainingEvaluations(pEdge) > 0;
+    CompoundState value = pSubscript.accept(fev, this.environment);
+    if (value.isSingleton()) { // Exact subscript value is known
+      return assign(pArray + "[" + value.getValue() + "]", pValue, pEdge, ignoreEdge);
+    } else { // Multiple subscript values are possible: All possible subscript targets are now unknown
+      InvariantsState result = this;
+      for (String varName : this.environment.keySet()) {
+        String prefix = pArray + "[";
+        if (varName.startsWith(prefix)) {
+          String subscriptValueStr = varName.replace(prefix, "").replace("]", "");
+          BigInteger subscriptValue = new BigInteger(subscriptValueStr);
+          if (value.contains(subscriptValue)) {
+            result = result.assign(varName, TOP, pEdge, ignoreEdge);
+          }
+        }
+      }
+      return result;
+    }
+  }
+
+  /**
+   * Creates a new state representing the given assignment applied to the current state.
+   *
    * @param pVarName the name of the variable being assigned.
    * @param pValue the new value of the variable.
    * @param pEdge the edge containing the assignment.
    * @return a new state representing the given assignment applied to the current state.
    */
   public InvariantsState assign(String pVarName, InvariantsFormula<CompoundState> pValue, String pEdge) {
+    return assign(pVarName, pValue, pEdge, false);
+  }
+
+  /**
+   * Creates a new state representing the given assignment applied to the current state.
+   *
+   * @param pVarName the name of the variable being assigned.
+   * @param pValue the new value of the variable.
+   * @param pEdge the edge containing the assignment.
+   * @param pIgnoreEdge flag indicating whether or not to evaluate without checking the remaining evaluations for the edge
+   * @return a new state representing the given assignment applied to the current state.
+   */
+  private InvariantsState assign(String pVarName, InvariantsFormula<CompoundState> pValue, String pEdge, boolean pIgnoreEdge) {
     Preconditions.checkNotNull(pValue);
 
     InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
@@ -215,14 +261,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     }
 
     final InvariantsState result = new InvariantsState(evaluationThreshold, useBitvectors);
-    if (!mayEvaluate(pEdge)) {
+    if (!pIgnoreEdge && !mayEvaluate(pEdge)) {
       /*
        * No more evaluations allowed!
        *
        * Create a completely new state with the old assumptions and variables, but
        * rename the assigned variable.
        */
-      FormulaEvaluationVisitor<CompoundState> evaluationVisitor = getFormulaResolver(pEdge);
+      FormulaEvaluationVisitor<CompoundState> evaluationVisitor = pIgnoreEdge ? EVALUATION_VISITOR : getFormulaResolver(pEdge);
       String renamedVariableName = renameVariable(pVarName);
       Variable<CompoundState> renamedVariable = ifm.asVariable(renamedVariableName);
       ReplaceVisitor<CompoundState> renamer = new ReplaceVisitor<>(variable, renamedVariable);
