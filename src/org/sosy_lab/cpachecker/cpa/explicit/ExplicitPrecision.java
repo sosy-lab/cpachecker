@@ -369,7 +369,7 @@ public class ExplicitPrecision implements Precision {
 
     @Override
     int getSize() {
-      return rawPrecision.get(location).size();
+      return rawPrecision.size();
     }
 
     @Override
