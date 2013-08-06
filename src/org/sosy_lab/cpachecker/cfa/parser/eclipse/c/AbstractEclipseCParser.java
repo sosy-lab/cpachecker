@@ -24,11 +24,12 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
@@ -53,15 +54,16 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.*;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 
 /**
  * Base implementation that should work with all CDT versions we support.
@@ -142,7 +144,6 @@ abstract class AbstractEclipseCParser<T> implements CParser {
 
   @Override
   public CAstNode parseSingleStatement(String pCode) throws CParserException, InvalidConfigurationException {
-    System.out.println(pCode);
     // parse
     IASTTranslationUnit ast = parse(wrapCode(pCode));
 
@@ -231,8 +232,11 @@ abstract class AbstractEclipseCParser<T> implements CParser {
       HashSet<IADeclaration> globals = new HashSet<>();
       while(it.hasNext()) {
         Pair<IADeclaration, String> p = it.next();
-        if(globals.contains(p.getFirst())) it.remove();
-        else globals.add(p.getFirst());
+        if(globals.contains(p.getFirst())) {
+          it.remove();
+        } else {
+          globals.add(p.getFirst());
+        }
       }
 
       return new ParseResult(cfas, cfaNodes, globalDeclarations, Language.C);
