@@ -32,6 +32,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -96,6 +97,17 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    * the hash code of the previous error path
    */
   private int previousErrorPathID = -1;
+
+  /**
+   * the flag to determine whether or not to check for repeated refinements
+   */
+  @Option(description="whether or not to check for repeated refinements, to then reset the refinement root")
+  private boolean checkForRepeatedRefinements = false;
+
+  /**
+   * the identifier which is used to identify repeated refinements
+   */
+  private int previousRefinementId = 0;
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -223,17 +235,21 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(2);
 
     ExplicitPrecision refinedExplicitPrecision;
-    Pair<ARGState, CFAEdge> interpolationPoint;
+    Pair<ARGState, CFAEdge> refinementeRoot;
 
     if (!initialStaticRefinementDone && staticRefiner != null) {
-      interpolationPoint          = errorPath.get(1);
+      refinementeRoot             = errorPath.get(1);
       refinedExplicitPrecision    = staticRefiner.extractPrecisionFromCfa();
       initialStaticRefinementDone = true;
     }
     else {
       Multimap<CFANode, String> increment = interpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
+      refinementeRoot                     = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
 
-      interpolationPoint        = interpolatingRefiner.determineInterpolationPoint(errorPath, increment);
+      // if two subsequent refinements are similar (based on some fancy heuristic), choose a different refinement root
+      if(checkForRepeatedRefinements && isRepeatedRefinement(increment, refinementeRoot)) {
+        refinementeRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
+      }
 
       //      if (explicitPrecision != null) { // TODO ExplicitRefiner without ExplicitPresicion, possible?
       refinedExplicitPrecision  = new ExplicitPrecision(explicitPrecision, increment);
@@ -249,12 +265,27 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     }
 
     if (refinementSuccessful(errorPath, explicitPrecision, refinedExplicitPrecision)) {
-      reached.removeSubtree(interpolationPoint.getFirst(), refinedPrecisions, newPrecisionTypes);
+      reached.removeSubtree(refinementeRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
       return true;
     }
     else {
       return false;
     }
+  }
+
+  /**
+   * The not-so-fancy heuristic to determine if two subsequent refinements are similar
+   *
+   * @param increment the precision increment
+   * @param refinementRoot the current refinement root
+   * @return true, if the current refinement is found to be similar to the previous one, else false
+   */
+  private boolean isRepeatedRefinement(Multimap<CFANode, String> increment, Pair<ARGState, CFAEdge> refinementRoot) {
+    int currentRefinementId = refinementRoot.getSecond().getLineNumber();
+    boolean result          = (previousRefinementId == currentRefinementId);
+    previousRefinementId    = currentRefinementId;
+
+    return result;
   }
 
   /**
