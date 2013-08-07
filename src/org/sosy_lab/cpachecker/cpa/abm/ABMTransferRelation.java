@@ -1100,12 +1100,8 @@ public class ABMTransferRelation implements TransferRelation {
       // do not support nodes which are call nodes of multiple blocks
       Block analyzedBlock = partitioning.getBlockForCallNode(node);
       try {
-        PredicateAbstractState pred = extractStateByType(pState, PredicateAbstractState.class);
         if (!(pState instanceof ABMARGBlockStartState)
             || ((ABMARGBlockStartState) pState).getAnalyzedBlock() == null
-            || (pred != null
-            && (!pred.isAbstractionState() || !extractStateByType(((ABMARGBlockStartState) pState).getAnalyzedBlock(),
-                PredicateAbstractState.class).isAbstractionState()))
             || !abmCPA.isCoveredBy(wrappedReducer.getVariableReducedStateForProofChecking(pState, analyzedBlock, node),
                 ((ABMARGBlockStartState) pState).getAnalyzedBlock())) { return false; }
       } catch (CPAException e) {
@@ -1122,29 +1118,21 @@ public class ABMTransferRelation implements TransferRelation {
               checkARGBlock(((ABMARGBlockStartState) pState).getAnalyzedBlock(), pWrappedProofChecker, analyzedBlock);
           if (!result.getFirst()) { return false; }
           endOfBlock = result.getSecond();
-          if (correctARGsForBlocks == null) {
-            correctARGsForBlocks = new HashMap<>();
-          }
-          correctARGsForBlocks.put(key, result.getSecond());
+          setCorrectARG(key, endOfBlock);
         }
 
         HashSet<AbstractState> notFoundSuccessors = new HashSet<>(pSuccessors);
         AbstractState expandedState;
-        PredicateAbstractState pred;
 
         Multimap<CFANode, AbstractState> blockSuccessors = HashMultimap.create();
         for (AbstractState absElement : pSuccessors) {
           ARGState successorElem = (ARGState) absElement;
           blockSuccessors.put(extractLocation(absElement), successorElem);
-          pred = extractStateByType(absElement, PredicateAbstractState.class);
-          if (pred != null && !pred.isAbstractionState()) { return false; }
         }
 
 
         for (ARGState leaveB : endOfBlock) {
           successorExists = false;
-          pred = extractStateByType(leaveB, PredicateAbstractState.class);
-          if (pred != null && !pred.isAbstractionState()) { return false; }
           expandedState = wrappedReducer.getVariableExpandedStateForProofChecking(pState, analyzedBlock, leaveB);
           for (AbstractState next : blockSuccessors.get(extractLocation(leaveB))) {
             if (abmCPA.isCoveredBy(expandedState, next)) {
@@ -1284,6 +1272,13 @@ public class ABMTransferRelation implements TransferRelation {
       return Pair.of(false, returnNodes);
     }
     return Pair.of(true, returnNodes);
+  }
+
+  public void setCorrectARG(Pair<ARGState, Block> pKey, Collection<ARGState> pEndOfBlock){
+    if (correctARGsForBlocks == null) {
+      correctARGsForBlocks = new HashMap<>();
+    }
+    correctARGsForBlocks.put(pKey, pEndOfBlock);
   }
 
   static class BackwardARGState extends ARGState {
