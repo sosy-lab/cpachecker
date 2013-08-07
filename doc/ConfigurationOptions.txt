@@ -553,6 +553,10 @@ cpa.explicit.precisionFile = no default value
 # whether or not to avoid restarting at assume edges after a refinement
 cpa.explicit.refiner.avoidAssumes = true
 
+# whether or not to check for repeated refinements, to then reset the
+# refinement root
+cpa.explicit.refiner.checkForRepeatedRefinements = false
+
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = true
 
@@ -983,6 +987,9 @@ pcc.proofgen.doPCC = false
 # Qualified name for class which implements proof checking strategy to be
 # used.
 pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy"
+
+# number of cpus/cores which should be used in parallel for proof checking
+pcc.useCores = 1
 
 # print reached set to text file
 reachedSet.export = true
