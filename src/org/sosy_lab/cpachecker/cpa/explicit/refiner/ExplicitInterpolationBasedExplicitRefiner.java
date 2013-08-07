@@ -56,8 +56,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.AssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 import com.google.common.collect.HashMultimap;
@@ -82,9 +84,12 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    */
   private int interpolationOffset = -1;
 
+  /**
+   * a reference to the assignment-counting state, to make the precision increment aware of thresholds
+   */
+  private AssignmentsInPathConditionState assignments = null;
+
   // statistics
-  private int numberOfRefinements           = 0;
-  private int numberOfSuccessfulRefinements = 0;
   private int numberOfInterpolations        = 0;
   private Timer timerInterpolation          = new Timer();
 
@@ -96,12 +101,14 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
       ARGPath errorPath) throws CPAException {
     timerInterpolation.start();
-    numberOfRefinements++;
+
+    interpolationOffset                   = -1;
+    assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
+        AssignmentsInPathConditionState.class);
 
     ExplicitInterpolator interpolator     = new ExplicitInterpolator();
     Map<String, Long> currentInterpolant  = new HashMap<>();
     Multimap<CFANode, String> increment   = HashMultimap.create();
-    interpolationOffset                   = -1;
 
     List<CFAEdge> cfaTrace = Lists.newArrayList();
     for(Pair<ARGState, CFAEdge> elem : errorPath) {
@@ -114,7 +121,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       if (currentEdge instanceof BlankEdge) {
         // add the current interpolant to the increment
         for (String variableName : currentInterpolant.keySet()) {
-          increment.put(currentEdge.getSuccessor(), variableName);
+          addToPrecisionIncrement(increment, currentEdge, variableName);
         }
         continue;
       }
@@ -155,15 +162,29 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       for (String variableName : currentInterpolant.keySet()) {
         if (interpolationOffset == -1) {
           interpolationOffset = i + 1;
-          numberOfSuccessfulRefinements++;
         }
 
-        increment.put(currentEdge.getSuccessor(), variableName);
+        addToPrecisionIncrement(increment, currentEdge, variableName);
       }
     }
 
     timerInterpolation.stop();
     return increment;
+  }
+
+  /**
+   * This method adds the given variable at the given edge/location to the increment.
+   *
+   * @param increment the current increment
+   * @param currentEdge the current edge for which to add a new variable
+   * @param variableName the name of the variable to add to the increment at the given edge
+   */
+  private void addToPrecisionIncrement(Multimap<CFANode, String> increment, CFAEdge currentEdge, String variableName) {
+    if(assignments == null || !assignments.variableExceedsThreshold(variableName)) {
+      increment.put(currentEdge.getSuccessor(), variableName);
+    } else {
+      System.out.println(variableName + " exceeds threshold!");
+    }
   }
 
   /**
@@ -293,13 +314,11 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
   @Override
   public String getName() {
-    return "Explicit Interpolation-Based Refiner";
+    return "Explicit-Interpolation-Based Refiner";
   }
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    out.println("  number of explicit refinements:                      " + numberOfRefinements);
-    out.println("  number of successful explicit refinements:           " + numberOfSuccessfulRefinements);
     out.println("  number of explicit interpolations:                   " + numberOfInterpolations);
     out.println("  max. time for singe interpolation:                   " + timerInterpolation.printMaxTime());
     out.println("  total time for interpolation:                        " + timerInterpolation);

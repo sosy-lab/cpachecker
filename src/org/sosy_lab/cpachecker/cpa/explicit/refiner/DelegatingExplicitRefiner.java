@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -36,12 +37,14 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -72,7 +75,7 @@ import com.google.common.collect.Multimap;
  * and if this fails, optionally delegates also to {@link PredicatingExplicitRefiner}.
  */
 @Options(prefix="cpa.explicit.refiner")
-public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
+public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implements Statistics, StatisticsProvider {
   /**
    * the flag to determine if initial refinement was done already
    */
@@ -103,6 +106,11 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    */
   @Option(description="whether or not to check for repeated refinements, to then reset the refinement root")
   private boolean checkForRepeatedRefinements = false;
+
+  // statistics
+  private int numberOfExplicitRefinements           = 0;
+  private int numberOfPredicateRefinements          = 0;
+  private int numberOfSuccessfulExplicitRefinements = 0;
 
   /**
    * the identifier which is used to identify repeated refinements
@@ -201,6 +209,8 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
   @Override
   protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath errorPath)
       throws CPAException, InterruptedException {
+    numberOfExplicitRefinements++;
+
     // if path is infeasible, try to refine the precision
     if (!isPathFeasable(errorPath)) {
       if (performExplicitRefinement(reached, errorPath)) {
@@ -214,6 +224,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       return CounterexampleInfo.feasible(errorPath, null);
     }
     else {
+      numberOfPredicateRefinements++;
       return predicatingRefiner.performRefinement(reached, errorPath);
     }
   }
@@ -223,6 +234,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    *
    * @param reached the current reached set
    * @param errorPath the current error path
+   * @returns true, if the explicit refinement was successful, else false
    * @throws CPAException when explicit interpolation fails
    */
   private boolean performExplicitRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException {
@@ -235,20 +247,25 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     ArrayList<Class<? extends Precision>> newPrecisionTypes = new ArrayList<>(2);
 
     ExplicitPrecision refinedExplicitPrecision;
-    Pair<ARGState, CFAEdge> refinementeRoot;
+    Pair<ARGState, CFAEdge> refinementRoot;
 
     if (!initialStaticRefinementDone && staticRefiner != null) {
-      refinementeRoot             = errorPath.get(1);
+      refinementRoot              = errorPath.get(1);
       refinedExplicitPrecision    = staticRefiner.extractPrecisionFromCfa();
       initialStaticRefinementDone = true;
     }
     else {
       Multimap<CFANode, String> increment = interpolatingRefiner.determinePrecisionIncrement(reachedSet, errorPath);
-      refinementeRoot                     = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
+      refinementRoot                      = interpolatingRefiner.determineRefinementRoot(errorPath, increment, false);
+
+      // no increment - explicit refinement was not successful
+      if(increment.isEmpty()) {
+        return false;
+      }
 
       // if two subsequent refinements are similar (based on some fancy heuristic), choose a different refinement root
-      if(checkForRepeatedRefinements && isRepeatedRefinement(increment, refinementeRoot)) {
-        refinementeRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
+      if(checkForRepeatedRefinements && isRepeatedRefinement(increment, refinementRoot)) {
+        refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment, true);
       }
 
       //      if (explicitPrecision != null) { // TODO ExplicitRefiner without ExplicitPresicion, possible?
@@ -264,8 +281,9 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       }
     }
 
-    if (refinementSuccessful(errorPath, explicitPrecision, refinedExplicitPrecision)) {
-      reached.removeSubtree(refinementeRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
+    if (explicitRefinementWasSuccessful(errorPath, explicitPrecision, refinedExplicitPrecision)) {
+      numberOfSuccessfulExplicitRefinements++;
+      reached.removeSubtree(refinementRoot.getFirst(), refinedPrecisions, newPrecisionTypes);
       return true;
     }
     else {
@@ -299,7 +317,8 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    * @param explicitPrecision the previous precision
    * @param refinedExplicitPrecision the refined precision
    */
-  private boolean refinementSuccessful(ARGPath errorPath, ExplicitPrecision explicitPrecision, ExplicitPrecision refinedExplicitPrecision) {
+  private boolean explicitRefinementWasSuccessful(ARGPath errorPath, ExplicitPrecision explicitPrecision,
+      ExplicitPrecision refinedExplicitPrecision) {
     // new error path or precision refined -> success
     boolean success = (errorPath.toString().hashCode() != previousErrorPathID)
         || (refinedExplicitPrecision.getSize() > explicitPrecision.getSize());
@@ -311,10 +330,23 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(this);
     pStatsCollection.add(interpolatingRefiner);
     if (predicatingRefiner != null) {
       predicatingRefiner.collectStatistics(pStatsCollection);
     }
+  }
+
+  @Override
+  public String getName() {
+    return "Delegating Explicit-Interpolation-Based Refiner";
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    out.println("  number of explicit refinements:                      " + numberOfExplicitRefinements);
+    out.println("  number of successful explicit refinements:           " + numberOfSuccessfulExplicitRefinements);
+    out.println("  number of predicate refinements:                     " + numberOfPredicateRefinements);
   }
 
   /**
