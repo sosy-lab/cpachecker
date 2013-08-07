@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
+import java.io.Serializable;
+
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -36,7 +38,9 @@ import com.google.common.base.Objects;
 /**
  * Represents one abstract state of the FunctionPointer CPA.
  */
-class FunctionPointerState implements AbstractState {
+class FunctionPointerState implements AbstractState, Serializable {
+
+  private static final long serialVersionUID = -1951853216031911649L;
 
   // java reference counting + immutable objects should help us
   // to reduce memory consumption.
@@ -68,7 +72,8 @@ class FunctionPointerState implements AbstractState {
     }
   }
 
-  static final class InvalidTarget extends FunctionPointerTarget {
+  static final class InvalidTarget extends FunctionPointerTarget implements Serializable {
+    private static final long serialVersionUID = 7067934518471075538L;
     private static final InvalidTarget instance = new InvalidTarget();
 
     private InvalidTarget() { }
@@ -93,8 +98,9 @@ class FunctionPointerState implements AbstractState {
     }
   }
 
-  static final class NamedFunctionTarget extends FunctionPointerTarget {
+  static final class NamedFunctionTarget extends FunctionPointerTarget implements Serializable{
 
+    private static final long serialVersionUID = 9001748459212617220L;
     private final String functionName;
 
     public NamedFunctionTarget(String pFunctionName) {
