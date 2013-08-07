@@ -182,8 +182,6 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private void addToPrecisionIncrement(Multimap<CFANode, String> increment, CFAEdge currentEdge, String variableName) {
     if(assignments == null || !assignments.variableExceedsThreshold(variableName)) {
       increment.put(currentEdge.getSuccessor(), variableName);
-    } else {
-      System.out.println(variableName + " exceeds threshold!");
     }
   }
 
