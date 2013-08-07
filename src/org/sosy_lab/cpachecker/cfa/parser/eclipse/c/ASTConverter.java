@@ -100,6 +100,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -107,6 +108,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
 import com.google.common.base.Strings;
@@ -136,6 +138,8 @@ class ASTConverter {
 
   // this list is for ternary operators, &&, etc.
   private final List<Pair<IASTExpression, CIdExpression>> conditionalExpressions = new ArrayList<>();
+
+  private static final ContainsProblemTypeVisitor containsProblemTypeVisitor = new ContainsProblemTypeVisitor();
 
   public ASTConverter(Configuration config, Scope pScope, LogManager pLogger, MachineModel pMachineModel, String staticVariablePrefix) throws InvalidConfigurationException {
     config.inject(this);
@@ -485,6 +489,68 @@ class ASTConverter {
     }
   }
 
+  private static class ContainsProblemTypeVisitor implements CTypeVisitor<Boolean, RuntimeException> {
+
+    @Override
+    public Boolean visit(final CArrayType t) {
+      return t.getType().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CCompositeType t) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(final CElaboratedType t) {
+      final CType realType = t.getRealType();
+      if (realType != null) {
+        return realType.accept(this);
+      } else {
+        return false;
+      }
+    }
+
+    @Override
+    public Boolean visit(final CEnumType t) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(final CFunctionType t) {
+      for (CType parameterType : t.getParameters()) {
+        if (parameterType.accept(this)) {
+          return true;
+        }
+      }
+      return t.getReturnType().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CPointerType t) {
+      return t.getType().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CProblemType t) {
+      return true;
+    }
+
+    @Override
+    public Boolean visit(final CSimpleType t) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(CTypedefType t) {
+      return t.getRealType().accept(this);
+    }
+  }
+
+  private static boolean containsProblemType(final CType type) {
+    return type.accept(containsProblemTypeVisitor);
+  }
+
   private CFieldReference convert(IASTFieldReference e) {
     CType type = typeConverter.convert(e.getExpressionType());
     CExpression owner = convertExpressionWithoutSideEffects(e.getFieldOwner());
@@ -497,10 +563,10 @@ class ASTConverter {
       owner = createInitializedTemporaryVariable(e.getFieldOwner(), owner);
     }
 
-    if (type instanceof CProblemType) {
-      CType ownerType = owner.getExpressionType();
-      if (ownerType instanceof CElaboratedType) {
-        ownerType = ((CElaboratedType)ownerType).getRealType();
+    if (containsProblemType(type)) {
+      CType ownerType = owner.getExpressionType().getCanonicalType();
+      if (e.isPointerDereference() && ownerType instanceof CPointerType) {
+        ownerType = ((CPointerType) ownerType).getType();
       }
       if (ownerType instanceof CCompositeType) {
         CCompositeType compositeType = (CCompositeType)ownerType;
