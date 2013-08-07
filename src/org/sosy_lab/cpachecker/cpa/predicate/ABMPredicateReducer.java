@@ -378,7 +378,7 @@ public class ABMPredicateReducer implements Reducer {
   @Override
   public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) {
-    // must be checked before that pRootState is an abstraction state
+
     PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
     PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;
 
