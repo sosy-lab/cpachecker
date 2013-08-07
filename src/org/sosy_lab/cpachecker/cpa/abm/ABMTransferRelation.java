@@ -647,8 +647,8 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
   void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath,
-      ARGState element, Precision newPrecision,
-      Class<? extends Precision> pPrecisionType,
+      ARGState element, List<Precision> pNewPrecisions,
+      List<Class<? extends Precision>> pNewPrecisionTypes,
       Map<ARGState, ARGState> pPathElementToReachedState) {
     removeSubtreeTimer.start();
 
@@ -681,7 +681,7 @@ public class ABMTransferRelation implements TransferRelation {
     }
 
     if (aggressiveCaching) {
-      ensureExactCacheHitsOnPath(mainReachedSet, pPath, element, newPrecision, pPathElementToReachedState,
+      ensureExactCacheHitsOnPath(mainReachedSet, pPath, element, pNewPrecisions, pPathElementToReachedState,
           neededRemoveCachedSubtreeCalls);
     }
 
@@ -690,20 +690,20 @@ public class ABMTransferRelation implements TransferRelation {
     }
 
     for (Pair<ARGState, ARGState> removeCachedSubtreeArguments : neededRemoveCachedSubtreeCalls) {
-      removeCachedSubtree(removeCachedSubtreeArguments.getFirst(), removeCachedSubtreeArguments.getSecond(), null, pPrecisionType);
+      removeCachedSubtree(removeCachedSubtreeArguments.getFirst(), removeCachedSubtreeArguments.getSecond(), null, pNewPrecisionTypes);
     }
 
     if (lastElement == null) {
-      removeSubtree(mainReachedSet, pPathElementToReachedState.get(element), newPrecision, pPrecisionType);
+      removeSubtree(mainReachedSet, pPathElementToReachedState.get(element), pNewPrecisions, pNewPrecisionTypes);
     } else {
-      removeCachedSubtree(lastElement, pPathElementToReachedState.get(element), newPrecision, pPrecisionType);
+      removeCachedSubtree(lastElement, pPathElementToReachedState.get(element), pNewPrecisions, pNewPrecisionTypes);
     }
 
     removeSubtreeTimer.stop();
   }
 
   private void ensureExactCacheHitsOnPath(ARGReachedSet mainReachedSet, ARGPath pPath, ARGState pElement,
-      Precision newPrecision, Map<ARGState, ARGState> pPathElementToReachedState,
+      List<Precision> pNewPrecisions, Map<ARGState, ARGState> pPathElementToReachedState,
       Set<Pair<ARGState, ARGState>> neededRemoveCachedSubtreeCalls) {
     Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet = new HashMap<>();
     Pair<Set<ARGState>, Set<ARGState>> pair =
@@ -732,7 +732,7 @@ public class ABMTransferRelation implements TransferRelation {
           Block currentBlock = partitioning.getBlockForCallNode(node);
           AbstractState reducedState = wrappedReducer.getVariableReducedState(currentReachedState, currentBlock, node);
 
-          removeUnpreciseCacheEntriesOnPath(currentElement, reducedState, newPrecision, currentBlock,
+          removeUnpreciseCacheEntriesOnPath(currentElement, reducedState, pNewPrecisions, currentBlock,
               remainingPathElements, pPathElementToReachedState, callNodes, returnNodes, pathElementToOuterReachedSet,
               neededRemoveCachedSubtreeCalls);
         }
@@ -741,16 +741,20 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
   private boolean removeUnpreciseCacheEntriesOnPath(ARGState rootState, AbstractState reducedRootState,
-      Precision newPrecision, Block rootBlock, Deque<ARGState> remainingPathElements,
+      List<Precision> pNewPrecisions, Block rootBlock, Deque<ARGState> remainingPathElements,
       Map<ARGState, ARGState> pPathElementToReachedState, Set<ARGState> callNodes, Set<ARGState> returnNodes,
       Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet,
       Set<Pair<ARGState, ARGState>> neededRemoveCachedSubtreeCalls) {
     UnmodifiableReachedSet outerReachedSet = pathElementToOuterReachedSet.get(rootState);
 
     Precision rootPrecision = outerReachedSet.getPrecision(pPathElementToReachedState.get(rootState));
+
+    for (int i = 0; i < pNewPrecisions.size(); i++) {
+      rootPrecision = Precisions.replaceByType(rootPrecision, pNewPrecisions.get(i), pNewPrecisions.get(i).getClass());
+    }
     Precision reducedNewPrecision =
         wrappedReducer.getVariableReducedPrecision(
-            Precisions.replaceByType(rootPrecision, newPrecision, newPrecision.getClass()), rootBlock);
+            rootPrecision, rootBlock);
 
     UnmodifiableReachedSet innerReachedSet = abstractStateToReachedSet.get(pPathElementToReachedState.get(rootState));
     Precision usedPrecision = innerReachedSet.getPrecision(innerReachedSet.getFirstState());
@@ -776,7 +780,7 @@ public class ABMTransferRelation implements TransferRelation {
         AbstractState reducedState = wrappedReducer.getVariableReducedState(currentReachedState, currentBlock, node);
 
         boolean removedUnpreciseInnerBlock =
-            removeUnpreciseCacheEntriesOnPath(currentElement, reducedState, newPrecision, currentBlock,
+            removeUnpreciseCacheEntriesOnPath(currentElement, reducedState, pNewPrecisions, currentBlock,
                 remainingPathElements, pPathElementToReachedState, callNodes, returnNodes,
                 pathElementToOuterReachedSet, neededRemoveCachedSubtreeCalls);
         if (removedUnpreciseInnerBlock) {
@@ -801,7 +805,8 @@ public class ABMTransferRelation implements TransferRelation {
 
 
   private void removeCachedSubtree(ARGState rootState, ARGState removeElement,
-      Precision newPrecision, Class<? extends Precision> pPrecisionType) {
+      List<Precision> pNewPrecisions,
+      List<Class<? extends Precision>> pPrecisionTypes) {
     removeCachedSubtreeTimer.start();
 
     try {
@@ -819,12 +824,17 @@ public class ABMTransferRelation implements TransferRelation {
       }
 
       Precision removePrecision = reachedSet.getPrecision(removeElement);
-      Precision newReducedRemovePrecision = null;
-      if (newPrecision != null) {
-        newReducedRemovePrecision =
-            wrappedReducer.getVariableReducedPrecision(
-                Precisions.replaceByType(removePrecision, newPrecision, pPrecisionType), rootSubtree);
-        pPrecisionType = newReducedRemovePrecision.getClass();
+      ArrayList<Precision> newReducedRemovePrecision = null;
+      if (pNewPrecisions != null) {
+        newReducedRemovePrecision = new ArrayList<>(1);
+
+        for (int i = 0; i < pNewPrecisions.size(); i++) {
+          removePrecision = Precisions.replaceByType(removePrecision, pNewPrecisions.get(i), pPrecisionTypes.get(i));
+        }
+
+        newReducedRemovePrecision.add(wrappedReducer.getVariableReducedPrecision(removePrecision, rootSubtree));
+        pPrecisionTypes = new ArrayList<>();
+        pPrecisionTypes.add(newReducedRemovePrecision.get(0).getClass());
       }
 
       assert !removeElement.getParents().isEmpty();
@@ -835,9 +845,9 @@ public class ABMTransferRelation implements TransferRelation {
 
       logger.log(Level.FINEST, "Removing subtree, adding a new cached entry, and removing the former cached entries");
 
-      if (removeSubtree(reachedSet, removeElement, newReducedRemovePrecision, pPrecisionType)) {
+      if (removeSubtree(reachedSet, removeElement, newReducedRemovePrecision, pPrecisionTypes)) {
         argCache
-            .updatePrecisionForEntry(reducedRootState, reducedRootPrecision, rootSubtree, newReducedRemovePrecision);
+            .updatePrecisionForEntry(reducedRootState, reducedRootPrecision, rootSubtree, newReducedRemovePrecision.get(0));
       }
 
     } finally {
@@ -853,10 +863,10 @@ public class ABMTransferRelation implements TransferRelation {
    * @return <code>true</code>, if the precision of the first element of the given reachedSet changed by this operation; <code>false</code>, otherwise.
    */
   private static boolean removeSubtree(ReachedSet reachedSet, ARGState argElement,
-      Precision newPrecision, Class<? extends Precision> pPrecisionType) {
+      List<Precision> newPrecisions, List<Class<? extends Precision>> pPrecisionTypes) {
     ARGReachedSet argReachSet = new ARGReachedSet(reachedSet);
     boolean updateCacheNeeded = argElement.getParents().contains(reachedSet.getFirstState());
-    removeSubtree(argReachSet, argElement, newPrecision, pPrecisionType);
+    removeSubtree(argReachSet, argElement, newPrecisions, pPrecisionTypes);
     return updateCacheNeeded;
   }
 
@@ -865,11 +875,11 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
   private static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement,
-      Precision newPrecision, Class<? extends Precision> pPrecisionType) {
-    if (newPrecision == null) {
+      List<Precision> newPrecisions, List<Class<? extends Precision>> pPrecisionTypes) {
+    if (newPrecisions == null || newPrecisions.size() == 0) {
       removeSubtree(reachedSet, argElement);
     } else {
-      reachedSet.removeSubtree(argElement, newPrecision, pPrecisionType);
+      reachedSet.removeSubtree(argElement, newPrecisions, pPrecisionTypes);
     }
   }
 
