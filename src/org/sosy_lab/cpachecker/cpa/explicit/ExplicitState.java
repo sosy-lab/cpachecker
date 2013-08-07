@@ -673,7 +673,19 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
       int result = 0;
 
-      result = isOnFunctionStack() ? functionName.compareTo(other.functionName) : 0;
+      if (isOnFunctionStack()) {
+        if (other.isOnFunctionStack()) {
+          result = functionName.compareTo(other.functionName);
+        } else {
+          result = 1;
+        }
+      } else {
+        if (other.isOnFunctionStack()) {
+          result = -1;
+        } else {
+          result = 0;
+        }
+      }
 
       if (result == 0) {
         result = identifier.compareTo(other.identifier);
