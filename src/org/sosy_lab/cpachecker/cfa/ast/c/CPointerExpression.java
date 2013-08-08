@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 

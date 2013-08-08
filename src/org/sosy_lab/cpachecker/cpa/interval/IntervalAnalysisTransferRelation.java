@@ -959,7 +959,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
     public Interval visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
       CExpression operand = pointerExpression.getOperand();
 
-      Interval interval = operand.accept(this);
+      operand.accept(this);
       return Interval.createUnboundInterval();
     }
   }

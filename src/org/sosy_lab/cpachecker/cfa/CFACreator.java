@@ -244,7 +244,6 @@ public class CFACreator {
 
           c = parser.parseString(program);
         } else {
-          String staticVariablePrefix;
           int counter = 0;
           String[] paths = programDenotation.split(", ");
           String[] programs = new String[paths.length];
@@ -266,7 +265,6 @@ public class CFACreator {
         if(denotesOneFile(programDenotation)) {
           c = parser.parseFile((programDenotation));
         } else {
-          String staticVariablePrefix;
           int counter = 0;
           String[] paths = programDenotation.split(", ");
           String[] staticVarPrefixes = new String[paths.length];
