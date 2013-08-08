@@ -101,8 +101,8 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
 
       for (int i = 0; i < helper.length; i++) {
         helper[i] = new StateCheckingHelper(barrier, result, propChecker, checker);
+        helper[i].start();
       }
-
 
       //check ABMARG blocks
       Block block;
@@ -125,7 +125,6 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
         for (int j = 0; j < helper.length; j++) {
           helper[j].setCheckingInfo(j * numElems, numElems, argStates, block);
         }
-
         barrier.await();
 
         // check
@@ -283,8 +282,9 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
   protected void prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
     try {
       stats.preparationTimer.start();
-      if (!(pReadProof instanceof ARGState[] || ((ARGState[]) pReadProof).length < 1))
+      if (!(pReadProof instanceof ARGState[] || ((ARGState[]) pReadProof).length < 1)) {
         throw new InvalidConfigurationException("Proof Strategy requires ARG.");
+      }
       args = (ARGState[]) pReadProof;
     } finally {
       stats.preparationTimer.stop();
@@ -435,6 +435,7 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
       lastRound = true;
       startCheck = pStartIndex;
       numElemsToCheck = pNumberElems;
+      states = argStates;
     }
 
     public void setCheckingInfo(int pStartIndex, int pNumberElems, List<ARGState> argStates, Block block) {
@@ -442,6 +443,7 @@ public class ARGProofCheckerParallelStrategy extends AbstractStrategy {
       startCheck = pStartIndex;
       numElemsToCheck = pNumberElems;
       currentB = block;
+      states = argStates;
     }
 
     @Override
