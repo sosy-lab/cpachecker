@@ -743,6 +743,10 @@ public class SMGExpressionEvaluator {
     }
 
     //TODO isPointer(symbolicValue)
+    if(!pSmgState.isPointer(pAddressValue.getAsInt())) {
+      return SMGUnknownValue.getInstance();
+    }
+
     SMGEdgePointsTo edge = pSmgState.getPointerFromValue(pAddressValue.getAsInt());
 
     return createAddress(edge);
@@ -1692,5 +1696,13 @@ public class SMGExpressionEvaluator {
 
   public LValueAssignmentVisitor getLValueAssignmentVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new LValueAssignmentVisitor(pCfaEdge, pNewState);
+  }
+
+  public LogManager getLogger() {
+    return logger;
+  }
+
+  public MachineModel getMachineModel() {
+    return machineModel;
   }
 }

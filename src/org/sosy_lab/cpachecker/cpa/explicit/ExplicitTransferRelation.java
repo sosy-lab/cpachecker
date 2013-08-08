@@ -89,6 +89,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -145,7 +147,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   private Long notScopedFieldValue;
 
   private boolean missingAssumeInformation;
-  
+
   private final LogManager logger;
   private final MachineModel machineModel;
 
@@ -165,7 +167,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       throws InvalidConfigurationException {
     config.inject(this);
     logger= pLogger;
-    machineModel = pMachineModel;    
+    machineModel = pMachineModel;
   }
 
   @Override
@@ -492,6 +494,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     } else if (op1 instanceof APointerExpression) {
       // *a = ...
 
+      if (isRelevant(op1, op2)) {
+        missingInformationList.add(new MissingInformation(op1, op2));
+      }
+
       op1 = ((APointerExpression)op1).getOperand();
 
       // Cil produces code like
@@ -505,20 +511,15 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       if (op1 instanceof AIdExpression) {
         missingInformationLeftPointer = ((AIdExpression)op1).getName();
         missingInformationRightExpression = op2;
-
-        if (op1 instanceof CExpression) {
-          assert op2 instanceof CRightHandSide;
-          missingInformationList.add(new MissingInformation(op1, op2));
-        }
       }
     }
 
     else if (op1 instanceof CFieldReference) {
       // a->b = ...
 
-      assert op2 instanceof CRightHandSide;
-      missingInformationList.add(new MissingInformation(op1, op2));
-
+      if (isRelevant(op1, op2)) {
+        missingInformationList.add(new MissingInformation(op1, op2));
+      }
       //TODO Investigate if this can be erased safely
       return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor());
     }
@@ -527,8 +528,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     else if (op1 instanceof CArraySubscriptExpression || op1 instanceof AArraySubscriptExpression) {
       // array cell
 
-      if (op1 instanceof CArraySubscriptExpression) {
-        assert op2 instanceof CRightHandSide;
+      if (isRelevant(op1, op2)) {
         missingInformationList.add(new MissingInformation(op1, op2));
       }
     } else {
@@ -536,6 +536,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     return state; // the default return-value is the old state
+  }
+
+  private boolean isRelevant(IAExpression pOp1, IARightHandSide pOp2) {
+    return pOp1 instanceof CExpression && pOp2 instanceof CExpression;
   }
 
   /** This method analyses the expression with the visitor and assigns the value to lParam.
@@ -614,7 +618,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   private class ExpressionValueVisitor extends org.sosy_lab.cpachecker.cpa.explicit.ExpressionValueVisitor {
 
     public ExpressionValueVisitor() {
-      super(state, functionName);
+      super(state, functionName, machineModel);
 
     }
 
@@ -972,10 +976,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     throws UnrecognizedCCodeException {
     assert element instanceof ExplicitState;
 
-    @SuppressWarnings("unused")
-    ExplicitState oldState = this.oldState;
-    this.oldState = null;
-
     super.setInfo(element, precision, cfaEdge);
 
     Collection<? extends AbstractState> retVal = null;
@@ -993,6 +993,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     super.resetInfo();
+    oldState = null;
 
     return retVal;
   }
@@ -1001,18 +1002,41 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     ExplicitState newElement = state.clone();
 
-    for(MissingInformation missingInformation : missingInformationList) {
-      if(missingInformation.isMissingAssumption()) {
+    for (MissingInformation missingInformation : missingInformationList) {
+      if (missingInformation.isMissingAssumption()) {
         newElement = resolvingAssumption(newElement, smgState, missingInformation);
-      } else if(missingInformation.isMissingAssignment()) {
-        newElement = resolvingAssignment(newElement, smgState, missingInformation);
+      } else if (missingInformation.isMissingAssignment()) {
+        if (isRelevant(missingInformation)) {
+          newElement = resolvingAssignment(newElement, smgState, missingInformation);
+        }
       }
     }
 
     //TODO More common handling of missing information (erase missing Information if other cpas solved it).
     missingInformationList.clear();
 
+    if(newElement == null) {
+      return new HashSet<>();
+    }
+
     return state.equals(newElement) ? null : Collections.singleton(newElement);
+  }
+
+  private boolean isRelevant(MissingInformation missingInformation) {
+
+    CRightHandSide value;
+
+    if (missingInformation.hasUnknownMemoryLocation()) {
+      value = missingInformation.getMissingCLeftMemoryLocation();
+    } else if (missingInformation.hasUnknownValue()) {
+      value = missingInformation.getMissingCExpressionInformation();
+    } else {
+      return false;
+    }
+
+    CType type = value.getExpressionType().getCanonicalType();
+
+    return !(type instanceof CPointerType);
   }
 
   //TODO Better Name, these are not just Assignments, but also calls, etc

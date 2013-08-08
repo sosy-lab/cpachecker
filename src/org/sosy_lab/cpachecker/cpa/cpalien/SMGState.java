@@ -261,6 +261,23 @@ public class SMGState implements AbstractQueryableState {
   }
 
   /**
+   * Checks, if a symbolic value is an address.
+   *
+   * Constant.
+   *
+   * @param pValue A value for which to return the Points-To edge
+   * @return A Points-To edge leading from the passed value. The value needs to be
+   * a pointer, i.e. it needs to have that edge. If it does not have it, the method raises
+   * an exception.
+   *
+   * @throws SMGInconsistentException When the value passed does not have a Points-To edge.
+   */
+  public boolean isPointer(Integer pValue) {
+
+    return heap.isPointer(pValue);
+  }
+
+  /**
    * Read Value in field (object, type) of an Object.
    *
    * @param pObject SMGObject representing the memory the field belongs to.
@@ -397,7 +414,8 @@ public class SMGState implements AbstractQueryableState {
 
     // We need to remove all non-zero overlapping edges
     for (SMGEdgeHasValue hv : edges) {
-      if (hv.getValue() != heap.getNullValue() && new_edge.overlapsWith(hv, heap.getMachineModel())) {
+      if (/*hv.getValue() != heap.getNullValue() &&*/ new_edge.overlapsWith(hv, heap.getMachineModel())) {
+        // as long as we do not shrink zero edges, remove
         heap.removeHasValueEdge(hv);
       }
     }
@@ -500,6 +518,14 @@ public class SMGState implements AbstractQueryableState {
 
   public boolean isGlobal(String variable) {
     return  heap.getGlobalObjects().containsValue(heap.getObjectForVisibleVariable(variable));
+  }
+
+  public boolean isGlobal(SMGObject object) {
+    return heap.getGlobalObjects().containsValue(object);
+  }
+
+  public boolean isHeapObject(SMGObject object) {
+    return heap.getHeapObjects().contains(object);
   }
 
   public SMGEdgePointsTo addNewHeapAllocation(int pSize, String pLabel) throws SMGInconsistentException {
@@ -644,8 +670,14 @@ public class SMGState implements AbstractQueryableState {
     return this.heap.getHVEdges(pFilter);
   }
 
-  public MemoryLocation resolveMemLoc(SMGAddress pValue) {
-    // TODO Auto-generated method stub
-    return null;
+  public MemoryLocation resolveMemLoc(SMGAddress pValue, String pFunctionName) {
+    SMGObject object = pValue.getObject();
+    long offset = pValue.getOffset().getAsLong();
+
+    if (isGlobal(object) || isHeapObject(object)) {
+      return MemoryLocation.valueOf(object.getLabel(), offset);
+    } else {
+      return MemoryLocation.valueOf(pFunctionName, object.getLabel(), offset);
+    }
   }
 }

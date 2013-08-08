@@ -35,8 +35,10 @@ import org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.LValueAssignmentVisitor;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGState;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -63,6 +65,24 @@ public class SMGExplicitCommunicator {
     return rValue.accept(evv);
   }
 
+  public SMGSymbolicValue evaluateSMGExpression(ExplicitState pState, String pFunctionName,
+      SMGState pSmgState, MachineModel machineModel, LogManager pLogger, CFAEdge pCfaEdge,
+      CRightHandSide rValue) throws CPATransferException {
+
+    SMGExplicitExpressionEvaluator eee =
+        new SMGExplicitExpressionEvaluator(pLogger, machineModel, pState, pFunctionName, pSmgState, pCfaEdge);
+    return eee.evaluateExpressionValue(pSmgState, pCfaEdge, rValue);
+  }
+
+  public SMGAddressValue evaluateSMGAddressExpression(ExplicitState pState, String pFunctionName,
+      SMGState pSmgState, MachineModel machineModel, LogManager pLogger, CFAEdge pCfaEdge,
+      CRightHandSide rValue) throws CPATransferException {
+
+    SMGExplicitExpressionEvaluator eee =
+        new SMGExplicitExpressionEvaluator(pLogger, machineModel, pState, pFunctionName, pSmgState, pCfaEdge);
+    return eee.evaluateAddress(pSmgState, pCfaEdge, rValue);
+  }
+
   public MemoryLocation evaluateLeftHandSide(ExplicitState pState, String pFunctionName,
       SMGState pSmgState, MachineModel machineModel, LogManager pLogger, CFAEdge pCfaEdge,
       CExpression lValue) throws UnrecognizedCCodeException {
@@ -72,7 +92,16 @@ public class SMGExplicitCommunicator {
     return evv.evaluateMemloc(lValue);
   }
 
-  private class ExplicitExpressionValueVisitor extends ExpressionValueVisitor {
+  public SMGAddress evaluateSMGLeftHandSide(ExplicitState pState, String pFunctionName,
+      SMGState pSmgState, MachineModel machineModel, LogManager pLogger, CFAEdge pCfaEdge,
+      CExpression lValue) throws UnrecognizedCCodeException {
+
+    ExplicitExpressionValueVisitor evv =
+        new ExplicitExpressionValueVisitor(pState, pFunctionName, pSmgState, machineModel, pLogger, pCfaEdge);
+    return evv.evaluateAddress(lValue);
+  }
+
+  private static class ExplicitExpressionValueVisitor extends ExpressionValueVisitor {
 
     private final SMGExplicitExpressionEvaluator smgEvaluator;
     private final SMGState smgState;
@@ -81,11 +110,40 @@ public class SMGExplicitCommunicator {
 
     public ExplicitExpressionValueVisitor(ExplicitState pState, String pFunctionName,
         SMGState pSmgState, MachineModel machineModel, LogManager pLogger, CFAEdge pCfaEdge) {
-      super(pState, pFunctionName);
+      super(pState, pFunctionName, machineModel);
       smgEvaluator = new SMGExplicitExpressionEvaluator(pLogger, machineModel, this);
       smgState = pSmgState;
       cfaEdge = pCfaEdge;
       logger = pLogger;
+    }
+
+    public ExplicitExpressionValueVisitor(ExplicitState pState, String pFunctionName,
+        SMGState pSmgState, CFAEdge pCfaEdge, SMGExplicitExpressionEvaluator pSmgEvaluator) {
+      super(pState, pFunctionName, pSmgEvaluator.getMachineModel());
+      smgEvaluator = pSmgEvaluator;
+      smgState = pSmgState;
+      cfaEdge = pCfaEdge;
+      logger = smgEvaluator.getLogger();
+    }
+
+    public SMGAddress evaluateAddress(CExpression pOperand) throws UnrecognizedCCodeException {
+      SMGAddress value;
+
+      LValueAssignmentVisitor visitor = smgEvaluator.getLValueAssignmentVisitor(cfaEdge, smgState);
+
+      try {
+        value = pOperand.accept(visitor);
+      } catch (CPATransferException e) {
+        if (e instanceof UnrecognizedCCodeException) {
+          throw (UnrecognizedCCodeException) e;
+        } else {
+          logger.logDebugException(e);
+          throw new UnrecognizedCCodeException("Could not evluate Address of " + pOperand.toASTString(),
+              cfaEdge, pOperand);
+        }
+      }
+
+      return value;
     }
 
     @Override
@@ -121,31 +179,17 @@ public class SMGExplicitCommunicator {
 
     public MemoryLocation evaluateMemloc(CExpression pOperand) throws UnrecognizedCCodeException {
 
-      SMGAddress value;
+      SMGAddress value = evaluateAddress(pOperand);
 
-      LValueAssignmentVisitor visitor = smgEvaluator.getLValueAssignmentVisitor(cfaEdge, smgState);
-
-      try {
-        value = pOperand.accept(visitor);
-      } catch (CPATransferException e) {
-        if (e instanceof UnrecognizedCCodeException) {
-          throw (UnrecognizedCCodeException) e;
-        } else {
-          logger.logDebugException(e);
-          throw new UnrecognizedCCodeException("Could not evluate Address of " + pOperand.toASTString(),
-              cfaEdge, pOperand);
-        }
-      }
-
-      if (value.isUnknown()) {
+      if(value == null || value.isUnknown()) {
         return null;
       } else {
-        return smgState.resolveMemLoc(value);
+        return smgState.resolveMemLoc(value, getFunctionName());
       }
     }
   }
 
-  private class SMGExplicitExpressionEvaluator extends SMGExpressionEvaluator {
+  private static class SMGExplicitExpressionEvaluator extends SMGExpressionEvaluator {
 
     ExplicitExpressionValueVisitor evv;
 
@@ -153,6 +197,17 @@ public class SMGExplicitCommunicator {
         ExplicitExpressionValueVisitor pEvv) {
       super(pLogger, pMachineModel);
       evv = pEvv;
+    }
+
+    @Override
+    public MachineModel getMachineModel() {
+      return super.getMachineModel();
+    }
+
+    public SMGExplicitExpressionEvaluator(LogManager pLogger, MachineModel pMachineModel, ExplicitState pExplicitState,
+        String pFunctionName, SMGState pSmgState, CFAEdge pCfaEdge) {
+      super(pLogger, pMachineModel);
+      evv = new ExplicitExpressionValueVisitor(pExplicitState, pFunctionName, pSmgState, pCfaEdge, this);
     }
 
     @Override
@@ -167,5 +222,4 @@ public class SMGExplicitCommunicator {
       }
     }
   }
-
 }

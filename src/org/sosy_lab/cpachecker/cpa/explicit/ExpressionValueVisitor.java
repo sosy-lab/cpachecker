@@ -65,7 +65,9 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
@@ -82,10 +84,12 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<Long, Unre
 
   private final ExplicitState state;
   private final String functionName;
+  private final MachineModel machineModel;
 
-  public ExpressionValueVisitor(ExplicitState pState, String pFunctionName) {
+  public ExpressionValueVisitor(ExplicitState pState, String pFunctionName, MachineModel pMachineModel) {
     state = pState;
     functionName = pFunctionName;
+    machineModel = pMachineModel;
   }
 
   @Override
@@ -288,6 +292,8 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<Long, Unre
       return null; // valid expression, but it's a pointer value
 
     case SIZEOF:
+      return getSizeof(unaryExpression.getExpressionType());
+
     case TILDE:
     default:
       // TODO handle unimplemented operators
@@ -598,4 +604,9 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<Long, Unre
   public String getFunctionName() {
     return functionName;
   }
+
+  public long getSizeof(CType pType) throws UnrecognizedCCodeException {
+    return machineModel.getSizeof(pType);
+  }
+
 }
