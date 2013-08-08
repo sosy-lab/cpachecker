@@ -322,6 +322,7 @@ public class ABMTransferRelation implements TransferRelation {
   private final Reducer wrappedReducer;
   private final ABMPrecisionAdjustment prec;
   private final ABMCPA abmCPA;
+  private final ProofChecker wrappedProofChecker;
 
   private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
   private Map<Pair<ARGState, Block>, Collection<ARGState>> correctARGsForBlocks = null;
@@ -347,7 +348,7 @@ public class ABMTransferRelation implements TransferRelation {
 
 
 
-  public ABMTransferRelation(Configuration pConfig, LogManager pLogger, ABMCPA abmCpa,
+  public ABMTransferRelation(Configuration pConfig, LogManager pLogger, ABMCPA abmCpa, ProofChecker wrappedChecker,
       ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
@@ -358,6 +359,7 @@ public class ABMTransferRelation implements TransferRelation {
     prec = abmCpa.getPrecisionAdjustment();
     PCCInformation.instantiate(pConfig);
     abmCPA = abmCpa;
+    wrappedProofChecker = wrappedChecker;
 
     assert wrappedReducer != null;
   }
@@ -1090,14 +1092,14 @@ public class ABMTransferRelation implements TransferRelation {
   }
 
   public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors, ProofChecker pWrappedProofChecker) throws CPATransferException,
+      Collection<? extends AbstractState> pSuccessors) throws CPATransferException,
       InterruptedException {
-    if (pCfaEdge != null) { return pWrappedProofChecker.areAbstractSuccessors(pState, pCfaEdge, pSuccessors); }
-    return areAbstractSuccessors0(pState, pCfaEdge, pSuccessors, pWrappedProofChecker, partitioning.getMainBlock());
+    if (pCfaEdge != null) { return wrappedProofChecker.areAbstractSuccessors(pState, pCfaEdge, pSuccessors); }
+    return areAbstractSuccessors0(pState, pCfaEdge, pSuccessors, partitioning.getMainBlock());
   }
 
-  private boolean areAbstractSuccessors0(AbstractState pState, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors, ProofChecker pWrappedProofChecker, final Block currentBlock)
+  public boolean areAbstractSuccessors0(AbstractState pState, CFAEdge pCfaEdge,
+      Collection<? extends AbstractState> pSuccessors, final Block currentBlock)
       throws CPATransferException,
       InterruptedException {
     // currently cannot deal with blocks for which the set of call nodes and return nodes of that block is not disjunct
@@ -1125,7 +1127,7 @@ public class ABMTransferRelation implements TransferRelation {
           endOfBlock = correctARGsForBlocks.get(key);
         } else {
           Pair<Boolean, Collection<ARGState>> result =
-              checkARGBlock(((ABMARGBlockStartState) pState).getAnalyzedBlock(), pWrappedProofChecker, analyzedBlock);
+              checkARGBlock(((ABMARGBlockStartState) pState).getAnalyzedBlock(), analyzedBlock);
           if (!result.getFirst()) { return false; }
           endOfBlock = result.getSecond();
           setCorrectARG(key, endOfBlock);
@@ -1181,8 +1183,7 @@ public class ABMTransferRelation implements TransferRelation {
           if (usedEdges.contains(node.getLeavingEdge(i))) { return false; }
           continue;
         }
-        if (!pWrappedProofChecker.areAbstractSuccessors(pState, node.getLeavingEdge(i), pSuccessors)) {
-          pWrappedProofChecker.areAbstractSuccessors(pState, node.getLeavingEdge(i), pSuccessors);
+        if (!wrappedProofChecker.areAbstractSuccessors(pState, node.getLeavingEdge(i), pSuccessors)) {
           return false;
         }
       }
@@ -1190,7 +1191,7 @@ public class ABMTransferRelation implements TransferRelation {
     return true;
   }
 
-  private Pair<Boolean, Collection<ARGState>> checkARGBlock(ARGState rootNode, ProofChecker pWrappedProofChecker,
+  private Pair<Boolean, Collection<ARGState>> checkARGBlock(ARGState rootNode,
       final Block currentBlock)
       throws CPAException, InterruptedException {
     Collection<ARGState> returnNodes = new ArrayList<>();
@@ -1249,7 +1250,7 @@ public class ABMTransferRelation implements TransferRelation {
         returnNodes.add(current);
       }
 
-      if (!areAbstractSuccessors0(current, null, current.getChildren(), pWrappedProofChecker, currentBlock)) {
+      if (!areAbstractSuccessors0(current, null, current.getChildren(), currentBlock)) {
         returnNodes = Collections.emptyList();
         return Pair.of(false, returnNodes);
       }
