@@ -438,7 +438,7 @@ public class SMGState implements AbstractQueryableState {
    * @return the join of the two states.
    */
   public SMGState join(SMGState reachedState) {
-    // Not neccessary if merge_SEP and stop_SEP is used.
+    // Not necessary if merge_SEP and stop_SEP is used.
     return null;
   }
 
@@ -453,8 +453,7 @@ public class SMGState implements AbstractQueryableState {
    * @return True, if this state is covered by the given state, false otherwise.
    */
   public boolean isLessOrEqual(SMGState reachedState) {
-    // TODO Auto-generated method stub
-    return false;
+    return heap.isLessOrEqual(reachedState.heap);
   }
 
   @Override
