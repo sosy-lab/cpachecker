@@ -482,6 +482,12 @@ public class CLangSMG extends SMG {
    */
   public boolean isLessOrEqual(SMGObject object1, SMGObject object2,
       CLangSMG object2SMG) {
+    return isLessOrEqualRec(object1, object2, object2SMG,
+        new HashSet<Pair<SMGObject, SMGObject>>());
+  }
+
+  private boolean isLessOrEqualRec(SMGObject object1, SMGObject object2,
+      CLangSMG object2SMG, Set<Pair<SMGObject, SMGObject>> reached) {
 
     if (!object1.getLabel().equals(object2)) {
       return false;
@@ -521,16 +527,25 @@ public class CLangSMG extends SMG {
     }
 
     for (Pair<SMGEdgePointsTo, SMGEdgePointsTo> edges : objectPTEdges) {
-      isLessOrEqual(edges.getFirst().getObject(),
-          edges.getSecond().getObject(), object2SMG);
 
-      //TODO ReachedSet is Necessary, or this will never terminate
+      SMGObject newObject1 = edges.getFirst().getObject();
+      SMGObject newObject2 = edges.getSecond().getObject();
+
+      Pair<SMGObject, SMGObject> target = Pair.of(newObject1, newObject2);
+
+      if (!reached.contains(target)) {
+        reached.add(target);
+        if (!isLessOrEqualRec(newObject1, newObject2, object2SMG, reached)) {
+          return false;
+        }
+      }
     }
 
     return true;
   }
-
 }
+
+
 
 /**
  * Represents a C language stack frame
