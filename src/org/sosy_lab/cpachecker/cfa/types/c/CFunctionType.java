@@ -60,12 +60,10 @@ public class CFunctionType extends AFunctionType implements CType {
     return (CType) super.getReturnType();
   }
 
-  @Override
   public String getName() {
     return name;
   }
 
-  @Override
   public void setName(String pName) {
     checkState(name == null);
     name = pName;
@@ -155,7 +153,6 @@ public class CFunctionType extends AFunctionType implements CType {
     int result = 7;
     result = prime * result + Objects.hashCode(isConst);
     result = prime * result + Objects.hashCode(isVolatile);
-    result = prime * result + Objects.hashCode(name);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -177,8 +174,7 @@ public class CFunctionType extends AFunctionType implements CType {
 
     CFunctionType other = (CFunctionType) obj;
 
-    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
-           && Objects.equals(name, other.name);
+    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile);
   }
 
   @Override

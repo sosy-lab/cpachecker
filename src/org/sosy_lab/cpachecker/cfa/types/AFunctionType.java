@@ -35,7 +35,6 @@ import com.google.common.collect.ImmutableList;
 public class AFunctionType implements IAFunctionType {
 
   private final Type returnType;
-  private String name = null;
   private final List<? extends Type> parameters;
   private final boolean takesVarArgs;
 
@@ -52,16 +51,6 @@ public class AFunctionType implements IAFunctionType {
   @Override
   public Type getReturnType() {
     return returnType;
-  }
-
-  @Override
-  public String getName() {
-    return name;
-  }
-
-  protected void setName(String pName) {
-    checkState(getName() == null);
-    name = pName;
   }
 
   @Override
@@ -101,7 +90,6 @@ public class AFunctionType implements IAFunctionType {
   public int hashCode() {
       final int prime = 31;
       int result = 7;
-      result = prime * result + Objects.hashCode(name);
       result = prime * result + Objects.hashCode(parameters);
       result = prime * result + Objects.hashCode(returnType);
       return result;
@@ -121,7 +109,7 @@ public class AFunctionType implements IAFunctionType {
 
     // We don't compare takesVarArgs here,
     // because it's not really relevant for type equality.
-    return Objects.equals(name, other.name) && Objects.equals(parameters, other.parameters)
+    return Objects.equals(parameters, other.parameters)
            && Objects.equals(returnType, other.returnType);
   }
 

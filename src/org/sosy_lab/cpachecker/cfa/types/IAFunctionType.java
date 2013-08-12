@@ -29,8 +29,6 @@ import java.util.List;
 public interface IAFunctionType extends Type {
   public Type getReturnType();
 
-  public String getName() ;
-
   public List<? extends Type> getParameters() ;
 
   public boolean takesVarArgs() ;
