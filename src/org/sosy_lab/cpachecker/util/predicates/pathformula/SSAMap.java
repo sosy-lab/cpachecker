@@ -270,7 +270,7 @@ public class SSAMap implements Serializable {
           new Equivalence<CType>() {
             @Override
             protected boolean doEquivalent(CType pA, CType pB) {
-              return CtoFormulaTypeUtils.areEqual(pA, pB);
+              return pA.getCanonicalType().equals(pB.getCanonicalType());
             }
 
             @Override

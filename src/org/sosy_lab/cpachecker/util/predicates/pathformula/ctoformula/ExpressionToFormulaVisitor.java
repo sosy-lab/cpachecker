@@ -177,7 +177,8 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
 
     if (returnFormulaType != conv.fmgr.getFormulaType(ret)) {
       // Could be because both types got promoted
-      if (!areEqual(promT1, t1) && !areEqual(promT2, t2)) {
+      if (!promT1.getCanonicalType().equals(t1.getCanonicalType())
+          && !promT2.getCanonicalType().equals(t2.getCanonicalType())) {
         // We have to cast back to the return type
         ret = conv.makeCast(implicitType, returnType, ret);
       }

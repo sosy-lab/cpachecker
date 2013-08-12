@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -207,7 +206,7 @@ class GlobalScope implements Scope {
 
       CType oldType = oldDeclaration.getType();
 
-      if (!CTypeUtils.equals(type, oldType)) {
+      if (!type.getCanonicalType().equals(oldType.getCanonicalType())) {
         throw new CFAGenerationRuntimeException("Redeclaring " + name
             + " in line " + declaration.getFileLocation().getStartingLineNumber()
             + " with type " + type.toASTString("")

@@ -532,7 +532,7 @@ public class CtoFormulaConverter {
     // The only thing we can do at this point is to expand the variable with nondet bits.
     CType runtimeType = trackType.getStructTypeRepectingCasts();
 
-    if (!areEqual(staticType, runtimeType)) {
+    if (!staticType.getCanonicalType().equals(runtimeType.getCanonicalType())) {
       log(Level.WARNING, "staticType and runtimeType do not match for " + name + " so analysis could be imprecise");
     }
 
@@ -643,7 +643,7 @@ public class CtoFormulaConverter {
    */
   Formula makeCast(CType fromType, CType toType, Formula formula) {
     // UNDEFINED: Casting a numeric value into a value that can't be represented by the target type (either directly or via static_cast)
-    if (areEqual(fromType, toType)) {
+    if (fromType.getCanonicalType().equals(toType.getCanonicalType())) {
       return formula; // No cast required;
     }
 
@@ -841,7 +841,7 @@ public class CtoFormulaConverter {
         CSimpleType s2 = (CSimpleType)pT2;
         CSimpleType resolved = getImplicitSimpleCType(s1, s2);
 
-        if (!areEqual(s1, s2)) {
+        if (!s1.getCanonicalType().equals(s2.getCanonicalType())) {
           log(Level.FINEST, "Implicit Cast: " + s1 + " and " + s2 + " to " + resolved);
         }
 
@@ -980,7 +980,7 @@ public class CtoFormulaConverter {
     // See also http://stackoverflow.com/questions/50605/signed-to-unsigned-conversion-in-c-is-it-always-safe
 
     // If both operands have the same type, no further conversion is needed.
-    if (areEqual(pT1, pT2)) {
+    if (pT1.getCanonicalType().equals(pT2.getCanonicalType())) {
       return pT1;
     }
 
@@ -1234,7 +1234,7 @@ public class CtoFormulaConverter {
     }
 
     CType expType = funcCallExp.getExpressionType();
-    if (!areEqual(expType, retType)) {
+    if (!expType.getCanonicalType().equals(retType.getCanonicalType())) {
       // Bit ignore for now because we sometimes just get ElaboratedType instead of CompositeType
       log(Level.WARNING, getLogMessage("Return type of function " + funcDecl.getName()
           + " is " + retType + ", but result is used as type " + expType, edge));
@@ -1537,7 +1537,7 @@ public class CtoFormulaConverter {
       for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
         if (member.getName().equals(fieldName)) {
           if (assertFieldType != null) {
-            if (!areEqual(assertFieldType, member.getType())) {
+            if (!assertFieldType.getCanonicalType().equals(member.getType().getCanonicalType())) {
               log(Level.SEVERE,
                   "Expected the same type for member (Ignore it for function pointer): " +
                       assertFieldType.toString() + ", " + member.getType().toString());
