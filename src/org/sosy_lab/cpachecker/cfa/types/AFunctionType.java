@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.types;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.util.List;
 import java.util.Objects;
 
