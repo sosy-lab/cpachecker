@@ -173,7 +173,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements ConfigurableProg
     checkArgument(targetState.isTarget());
     checkArgument(!pCounterexample.isSpurious());
     if (pCounterexample.getTargetPath() != null) {
-      checkArgument(pCounterexample.getTargetPath().getLast().getFirst() == targetState);
+      // With ABM, the targetState and the last state of the path
+      // may actually be not identical.
+      checkArgument(pCounterexample.getTargetPath().getLast().getFirst().isTarget());
     }
     counterexamples.put(targetState, pCounterexample);
   }

@@ -63,6 +63,13 @@ public class ARGReachedSet {
   private final ReachedSet mReached;
   private final UnmodifiableReachedSet mUnmodifiableReached;
 
+  /**
+   * Constructor for ARGReachedSet as a simple wrapper around ReachedSet.
+   * If possible, do not use this constructor but the other one that takes
+   * an ARGCPA instance as parameter.
+   * This class notifies the ARGCPA of removed counterexamples if possible
+   * to reduce memory usage.
+   */
   public ARGReachedSet(ReachedSet pReached) {
     this(pReached, null, -1);
   }
@@ -260,7 +267,13 @@ public class ARGReachedSet {
    * @return the elements to re-add to the waitlist
    */
   private SortedSet<ARGState> removeSet(Set<ARGState> elements) {
-    cpa.clearCounterexamples(elements);
+    if (cpa != null) {
+      // This method call is "just" for avoiding a memory leak,
+      // so we can ignore it if we have no reference to the CPA,
+      // however, users of this class should really try to provide the CPA
+      // instance to reduce memory usage.
+      cpa.clearCounterexamples(elements);
+    }
     mReached.removeAll(elements);
 
     SortedSet<ARGState> toWaitlist = new TreeSet<>();
