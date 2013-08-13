@@ -530,6 +530,15 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   }
 
   /**
+   * This method returns the set of tracked variables by this state.
+   *
+   * @return the set of tracked variables by this state
+   */
+  public ImmutableCollection<MemoryLocation> getTrackedMemoryLocations() {
+    return ImmutableSet.copyOf(constantsMap.keySet());
+  }
+
+  /**
    * This method returns the internal mapping of this state.
    *
    * @return the internal mapping of this state
@@ -699,5 +708,36 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
 
       return result;
     }
+  }
+
+
+  public Set<MemoryLocation> getMemoryLocationsOnStack(String pFunctionName) {
+    Set<MemoryLocation> result = new HashSet<>();
+
+    Set<MemoryLocation> memoryLocations = constantsMap.keySet();
+
+    for (MemoryLocation memoryLocation : memoryLocations) {
+      if (memoryLocation.isOnFunctionStack() && memoryLocation.getFunctionName().equals(pFunctionName)) {
+        result.add(memoryLocation);
+      }
+    }
+
+    // Doesn't need a copy, Memory Location is Immutable
+    return result;
+  }
+
+  public Set<MemoryLocation> getGlobalMemoryLocations() {
+    Set<MemoryLocation> result = new HashSet<>();
+
+    Set<MemoryLocation> memoryLocations = constantsMap.keySet();
+
+    for (MemoryLocation memoryLocation : memoryLocations) {
+      if (!memoryLocation.isOnFunctionStack()) {
+        result.add(memoryLocation);
+      }
+    }
+
+    // Doesn't need a copy, Memory Location is Immutable
+    return result;
   }
 }

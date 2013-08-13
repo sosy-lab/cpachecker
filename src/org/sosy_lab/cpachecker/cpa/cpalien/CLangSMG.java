@@ -33,6 +33,8 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -543,6 +545,20 @@ public class CLangSMG extends SMG {
 
     return true;
   }
+
+  @Nullable
+  public String getFunctionName(SMGObject pObject) {
+
+    ArrayDeque<CLangStackFrame> stack_objects = this.stack_objects.clone();
+
+    for (CLangStackFrame cLangStack : stack_objects) {
+      if (cLangStack.getAllObjects().contains(pObject)) {
+        return cLangStack.getFunctionDeclaration().getName();
+      }
+    }
+
+    return null;
+  }
 }
 
 
@@ -550,7 +566,7 @@ public class CLangSMG extends SMG {
 /**
  * Represents a C language stack frame
  */
-final class CLangStackFrame {
+ final class CLangStackFrame {
   public static String RETVAL_LABEL = "___cpa_temp_result_var_";
 
   /**

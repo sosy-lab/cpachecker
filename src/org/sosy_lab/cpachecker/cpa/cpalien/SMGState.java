@@ -669,6 +669,7 @@ public class SMGState implements AbstractQueryableState {
     return this.heap.getHVEdges(pFilter);
   }
 
+  @Nullable
   public MemoryLocation resolveMemLoc(SMGAddress pValue, String pFunctionName) {
     SMGObject object = pValue.getObject();
     long offset = pValue.getOffset().getAsLong();
