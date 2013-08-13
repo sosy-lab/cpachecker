@@ -56,6 +56,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private final Algorithm innerAlgorithm;
   private final LogManager logger;
+  private final ARGCPA cpa;
 
   private final List<? extends AdjustableConditionCPA> conditionCPAs;
 
@@ -73,7 +74,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     if (!(pCpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException("ARGCPA needed for RestartWithConditionsAlgorithm");
     }
-    ARGCPA cpa = (ARGCPA)pCpa;
+    cpa = (ARGCPA)pCpa;
     if (cpa.retrieveWrappedCpa(AssumptionStorageCPA.class) == null) {
       throw new InvalidConfigurationException("AssumptionStorageCPA needed for RestartWithConditionsAlgorithm");
     }
@@ -152,7 +153,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private void adjustThresholds(List<AbstractState> pStatesWithAssumptions, ReachedSet pReached) {
 
-    ARGReachedSet reached = new ARGReachedSet(pReached);
+    ARGReachedSet reached = new ARGReachedSet(pReached, cpa);
     for (AbstractState s: pStatesWithAssumptions) {
       ARGState argState = (ARGState)s;
 

@@ -425,7 +425,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    */
   private void finishRefinementOfPath(final ARGState unreachableState, List<ARGState> affectedStates,
       ReachedSet reached) throws CPAException {
-    ARGReachedSet arg = new ARGReachedSet(reached, argCpa, -1);
+    ARGReachedSet arg = new ARGReachedSet(reached, argCpa);
 
     argUpdate.start();
     for (ARGState w : affectedStates) {

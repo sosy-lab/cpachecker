@@ -71,10 +71,18 @@ public class ARGReachedSet {
    * to reduce memory usage.
    */
   public ARGReachedSet(ReachedSet pReached) {
-    this(pReached, null, -1);
+    this(pReached, null);
   }
 
-  public ARGReachedSet(ReachedSet pReached, ARGCPA pCpa, int pRefinementNumber) {
+  public ARGReachedSet(ReachedSet pReached, ARGCPA pCpa) {
+    this(pReached, pCpa, -1);
+  }
+
+  /**
+   * This constructor may be used only during an refinement
+   * which should be added to the refinement graph .dot file.
+   */
+  ARGReachedSet(ReachedSet pReached, ARGCPA pCpa, int pRefinementNumber) {
     mReached = checkNotNull(pReached);
     mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
 
