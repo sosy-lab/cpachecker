@@ -260,6 +260,7 @@ public class ARGReachedSet {
    * @return the elements to re-add to the waitlist
    */
   private SortedSet<ARGState> removeSet(Set<ARGState> elements) {
+    cpa.clearCounterexamples(elements);
     mReached.removeAll(elements);
 
     SortedSet<ARGState> toWaitlist = new TreeSet<>();

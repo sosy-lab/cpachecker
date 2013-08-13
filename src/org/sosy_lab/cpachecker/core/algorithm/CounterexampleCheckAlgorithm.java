@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 @Options(prefix="counterexample")
@@ -148,7 +149,6 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
         } else {
           numberOfInfeasiblePaths++;
           logger.log(Level.INFO, "Error path found, but identified as infeasible by counterexample check with " + checkerName + ".");
-          cpa.clearCounterexample();
 
           if (continueAfterInfeasibleError) {
             // This counterexample is infeasible, so usually we would remove it
@@ -303,6 +303,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       covered.removeFromARG();
     }
 
+    cpa.clearCounterexamples(ImmutableSet.of(errorState));
     reached.remove(parent);
     parent.removeFromARG();
 

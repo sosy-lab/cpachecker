@@ -33,7 +33,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
@@ -93,16 +92,14 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    */
   public final CounterexampleInfo performRefinementWithInfo(ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting ARG based refinement");
-    argCpa.clearCounterexample();
 
     assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
 
-    AbstractState lastElement = pReached.getLastState();
-    assert lastElement instanceof ARGState : "Element in reached set which is not an ARGState";
-    assert ((ARGState)lastElement).isTarget() : "Last element in reached is not a target state before refinement";
+    final ARGState lastElement = (ARGState)pReached.getLastState();
+    assert lastElement.isTarget() : "Last element in reached is not a target state before refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
 
-    ARGPath path = computePath((ARGState)lastElement, reached);
+    ARGPath path = computePath(lastElement, reached);
 
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
@@ -120,7 +117,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
       // set the path from the exception as the target path
       // so it can be used for debugging
-      argCpa.setCounterexample(CounterexampleInfo.feasible(e.getErrorPath(), null));
+      argCpa.addCounterexample(lastElement, CounterexampleInfo.feasible(e.getErrorPath(), null));
       throw e;
     }
 
@@ -135,7 +132,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
         assert targetPath.getLast().getFirst()  == path.getLast().getFirst() : "Target path from refiner does not contain target state";
       }
 
-      argCpa.setCounterexample(counterexample);
+      argCpa.addCounterexample(lastElement, counterexample);
     }
 
     logger.log(Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());

@@ -1,6 +1,10 @@
 Changes since CPAchecker 1.2
 ----------------------------
 
+* r8387: CPAchecker can now find and report multiple specification violations in one file.
+  To use this, set the option "analysis.stopAfterError = false".
+  Note that because of this the file names of all error-path-related output files
+  (e.g., "ErrorPath*.*") have changed.
 * r8060: Better resolution of relative paths, for example, paths in configuration files
   are now relative to the directory of the configuration file.
   Now CPAchecker should be easily runnable from any directory.
