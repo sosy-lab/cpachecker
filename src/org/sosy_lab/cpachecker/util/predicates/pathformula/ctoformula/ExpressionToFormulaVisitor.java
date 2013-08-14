@@ -31,14 +31,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -276,13 +275,7 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
 
   @Override
   public Formula visit(CImaginaryLiteralExpression exp) throws UnrecognizedCCodeException {
-    CLiteralExpression tmp = exp.getValue();
-    if (tmp instanceof CIntegerLiteralExpression) {
-      return visit((CIntegerLiteralExpression)tmp);
-    } else if (tmp instanceof CFloatLiteralExpression) {
-      return visit((CFloatLiteralExpression)tmp);
-    }
-    throw new UnrecognizedCCodeException(edge, tmp);
+    return exp.getValue().accept(this);
   }
 
   @Override

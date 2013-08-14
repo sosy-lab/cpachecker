@@ -58,13 +58,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -704,13 +704,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     @Override
     public Long visit(CImaginaryLiteralExpression pE) throws UnrecognizedCCodeException {
-      CLiteralExpression tmp = pE.getValue();
-      if (tmp instanceof CIntegerLiteralExpression) {
-        return visit((CIntegerLiteralExpression)tmp);
-      } else if (tmp instanceof CFloatLiteralExpression) {
-        return visit((CFloatLiteralExpression)tmp);
-      }
-      throw new UnrecognizedCCodeException(getEdge(), tmp);
+      return pE.getValue().accept(this);
     }
 
     @Override

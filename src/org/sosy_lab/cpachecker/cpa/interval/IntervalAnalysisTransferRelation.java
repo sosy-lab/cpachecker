@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -50,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -930,13 +930,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
 
     @Override
     public Interval visit(CImaginaryLiteralExpression exp) throws UnrecognizedCCodeException {
-      CLiteralExpression tmp = exp.getValue();
-      if (tmp instanceof CIntegerLiteralExpression) {
-        return visit((CIntegerLiteralExpression)tmp);
-      } else if (tmp instanceof CFloatLiteralExpression) {
-        return visit((CFloatLiteralExpression)tmp);
-      }
-      throw new UnrecognizedCCodeException(cfaEdge, tmp);
+      return exp.getValue().accept(this);
     }
 
     @Override

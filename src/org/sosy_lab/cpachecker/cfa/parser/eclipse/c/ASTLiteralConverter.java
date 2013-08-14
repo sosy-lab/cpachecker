@@ -117,6 +117,13 @@ class ASTLiteralConverter {
     type = new CSimpleType(type.isConst(), type.isVolatile(), type.getType(), type.isLong(),
         type.isShort(), type.isSigned(), type.isUnsigned(), type.isComplex(), true, type.isLongLong());
     switch (exp.getKind()) {
+    case IASTLiteralExpression.lk_char_constant:
+      return new CImaginaryLiteralExpression(fileLoc,
+                                             type,
+                                             new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(value, exp)),
+                                             imaginary) ;
+
+
     case IASTLiteralExpression.lk_integer_constant:
       return new CImaginaryLiteralExpression(fileLoc,
                                              type,
