@@ -56,6 +56,10 @@ public class UnrecognizedCodeException extends CPATransferException {
     super(createMessage(getPrimaryMessage(edge, null), msg2, edge, null));
   }
 
+  public UnrecognizedCodeException(String msg2, IAstNode astNode) {
+    super(createMessage(getPrimaryMessage(null, astNode), msg2, null, astNode));
+  }
+
   private static String getPrimaryMessage(@Nullable CFAEdge edge, @Nullable IAstNode astNode) {
     Language lang = null;
 

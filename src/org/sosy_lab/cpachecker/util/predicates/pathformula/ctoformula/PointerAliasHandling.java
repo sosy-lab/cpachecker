@@ -300,7 +300,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
   }
 
   /** Looks up the variable name in the current namespace. */
-  Variable scopedIfNecessary(CExpression exp, SSAMapBuilder ssa, String function) {
+  Variable scopedIfNecessary(CExpression exp, SSAMapBuilder ssa, String function) throws UnrecognizedCCodeException {
     assert
         isSupportedExpression(exp)
         : "Can only handle supported expressions";
@@ -377,7 +377,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
   BooleanFormula buildDirectSecondLevelAssignment(
       Variable lVarName,
       CExpression right, String function,
-      Constraints constraints, SSAMapBuilder ssa) {
+      Constraints constraints, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
 
     if (!hasRepresentableDereference(lVarName)) {
       // The left side is a type that should not be dereferenced, so no 2nd level assignment
@@ -593,7 +593,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
   }
 
   private BooleanFormula buildDirectReturnSecondLevelAssignment(CExpression leftId,
-      Variable retVarName, String function, SSAMapBuilder ssa) {
+      Variable retVarName, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
 
     // include aliases if the left or right side may be a pointer a pointer
     // We only can write *l = *r if the types after dereference have some formula
@@ -686,7 +686,7 @@ class ExpressionToFormulaVisitorPointers extends ExpressionToFormulaVisitor {
    *
    * @param function The scope of the variable.
    */
-  private Formula makeMemLocationVariable(CExpression exp, String function) {
+  private Formula makeMemLocationVariable(CExpression exp, String function) throws UnrecognizedCCodeException {
     Variable v =
         conv.scopedIfNecessary(exp, ssa, function);
     Variable addressVariable = PointerAliasHandling.makeMemoryLocationVariable(v);

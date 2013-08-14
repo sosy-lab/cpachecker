@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.*;
 
 import java.util.ArrayList;
@@ -313,7 +312,7 @@ public class CtoFormulaConverter {
     return Variable.create(var.getDeclaration().getQualifiedName(), var.getExpressionType());
   }
 
-  Variable makeFieldVariable(Variable pName, CFieldReference fExp, SSAMapBuilder ssa) {
+  Variable makeFieldVariable(Variable pName, CFieldReference fExp, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     Pair<Integer, Integer> msb_lsb = getFieldOffsetMsbLsb(fExp);
     // NOTE: ALWAYS use pName.getType(),
     // because pName.getType() could be an instance of CFieldTrackType
@@ -1464,7 +1463,7 @@ public class CtoFormulaConverter {
   /**
    * Creates a Formula which accesses the given Field
    */
-  BitvectorFormula accessField(CFieldReference fExp, Formula f) {
+  BitvectorFormula accessField(CFieldReference fExp, Formula f) throws UnrecognizedCCodeException {
     assert handleFieldAccess : "Fieldaccess if only allowed with handleFieldAccess";
     assert f instanceof BitvectorFormula : "Fields need to be represented with bitvectors";
     // Get the underlaying structure
@@ -1481,7 +1480,7 @@ public class CtoFormulaConverter {
    * @return If pRightVariable is present, a formula of the same size as pLVar, but with some bits replaced.
    * If pRightVariable is not present, a formula that is smaller then pLVar (with the field bits missing).
    */
-  Formula replaceField(CFieldReference fExp, Formula pLVar, Optional<Formula> pRightVariable) {
+  Formula replaceField(CFieldReference fExp, Formula pLVar, Optional<Formula> pRightVariable) throws UnrecognizedCCodeException {
     assert handleFieldAccess : "Fieldaccess if only allowed with handleFieldAccess";
 
     Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
@@ -1519,22 +1518,23 @@ public class CtoFormulaConverter {
   /**
    * Returns the offset of the given CFieldReference within the structure in bits.
    */
-  private Pair<Integer, Integer> getFieldOffsetMsbLsb(CFieldReference fExp) {
+  private Pair<Integer, Integer> getFieldOffsetMsbLsb(CFieldReference fExp) throws UnrecognizedCCodeException {
     CExpression fieldRef = getRealFieldOwner(fExp);
     CCompositeType structType = (CCompositeType)fieldRef.getExpressionType().getCanonicalType();
 
     // f is now the structure, access it:
     int bitsPerByte = machineModel.getSizeofCharInBits();
 
-    // call getFieldOffset in all cases to check whether the field actually exists
-    int offset = getFieldOffset(structType, fExp.getFieldName(), fExp.getExpressionType())
-        * bitsPerByte;
-
-    if (structType.getKind() == ComplexTypeKind.UNION) {
+    int offset;
+    switch (structType.getKind()) {
+    case UNION:
       offset = 0;
-    } else {
-      checkArgument(structType.getKind() == ComplexTypeKind.STRUCT,
-          "Illegal field access in expression %s", fExp);
+      break;
+    case STRUCT:
+      offset = getFieldOffset(structType, fExp.getFieldName()) * bitsPerByte;
+      break;
+    default:
+      throw new UnrecognizedCCodeException("Unexpected field access", fExp);
     }
 
     int fieldSize = getSizeof(fExp.getExpressionType()) * bitsPerByte;
@@ -1549,25 +1549,17 @@ public class CtoFormulaConverter {
    *
    * This function does not handle UNIONs or ENUMs!
    */
-  private int getFieldOffset(CCompositeType structType, String fieldName, CType assertFieldType) {
-      int off = 0;
-      for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
-        if (member.getName().equals(fieldName)) {
-          if (assertFieldType != null) {
-            if (!assertFieldType.getCanonicalType().equals(member.getType().getCanonicalType())) {
-              log(Level.SEVERE,
-                  "Expected the same type for member (Ignore it for function pointer): " +
-                      assertFieldType.toString() + ", " + member.getType().toString());
-            }
-          }
-
-          return off;
-        }
-
-        off += getSizeof(member.getType());
+  private int getFieldOffset(CCompositeType structType, String fieldName) {
+    int off = 0;
+    for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
+      if (member.getName().equals(fieldName)) {
+        return off;
       }
 
-      throw new AssertionError("field " + fieldName + " was not found in " + structType);
+      off += getSizeof(member.getType());
+    }
+
+    throw new AssertionError("field " + fieldName + " was not found in " + structType);
   }
 
   static CExpression removeCast(CExpression exp) {

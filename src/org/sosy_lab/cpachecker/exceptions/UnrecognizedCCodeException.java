@@ -48,4 +48,8 @@ public class UnrecognizedCCodeException extends UnrecognizedCodeException {
   public UnrecognizedCCodeException(String msg2, CFAEdge edge) {
     super(msg2, edge);
   }
+
+  public UnrecognizedCCodeException(String msg2, CAstNode astNode) {
+    super(msg2, astNode);
+  }
 }
