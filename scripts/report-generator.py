@@ -30,6 +30,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
+import glob
 import os
 import time
 import argparse
@@ -77,6 +78,20 @@ def readfile(filepath, optional=False):
         return fp.read()
 
 
+def generateReport(outfilepath, template, templatevalues):
+    with open(outfilepath, 'w') as outf:
+        outf.write(template.substitute(templatevalues))
+
+    print ('Report generated in {0}'.format(outfilepath))
+
+    try:
+        with open(os.devnull, 'w') as devnull:
+            subprocess.Popen(['xdg-open', outfilepath],
+                             stdout=devnull, stderr=devnull)
+    except OSError:
+        pass
+
+
 def main():
 
     parser = argparse.ArgumentParser(
@@ -110,8 +125,8 @@ def main():
     logfile        = os.path.join(cpaoutdir, config.get('log.file', 'CPALog.txt'))
     statsfile      = os.path.join(cpaoutdir, config.get('statistics.file', 'Statistics.txt'))
     argfilepath    = os.path.join(cpaoutdir, config.get('cpa.arg.file', 'ARG.dot'))
-    errorpathgraph = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.graph', 'ErrorPath.dot'))
-    errorpath      = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.json', 'ErrorPath.json'))
+    errorpathgraph = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.graph', 'ErrorPath.%d.dot'))
+    errorpath      = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.json', 'ErrorPath.%d.json'))
     combinednodes  = os.path.join(cpaoutdir, 'combinednodes.json')
     cfainfo        = os.path.join(cpaoutdir, 'cfainfo.json')
     fcalledges     = os.path.join(cpaoutdir, 'fcalledges.json')
@@ -119,9 +134,6 @@ def main():
     scriptdir   = os.path.dirname(__file__)
     reportdir   = options.reportdir or cpaoutdir
     tplfilepath = os.path.join(scriptdir, 'report-template.html')
-    outfilepath = os.path.join(reportdir, 'index.html')
-
-    time_generated = time.strftime("%a, %d %b %Y %H:%M", time.localtime())
 
     if not os.path.isdir(reportdir):
         os.makedirs(reportdir)
@@ -129,10 +141,11 @@ def main():
     #if there is an ARG.dot create an SVG in the report dir
     if os.path.isfile(argfilepath):
         print ('Generating SVG for ARG (press Ctrl+C if this takes too long)')
-        if not call_dot(argfilepath, reportdir) and os.path.isfile(errorpathgraph):
-            if call_dot(errorpathgraph, reportdir):
-                os.rename(os.path.join(reportdir, 'ErrorPath.svg'),
-                          os.path.join(reportdir, 'ARG.svg'))
+        call_dot(argfilepath, reportdir)
+        #if not call_dot(argfilepath, reportdir) and os.path.isfile(errorpathgraph):
+        #    if call_dot(errorpathgraph, reportdir):
+        #        os.rename(os.path.join(reportdir, 'ErrorPath.svg'),
+        #                  os.path.join(reportdir, 'ARG.svg'))
 
     print ('Generating SVGs for CFA')
     functions = [x[5:-4] for x in os.listdir(cpaoutdir) if x.startswith('cfa__') and x.endswith('.dot')]
@@ -141,33 +154,40 @@ def main():
 
     template = tempita.HTMLTemplate.from_filename(tplfilepath, encoding='UTF-8')
 
-    # write file
-    with open(outfilepath, 'w') as outf:
-        outf.write(template.substitute(
-            time_generated   =time_generated,
-            sourcefilename   =os.path.basename(sourcefile),
+    # prepare values that may be used in template
+    templatevalues = {}
+    templatevalues['time_generated']    = time.strftime("%a, %d %b %Y %H:%M", time.localtime())
+    templatevalues['sourcefilename']    = os.path.basename(sourcefile)
+    templatevalues['sourcefilecontent'] = readfile(sourcefile, optional=True)
+    templatevalues['logfile']           = readfile(logfile, optional=True)
+    templatevalues['statistics']        = readfile(statsfile, optional=True)
+    templatevalues['conffile']          = readfile(options.configfile, optional=True)
+    # JSON data for script
+    templatevalues['errorpath']         = '[]'
+    templatevalues['functionlist']      = json.dumps(functions)
+    templatevalues['combinednodes']     = readfile(combinednodes)
+    templatevalues['cfainfo']           = readfile(cfainfo)
+    templatevalues['fcalledges']        = readfile(fcalledges)
 
-            sourcefilecontent=readfile(sourcefile, optional=True),
-            logfile          =readfile(logfile, optional=True),
-            statistics       =readfile(statsfile, optional=True),
-            conffile         =readfile(options.configfile, optional=True),
+    errorpathcount = len(glob.glob(errorpath.replace('%d', '*')))
+    print("Found %d error paths" % errorpathcount)
 
-            # JSON data for script
-            errorpath        =readfile(errorpath, optional=True) or '[]',
-            functionlist     =json.dumps(functions),
-            combinednodes    =readfile(combinednodes),
-            cfainfo          =readfile(cfainfo),
-            fcalledges       =readfile(fcalledges),
-        ))
+    if errorpathcount > 0:
+        for i in range(errorpathcount):
+            outfilepath = os.path.join(reportdir, 'ErrorPath.%d.html' % i)
+            templatevalues['sourcefilename'] = '%s (error path %d)' % (os.path.basename(sourcefile), i)
 
-    print ('Report generated in {0}'.format(outfilepath))
+            try:
+                templatevalues['errorpath'] = readfile(errorpath % i)
+            except Exception as e:
+                print('Could not read error path number %d: %s' % (i, e))
+            else:
+                generateReport(outfilepath, template, templatevalues)
 
-    try:
-        with open(os.devnull, 'w') as devnull:
-            subprocess.Popen(['xdg-open', outfilepath],
-                             stdout=devnull, stderr=devnull)
-    except OSError:
-        pass
+    else:
+        outfilepath = os.path.join(reportdir, 'report.html')
+
+        generateReport(outfilepath, template, templatevalues)
 
 
 if __name__ == '__main__':

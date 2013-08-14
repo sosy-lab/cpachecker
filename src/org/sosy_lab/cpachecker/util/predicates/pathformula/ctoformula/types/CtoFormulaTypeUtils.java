@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -35,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 public class CtoFormulaTypeUtils {
 
@@ -59,68 +57,11 @@ public class CtoFormulaTypeUtils {
     }
   }
 
-  public static class CtoFormulaCTypeEqualsVisitor
-    extends CTypeUtils.BaseCTypeEqualsVisitor
-    implements CtoFormulaTypeVisitor<Boolean, RuntimeException> {
-    public CtoFormulaCTypeEqualsVisitor(Object other) {
-      super(other);
-    }
-
-    @Override
-    public CtoFormulaCTypeEqualsVisitor copyWith(Object other) {
-      if (other instanceof CType) {
-        other = ((CType)other).getCanonicalType();
-      }
-
-      return new CtoFormulaCTypeEqualsVisitor(other);
-    }
-
-    @Override
-    public Boolean visit(CDereferenceType pThis) {
-
-      if (this == getObj()) {
-        return true;
-      }
-      if (pThis.getClass() != getObj().getClass()) {
-        return false;
-      }
-      CDereferenceType other = (CDereferenceType) getObj();
-      return equalsDereferenceType(pThis, other);
-    }
-
-    private Boolean equalsDereferenceType(CDereferenceType pThis, CDereferenceType other) {
-      return
-          compareTypes(pThis.getType(), other.getType());
-    }
-  }
-
-  public static boolean equals(CType t1, Object other) {
-    if (t1 == null || other == null) {
-      return t1 == other;
-    }
-
-    if (!(other instanceof CType)) {
-      return false;
-    }
-    return areEqual(t1, (CType)other);
-  }
-
   private static CType getCanonicalType(CType t) {
     while (t instanceof CFieldTrackType) {
       t = ((CFieldTrackType)t).getType();
     }
     return t.getCanonicalType();
-  }
-
-  public static boolean areEqual(CType t1, CType t2) {
-    if (t1 == null || t2 == null) {
-      return t1 == t2;
-    }
-
-    t1 = getCanonicalType(t1);
-    t2 = getCanonicalType(t2);
-
-    return t1.equals(t2);
   }
 
   public static boolean areEqualWithMatchingPointerArray(CType t1, CType t2) {
@@ -159,7 +100,7 @@ public class CtoFormulaTypeUtils {
     CType simple = t.getCanonicalType();
     if (simple instanceof CPointerType) {
       CType inner = ((CPointerType)simple).getType();
-      if (areEqual(inner, CNumericTypes.VOID)) {
+      if (inner.getCanonicalType().equals(CNumericTypes.VOID)) {
         // Enable guessing for void*
         return new CDereferenceType(false, false, t, null);
       }

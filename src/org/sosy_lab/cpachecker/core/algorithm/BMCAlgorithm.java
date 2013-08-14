@@ -169,7 +169,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description="dump counterexample formula to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File dumpCounterexampleFormula = new File("counterexample.smt2");
+  private File dumpCounterexampleFormula = new File("ErrorPath.%d.smt2");
 
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
@@ -356,7 +356,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
             dumpCounterexampleFormula);
       }
 
-      ((ARGCPA)cpa).setCounterexample(counterexample);
+      ((ARGCPA)cpa).addCounterexample(targetPath.getLast().getFirst(), counterexample);
 
     } finally {
       stats.errorPathCreation.stop();

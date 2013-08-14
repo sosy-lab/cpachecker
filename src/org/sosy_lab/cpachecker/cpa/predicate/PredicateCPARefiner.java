@@ -90,7 +90,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @Option(
       description="where to dump the counterexample formula in case the error location is reached")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private File dumpCounterexampleFile = new File("counterexample.smt2");
+  private File dumpCounterexampleFile = new File("ErrorPath.%d.smt2");
 
   private boolean lastRefinementUsedHeuristics = false;
 

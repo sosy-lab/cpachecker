@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.abm;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
@@ -43,6 +45,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+
+import com.google.common.base.Preconditions;
 
 /**
  * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
@@ -145,7 +149,17 @@ public abstract class AbstractABMBasedRefiner extends AbstractARGBasedRefiner {
     @Override
     public void removeSubtree(ARGState element, Precision newPrecision,
         Class<? extends Precision> pPrecisionType) {
-      transfer.removeSubtree(delegate, path, element, newPrecision, pPrecisionType, pathStateToReachedState);
+      ArrayList<Precision> listP = new ArrayList<>();
+      listP.add(newPrecision);
+      ArrayList<Class<? extends Precision>> listPT = new ArrayList<>();
+      listPT.add(pPrecisionType);
+      removeSubtree(element, listP, listPT);
+    }
+
+    @Override
+    public void removeSubtree(ARGState element, List<Precision> newPrecisions, List<Class<? extends Precision>> pPrecisionTypes) {
+      Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
+      transfer.removeSubtree(delegate, path, element, newPrecisions, pPrecisionTypes, pathStateToReachedState);
     }
 
     @Override

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.IALeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.IARightHandSide;
 
 /**
  * Interface for all possible right-hand sides of an assignment.

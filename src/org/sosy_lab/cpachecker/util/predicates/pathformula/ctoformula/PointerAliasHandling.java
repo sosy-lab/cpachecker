@@ -1076,7 +1076,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
 
           // Note we only handle aliasing for memory addresses which make sense.
           // varname should be the same structure
-          if (areEqual(varName.getType(), structType)) {
+          if (varName.getType().getCanonicalType().equals(structType.getCanonicalType())) {
             for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
               Formula content_of_g_s = memberMaskMap.get(member.getName());
               if (content_of_g_s == null) {

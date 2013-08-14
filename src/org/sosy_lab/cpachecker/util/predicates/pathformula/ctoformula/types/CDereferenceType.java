@@ -133,7 +133,7 @@ final class CDereferenceType extends CtoFormulaCType {
     CDereferenceType other = (CDereferenceType) obj;
 
     return Objects.equals(type, other.type) && Objects.equals(isConst, other.isConst)
-           && Objects.equals(isVolatile, other.isVolatile) && Objects.equals(guessedType, other.guessedType);
+           && Objects.equals(isVolatile, other.isVolatile);
   }
 
   @Override

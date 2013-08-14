@@ -216,7 +216,7 @@ bmc.boundingAssertions = true
 bmc.checkTargetStates = true
 
 # dump counterexample formula to file
-bmc.dumpCounterexampleFormula = "counterexample.smt2"
+bmc.dumpCounterexampleFormula = "ErrorPath.%d.smt2"
 
 # try using induction to verify programs with loops
 bmc.induction = false
@@ -324,23 +324,23 @@ cpa.abm.blockHeuristic = FunctionAndLoopPartitioning.class
 cpa.abm.gatherCacheMissStatistics = false
 
 # export one variable assignment for error path to file, if one is found
-cpa.arg.errorPath.assignment = "ErrorPathAssignment.txt"
+cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
 
 # export error path to file as an automaton
-cpa.arg.errorPath.automaton = "ErrorPath.spc"
+cpa.arg.errorPath.automaton = "ErrorPath.%d.spc"
 
 # export error path to file, if one is found
-cpa.arg.errorPath.core = "ErrorPathCore.txt"
+cpa.arg.errorPath.core = "ErrorPath.%d.core.txt"
 cpa.arg.errorPath.export = true
 
 # translate error path to C program
 cpa.arg.errorPath.exportAsSource = true
 
 # export error path to file, if one is found
-cpa.arg.errorPath.file = "ErrorPath.txt"
-cpa.arg.errorPath.graph = "ErrorPath.dot"
-cpa.arg.errorPath.json = "ErrorPath.json"
-cpa.arg.errorPath.source = "ErrorPath.c"
+cpa.arg.errorPath.file = "ErrorPath.%d.txt"
+cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
+cpa.arg.errorPath.json = "ErrorPath.%d.json"
+cpa.arg.errorPath.source = "ErrorPath.%d.c"
 
 # export final ARG as .dot file
 cpa.arg.export = true
@@ -552,6 +552,10 @@ cpa.explicit.precisionFile = no default value
 
 # whether or not to avoid restarting at assume edges after a refinement
 cpa.explicit.refiner.avoidAssumes = true
+
+# whether or not to check for repeated refinements, to then reset the
+# refinement root
+cpa.explicit.refiner.checkForRepeatedRefinements = false
 
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = true
@@ -806,7 +810,7 @@ cpa.predicate.refinement.doAbstractionComputation = false
 
 # where to dump the counterexample formula in case the error location is
 # reached
-cpa.predicate.refinement.dumpCounterexampleFile = "counterexample.smt2"
+cpa.predicate.refinement.dumpCounterexampleFile = "ErrorPath.%d.smt2"
 
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
@@ -983,6 +987,9 @@ pcc.proofgen.doPCC = false
 # Qualified name for class which implements proof checking strategy to be
 # used.
 pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.ARGProofCheckerStrategy"
+
+# number of cpus/cores which should be used in parallel for proof checking
+pcc.useCores = 1
 
 # print reached set to text file
 reachedSet.export = true

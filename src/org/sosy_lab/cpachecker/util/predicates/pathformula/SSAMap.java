@@ -44,7 +44,6 @@ import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaList;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils;
 
 import com.google.common.base.Equivalence;
 import com.google.common.base.Function;
@@ -270,7 +269,7 @@ public class SSAMap implements Serializable {
           new Equivalence<CType>() {
             @Override
             protected boolean doEquivalent(CType pA, CType pB) {
-              return CtoFormulaTypeUtils.areEqual(pA, pB);
+              return pA.getCanonicalType().equals(pB.getCanonicalType());
             }
 
             @Override
