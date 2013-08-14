@@ -356,7 +356,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  private boolean isPathFeasable(ARGPath path) throws CPAException {
+  boolean isPathFeasable(ARGPath path) throws CPAException {
     try {
       // create a new ExplicitPathChecker, which does not track any of the given variables
       ExplictFeasibilityChecker checker = new ExplictFeasibilityChecker();

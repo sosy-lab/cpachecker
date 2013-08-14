@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.abm.AbstractABMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplictFeasibilityChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
@@ -53,8 +52,7 @@ public class ABMExplicitRefiner extends AbstractABMBasedRefiner {
       InterruptedException {
     CounterexampleInfo refineResult = refiner.performRefinement(pReached, pPath);
     if (!refineResult.isSpurious()) {
-      ExplictFeasibilityChecker checker = new ExplictFeasibilityChecker();
-      if (checker.isFeasible(pPath))
+      if (refiner.isPathFeasable(pPath))
         throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
     }
 
