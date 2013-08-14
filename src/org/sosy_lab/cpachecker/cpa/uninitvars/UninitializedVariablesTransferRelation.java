@@ -305,7 +305,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       handleAssign(element, assignExpression, cfaEdge);
 
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression);
     }
   }
 
@@ -451,7 +451,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       return false;
 
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCCodeException("unknown expression", cfaEdge, expression);
     }
   }
 

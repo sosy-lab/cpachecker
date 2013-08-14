@@ -325,7 +325,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
           return handleAssumption(element, unaryExp.getOperand(), cfaEdge, !truthValue);
 
         default:
-          throw new UnrecognizedCCodeException(cfaEdge, unaryExp);
+          throw new UnrecognizedCCodeException("unexpected operator in assumption", cfaEdge, unaryExp);
       }
     }
 
@@ -337,7 +337,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
     // a plain (boolean) identifier, e.g. if (a)
     else if (expression instanceof CIdExpression) {
       // this is simplified in the frontend
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCCodeException("unexpected expression in assumption", cfaEdge, expression);
     } else if (expression instanceof CBinaryExpression) {
       IntervalAnalysisState newElement = IntervalAnalysisState.copyOf(element);
 
@@ -382,7 +382,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
           return soleSuccessor(newElement);
 
         default:
-          throw new UnrecognizedCCodeException(cfaEdge, expression);
+          throw new UnrecognizedCCodeException("unexpected operator in assumption", cfaEdge, expression);
       }
     }
 
@@ -631,7 +631,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
     } else if (expression instanceof CExpressionStatement) {
       return IntervalAnalysisState.copyOf(element);
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression);
     }
   }
 

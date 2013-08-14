@@ -401,7 +401,7 @@ class FunctionPointerTransferRelation implements TransferRelation {
       // side-effect free statement
 
     } else {
-      throw new UnrecognizedCCodeException(pCfaEdge, pStatement);
+      throw new UnrecognizedCCodeException("unknown statement", pCfaEdge, pStatement);
     }
   }
 

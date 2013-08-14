@@ -125,6 +125,7 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 import com.google.common.collect.ImmutableMap;
@@ -247,7 +248,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   @Override
   protected ExplicitState handleFunctionReturnEdge(FunctionReturnEdge functionReturnEdge,
       FunctionSummaryEdge summaryEdge, AFunctionCall exprOnSummary, String callerFunctionName)
-    throws UnrecognizedCCodeException {
+    throws UnrecognizedCodeException {
 
     ExplicitState newElement  = state.clone();
 
@@ -284,7 +285,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       }
 
       else {
-        throw new UnrecognizedCCodeException("on function return", summaryEdge, op1);
+        throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
       }
     }
 
@@ -403,7 +404,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   @Override
   protected ExplicitState handleStatementEdge(AStatementEdge cfaEdge, IAStatement expression)
-    throws UnrecognizedCCodeException {
+    throws UnrecognizedCodeException {
 
     if (expression instanceof CFunctionCall) {
       CExpression fn = ((CFunctionCall)expression).getFunctionCallExpression().getFunctionNameExpression();
@@ -427,7 +428,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     } else if (expression instanceof AExpressionStatement) {
 
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCodeException("Unknown statement", cfaEdge, expression);
     }
 
     return state;
@@ -435,7 +436,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
 
   private ExplicitState handleAssignment(IAssignment assignExpression, CFAEdge cfaEdge)
-    throws UnrecognizedCCodeException {
+    throws UnrecognizedCodeException {
     IAExpression op1    = assignExpression.getLeftHandSide();
     IARightHandSide op2 = assignExpression.getRightHandSide();
 
@@ -477,7 +478,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     else if (op1 instanceof CArraySubscriptExpression || op1 instanceof AArraySubscriptExpression) {
       // array cell
     } else {
-      throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
+      throw new UnrecognizedCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
     }
 
     return state; // the default return-value is the old state

@@ -2157,7 +2157,7 @@ public class SMGTransferRelation implements TransferRelation {
       } else if (operandType instanceof CArrayType) {
         return dereferenceArray(operand, expType);
       } else {
-        throw new UnrecognizedCCodeException(cfaEdge, pointerExpression);
+        throw new UnrecognizedCCodeException("dereference of non-pointer type", cfaEdge, pointerExpression);
       }
     }
 

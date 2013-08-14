@@ -52,7 +52,7 @@ public  class ParserException extends Exception {
   }
 
   protected ParserException(String msg, CFAEdge edge, Language pLanguage) {
-    super(UnrecognizedCCodeException.createMessage(msg, null, edge, null));
+    super(UnrecognizedCodeException.createMessage(msg, null, edge, null));
     language = pLanguage;
   }
 

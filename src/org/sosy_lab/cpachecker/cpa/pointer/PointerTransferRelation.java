@@ -751,7 +751,7 @@ public class PointerTransferRelation implements TransferRelation {
       // func()
       // ignore
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression.asStatement());
+      throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression.asStatement());
     }
 
     // check for memory leaks
@@ -795,7 +795,7 @@ public class PointerTransferRelation implements TransferRelation {
       handleAssignmentStatement(element, (CAssignment)expression, cfaEdge);
 
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression);
     }
   }
 
@@ -1079,7 +1079,7 @@ public class PointerTransferRelation implements TransferRelation {
 
           if (!(typeOfOperator == BinaryOperator.PLUS
               || typeOfOperator == BinaryOperator.MINUS)) {
-            throw new UnrecognizedCCodeException(cfaEdge, binExpression);
+            throw new UnrecognizedCCodeException("unknown operator for pointer arithmetic", cfaEdge, binExpression);
           }
 
           if (op2 instanceof CLiteralExpression) {

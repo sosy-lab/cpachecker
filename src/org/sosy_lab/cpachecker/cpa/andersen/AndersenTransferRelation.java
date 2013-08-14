@@ -126,7 +126,7 @@ public class AndersenTransferRelation implements TransferRelation {
     } else if (expression instanceof CExpressionStatement) {
       return element.clone();
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression);
     }
   }
 

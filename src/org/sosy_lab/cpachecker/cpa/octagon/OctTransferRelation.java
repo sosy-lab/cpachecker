@@ -843,7 +843,7 @@ class OctTransferRelation implements TransferRelation {
     else if (expression instanceof CExpressionStatement) {
       // do nothing
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression);
     }
     assert (false);
     return null;
@@ -926,7 +926,7 @@ class OctTransferRelation implements TransferRelation {
 //        missingInformationLeftVariable = assignedVar;
 //        missingInformationRightPointer = unaryOperand.getRawSignature();
       } else {
-        throw new UnrecognizedCCodeException(cfaEdge, operand);
+        throw new UnrecognizedCCodeException("too complex pointer dereference", cfaEdge, operand);
       }
       return null;
     }
@@ -944,7 +944,7 @@ class OctTransferRelation implements TransferRelation {
       String lvarName = getvarName(lParam, functionName);
       return forget(pElement, lvarName);
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, rightExp);
+      throw new UnrecognizedCCodeException("unsupported expression", cfaEdge, rightExp);
     }
   }
 
@@ -1199,7 +1199,7 @@ class OctTransferRelation implements TransferRelation {
       }
     } else {
       // TODO fields, arrays
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCCodeException("unsupported expression", cfaEdge, expression);
     }
   }
 
