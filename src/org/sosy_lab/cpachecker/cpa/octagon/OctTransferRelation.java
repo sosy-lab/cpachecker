@@ -214,7 +214,7 @@ class OctTransferRelation implements TransferRelation {
     else if (exprOnSummary instanceof CFunctionCallStatement) {
       // do nothing
     } else {
-      throw new UnrecognizedCCodeException("on function return", summaryEdge, exprOnSummary.asStatement());
+      throw new UnrecognizedCCodeException("on function return", summaryEdge, exprOnSummary);
     }
 
     // delete local variables

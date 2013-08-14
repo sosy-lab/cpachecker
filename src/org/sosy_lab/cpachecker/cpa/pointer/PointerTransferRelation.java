@@ -751,7 +751,7 @@ public class PointerTransferRelation implements TransferRelation {
       // func()
       // ignore
     } else {
-      throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression.asStatement());
+      throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression);
     }
 
     // check for memory leaks

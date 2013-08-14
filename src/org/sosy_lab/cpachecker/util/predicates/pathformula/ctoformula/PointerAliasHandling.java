@@ -1180,7 +1180,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
           // Note: No 2nd level assignment for statements like t = call();
 
           if (!leftType.equals(right.getExpressionType().getCanonicalType())) {
-            throw new UnrecognizedCCodeException("Struct assignment with incompatible types", edge, assignment.asStatement());
+            throw new UnrecognizedCCodeException("Struct assignment with incompatible types", edge, assignment);
           }
 
           CCompositeType structureType = (CCompositeType) leftType;

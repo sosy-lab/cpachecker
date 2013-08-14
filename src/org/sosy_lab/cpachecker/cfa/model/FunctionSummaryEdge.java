@@ -46,7 +46,7 @@ public  class FunctionSummaryEdge extends AbstractCFAEdge {
 
   @Override
   public String getCode() {
-    return expression.asStatement().toASTString();
+    return expression.toASTString();
   }
 
 }

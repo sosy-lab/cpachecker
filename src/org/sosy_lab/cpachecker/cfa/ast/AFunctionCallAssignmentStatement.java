@@ -62,11 +62,6 @@ public abstract class AFunctionCallAssignmentStatement extends AStatement implem
   }
 
   @Override
-  public IAStatement asStatement() {
-    return this;
-  }
-
-  @Override
   public String toASTString() {
     return leftHandSide.toASTString()
         + " = " + rightHandSide.toASTString() + ";";

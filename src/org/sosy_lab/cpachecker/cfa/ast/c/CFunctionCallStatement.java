@@ -42,11 +42,6 @@ public final class CFunctionCallStatement extends AFunctionCallStatement impleme
   }
 
   @Override
-  public CStatement asStatement() {
-    return this;
-  }
-
-  @Override
   public <R, X extends Exception> R accept(CStatementVisitor<R, X> v) throws X {
     return v.visit(this);
   }

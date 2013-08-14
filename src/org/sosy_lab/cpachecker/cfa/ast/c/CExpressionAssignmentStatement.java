@@ -50,11 +50,6 @@ public class CExpressionAssignmentStatement extends AExpressionAssignmentStateme
   }
 
   @Override
-  public CStatement asStatement() {
-    return this;
-  }
-
-  @Override
   public <R, X extends Exception> R accept(CStatementVisitor<R, X> v) throws X {
     return v.visit(this);
   }

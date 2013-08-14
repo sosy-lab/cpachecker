@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -590,7 +591,7 @@ public class VariableClassification {
 
     // create dependency for functionreturn
     CFunctionSummaryEdge func = edge.getSummaryEdge();
-    CStatement statement = func.getExpression().asStatement();
+    CFunctionCall statement = func.getExpression();
 
     // a=f();
     if (statement instanceof CFunctionCallAssignmentStatement) {

@@ -132,7 +132,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       //handle statement like a = func(x) in the CFunctionSummaryEdge
       CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge)cfaEdge;
       CFunctionSummaryEdge ctrEdge = functionReturnEdge.getSummaryEdge();
-      handleStatement(successor, ctrEdge.getExpression().asStatement(), ctrEdge);
+      handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
       break;
 
     case AssumeEdge:

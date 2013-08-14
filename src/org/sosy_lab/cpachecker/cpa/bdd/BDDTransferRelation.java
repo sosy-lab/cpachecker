@@ -486,13 +486,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     // set result of function equal to variable on left side
-    CStatement call = summaryExpr.asStatement();
     final Partition partition = varClass.getPartitionForEdge(cfaEdge);
     final int size = partitionToBitsize(partition);
 
     // handle assignments like "y = f(x);"
-    if (call instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) call;
+    if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) summaryExpr;
       CExpression lhs = cAssignment.getLeftHandSide();
 
       // make variable (predicate) for LEFT SIDE of assignment,
@@ -508,7 +507,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // LAST ACTION: delete varname of right side
       newRegion = removePredicate(newRegion, retVar);
 
-    } else if (call instanceof CFunctionCallStatement) {
+    } else if (summaryExpr instanceof CFunctionCallStatement) {
       final Region[] retVar = createPredicates(functionName, FUNCTION_RETURN_VARIABLE, size);
       newRegion = removePredicate(newRegion, retVar);
 

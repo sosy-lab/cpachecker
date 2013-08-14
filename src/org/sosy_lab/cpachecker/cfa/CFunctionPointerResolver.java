@@ -385,7 +385,7 @@ public class CFunctionPointerResolver {
   private void createCallEdge(int lineNumber, String pRawStatement,
       CFANode predecessorNode, CFANode successorNode, CFunctionCall functionCall) {
     CStatementEdge callEdge = new CStatementEdge(pRawStatement,
-        functionCall.asStatement(), lineNumber,
+        functionCall, lineNumber,
         predecessorNode, successorNode);
     CFACreationUtils.addEdgeUnconditionallyToCFA(callEdge);
   }

@@ -27,7 +27,6 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.IAExpression;
-import org.sosy_lab.cpachecker.cfa.ast.IAStatement;
 
 import com.google.common.base.Optional;
 
@@ -66,8 +65,8 @@ public class FunctionCallEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public Optional<? extends IAStatement> getRawAST() {
-    return Optional.of(functionCall.asStatement());
+  public Optional<? extends AFunctionCall> getRawAST() {
+    return Optional.of(functionCall);
   }
 
   @Override

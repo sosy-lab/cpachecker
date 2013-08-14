@@ -27,7 +27,6 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
-import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -68,8 +67,8 @@ public class JMethodCallEdge extends FunctionCallEdge {
   }
 
   @Override
-  public Optional<JStatement> getRawAST() {
-    return Optional.of((JStatement)functionCall.asStatement());
+  public Optional<JMethodOrConstructorInvocation> getRawAST() {
+    return Optional.of((JMethodOrConstructorInvocation)functionCall);
   }
 
   @Override

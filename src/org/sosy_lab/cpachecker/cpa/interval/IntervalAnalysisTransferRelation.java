@@ -233,7 +233,7 @@ public class IntervalAnalysisTransferRelation implements TransferRelation {
           newElement.addInterval(globalVar, interval, this.threshold);
       }
     } else {
-      throw new UnrecognizedCCodeException("on function return", summaryEdge, expression.asStatement());
+      throw new UnrecognizedCCodeException("on function return", summaryEdge, expression);
     }
 
     return newElement;

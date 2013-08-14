@@ -51,11 +51,6 @@ public abstract class AFunctionCallStatement extends AStatement implements AFunc
     return functionCall;
   }
 
-  @Override
-  public IAStatement asStatement() {
-    return this;
-  }
-
   /* (non-Javadoc)
    * @see java.lang.Object#hashCode()
    */

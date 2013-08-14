@@ -1226,7 +1226,7 @@ public class CtoFormulaConverter {
 
       return assignments;
     } else {
-      throw new UnrecognizedCCodeException("Unknown function exit expression", ce, retExp.asStatement());
+      throw new UnrecognizedCCodeException("Unknown function exit expression", ce, retExp);
     }
   }
 

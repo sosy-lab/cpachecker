@@ -340,7 +340,7 @@ class AutomatonASTComparator {
 
           @Override
           public String toString() {
-            return stmt.asStatement().toASTString();
+            return stmt.toASTString();
           }
         };
 
@@ -360,7 +360,7 @@ class AutomatonASTComparator {
 
           @Override
           public String toString() {
-            return stmt.asStatement().toASTString();
+            return stmt.toASTString();
           }
         };
       }
