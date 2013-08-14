@@ -2082,17 +2082,6 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    public SMGSymbolicValue visit(CImaginaryLiteralExpression exp) throws CPATransferException {
-      CLiteralExpression tmp = exp.getValue();
-      if (tmp instanceof CIntegerLiteralExpression) {
-        return visit((CIntegerLiteralExpression)tmp);
-      } else if (tmp instanceof CFloatLiteralExpression) {
-        return visit((CFloatLiteralExpression)tmp);
-      }
-      throw new UnrecognizedCCodeException(cfaEdge, tmp);
-    }
-
-    @Override
     public SMGSymbolicValue visit(CIdExpression idExpression) throws CPATransferException {
 
       CSimpleDeclaration decl = idExpression.getDeclaration();
@@ -2411,17 +2400,6 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public SMGExplicitValue visit(CIntegerLiteralExpression exp) throws UnrecognizedCCodeException {
       return SMGKnownExpValue.valueOf(exp.asLong());
-    }
-
-    @Override
-    public SMGExplicitValue visit(CImaginaryLiteralExpression exp) throws CPATransferException {
-      CLiteralExpression tmp = exp.getValue();
-      if (tmp instanceof CIntegerLiteralExpression) {
-        return visit((CIntegerLiteralExpression)tmp);
-      } else if (tmp instanceof CFloatLiteralExpression) {
-        return visit((CFloatLiteralExpression)tmp);
-      }
-      throw new UnrecognizedCCodeException(cfaEdge, tmp);
     }
 
     @Override
