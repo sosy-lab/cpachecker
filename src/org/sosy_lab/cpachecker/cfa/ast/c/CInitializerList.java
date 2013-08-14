@@ -29,13 +29,13 @@ import java.util.List;
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.Initializer;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 
-public class CInitializerList extends Initializer implements CInitializer, CAstNode {
+public class CInitializerList extends AInitializer implements CInitializer, CAstNode {
 
   private final List<CInitializer> initializerList;
 

@@ -27,7 +27,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.Initializer;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
@@ -43,14 +43,14 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
 
   @ Nullable
   protected JVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal, JType pType, String pName,
-      String pOrigName, Initializer pInitializer, boolean pIsFinal) {
+      String pOrigName, AInitializer pInitializer, boolean pIsFinal) {
     super(pFileLocation, pIsGlobal, pType, pName, pOrigName, pInitializer);
 
     isFinal = pIsFinal;
   }
 
   public JVariableDeclaration(FileLocation pFileLocation,  JType pType, String pName,
-      String pOrigName, Initializer pInitializer, boolean pIsFinal) {
+      String pOrigName, AInitializer pInitializer, boolean pIsFinal) {
     super(pFileLocation, IS_LOCAL, pType, pName, pOrigName, pInitializer);
 
     isFinal = pIsFinal;

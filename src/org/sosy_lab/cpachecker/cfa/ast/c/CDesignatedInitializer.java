@@ -30,12 +30,12 @@ import java.util.List;
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.Initializer;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-public class CDesignatedInitializer extends Initializer implements CInitializer {
+public class CDesignatedInitializer extends AInitializer implements CInitializer {
 
 
   private final List<CDesignator> designators;
