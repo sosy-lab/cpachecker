@@ -23,46 +23,76 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import static com.google.common.collect.Iterables.transform;
+
 import java.util.List;
+import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cfa.ast.AInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.Initializer;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 
 
-public class CInitializerList extends AInitializerList implements CInitializer, CAstNode {
+public class CInitializerList extends Initializer implements CInitializer, CAstNode {
 
-  public CInitializerList(FileLocation pFileLocation, List<CInitializer> pInitializerList) {
-    super(pFileLocation, pInitializerList);
+  private final List<CInitializer> initializerList;
+
+  public CInitializerList(final FileLocation pFileLocation,
+                          final List<CInitializer> pInitializerList) {
+    super(pFileLocation);
+    initializerList = ImmutableList.copyOf(pInitializerList);
   }
 
-  @Override
-  public <R, X extends Exception> R accept(CInitializerVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
   public List<CInitializer> getInitializers() {
-    return (List<CInitializer>) super.getInitializers();
+    return initializerList;
   }
 
+  @Override
+  public String toASTString() {
+    StringBuilder lASTString = new StringBuilder();
+
+    lASTString.append("{ ");
+    Joiner.on(", ").appendTo(lASTString, transform(initializerList, CInitializer.TO_AST_STRING));
+    lASTString.append(" }");
+
+    return lASTString.toString();
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
   @Override
   public int hashCode() {
-    int prime = 31;
+    final int prime = 31;
     int result = 7;
-    return prime * result + super.hashCode();
+    result = prime * result + Objects.hashCode(initializerList);
+    result = prime * result + super.hashCode();
+    return result;
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof CInitializerList)) {
+    if (!(obj instanceof CInitializerList)
+        || !super.equals(obj)) {
       return false;
     }
 
-    return super.equals(obj);
+    CInitializerList other = (CInitializerList) obj;
+
+    return Objects.equals(other.initializerList, initializerList);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CInitializerVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 }
