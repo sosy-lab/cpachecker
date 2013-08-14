@@ -29,8 +29,8 @@ import static com.google.common.collect.FluentIterable.from;
 import java.util.List;
 import java.util.Objects;
 
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;

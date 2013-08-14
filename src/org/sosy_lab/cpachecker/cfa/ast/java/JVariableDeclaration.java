@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
