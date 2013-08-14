@@ -49,7 +49,7 @@ public class CDesignatedInitializer extends Initializer implements CInitializer 
 
   @Override
   public String toASTString() {
-      return Joiner.on("").join(from(designators).transform(CAstNode.TO_AST_STRING))
+      return Joiner.on("").join(from(designators).transform(CDesignator.TO_AST_STRING))
           + " = " + right.toASTString();
   }
 

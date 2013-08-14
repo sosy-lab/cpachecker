@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 
-import com.google.common.base.Function;
 
 public abstract class AstNode implements IAstNode {
 
@@ -66,14 +65,4 @@ public abstract class AstNode implements IAstNode {
 
     return false;
   }
-
-  public static final Function<IAstNode, String> TO_AST_STRING
-      = new Function<IAstNode, String>() {
-
-        @Override
-        public String apply(IAstNode pInput) {
-          return pInput.toASTString();
-        }
-      };
-
 }

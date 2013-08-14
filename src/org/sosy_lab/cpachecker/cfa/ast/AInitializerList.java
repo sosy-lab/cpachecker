@@ -50,7 +50,7 @@ public abstract class AInitializerList extends Initializer {
     StringBuilder lASTString = new StringBuilder();
 
     lASTString.append("{ ");
-    Joiner.on(", ").appendTo(lASTString, transform(initializerList, AstNode.TO_AST_STRING));
+    Joiner.on(", ").appendTo(lASTString, transform(initializerList, IAInitializer.TO_AST_STRING));
     lASTString.append(" }");
 
     return lASTString.toString();
