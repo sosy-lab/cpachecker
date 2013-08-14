@@ -62,6 +62,11 @@ public abstract class DefaultCExpressionVisitor<R, X extends Exception>
   }
 
   @Override
+  public R visit(CImaginaryLiteralExpression e) throws X {
+    return visitDefault(e);
+  }
+
+  @Override
   public R visit(CFloatLiteralExpression e) throws X {
     return visitDefault(e);
   }

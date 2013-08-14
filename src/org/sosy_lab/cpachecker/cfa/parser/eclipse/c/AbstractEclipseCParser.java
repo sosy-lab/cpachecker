@@ -214,6 +214,7 @@ abstract class AbstractEclipseCParser<T> implements CParser {
         try {
           ast[i].accept(builder[i]);
         } catch (CFAGenerationRuntimeException e) {
+          e.printStackTrace();
           throw new CParserException(e);
         }
       }

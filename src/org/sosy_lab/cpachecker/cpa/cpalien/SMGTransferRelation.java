@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -1320,6 +1321,17 @@ public class SMGTransferRelation implements TransferRelation {
     public Boolean visit(CFloatLiteralExpression exp) throws UnrecognizedCCodeException {
       return !exp.getValue().equals(BigDecimal.ZERO);
     }
+
+    @Override
+    public Boolean visit(CImaginaryLiteralExpression exp) throws UnrecognizedCCodeException {
+      CLiteralExpression tmp = exp.getValue();
+      if (tmp instanceof CFloatLiteralExpression) {
+        return visit((CFloatLiteralExpression)tmp);
+      } else if (tmp instanceof CIntegerLiteralExpression) {
+        return visit((CIntegerLiteralExpression)tmp);
+      }
+      throw new UnrecognizedCCodeException(cfaEdge, exp);
+    }
   }
 
   private class PointerAddressVisitor extends ExpressionValueVisitor
@@ -1347,6 +1359,11 @@ public class SMGTransferRelation implements TransferRelation {
 
     @Override
     public SMGAddressValue visit(CFloatLiteralExpression pExp) throws CPATransferException {
+      return getAddressFromSymbolicValue(smgState, super.visit(pExp));
+    }
+
+    @Override
+    public SMGAddressValue visit(CImaginaryLiteralExpression pExp) throws CPATransferException {
       return getAddressFromSymbolicValue(smgState, super.visit(pExp));
     }
 
@@ -2071,6 +2088,17 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
+    public SMGSymbolicValue visit(CImaginaryLiteralExpression exp) throws CPATransferException {
+      CLiteralExpression tmp = exp.getValue();
+      if (tmp instanceof CIntegerLiteralExpression) {
+        return visit((CIntegerLiteralExpression)tmp);
+      } else if (tmp instanceof CFloatLiteralExpression) {
+        return visit((CFloatLiteralExpression)tmp);
+      }
+      throw new UnrecognizedCCodeException(cfaEdge, tmp);
+    }
+
+    @Override
     public SMGSymbolicValue visit(CIdExpression idExpression) throws CPATransferException {
 
       CSimpleDeclaration decl = idExpression.getDeclaration();
@@ -2389,6 +2417,17 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public SMGExplicitValue visit(CIntegerLiteralExpression exp) throws UnrecognizedCCodeException {
       return SMGKnownExpValue.valueOf(exp.asLong());
+    }
+
+    @Override
+    public SMGExplicitValue visit(CImaginaryLiteralExpression exp) throws CPATransferException {
+      CLiteralExpression tmp = exp.getValue();
+      if (tmp instanceof CIntegerLiteralExpression) {
+        return visit((CIntegerLiteralExpression)tmp);
+      } else if (tmp instanceof CFloatLiteralExpression) {
+        return visit((CFloatLiteralExpression)tmp);
+      }
+      throw new UnrecognizedCCodeException(cfaEdge, tmp);
     }
 
     @Override
