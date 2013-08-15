@@ -279,6 +279,17 @@ public class SMG {
   }
 
   /**
+   * Remove the Points-To edge from the SMG with the value {@link pValue} as Source.
+   *
+   * Keeps consistency: no
+   *
+   * @param pValue the Source of the Points-To edge to be removed
+   */
+  final public void removePointsToEdge(int pValue) {
+    this.pt_edges.remove(pValue);
+  }
+
+  /**
    * Sets the validity of the object {@link pObject} to {@link pValidity}.
    * Throws {@link IllegalArgumentException} if {@link pObject} is
    * not present in SMG.
@@ -470,11 +481,11 @@ public class SMG {
     return bs;
   }
 
-  public boolean isPointer(Integer value) {
+  public final boolean isPointer(Integer value) {
     return this.pt_edges.containsKey(value);
   }
 
-  public SMGEdgePointsTo getPointer(Integer value) {
+  public final SMGEdgePointsTo getPointer(Integer value) {
     return this.pt_edges.get(value);
   }
 }
