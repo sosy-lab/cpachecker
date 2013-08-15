@@ -178,13 +178,22 @@ public class SMGTransferRelation implements TransferRelation {
           }
         }
         name = name.replace("\"", "");
-        File outputFile = new File(String.format(exportSMGFilePattern.getAbsolutePath(), name));
+        File outputFile = getOutputFile(exportSMGFilePattern, name);
         try {
-          Files.writeFile(outputFile, currentState.toDot(name, location));
+          String dot = getDot(currentState, name, location);
+          Files.writeFile(outputFile, dot);
         } catch (IOException e) {
           logger.logUserException(Level.WARNING, e, "Could not write SMG " + name + " to file");
         }
       }
+    }
+
+    protected File getOutputFile(File pExportSMGFilePattern, String pName) {
+      return new File(String.format(pExportSMGFilePattern.getAbsolutePath(), pName));
+    }
+
+    protected String getDot(SMGState pCurrentState, String pName, String pLocation) {
+      return pCurrentState.toDot(pName, pLocation);
     }
 
     public final void evaluateVBPlot(CFunctionCallExpression functionCall, SMGState currentState) {
@@ -358,8 +367,6 @@ public class SMGTransferRelation implements TransferRelation {
       }
 
       SMGAddressValue address = evaluateAddress(currentState, cfaEdge, pointerExp);
-
-
 
       if (address.isUnknown()) {
         currentState.setInvalidFree();
@@ -665,6 +672,7 @@ public class SMGTransferRelation implements TransferRelation {
       CFunctionCallStatement cFCall = (CFunctionCallStatement) cStmt;
       CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
       CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
+      boolean isRequiered = false;
       String functionName = fileNameExpression.toASTString();
 
       if (builtins.isABuiltIn(functionName)) {
@@ -672,6 +680,8 @@ public class SMGTransferRelation implements TransferRelation {
         switch (functionName) {
         case "__VERIFIER_BUILTIN_PLOT":
           builtins.evaluateVBPlot(cFCExpression, newState);
+          expressionEvaluator.reset();
+          missingInformationList.add(new MissingInformation(cFCExpression, false));
           break;
         case "free":
           builtins.evaluateFree(cFCExpression, newState, pCfaEdge);
@@ -680,15 +690,23 @@ public class SMGTransferRelation implements TransferRelation {
           logger.log(Level.WARNING, "Calling malloc and not using the result, resulting in memory leak at line "
               + pCfaEdge.getLineNumber());
           newState.setMemLeak();
+          isRequiered = true;
           break;
         case "calloc":
           logger.log(Level.WARNING, "Calling calloc and not using the result, resulting in memory leak at line "
               + pCfaEdge.getLineNumber());
           newState.setMemLeak();
+          isRequiered = true;
           break;
         case "memset":
           builtins.evaluateMemset(cFCExpression, newState, pCfaEdge);
         }
+
+        if(expressionEvaluator.missingExplicitInformation) {
+          missingInformationList.add(new MissingInformation(cFCExpression, isRequiered));
+          expressionEvaluator.reset();
+        }
+
       } else {
         logger.log(Level.FINEST, ">>> Handling statement: non-builtin function call");
         newState = new SMGState(pState);
@@ -1127,7 +1145,9 @@ public class SMGTransferRelation implements TransferRelation {
     public SMGExplicitValue evaluateExplicitValue(SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue)
         throws CPATransferException {
       SMGExplicitValue explicitValue = super.evaluateExplicitValue(pSmgState, pCfaEdge, pRValue);
-      missingExplicitInformation = true;
+      if (explicitValue.isUnknown()) {
+        missingExplicitInformation = true;
+      }
       return explicitValue;
     }
 
@@ -1178,6 +1198,8 @@ public class SMGTransferRelation implements TransferRelation {
         if (isRelevant(missingInformation)) {
           newElement = resolvingAssignment(newElement, explicitState, missingInformation, cfaEdge);
         }
+      } else if (missingInformation.isFunctionCall()) {
+        resolveRValue(pSMGState, newElement, explicitState, missingInformation.getMissingCExpressionInformation(), cfaEdge);
       }
     }
 
@@ -1287,7 +1309,7 @@ public class SMGTransferRelation implements TransferRelation {
       switch (functionName) {
       case "__VERIFIER_BUILTIN_PLOT":
         builtins.evaluateVBPlot(pIastFunctionCallExpression, pSmgState);
-        break;
+        return SMGUnknownValue.getInstance();
       case "malloc":
         SMGEdgePointsTo mallocEdge = builtins.evaluateMalloc(pIastFunctionCallExpression, pSmgState, pEdge);
         return createAddress(mallocEdge);
@@ -1297,6 +1319,9 @@ public class SMGTransferRelation implements TransferRelation {
       case "memset":
         SMGEdgePointsTo memsetTargetEdge = builtins.evaluateMemset(pIastFunctionCallExpression, pSmgState, pEdge);
         return createAddress(memsetTargetEdge);
+      case "free":
+        builtins.evaluateFree(pIastFunctionCallExpression, pSmgState, pEdge);
+        return SMGUnknownValue.getInstance();
       }
       throw new AssertionError();
     } else {
@@ -1376,6 +1401,16 @@ public class SMGTransferRelation implements TransferRelation {
     protected SMGSymbolicValue evaluateExpressionValue(SMGState pSmgState, CFAEdge pCfaEdge, CExpression pRValue)
         throws CPATransferException {
       return resolveRValue(oldState, pSmgState, explicitState, pRValue, pCfaEdge);
+    }
+
+    @Override
+    protected String getDot(SMGState pCurrentState, String pName, String pLocation) {
+      return pCurrentState.toDot(pName, pLocation, explicitState);
+    }
+
+    @Override
+    protected File getOutputFile(File pExportSMGFilePattern, String pName) {
+      return new File(String.format(exportSMGFilePattern.getAbsolutePath(), "Explicit_" + pName));
     }
 
     @Override
@@ -1460,6 +1495,11 @@ public class SMGTransferRelation implements TransferRelation {
       return missingCLeftMemoryLocation != null;
     }
 
+    public boolean isFunctionCall() {
+      return missingCLeftMemoryLocation == null && cLeftMemoryLocation == null
+          && missingCExpressionInformation instanceof CFunctionCallExpression;
+    }
+
     @SuppressWarnings("unused")
     public boolean hasKnownMemoryLocation() {
       return cLeftMemoryLocation != null;
@@ -1472,8 +1512,10 @@ public class SMGTransferRelation implements TransferRelation {
       // we lack information.
 
       return (missingCExpressionInformation != null
-              || missingCLeftMemoryLocation != null)
-          && truthAssumption == null;
+          || missingCLeftMemoryLocation != null)
+          && truthAssumption == null &&
+          (missingCLeftMemoryLocation != null
+          || cLeftMemoryLocation != null);
     }
 
     public boolean isMissingAssumption() {
@@ -1510,6 +1552,15 @@ public class SMGTransferRelation implements TransferRelation {
       cLeftMemoryLocation = null;
       truthAssumption = pTruthAssumption;
       requieredInformation = false;
+    }
+
+    public MissingInformation(CFunctionCallExpression pCFCExpression, boolean pIsRequiered) {
+      missingCExpressionInformation = pCFCExpression;
+      requieredInformation = pIsRequiered;
+      cExpressionValue = null;
+      truthAssumption = null;
+      missingCLeftMemoryLocation = null;
+      cLeftMemoryLocation = null;
     }
 
     @SuppressWarnings("unused")

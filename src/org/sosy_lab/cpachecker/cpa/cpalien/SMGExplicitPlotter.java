@@ -69,6 +69,7 @@ public final class SMGExplicitPlotter {
     addGlobalObjectSubgraph(smg, sb);
 
     Map<Integer, MemoryLocation> coveredBySMG = new HashMap<>();
+    Set<MemoryLocation> coveredMemloc = new HashSet<>();
 
     for (SMGEdgeHasValue edge : smg.getHVEdges()) {
 
@@ -77,6 +78,7 @@ public final class SMGExplicitPlotter {
       MemoryLocation memloc = smgState.resolveMemLoc(SMGAddress.valueOf(obj, edge.getOffset()), functionName);
       if (explicitState.contains(memloc)) {
         coveredBySMG.put(edge.getValue(), memloc);
+        coveredMemloc.add(memloc);
       }
     }
 
@@ -87,7 +89,7 @@ public final class SMGExplicitPlotter {
     Set<MemoryLocation> notCoveredBySMG = new HashSet<>();
 
     for(MemoryLocation memloc : explicitState.getTrackedMemoryLocations()) {
-      if(!coveredBySMG.containsValue(memloc)) {
+      if(!coveredMemloc.contains(memloc)) {
         sb.append(newLineWithOffset(explicitValueAsDot(memloc)));
         notCoveredBySMG.add(memloc);
       }
@@ -159,7 +161,8 @@ public final class SMGExplicitPlotter {
     for (String key : pNamespace.keySet()) {
       SMGObject obj = pNamespace.get(key);
       nodes.add("<" + key + "> " + obj.toString());
-      locationIndex.put(Location.valueOf(obj, pFunctionName), "struct" + pStructId + ":" + key);
+      Location location = Location.valueOf(obj, pFunctionName);
+      locationIndex.put(location, "struct" + pStructId + ":" + key);
     }
 
     Set<MemoryLocation> memoryLocations;
@@ -172,7 +175,6 @@ public final class SMGExplicitPlotter {
 
     for (MemoryLocation memloc : memoryLocations) {
       Location location = Location.valueOf(memloc);
-
       if (!locationIndex.containsKey(location)) {
         // We don't know the size of the memory location
         nodes.add("<" + memloc.getIdentifier() + "> " + memloc.getIdentifier());
@@ -233,7 +235,7 @@ public final class SMGExplicitPlotter {
     private final String location;
 
     private Location(SMGObject pSmgObject, String functionName) {
-      location = pSmgObject.getLabel() + "::" + functionName;
+      location = functionName + "::" + pSmgObject.getLabel();
     }
 
     public static Location valueOf(MemoryLocation pMemloc) {
@@ -263,12 +265,22 @@ public final class SMGExplicitPlotter {
 
     @Override
     public boolean equals(Object pObj) {
-      return location.equals(pObj);
+
+      if (pObj instanceof Location) {
+        return location.equals(((Location) pObj).location);
+      }
+
+      return false;
     }
 
     @Override
     public int hashCode() {
       return location.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return location;
     }
   }
 

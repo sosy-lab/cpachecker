@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
@@ -226,6 +227,20 @@ public class SMGState implements AbstractQueryableState {
   public String toDot(String pName, String pLocation) {
     SMGPlotter plotter = new SMGPlotter();
     return plotter.smgAsDot(heap, pName, pLocation);
+  }
+
+  /**
+   * Returns a DOT representation of the SMGState with explicit Values
+   * inserted where possible.
+   *
+   * @param pName A name of the graph.
+   * @param pLocation A location in the program.
+   * @param pExplicitState
+   * @return String containing a DOT graph corresponding to the SMGState.
+   */
+  public String toDot(String pName, String pLocation, ExplicitState pExplicitState) {
+    SMGExplicitPlotter plotter = new SMGExplicitPlotter(pExplicitState, this);
+    return plotter.smgAsDot(heap, "Explicit_"+ pName, pLocation);
   }
 
   /**
