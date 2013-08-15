@@ -48,7 +48,7 @@ public final class SMGPlotter {
 
     for (SMGObject heapObject : smg.getHeapObjects()) {
       //if (heapObject.notNull()){
-        sb.append(newLineWithOffset(smgObjectAsDot(heapObject)));
+        sb.append(newLineWithOffset(smgObjectAsDot(heapObject, smg)));
         objectIndex.put(heapObject, heapObject.getLabel());
       //}
     }
@@ -132,8 +132,10 @@ public final class SMGPlotter {
     return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()) + "[label=\"+" + pEdge.getOffset() + "b\"];";
   }
 
-  private static String smgObjectAsDot(SMGObject pObject) {
-    return pObject.getLabel() + " [ shape=rectangle, label = \""  +  pObject.toString() +"\"];";
+  private static String smgObjectAsDot(SMGObject pObject, CLangSMG pSmg) {
+
+    String valid = pSmg.isObjectValid(pObject) ? "" : " : invalid ";
+    return pObject.getLabel() + " [ shape=rectangle, label = \"" + pObject.toString() + valid + "\"];";
   }
 
   private static String smgValueAsDot(int value) {

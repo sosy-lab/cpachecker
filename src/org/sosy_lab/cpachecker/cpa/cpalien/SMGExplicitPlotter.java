@@ -60,8 +60,8 @@ public final class SMGExplicitPlotter {
     addStackSubgraph(smg, sb);
 
     for (SMGObject heapObject : smg.getHeapObjects()) {
-        sb.append(newLineWithOffset(smgObjectAsDot(heapObject)));
-        locationIndex.put(Location.valueOf(heapObject), heapObject.getLabel());
+      sb.append(newLineWithOffset(smgObjectAsDot(heapObject, smg)));
+      locationIndex.put(Location.valueOf(heapObject), heapObject.getLabel());
     }
 
     // This only works after creating all heap Objects,
@@ -212,8 +212,10 @@ public final class SMGExplicitPlotter {
         + "b\"];";
   }
 
-  private  String smgObjectAsDot(SMGObject pObject) {
-    return pObject.getLabel() + " [ shape=rectangle, label = \""  +  pObject.toString() +"\"];";
+  private static String smgObjectAsDot(SMGObject pObject, CLangSMG pSmg) {
+
+    String valid = pSmg.isObjectValid(pObject) ? "" : " : invalid ";
+    return pObject.getLabel() + " [ shape=rectangle, label = \"" + pObject.toString() + valid + "\"];";
   }
 
   private String smgValueAsDot(int value, Map<Integer, MemoryLocation> pCoveredBySMG) {
