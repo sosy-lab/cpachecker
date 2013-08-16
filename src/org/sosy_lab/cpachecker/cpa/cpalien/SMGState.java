@@ -468,6 +468,11 @@ public class SMGState implements AbstractQueryableState {
    * @return True, if this state is covered by the given state, false otherwise.
    */
   public boolean isLessOrEqual(SMGState reachedState) {
+
+    if(reachedState == this) {
+      return true;
+    }
+
     return heap.isLessOrEqual(reachedState.heap);
   }
 
