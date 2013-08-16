@@ -123,6 +123,7 @@ public class CLangSMG extends SMG {
 
     heap_objects.addAll(pHeap.heap_objects);
     global_objects.putAll(pHeap.global_objects);
+    has_leaks = pHeap.has_leaks;
   }
 
   /**
@@ -371,6 +372,10 @@ public class CLangSMG extends SMG {
    */
   public Set<SMGObject> getHeapObjects() {
     return Collections.unmodifiableSet(heap_objects);
+  }
+
+  public boolean isHeapObject(SMGObject object) {
+    return heap_objects.contains(object);
   }
 
   /**

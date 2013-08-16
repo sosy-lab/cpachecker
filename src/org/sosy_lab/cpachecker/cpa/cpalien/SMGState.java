@@ -87,6 +87,9 @@ public class SMGState implements AbstractQueryableState {
     predecessor = pOriginalState.predecessor;
     runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
     id = id_counter++;
+    invalidWrite = pOriginalState.invalidWrite;
+    invalidFree = pOriginalState.invalidFree;
+    invalidRead = pOriginalState.invalidRead;
   }
 
   /**
@@ -604,9 +607,27 @@ public class SMGState implements AbstractQueryableState {
    * @throws SMGInconsistentException
    */
   public void free(Integer address, Integer offset, SMGObject smgObject) throws SMGInconsistentException {
-    if (! this.heap.isObjectValid(smgObject)) {
-      this.setInvalidFree();
+
+    if (!heap.isHeapObject(smgObject)) {
+      // You may not free any objects not on the heap.
+      setInvalidFree();
+      return;
     }
+
+    if(!(offset == 0)) {
+      // you may not invoke free on any address that you
+      // didn't get through a malloc invocation.
+      setInvalidFree();
+      return;
+    }
+
+    if (! this.heap.isObjectValid(smgObject)) {
+      // you may not invoke free multiple times on
+      // the same object
+      this.setInvalidFree();
+      return;
+    }
+
     heap.setValidity(smgObject, false);
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(smgObject);
 
