@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -245,7 +246,7 @@ public class SMGExpressionEvaluator {
 
       if (fieldReference.isPointerDereference()) {
 
-        SMGSymbolicValue address = readValue(smgState, memoryOfFieldOwner, SMGKnownExpValue.ZERO, ownerType);
+        SMGSymbolicValue address = readValue(smgState, memoryOfFieldOwner, SMGKnownExpValue.ZERO, ownerType, cfaEdge);
 
         SMGAddressValue addressValue = getAddressFromSymbolicValue(smgState, address);
 
@@ -284,7 +285,7 @@ public class SMGExpressionEvaluator {
 
       if (fieldReference.isPointerDereference()) {
 
-        SMGSymbolicValue address = readValue(smgState, fieldObject, fieldOffset, field.getType());
+        SMGSymbolicValue address = readValue(smgState, fieldObject, fieldOffset, field.getType(), cfaEdge);
 
         SMGAddressValue addressValue = getAddressFromSymbolicValue(smgState, address);
 
@@ -302,7 +303,7 @@ public class SMGExpressionEvaluator {
 
       if (fieldReference.isPointerDereference()) {
         SMGSymbolicValue address2 = readValue(smgState, fieldOwnerAddress.getObject(),
-            fieldOwnerAddress.getOffset(), ownerType);
+            fieldOwnerAddress.getOffset(), ownerType, cfaEdge);
 
         SMGAddressValue address2Value = getAddressFromSymbolicValue(smgState, address2);
 
@@ -323,13 +324,28 @@ public class SMGExpressionEvaluator {
   }
 
   public SMGSymbolicValue readValue(SMGState pSmgState, SMGObject pObject,
-      SMGExplicitValue pOffset, CType pType) throws SMGInconsistentException {
+      SMGExplicitValue pOffset, CType pType, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
 
     if (pOffset.isUnknown() || pObject == null) {
       return SMGUnknownValue.getInstance();
     }
 
-    Integer value = pSmgState.readValue(pObject, pOffset.getAsInt(), pType);
+    int fieldOffset = pOffset.getAsInt();
+
+    boolean doesNotFitIntoObject = fieldOffset < 0
+        || fieldOffset + getSizeof(pEdge, pType) > pObject.getSizeInBytes();
+
+    if (doesNotFitIntoObject) {
+      // Field does not fit size of declared Memory
+      logger.log(Level.WARNING, "Field " + "(" + fieldOffset + ", " + pType.toASTString("") + ")" +
+          " does not fit object " + pObject.toString() + ".\n Line: " + pEdge.getLineNumber());
+
+      // TODO Modifying read state, ugly ...
+      pSmgState.setInvalidRead();
+      return SMGUnknownValue.getInstance();
+    }
+
+    Integer value = pSmgState.readValue(pObject, fieldOffset, pType);
 
     if (value == null) {
       return SMGUnknownValue.getInstance();
@@ -1121,7 +1137,7 @@ public class SMGExpressionEvaluator {
         return SMGUnknownValue.getInstance();
       }
 
-      SMGSymbolicValue value = readValue(smgState, address.getObject(), address.getOffset(), getRealExpressionType(exp));
+      SMGSymbolicValue value = readValue(smgState, address.getObject(), address.getOffset(), getRealExpressionType(exp), cfaEdge);
 
       return value;
     }
@@ -1160,7 +1176,7 @@ public class SMGExpressionEvaluator {
 
       SMGExplicitValue offset = addressOffset.add(fieldOffset);
 
-      return readValue(smgState, addressOfField.getObject(), offset, field.getType());
+      return readValue(smgState, addressOfField.getObject(), offset, field.getType(), cfaEdge);
     }
 
     @Override
@@ -1187,7 +1203,7 @@ public class SMGExpressionEvaluator {
 
         SMGObject variableObject = smgState.getObjectForVisibleVariable(idExpression.getName());
 
-        return readValue(smgState, variableObject, SMGKnownExpValue.ZERO, getRealExpressionType(idExpression));
+        return readValue(smgState, variableObject, SMGKnownExpValue.ZERO, getRealExpressionType(idExpression), cfaEdge);
       }
 
       return SMGUnknownValue.getInstance();
@@ -1400,7 +1416,7 @@ public class SMGExpressionEvaluator {
       if (address.isUnknown()) {
         // We can't resolve the field to dereference, therefore
         // we must assume, that it is invalid
-        smgState.setUnkownDereference();
+        smgState.setInvalidRead();
         return SMGUnknownValue.getInstance();
       }
 
@@ -1408,11 +1424,11 @@ public class SMGExpressionEvaluator {
       if (derefType instanceof CArrayType) {
         return createAddress(smgState, address.getObject(), address.getOffset());
       } else {
-        return readValue(smgState, address.getObject(), address.getOffset(), derefType);
+        return readValue(smgState, address.getObject(), address.getOffset(), derefType, cfaEdge);
       }
     }
 
-    protected SMGSymbolicValue dereferencePointer(CExpression exp, CType derefType)
+    protected final SMGSymbolicValue dereferencePointer(CExpression exp, CType derefType)
         throws CPATransferException {
 
       SMGAddressValue address = evaluateAddress(smgState, cfaEdge, exp);
@@ -1420,7 +1436,7 @@ public class SMGExpressionEvaluator {
       if (address.isUnknown()) {
         // We can't resolve the field to dereference , therefore
         // we must assume, that it is invalid
-        smgState.setUnkownDereference();
+        smgState.setInvalidRead();
         return SMGUnknownValue.getInstance();
       }
 
@@ -1428,7 +1444,7 @@ public class SMGExpressionEvaluator {
       if (derefType instanceof CArrayType) {
         return createAddress(smgState, address.getObject(), address.getOffset());
       } else {
-        return readValue(smgState, address.getObject(), address.getOffset(), derefType);
+        return readValue(smgState, address.getObject(), address.getOffset(), derefType, cfaEdge);
       }
     }
 

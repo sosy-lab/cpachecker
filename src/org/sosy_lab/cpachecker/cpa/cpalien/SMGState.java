@@ -326,7 +326,7 @@ public class SMGState implements AbstractQueryableState {
     return null;
   }
 
-  private void setInvalidRead() {
+  public void setInvalidRead() {
     this.invalidRead  = true;
   }
 
@@ -442,7 +442,7 @@ public class SMGState implements AbstractQueryableState {
     return new_edge;
   }
 
-  private void setInvalidWrite() {
+  public void setInvalidWrite() {
     this.invalidWrite = true;
   }
 
@@ -688,14 +688,6 @@ public class SMGState implements AbstractQueryableState {
    */
   public void setInvalidFree() {
     this.invalidFree = true;
-  }
-
-  /**
-   * Signals a dereference of a pointer or array
-   *  which could not be resolved.
-   */
-  public void setUnkownDereference() {
-    // TODO Auto-generated method stub
   }
 
   public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {

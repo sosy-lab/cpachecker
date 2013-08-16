@@ -285,7 +285,7 @@ public class SMGTransferRelation implements TransferRelation {
       //TODO effective memset
       //  memset() copies ch into the first count characters of buffer
       for (int c = 0; c < count; c++) {
-        writeValue(currentState, bufferMemory, offset + c, charType, ch);
+        writeValue(currentState, bufferMemory, offset + c, charType, ch, cfaEdge);
       }
 
       return pointer;
@@ -542,7 +542,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       CType rValueType = expressionEvaluator.getRealExpressionType(((CFunctionCallAssignmentStatement) exprOnSummary).getRightHandSide());
 
-      SMGSymbolicValue rValue = getFunctionReturnValue(newState, rValueType);
+      SMGSymbolicValue rValue = getFunctionReturnValue(newState, rValueType, functionReturnEdge);
 
       SMGAddress address = null;
 
@@ -568,11 +568,11 @@ public class SMGTransferRelation implements TransferRelation {
     return newState;
   }
 
-  private SMGSymbolicValue getFunctionReturnValue(SMGState smgState, CType type) throws SMGInconsistentException {
+  private SMGSymbolicValue getFunctionReturnValue(SMGState smgState, CType type, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
 
     SMGObject tmpMemory = smgState.getFunctionReturnObject();
 
-    return expressionEvaluator.readValue(smgState, tmpMemory, SMGKnownExpValue.ZERO, type);
+    return expressionEvaluator.readValue(smgState, tmpMemory, SMGKnownExpValue.ZERO, type, pEdge);
   }
 
   private SMGState handleFunctionCall(SMGState smgState, CFunctionCallEdge callEdge)
@@ -806,14 +806,23 @@ public class SMGTransferRelation implements TransferRelation {
         copy(newState, memoryOfField, object);
       }
     } else {
-      writeValue(newState, memoryOfField, fieldOffset, rValueType, value);
+      writeValue(newState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
     }
   }
 
   private void writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, CType pRValueType,
-      SMGSymbolicValue pValue) throws SMGInconsistentException {
+      SMGSymbolicValue pValue, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
 
-    if (pValue.isUnknown() || pNewState == null) {
+    if (pValue.isUnknown() || pNewState == null) { return; }
+
+    boolean doesNotFitIntoObject = pFieldOffset < 0
+        || pFieldOffset + expressionEvaluator.getSizeof(pEdge, pRValueType) > pMemoryOfField.getSizeInBytes();
+
+    if (doesNotFitIntoObject) {
+      // Field does not fit size of declared Memory
+      logger.log(Level.WARNING, "Field " + "(" + pFieldOffset + ", " + pRValueType.toASTString("") + ")" +
+          " does not fit object " + pMemoryOfField.toString() + ".\n Line: " + pEdge.getLineNumber());
+      pNewState.setInvalidWrite();
       return;
     }
 
@@ -839,7 +848,7 @@ public class SMGTransferRelation implements TransferRelation {
       possibleMallocFail = false;
       SMGState otherState = new SMGState(state);
       CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
-      writeValue(otherState, memoryOfField, fieldOffset, rValueType, SMGKnownSymValue.ZERO);
+      writeValue(otherState, memoryOfField, fieldOffset, rValueType, SMGKnownSymValue.ZERO, cfaEdge);
       mallocFailState = otherState;
     }
 
@@ -875,7 +884,7 @@ public class SMGTransferRelation implements TransferRelation {
 
         if (newInitializer == null) {
           // global variables without initializer are set to 0 in C
-          writeValue(newState, newObject, 0, cType, SMGKnownSymValue.ZERO);
+          writeValue(newState, newObject, 0, cType, SMGKnownSymValue.ZERO, edge);
         }
 
       } else {
@@ -1270,7 +1279,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       hasChanged = true;
       writeValue(pSmgState, memoryLocation.getObject(), memoryLocation.getOffset().getAsInt(),
-          expressionEvaluator.getRealExpressionType(rValue), symbolicValue);
+          expressionEvaluator.getRealExpressionType(rValue), symbolicValue, edge);
 
     }
 
