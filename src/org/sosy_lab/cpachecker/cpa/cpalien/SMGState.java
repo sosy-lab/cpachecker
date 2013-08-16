@@ -87,9 +87,6 @@ public class SMGState implements AbstractQueryableState {
     predecessor = pOriginalState.predecessor;
     runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
     id = id_counter++;
-    invalidWrite = pOriginalState.invalidWrite;
-    invalidFree = pOriginalState.invalidFree;
-    invalidRead = pOriginalState.invalidRead;
   }
 
   /**
