@@ -168,9 +168,13 @@ public class SMGExplicitCommunicator {
 
     private Long getValueFromLocation(MemoryLocation pMemloc) {
 
+      if(pMemloc == null) {
+        return null;
+      }
+
       ExplicitState explState = getState();
 
-      if (explState.contains(pMemloc)) {
+      if (explState.contains(pMemloc) ) {
         return explState.getValueFor(pMemloc);
       } else {
         return null;
