@@ -802,8 +802,13 @@ public class SMGTransferRelation implements TransferRelation {
 
       if (value instanceof SMGKnownAddVal) {
 
-        SMGObject object = ((SMGKnownAddVal) value).getObject();
-        copy(newState, memoryOfField, object);
+        SMGObject source = ((SMGKnownAddVal) value).getObject();
+
+        if (source.getSizeInBytes() == memoryOfField.getSizeInBytes()) {
+          copy(newState, source, memoryOfField);
+        } else {
+          //TODO Nested Copys of structs
+        }
       }
     } else {
       writeValue(newState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
@@ -829,9 +834,8 @@ public class SMGTransferRelation implements TransferRelation {
     pNewState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue);
   }
 
-  private void copy(SMGState pNewState, SMGObject pMemoryOfField, SMGObject pObject) {
-
-
+  private void copy(SMGState pNewState, SMGObject pSource, SMGObject pTarget) throws SMGInconsistentException {
+    pNewState.copy(pSource, pTarget);
   }
 
   private SMGState handleAssignmentToField(SMGState state, CFAEdge cfaEdge,

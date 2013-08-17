@@ -710,4 +710,41 @@ public class SMGState implements AbstractQueryableState {
       return MemoryLocation.valueOf(pFunctionName, object.getLabel(), offset);
     }
   }
+
+  /**
+   * Copys (shallow) the hv-edges of source to target.
+   *
+   *
+   *
+   * @param pSource the SMGObject providing the hv-edges
+   * @param pTarget the target of the copy process
+   * @throws SMGInconsistentException
+   */
+  public void copy(SMGObject pSource, SMGObject pTarget) throws SMGInconsistentException {
+
+    assert pSource.getSizeInBytes() == pTarget.getSizeInBytes();
+
+    SMGEdgeHasValueFilter filterSource = new SMGEdgeHasValueFilter();
+    filterSource.filterByObject(pSource);
+    SMGEdgeHasValueFilter filterTarget = new SMGEdgeHasValueFilter();
+    filterTarget.filterByObject(pTarget);
+
+    //Remove all Target edges
+    Set<SMGEdgeHasValue> targetEdges = getHVEdges(filterTarget);
+
+    for (SMGEdgeHasValue edge : targetEdges) {
+      heap.removeHasValueEdge(edge);
+    }
+
+    // Copy all Source edges
+    Set<SMGEdgeHasValue> sourceEdges = getHVEdges(filterSource);
+
+    for (SMGEdgeHasValue edge : sourceEdges) {
+      writeValue(pTarget, edge.getOffset(), edge.getType(), edge.getValue());
+    }
+
+    performConsistencyCheck(runtimeCheckLevel);
+    heap.pruneUnreachable();
+    performConsistencyCheck(runtimeCheckLevel);
+  }
 }
