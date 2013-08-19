@@ -190,6 +190,16 @@ public class SimpleInterval {
   }
 
   /**
+   * Checks if this interval contains the value zero.
+   * @return <code>true</code> if this interval contains the value zero,
+   * <code>false</code> otherwise.
+   */
+  public boolean contains(BigInteger pValue) {
+    return (upperBound == null || upperBound.compareTo(pValue) >= 0)
+        && (lowerBound == null || lowerBound.compareTo(pValue) <= 0);
+  }
+
+  /**
    * Checks if this interval contains at least one negative value.
    * @return <code>true</code> if this interval contains at least one
    * negative value, <code>false</code> otherwise.
