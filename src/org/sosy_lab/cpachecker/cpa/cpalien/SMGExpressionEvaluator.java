@@ -1059,7 +1059,7 @@ public class SMGExpressionEvaluator {
             return SMGUnknownValue.getInstance();
           }
 
-          SMGAddressValue lAddress = getAddressFromSymbolicValue(getSmgState(), rVal);
+          SMGAddressValue lAddress = getAddressFromSymbolicValue(getSmgState(), lVal);
 
           if (lAddress.isUnknown()) {
             return SMGUnknownValue.getInstance();
