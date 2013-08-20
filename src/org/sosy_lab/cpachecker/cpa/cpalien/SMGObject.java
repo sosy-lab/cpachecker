@@ -51,6 +51,19 @@ public class SMGObject {
     return label;
   }
 
+  @Override
+  public boolean equals(Object pObj) {
+    // Note that Objects are not
+    // equal because there fields are equal.
+    // Objects can belong to different StackFrames.
+    return super.equals(pObj);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
   public int getSizeInBytes() {
     return size_in_bytes;
   }
