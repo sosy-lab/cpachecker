@@ -1249,7 +1249,7 @@ public class SMGTransferRelation implements TransferRelation {
           pMissingInformation.getMissingCLeftMemoryLocation(), edge);
     }
 
-    if (memoryLocation == null) {
+    if (memoryLocation == null || memoryLocation.isUnknown()) {
       // Always return the new Element
       // if you want to interrupt the calculation
       // in case it was changed before

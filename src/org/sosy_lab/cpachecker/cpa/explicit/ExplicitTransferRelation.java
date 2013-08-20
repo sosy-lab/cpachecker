@@ -1008,6 +1008,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       } else if (missingInformation.isMissingAssignment()) {
         if (isRelevant(missingInformation)) {
           newElement = resolvingAssignment(newElement, smgState, missingInformation);
+        } else {
+          // We have to forget Nonrelevant Information to not contradict SMGState.
+          newElement = forgetMemLoc(newElement, missingInformation, smgState);
         }
       }
     }
@@ -1020,6 +1023,29 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     return state.equals(newElement) ? null : Collections.singleton(newElement);
+  }
+
+  private ExplicitState forgetMemLoc(ExplicitState pNewElement, MissingInformation pMissingInformation,
+      SMGState pSmgState) throws UnrecognizedCCodeException {
+
+    MemoryLocation memoryLocation = null;
+
+    if (pMissingInformation.hasKnownMemoryLocation()) {
+      memoryLocation = pMissingInformation.getcLeftMemoryLocation();
+    } else if (pMissingInformation.hasUnknownMemoryLocation()) {
+      memoryLocation = resolveMemoryLocation(pSmgState,
+          pMissingInformation.getMissingCLeftMemoryLocation());
+    }
+
+    if (memoryLocation == null) {
+      // Always return the new Element
+      // if you want to interrupt the calculation
+      // in case it was changed before
+      return pNewElement;
+    } else {
+      pNewElement.forget(memoryLocation);
+      return pNewElement;
+    }
   }
 
   private boolean isRelevant(MissingInformation missingInformation) {
