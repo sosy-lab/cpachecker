@@ -89,7 +89,8 @@ public final class SMGExplicitPlotter {
     Set<MemoryLocation> notCoveredBySMG = new HashSet<>();
 
     for(MemoryLocation memloc : explicitState.getTrackedMemoryLocations()) {
-      if(!coveredMemloc.contains(memloc)) {
+      // We don't consider values from the old Nomenclature in explicit cpa
+      if(!coveredMemloc.contains(memloc) && !memloc.getAsSimpleString().contains("->")) {
         sb.append(newLineWithOffset(explicitValueAsDot(memloc)));
         notCoveredBySMG.add(memloc);
       }
@@ -175,7 +176,9 @@ public final class SMGExplicitPlotter {
 
     for (MemoryLocation memloc : memoryLocations) {
       Location location = Location.valueOf(memloc);
-      if (!locationIndex.containsKey(location)) {
+      //  We don't consider values written into explicit cpa under the old
+      //  Nomenclature
+      if (!locationIndex.containsKey(location) && !location.location.contains("->")) {
         // We don't know the size of the memory location
         nodes.add("<" + memloc.getIdentifier() + "> " + memloc.getIdentifier());
         locationIndex.put(location, "struct" + pStructId + ":" + memloc.getIdentifier());
