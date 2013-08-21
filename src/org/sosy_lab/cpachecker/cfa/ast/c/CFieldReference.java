@@ -57,8 +57,7 @@ public final class CFieldReference extends AExpression implements CLeftHandSide 
       for (CCompositeTypeMemberDeclaration field : ((CCompositeType)structType).getMembers()) {
         if (field.getName().equals(name)) {
           if (!field.getType().getCanonicalType().equals(getExpressionType().getCanonicalType())) {
-            // TODO re-enable when Eclipse CDT is fixed and does not create ProblemTypes anymore
-//            throw new IllegalArgumentException("Illegal type " + getExpressionType() + " for access of field " + name + " in " + structType);
+            throw new IllegalArgumentException("Illegal type " + getExpressionType() + " for access of field " + name + " in " + structType);
           }
           found = true;
           break;
