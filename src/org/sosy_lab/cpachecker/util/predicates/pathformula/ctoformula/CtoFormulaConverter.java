@@ -575,6 +575,7 @@ public class CtoFormulaConverter {
 
 
   /** Takes a (scoped) struct variable name and returns the field variable name. */
+  @VisibleForTesting
   static String makeFieldVariableName(String scopedId, Pair<Integer, Integer> msb_lsb, SSAMapBuilder ssa) {
     return FIELD_VARIABLE + scopedId +
           "__in__" + String.format("[%d:%d]", msb_lsb.getFirst(), msb_lsb.getSecond()) +

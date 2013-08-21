@@ -608,9 +608,14 @@ class ASTConverter {
 
     if (containsProblemType(type)) {
       CType ownerType = owner.getExpressionType().getCanonicalType();
-      if (e.isPointerDereference() && ownerType instanceof CPointerType) {
-        ownerType = ((CPointerType) ownerType).getType();
+      if (e.isPointerDereference()) {
+        if (!(ownerType instanceof CPointerType)) {
+          throw new CFAGenerationRuntimeException("Dereferencing non-pointer type", e);
+        }
+        ownerType = ((CPointerType)ownerType).getType();
       }
+      ownerType = ownerType.getCanonicalType();
+
       if (ownerType instanceof CCompositeType) {
         CCompositeType compositeType = (CCompositeType)ownerType;
         boolean foundReplacement = false;
@@ -660,6 +665,7 @@ class ASTConverter {
   }
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
+
     List<CExpression> params = new ArrayList<>();
     for (IASTInitializerClause i : e.getArguments()) {
       params.add(convertExpressionWithoutSideEffects(toExpression(i)));
@@ -691,8 +697,18 @@ class ASTConverter {
       }
     }
 
+    CType returnType = typeConverter.convert(e.getExpressionType());
+    if (containsProblemType(returnType)) {
+      // workaround for Eclipse CDT problems
+      if (declaration != null) {
+        logger.log(Level.FINE, "Replacing return type", returnType, "of function call", e.getRawSignature(),
+            "in line", e.getFileLocation().getStartingLineNumber(),
+            "with", declaration.getType().getReturnType());
+        returnType = declaration.getType().getReturnType();
+      }
+    }
 
-    return new CFunctionCallExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), functionName, params, declaration);
+    return new CFunctionCallExpression(getLocation(e), returnType, functionName, params, declaration);
   }
 
   private CIdExpression convert(IASTIdExpression e) {
