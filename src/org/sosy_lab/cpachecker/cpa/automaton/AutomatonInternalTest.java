@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -68,7 +69,7 @@ public class AutomatonInternalTest {
     config = Configuration.builder()
         .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
         .build();
-    logger = new LogManager(config);
+    logger = new BasicLogManager(config);
 
     ParserOptions options = CParser.Factory.getDefaultOptions();
     parser = CParser.Factory.getParser(config, logger, options, MachineModel.LINUX32);

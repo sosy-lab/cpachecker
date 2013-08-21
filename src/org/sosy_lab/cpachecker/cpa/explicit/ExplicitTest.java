@@ -28,10 +28,11 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.LogManager.StringHandler;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
@@ -75,8 +76,8 @@ public class ExplicitTest {
     Configuration config = Configuration.builder()
       .addConverter(FileOption.class, new FileTypeConverter(Configuration.defaultConfiguration()))
       .setOptions(pProperties).build();
-    StringHandler stringLogHandler = new LogManager.StringHandler();
-    LogManager logger = new LogManager(config, stringLogHandler);
+    StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
+    LogManager logger = new BasicLogManager(config, stringLogHandler);
     CPAchecker cpaChecker = new CPAchecker(config, logger);
     CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
     return new TestResults(stringLogHandler.getLog(), results);

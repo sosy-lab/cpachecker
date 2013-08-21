@@ -27,6 +27,7 @@ import java.util.List;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.invariants.templates.manager.TemplateFormulaManager;
@@ -47,7 +48,7 @@ public class TemplatePathFormulaBuilder {
     LogManager logger;
 
     try {
-      logger = new LogManager(config);
+      logger = new BasicLogManager(config);
       FormulaManager fmgr = new TemplateFormulaManager(TemplateParseMode.PATHFORMULA);
       FormulaManagerView efmgr = new FormulaManagerView(fmgr, config, logger);
       pfmgr = new PathFormulaManagerImpl(efmgr, config, logger, MachineModel.LINUX32);
