@@ -556,8 +556,9 @@ class OutputHandler:
         self.statistics.printToTerminal()
 
         if self.XMLFileNames:
+            tableGeneratorPath = os.path.join(os.path.dirname(__file__), os.path.pardir, 'table-generator.py')
             Util.printOut("In order to get HTML and CSV tables, run\n{0} '{1}'"
-                          .format(os.path.join(os.path.dirname(__file__), 'table-generator.py'),
+                          .format(os.path.relpath(tableGeneratorPath, '.'),
                                   "' '".join(self.XMLFileNames)))
 
         if isStoppedByInterrupt:
