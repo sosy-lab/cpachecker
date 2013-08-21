@@ -39,7 +39,9 @@ abstract class CtoFormulaCType implements CType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
+    int prime = 31;
+    int result = 7;
+    return prime * result;
   }
 
   @Override

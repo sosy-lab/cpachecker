@@ -86,7 +86,12 @@ public class CFieldTrackType extends CtoFormulaCType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CTypes");
+    int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(structType);
+    result = prime * result + Objects.hashCode(fieldType);
+    result = prime * result + Objects.hashCode(structTypeRepectingCasts);
+    return prime * result + super.hashCode();
   }
 
   /**
