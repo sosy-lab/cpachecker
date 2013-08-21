@@ -94,6 +94,12 @@ Coding:
 - Mark fields as final, if they are never modified,
   and try to make them final, if they are modified (-> immutability).
 - Prefer enhanced for-loop over List.get(int).
+- Use arrays only with primitive types (int, long, etc.)
+  or when existing APIs require them.
+  Otherwise never use arrays of object types, use lists instead.
+  They have a much nicer API, are equally fast,
+  and allow you to use ImmutableList and Collections.unmodifiableList()
+  to avoid the need for defensive copying while still guaranteeing immutability.
 - Do not use the following classes from the JDK, they all have better replacements:
   Vector (replaced by ArrayList)
   Stack (replaced by Deque interface with implementations ArrayDeque and LinkedList)
