@@ -104,13 +104,13 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(func)) {
         if (pexps.isEmpty()) {
           // function of arity 0
-          conv.log(Level.INFO, "Assuming external function " + func + " to be a constant function.");
+          conv.logger.logOnce(Level.INFO, "Assuming external function", func, "to be a constant function.");
         } else {
-          conv.log(Level.INFO, "Assuming external function " + func + " to be a pure function.");
+          conv.logger.logOnce(Level.INFO, "Assuming external function", func, "to be a pure function.");
         }
       }
     } else {
-      conv.log(Level.WARNING, CtoFormulaConverter.getLogMessage("Ignoring function call through function pointer", fexp));
+      conv.logfOnce(Level.WARNING, edge, "Ignoring function call through function pointer %s", fn);
       func = "<func>{" + CtoFormulaConverter.scoped(CtoFormulaConverter.exprToVarName(fn), function) + "}";
     }
 
@@ -122,7 +122,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
       CFunctionDeclaration declaration = fexp.getDeclaration();
       if (declaration == null) {
         // This should not happen
-        conv.log(Level.WARNING, "Cant get declaration of function. Ignoring the call (" + fexp.toASTString() + ").");
+        conv.logfOnce(Level.WARNING, edge, "Cannot get declaration of function %s, ignoring calls to it.", fn);
         return conv.makeFreshVariable(func, expType, ssa); // BUG when expType = void
       }
 

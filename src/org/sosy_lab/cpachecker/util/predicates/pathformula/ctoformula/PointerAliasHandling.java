@@ -261,7 +261,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
 
       // if the value to be returned may be a pointer, act accordingly
       BooleanFormula rightAssignment = buildDirectSecondLevelAssignment(
-          Variable.create(retVarName, returnType), rightExp, function, constraints, ssa);
+          Variable.create(retVarName, returnType), rightExp, function, constraints, ssa, edge);
       assignments = bfmgr.and(assignments, rightAssignment);
     }
 
@@ -377,7 +377,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
   BooleanFormula buildDirectSecondLevelAssignment(
       Variable lVarName,
       CExpression right, String function,
-      Constraints constraints, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+      Constraints constraints, SSAMapBuilder ssa, CFAEdge edge) throws UnrecognizedCCodeException {
 
     if (!hasRepresentableDereference(lVarName)) {
       // The left side is a type that should not be dereferenced, so no 2nd level assignment
@@ -428,7 +428,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
                 }
               } else {
                 if (getSizeof(currentRightGuess) != getSizeof(currentLeftGuess)) {
-                  log(Level.WARNING, "Second assignment of an variable that is no pointer with different size");
+                  logfOnce(Level.WARNING, edge, "Second assignment of an variable that is no pointer with different size");
                 }
               }
 
@@ -442,7 +442,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
                     lPtrVarName.withType(setGuessedType(leftPtrType, rPtrVarName.getType()));
               } else {
                 if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
-                  log(Level.WARNING, "Second assignment of an variable that is no pointer with different size");
+                  logfOnce(Level.WARNING, edge, "Second assignment of an variable that is no pointer with different size");
                 }
               }
             }
@@ -458,12 +458,12 @@ class PointerAliasHandling extends CtoFormulaConverter {
               if (currentGuess == null) {
                 // TODO: This currently happens when assigning a function to a function pointer.
                 // NOTE: Should we set the size of r in this case?
-                log(Level.FINEST, "Pointer " + lVarName.getName() + " is assigned the value of variable " +
-                    right.toASTString() + " which contains a non-pointer value in line " +
-                    right.getFileLocation().getStartingLineNumber());
+                logfOnce(Level.WARNING, edge,
+                    "Pointer %s is assigned the value of variable %s which contains a non-pointer value", lVarName.getName(), right.toASTString());
               } else {
                 if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
-                  log(Level.WARNING, "Assignment of a pointer from a variable that was assigned by a pointer with different size!");
+                  logfOnce(Level.WARNING, edge,
+                      "Pointer %s is assigned the value of variable %s which contains a pointer to a different type", lVarName.getName(), right.toASTString());
                 }
               }
             }
@@ -565,7 +565,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
                   lPtrVarName.withType(setGuessedType(leftPtrType, rOperand.getExpressionType()));
             } else {
               if (getSizeof(guess) != getSizeof(rOperand.getExpressionType())) {
-                log(Level.WARNING, "Size of an old guess doesn't match with the current guess: " + lPtrVarName.getName());
+                logfOnce(Level.WARNING, edge, "Size of an old guess doesn't match with the current guess for variable %s", lPtrVarName.getName());
               }
             }
           }
@@ -575,7 +575,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
         }
       } else if (right instanceof CFieldReference) {
         // Weird Case
-        log(Level.WARNING, "Strange MemoryLocation: " + right.toASTString());
+        logfOnce(Level.WARNING, edge, "Address of field %s is taken and cannot be handled", right.toASTString());
       }
 
       // s = malloc()
@@ -736,7 +736,8 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
 
         CType expType = fexp.getExpressionType();
         if (!(expType instanceof CPointerType)) {
-          conv.log(Level.WARNING, "Memory allocation function ("+fName+") with invalid return type (" + expType +"). Missing includes or file not preprocessed?");
+          conv.logfOnce(Level.WARNING, edge,
+              "Memory allocation function %s has invalid return type %s", fName, expType);
         }
 
         FormulaType<?> t = conv.getFormulaTypeFromCType(expType);
@@ -1153,7 +1154,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
     if (right instanceof CExpression) {
       Variable lVarName = conv.scopedIfNecessary(lExpr, ssa, function);
       BooleanFormula secondLevelFormula = conv.buildDirectSecondLevelAssignment(
-          lVarName, (CExpression)right, function, constraints, ssa);
+          lVarName, (CExpression)right, function, constraints, ssa, edge);
 
       assignmentFormula = conv.bfmgr.and(assignmentFormula, secondLevelFormula);
     }
@@ -1194,7 +1195,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
                 new CFieldReference(null, member.getType(), member.getName(), (CExpression)right, false);
             Variable leftFieldVar = conv.scopedIfNecessary(leftField, ssa, function);
             BooleanFormula secondLevelFormulaForMember = conv.buildDirectSecondLevelAssignment(
-                leftFieldVar, rightField, function, constraints, ssa);
+                leftFieldVar, rightField, function, constraints, ssa, edge);
             assignmentFormula = conv.bfmgr.and(assignmentFormula, secondLevelFormulaForMember);
 
             // Also update all pointers aliased to the field.
@@ -1227,7 +1228,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
 
   private void warnFieldAliasing() {
     if (conv.handleFieldAccess) {
-      conv.log(Level.WARNING, "You should enable handleFieldAliasing if possible.");
+      conv.logger.logOnce(Level.WARNING, "You should enable handleFieldAliasing if possible.");
     }
   }
 
@@ -1316,7 +1317,7 @@ class LvalueVisitorPointers extends LvalueVisitor {
   @Override
   public Formula visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
     // &f = ... which doesn't make much sense.
-    conv.log(Level.WARNING, "Strange addressof operator on the left side:" + pE.toString());
+    conv.logfOnce(Level.WARNING, edge, "Strange addressof operator %s on the left side of an assignment", pE.toASTString());
     return super.visit(pE);
   }
 
