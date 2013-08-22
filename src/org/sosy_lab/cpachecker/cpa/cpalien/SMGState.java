@@ -473,7 +473,8 @@ public class SMGState implements AbstractQueryableState {
       return true;
     }
 
-    return heap.isLessOrEqual(reachedState.heap);
+    boolean result = heap.isLessOrEqual(reachedState.heap);
+    return result;
   }
 
   @Override

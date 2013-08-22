@@ -495,6 +495,7 @@ public class CLangSMG extends SMG {
    */
   public boolean isLessOrEqual(SMGObject object1, SMGObject object2,
       CLangSMG object2SMG) {
+
     return isLessOrEqualRec(object1, object2, object2SMG,
         new HashSet<Pair<SMGObject, SMGObject>>());
   }
@@ -502,11 +503,16 @@ public class CLangSMG extends SMG {
   private boolean isLessOrEqualRec(SMGObject object1, SMGObject object2,
       CLangSMG object2SMG, Set<Pair<SMGObject, SMGObject>> reached) {
 
-    if (!object1.getLabel().equals(object2)) {
+    if (!object1.getLabel().equals(object2.getLabel())) {
       return false;
     }
 
     if (object1.getSizeInBytes() != object2.getSizeInBytes()) {
+      return false;
+    }
+
+    //If both objects have different validity, they are not equal
+    if (this.isObjectValid(object1) != object2SMG.isObjectValid(object2)) {
       return false;
     }
 
@@ -638,7 +644,7 @@ public class CLangSMG extends SMG {
       } else {
         SMGObject objectOfVariable = getVariable(variable);
         SMGObject reachedObjectOfVariable = pReachedStack.getVariable(variable);
-        if (cLangSMG.isLessOrEqual(objectOfVariable, reachedObjectOfVariable, reachedCLangSMG)) {
+        if (!cLangSMG.isLessOrEqual(objectOfVariable, reachedObjectOfVariable, reachedCLangSMG)) {
           return false;
         }
       }
