@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.cpalien;
 
 public class SMGEdgePointsTo extends SMGEdge {
   final private int offset;
-  //TODO: Implement target specifier later
 
   public SMGEdgePointsTo(int pValue, SMGObject pObject, int pOffset) {
     super(pValue, pObject);
