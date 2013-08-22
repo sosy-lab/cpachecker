@@ -471,8 +471,8 @@ public class CLangSMG extends SMG {
       ArrayDeque<CLangStackFrame> pReachedStateStack_objects,
       CLangSMG pReachedCLangSMG) {
 
-    for (CLangStackFrame stack : pReachedStateStack_objects) {
-      for (CLangStackFrame reachedHeapStack : pStack_objects) {
+    for (CLangStackFrame reachedHeapStack : pReachedStateStack_objects) {
+      for (CLangStackFrame stack : pStack_objects) {
         if (!stack.isLessOrEqual(this, reachedHeapStack, pReachedCLangSMG)) {
           return false;
         }
@@ -502,6 +502,9 @@ public class CLangSMG extends SMG {
 
   private boolean isLessOrEqualRec(SMGObject object1, SMGObject object2,
       CLangSMG object2SMG, Set<Pair<SMGObject, SMGObject>> reached) {
+
+    assert this.getObjects().contains(object1);
+    assert object2SMG.getObjects().contains(object2);
 
     if (!object1.getLabel().equals(object2.getLabel())) {
       return false;
@@ -540,8 +543,8 @@ public class CLangSMG extends SMG {
         assert isPointer(object2HVEdgeValue);
 
         SMGEdgePointsTo object2PTEdge = object2SMG.getPointer(object2HVEdgeValue);
-        SMGEdgePointsTo object1PTEdges = getPointer(object2HVEdgeValue);
-        objectPTEdges.add(Pair.of(object1PTEdges, object2PTEdge));
+        SMGEdgePointsTo object1PTEdge = getPointer(object2HVEdgeValue);
+        objectPTEdges.add(Pair.of(object1PTEdge, object2PTEdge));
       }
     }
 
