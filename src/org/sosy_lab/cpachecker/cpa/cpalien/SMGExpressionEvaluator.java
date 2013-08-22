@@ -422,8 +422,16 @@ public class SMGExpressionEvaluator {
     CType expressionType = getRealExpressionType(rValue);
 
     if (expressionType instanceof CPointerType
-        || expressionType instanceof CArrayType
-        || isStructOrUnionType(expressionType)) {
+        || expressionType instanceof CArrayType) {
+      /* expressions with Array Types as result
+       *  are transformed. a = &(a[0]) */
+
+      return evaluateAddress(smgState, cfaEdge, rValue);
+    } else if (isStructOrUnionType(expressionType)) {
+      /* expressions with structs or unions as
+       * result will be evaluated to their addresses.
+       * The address can be used e.g. to copy the struct.
+       */
 
       return evaluateAddress(smgState, cfaEdge, rValue);
     } else {
@@ -451,8 +459,22 @@ public class SMGExpressionEvaluator {
   public SMGAddressValue evaluateAddress(SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue)
       throws CPATransferException {
 
+    CType expressionType = getRealExpressionType(rValue);
+
     PointerAddressVisitor visitor = getPointerAddressVisitor(cfaEdge, newState);
-    SMGSymbolicValue address = rValue.accept(visitor);
+
+    SMGSymbolicValue address;
+
+    if (isStructOrUnionType(expressionType)) {
+      /* expressions with structs or unions as
+       * result will be evaluated to their addresses.
+       * The address can be used e.g. to copy the struct.
+       */
+
+      address = visitor.handleAmper(rValue);
+    } else {
+      address = rValue.accept(visitor);
+    }
 
     return getAddressFromSymbolicValue(newState, address);
   }
@@ -503,9 +525,6 @@ public class SMGExpressionEvaluator {
       if (c instanceof CArrayType) {
         // a == &a[0];
         return createAddressOfVariable(exp);
-      } else if (isStructOrUnionType(c)) {
-        // We use this temporary address to copy the values of the struct or union
-        return createAddressOfVariable(exp);
       }
 
       return getAddressFromSymbolicValue(smgState, super.visit(exp));
@@ -536,15 +555,18 @@ public class SMGExpressionEvaluator {
       }
     }
 
-    private SMGAddressValue handleAmper(CExpression lValue) throws CPATransferException {
+    private SMGAddressValue handleAmper(CRightHandSide lValue) throws CPATransferException {
       if (lValue instanceof CIdExpression) {
         // &a
         return createAddressOfVariable((CIdExpression) lValue);
       } else if (lValue instanceof CPointerExpression) {
         // &(*(a))
 
-        return  getAddressFromSymbolicValue( smgState ,
-            ((CPointerExpression) lValue).getOperand().accept(this));
+        //TODO Investigate if correct
+        CExpression rValue = ((CPointerExpression) lValue).getOperand();
+
+        return getAddressFromSymbolicValue(smgState,
+            evaluateAddress(smgState, cfaEdge, rValue));
 
       } else if (lValue instanceof CFieldReference) {
         // &(a.b)

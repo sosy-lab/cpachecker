@@ -799,19 +799,25 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     if (expressionEvaluator.isStructOrUnionType(rValueType)) {
-
-      if (value instanceof SMGKnownAddVal) {
-
-        SMGObject source = ((SMGKnownAddVal) value).getObject();
-
-        if (source.getSizeInBytes() == memoryOfField.getSizeInBytes()) {
-          copy(newState, source, memoryOfField);
-        } else {
-          //TODO Nested Copys of structs
-        }
-      }
+      assignStruct(newState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
     } else {
       writeValue(newState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
+    }
+  }
+
+  private void assignStruct(SMGState pNewState, SMGObject pMemoryOfField,
+      int pFieldOffset, CType pRValueType, SMGSymbolicValue pValue,
+      CFAEdge pCfaEdge) throws SMGInconsistentException,
+      UnrecognizedCCodeException {
+
+    if (pValue instanceof SMGKnownAddVal) {
+      SMGKnownAddVal structAddress = (SMGKnownAddVal) pValue;
+
+      SMGObject source = structAddress.getObject();
+      int structOffset = structAddress.getOffset().getAsInt();
+      int structSize = structOffset + expressionEvaluator.getSizeof(pCfaEdge, pRValueType);
+      pNewState.copy(source, pMemoryOfField,
+          structOffset, structSize, pFieldOffset);
     }
   }
 
@@ -832,10 +838,6 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     pNewState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue);
-  }
-
-  private void copy(SMGState pNewState, SMGObject pSource, SMGObject pTarget) throws SMGInconsistentException {
-    pNewState.copy(pSource, pTarget);
   }
 
   private SMGState handleAssignmentToField(SMGState state, CFAEdge cfaEdge,

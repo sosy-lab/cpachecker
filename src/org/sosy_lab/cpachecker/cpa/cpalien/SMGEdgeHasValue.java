@@ -92,17 +92,24 @@ public class SMGEdgeHasValue extends SMGEdge {
       throw new IllegalArgumentException("Call of overlapsWith() on Has-Value edges pair not originating from the same object");
     }
 
-    int myStart = offset;
     int otStart = other.getOffset();
 
-    int myEnd = myStart + pModel.getSizeof(type);
     int otEnd = otStart + pModel.getSizeof(other.getType());
 
-    if (myStart < otStart) {
-      return (myEnd > otStart);
+    return overlapsWith(otStart, otEnd, pModel);
+  }
 
-    } else if ( otStart < myStart ) {
-      return (otEnd > myStart);
+  public boolean overlapsWith(int pOtStart, int pOtEnd, MachineModel pModel) {
+
+    int myStart = offset;
+
+    int myEnd = myStart + pModel.getSizeof(type);
+
+    if (myStart < pOtStart) {
+      return (myEnd > pOtStart);
+
+    } else if (pOtStart < myStart) {
+      return (pOtEnd > myStart);
     }
 
     // Start offsets are equal, always overlap
@@ -128,13 +135,7 @@ public class SMGEdgeHasValue extends SMGEdge {
     final int prime = 31;
     int result = super.hashCode();
     result = prime * result + offset;
-    // "Do not use a hashCode() of CType"
-    // result = prime * result + ((type == null) ? 0 : type.hashCode());
-    // TODO: Ugly, ugly, ugly!
-    // I cannot obtain a hashcode of a type, therefore I cannot obtain hashcode
-    // of the Has-Value edge. *Seems* to work not, but is likely to cause
-    // problems in the future. Tread lightly.
-    result = prime * result + ((type == null) ? 0 : System.identityHashCode(type));
+    result = prime * result + ((type == null) ? 0 : type.getCanonicalType().hashCode());
     return result;
   }
 
