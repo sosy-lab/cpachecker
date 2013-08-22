@@ -824,7 +824,9 @@ public class SMGTransferRelation implements TransferRelation {
   private void writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, CType pRValueType,
       SMGSymbolicValue pValue, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
 
-    if (pValue.isUnknown() || pNewState == null) { return; }
+    if (pValue.isUnknown() || pNewState == null) {
+      return;
+    }
 
     boolean doesNotFitIntoObject = pFieldOffset < 0
         || pFieldOffset + expressionEvaluator.getSizeof(pEdge, pRValueType) > pMemoryOfField.getSizeInBytes();

@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -30,8 +34,14 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
@@ -321,10 +331,79 @@ public class SMGState implements AbstractQueryableState {
       }
     }
 
-    // TODO: Nullified blocks coverage interpretation
+    if(isCoveredByNullifiedBlocks(edge)) {
+      return 0;
+    }
+
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
     return null;
   }
+
+  private boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {
+
+    //TODO better Algorithm and Refactor
+
+    MachineModel maModel = heap.getMachineModel();
+
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    filter.filterByObject(pEdge.getObject());
+
+    Set<SMGEdgeHasValue> objectEdges = getHVEdges(filter);
+
+    Set<SMGEdgeHasValue> overlappingEdges = new HashSet<>();
+
+    for (SMGEdgeHasValue edge : objectEdges) {
+      if (edge.overlapsWith(pEdge, maModel)) {
+        overlappingEdges.add(edge);
+      }
+    }
+
+    if(overlappingEdges.size() == 0) {
+      return false;
+    }
+
+    ArrayList<Integer> offsets = new ArrayList<>(overlappingEdges.size());
+
+    for( SMGEdgeHasValue edge : overlappingEdges) {
+      if(edge.getValue() != 0) {
+        return false;
+      }
+
+      int offset = edge.getOffset();
+
+      offsets.add(offset);
+    }
+
+   Collections.sort(offsets);
+
+    for (SMGEdgeHasValue edge : overlappingEdges) {
+      int offset = edge.getOffset();
+      int index = offsets.indexOf(offset);
+
+      //  edge does not cover beginning with 0
+      if(index == 0 && offset > pEdge.getOffset()) {
+        return false;
+      }
+
+      if (index + 1 >= offsets.size()) {
+        // edge does not cover end with null
+        if (offset + heap.getMachineModel().getSizeof(edge.getType()) <  pEdge.getOffset() + pEdge.getSizeInBytes(maModel)) {
+          return false;
+        }
+      } else {
+        int sizeOfBytes = edge.getSizeInBytes(maModel);
+
+        // edge does not cover to next overlapping edge
+        if (offsets.get(index + 1) > offset + sizeOfBytes) {
+          return false;
+        }
+      }
+
+    }
+
+    return true;
+  }
+
 
   public void setInvalidRead() {
     this.invalidRead  = true;
@@ -427,19 +506,81 @@ public class SMGState implements AbstractQueryableState {
       heap.addValue(pValue);
     }
 
-    // We need to remove all non-zero overlapping edges
+    HashSet<SMGEdgeHasValue> overlappingZeroEdges = new HashSet<>();
+
+    /* We need to remove all non-zero overlapping edges
+     * and remember all overlapping zero edges to shrink them later
+     */
     for (SMGEdgeHasValue hv : edges) {
-      if (/*hv.getValue() != heap.getNullValue() &&*/ new_edge.overlapsWith(hv, heap.getMachineModel())) {
-        // as long as we do not shrink zero edges, remove
-        heap.removeHasValueEdge(hv);
+
+      boolean hvEdgeOverlaps = new_edge.overlapsWith(hv, heap.getMachineModel());
+      boolean hvEdgeIsZero = hv.getValue() != heap.getNullValue();
+
+      if (hvEdgeOverlaps) {
+        if (hvEdgeIsZero) {
+          overlappingZeroEdges.add(hv);
+        } else {
+          heap.removeHasValueEdge(hv);
+        }
       }
     }
 
-    //TODO: Shrink overlapping zero edges
+    shrinkOverlappingZeroEdges(new_edge, overlappingZeroEdges);
+
+
     heap.addHasValueEdge(new_edge);
     this.performConsistencyCheck(SMGRuntimeCheck.HALF);
 
     return new_edge;
+  }
+
+  private void shrinkOverlappingZeroEdges(SMGEdgeHasValue pNew_edge,
+      Set<SMGEdgeHasValue> pOverlappingZeroEdges) {
+
+    SMGObject object = pNew_edge.getObject();
+    int offset = pNew_edge.getOffset();
+
+    boolean newEdgePointsToZero = pNew_edge.getValue() == 0;
+    MachineModel maModel = heap.getMachineModel();
+    int sizeOfType = pNew_edge.getSizeInBytes(maModel);
+
+    // Shrink overlapping zero edges
+    for (SMGEdgeHasValue zeroEdge : pOverlappingZeroEdges) {
+      // If the new_edge points to zero, we can just remove them
+      heap.removeHasValueEdge(zeroEdge);
+
+      if (!newEdgePointsToZero) {
+
+        int zeroEdgeOffset = zeroEdge.getOffset();
+
+        int offset2 = offset + sizeOfType;
+        int zeroEdgeOffset2 = zeroEdgeOffset + zeroEdge.getSizeInBytes(maModel);
+
+        if (zeroEdgeOffset < offset) {
+          CType newZeroType = getDummyCharArrayType(offset - zeroEdgeOffset);
+          SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(newZeroType, zeroEdgeOffset, object, 0);
+          heap.addHasValueEdge(newZeroEdge);
+        }
+
+        if (offset2 < zeroEdgeOffset2) {
+          CType newZeroType = getDummyCharArrayType(zeroEdgeOffset2 - offset2);
+          SMGEdgeHasValue newZeroEdge = new SMGEdgeHasValue(newZeroType, offset2, object, 0);
+          heap.addHasValueEdge(newZeroEdge);
+        }
+      }
+    }
+  }
+
+  private CArrayType getDummyCharArrayType(int length) {
+    //TODO Correct Dummy Array Type
+    CSimpleType dummyChar =
+        new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
+    CSimpleType dummyInt =
+        new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
+    FileLocation dummyFileLoc = new FileLocation(0, "CPAlien_BuiltIn", 0, 0, 0);
+    CExpression dummyInteger = new CIntegerLiteralExpression(dummyFileLoc, dummyInt, BigInteger.valueOf(length));
+    CArrayType dummyArrayType = new CArrayType(false, false, dummyChar, dummyInteger);
+    return dummyArrayType;
   }
 
   public void setInvalidWrite() {
