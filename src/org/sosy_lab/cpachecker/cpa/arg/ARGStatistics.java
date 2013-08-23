@@ -294,8 +294,8 @@ public class ARGStatistics implements Statistics {
     });
 
     if (counterexample != null) {
-      if (counterexample.getTargetPathAssignment() != null) {
-        writeErrorPathFile(errorPathAssignment, cexIndex, counterexample.getTargetPathAssignment());
+      if (counterexample.getTargetPathModel() != null) {
+        writeErrorPathFile(errorPathAssignment, cexIndex, counterexample.getTargetPathModel());
       }
 
       for (Pair<Object, File> info : counterexample.getAllFurtherInformation()) {

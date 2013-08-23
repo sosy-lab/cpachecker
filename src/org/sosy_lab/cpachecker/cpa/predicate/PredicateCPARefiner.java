@@ -238,7 +238,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         preciseCounterexample = counterexample;
       }
 
-      CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getCounterexample());
+      CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel());
 
       cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
           dumpCounterexampleFile);

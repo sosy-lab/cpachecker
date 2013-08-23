@@ -112,7 +112,7 @@ public class CounterexampleTraceInfo {
       return mCounterexampleFormula;
     }
 
-    public Model getCounterexample() {
+    public Model getModel() {
       checkState(!spurious);
       return mCounterexampleModel;
     }
