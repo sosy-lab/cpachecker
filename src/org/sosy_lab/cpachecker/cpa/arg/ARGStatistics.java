@@ -54,6 +54,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -64,6 +65,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 
 @Options(prefix="cpa.arg")
@@ -231,7 +233,26 @@ public class ARGStatistics implements Statistics {
       final CounterexampleInfo counterexample, final ARGPath targetPath,
       final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
 
-    writeErrorPathFile(errorPathFile, cexIndex, targetPath);
+    writeErrorPathFile(errorPathFile, cexIndex, new Appender() {
+      @Override
+      public void appendTo(Appendable out) throws IOException {
+        // Write edges mixed with assigned values.
+        Model model = counterexample.getTargetPathModel();
+        Multimap<CFAEdge, Model.AssignableTerm> assignments = model.getAssignedTermsPerEdge();
+
+        for (CFAEdge edge : targetPath.asEdgesList()) {
+          out.append(edge.toString());
+          out.append(System.lineSeparator());
+          for (Model.AssignableTerm term : assignments.get(edge)) {
+            out.append('\t');
+            out.append(term.toString());
+            out.append(": ");
+            out.append(model.get(term).toString());
+            out.append(System.lineSeparator());
+          }
+        }
+      }
+    });
 
     if (errorPathCoreFile != null) {
       // the shrinked errorPath only includes the nodes,

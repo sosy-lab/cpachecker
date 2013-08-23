@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core;
 
+import static com.google.common.base.Preconditions.*;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 
 import com.google.common.base.Joiner;
@@ -36,6 +39,8 @@ import com.google.common.base.Joiner.MapJoiner;
 import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * This class represents an assignment of values to program variables
@@ -191,6 +196,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   }
 
   private final Map<AssignableTerm, Object> mModel;
+  private final ImmutableSetMultimap<CFAEdge, AssignableTerm> assignments;
 
   @Override
   protected Map<AssignableTerm, Object> delegate() {
@@ -203,10 +209,38 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
 
   private Model() {
     mModel = ImmutableMap.of();
+    assignments = ImmutableSetMultimap.of();
   }
 
   public Model(Map<AssignableTerm, Object> content) {
     mModel = ImmutableMap.copyOf(content);
+    assignments = ImmutableSetMultimap.of();
+  }
+
+  public Model(Map<AssignableTerm, Object> content, Multimap<CFAEdge, AssignableTerm> pAssignments) {
+    mModel = ImmutableMap.copyOf(content);
+    assignments = ImmutableSetMultimap.copyOf(pAssignments);
+    checkArgument(mModel.keySet().containsAll(assignments.values()));
+  }
+
+  /**
+   * Return a new model that is equal to the current one,
+   * but additionally has information about when each variable was assigned.
+   * @see Model#getAssignedTermsPerEdge()
+   */
+  public Model withAssignmentInformation(Multimap<CFAEdge, AssignableTerm> pAssignments) {
+    checkState(assignments.isEmpty());
+    return new Model(mModel, pAssignments);
+  }
+
+  /**
+   * Return a map that indicates which terms where assigned at which edge.
+   * Note that it is not guaranteed that this is information is present for
+   * all terms, thus <code>this.getAssignedTermsPerEdge().values()</code> may
+   * be smaller than <code>this.keySet()</code> (but not larger).
+   */
+  public ImmutableSetMultimap<CFAEdge, AssignableTerm> getAssignedTermsPerEdge() {
+    return assignments;
   }
 
   private static final MapJoiner joiner = Joiner.on('\n').withKeyValueSeparator(": ");
