@@ -1,6 +1,9 @@
 Changes since CPAchecker 1.2
 ----------------------------
 
+* r8454: CPAchecker with PredicateCPA now outputs information when in the error path
+  values were assigned to each variable (in ErrorPath.*.txt),
+  so analyzing an error path manually should be easier now.
 * r8387: CPAchecker can now find and report multiple specification violations in one file.
   To use this, set the option "analysis.stopAfterError = false".
   Note that because of this the file names of all error-path-related output files

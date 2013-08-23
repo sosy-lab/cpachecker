@@ -233,26 +233,8 @@ public class ARGStatistics implements Statistics {
       final CounterexampleInfo counterexample, final ARGPath targetPath,
       final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
 
-    writeErrorPathFile(errorPathFile, cexIndex, new Appender() {
-      @Override
-      public void appendTo(Appendable out) throws IOException {
-        // Write edges mixed with assigned values.
-        Model model = counterexample.getTargetPathModel();
-        Multimap<CFAEdge, Model.AssignableTerm> assignments = model.getAssignedTermsPerEdge();
-
-        for (CFAEdge edge : targetPath.asEdgesList()) {
-          out.append(edge.toString());
-          out.append(System.lineSeparator());
-          for (Model.AssignableTerm term : assignments.get(edge)) {
-            out.append('\t');
-            out.append(term.toString());
-            out.append(": ");
-            out.append(model.get(term).toString());
-            out.append(System.lineSeparator());
-          }
-        }
-      }
-    });
+    writeErrorPathFile(errorPathFile, cexIndex,
+        createErrorPathWithVariableAssignmentInformation(targetPath, counterexample));
 
     if (errorPathCoreFile != null) {
       // the shrinked errorPath only includes the nodes,
@@ -260,7 +242,8 @@ public class ARGStatistics implements Statistics {
       // only some nodes of the targetPath are part of it
       ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
       ARGPath shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
-      writeErrorPathFile(errorPathCoreFile, cexIndex, shrinkedErrorPath);
+      writeErrorPathFile(errorPathCoreFile, cexIndex,
+          createErrorPathWithVariableAssignmentInformation(shrinkedErrorPath, counterexample));
     }
 
     writeErrorPathFile(errorPathJson, cexIndex, new Appender() {
@@ -325,6 +308,30 @@ public class ARGStatistics implements Statistics {
         }
       }
     }
+  }
+
+  private Appender createErrorPathWithVariableAssignmentInformation(
+      final ARGPath targetPath, final CounterexampleInfo counterexample) {
+    final Model model = counterexample.getTargetPathModel();
+    return new Appender() {
+      @Override
+      public void appendTo(Appendable out) throws IOException {
+        // Write edges mixed with assigned values.
+        Multimap<CFAEdge, Model.AssignableTerm> assignments = model.getAssignedTermsPerEdge();
+
+        for (CFAEdge edge : targetPath.asEdgesList()) {
+          out.append(edge.toString());
+          out.append(System.lineSeparator());
+          for (Model.AssignableTerm term : assignments.get(edge)) {
+            out.append('\t');
+            out.append(term.toString());
+            out.append(": ");
+            out.append(model.get(term).toString());
+            out.append(System.lineSeparator());
+          }
+        }
+      }
+    };
   }
 
   private void exportARG(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
