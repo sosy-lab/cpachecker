@@ -39,14 +39,14 @@ public class CounterexampleInfo {
   private final boolean spurious;
 
   private final ARGPath targetPath;
-  private final Object assignment;
+  private final Model assignment;
 
   // list with additional information about the counterexample
   private final Collection<Pair<Object, File>> furtherInfo;
 
   private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null);
 
-  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath, Object pAssignment) {
+  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath, Model pAssignment) {
     spurious = pSpurious;
     targetPath = pTargetPath;
     assignment = pAssignment;
@@ -62,7 +62,7 @@ public class CounterexampleInfo {
     return SPURIOUS;
   }
 
-  public static CounterexampleInfo feasible(ARGPath pTargetPath, Object pAssignment) {
+  public static CounterexampleInfo feasible(ARGPath pTargetPath, Model pAssignment) {
     return new CounterexampleInfo(false, pTargetPath, pAssignment);
   }
 
@@ -76,7 +76,7 @@ public class CounterexampleInfo {
     return targetPath;
   }
 
-  public Object getTargetPathAssignment() {
+  public Model getTargetPathAssignment() {
     checkState(!spurious);
 
     return assignment;

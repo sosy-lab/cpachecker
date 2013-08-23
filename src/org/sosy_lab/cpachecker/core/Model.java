@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates;
+package org.sosy_lab.cpachecker.core;
 
 import java.io.IOException;
 import java.util.List;
@@ -29,7 +29,7 @@ import java.util.Map;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
@@ -37,6 +37,14 @@ import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+/**
+ * This class represents an assignment of values to program variables
+ * along a path. Each variable can have several assignments with different
+ * SSA indices if it gets re-assigned along the path.
+ *
+ * The value of each variable can be an arbitrary object, but usually,
+ * this is a {@link Number}.
+ */
 public class Model extends ForwardingMap<AssignableTerm, Object> implements Appender {
 
   public static enum TermType {
