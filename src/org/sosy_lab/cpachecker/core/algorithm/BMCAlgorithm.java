@@ -59,9 +59,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -83,12 +83,14 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
+import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
@@ -186,7 +188,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private final ReachedSetFactory reachedSetFactory;
   private final CFA cfa;
 
-  private BooleanFormulaManager bfmgr;
+  private BooleanFormulaManagerView bfmgr;
 
   public BMCAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa,
                       Configuration config, LogManager logger,
@@ -332,30 +334,29 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
         return;
       }
 
+      // create and store CounterexampleInfo object
+      CounterexampleInfo counterexample;
 
       // replay error path for a more precise satisfying assignment
-      final BooleanFormula pathFormula = pmgr.makeFormulaForPath(targetPath.asEdgesList()).getFormula();
-      prover.pop(); // remove program formula
+      PathChecker pathChecker = new PathChecker(logger, pmgr, solver);
+      try {
+        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath.asEdgesList());
 
-      prover.push(pathFormula);
+        if (info.isSpurious()) {
+          logger.log(Level.WARNING, "Inconsistent replayed error path!");
+          counterexample = CounterexampleInfo.feasible(targetPath, model);
 
-      if (prover.isUnsat()) {
-        logger.log(Level.WARNING, "Inconsistent replayed error path!");
-      } else {
-        try {
-          model = prover.getModel();
-        } catch (SolverException e) {
-          logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
-          logger.logDebugException(e);
-          return;
+        } else {
+          counterexample = CounterexampleInfo.feasible(targetPath, info.getModel());
+
+          counterexample.addFurtherInformation(fmgr.dumpFormula(bfmgr.conjunction(info.getCounterExampleFormulas())),
+              dumpCounterexampleFormula);
         }
-      }
 
-      // create and store CounterexampleInfo object
-      CounterexampleInfo counterexample = CounterexampleInfo.feasible(targetPath, model);
-      if (pathFormula != null) {
-        counterexample.addFurtherInformation(fmgr.dumpFormula(pathFormula),
-            dumpCounterexampleFormula);
+      } catch (CPATransferException e) {
+        // path is now suddenly a problem
+        logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
+        counterexample = CounterexampleInfo.feasible(targetPath, model);
       }
 
       ((ARGCPA)cpa).addCounterexample(targetPath.getLast().getFirst(), counterexample);
