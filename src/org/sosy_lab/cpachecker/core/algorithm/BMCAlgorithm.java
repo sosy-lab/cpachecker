@@ -619,11 +619,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     stats.inductionCheck.start();
     prover.push(inductions);
     boolean sound = prover.isUnsat();
-    if (!sound) {
-      //System.out.println(prover.getModel());
-      //System.out.println("---");
-      //System.out.println(inductions);
-    }
     prover.pop();
     stats.inductionCheck.stop();
 
