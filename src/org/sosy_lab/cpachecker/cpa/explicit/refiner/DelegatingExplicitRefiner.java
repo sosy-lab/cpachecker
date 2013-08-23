@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -159,6 +160,8 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
           config,
           logger);
 
+      PathChecker pathChecker = new PathChecker(logger, pathFormulaManager, solver);
+
       RefinementStrategy backupRefinementStrategy = new PredicateAbstractionRefinementStrategy(
           config,
           logger,
@@ -171,6 +174,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
           logger,
           cpa,
           manager,
+          pathChecker,
           formulaManager,
           pathFormulaManager,
           backupRefinementStrategy,

@@ -57,11 +57,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Model;
-import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.core.Model.Variable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -77,17 +74,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -691,101 +684,6 @@ public final class InterpolationManager {
   private <T> Model getModel(InterpolatingProverEnvironment<T> pItpProver) {
     try {
       return pItpProver.getModel();
-    } catch (SolverException e) {
-      logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
-      logger.logDebugException(e);
-      return Model.empty();
-    }
-  }
-
-  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath) throws CPATransferException {
-    List<SSAMap> ssaMaps = new ArrayList<>(pPath.size());
-
-    PathFormula pathFormula = pmgr.makeEmptyPathFormula();
-    for (CFAEdge edge : pPath) {
-      pathFormula = pmgr.makeAnd(pathFormula, edge);
-      ssaMaps.add(pathFormula.getSsa());
-    }
-
-    BooleanFormula f = pathFormula.getFormula();
-
-    try (ProverEnvironment thmProver = solver.newProverEnvironmentWithModelGeneration()) {
-      thmProver.push(f);
-      if (thmProver.isUnsat()) {
-        return CounterexampleTraceInfo.infeasible(ImmutableList.<BooleanFormula>of());
-      } else {
-        Model model = getModel(thmProver);
-        model = model.withAssignmentInformation(extractVariableAssignment(pPath, ssaMaps, model));
-
-        return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMap.<Integer, Boolean>of());
-      }
-    }
-  }
-
-  /**
-   * Given a model and a path, extract the information when each variable
-   * from the model was assigned.
-   */
-  private Multimap<CFAEdge, AssignableTerm> extractVariableAssignment(List<CFAEdge> pPath, List<SSAMap> pSsaMaps,
-      Model pModel) {
-
-    final Multimap<CFAEdge, AssignableTerm> assignedTermsPerEdge = ArrayListMultimap.create(pPath.size(), 1);
-
-    for (AssignableTerm term : pModel.keySet()) {
-      // Currently we cannot find out this information for UIFs
-      // because for lookup in the SSAMap we need the parameter types.
-      if (term instanceof Variable) {
-        int index = findFirstOccurrenceOfVariable((Variable)term, pSsaMaps);
-        if (index >= 0) {
-          assignedTermsPerEdge.put(pPath.get(index), term);
-        }
-      }
-    }
-
-    return assignedTermsPerEdge;
-  }
-
-  /**
-   * Search through an (ordered) list of SSAMaps
-   * for the first index where a given variable appears.
-   * @return -1 if the variable with the given index never occurs, or an index of pSsaMaps
-   */
-  private int findFirstOccurrenceOfVariable(Variable pVar, List<SSAMap> pSsaMaps) {
-    // both indices are inclusive bounds of the range where we still need to look
-    int lower = 0;
-    int upper = pSsaMaps.size() - 1;
-
-    int result = -1;
-
-    // do binary search
-    while (true) {
-      if (upper-lower <= 0) {
-        return result;
-      }
-
-      int index = lower + ((upper-lower) / 2);
-      assert index >= lower;
-      assert index <= upper;
-
-      int ssaIndex = pSsaMaps.get(index).getIndex(pVar.getName());
-
-      if (ssaIndex < pVar.getSSAIndex()) {
-        lower = index + 1;
-      } else if (ssaIndex > pVar.getSSAIndex()) {
-        upper = index - 1;
-      } else {
-        // found a matching SSAMap,
-        // but we keep looking whether there is another one with a smaller index
-        assert result == -1 || result > index;
-        result = index;
-        upper = index - 1;
-      }
-    }
-  }
-
-  private <T> Model getModel(ProverEnvironment thmProver) {
-    try {
-      return thmProver.getModel();
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);
