@@ -118,6 +118,10 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       ARGPath errorPath) throws CPAException {
     timerInterpolation.start();
 
+    interpolationOffset                   = -1;
+    assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
+        AssignmentsInPathConditionState.class);
+
     ExplicitInterpolator interpolator     = new ExplicitInterpolator(logger, machineModel);
     Map<String, Long> currentInterpolant  = new HashMap<>();
     Multimap<CFANode, String> increment   = HashMultimap.create();
