@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 
+import com.google.common.base.Preconditions;
+
 public class LoopstackCPA extends AbstractCPA {
 
   public static CPAFactory factory() {
@@ -59,9 +61,9 @@ public class LoopstackCPA extends AbstractCPA {
     Loop loop = null;
     for (Loop l : cfa.getLoopStructure().get().get(pNode.getFunctionName())) {
       if (l.getLoopNodes().contains(pNode)) {
-        assert loop == null : "Cannot create initial nodes for locations in nested loops";
+        Preconditions.checkState(loop == null, "Cannot create initial nodes for locations in nested loops");
+        loop = l;
       }
-      loop = l;
     }
 
     LoopstackState e = new LoopstackState(); // the bottom element of the stack

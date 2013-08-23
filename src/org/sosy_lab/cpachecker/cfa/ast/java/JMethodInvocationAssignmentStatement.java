@@ -60,11 +60,6 @@ public class JMethodInvocationAssignmentStatement extends AFunctionCallAssignmen
   }
 
   @Override
-  public JStatement asStatement() {
-    return (JStatement) super.asStatement();
-  }
-
-  @Override
   public int hashCode() {
     int prime = 31;
     int result = 7;

@@ -35,12 +35,12 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.balancer.AbstractBalancer;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption;
+import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionManager;
 import org.sosy_lab.cpachecker.util.invariants.balancer.AssumptionSet;
 import org.sosy_lab.cpachecker.util.invariants.balancer.BadAssumptionsException;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Matrix;
 import org.sosy_lab.cpachecker.util.invariants.balancer.RationalFunction;
-import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
 import org.sosy_lab.cpachecker.util.invariants.balancer.prh12.ColumnChoiceFrame.ChallengeType;
 
 

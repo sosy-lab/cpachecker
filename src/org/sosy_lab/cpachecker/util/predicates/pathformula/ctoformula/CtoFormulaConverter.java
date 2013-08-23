@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,9 +39,27 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.*;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -198,8 +214,6 @@ public class CtoFormulaConverter {
   @Option(description = "Handle field access via extract and concat instead of new variables.")
   boolean handleFieldAccess = false;
 
-  private final Set<String> printedWarnings = new HashSet<>();
-
   private final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
 
@@ -211,7 +225,7 @@ public class CtoFormulaConverter {
   private final RationalFormulaManagerView nfmgr;
   final BitvectorFormulaManagerView efmgr;
   final FunctionFormulaManagerView ffmgr;
-  final LogManager logger;
+  final LogManagerWithoutDuplicates logger;
 
   static final int                 VARIABLE_UNSET          = -1;
   static final int                 VARIABLE_UNINITIALIZED  = 2;
@@ -231,7 +245,7 @@ public class CtoFormulaConverter {
     this.nfmgr = fmgr.getRationalFormulaManager();
     this.efmgr = fmgr.getBitvectorFormulaManager();
     this.ffmgr = fmgr.getFunctionFormulaManager();
-    this.logger = logger;
+    this.logger = new LogManagerWithoutDuplicates(logger);
     nondetFunctionsPattern = Pattern.compile(nondetFunctionsRegexp);
 
     FormulaType<BitvectorFormula> pointerType =
@@ -240,39 +254,21 @@ public class CtoFormulaConverter {
             "__string__", pointerType, FormulaType.RationalType);
   }
 
-  private void warnUnsafeVar(CExpression exp) {
-    logDebug("Unhandled expression treated as free variable", exp);
-  }
-
-  static String getLogMessage(String msg, CAstNode astNode) {
-    return "Line " + astNode.getFileLocation().getStartingLineNumber()
-            + ": " + msg
-            + ": " + astNode.toASTString();
-  }
-
-  private static String getLogMessage(String msg, CFAEdge edge) {
-    return "Line " + edge.getLineNumber()
-            + ": " + msg
-            + ": " + edge.getDescription();
-  }
-
-  private void logDebug(String msg, CAstNode astNode) {
-    if (logger.wouldBeLogged(Level.ALL)) {
-      logger.log(Level.ALL, getLogMessage(msg, astNode));
+  void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
+    if (logger.wouldBeLogged(level)) {
+      logger.logfOnce(level, "Line %d: %s: %s",
+          edge.getLineNumber(),
+          String.format(msg, args),
+          edge.getDescription());
     }
   }
 
-  private void logDebug(String msg, CFAEdge edge) {
-    if (logger.wouldBeLogged(Level.ALL)) {
-      logger.log(Level.ALL, getLogMessage(msg, edge));
-    }
-  }
-
-  void log(Level level, String msg) {
-    if (logger.wouldBeLogged(level)
-        && printedWarnings.add(msg)) {
-
-      logger.log(level, msg);
+  void logfOnce(Level level, CAstNode astNode, String msg, Object... args) {
+    if (logger.wouldBeLogged(level)) {
+      logger.logfOnce(level, "Line %d: %s: %s",
+          astNode.getFileLocation().getStartingLineNumber(),
+          String.format(msg, args),
+          astNode.toASTString());
     }
   }
 
@@ -287,7 +283,7 @@ public class CtoFormulaConverter {
     int size = pType.accept(sizeofVisitor);
     if (size == 0) {
       // UNDEFINED: http://stackoverflow.com/questions/1626446/what-is-the-size-of-an-empty-struct-in-c
-      log(Level.WARNING, "NOTE: Empty structs are UNDEFINED! (" + pType.toString() + ")");
+      logger.logOnce(Level.WARNING, "Type", pType, "has no fields, this is undefined");
     }
     return size;
   }
@@ -296,7 +292,7 @@ public class CtoFormulaConverter {
     return Variable.create(var.getDeclaration().getQualifiedName(), var.getExpressionType());
   }
 
-  Variable makeFieldVariable(Variable pName, CFieldReference fExp, SSAMapBuilder ssa) {
+  Variable makeFieldVariable(Variable pName, CFieldReference fExp, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     Pair<Integer, Integer> msb_lsb = getFieldOffsetMsbLsb(fExp);
     // NOTE: ALWAYS use pName.getType(),
     // because pName.getType() could be an instance of CFieldTrackType
@@ -439,7 +435,7 @@ public class CtoFormulaConverter {
       CType guess = getGuessedType(type);
       if (guess == null) {
         // This should not happen when guessing aliasing types would always work
-        log(Level.FINE, "No Type-Guess for " + name);
+        logger.logOnce(Level.FINE, "No Type-Guess for variable", name, "of type", type);
         CType oneByte = CNumericTypes.CHAR;
         type = setGuessedType(type, oneByte);
       }
@@ -533,7 +529,8 @@ public class CtoFormulaConverter {
     CType runtimeType = trackType.getStructTypeRepectingCasts();
 
     if (!staticType.getCanonicalType().equals(runtimeType.getCanonicalType())) {
-      log(Level.WARNING, "staticType and runtimeType do not match for " + name + " so analysis could be imprecise");
+      logger.logOnce(Level.WARNING, "staticType", staticType, "and runtimeType",
+          runtimeType, "do not match for", name, "so analysis could be imprecise");
     }
 
     BitvectorFormula realStruct = makeExtractOrConcatNondet(staticType, runtimeType, struct);
@@ -578,6 +575,7 @@ public class CtoFormulaConverter {
 
 
   /** Takes a (scoped) struct variable name and returns the field variable name. */
+  @VisibleForTesting
   static String makeFieldVariableName(String scopedId, Pair<Integer, Integer> msb_lsb, SSAMapBuilder ssa) {
     return FIELD_VARIABLE + scopedId +
           "__in__" + String.format("[%d:%d]", msb_lsb.getFirst(), msb_lsb.getSecond()) +
@@ -697,7 +695,7 @@ public class CtoFormulaConverter {
 
     if (getSizeof(fromType) == getSizeof(toType)) {
       // We can most likely just ignore this cast
-      log(Level.WARNING, "WARNING: Ignoring cast from " + fromType + " to " + toType + "!");
+      logger.logfOnce(Level.WARNING, "Ignoring cast from %s to %s.", fromType, toType);
       return formula;
     } else {
       throw new UnsupportedOperationException("Cast from " + fromType + " to " + toType + " not supported!");
@@ -842,7 +840,7 @@ public class CtoFormulaConverter {
         CSimpleType resolved = getImplicitSimpleCType(s1, s2);
 
         if (!s1.getCanonicalType().equals(s2.getCanonicalType())) {
-          log(Level.FINEST, "Implicit Cast: " + s1 + " and " + s2 + " to " + resolved);
+          logger.logOnce(Level.FINEST, "Implicit Cast of", s1, "and", s2, "to", resolved);
         }
 
         return resolved;
@@ -879,7 +877,7 @@ public class CtoFormulaConverter {
     } else {
       res = pT1;
     }
-    log(Level.WARNING, "Could not get implicit Type of " + pT1 + " and " + pT2 + ", using " + res);
+    logger.logfOnce(Level.WARNING, "Could not get implicit type of %s and %s, using %s", pT1, pT2, res);
     return res;
   }
 
@@ -1134,7 +1132,7 @@ public class CtoFormulaConverter {
 
     if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
       // struct prototype, function declaration, typedef etc.
-      logDebug("Ignoring declaration", edge);
+      logfOnce(Level.FINEST, edge, "Ignoring declaration");
       return bfmgr.makeBoolean(true);
     }
 
@@ -1209,7 +1207,7 @@ public class CtoFormulaConverter {
 
       return assignments;
     } else {
-      throw new UnrecognizedCCodeException("Unknown function exit expression", ce, retExp.asStatement());
+      throw new UnrecognizedCCodeException("Unknown function exit expression", ce, retExp);
     }
   }
 
@@ -1236,8 +1234,9 @@ public class CtoFormulaConverter {
     CType expType = funcCallExp.getExpressionType();
     if (!expType.getCanonicalType().equals(retType.getCanonicalType())) {
       // Bit ignore for now because we sometimes just get ElaboratedType instead of CompositeType
-      log(Level.WARNING, getLogMessage("Return type of function " + funcDecl.getName()
-          + " is " + retType + ", but result is used as type " + expType, edge));
+      logfOnce(Level.WARNING, edge,
+          "Return type of function %s is %s, but result is used as type %s",
+          funcDecl.getName(), retType, expType);
     }
     return expType;
   }
@@ -1258,8 +1257,9 @@ public class CtoFormulaConverter {
       }
 
       if (!SAFE_VAR_ARG_FUNCTIONS.contains(fn.getFunctionName())) {
-        log(Level.WARNING, "Ignoring parameters passed as varargs to function "
-                           + fn.getFunctionName() + " in line " + edge.getLineNumber());
+        logfOnce(Level.WARNING, edge,
+            "Ignoring parameters passed as varargs to function %s",
+            fn.getFunctionName());
       }
 
     } else {
@@ -1275,9 +1275,9 @@ public class CtoFormulaConverter {
       final String varName = formalParam.getQualifiedName();
       final CType paramType = formalParam.getType();
       if (paramType.getCanonicalType() instanceof CPointerType) {
-        log(Level.WARNING, "Program contains pointer parameter; analysis is imprecise in case of aliasing.");
-        logDebug("Ignoring the semantics of pointer for parameter "
-            + formalParam.getName(), fn.getFunctionDefinition());
+        logger.logOnce(Level.WARNING, "Program contains pointer parameter; analysis is imprecise in case of aliasing.");
+        logfOnce(Level.FINEST, edge,
+            "Ignoring the semantics of pointer for parameter %s of function %s", formalParam.getName(), fn.getFunctionDefinition());
       }
       CExpression paramExpression = actualParams.get(i++);
       paramExpression = makeCastFromArrayToPointerIfNecessary(paramExpression, paramType);
@@ -1370,12 +1370,14 @@ public class CtoFormulaConverter {
     throw new IllegalArgumentException("Assignment between different types");
   }
 
-  void warnToComplex(IAstNode node) {
+  void warnToComplex(CAstNode node) {
     if (logger.wouldBeLogged(Level.FINEST)) {
       if (handleFieldAccess) {
-        log(Level.FINEST, "Ignoring pointer aliasing, because statement is too complex, please simplify: " + node.toASTString() + " (Line: " + node.getFileLocation().getStartingLineNumber() + ")");
+        logfOnce(Level.FINEST, node,
+            "Ignoring pointer aliasing because statement is too complex, please simplify");
       } else {
-        log(Level.FINEST, "Ignoring pointer aliasing, because statement is too complex, please simplify or enable handleFieldAccess and handleFieldAliasing: " + node.toASTString() + " (Line: " + node.getFileLocation().getStartingLineNumber() + ")");
+        logfOnce(Level.FINEST, node,
+            "Ignoring pointer aliasing because statement is too complex, please simplify or enable handleFieldAccess and handleFieldAliasing");
       }
     }
   }
@@ -1447,7 +1449,7 @@ public class CtoFormulaConverter {
   /**
    * Creates a Formula which accesses the given Field
    */
-  BitvectorFormula accessField(CFieldReference fExp, Formula f) {
+  BitvectorFormula accessField(CFieldReference fExp, Formula f) throws UnrecognizedCCodeException {
     assert handleFieldAccess : "Fieldaccess if only allowed with handleFieldAccess";
     assert f instanceof BitvectorFormula : "Fields need to be represented with bitvectors";
     // Get the underlaying structure
@@ -1464,7 +1466,7 @@ public class CtoFormulaConverter {
    * @return If pRightVariable is present, a formula of the same size as pLVar, but with some bits replaced.
    * If pRightVariable is not present, a formula that is smaller then pLVar (with the field bits missing).
    */
-  Formula replaceField(CFieldReference fExp, Formula pLVar, Optional<Formula> pRightVariable) {
+  Formula replaceField(CFieldReference fExp, Formula pLVar, Optional<Formula> pRightVariable) throws UnrecognizedCCodeException {
     assert handleFieldAccess : "Fieldaccess if only allowed with handleFieldAccess";
 
     Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
@@ -1502,22 +1504,23 @@ public class CtoFormulaConverter {
   /**
    * Returns the offset of the given CFieldReference within the structure in bits.
    */
-  private Pair<Integer, Integer> getFieldOffsetMsbLsb(CFieldReference fExp) {
+  private Pair<Integer, Integer> getFieldOffsetMsbLsb(CFieldReference fExp) throws UnrecognizedCCodeException {
     CExpression fieldRef = getRealFieldOwner(fExp);
     CCompositeType structType = (CCompositeType)fieldRef.getExpressionType().getCanonicalType();
 
     // f is now the structure, access it:
     int bitsPerByte = machineModel.getSizeofCharInBits();
 
-    // call getFieldOffset in all cases to check whether the field actually exists
-    int offset = getFieldOffset(structType, fExp.getFieldName(), fExp.getExpressionType())
-        * bitsPerByte;
-
-    if (structType.getKind() == ComplexTypeKind.UNION) {
+    int offset;
+    switch (structType.getKind()) {
+    case UNION:
       offset = 0;
-    } else {
-      checkArgument(structType.getKind() == ComplexTypeKind.STRUCT,
-          "Illegal field access in expression %s", fExp);
+      break;
+    case STRUCT:
+      offset = getFieldOffset(structType, fExp.getFieldName()) * bitsPerByte;
+      break;
+    default:
+      throw new UnrecognizedCCodeException("Unexpected field access", fExp);
     }
 
     int fieldSize = getSizeof(fExp.getExpressionType()) * bitsPerByte;
@@ -1532,25 +1535,17 @@ public class CtoFormulaConverter {
    *
    * This function does not handle UNIONs or ENUMs!
    */
-  private int getFieldOffset(CCompositeType structType, String fieldName, CType assertFieldType) {
-      int off = 0;
-      for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
-        if (member.getName().equals(fieldName)) {
-          if (assertFieldType != null) {
-            if (!assertFieldType.getCanonicalType().equals(member.getType().getCanonicalType())) {
-              log(Level.SEVERE,
-                  "Expected the same type for member (Ignore it for function pointer): " +
-                      assertFieldType.toString() + ", " + member.getType().toString());
-            }
-          }
-
-          return off;
-        }
-
-        off += getSizeof(member.getType());
+  private int getFieldOffset(CCompositeType structType, String fieldName) {
+    int off = 0;
+    for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
+      if (member.getName().equals(fieldName)) {
+        return off;
       }
 
-      throw new AssertionError("field " + fieldName + " was not found in " + structType);
+      off += getSizeof(member.getType());
+    }
+
+    throw new AssertionError("field " + fieldName + " was not found in " + structType);
   }
 
   static CExpression removeCast(CExpression exp) {
@@ -1629,11 +1624,9 @@ public class CtoFormulaConverter {
        : "A supported Expression is handled as unsupported!";
 
     if (makeFresh) {
-      log(Level.WARNING, "Program contains array, or pointer (multiple level of indirection), or field (enable handleFieldAccess and handleFieldAliasing) access; analysis is imprecise in case of aliasing.");
-      logDebug("Assigning to ", exp);
-    } else {
-      warnUnsafeVar(exp);
+      logger.logOnce(Level.WARNING, "Program contains array, or pointer (multiple level of indirection), or field (enable handleFieldAccess and handleFieldAliasing) access; analysis is imprecise in case of aliasing.");
     }
+    logfOnce(Level.FINEST, exp, "Unhandled expression treated as free variable");
 
     String var = scoped(exprToVarName(exp), function);
     return makeVariable(var, exp.getExpressionType(), ssa, makeFresh);

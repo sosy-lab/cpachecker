@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import com.google.common.base.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+
+import com.google.common.base.Objects;
 
 
 public abstract class APointerExpression extends ALeftHandSide {

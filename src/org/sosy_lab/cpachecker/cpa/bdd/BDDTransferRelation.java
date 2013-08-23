@@ -50,8 +50,29 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.*;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -465,13 +486,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     // set result of function equal to variable on left side
-    CStatement call = summaryExpr.asStatement();
     final Partition partition = varClass.getPartitionForEdge(cfaEdge);
     final int size = partitionToBitsize(partition);
 
     // handle assignments like "y = f(x);"
-    if (call instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) call;
+    if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) summaryExpr;
       CExpression lhs = cAssignment.getLeftHandSide();
 
       // make variable (predicate) for LEFT SIDE of assignment,
@@ -487,7 +507,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // LAST ACTION: delete varname of right side
       newRegion = removePredicate(newRegion, retVar);
 
-    } else if (call instanceof CFunctionCallStatement) {
+    } else if (summaryExpr instanceof CFunctionCallStatement) {
       final Region[] retVar = createPredicates(functionName, FUNCTION_RETURN_VARIABLE, size);
       newRegion = removePredicate(newRegion, retVar);
 

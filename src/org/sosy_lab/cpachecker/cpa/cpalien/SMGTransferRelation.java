@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -1017,6 +1018,11 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public Boolean visit(CFloatLiteralExpression exp) throws UnrecognizedCCodeException {
       return !exp.getValue().equals(BigDecimal.ZERO);
+    }
+
+    @Override
+    public Boolean visit(CImaginaryLiteralExpression exp) throws UnrecognizedCCodeException {
+      return exp.getValue().accept(this);
     }
   }
 

@@ -23,8 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import com.google.common.base.Function;
+
 
 public interface IAstNode {
+
+  public static final Function<IAstNode, String> TO_AST_STRING = new Function<IAstNode, String>() {
+
+    @Override
+    public String apply(IAstNode pInput) {
+      return pInput.toASTString();
+    }
+  };
 
   public FileLocation getFileLocation();
 

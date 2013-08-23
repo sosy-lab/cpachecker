@@ -26,7 +26,11 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigInteger;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -87,9 +91,45 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.*;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -419,6 +459,9 @@ class ASTConverter {
     CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getOperand1());
 
     if (isAssign) {
+      if (!(leftHandSide instanceof CLeftHandSide)) {
+        throw new CFAGenerationRuntimeException("Lefthandside of Assignment " + e.getRawSignature() +" is no CLeftHandside but should be.", leftHandSide);
+      }
       CLeftHandSide lhs = (CLeftHandSide) leftHandSide;
 
       if (op == null) {
@@ -565,9 +608,14 @@ class ASTConverter {
 
     if (containsProblemType(type)) {
       CType ownerType = owner.getExpressionType().getCanonicalType();
-      if (e.isPointerDereference() && ownerType instanceof CPointerType) {
-        ownerType = ((CPointerType) ownerType).getType();
+      if (e.isPointerDereference()) {
+        if (!(ownerType instanceof CPointerType)) {
+          throw new CFAGenerationRuntimeException("Dereferencing non-pointer type", e);
+        }
+        ownerType = ((CPointerType)ownerType).getType();
       }
+      ownerType = ownerType.getCanonicalType();
+
       if (ownerType instanceof CCompositeType) {
         CCompositeType compositeType = (CCompositeType)ownerType;
         boolean foundReplacement = false;
@@ -617,6 +665,7 @@ class ASTConverter {
   }
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
+
     List<CExpression> params = new ArrayList<>();
     for (IASTInitializerClause i : e.getArguments()) {
       params.add(convertExpressionWithoutSideEffects(toExpression(i)));
@@ -648,8 +697,18 @@ class ASTConverter {
       }
     }
 
+    CType returnType = typeConverter.convert(e.getExpressionType());
+    if (containsProblemType(returnType)) {
+      // workaround for Eclipse CDT problems
+      if (declaration != null) {
+        logger.log(Level.FINE, "Replacing return type", returnType, "of function call", e.getRawSignature(),
+            "in line", e.getFileLocation().getStartingLineNumber(),
+            "with", declaration.getType().getReturnType());
+        returnType = declaration.getType().getReturnType();
+      }
+    }
 
-    return new CFunctionCallExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), functionName, params, declaration);
+    return new CFunctionCallExpression(getLocation(e), returnType, functionName, params, declaration);
   }
 
   private CIdExpression convert(IASTIdExpression e) {

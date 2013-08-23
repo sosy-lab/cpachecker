@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.Iterables.transform;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CAstNode.TO_AST_STRING;
 
 import java.util.List;
 import java.util.Objects;
@@ -96,7 +95,7 @@ public final class CEnumType implements CComplexType {
     lASTString.append(name);
 
     lASTString.append(" {\n  ");
-    Joiner.on(",\n  ").appendTo(lASTString, transform(enumerators, TO_AST_STRING));
+    Joiner.on(",\n  ").appendTo(lASTString, transform(enumerators, CEnumerator.TO_AST_STRING));
     lASTString.append("\n} ");
     lASTString.append(pDeclarator);
 

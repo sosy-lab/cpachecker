@@ -61,6 +61,19 @@ public class SimpleIntervalTest {
     of(BigInteger.valueOf(Long.MAX_VALUE), BigInteger.valueOf(Long.MIN_VALUE));
   }
 
+  public void testContains() {
+    assertTrue(singleton(BigInteger.ZERO).contains(BigInteger.ZERO));
+    assertTrue(singleton(BigInteger.TEN).contains(BigInteger.TEN));
+    assertFalse(singleton(BigInteger.ZERO).contains(BigInteger.TEN));
+    assertFalse(singleton(BigInteger.TEN).contains(BigInteger.ZERO));
+    assertTrue(of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.ONE));
+    assertTrue(of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.TEN));
+    assertTrue(of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.valueOf(5)));
+    assertFalse(of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.ZERO));
+    assertFalse(of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.valueOf(-5)));
+    assertFalse(of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.valueOf(-10)));
+  }
+
   @Test
   public void testIsSingleton() {
     assertTrue(singleton(BigInteger.ZERO).isSingleton());

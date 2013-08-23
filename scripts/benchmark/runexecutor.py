@@ -2,7 +2,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2012  Dirk Beyer
+Copyright (C) 2007-2013  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,6 +38,10 @@ import threading
 import time
 
 import benchmark.util as Util
+import benchmark.filewriter as filewriter
+
+readFile = filewriter.readFile
+writeFile = filewriter.writeFile
 
 MEMLIMIT = "memlimit"
 TIMELIMIT = "timelimit"
@@ -50,6 +54,10 @@ _BYTE_FACTOR = 1024 # byte in kilobyte
 
 _SUB_PROCESSES = set()
 _SUB_PROCESSES_LOCK = threading.Lock()
+
+_cgroups = {}
+
+PROCESS_KILLED = False
 
 # The list of available CPU cores
 _cpus = []
@@ -77,7 +85,7 @@ def init():
     else:
         # Read available cpus:
         global _cpus
-        cpuStr = _readFile(cgroupCpuset, 'cpuset.cpus')
+        cpuStr = readFile(cgroupCpuset, 'cpuset.cpus')
         for cpu in cpuStr.split(','):
             cpu = cpu.split('-')
             if len(cpu) == 1:
@@ -142,9 +150,9 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
         myCpusStart = (myCpuIndex * myCpuCount) % totalCpuCount
         myCpusEnd   = (myCpusStart + myCpuCount-1) % totalCpuCount
         myCpus = ','.join(map(str, range(myCpusStart, myCpusEnd+1)))
-        _writeFile(myCpus, cgroupCpuset, 'cpuset.cpus')
+        writeFile(myCpus, cgroupCpuset, 'cpuset.cpus')
 
-        myCpus = _readFile(cgroupCpuset, 'cpuset.cpus')
+        myCpus = readFile(cgroupCpuset, 'cpuset.cpus')
         logging.debug('Executing {0} with cpu cores {1}.'.format(args, myCpus))
 
     # Setup memory limit
@@ -153,15 +161,15 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
             sys.exit("Memory limit specified, but cannot be implemented without cgroup support.")
         cgroupMemory = cgroups[MEMORY]
         memlimit = str(rlimits[MEMLIMIT] * _BYTE_FACTOR * _BYTE_FACTOR) # MB to Byte
-        _writeFile(memlimit, cgroupMemory, 'memory.limit_in_bytes')
+        writeFile(memlimit, cgroupMemory, 'memory.limit_in_bytes')
         try:
-            _writeFile(memlimit, cgroupMemory, 'memory.memsw.limit_in_bytes')
+            writeFile(memlimit, cgroupMemory, 'memory.memsw.limit_in_bytes')
         except IOError as e:
             if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
                 sys.exit("Memory limit specified, but kernel does not allow limiting swap memory. Please set swapaccount=1 on your kernel command line.")
             raise e
 
-        memlimit = _readFile(cgroupMemory, 'memory.memsw.limit_in_bytes')
+        memlimit = readFile(cgroupMemory, 'memory.memsw.limit_in_bytes')
         logging.debug('Executing {0} with memory limit {1} bytes.'.format(args, memlimit))
 
     outputFile = open(outputFileName, 'w') # override existing file
@@ -198,7 +206,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
         sys.exit("A critical exception caused me to exit non-gracefully. Bye.")
 
     finally:
-        if registeredSubprocess:
+        if registeredSubprocess: # TODO always false??
             try:
                 _SUB_PROCESSES_LOCK.acquire()
                 assert p in _SUB_PROCESSES
@@ -244,7 +252,7 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
         # For more details, c.f. the kernel documentation:
         # https://www.kernel.org/doc/Documentation/cgroups/memory.txt
         try:
-            memUsage = _readFile(cgroups[MEMORY], 'memory.memsw.max_usage_in_bytes')
+            memUsage = readFile(cgroups[MEMORY], 'memory.memsw.max_usage_in_bytes')
             memUsage = int(memUsage)
         except IOError as e:
             if e.errno == 95: # kernel responds with error 95 (operation unsupported) if this is disabled
@@ -272,8 +280,16 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
     output = list(map(Util.decodeToString, outputFile.readlines()[6:])) # first 6 lines are for logging, rest is output of subprocess
     outputFile.close()
 
-    # Segmentation faults and some memory failures reference a file with more information.
-    # We append this file to the log.
+    getDebugOutputAfterCrash(output, outputFileName)
+
+    return (wallTime, cpuTime, memUsage, returnvalue, '\n'.join(output))
+
+
+def getDebugOutputAfterCrash(output, outputFileName):
+    """
+    Segmentation faults and some memory failures reference a file 
+    with more information. We append this file to the log.
+    """
     next = False
     for line in output:
         if next:
@@ -288,9 +304,13 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
             logging.debug('Going to append error report file')
             next = True
 
-    return (wallTime, cpuTime, memUsage, returnvalue, '\n'.join(output))
 
 def killAllProcesses():
+
+    # set global flag
+    global PROCESS_KILLED
+    PROCESS_KILLED = True
+
     try:
         _SUB_PROCESSES_LOCK.acquire()
         for process in _SUB_PROCESSES:
@@ -298,16 +318,8 @@ def killAllProcesses():
     finally:
         _SUB_PROCESSES_LOCK.release()
 
-def _readFile(*path):
-    with open(os.path.join(*path)) as f:
-        return f.read().strip()
-
-def _writeFile(value, *path):
-    with open(os.path.join(*path), 'w') as f:
-        return f.write(value)
-
 def _readCpuTime(cgroupCpuacct):
-    return float(_readFile(cgroupCpuacct, 'cpuacct.usage'))/1000000000 # nano-seconds to seconds
+    return float(readFile(cgroupCpuacct, 'cpuacct.usage'))/1000000000 # nano-seconds to seconds
 
 
 class _TimelimitThread(threading.Thread):
@@ -363,7 +375,6 @@ def _findCgroupMount(subsystem=None):
                     return mountpoint
     return None
 
-_cgroups = {}
 
 def _createCgroup(*subsystems):
     """

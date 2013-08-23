@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Transfer Relation traversing the the CFA an tracking Run Type Time Information
@@ -148,7 +149,7 @@ public class RTTTransferRelation implements TransferRelation {
   }
 
   private void handleSimpleEdge(RTTState element, CFAEdge cfaEdge)
-        throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
+        throws UnrecognizedCFAEdgeException, UnrecognizedCodeException {
 
     // check the type of the edge
     switch (cfaEdge.getEdgeType()) {
@@ -193,7 +194,7 @@ public class RTTTransferRelation implements TransferRelation {
   }
 
   private void handleDeclaration(RTTState newElement,
-      ADeclarationEdge declarationEdge) throws UnrecognizedCCodeException {
+      ADeclarationEdge declarationEdge) throws UnrecognizedCodeException {
 
     if (!(declarationEdge.getDeclaration() instanceof JVariableDeclaration)) {
       // nothing interesting to see here, please move along
@@ -271,14 +272,14 @@ public class RTTTransferRelation implements TransferRelation {
   }
 
   private String getExpressionValue(RTTState element, JExpression expression,
-          String methodName, CFAEdge edge) throws UnrecognizedCCodeException {
+          String methodName, CFAEdge edge) throws UnrecognizedCodeException {
     return expression.accept(
         new ExpressionValueVisitor(edge, element, methodName));
   }
 
   private void handleExitFromFunction(RTTState newElement,
                   JExpression expression, AReturnStatementEdge returnEdge)
-                                        throws UnrecognizedCCodeException {
+                                        throws UnrecognizedCodeException {
 
     String methodName = returnEdge.getPredecessor().getFunctionName();
 
@@ -309,7 +310,7 @@ public class RTTTransferRelation implements TransferRelation {
   }
 
   private void handleAssignmentToVariable(String lParam, JExpression exp,
-      ExpressionValueVisitor visitor) throws UnrecognizedCCodeException {
+      ExpressionValueVisitor visitor) throws UnrecognizedCodeException {
 
     String value;
     value =  exp.accept(visitor);
@@ -319,7 +320,7 @@ public class RTTTransferRelation implements TransferRelation {
   }
 
   private void handleStatement(RTTState newElement,
-      JStatement expression, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+      JStatement expression, CFAEdge cfaEdge) throws UnrecognizedCodeException {
 
     // expression is a binary operation, e.g. a = b;
     if (expression instanceof JAssignment) {
@@ -332,7 +333,7 @@ public class RTTTransferRelation implements TransferRelation {
     } else if (expression instanceof JExpressionStatement) {
 
     } else {
-      throw new UnrecognizedCCodeException(cfaEdge, expression);
+      throw new UnrecognizedCodeException("unknown statement", cfaEdge, expression);
     }
   }
 
@@ -428,7 +429,7 @@ public class RTTTransferRelation implements TransferRelation {
 
   private RTTState handleFunctionReturn(
       RTTState element,
-      FunctionReturnEdge functionReturnEdge) throws UnrecognizedCCodeException {
+      FunctionReturnEdge functionReturnEdge) throws UnrecognizedCodeException {
 
     FunctionSummaryEdge summaryEdge    = functionReturnEdge.getSummaryEdge();
     JMethodOrConstructorInvocation exprOnSummary  = (JMethodOrConstructorInvocation) summaryEdge.getExpression();
@@ -468,7 +469,7 @@ public class RTTTransferRelation implements TransferRelation {
       }
 
       else {
-        throw new UnrecognizedCCodeException("on function return", summaryEdge, op1);
+        throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
       }
     }
 
@@ -572,7 +573,7 @@ public class RTTTransferRelation implements TransferRelation {
 
   private RTTState handleAssumption(RTTState element,
       JExpression expression, CFAEdge cfaEdge,
-      boolean truthAssumption) throws UnrecognizedCCodeException {
+      boolean truthAssumption) throws UnrecognizedCodeException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 

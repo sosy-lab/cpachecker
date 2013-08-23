@@ -112,7 +112,12 @@ final class CDereferenceType extends CtoFormulaCType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CTypes");
+    int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(type);
+    result = prime * result + Objects.hashCode(isConst);
+    result = prime * result + Objects.hashCode(isVolatile);
+    return prime * result + super.hashCode();
   }
 
   /**

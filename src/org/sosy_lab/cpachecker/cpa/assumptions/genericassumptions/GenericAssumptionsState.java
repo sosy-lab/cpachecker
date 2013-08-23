@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingState;
@@ -70,6 +69,6 @@ public class GenericAssumptionsState implements AbstractState, AssumptionReporti
 
   @Override
   public String toString() {
-    return Joiner.on(", ").join(from(assumptions).transform(CAstNode.TO_AST_STRING));
+    return Joiner.on(", ").join(from(assumptions).transform(CExpression.TO_AST_STRING));
   }
 }

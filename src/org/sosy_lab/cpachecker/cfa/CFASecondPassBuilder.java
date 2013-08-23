@@ -238,7 +238,7 @@ public class CFASecondPassBuilder {
       if (summaryEdges) {
         CFunctionSummaryStatementEdge summaryStatementEdge =
             new CFunctionSummaryStatementEdge(edge.getRawStatement(),
-                ((CFunctionCall)functionCall).asStatement(), lineNumber,
+                ((CFunctionCall)functionCall), lineNumber,
                 predecessorNode, successorNode, (CFunctionCall)functionCall, fDefNode.getFunctionName());
 
         predecessorNode.addLeavingEdge(summaryStatementEdge);

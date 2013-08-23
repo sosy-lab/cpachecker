@@ -23,43 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
+import java.util.Objects;
+
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CUnaryExpression extends AUnaryExpression implements CExpression {
+public final class CImaginaryLiteralExpression extends ALiteralExpression implements CLiteralExpression {
 
+  private final CLiteralExpression value;
+  private final String imaginary;
 
-
-  public CUnaryExpression(final FileLocation pFileLocation,
-                             final CType pType, final CExpression pOperand,
-                             final UnaryOperator pOperator) {
-    super(pFileLocation, pType, pOperand, pOperator);
-
-  }
-
-  @Override
-  public CExpression getOperand() {
-    return (CExpression) super.getOperand();
-  }
-
-  @Override
-  public UnaryOperator getOperator() {
-    return (UnaryOperator) super.getOperator();
+  public CImaginaryLiteralExpression(FileLocation pFileLocation,
+                                    CType pType,
+                                    CLiteralExpression pValue,
+                                    String imaginary) {
+    super(pFileLocation, pType);
+    value = pValue;
+    this.imaginary = imaginary;
   }
 
   @Override
   public CType getExpressionType() {
     return (CType) super.getExpressionType();
-  }
-
-  @Override
-  public String toASTString() {
-    if (getOperator() == UnaryOperator.SIZEOF) {
-      return getOperator().getOperator() + "(" + getOperand().toASTString() + ")";
-    } else {
-      return getOperator().getOperator() + getOperand().toParenthesizedASTString();
-    }
   }
 
   @Override
@@ -72,34 +58,17 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
     return v.visit(this);
   }
 
-  public static enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
-    PLUS   ("+"),
-    MINUS  ("-"),
-    AMPER  ("&"),
-    TILDE  ("~"),
-    NOT    ("!"),
-    SIZEOF ("sizeof"),
-    ;
-
-    private final String mOp;
-
-    private UnaryOperator(String pOp) {
-      mOp = pOp;
-    }
-
-    /**
-     * Returns the string representation of this operator (e.g. "*", "+").
-     */
-    @Override
-    public String getOperator() {
-      return mOp;
-    }
+  @Override
+  public String toASTString() {
+    return getValue().toString() + imaginary;
   }
 
   @Override
   public int hashCode() {
     int prime = 31;
     int result = 7;
+    result = prime * result + Objects.hashCode(value);
+    result = prime * result + Objects.hashCode(imaginary);
     return prime * result + super.hashCode();
   }
 
@@ -109,10 +78,21 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
       return true;
     }
 
-    if (!(obj instanceof CUnaryExpression)) {
+    if (!(obj instanceof CImaginaryLiteralExpression) || !super.equals(obj)) {
       return false;
     }
 
-    return super.equals(obj);
+    CImaginaryLiteralExpression other = (CImaginaryLiteralExpression) obj;
+
+    return Objects.equals(other.value, value) && Objects.equals(other.imaginary, imaginary);
+  }
+
+  @Override
+  public CLiteralExpression getValue() {
+    return value;
+  }
+
+  public String getImaginaryString() {
+    return imaginary;
   }
 }

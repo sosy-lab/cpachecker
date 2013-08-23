@@ -34,10 +34,4 @@ public interface IAssignment extends IAstNode {
   IALeftHandSide getLeftHandSide();
 
   IARightHandSide getRightHandSide();
-
-  /**
-   * Return "this" casted to IAStatement, i.e., this methods performs an upcast.
-   */
-  IAStatement asStatement();
-
 }

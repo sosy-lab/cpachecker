@@ -44,4 +44,5 @@ public interface CExpressionVisitor<R, X extends Exception> extends CLeftHandSid
 
   R visit(CUnaryExpression pIastUnaryExpression) throws X;
 
+  R visit (CImaginaryLiteralExpression PIastLiteralExpression) throws X;
 }

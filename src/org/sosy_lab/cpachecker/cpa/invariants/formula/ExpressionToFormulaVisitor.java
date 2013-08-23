@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
@@ -110,6 +111,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
   @Override
   public InvariantsFormula<CompoundState> visit(CCharLiteralExpression pE) {
     return InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.singleton(pE.getCharacter()));
+  }
+
+  @Override
+  public InvariantsFormula<CompoundState> visit(CImaginaryLiteralExpression pE) throws UnrecognizedCCodeException {
+    return pE.getValue().accept(this);
   }
 
   @Override

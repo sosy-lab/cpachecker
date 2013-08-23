@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 import com.google.common.base.Objects;
@@ -52,11 +50,7 @@ public abstract class AUnaryExpression extends AExpression {
 
   @Override
   public String toASTString() {
-    if (operator instanceof CUnaryExpression.UnaryOperator && (CUnaryExpression.UnaryOperator)operator == UnaryOperator.SIZEOF) {
-      return operator.getOperator() + "(" + operand.toASTString() + ")";
-    } else {
-      return operator.getOperator() + operand.toParenthesizedASTString();
-    }
+    return operator.getOperator() + operand.toParenthesizedASTString();
   }
 
   /* (non-Javadoc)

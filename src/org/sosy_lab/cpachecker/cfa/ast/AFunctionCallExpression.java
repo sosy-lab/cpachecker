@@ -77,7 +77,7 @@ public abstract class AFunctionCallExpression extends ARightHandSide {
 
     lASTString.append(functionName.toParenthesizedASTString());
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, transform(parameters, AstNode.TO_AST_STRING));
+    Joiner.on(", ").appendTo(lASTString, transform(parameters, IAExpression.TO_AST_STRING));
     lASTString.append(")");
 
     return lASTString.toString();

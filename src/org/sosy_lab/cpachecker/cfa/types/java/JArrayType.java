@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
-import org.sosy_lab.cpachecker.cfa.types.AArrayType;
-
 import java.util.Objects;
+
+import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
 
 public class JArrayType extends AArrayType implements JReferenceType {

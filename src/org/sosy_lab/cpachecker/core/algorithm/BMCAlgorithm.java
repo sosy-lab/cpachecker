@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -72,6 +73,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -437,22 +439,33 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
     Multimap<String, Loop> loops = cfa.getLoopStructure().get();
 
+    // Ignore single-node loops that are only used to cut off the control flow graph
+    Set<Loop> actualLoops = new HashSet<>();
+    Set<Loop> dummyLoops = new HashSet<>();
+    for (Loop loop : loops.values()) {
+      if (loop.getLoopNodes().size() > 1) {
+        actualLoops.add(loop);
+      } else {
+        dummyLoops.add(loop);
+      }
+    }
+
     // Induction is currently only possible if there is a single loop.
-    // This check can be weakend in the future,
+    // This check can be weakened in the future,
     // e.g. it is ok if there is only a single loop on each path.
-    if (loops.size() > 1) {
+    if (actualLoops.size() > 1) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, program has too many loops");
       return false;
     }
 
-    if (loops.isEmpty()) {
+    if (actualLoops.isEmpty()) {
       // induction is unnecessary, program has no loops
       return true;
     }
 
     stats.inductionPreparation.start();
 
-    Loop loop = Iterables.getOnlyElement(loops.values());
+    Loop loop = Iterables.getOnlyElement(actualLoops);
 
     // function edges do not count as incoming/outgoing edges
     FluentIterable<CFAEdge> incomingEdges = from(loop.getIncomingEdges())
@@ -532,9 +545,22 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     FluentIterable<AbstractState> loopStates = from(reached).filter(IS_IN_LOOP);
 
     assert !loopStates.isEmpty();
-    if (loopStates.anyMatch(IS_TARGET_STATE)) {
-      logger.log(Level.WARNING, "Could not use induction for proving program safety, target state is contained in the loop");
-      return false;
+
+    FluentIterable<AbstractState> targetStatesInLoop = loopStates.filter(IS_TARGET_STATE);
+    // There must not be any target states in real loops
+    for (AbstractState targetStateInLoop : targetStatesInLoop) {
+      // Check if the target state found in the loop is part of a dummy loop
+      CFANode targetStateNode = extractStateByType(targetStateInLoop, LocationState.class).getLocationNode();
+      boolean isInDummyLoop = false;
+      for (Loop dummyLoop : dummyLoops) {
+        if (dummyLoop.getLoopNodes().contains(targetStateNode)) {
+          isInDummyLoop = true;
+          break;
+        }
+      }
+      if (!isInDummyLoop) {
+        logger.log(Level.WARNING, "Could not use induction for proving program safety, target state is contained in the loop");
+      }
     }
 
     // get global invariants
@@ -575,7 +601,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       // we need to negate it, because we used the outgoing edge, not the continuation edge
       BooleanFormula formulaC = bfmgr.not(pathFormulaC.getFormula());
 
-      // Crate (A & B) => C
+      // Create (A & B) => C
       BooleanFormula f = bfmgr.or(bfmgr.not(formulaAB), formulaC);
 
       inductions = bfmgr.and(inductions, f);
@@ -592,6 +618,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     stats.inductionCheck.start();
     prover.push(inductions);
     boolean sound = prover.isUnsat();
+    if (!sound) {
+      //System.out.println(prover.getModel());
+      //System.out.println("---");
+      //System.out.println(inductions);
+    }
     prover.pop();
     stats.inductionCheck.stop();
 

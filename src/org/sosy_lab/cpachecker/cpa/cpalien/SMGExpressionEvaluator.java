@@ -1268,13 +1268,12 @@ public class SMGExpressionEvaluator {
       CType operandType = getRealExpressionType(operand);
       CType expType = getRealExpressionType(pointerExpression);
 
-
       if (operandType instanceof CPointerType) {
         return dereferencePointer(operand, expType);
       } else if (operandType instanceof CArrayType) {
         return dereferenceArray(operand, expType);
       } else {
-        throw new UnrecognizedCCodeException(cfaEdge, pointerExpression);
+        throw new UnrecognizedCCodeException("on pointer expression", cfaEdge, pointerExpression);
       }
     }
 

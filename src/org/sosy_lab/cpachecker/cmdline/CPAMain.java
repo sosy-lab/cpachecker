@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -46,6 +47,7 @@ import com.google.common.base.Strings;
 
 public class CPAMain {
 
+  @SuppressWarnings("resource") // We don't close LogManager because it will be used from ShutdownHook.
   public static void main(String[] args) {
     // initialize various components
     Configuration cpaConfig = null;
@@ -80,7 +82,7 @@ public class CPAMain {
                      .put(FileOption.class, fileTypeConverter);
       }
 
-      logManager = new LogManager(cpaConfig);
+      logManager = new BasicLogManager(cpaConfig);
 
     } catch (InvalidConfigurationException e) {
       System.err.println("Invalid configuration: " + e.getMessage());

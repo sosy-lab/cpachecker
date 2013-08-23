@@ -55,11 +55,6 @@ public abstract class AExpressionAssignmentStatement extends AStatement implemen
   }
 
   @Override
-  public IAStatement asStatement() {
-    return this;
-  }
-
-  @Override
   public <R, X extends Exception> R accept(AStatementVisitor<R, X> pV) throws X {
     return pV.visit(this);
   }

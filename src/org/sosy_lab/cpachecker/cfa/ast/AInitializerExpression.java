@@ -27,7 +27,7 @@ import java.util.Objects;
 
 
 
-public abstract class AInitializerExpression extends Initializer {
+public abstract class AInitializerExpression extends AInitializer {
 
   private final IAExpression expression;
 

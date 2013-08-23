@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.invariants.balancer.test;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.util.invariants.Rational;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption;
 import org.sosy_lab.cpachecker.util.invariants.balancer.Assumption.AssumptionType;
@@ -43,7 +44,7 @@ public class TestMatrixSolver {
   public static void main(String[] args) {
 
     try {
-      logger = new LogManager(Configuration.defaultConfiguration());
+      logger = new BasicLogManager(Configuration.defaultConfiguration());
     } catch (Exception e) {}
 
     Variable p1 = new Variable("p1");
