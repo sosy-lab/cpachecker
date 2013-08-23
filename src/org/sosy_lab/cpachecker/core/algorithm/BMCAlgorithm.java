@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -501,21 +502,26 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     // the next iteration. We call the latter the continuation edge.
     // The common predecessor node of these two edges will be called cut point.
     // Now we want to show that the control flow of the program will never take
-    // the outgoing edge, if it didn't take it in the iteration before.
+    // the outgoing edge and reach the error location,
+    // if it didn't take it in the iteration before.
     // We create three formulas:
     // A is the assumption from the continuation edge in the previous iteration
     // B is the formula for the loop body in the current iteration up to the cut point
-    // C is the assumption from the continuation edge in the current iteration
-    //   Note that this is the negation of the assumption from the exit edge.
+    // C is the negation of the formula for the path from the cut point to the error location
     // Then we try to prove that the formula (A & B) => C holds.
-    // This implies that control flow cannot take the exit edge.
+    // This implies that control flow cannot reach the error location.
 
     // The conjunction (A & B) is created by running the CPAAlgorithm starting
     // at the cut point and letting it run until the end of the current iteration
     // (i.e. let it finish the iteration it starts in and complete one more iteration).
     // Then we get the abstract state at the cut point in the last iteration
     // and take its path formula, which is exactly (A & B).
-    // C is created manually. It is important to re-use the SSAMap from (A & B)
+    // C is created by letting the CPAAlgorithm run starting at the cut point,
+    // taking the outgoing edge (and not staying within the loop).
+    // Then we can take the disjunction of the path formulas at all reached
+    // target states. Two things are important here:
+    // CPAAlgorithm needs to take only the path out of the loop,
+    // and the path formula needs to be created with the SSAMap from (A & B)
     // in order to get the indices right.
 
     // Everything above is easily extended to k-induction with k >= 1
@@ -596,11 +602,41 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       PathFormula pathFormulaAB = extractStateByType(lastcutPointState, PredicateAbstractState.class).getPathFormula();
       BooleanFormula formulaAB = bfmgr.and(invariants, pathFormulaAB.getFormula());
 
-      // Create C
-      PathFormula empty = pmgr.makeEmptyPathFormula(pathFormulaAB); // empty has correct SSAMap
-      PathFormula pathFormulaC = pmgr.makeAnd(empty, outgoingEdge);
-      // we need to negate it, because we used the outgoing edge, not the continuation edge
-      BooleanFormula formulaC = bfmgr.not(pathFormulaC.getFormula());
+      BooleanFormula formulaC;
+      { // Create C
+        // We want to continue exploration from lastCutPointState,
+        // but with an empty path formula. However, the SSAMap needs to be the one
+        // from lastCutPointState, so we can use a fresh initial state.
+        PathFormula empty = pmgr.makeEmptyPathFormula(pathFormulaAB); // empty has correct SSAMap
+        AbstractState freshCutPointState = cpa.getInitialState(cutPoint);
+        extractStateByType(freshCutPointState, PredicateAbstractState.class)
+            .setPathFormula(empty);
+
+        // Prepare CFA such that there is only the path out of the loop
+        // VERY ugly hack.
+        List<CFAEdge> savedEdges = CFAUtils.leavingEdges(cutPoint).toList();
+        for (CFAEdge edge : savedEdges) {
+          if (!edge.equals(outgoingEdge)) {
+            cutPoint.removeLeavingEdge(edge);
+          }
+        }
+        assert cutPoint.getNumLeavingEdges() == 1;
+
+        // Create path formulas by running CPAAlgorithm
+        reached = reachedSetFactory.create();
+        reached.add(freshCutPointState, cpa.getInitialPrecision(cutPoint));
+        algorithm.run(reached);
+
+        Iterable<AbstractState> targetStates = from(reached).filter(IS_TARGET_STATE);
+        formulaC = bfmgr.not(createFormulaFor(targetStates));
+        reached.clear();
+
+        // Reset changed CFA
+        cutPoint.removeLeavingEdge(outgoingEdge);
+        for (CFAEdge edge : savedEdges) {
+          cutPoint.addLeavingEdge(edge);
+        }
+      }
 
       // Create (A & B) => C
       BooleanFormula f = bfmgr.or(bfmgr.not(formulaAB), formulaC);
