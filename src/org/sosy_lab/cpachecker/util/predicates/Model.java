@@ -30,8 +30,6 @@ import java.util.Map;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
@@ -185,25 +183,22 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   }
 
   private final Map<AssignableTerm, Object> mModel;
-  private final BooleanFormula formulaRepresentation;
 
   @Override
   protected Map<AssignableTerm, Object> delegate() {
     return mModel;
   }
 
-  public Model(FormulaManagerView fmgr) {
+  public static Model empty() {
+    return new Model();
+  }
+
+  private Model() {
     mModel = ImmutableMap.of();
-    formulaRepresentation = fmgr.getBooleanFormulaManager().makeBoolean(true);
   }
 
-  public Model(Map<AssignableTerm, Object> content, BooleanFormula f) {
+  public Model(Map<AssignableTerm, Object> content) {
     mModel = ImmutableMap.copyOf(content);
-    formulaRepresentation = f;
-  }
-
-  public BooleanFormula getFormulaRepresentation() {
-    return formulaRepresentation;
   }
 
   private static final MapJoiner joiner = Joiner.on('\n').withKeyValueSeparator(": ");

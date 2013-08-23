@@ -115,6 +115,6 @@ public class Mathsat5InterpolatingProver implements InterpolatingProverEnvironme
   public Model getModel() throws SolverException {
     Preconditions.checkState(interpolEnv != 0);
 
-    return Mathsat5Model.createMathsatModel(interpolEnv, mgr, useSharedEnv);
+    return Mathsat5Model.createMathsatModel(interpolEnv, mgr);
   }
 }

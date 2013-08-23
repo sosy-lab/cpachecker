@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.Model.Function;
 import org.sosy_lab.cpachecker.util.predicates.Model.TermType;
 import org.sosy_lab.cpachecker.util.predicates.Model.Variable;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
@@ -141,13 +140,8 @@ class SmtInterpolModel {
             "model is not available for UNSAT"; // TODO expensive check?
     Map<Term, Term> val = env.getValue(keys);
 
-    Term modelFormula = env.term("true");
-
     for (Term lKeyTerm : keys) {
       Term lValueTerm = val.get(lKeyTerm);
-
-      Term equivalence = env.term("=", lKeyTerm, lValueTerm);
-      modelFormula = env.term("and", modelFormula, equivalence);
 
       AssignableTerm lAssignable = toAssignable(lKeyTerm);
 
@@ -191,7 +185,7 @@ class SmtInterpolModel {
     }
     }
 
-    return new Model(model.build(), mgr.encapsulate(BooleanFormula.class, modelFormula));
+    return new Model(model.build());
   }
 
 }

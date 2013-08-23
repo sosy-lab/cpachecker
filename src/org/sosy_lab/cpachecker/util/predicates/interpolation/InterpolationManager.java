@@ -678,7 +678,7 @@ public final class InterpolationManager {
       dumpInterpolationProblem(f);
       dumpFormulaToFile("formula", branchingFormula, f.size());
 
-      return CounterexampleTraceInfo.feasible(f, new Model(fmgr), ImmutableMap.<Integer, Boolean>of());
+      return CounterexampleTraceInfo.feasible(f, Model.empty(), ImmutableMap.<Integer, Boolean>of());
     }
   }
 
@@ -688,7 +688,7 @@ public final class InterpolationManager {
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);
-      return new Model(fmgr); // return empty model
+      return Model.empty();
     }
   }
 
@@ -711,7 +711,7 @@ public final class InterpolationManager {
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);
-      return new Model(fmgr); // return empty model
+      return Model.empty();
     }
   }
 

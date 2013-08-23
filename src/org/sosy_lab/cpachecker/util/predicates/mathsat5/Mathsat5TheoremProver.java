@@ -72,7 +72,7 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
   public Model getModel() throws SolverException {
     Preconditions.checkState(curEnv != 0);
 
-    return Mathsat5Model.createMathsatModel(curEnv, mgr, USE_SHARED_ENV);
+    return Mathsat5Model.createMathsatModel(curEnv, mgr);
   }
 
   @Override
