@@ -1288,9 +1288,7 @@ public class SMGExpressionEvaluator {
         value = pUnaryOperand.accept(this);
       }
 
-      if (value.equals(SMGKnownSymValue.ZERO)) {
-        return SMGKnownSymValue.ZERO;
-      } else if (isUnequal(smgState, value, SMGKnownSymValue.ZERO)) {
+      if (isUnequal(smgState, value, SMGKnownSymValue.ZERO)) {
         return SMGKnownSymValue.ZERO;
       } else {
         return SMGUnknownValue.getInstance();

@@ -150,23 +150,23 @@ public class SMGExplicitCommunicator {
     public Long visit(CPointerExpression pPointerExpression) throws UnrecognizedCCodeException {
 
       MemoryLocation memloc = evaluateMemloc(pPointerExpression);
-      return getValueFromLocation(memloc);
+      return getValueFromLocation(memloc, pPointerExpression);
     }
 
     @Override
     public Long visit(CFieldReference pFieldReferenceExpression) throws UnrecognizedCCodeException {
 
       MemoryLocation memloc = evaluateMemloc(pFieldReferenceExpression);
-      return getValueFromLocation(memloc);
+      return getValueFromLocation(memloc, pFieldReferenceExpression);
     }
 
     @Override
     public Long visit(CArraySubscriptExpression pE) throws UnrecognizedCCodeException {
       MemoryLocation memloc = evaluateMemloc(pE);
-      return getValueFromLocation(memloc);
+      return getValueFromLocation(memloc, pE);
     }
 
-    private Long getValueFromLocation(MemoryLocation pMemloc) {
+    private Long getValueFromLocation(MemoryLocation pMemloc, CExpression rValue) throws UnrecognizedCCodeException {
 
       if(pMemloc == null) {
         return null;
@@ -177,7 +177,23 @@ public class SMGExplicitCommunicator {
       if (explState.contains(pMemloc) ) {
         return explState.getValueFor(pMemloc);
       } else {
-        return null;
+        // In rare cases, through reinterpretations of nullified blocks, smgState can ecaluate an
+        // explicit Value while explicit State cannot.
+        // TODO Erase when null reinterpretations an memset is implemented for explicit state
+        SMGSymbolicValue value;
+
+        try {
+          value = smgEvaluator.evaluateExpressionValue(smgState, cfaEdge, rValue);
+        } catch (CPATransferException e) {
+          logger.logDebugException(e);
+          throw new UnrecognizedCCodeException("Rvalue Could not be evaluated by smgEvaluator", cfaEdge,rValue);
+        }
+
+         if(value.isUnknown() || value.getAsInt() != 0) {
+           return null;
+         } else {
+           return 0L;
+         }
       }
     }
 

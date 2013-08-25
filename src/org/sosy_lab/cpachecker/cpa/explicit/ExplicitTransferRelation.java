@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
@@ -99,6 +100,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.cpalien.SMGState;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.forwarding.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer.Memory;
@@ -454,6 +456,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         String func = ((CIdExpression)fn).getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+        } else if(func.equals("free")) {
+          // Needed for erasing values
+          missingInformationList.add(new MissingInformation(((CFunctionCall)expression).getFunctionCallExpression()));
         }
       }
     }
@@ -1079,6 +1084,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     ExplicitState newElement = state.clone();
 
+    //TODO Refactor
+
     for (MissingInformation missingInformation : missingInformationList) {
       if (missingInformation.isMissingAssumption()) {
         newElement = resolvingAssumption(newElement, smgState, missingInformation);
@@ -1089,6 +1096,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
           // We have to forget Nonrelevant Information to not contradict SMGState.
           newElement = forgetMemLoc(newElement, missingInformation, smgState);
         }
+      } else if(missingInformation.isFreeInvocation()) {
+        newElement = resolveFree(newElement, smgState, missingInformation);
       }
     }
 
@@ -1100,6 +1109,40 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     return state.equals(newElement) ? null : Collections.singleton(newElement);
+  }
+
+  private ExplicitState resolveFree(ExplicitState pNewElement, SMGState pSmgState,
+      MissingInformation pMissingInformation) throws UnrecognizedCCodeException {
+
+    CFunctionCallExpression functionCall = pMissingInformation.getMissingFreeInvocation();
+
+    CExpression pointerExp;
+
+    try {
+      pointerExp = functionCall.getParameterExpressions().get(0);
+    } catch (IndexOutOfBoundsException e) {
+      logger.logDebugException(e);
+      throw new UnrecognizedCCodeException("Bulit in function free has no parameter", edge, functionCall);
+    }
+
+    SMGExplicitCommunicator cc = new SMGExplicitCommunicator();
+
+    SMGAddressValue address;
+    try {
+      address = cc.evaluateSMGAddressExpression(pNewElement, functionName, pSmgState, machineModel, logger, edge, pointerExp);
+    } catch (CPATransferException e) {
+      logger.logDebugException(e);
+      throw new UnrecognizedCCodeException("Error while evaluating free pointer exception.", edge, functionCall);
+    }
+
+    if (address.isUnknown()) {
+      //TODO if sound Option is implemented, here every heap value has to be erased.
+      return pNewElement;
+    }
+
+    pNewElement.forgetValuesWithIdentifier(address.getObject().getLabel());
+
+    return pNewElement;
   }
 
   private ExplicitState forgetMemLoc(ExplicitState pNewElement, MissingInformation pMissingInformation,
@@ -1532,6 +1575,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
      */
     private final Boolean truthAssumption;
 
+    private CFunctionCallExpression missingFreeInvocation = null;
+
     @SuppressWarnings("unused")
     public MissingInformation(CExpression pMissingCLeftMemoryLocation,
         CExpression pMissingCExpressionInformation) {
@@ -1625,6 +1670,20 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       truthAssumption = pTruthAssumption;
     }
 
+    public MissingInformation(CFunctionCallExpression pFunctionCallExpression) {
+      missingFreeInvocation = pFunctionCallExpression;
+      missingCExpressionInformation = null;
+      missingCLeftMemoryLocation = null;
+      cExpressionValue = null;
+      cLeftMemoryLocation = null;
+      truthAssumption = null;
+
+    }
+
+    public boolean isFreeInvocation() {
+      return missingFreeInvocation != null;
+    }
+
     public Long getcExpressionValue() {
       checkNotNull(cExpressionValue);
       return cExpressionValue;
@@ -1651,6 +1710,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     public Boolean getTruthAssumption() {
       checkNotNull(truthAssumption);
       return truthAssumption;
+    }
+
+    public CFunctionCallExpression getMissingFreeInvocation() {
+      return missingFreeInvocation;
     }
   }
 }

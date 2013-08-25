@@ -740,4 +740,12 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     // Doesn't need a copy, Memory Location is Immutable
     return result;
   }
+
+  public void forgetValuesWithIdentifier(String pIdentifier) {
+    for (MemoryLocation memoryLocation : constantsMap.keySet()) {
+      if (memoryLocation.getIdentifier().equals(pIdentifier)) {
+        constantsMap = constantsMap.removeAndCopy(memoryLocation);
+      }
+    }
+  }
 }

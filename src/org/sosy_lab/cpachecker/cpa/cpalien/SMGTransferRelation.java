@@ -880,6 +880,7 @@ public class SMGTransferRelation implements TransferRelation {
       CVariableDeclaration cVarDecl = (CVariableDeclaration) cDecl;
       logger.log(Level.FINEST, "Handling variable declaration:", cVarDecl.toASTString());
       String varName = cVarDecl.getName();
+
       CType cType = expressionEvaluator.getRealExpressionType(cVarDecl);
 
       SMGObject newObject;
