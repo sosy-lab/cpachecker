@@ -106,6 +106,7 @@ class Worker(threading.Thread):
                 print(e)
             Worker.workingQueue.task_done()
 
+
 def executeBenchmarkLocaly(benchmark):
     
     runexecutor.init()
@@ -204,6 +205,7 @@ def parseCloudResultFile(filePath):
 
     return (wallTime, cpuTime, memUsage, returnValue)
 
+
 def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
 
     runToHostMap = {}
@@ -235,98 +237,111 @@ def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
         logging.warning("Host information file not found: " + filePath)
     return runToHostMap
 
+
+def toTabList(l):
+    return "\t".join(map(str, l))
+
+
+def commonBaseDir(l):
+    # os.path.commonprefix returns the common prefix, not the common directory
+    return os.path.dirname(os.path.commonprefix(l))
+
+
+def getCloudInput(benchmark):
+
+    (requirements, numberOfRuns, limitsAndNumRuns, runDefinitions, sourceFiles) = getBenchmarkDataForCloud(benchmark)
+    (workingDir, toolpaths) = getToolDataForCloud(benchmark)
+    
+    # prepare cloud input, we make all paths absolute, TODO necessary?
+    outputDir = benchmark.logFolder
+    absOutputDir = os.path.abspath(outputDir)
+    absWorkingDir = os.path.abspath(workingDir)
+    absCloudRunExecutorDir = os.path.abspath(os.path.dirname(__file__))
+    absToolpaths = list(map(os.path.abspath, toolpaths))
+    absSourceFiles = list(map(os.path.abspath, sourceFiles))
+    absBaseDir = commonBaseDir(absSourceFiles + absToolpaths + [absCloudRunExecutorDir])
+
+    if absBaseDir == "": sys.exit("No common base dir found.")
+
+    numOfRunDefLinesAndPriorityStr = [numberOfRuns + 1] # add 1 for the headerline 
+    if config.cloudPriority:
+        numOfRunDefLinesAndPriorityStr.append(config.cloudPriority)
+
+    # build the input for the cloud, 
+    # see external vcloud/README.txt for details.
+    cloudInput = "\n".join(
+            [
+                toTabList(absToolpaths),
+                absCloudRunExecutorDir,
+                toTabList([absBaseDir, absOutputDir, absWorkingDir]),
+                toTabList(requirements),
+                toTabList(numOfRunDefLinesAndPriorityStr),
+                toTabList(limitsAndNumRuns)
+            ]
+            + runDefinitions
+        )
+    return cloudInput
+
+
+def getToolDataForCloud(benchmark):
+
+    workingDir = benchmark.workingDirectory()
+    if not os.path.isdir(workingDir):
+        sys.exit("Missing working directory {0}, cannot run tool.", format(workingDir))
+    logging.debug("Working dir: " + workingDir)
+
+    toolpaths = benchmark.requiredFiles()
+    for file in toolpaths:
+        if not os.path.exists(file):
+            sys.exit("Missing file {0}, cannot run benchmark within cloud.".format(os.path.normpath(file)))
+
+    return (workingDir, toolpaths)
+
+
+def getBenchmarkDataForCloud(benchmark):
+
+    # get requirements
+    requirements = [benchmark.requirements.memory(), benchmark.requirements.cpuCores()]
+    if benchmark.requirements.cpuModel() is not "":
+        requirements.append(benchmark.requirements.cpuModel())
+
+    
+    # get limits and number of Runs
+    timeLimit = benchmark.rlimits.get(TIMELIMIT, DEFAULT_CLOUD_TIMELIMIT)
+    memLimit  = benchmark.rlimits.get(MEMLIMIT,  DEFAULT_CLOUD_MEMLIMIT)
+    coreLimit = benchmark.rlimits.get(CORELIMIT, None)
+    numberOfRuns = sum(len(runSet.runs) for runSet in benchmark.runSets)
+    limitsAndNumRuns = [numberOfRuns, timeLimit, memLimit]
+    if coreLimit is not None: limitsAndNumRuns.append(coreLimit)
+    
+    # get Runs with args and sourcefiles
+    sourceFiles = []
+    runDefinitions = []
+    for runSet in benchmark.runSets:
+        if not runSet.shouldBeExecuted(): continue
+        if STOPPED_BY_INTERRUPT: break
+
+        # get runs
+        for run in runSet.runs:
+            # escape delimiter char: replace 1 space with 2 spaces
+            argString = " ".join(arg.replace(" ", "  ") for arg in run.args)
+            logFile = os.path.relpath(run.logFile, benchmark.logFolder)
+            runDefinitions.append(toTabList([argString, run.sourcefile, logFile]))
+            sourceFiles.append(run.sourcefile)
+
+    if not sourceFiles: sys.exit("Benchmark has nothing to run.")
+        
+    return (requirements, numberOfRuns, limitsAndNumRuns, runDefinitions, sourceFiles)
+
+
 def executeBenchmarkInCloud(benchmark):
 
     outputHandler = benchmark.outputHandler
 
-    absWorkingDir = os.path.abspath(os.curdir)
-    logging.debug("Working dir: " + absWorkingDir)
-    toolpaths = benchmark.requiredFiles()
-    for file in toolpaths:
-        if not os.path.exists(file):
-            logging.error("Missing file {0}, cannot run benchmark within cloud.".format(os.path.normpath(file)))
-            return
+    # build input for cloud
+    cloudInput = getCloudInput(benchmark)
 
-    requirements = str(benchmark.requirements.memory()) + "\t" + \
-                str(benchmark.requirements.cpuCores())
-
-    if(benchmark.requirements.cpuModel() is not ""):
-        requirements += "\t" + benchmark.requirements.cpuModel()
-
-    cloudRunExecutorDir = os.path.abspath(os.path.dirname(__file__))
-    outputDir = benchmark.logFolder
-    absOutputDir = os.path.abspath(outputDir)
-
-    runDefinitions = []
-    absSourceFiles = []
-    numOfRunDefLines = 0
-
-    # iterate over run sets
-    for runSet in benchmark.runSets:
-        if not runSet.shouldBeExecuted():
-            continue
-
-        if STOPPED_BY_INTERRUPT: break
-
-        numOfRunDefLines += (len(runSet.runs) + 1)
-
-        timeLimit = str(DEFAULT_CLOUD_TIMELIMIT)
-        memLimit = str(DEFAULT_CLOUD_MEMLIMIT)
-        if(TIMELIMIT in benchmark.rlimits):
-            timeLimit = str(benchmark.rlimits[TIMELIMIT])
-        if(MEMLIMIT in benchmark.rlimits):
-            memLimit = str(benchmark.rlimits[MEMLIMIT])
-
-        runSetHeadLine = str(len(runSet.runs)) + "\t" + \
-                        timeLimit + "\t" + \
-                       memLimit
-
-        if(CORELIMIT in benchmark.rlimits):
-           coreLimit = str(benchmark.rlimits[CORELIMIT])
-           runSetHeadLine += ("\t" + coreLimit)
-
-        runDefinitions.append(runSetHeadLine)
-
-        # iterate over runs
-        for run in runSet.runs:
-            #escape delimiter char
-            args = []
-            for arg in run.args:
-                args.append(arg.replace(" ", "  "))
-            argString = " ".join(args)
-
-            logFile = os.path.relpath(run.logFile, outputDir)
-            runDefinitions.append(argString + "\t" + run.sourcefile + "\t" + \
-                                    logFile)
-            absSourceFiles.append(os.path.abspath(run.sourcefile))
-
-    if not absSourceFiles:
-        logging.warning("Skipping benchmark without source files.")
-        return
-
-    #preparing cloud input
-    absToolpaths = list(map(os.path.abspath, toolpaths))
-    sourceFilesBaseDir = os.path.commonprefix(absSourceFiles)
-    toolPathsBaseDir = os.path.commonprefix(absToolpaths)
-    baseDir = os.path.commonprefix([sourceFilesBaseDir, toolPathsBaseDir, cloudRunExecutorDir])
-
-    if(baseDir == ""):
-        sys.exit("No common base dir found.")
-
-    #os.path.commonprefix works on charakters not on the file system
-    if(baseDir[-1]!='/'):
-        baseDir = os.path.split(baseDir)[0];
-
-    numOfRunDefLinesAndPriorityStr = str(numOfRunDefLines)
-    if(config.cloudPriority):
-        numOfRunDefLinesAndPriorityStr += "\t" + config.cloudPriority
-
-    cloudInput = "\t".join(absToolpaths) + "\n" + \
-                cloudRunExecutorDir + "\n" + \
-                baseDir + "\t" + absOutputDir + "\t" + absWorkingDir +"\n" + \
-                requirements + "\n" + \
-                numOfRunDefLinesAndPriorityStr + "\n" + \
-                "\n".join(runDefinitions)
+    #print ("\n\n\n" + cloudInput + "\n\n\n")
 
     # install cloud and dependencies
     ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"])
@@ -350,6 +365,7 @@ def executeBenchmarkInCloud(benchmark):
     if returnCode and not STOPPED_BY_INTERRUPT:
         logging.warn("Cloud return code: {0}".format(returnCode))
 
+    outputDir = benchmark.logFolder
     if not os.path.isdir(outputDir) or not os.listdir(outputDir):
         #outputDir does not exist or is empty
         logging.warning("Cloud produced no results.")

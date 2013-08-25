@@ -216,8 +216,14 @@ class Benchmark:
 
         self.outputHandler = OutputHandler(self)
 
+
     def requiredFiles(self):
         return self._requiredFiles + self.tool.getProgrammFiles(self.executable)
+
+
+    def workingDirectory(self):
+        return self.tool.getWorkingDirectory(self.executable)
+
 
     @staticmethod
     def loadColumns(columnsTag):
