@@ -135,4 +135,19 @@ public class CompoundStateTest {
     assertEquals(oneToTwo.unionWith(negFourToNegTwo), negTwoToNegOne.unionWith(twoToFour).negate());
   }
 
+  @Test
+  public void testIsSingleton() {
+    CompoundState negOne = CompoundState.singleton(-1);
+    CompoundState zero = CompoundState.singleton(0);
+    CompoundState one = CompoundState.singleton(1);
+    CompoundState ten = CompoundState.singleton(10);
+    assertTrue(negOne.isSingleton());
+    assertTrue(zero.isSingleton());
+    assertTrue(one.isSingleton());
+    assertTrue(ten.isSingleton());
+    assertFalse(CompoundState.span(one, ten).isSingleton());
+    assertFalse(zero.unionWith(ten).isSingleton());
+    assertFalse(negOne.unionWith(CompoundState.span(one, ten)).isSingleton());
+  }
+
 }

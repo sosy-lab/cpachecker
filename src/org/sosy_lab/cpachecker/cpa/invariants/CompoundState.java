@@ -385,7 +385,7 @@ public class CompoundState {
    * @return <code>true</code> if this state represents a single value, <code>false</code> otherwise.
    */
   public boolean isSingleton() {
-    return !isBottom() && this.intervals.get(0).isSingleton();
+    return !isBottom() && this.intervals.size() == 1 && this.intervals.get(0).isSingleton();
   }
 
   /**
