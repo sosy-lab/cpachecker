@@ -514,7 +514,7 @@ public class SMGState implements AbstractQueryableState {
     for (SMGEdgeHasValue hv : edges) {
 
       boolean hvEdgeOverlaps = new_edge.overlapsWith(hv, heap.getMachineModel());
-      boolean hvEdgeIsZero = hv.getValue() != heap.getNullValue();
+      boolean hvEdgeIsZero = hv.getValue() == heap.getNullValue();
 
       if (hvEdgeOverlaps) {
         if (hvEdgeIsZero) {
