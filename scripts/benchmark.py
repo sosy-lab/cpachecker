@@ -49,7 +49,7 @@ import threading
 from benchmark.benchmarkDataStructures import *
 import benchmark.runexecutor as runexecutor
 import benchmark.util as Util
-
+import benchmark.filewriter as filewriter
 
 MEMLIMIT = runexecutor.MEMLIMIT
 TIMELIMIT = runexecutor.TIMELIMIT
@@ -159,7 +159,7 @@ def executeBenchmarkLocaly(benchmark):
                 try:
                     time.sleep(0.1) # sleep some time
                 except KeyboardInterrupt:
-                    killScript()
+                    killScriptLocal()
 
             # get times after runSet
             wallTimeAfter = time.time()
@@ -232,6 +232,7 @@ def parseAndSetCloudWorkerHostInformation(filePath, outputHandler):
 
                 runInfo = line.split('\t')
                 runToHostMap[runInfo[1].strip()] = runInfo[0].strip()
+                # TODO one key + multiple values <==> one sourcefile + multiple configs
 
     except IOError:
         logging.warning("Host information file not found: " + filePath)
@@ -334,63 +335,32 @@ def getBenchmarkDataForCloud(benchmark):
     return (requirements, numberOfRuns, limitsAndNumRuns, runDefinitions, sourceFiles)
 
 
-def executeBenchmarkInCloud(benchmark):
-
-    outputHandler = benchmark.outputHandler
-
-    # build input for cloud
-    cloudInput = getCloudInput(benchmark)
-
-    #print ("\n\n\n" + cloudInput + "\n\n\n")
-
-    # install cloud and dependencies
-    ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"])
-    ant.communicate()
-    ant.wait()
-
-    # start cloud and wait for exit
-    logging.debug("Starting cloud.")
-    if(config.debug):
-        logLevel =  "FINER"
-    else:
-        logLevel = "INFO"
-    libDir = os.path.abspath("./lib/java-benchmark")
-    cloud = subprocess.Popen(["java", "-jar", libDir + "/vcloud.jar", "benchmark", "--master", config.cloud, "--loglevel", logLevel], stdin=subprocess.PIPE)
-    try:
-        (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
-    except KeyboardInterrupt:
-        killScript()
-    returnCode = cloud.wait()
-
-    if returnCode and not STOPPED_BY_INTERRUPT:
-        logging.warn("Cloud return code: {0}".format(returnCode))
-
+def handleCloudResults(benchmark, outputHandler):
+    
     outputDir = benchmark.logFolder
     if not os.path.isdir(outputDir) or not os.listdir(outputDir):
-        #outputDir does not exist or is empty
-        logging.warning("Cloud produced no results.")
-        return
+        # outputDir does not exist or is empty
+        logging.warning("Cloud produced no results. Output-directory is missing or empty: {0}".format(outputDir))
 
-    #Write worker host informations in xml
+    # Write worker host informations in xml
     filePath = os.path.join(outputDir, "hostInformation.txt")
     runToHostMap = parseAndSetCloudWorkerHostInformation(filePath, outputHandler)
 
-    executedAllRuns = True;
-
-    #write results in runs and
-    #handle output after all runs are done
+    # write results in runs and handle output after all runs are done
+    executedAllRuns = True
     for runSet in benchmark.runSets:
         if not runSet.shouldBeExecuted():
             outputHandler.outputForSkippingRunSet(runSet)
             continue
 
         outputHandler.outputBeforeRunSet(runSet)
+
         for run in runSet.runs:
             try:
                 stdoutFile = run.logFile + ".stdOut"
                 (run.wallTime, run.cpuTime, run.memUsage, returnValue) = parseCloudResultFile(stdoutFile)
 
-                if(run.sourcefile in runToHostMap):
+                if run.sourcefile in runToHostMap:
                     run.host = runToHostMap[run.sourcefile]
 
                 if returnValue is not None:
@@ -419,6 +389,39 @@ def executeBenchmarkInCloud(benchmark):
 
     if not executedAllRuns:
          logging.warning("Not all runs were executed in the cloud!")
+
+
+def executeBenchmarkInCloud(benchmark):
+
+    outputHandler = benchmark.outputHandler
+
+    # build input for cloud
+    cloudInput = getCloudInput(benchmark)
+    filewriter.writeFile(cloudInput, benchmark.logFolder, "cloudInput.txt")
+
+    # install cloud and dependencies
+    ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"])
+    ant.communicate()
+    ant.wait()
+
+    # start cloud and wait for exit
+    logging.debug("Starting cloud.")
+    if config.debug:
+        logLevel =  "FINER"
+    else:
+        logLevel = "INFO"
+    libDir = os.path.abspath("./lib/java-benchmark")
+    cloud = subprocess.Popen(["java", "-jar", libDir + "/vcloud.jar", "benchmark", "--master", config.cloud, "--loglevel", logLevel], stdin=subprocess.PIPE)
+    try:
+        (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
+    except KeyboardInterrupt:
+        killScriptCloud()
+    returnCode = cloud.wait()
+
+    if returnCode and not STOPPED_BY_INTERRUPT:
+        logging.warn("Cloud return code: {0}".format(returnCode))
+
+    handleCloudResults(benchmark, outputHandler)
 
     if config.commit and not STOPPED_BY_INTERRUPT:
         Util.addFilesToGitRepository(OUTPUT_PATH, outputHandler.allCreatedFiles,
@@ -571,7 +574,7 @@ def main(argv=None):
     logging.debug("I think my job is done. Have a nice day!")
 
 
-def killScript():
+def killScriptLocal():
         # set global flag
         global STOPPED_BY_INTERRUPT
         STOPPED_BY_INTERRUPT = True
@@ -583,6 +586,14 @@ def killScript():
         # wait until all threads are stopped
         for worker in WORKER_THREADS:
             worker.join()
+
+
+def killScriptCloud():
+        # set global flag
+        global STOPPED_BY_INTERRUPT
+        STOPPED_BY_INTERRUPT = True
+
+        # kill cloud-client, should be done automatically, when the subprocess is aborted
 
 
 def signal_handler_ignore(signum, frame):
