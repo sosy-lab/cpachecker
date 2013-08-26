@@ -86,6 +86,20 @@ Design:
 - Avoid null, replace it with real objects, or (at last resort) Optional:
   https://code.google.com/p/guava-libraries/wiki/UsingAndAvoidingNullExplained
 
+Configuration options:
+- Only use the @Option scheme so your options are automatically type-checked
+  and documented.
+- Only introduce an option when its meaningful
+  (do not add options that nobody would ever want to change).
+- Preferably use one of the existing prefixes
+  (cpa.YOURCPA., analysis., parser., ...)
+  instead of adding a new one.
+- Do not use negated predicates as option name
+  (use something.enable instead something.disable,
+  something.foo instead of something.noFoo etc.).
+- Do not forget to update the file doc/ConfigurationOptions.txt
+  (done automatically by ant) and commit it together with your changes.
+
 Coding:
 - Never have public fields,
   never have non-private non-final fields,
