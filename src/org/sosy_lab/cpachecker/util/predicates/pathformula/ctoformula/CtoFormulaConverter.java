@@ -31,14 +31,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.IAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -117,62 +114,20 @@ import com.google.common.collect.ImmutableSet;
 /**
  * Class containing all the code that converts C code into a formula.
  */
-@Options(prefix="cpa.predicate")
 public class CtoFormulaConverter {
-
-  @Options(prefix="cpa.predicate")
-  private static class CtoFormulaConverterSelector {
-    @Option(description = "Handle aliasing of pointers. "
-          + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
-    private boolean handlePointerAliasing = true;
-  }
 
   public static CtoFormulaConverter create(Configuration config,
       FormulaManagerView pFmgr, MachineModel pMachineModel, LogManager pLogger)
           throws InvalidConfigurationException {
 
-    CtoFormulaConverterSelector options = new CtoFormulaConverterSelector();
-    config.inject(options);
+    FormulaEncodingOptions options = new FormulaEncodingOptions(config);
 
-    if (options.handlePointerAliasing) {
-      return new PointerAliasHandling(config, pFmgr, pMachineModel, pLogger);
+    if (options.handlePointerAliasing()) {
+      return new PointerAliasHandling(options, config, pFmgr, pMachineModel, pLogger);
     } else {
-      return new CtoFormulaConverter(config, pFmgr, pMachineModel, pLogger);
+      return new CtoFormulaConverter(options, pFmgr, pMachineModel, pLogger);
     }
   }
-
-  // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
-  // use variables
-  @Option(name="lvalsAsUIFs",
-      description="use uninterpreted functions for *, & and array access")
-  private boolean lvalsAsUif = false;
-
-  @Option(description="list of functions that should be considered as giving "
-    + "a non-deterministic return value\n Only predicate analysis honors this option. "
-    + "If you specify this option, the default values are not added automatically "
-    + "to the list, so you need to specify them explicitly if you need them. "
-    + "Mentioning a function in this list has only an effect, if it is an "
-    + "'external function', i.e., no source is given in the code for this function.")
-  Set<String> nondetFunctions = ImmutableSet.of(
-      "malloc", "__kmalloc", "kzalloc",
-      "sscanf",
-      "random");
-
-  @Option(description="Regexp pattern for functions that should be considered as giving "
-    + "a non-deterministic return value (c.f. cpa.predicate.nondedFunctions)")
-  private String nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-z]*";
-  final Pattern nondetFunctionsPattern;
-
-  @Option(description="Name of an external function that will be interpreted as if the function "
-     + "call would be replaced by an externally defined expression over the program variables."
-     + " This will only work when all variables referenced by the dimacs file are global and declared before this function is called.")
-  String externModelFunctionName = "__VERIFIER_externModelSatisfied";
-
-  @Option(description = "list of functions that provide new memory on the heap."
-    + " This is only used, when handling of pointers is enabled.")
-  Set<String> memoryAllocationFunctions = ImmutableSet.of(
-      "malloc", "__kmalloc", "kzalloc"
-      );
 
   static final String ASSUME_FUNCTION_NAME = "__VERIFIER_assume";
 
@@ -211,12 +166,10 @@ public class CtoFormulaConverter {
       "printf", "printk"
       );
 
-  @Option(description = "Handle field access via extract and concat instead of new variables.")
-  boolean handleFieldAccess = false;
-
   private final Map<String, BitvectorFormula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
 
+  final FormulaEncodingOptions options;
   final MachineModel machineModel;
   private final CtoFormulaSizeofVisitor sizeofVisitor;
 
@@ -232,12 +185,11 @@ public class CtoFormulaConverter {
 
   private final FunctionFormulaType<BitvectorFormula> stringUfDecl;
 
-  CtoFormulaConverter(Configuration config, FormulaManagerView fmgr,
-      MachineModel pMachineModel, LogManager logger)
-          throws InvalidConfigurationException {
-    config.inject(this, CtoFormulaConverter.class);
+  CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
+      MachineModel pMachineModel, LogManager logger) {
 
     this.fmgr = fmgr;
+    this.options = pOptions;
     this.machineModel = pMachineModel;
     this.sizeofVisitor = new CtoFormulaSizeofVisitor(pMachineModel);
 
@@ -246,7 +198,6 @@ public class CtoFormulaConverter {
     this.efmgr = fmgr.getBitvectorFormulaManager();
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(logger);
-    nondetFunctionsPattern = Pattern.compile(nondetFunctionsRegexp);
 
     FormulaType<BitvectorFormula> pointerType =
         efmgr.getFormulaType(machineModel.getSizeofPtr() * machineModel.getSizeofCharInBits());
@@ -505,7 +456,7 @@ public class CtoFormulaConverter {
       return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, idx);
     }
 
-    assert handleFieldAccess : "Field Variables are only allowed with handleFieldAccess";
+    assert options.handleFieldAccess() : "Field Variables are only allowed with handleFieldAccess";
 
     Pair<String, Pair<Integer, Integer>> data = removeFieldVariable(name);
     String structName = data.getFirst();
@@ -1372,7 +1323,7 @@ public class CtoFormulaConverter {
 
   void warnToComplex(CAstNode node) {
     if (logger.wouldBeLogged(Level.FINEST)) {
-      if (handleFieldAccess) {
+      if (options.handleFieldAccess()) {
         logfOnce(Level.FINEST, node,
             "Ignoring pointer aliasing because statement is too complex, please simplify");
       } else {
@@ -1424,7 +1375,7 @@ public class CtoFormulaConverter {
 
   protected ExpressionToFormulaVisitor getCExpressionVisitor(CFAEdge pEdge, String pFunction,
       SSAMapBuilder pSsa, Constraints pCo) {
-    if (lvalsAsUif) {
+    if (options.useUifForLvals()) {
       return new ExpressionToFormulaVisitorUIF(this, pEdge, pFunction, pSsa, pCo);
     } else {
       return new ExpressionToFormulaVisitor(this, pEdge, pFunction, pSsa, pCo);
@@ -1432,7 +1383,7 @@ public class CtoFormulaConverter {
   }
 
   protected LvalueVisitor getLvalueVisitor(CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa, Constraints pCo) {
-    if (lvalsAsUif) {
+    if (options.useUifForLvals()) {
       return new LvalueVisitorUIF(this, pEdge, pFunction, pSsa, pCo);
     } else {
       return new LvalueVisitor(this, pEdge, pFunction, pSsa, pCo);
@@ -1450,7 +1401,7 @@ public class CtoFormulaConverter {
    * Creates a Formula which accesses the given Field
    */
   BitvectorFormula accessField(CFieldReference fExp, Formula f) throws UnrecognizedCCodeException {
-    assert handleFieldAccess : "Fieldaccess if only allowed with handleFieldAccess";
+    assert options.handleFieldAccess() : "Fieldaccess if only allowed with handleFieldAccess";
     assert f instanceof BitvectorFormula : "Fields need to be represented with bitvectors";
     // Get the underlaying structure
     Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
@@ -1467,7 +1418,7 @@ public class CtoFormulaConverter {
    * If pRightVariable is not present, a formula that is smaller then pLVar (with the field bits missing).
    */
   Formula replaceField(CFieldReference fExp, Formula pLVar, Optional<Formula> pRightVariable) throws UnrecognizedCCodeException {
-    assert handleFieldAccess : "Fieldaccess if only allowed with handleFieldAccess";
+    assert options.handleFieldAccess() : "Fieldaccess if only allowed with handleFieldAccess";
 
     Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
 
@@ -1584,7 +1535,7 @@ public class CtoFormulaConverter {
 
     if (exp instanceof CIdExpression) {
       return true;
-    } else if (handleFieldAccess && exp instanceof CFieldReference) {
+    } else if (options.handleFieldAccess() && exp instanceof CFieldReference) {
       CFieldReference fexp = (CFieldReference)exp;
       return isSupportedExpression(getRealFieldOwner(fexp), level);
     } else if (exp instanceof CCastExpression) {

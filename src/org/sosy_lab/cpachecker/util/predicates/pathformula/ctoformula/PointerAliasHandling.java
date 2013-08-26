@@ -213,17 +213,18 @@ class PointerAliasHandling extends CtoFormulaConverter {
 
   private final TooComplexVisitor tooComplexVisitor;
 
-  PointerAliasHandling(Configuration pConfig, FormulaManagerView pFmgr,
+  PointerAliasHandling(FormulaEncodingOptions pOptions,
+      Configuration pConfig, FormulaManagerView pFmgr,
       MachineModel pMachineModel, LogManager pLogger)
       throws InvalidConfigurationException {
-    super(pConfig, pFmgr, pMachineModel, pLogger);
+    super(pOptions, pFmgr, pMachineModel, pLogger);
     pConfig.inject(this, PointerAliasHandling.class);
 
-    if (handleFieldAliasing && !handleFieldAccess) {
+    if (handleFieldAliasing && !options.handleFieldAccess()) {
       throw new InvalidConfigurationException("Enabling field-aliasing when field-access is disabled is unsupported!");
     }
 
-    this.tooComplexVisitor = new TooComplexVisitor(handleFieldAccess);
+    this.tooComplexVisitor = new TooComplexVisitor(options.handleFieldAccess());
   }
 
   @Override
@@ -357,7 +358,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
 
       if (fn instanceof CIdExpression) {
         String functionName = ((CIdExpression) fn).getName();
-        if (memoryAllocationFunctions.contains(functionName)) {
+        if (options.isMemoryAllocationFunction(functionName)) {
           return true;
         }
       }
@@ -399,7 +400,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
     Variable lPtrVarName = makePointerMask(lVarName, ssa);
     CType leftPtrType = lPtrVarName.getType();
     if (right instanceof CIdExpression ||
-        (handleFieldAccess && right instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)right))) {
+        (options.handleFieldAccess() && right instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)right))) {
       // C statement like: s1 = s2; OR s1 = s2.d;
 
       // include aliases if the left or right side may be a pointer a pointer
@@ -480,7 +481,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
       }
 
     } else if ((right instanceof CPointerExpression) ||
-               (handleFieldAccess && right instanceof CFieldReference && isIndirectFieldReference((CFieldReference)right))) {
+               (options.handleFieldAccess() && right instanceof CFieldReference && isIndirectFieldReference((CFieldReference)right))) {
       // C statement like: s1 = *s2;
       // OR s1 = *(s.b)
       // OR s1 = s->b
@@ -732,7 +733,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
     if (fn instanceof CIdExpression) {
       String fName = ((CIdExpression)fn).getName();
 
-      if (conv.memoryAllocationFunctions.contains(fName)) {
+      if (conv.options.isMemoryAllocationFunction(fName)) {
 
         CType expType = fexp.getExpressionType();
         if (!(expType instanceof CPointerType)) {
@@ -785,7 +786,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
       // *p = ...
       return handleIndirectAssignment(assignment);
 
-    } else if (conv.handleFieldAccess && left instanceof CFieldReference) {
+    } else if (conv.options.handleFieldAccess() && left instanceof CFieldReference) {
       // p->t = ...
       // p.s = ...
 
@@ -1227,7 +1228,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
   }
 
   private void warnFieldAliasing() {
-    if (conv.handleFieldAccess) {
+    if (conv.options.handleFieldAccess()) {
       conv.logger.logOnce(Level.WARNING, "You should enable handleFieldAliasing if possible.");
     }
   }

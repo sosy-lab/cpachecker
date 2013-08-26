@@ -238,7 +238,7 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
 
   @Override
   public Formula visit(CFieldReference fExp) throws UnrecognizedCCodeException {
-    if (conv.handleFieldAccess) {
+    if (conv.options.handleFieldAccess()) {
       CExpression fieldOwner = getRealFieldOwner(fExp);
       Formula f = fieldOwner.accept(this);
       return conv.accessField(fExp, f);

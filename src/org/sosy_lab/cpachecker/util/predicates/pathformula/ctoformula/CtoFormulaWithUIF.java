@@ -203,7 +203,7 @@ class LvalueVisitorUIF extends LvalueVisitor {
 
   @Override
   public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
-    if (!conv.handleFieldAccess) {
+    if (!conv.options.handleFieldAccess()) {
       String field = fexp.getFieldName();
       CExpression owner = getRealFieldOwner(fexp);
       Formula term = conv.buildTerm(owner, edge, function, ssa, constraints);

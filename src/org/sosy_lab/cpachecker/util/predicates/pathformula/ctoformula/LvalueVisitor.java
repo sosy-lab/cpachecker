@@ -89,7 +89,7 @@ class LvalueVisitor extends
 
   @Override
   public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
-    if (!conv.handleFieldAccess) {
+    if (!conv.options.handleFieldAccess()) {
       CExpression fieldRef = fexp.getFieldOwner();
       if (fieldRef instanceof CIdExpression) {
         CSimpleDeclaration decl = ((CIdExpression) fieldRef).getDeclaration();

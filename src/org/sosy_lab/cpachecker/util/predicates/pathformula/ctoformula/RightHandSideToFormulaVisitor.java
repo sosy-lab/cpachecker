@@ -80,13 +80,12 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
 
         return conv.makeFreshVariable(func, expType, ssa);
 
-      } else if (conv.nondetFunctions.contains(func)
-          || conv.nondetFunctionsPattern.matcher(func).matches()) {
+      } else if (conv.options.isNondetFunction(func)) {
         // function call like "random()"
         // ignore parameters and just create a fresh variable for it
         return conv.makeFreshVariable(func, expType, ssa);
 
-      } else if (conv.externModelFunctionName.equals(func)) {
+      } else if (conv.options.isExternModelFunction(func)) {
         assert (pexps.size()>0): "No external model given!";
         // the parameter comes in C syntax (with ")
         String filename = pexps.get(0).toASTString().replaceAll("\"", "");
