@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -832,6 +833,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     @Override
+    public Region[] visit(CComplexCastExpression exp) {
+      // TODO complex numbers are not supported for evaluation right now
+      return null;
+    }
+
+    @Override
     public Region[] visit(CIdExpression exp) {
       return makePredicate(exp);
     }
@@ -933,6 +940,13 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     @Override
     public Boolean visit(CCastExpression exp) {
+      return exp.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CComplexCastExpression exp) {
+      // TODO check if only the part of the operand should be evaluated which the
+      // expression casts to
       return exp.getOperand().accept(this);
     }
 

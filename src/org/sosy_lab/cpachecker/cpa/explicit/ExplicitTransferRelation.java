@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -681,6 +682,12 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     @Override
     public Long visit(CCastExpression pE) throws UnrecognizedCCodeException {
       return pE.getOperand().accept(this);
+    }
+
+    @Override
+    public Long visit(CComplexCastExpression pE) throws UnrecognizedCCodeException {
+      // evaluation of complex numbers is not supported by now
+      return null;
     }
 
     @Override

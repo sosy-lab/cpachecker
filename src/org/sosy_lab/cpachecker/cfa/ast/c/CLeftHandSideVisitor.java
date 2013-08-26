@@ -32,4 +32,6 @@ public interface CLeftHandSideVisitor<R, X extends Exception> {
   R visit(CIdExpression pIastIdExpression) throws X;
 
   R visit(CPointerExpression pointerExpression) throws X;
+
+  R visit(CComplexCastExpression complexCastExpression) throws X;
 }

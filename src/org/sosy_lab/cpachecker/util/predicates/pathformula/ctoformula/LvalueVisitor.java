@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -79,6 +80,15 @@ class LvalueVisitor extends
 
   @Override
   public Formula visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
+    return giveUpAndJustMakeVariable(pE);
+  }
+
+  @Override
+  public Formula visit(CComplexCastExpression pE) throws UnrecognizedCCodeException {
+    if(pE.isImaginaryCast()) {
+      throw new UnrecognizedCCodeException("Unknown lvalue", edge, pE);
+    }
+    // TODO complex numbers are not supported for evaluation right now
     return giveUpAndJustMakeVariable(pE);
   }
 

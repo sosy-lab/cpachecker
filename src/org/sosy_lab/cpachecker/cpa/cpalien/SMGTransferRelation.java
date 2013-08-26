@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -731,6 +732,17 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
+    public SMGAddress visit(CComplexCastExpression lValue) throws CPATransferException {
+      if (lValue.isImaginaryCast()) {
+        throw new UnrecognizedCCodeException(lValue.toASTString() + " is not an lValue", cfaEdge, lValue);
+      }
+
+      // TODO evaluating complex numbers is not supported by now
+
+      return SMGAddress.UNKNOWN;
+    }
+
+    @Override
     public SMGAddress visit(CIdExpression variableName) throws CPATransferException {
 
       // a = ...
@@ -1313,6 +1325,11 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
+    public Boolean visit(CComplexCastExpression exp) throws UnrecognizedCCodeException {
+      return exp.getOperand().accept(this);
+    }
+
+    @Override
     public Boolean visit(CCharLiteralExpression exp) throws UnrecognizedCCodeException {
       return !(exp.getCharacter() == 0);
     }
@@ -1883,6 +1900,12 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
+    public SMGAddress visit(CComplexCastExpression cast) throws CPATransferException {
+      // TODO evaluation Complex numbers is not supported by now
+      return SMGAddress.UNKNOWN;
+    }
+
+    @Override
     public SMGAddress visit(CFieldReference fieldReference) throws CPATransferException {
 
       SMGAddress addressOfField = getAddressOfField(smgState, cfaEdge, fieldReference);
@@ -2330,6 +2353,12 @@ public class SMGTransferRelation implements TransferRelation {
       return cast.getOperand().accept(this);
     }
 
+    @Override
+    public SMGSymbolicValue visit(CComplexCastExpression cast) throws CPATransferException {
+      // TODO evaluation complex numbers is not supported by now
+      return SMGUnknownValue.getInstance();
+    }
+
     protected SMGSymbolicValue dereferenceArray(CRightHandSide exp, CType derefType) throws CPATransferException {
 
       ArrayMemoryVisitor v = new ArrayMemoryVisitor(cfaEdge, smgState);
@@ -2604,6 +2633,12 @@ public class SMGTransferRelation implements TransferRelation {
     @Override
     public SMGExplicitValue visit(CCastExpression pE) throws CPATransferException {
       return pE.getOperand().accept(this);
+    }
+
+    @Override
+    public SMGExplicitValue visit(CComplexCastExpression pE) throws CPATransferException {
+      // TODO evaluating complex numbers is not supported by now
+      return SMGUnknownValue.getInstance();
     }
 
     @Override

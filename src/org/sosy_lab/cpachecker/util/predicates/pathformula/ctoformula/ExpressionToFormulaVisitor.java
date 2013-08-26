@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -217,6 +218,12 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     CType after = cexp.getExpressionType();
     CType before = op.getExpressionType();
     return conv.makeCast(before, after, operand);
+  }
+
+  @Override
+  public Formula visit(CComplexCastExpression exp) throws UnrecognizedCCodeException {
+    // TODO complex numbers are not supported for evaluation right now
+    return conv.makeVariableUnsafe(exp, function, ssa, false);
   }
 
   @Override

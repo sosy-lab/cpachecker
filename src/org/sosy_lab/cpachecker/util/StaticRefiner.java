@@ -304,6 +304,11 @@ abstract public class StaticRefiner {
     }
 
     @Override
+    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression pIastCastExpression) throws CPATransferException {
+      return pIastCastExpression.getOperand().accept(this);
+    }
+
+    @Override
     public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression pIastCharLiteralExpression) throws CPATransferException {
       return Lists.newArrayList();
     }

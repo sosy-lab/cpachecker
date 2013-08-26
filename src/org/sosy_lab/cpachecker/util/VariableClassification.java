@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
@@ -775,6 +776,20 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CCastExpression exp) {
+      BigInteger val = getNumber(exp.getOperand());
+      if (val == null) {
+        return exp.getOperand().accept(this);
+      } else {
+        values.add(val);
+        return null;
+      }
+    }
+
+    @Override
+    public Multimap<String, String> visit(CComplexCastExpression exp) {
+      // TODO complex numbers are not supported for evaluation right now, this
+      // way of handling the variables my be wrong
+
       BigInteger val = getNumber(exp.getOperand());
       if (val == null) {
         return exp.getOperand().accept(this);

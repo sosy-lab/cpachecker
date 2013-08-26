@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -201,6 +202,11 @@ class AutomatonASTComparator {
     @Override
     public ASTMatcher visit(CCastExpression exp) throws InvalidAutomatonException {
       return new CastExpressionMatcher(exp, exp.getOperand().accept(this));
+    }
+
+    @Override
+    public ASTMatcher visit(CComplexCastExpression exp) throws InvalidAutomatonException {
+      return new ComplexCastExpressionMatcher(exp, exp.getOperand().accept(this));
     }
 
     @Override
@@ -482,6 +488,24 @@ class AutomatonASTComparator {
     protected abstract CRightHandSide getOperandFrom(T pSource);
   }
 
+  private static abstract class OneOperandExpressionWithTwoFieldsMatcher<T extends CAstNode, F, G> extends ExpressionWithTwoFieldsMatcher<T, F, G> {
+
+    private final ASTMatcher operand;
+
+    protected OneOperandExpressionWithTwoFieldsMatcher(Class<T> pCls, T pPattern, ASTMatcher pOperand) {
+      super(pCls, pPattern);
+      operand = pOperand;
+    }
+
+    @Override
+    protected boolean matches2(T pSource, AutomatonExpressionArguments pArgs) {
+      return super.matches2(pSource, pArgs)
+          && operand.matches(getOperandFrom(pSource), pArgs);
+    }
+
+    protected abstract CRightHandSide getOperandFrom(T pSource);
+  }
+
   private static abstract class TwoOperandExpressionMatcher<T extends CAstNode, F> extends ExpressionWithFieldMatcher<T, F> {
 
     private final ASTMatcher operand1;
@@ -596,6 +620,28 @@ class AutomatonASTComparator {
 
     @Override
     protected CType getFieldValueFrom(CCastExpression pSource) {
+      return pSource.getType();
+    }
+  }
+
+  private static class ComplexCastExpressionMatcher extends OneOperandExpressionWithTwoFieldsMatcher<CComplexCastExpression, Boolean, CType> {
+
+    public ComplexCastExpressionMatcher(CComplexCastExpression pPattern, ASTMatcher pOperand) {
+      super(CComplexCastExpression.class, pPattern, pOperand);
+    }
+
+    @Override
+    protected CExpression getOperandFrom(CComplexCastExpression pSource) {
+      return pSource.getOperand();
+    }
+
+    @Override
+    protected Boolean getFieldValue1From(CComplexCastExpression pSource) {
+      return pSource.isRealCast();
+    }
+
+    @Override
+    protected CType getFieldValue2From(CComplexCastExpression pSource) {
       return pSource.getType();
     }
   }

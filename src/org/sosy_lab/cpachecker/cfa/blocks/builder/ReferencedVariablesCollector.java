@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -172,6 +173,12 @@ public class ReferencedVariablesCollector {
 
     @Override
     public Void visit(CCastExpression pE) {
+      pE.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CComplexCastExpression pE) {
       pE.getOperand().accept(this);
       return null;
     }
