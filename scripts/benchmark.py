@@ -310,7 +310,7 @@ def getBenchmarkDataForCloud(benchmark):
     timeLimit = benchmark.rlimits.get(TIMELIMIT, DEFAULT_CLOUD_TIMELIMIT)
     memLimit  = benchmark.rlimits.get(MEMLIMIT,  DEFAULT_CLOUD_MEMLIMIT)
     coreLimit = benchmark.rlimits.get(CORELIMIT, None)
-    numberOfRuns = sum(len(runSet.runs) for runSet in benchmark.runSets)
+    numberOfRuns = sum(len(runSet.runs) for runSet in benchmark.runSets if runSet.shouldBeExecuted())
     limitsAndNumRuns = [numberOfRuns, timeLimit, memLimit]
     if coreLimit is not None: limitsAndNumRuns.append(coreLimit)
     
