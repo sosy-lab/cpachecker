@@ -600,6 +600,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
     // OR s = &(x.t)
     // OR s = &(...)
 
+    right = removeCast(right);
     checkArgument(right instanceof CUnaryExpression
                   && ((CUnaryExpression) right).getOperator() == UnaryOperator.AMPER);
 
