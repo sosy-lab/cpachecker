@@ -474,7 +474,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
               lPtrVarName =
                 lPtrVarName.withType(setGuessedType(leftPtrType, currentRightGuess));
             }
-          } else {
+          } else if (currentRightGuess != null) {
             if (getSizeof(currentRightGuess) != getSizeof(currentLeftGuess)) {
               logfOnce(Level.WARNING, edge, "Second assignment of an variable that is no pointer with different size");
             }
