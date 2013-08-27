@@ -351,26 +351,13 @@ class PointerAliasHandling extends CtoFormulaConverter {
   private boolean isMemoryLocation(CExpression exp) {
     exp = removeCast(exp);
 
-    // memory allocating function?
-    if (exp instanceof CFunctionCall) {
-      CExpression fn =
-          ((CFunctionCall) exp).getFunctionCallExpression().getFunctionNameExpression();
-
-      if (fn instanceof CIdExpression) {
-        String functionName = ((CIdExpression) fn).getName();
-        if (options.isMemoryAllocationFunction(functionName)) {
-          return true;
-        }
-      }
-
     // explicit heap/stack address?
-    } else if (exp instanceof CUnaryExpression
+    if (exp instanceof CUnaryExpression
         && ((CUnaryExpression) exp).getOperator() == UnaryOperator.AMPER) {
       return true;
     } else if (exp instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)exp)) {
       return isMemoryLocation(((CFieldReference)exp).getFieldOwner());
     }
-
 
     return false;
   }
@@ -621,13 +608,14 @@ class PointerAliasHandling extends CtoFormulaConverter {
 
         return makeNondetAssignment(lPtrVar, rVar);
       }
+
     } else if (right instanceof CFieldReference) {
-      // Weird Case
       logfOnce(Level.WARNING, edge, "Address of field %s is taken and cannot be handled", right.toASTString());
+
+    } else {
+      throw new IllegalArgumentException(right.toASTString() + " is not a memory location.");
     }
 
-    // s = malloc()
-    // has been handled already
     return bfmgr.makeBoolean(true);
   }
 
