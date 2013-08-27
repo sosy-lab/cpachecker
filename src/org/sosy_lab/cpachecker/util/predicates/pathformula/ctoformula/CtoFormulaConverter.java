@@ -789,6 +789,13 @@ public class CtoFormulaConverter {
     pT1 = pT1.getCanonicalType();
     pT2 = pT2.getCanonicalType();
 
+    if (pT1 instanceof CEnumType) {
+      pT1 = CNumericTypes.INT;
+    }
+    if (pT2 instanceof CEnumType) {
+      pT2 = CNumericTypes.INT;
+    }
+
     // UNDEFINED: What should happen when we have two pointer?
     // For example when two pointers get multiplied or added
     // This is always weird.
