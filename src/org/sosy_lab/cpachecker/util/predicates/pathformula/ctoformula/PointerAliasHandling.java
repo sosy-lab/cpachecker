@@ -395,86 +395,19 @@ class PointerAliasHandling extends CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     }
 
-    Formula lVar = makeVariable(lVarName, ssa);
+    // Now identify the several different cases where we need aliasing predicates
+    // and handle them.
 
     Variable lPtrVarName = makePointerMask(lVarName, ssa);
-    CType leftPtrType = lPtrVarName.getType();
     if (right instanceof CIdExpression ||
         (options.handleFieldAccess() && right instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)right))) {
       // C statement like: s1 = s2; OR s1 = s2.d;
 
       // include aliases if the left or right side may be a pointer a pointer
-      // Assume no pointers affected if unrepresentable values are assigned
       Variable rightVar = scopedIfNecessary(right, ssa, function);
-      if ((maybePointer(lVarName, ssa) || maybePointer(rightVar, ssa)) &&
-          hasRepresentableDereference(right)) {
-        // we assume that either the left or the right hand side is a pointer
-        // so we add the equality: *l = *r
-        Variable rPtrVarName = makePointerMask(rightVar, ssa);
-
-        boolean leftT, rightT;
-        if ((leftT = isDereferenceType(leftPtrType)) |
-            (rightT = isDereferenceType(rPtrVarName.getType()))) {
-          // One of those types is no pointer so try to guess dereferenced type.
-
-          if (leftT) {
-            if (rightT) {
-              // Right is actually no pointer but was used as pointer before, so we can use its type.
-              CType currentLeftGuess = getGuessedType(leftPtrType);
-              CType currentRightGuess = getGuessedType(rPtrVarName.getType());
-              if (currentLeftGuess == null) {
-                if (currentRightGuess != null) {
-                  lPtrVarName =
-                    lPtrVarName.withType(setGuessedType(leftPtrType, currentRightGuess));
-                }
-              } else {
-                if (getSizeof(currentRightGuess) != getSizeof(currentLeftGuess)) {
-                  logfOnce(Level.WARNING, edge, "Second assignment of an variable that is no pointer with different size");
-                }
-              }
-
-            } else {
-              // OK left is no pointer, but right is, for example:
-              // l = r; // l is unsigned int and r is *long
-              // now we assign *l to the type of *r if *l was not assigned before
-              CType currentGuess = getGuessedType(leftPtrType);
-              if (currentGuess == null) {
-                lPtrVarName =
-                    lPtrVarName.withType(setGuessedType(leftPtrType, rPtrVarName.getType()));
-              } else {
-                if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
-                  logfOnce(Level.WARNING, edge, "Second assignment of an variable that is no pointer with different size");
-                }
-              }
-            }
-          } else {
-            assert rightT : "left and right side are no pointers, however maybePointer was true for one side!";
-            // OK right is no pointer, but left is, for example:
-            // l = r; // l is unsigned long* and r is unsigned int
-
-            // r was probably assigned with a pointer before and should have a size
-            if (!(right.getExpressionType() instanceof CFunctionType)) {
-              // ignore function pointer assignments
-              CType currentGuess = getGuessedType(rPtrVarName.getType());
-              if (currentGuess == null) {
-                // TODO: This currently happens when assigning a function to a function pointer.
-                // NOTE: Should we set the size of r in this case?
-                logfOnce(Level.WARNING, edge,
-                    "Pointer %s is assigned the value of variable %s which contains a non-pointer value", lVarName.getName(), right.toASTString());
-              } else {
-                if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
-                  logfOnce(Level.WARNING, edge,
-                      "Pointer %s is assigned the value of variable %s which contains a pointer to a different type", lVarName.getName(), right.toASTString());
-                }
-              }
-            }
-          }
-        }
-
-        Formula lPtrVar = makeVariable(lPtrVarName, ssa);
-        Formula rPtrVar = makeVariable(rPtrVarName, ssa);
-
-        return makeNondetAssignment(lPtrVar, rPtrVar);
+      if (maybePointer(lVarName, ssa) || maybePointer(rightVar, ssa)) {
+        return handlePointerToPointerAssignment(lVarName, lPtrVarName,
+            right, rightVar, ssa, edge);
       } else {
         // we can assume, that no pointers are affected in this assignment
         return bfmgr.makeBoolean(true);
@@ -486,102 +419,14 @@ class PointerAliasHandling extends CtoFormulaConverter {
       // OR s1 = *(s.b)
       // OR s1 = s->b
 
-      if (isDereferenceType(leftPtrType)) {
-        // We have an assignment to a non-pointer type
-        CType guess = getGuessedType(leftPtrType);
-        if (guess == null) {
-          // We have to guess the size of the dereferenced type here
-          // but there is no good guess.
-          // TODO: if right side is a **(pointer of a pointer) type use it.
-        }
-      }
-
-      makeFreshIndex(lPtrVarName.getName(), lPtrVarName.getType(), ssa);
-      removeOldPointerVariablesFromSsaMap(lPtrVarName.getName(), ssa);
-
-      Formula lPtrVar = makeVariable(lPtrVarName, ssa);
-
-      if (!(isSupportedExpression(right)) ||
-          !(hasRepresentableDereference(right))) {
-        // these are statements like s1 = *(s2->f)
-        warnToComplex(right);
-        return bfmgr.makeBoolean(true);
-      }
-
-      Variable rPtrVarName = scopedIfNecessary(right, ssa, function);
-      Formula rPtrVar = makeVariable(rPtrVarName, ssa);
-      //Formula rPtrVar = makePointerVariable(rRawExpr, function, ssa);
-
-      // the dealiased address of the right hand side may be a pointer itself.
-      // to ensure tracking, we need to set the left side
-      // equal to the dealiased right side or update the pointer
-      // r is the right hand side variable, l is the left hand side variable
-      // ∀p ∈ maybePointer: (p = *r) ⇒ (l = p ∧ *l = *p)
-      // Note: l = *r holds because of current statement
-      for (final Map.Entry<String, CType> ptrVarName : getAllPointerVariablesFromSsaMap(ssa)) {
-        Variable varName = removePointerMaskVariable(ptrVarName.getKey(), ptrVarName.getValue());
-
-        if (!varName.equals(lVarName)) {
-
-          Formula var = makeVariable(varName, ssa);
-          Formula ptrVar = makeVariable(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
-
-          // p = *r. p is a pointer but *r can be anything
-          BooleanFormula ptr = makeNondetAssignment(rPtrVar, var);
-          // l = p. p is a pointer but l can be anything.
-          BooleanFormula dirEq = makeNondetAssignment(lVar, var);
-
-          // *l = *p. Both can be anything.
-          BooleanFormula indirEq =
-              makeNondetAssignment(lPtrVar, ptrVar);
-
-          BooleanFormula consequence = bfmgr.and(dirEq, indirEq);
-          BooleanFormula constraint = bfmgr.implication(ptr, consequence);
-          constraints.addConstraint(constraint);
-        }
-      }
-
-      // no need to add a second level assignment
-      return bfmgr.makeBoolean(true);
+      return handleDereferenceAssignment(lVarName, lPtrVarName, right,
+          function, constraints, ssa);
 
     } else if (isMemoryLocation(right)) {
       // s = &x
       // OR s = (&x).t
-      // need to update the pointer on the left hand side
-      if (right instanceof CUnaryExpression
-          && ((CUnaryExpression) right).getOperator() == UnaryOperator.AMPER) {
-
-        CExpression rOperand =
-            removeCast(((CUnaryExpression) right).getOperand());
-        if (rOperand instanceof CIdExpression &&
-            hasRepresentableDereference(lVarName)) {
-          Variable rVarName = scopedIfNecessary(rOperand, ssa, function);
-          Formula rVar = makeVariable(rVarName, ssa);
-
-          if (isDereferenceType(leftPtrType)) {
-            // s is no pointer and if *s was not guessed jet we can use the type of x.
-            CType guess = getGuessedType(leftPtrType);
-            if (guess == null) {
-              lPtrVarName =
-                  lPtrVarName.withType(setGuessedType(leftPtrType, rOperand.getExpressionType()));
-            } else {
-              if (getSizeof(guess) != getSizeof(rOperand.getExpressionType())) {
-                logfOnce(Level.WARNING, edge, "Size of an old guess doesn't match with the current guess for variable %s", lPtrVarName.getName());
-              }
-            }
-          }
-          Formula lPtrVar = makeVariable(lPtrVarName, ssa);
-
-          return makeNondetAssignment(lPtrVar, rVar);
-        }
-      } else if (right instanceof CFieldReference) {
-        // Weird Case
-        logfOnce(Level.WARNING, edge, "Address of field %s is taken and cannot be handled", right.toASTString());
-      }
-
-      // s = malloc()
-      // has been handled already
-      return bfmgr.makeBoolean(true);
+      return handleAssignmentOfMemoryLocation(lVarName, lPtrVarName, right,
+          function, ssa, edge);
 
     } else {
       // s = someFunction()
@@ -591,6 +436,199 @@ class PointerAliasHandling extends CtoFormulaConverter {
       // no second level assignment necessary
       return bfmgr.makeBoolean(true);
     }
+  }
+
+  private BooleanFormula handlePointerToPointerAssignment(
+      Variable lVarName, Variable lPtrVarName,
+      CExpression right, Variable rightVar,
+      SSAMapBuilder ssa, CFAEdge edge) {
+    // C statement like: s1 = s2; OR s1 = s2.d;
+    // We assume that either the left or the right hand side is a pointer
+    // so we add the equality: *l = *r
+
+    if (!hasRepresentableDereference(right)) {
+      // Assume no pointers affected if unrepresentable values are assigned
+      return bfmgr.makeBoolean(true);
+    }
+
+    CType leftPtrType = lPtrVarName.getType();
+    Variable rPtrVarName = makePointerMask(rightVar, ssa);
+
+    boolean leftT, rightT;
+    if ((leftT = isDereferenceType(leftPtrType)) |
+        (rightT = isDereferenceType(rPtrVarName.getType()))) {
+      // One of those types is no pointer so try to guess dereferenced type.
+
+      if (leftT) {
+        if (rightT) {
+          // Right is actually no pointer but was used as pointer before, so we can use its type.
+          CType currentLeftGuess = getGuessedType(leftPtrType);
+          CType currentRightGuess = getGuessedType(rPtrVarName.getType());
+          if (currentLeftGuess == null) {
+            if (currentRightGuess != null) {
+              lPtrVarName =
+                lPtrVarName.withType(setGuessedType(leftPtrType, currentRightGuess));
+            }
+          } else {
+            if (getSizeof(currentRightGuess) != getSizeof(currentLeftGuess)) {
+              logfOnce(Level.WARNING, edge, "Second assignment of an variable that is no pointer with different size");
+            }
+          }
+
+        } else {
+          // OK left is no pointer, but right is, for example:
+          // l = r; // l is unsigned int and r is *long
+          // now we assign *l to the type of *r if *l was not assigned before
+          CType currentGuess = getGuessedType(leftPtrType);
+          if (currentGuess == null) {
+            lPtrVarName =
+                lPtrVarName.withType(setGuessedType(leftPtrType, rPtrVarName.getType()));
+          } else {
+            if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
+              logfOnce(Level.WARNING, edge, "Second assignment of an variable that is no pointer with different size");
+            }
+          }
+        }
+      } else {
+        assert rightT : "left and right side are no pointers, however maybePointer was true for one side!";
+        // OK right is no pointer, but left is, for example:
+        // l = r; // l is unsigned long* and r is unsigned int
+
+        // r was probably assigned with a pointer before and should have a size
+        if (!(right.getExpressionType() instanceof CFunctionType)) {
+          // ignore function pointer assignments
+          CType currentGuess = getGuessedType(rPtrVarName.getType());
+          if (currentGuess == null) {
+            // TODO: This currently happens when assigning a function to a function pointer.
+            // NOTE: Should we set the size of r in this case?
+            logfOnce(Level.WARNING, edge,
+                "Pointer %s is assigned the value of variable %s which contains a non-pointer value", lVarName.getName(), right.toASTString());
+          } else {
+            if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
+              logfOnce(Level.WARNING, edge,
+                  "Pointer %s is assigned the value of variable %s which contains a pointer to a different type", lVarName.getName(), right.toASTString());
+            }
+          }
+        }
+      }
+    }
+
+    Formula lPtrVar = makeVariable(lPtrVarName, ssa);
+    Formula rPtrVar = makeVariable(rPtrVarName, ssa);
+
+    return makeNondetAssignment(lPtrVar, rPtrVar);
+  }
+
+  private BooleanFormula handleDereferenceAssignment(
+      Variable lVarName, Variable lPtrVarName, CExpression right,
+      String function, Constraints constraints, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
+    // Assignment with dereference on right:
+    // s1 = *s2;
+    // OR s1 = *(s.b)
+    // OR s1 = s->b
+
+    CType leftPtrType = lPtrVarName.getType();
+    if (isDereferenceType(leftPtrType)) {
+      // We have an assignment to a non-pointer type
+      CType guess = getGuessedType(leftPtrType);
+      if (guess == null) {
+        // We have to guess the size of the dereferenced type here
+        // but there is no good guess.
+        // TODO: if right side is a **(pointer of a pointer) type use it.
+      }
+    }
+
+    makeFreshIndex(lPtrVarName.getName(), lPtrVarName.getType(), ssa);
+    removeOldPointerVariablesFromSsaMap(lPtrVarName.getName(), ssa);
+
+    Formula lPtrVar = makeVariable(lPtrVarName, ssa);
+
+    if (!(isSupportedExpression(right)) ||
+        !(hasRepresentableDereference(right))) {
+      // these are statements like s1 = *(s2->f)
+      warnToComplex(right);
+      return bfmgr.makeBoolean(true);
+    }
+
+    Formula lVar = makeVariable(lVarName, ssa);
+    Variable rPtrVarName = scopedIfNecessary(right, ssa, function);
+    Formula rPtrVar = makeVariable(rPtrVarName, ssa);
+    //Formula rPtrVar = makePointerVariable(rRawExpr, function, ssa);
+
+    // the dealiased address of the right hand side may be a pointer itself.
+    // to ensure tracking, we need to set the left side
+    // equal to the dealiased right side or update the pointer
+    // r is the right hand side variable, l is the left hand side variable
+    // ∀p ∈ maybePointer: (p = *r) ⇒ (l = p ∧ *l = *p)
+    // Note: l = *r holds because of current statement
+    for (final Map.Entry<String, CType> ptrVarName : getAllPointerVariablesFromSsaMap(ssa)) {
+      Variable varName = removePointerMaskVariable(ptrVarName.getKey(), ptrVarName.getValue());
+
+      if (!varName.equals(lVarName)) {
+
+        Formula var = makeVariable(varName, ssa);
+        Formula ptrVar = makeVariable(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
+
+        // p = *r. p is a pointer but *r can be anything
+        BooleanFormula ptr = makeNondetAssignment(rPtrVar, var);
+        // l = p. p is a pointer but l can be anything.
+        BooleanFormula dirEq = makeNondetAssignment(lVar, var);
+
+        // *l = *p. Both can be anything.
+        BooleanFormula indirEq =
+            makeNondetAssignment(lPtrVar, ptrVar);
+
+        BooleanFormula consequence = bfmgr.and(dirEq, indirEq);
+        BooleanFormula constraint = bfmgr.implication(ptr, consequence);
+        constraints.addConstraint(constraint);
+      }
+    }
+
+    // no need to add a second level assignment
+    return bfmgr.makeBoolean(true);
+  }
+
+  private BooleanFormula handleAssignmentOfMemoryLocation(
+      Variable lVarName, Variable lPtrVarName, CExpression right,
+      String function, SSAMapBuilder ssa, CFAEdge edge) throws UnrecognizedCCodeException {
+    // s = &x
+    // OR s = (&x).t
+
+    if (right instanceof CUnaryExpression
+        && ((CUnaryExpression) right).getOperator() == UnaryOperator.AMPER) {
+
+      CExpression rOperand =
+          removeCast(((CUnaryExpression) right).getOperand());
+      if (rOperand instanceof CIdExpression &&
+          hasRepresentableDereference(lVarName)) {
+        CType leftPtrType = lPtrVarName.getType();
+        Variable rVarName = scopedIfNecessary(rOperand, ssa, function);
+        Formula rVar = makeVariable(rVarName, ssa);
+
+        if (isDereferenceType(leftPtrType)) {
+          // s is no pointer and if *s was not guessed jet we can use the type of x.
+          CType guess = getGuessedType(leftPtrType);
+          if (guess == null) {
+            lPtrVarName =
+                lPtrVarName.withType(setGuessedType(leftPtrType, rOperand.getExpressionType()));
+          } else {
+            if (getSizeof(guess) != getSizeof(rOperand.getExpressionType())) {
+              logfOnce(Level.WARNING, edge, "Size of an old guess doesn't match with the current guess for variable %s", lPtrVarName.getName());
+            }
+          }
+        }
+        Formula lPtrVar = makeVariable(lPtrVarName, ssa);
+
+        return makeNondetAssignment(lPtrVar, rVar);
+      }
+    } else if (right instanceof CFieldReference) {
+      // Weird Case
+      logfOnce(Level.WARNING, edge, "Address of field %s is taken and cannot be handled", right.toASTString());
+    }
+
+    // s = malloc()
+    // has been handled already
+    return bfmgr.makeBoolean(true);
   }
 
   private BooleanFormula buildDirectReturnSecondLevelAssignment(CExpression leftId,
