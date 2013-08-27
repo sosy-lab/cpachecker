@@ -47,6 +47,11 @@ class FormulaEncodingOptions {
   @Option(description = "Handle field access via extract and concat instead of new variables.")
   private boolean handleFieldAccess = false;
 
+  @Option(description = "Handle pointer aliasing for pointers with unknown values "
+      + "(coming from uninitialized variables or external function calls). "
+      + "This is slow and provides little benefit.")
+  private boolean handleNondetPointerAliasing = false;
+
   // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
   // use variables
   @Option(name="lvalsAsUIFs",
@@ -91,6 +96,10 @@ class FormulaEncodingOptions {
 
   public boolean handleFieldAccess() {
     return handleFieldAccess;
+  }
+
+  public boolean handleNondetPointerAliasing() {
+    return handleNondetPointerAliasing;
   }
 
   public boolean useUifForLvals() {

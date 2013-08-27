@@ -51,7 +51,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -258,6 +260,28 @@ class PointerAliasHandling extends CtoFormulaConverter {
         Variable.create(pLeftName, pLeftType), pRightHandSide, function, constraints, ssa, edge);
 
     return bfmgr.and(assignment, secondLevelAssignment);
+  }
+
+  @Override
+  protected BooleanFormula makeDeclaration(CDeclarationEdge pEdge, String pFunction, SSAMapBuilder pSsa,
+      Constraints pConstraints) throws CPATransferException {
+
+    BooleanFormula result = super.makeDeclaration(pEdge, pFunction, pSsa, pConstraints);
+
+    if (!(pEdge.getDeclaration() instanceof CVariableDeclaration)) {
+      return result;
+    }
+    CVariableDeclaration decl = (CVariableDeclaration)pEdge.getDeclaration();
+
+    if (decl.getInitializer() == null && isPointerType(decl.getType().getCanonicalType())) {
+
+      // this is an uninitialized pointer
+      // create aliasing terms
+      Variable var = Variable.create(decl.getQualifiedName(), decl.getType());
+      buildDirectNondetSecondLevelAssignment(var, pConstraints, pSsa);
+    }
+
+    return result;
   }
 
   @Override
@@ -632,6 +656,43 @@ class PointerAliasHandling extends CtoFormulaConverter {
     }
 
     return bfmgr.makeBoolean(true);
+  }
+
+  /**
+   * Handle the case where a pointer gets a non-deterministic value.
+   * Build a formula for the form
+   * ∀p ∈ maybePointer: (l = p) ⇒ (*l = *p)
+   */
+  void buildDirectNondetSecondLevelAssignment(Variable lVarName,
+      Constraints constraints, SSAMapBuilder ssa) {
+
+    if (!options.handleNondetPointerAliasing()) {
+      return;
+    }
+
+    if (!hasRepresentableDereference(lVarName)) {
+      // The left side is a type that should not be dereferenced, so no 2nd level assignment
+      return;
+    }
+
+    Formula lVar = makeVariable(lVarName, ssa);
+    Variable lPtrVarName = makePointerMask(lVarName, ssa);
+    Formula lPtrVar = makeVariable(lPtrVarName, ssa);
+
+    for (final Map.Entry<String, CType> ptrVarName : getAllPointerVariablesFromSsaMap(ssa)) {
+      Variable varName = removePointerMaskVariable(ptrVarName.getKey(), ptrVarName.getValue());
+
+      if (!varName.equals(lVarName)) {
+        Formula var = makeVariable(varName, ssa);
+        Formula ptrVar = makeVariable(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
+
+        BooleanFormula dirEq = makeNondetAssignment(lVar, var);
+        BooleanFormula indirEq = makeNondetAssignment(lPtrVar, ptrVar);
+
+        BooleanFormula constraint = bfmgr.implication(dirEq, indirEq);
+        constraints.addConstraint(constraint);
+      }
+    }
   }
 
   private boolean isTooComplexExpression(CExpression c) {
@@ -1151,14 +1212,19 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
     Formula leftVariable = assignmentFormulas.getSecond();
     BooleanFormula assignmentFormula = assignmentFormulas.getThird();
 
-    // assignment (second level) *p = *t if necessary
     // if right hand side is a function call, there is no aliasing
+    Variable lVarName = conv.scopedIfNecessary(lExpr, ssa, function);
     if (right instanceof CExpression) {
-      Variable lVarName = conv.scopedIfNecessary(lExpr, ssa, function);
+      // assignment (second level) *p = *t
       BooleanFormula secondLevelFormula = conv.buildDirectSecondLevelAssignment(
           lVarName, (CExpression)right, function, constraints, ssa, edge);
 
       assignmentFormula = conv.bfmgr.and(assignmentFormula, secondLevelFormula);
+
+    } else {
+      // external function call, p has an arbitrary value
+      // update the aliasing to the existing pointers
+      conv.buildDirectNondetSecondLevelAssignment(lVarName, constraints, ssa);
     }
 
     updatePointerAliasedTo(leftVarName, leftVariable);

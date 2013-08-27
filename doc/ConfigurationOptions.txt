@@ -714,6 +714,11 @@ cpa.predicate.handleFieldAccess = false
 # Handle field aliasing formulas.
 cpa.predicate.handleFieldAliasing = false
 
+# Handle pointer aliasing for pointers with unknown values (coming from
+# uninitialized variables or external function calls). This is slow and
+# provides little benefit.
+cpa.predicate.handleNondetPointerAliasing = false
+
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true

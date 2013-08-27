@@ -1092,7 +1092,7 @@ public class CtoFormulaConverter {
     }
   }
 
-  private BooleanFormula makeDeclaration(
+  protected BooleanFormula makeDeclaration(
       CDeclarationEdge edge, String function, SSAMapBuilder ssa,
       Constraints constraints) throws CPATransferException {
 
