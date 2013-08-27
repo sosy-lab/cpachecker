@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
@@ -53,6 +54,8 @@ class FunctionScope implements Scope {
 
   private final ImmutableMap<String, CFunctionDeclaration> functions;
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
+  private final Deque<Map<String, CVariableDeclaration>> labelsStack = new ArrayDeque<>();
+  private final Deque<Map<String, CLabelNode>> labelsNodeStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
 
@@ -89,6 +92,8 @@ class FunctionScope implements Scope {
 
   public void enterBlock() {
     typesStack.addLast(new HashMap<String, CComplexTypeDeclaration>());
+    labelsStack.addLast(new HashMap<String, CVariableDeclaration>());
+    labelsNodeStack.addLast(new HashMap<String, CLabelNode>());
     varsStack.addLast(new HashMap<String, CSimpleDeclaration>());
     varsList.addLast(varsStack.getLast());
   }
@@ -97,6 +102,8 @@ class FunctionScope implements Scope {
     checkState(varsStack.size() > 2);
     varsStack.removeLast();
     typesStack.removeLast();
+    labelsStack.removeLast();
+    labelsNodeStack.removeLast();
   }
 
   @Override
@@ -203,6 +210,51 @@ class FunctionScope implements Scope {
 
     typesStack.peekLast().put(typeName, declaration);
     return true;
+  }
+
+
+  public CVariableDeclaration lookupLocalLabel(String name) {
+    checkNotNull(name);
+
+    Iterator<Map<String, CVariableDeclaration>> it = labelsStack.descendingIterator();
+    while (it.hasNext()) {
+      Map<String, CVariableDeclaration> labels = it.next();
+
+      CVariableDeclaration label = labels.get(name);
+      if (label != null) {
+        return label;
+      }
+    }
+    return null;
+  }
+
+  public void registerLocalLabel(CVariableDeclaration label) {
+    checkNotNull(label.getName());
+
+    String labelName = label.getOrigName();
+
+    if(lookupLocalLabel(labelName) != null) {
+      throw new CFAGenerationRuntimeException("Label " + labelName + " already in use");
+    }
+
+    labelsStack.peekLast().put(labelName, label);
+  }
+
+  public void addLabelCFANode(CLabelNode node) {
+    labelsNodeStack.peekLast().put(node.getLabel(), node);
+  }
+
+  public CLabelNode lookupLocalLabelNode(String name) {
+    Iterator<Map<String, CLabelNode>> it = labelsNodeStack.descendingIterator();
+    while(it.hasNext()) {
+      Map<String, CLabelNode> nodes = it.next();
+
+      CLabelNode node = nodes.get(name);
+      if (node != null) {
+        return node;
+      }
+    }
+    return null;
   }
 
   public String getCurrentFunctionName() {

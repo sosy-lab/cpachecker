@@ -118,6 +118,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -291,6 +292,24 @@ class CFAFunctionBuilder extends ASTVisitor {
         CInitializer init = ((CVariableDeclaration) newD).getInitializer();
         if (init != null) {
           init.accept(checkBinding);
+
+          // this case has to be extra, as there should never be an initializer for labels
+        } else if (((CVariableDeclaration)newD).getType() instanceof CTypedefType
+                   && ((CTypedefType)((CVariableDeclaration)newD).getType()).getName().equals("__label__")) {
+          if (labelMap.containsKey(newD.getName())) {
+            throw new CFAGenerationRuntimeException("Global label " + newD.getName() + " cannot be redeclared as local label", newD);
+          }
+          scope.registerLocalLabel((CVariableDeclaration)newD);
+          CFANode nextNode = newCFANode(filelocStart);
+          BlankEdge blankEdge = new BlankEdge(sd.getRawSignature(),
+              filelocStart, prevNode, nextNode, "Local Label Declaration: " + newD.getName());
+          addToCFA(blankEdge);
+
+          prevNode = nextNode;
+          prevNode = createEdgesForSideEffects(prevNode, astCreator.getAndResetPostSideAssignments(), rawSignature, filelocStart);
+
+          return prevNode;
+
         } else if (initializeAllVariables) {
           CInitializer initializer = CDefaults.forType(newD.getType(), newD.getFileLocation());
           newD = new CVariableDeclaration(newD.getFileLocation(),
@@ -598,11 +617,22 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode prevNode = locStack.pop();
 
+    CVariableDeclaration localLabel = scope.lookupLocalLabel(labelName);
+    if(localLabel != null) {
+      labelName = localLabel.getName();
+    }
+
     CLabelNode labelNode = new CLabelNode(fileloc.getStartingLineNumber(),
         cfa.getFunctionName(), labelName);
     cfaNodes.add(labelNode);
     locStack.push(labelNode);
-    labelMap.put(labelName, labelNode);
+
+    if(localLabel == null) {
+      labelMap.put(labelName, labelNode);
+    } else {
+      scope.addLabelCFANode(labelNode);
+    }
+
 
     if (isReachableNode(prevNode)) {
       BlankEdge blankEdge = new BlankEdge(labelStatement.getRawSignature(),
@@ -630,6 +660,16 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode prevNode = locStack.pop();
     CFANode labelNode = labelMap.get(labelName);
+
+    // check if label is local label
+    if (labelNode == null) {
+      CVariableDeclaration localLabel = scope.lookupLocalLabel(labelName);
+      if (localLabel != null) {
+        labelName = localLabel.getName();
+        labelNode = scope.lookupLocalLabelNode(labelName);
+      }
+    }
+
     if (labelNode != null) {
       BlankEdge gotoEdge = new BlankEdge(gotoStatement.getRawSignature(),
           fileloc.getStartingLineNumber(), prevNode, labelNode, "Goto: " + labelName);
