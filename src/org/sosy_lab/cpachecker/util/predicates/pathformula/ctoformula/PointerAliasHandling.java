@@ -282,8 +282,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
       CLeftHandSide left = exp.getLeftHandSide();
 
-      if (left instanceof CIdExpression ||
-          (options.handleFieldAccess() && left instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)left))) {
+      if (isSimpleVariable(left)) {
         // a = foo();
         // s.f = foo();
         // Include aliases if the left or right side may be a pointer a pointer.
@@ -364,6 +363,25 @@ class PointerAliasHandling extends CtoFormulaConverter {
     return name;
   }
 
+  /**
+   * Check whether the given expression is for a simple variable or a field.
+   */
+  boolean isSimpleVariable(CExpression e) {
+    // TODO what to do with cases like (*p).f.g?
+    return e instanceof CIdExpression ||
+        (options.handleFieldAccess() && e instanceof CFieldReference
+                                     && !isIndirectFieldReference((CFieldReference)e));
+  }
+
+  /**
+   * Check whether there is some pointer dereference involved in the expression.
+   */
+  boolean isPointerDereference(CExpression e) {
+    return e instanceof CPointerExpression ||
+         (options.handleFieldAccess() && e instanceof CFieldReference
+                                      && isIndirectFieldReference((CFieldReference)e));
+  }
+
   private boolean isMemoryLocation(CExpression exp) {
     exp = removeCast(exp);
 
@@ -402,8 +420,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
     // and handle them.
 
     Variable lPtrVarName = makePointerMask(lVarName, ssa);
-    if (right instanceof CIdExpression ||
-        (options.handleFieldAccess() && right instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)right))) {
+    if (isSimpleVariable(right)) {
       // C statement like: s1 = s2; OR s1 = s2.d;
 
       // include aliases if the left or right side may be a pointer a pointer
@@ -416,8 +433,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
         return bfmgr.makeBoolean(true);
       }
 
-    } else if ((right instanceof CPointerExpression) ||
-               (options.handleFieldAccess() && right instanceof CFieldReference && isIndirectFieldReference((CFieldReference)right))) {
+    } else if (isPointerDereference(right)) {
       // C statement like: s1 = *s2;
       // OR s1 = *(s.b)
       // OR s1 = s->b
@@ -792,27 +808,16 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
       throws UnrecognizedCCodeException {
     CLeftHandSide left = assignment.getLeftHandSide();
 
-    if (left instanceof CIdExpression) {
-      // p = ...
-      return handleDirectAssignment(assignment);
+    if (conv.isSupportedExpression(left)) {
+      if (conv.isSimpleVariable(left)) {
+        // p = ...
+        // p.s = ...
+        return handleDirectAssignment(assignment);
 
-    } else if (left instanceof CPointerExpression) {
-      // *p = ...
-      return handleIndirectAssignment(assignment);
-
-    } else if (conv.options.handleFieldAccess() && left instanceof CFieldReference) {
-      // p->t = ...
-      // p.s = ...
-
-      CFieldReference fieldRef = (CFieldReference)left;
-      if (conv.isSupportedExpression(left)) {
-        if (!isIndirectFieldReference(fieldRef)) {
-          // p.s = ... which we handle quite similar to the p = ... case
-          return handleDirectAssignment(assignment);
-        } else {
-          // p->s = ... which we handle quite similar to the *p = ... case
-          return handleIndirectAssignment(assignment);
-        }
+      } else if (conv.isPointerDereference(left)) {
+        // *p = ...
+        // p->s = ...
+        return handleIndirectAssignment(assignment);
       }
     }
 
@@ -829,7 +834,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
       throws UnrecognizedCCodeException {
     CLeftHandSide lExpr = pAssignment.getLeftHandSide();
 
-    assert (lExpr instanceof CPointerExpression || (lExpr instanceof CFieldReference && isIndirectFieldReference((CFieldReference)lExpr)))
+    assert conv.isPointerDereference(lExpr)
         : "Unsupported leftHandSide in Indirect Assignment";
 
 
@@ -1150,8 +1155,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
   private BooleanFormula handleDirectAssignment(CAssignment assignment)
       throws UnrecognizedCCodeException {
     CLeftHandSide lExpr = assignment.getLeftHandSide();
-    assert (lExpr instanceof CIdExpression
-        || (lExpr instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)lExpr)))
+    assert conv.isSimpleVariable(lExpr)
         : "We currently can't handle too complex lefthandside-Expressions";
 
     CRightHandSide right = CtoFormulaConverter.removeCast(assignment.getRightHandSide());

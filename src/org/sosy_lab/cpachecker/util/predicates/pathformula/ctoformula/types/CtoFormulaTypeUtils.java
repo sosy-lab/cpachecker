@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -128,15 +127,8 @@ public class CtoFormulaTypeUtils {
   }
 
   public static boolean isIndirectFieldReference(CFieldReference fexp) {
-    if (fexp.isPointerDereference()) {
-      return true;
-    }
-
-    if (fexp.getFieldOwner() instanceof CUnaryExpression || fexp.getFieldOwner() instanceof CPointerExpression) {
-      return true;
-    }
-
-    return false;
+    return fexp.isPointerDereference()
+        || fexp.getFieldOwner() instanceof CPointerExpression;
   }
 
   public static CType makePointerType(CType pType) {
