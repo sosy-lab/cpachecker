@@ -80,9 +80,11 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
 
         return conv.makeFreshVariable(func, expType, ssa);
 
-      } else if (conv.options.isNondetFunction(func)) {
-        // function call like "random()"
-        // ignore parameters and just create a fresh variable for it
+      } else if (conv.options.isNondetFunction(func)
+          || conv.options.isMemoryAllocationFunction(func)) {
+        // Function call like "random()".
+        // Also "malloc()" etc. just return a random value, so handle them similarly.
+        // Ignore parameters and just create a fresh variable for it.
         return conv.makeFreshVariable(func, expType, ssa);
 
       } else if (conv.options.isExternModelFunction(func)) {

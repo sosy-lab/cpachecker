@@ -745,8 +745,7 @@ cpa.predicate.mathsat5.furtherOptions = ""
 cpa.predicate.mathsat5.logAllQueries = false
 cpa.predicate.mathsat5.logfile = "mathsat5.%d.smt2"
 
-# list of functions that provide new memory on the heap. This is only used,
-# when handling of pointers is enabled.
+# Set of functions that provide new memory on the heap.
 cpa.predicate.memoryAllocationFunctions = {
       "malloc", "__kmalloc", "kzalloc"
       }
@@ -755,15 +754,13 @@ cpa.predicate.memoryAllocationFunctions = {
 cpa.predicate.merge = "ABE"
   allowed values: [SEP, ABE]
 
-# list of functions that should be considered as giving a non-deterministic
-# return value
-#  Only predicate analysis honors this option. If you specify this option,
-# the default values are not added automatically to the list, so you need to
-# specify them explicitly if you need them. Mentioning a function in this
-# list has only an effect, if it is an 'external function', i.e., no source
-# is given in the code for this function.
+# Set of functions that should be considered as giving a non-deterministic
+# return value. If you specify this option, the default values are not added
+# automatically to the list, so you need to specify them explicitly if you
+# need them. Mentioning a function in this list has only an effect, if it is
+# an 'external function', i.e., no source is given in the code for this
+# function.
 cpa.predicate.nondetFunctions = {
-      "malloc", "__kmalloc", "kzalloc",
       "sscanf",
       "random"}
 

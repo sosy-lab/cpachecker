@@ -53,14 +53,13 @@ class FormulaEncodingOptions {
       description="use uninterpreted functions for *, & and array access")
   private boolean lvalsAsUif = false;
 
-  @Option(description="list of functions that should be considered as giving "
-    + "a non-deterministic return value\n Only predicate analysis honors this option. "
+  @Option(description="Set of functions that should be considered as giving "
+    + "a non-deterministic return value. "
     + "If you specify this option, the default values are not added automatically "
     + "to the list, so you need to specify them explicitly if you need them. "
     + "Mentioning a function in this list has only an effect, if it is an "
     + "'external function', i.e., no source is given in the code for this function.")
   private Set<String> nondetFunctions = ImmutableSet.of(
-      "malloc", "__kmalloc", "kzalloc",
       "sscanf",
       "random");
 
@@ -74,8 +73,7 @@ class FormulaEncodingOptions {
      + " This will only work when all variables referenced by the dimacs file are global and declared before this function is called.")
   private String externModelFunctionName = "__VERIFIER_externModelSatisfied";
 
-  @Option(description = "list of functions that provide new memory on the heap."
-    + " This is only used, when handling of pointers is enabled.")
+  @Option(description = "Set of functions that provide new memory on the heap.")
   private Set<String> memoryAllocationFunctions = ImmutableSet.of(
       "malloc", "__kmalloc", "kzalloc"
       );
