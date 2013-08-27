@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -1149,7 +1150,7 @@ public class CtoFormulaConverter {
       CType retType = getReturnType(funcCallExp, ce);
 
       Formula retVar = makeVariable(retVarName, retType, ssa);
-      CExpression e = exp.getLeftHandSide();
+      CLeftHandSide e = exp.getLeftHandSide();
 
       function = ce.getSuccessor().getFunctionName();
       Formula outvarFormula = buildLvalueTerm(e, ce, function, ssa, constraints);
@@ -1287,7 +1288,7 @@ public class CtoFormulaConverter {
     return exp.accept(getCExpressionVisitor(edge, function, ssa, constraints));
   }
 
-  Formula buildLvalueTerm(CExpression exp, CFAEdge edge, String function,
+  Formula buildLvalueTerm(CLeftHandSide exp, CFAEdge edge, String function,
       SSAMapBuilder ssa, Constraints constraints) throws UnrecognizedCCodeException {
     return exp.accept(getLvalueVisitor(edge, function, ssa, constraints));
   }

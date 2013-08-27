@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -271,31 +272,46 @@ class PointerAliasHandling extends CtoFormulaConverter {
 
 
   @Override
-  protected BooleanFormula makeExitFunction(CFunctionSummaryEdge ce, String function,
+  protected BooleanFormula makeExitFunction(CFunctionSummaryEdge edge, String calledFunction,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
 
-    BooleanFormula assignments = super.makeExitFunction(ce, function, ssa, constraints);
+    BooleanFormula assignments = super.makeExitFunction(edge, calledFunction, ssa, constraints);
 
-    CFunctionCall retExp = ce.getExpression();
+    CFunctionCall retExp = edge.getExpression();
     if (retExp instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
-      String retVarName = getReturnVarName(function);
+      CLeftHandSide left = exp.getLeftHandSide();
 
-      CFunctionCallExpression funcCallExp = exp.getRightHandSide();
-      CType retType = getReturnType(funcCallExp, ce);
-
-      Formula retVar = makeVariable(retVarName, retType, ssa);
-      CExpression e = exp.getLeftHandSide();
-
-      function = ce.getSuccessor().getFunctionName();
-      retVar = makeCast(retType, e.getExpressionType(), retVar);
-
-      CExpression left = removeCast(e);
       if (left instanceof CIdExpression) {
-        BooleanFormula ptrAssignment = buildDirectReturnSecondLevelAssignment(
-            e, Variable.create(retVarName, retType), function, ssa);
-        assignments = bfmgr.and(assignments, ptrAssignment);
+        // a = foo()
+        // Include aliases if the left or right side may be a pointer a pointer.
+
+        String callerFunction = edge.getSuccessor().getFunctionName();
+        Variable leftVar = scopedIfNecessary((CIdExpression)left, ssa, callerFunction);
+
+        CFunctionCallExpression funcCallExp = exp.getRightHandSide();
+        CType retType = getReturnType(funcCallExp, edge);
+        Variable retVar = Variable.create(getReturnVarName(calledFunction), retType);
+
+        if ((maybePointer(leftVar, ssa)
+            || maybePointer(retVar, ssa)) &&
+            hasRepresentableDereference(left) &&
+            hasRepresentableDereference(retVar)) {
+          // we assume that either the left or the right hand side is a pointer
+          // so we add the equality: *l = *r
+
+          Variable leftPtrVarName = makePointerMask(leftVar, ssa);
+          Formula leftPtrVar =  makeVariable(leftPtrVarName, ssa);
+
+          Variable retPtrVarName = makePointerMask(retVar, ssa);
+          Formula retPtrVar = makeVariable(retPtrVarName, ssa);
+
+          BooleanFormula ptrAssignment = makeNondetAssignment(leftPtrVar, retPtrVar);
+          assignments = bfmgr.and(assignments, ptrAssignment);
+        }
       }
+
+      // TODO handle cases like s.f = foo()
     }
     return assignments;
   }
@@ -619,34 +635,6 @@ class PointerAliasHandling extends CtoFormulaConverter {
     return bfmgr.makeBoolean(true);
   }
 
-  private BooleanFormula buildDirectReturnSecondLevelAssignment(CExpression leftId,
-      Variable retVarName, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
-
-    // include aliases if the left or right side may be a pointer a pointer
-    // We only can write *l = *r if the types after dereference have some formula
-    // type correspondence (e.g. boolean, real, bit vector etc.)
-    // Types of unknown sizes, e.g. CProblemType, can't be represented and would
-    // otherwise cause throwing exceptions
-    Variable leftVar = scopedIfNecessary(leftId, ssa, function);
-    if ((maybePointer(leftVar, ssa)
-        || maybePointer(retVarName, ssa)) &&
-        hasRepresentableDereference(leftId) &&
-        hasRepresentableDereference(retVarName)) {
-      // we assume that either the left or the right hand side is a pointer
-      // so we add the equality: *l = *r
-      Variable leftPtrMask = makePointerMask(leftVar, ssa);
-      Formula lPtrVar =  makeVariable(leftPtrMask, ssa);
-      Variable retPtrVarName = makePointerMask(retVarName, ssa);
-
-      Formula retPtrVar = makeVariable(retPtrVarName, ssa);
-      return makeNondetAssignment(lPtrVar, retPtrVar);
-
-    } else {
-      // we can assume, that no pointers are affected in this assignment
-      return bfmgr.makeBoolean(true);
-    }
-  }
-
   private boolean isTooComplexExpression(CExpression c) {
     if (!c.accept(tooComplexVisitor)) {
       return false;
@@ -802,7 +790,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
   @Override
   public BooleanFormula visit(CAssignment assignment)
       throws UnrecognizedCCodeException {
-    CExpression left = CtoFormulaConverter.removeCast(assignment.getLeftHandSide());
+    CLeftHandSide left = assignment.getLeftHandSide();
 
     if (left instanceof CIdExpression) {
       // p = ...
@@ -839,7 +827,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
    */
   private BooleanFormula handleIndirectAssignment(CAssignment pAssignment)
       throws UnrecognizedCCodeException {
-    CExpression lExpr = CtoFormulaConverter.removeCast(pAssignment.getLeftHandSide());
+    CLeftHandSide lExpr = pAssignment.getLeftHandSide();
 
     assert (lExpr instanceof CPointerExpression || (lExpr instanceof CFieldReference && isIndirectFieldReference((CFieldReference)lExpr)))
         : "Unsupported leftHandSide in Indirect Assignment";
@@ -1161,7 +1149,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
   /** A direct assignment changes the value of the variable on the left side. */
   private BooleanFormula handleDirectAssignment(CAssignment assignment)
       throws UnrecognizedCCodeException {
-    CExpression lExpr = assignment.getLeftHandSide();
+    CLeftHandSide lExpr = assignment.getLeftHandSide();
     assert (lExpr instanceof CIdExpression
         || (lExpr instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)lExpr)))
         : "We currently can't handle too complex lefthandside-Expressions";
