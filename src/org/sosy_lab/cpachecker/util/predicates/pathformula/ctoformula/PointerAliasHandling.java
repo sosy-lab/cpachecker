@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.*;
 
@@ -389,8 +390,6 @@ class PointerAliasHandling extends CtoFormulaConverter {
     if (exp instanceof CUnaryExpression
         && ((CUnaryExpression) exp).getOperator() == UnaryOperator.AMPER) {
       return true;
-    } else if (exp instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)exp)) {
-      return isMemoryLocation(((CFieldReference)exp).getFieldOwner());
     }
 
     return false;
@@ -443,7 +442,6 @@ class PointerAliasHandling extends CtoFormulaConverter {
 
     } else if (isMemoryLocation(right)) {
       // s = &x
-      // OR s = (&x).t
       return handleAssignmentOfMemoryLocation(lVarName, lPtrVarName, right,
           function, ssa, edge);
 
@@ -611,41 +609,37 @@ class PointerAliasHandling extends CtoFormulaConverter {
       Variable lVarName, Variable lPtrVarName, CExpression right,
       String function, SSAMapBuilder ssa, CFAEdge edge) throws UnrecognizedCCodeException {
     // s = &x
-    // OR s = (&x).t
+    // OR s = &(x.t)
+    // OR s = &(...)
 
-    if (right instanceof CUnaryExpression
-        && ((CUnaryExpression) right).getOperator() == UnaryOperator.AMPER) {
+    checkArgument(right instanceof CUnaryExpression
+                  && ((CUnaryExpression) right).getOperator() == UnaryOperator.AMPER);
 
-      CExpression rOperand =
-          removeCast(((CUnaryExpression) right).getOperand());
-      if (rOperand instanceof CIdExpression &&
-          hasRepresentableDereference(lVarName)) {
-        CType leftPtrType = lPtrVarName.getType();
-        Variable rVarName = scopedIfNecessary(rOperand, ssa, function);
-        Formula rVar = makeVariable(rVarName, ssa);
+    CExpression rOperand = removeCast(((CUnaryExpression) right).getOperand());
+    if (rOperand instanceof CIdExpression &&
+        hasRepresentableDereference(lVarName)) {
+      CType leftPtrType = lPtrVarName.getType();
+      Variable rVarName = scopedIfNecessary(rOperand, ssa, function);
+      Formula rVar = makeVariable(rVarName, ssa);
 
-        if (isDereferenceType(leftPtrType)) {
-          // s is no pointer and if *s was not guessed jet we can use the type of x.
-          CType guess = getGuessedType(leftPtrType);
-          if (guess == null) {
-            lPtrVarName =
-                lPtrVarName.withType(setGuessedType(leftPtrType, rOperand.getExpressionType()));
-          } else {
-            if (getSizeof(guess) != getSizeof(rOperand.getExpressionType())) {
-              logfOnce(Level.WARNING, edge, "Size of an old guess doesn't match with the current guess for variable %s", lPtrVarName.getName());
-            }
+      if (isDereferenceType(leftPtrType)) {
+        // s is no pointer and if *s was not guessed jet we can use the type of x.
+        CType guess = getGuessedType(leftPtrType);
+        if (guess == null) {
+          lPtrVarName =
+              lPtrVarName.withType(setGuessedType(leftPtrType, rOperand.getExpressionType()));
+        } else {
+          if (getSizeof(guess) != getSizeof(rOperand.getExpressionType())) {
+            logfOnce(Level.WARNING, edge, "Size of an old guess doesn't match with the current guess for variable %s", lPtrVarName.getName());
           }
         }
-        Formula lPtrVar = makeVariable(lPtrVarName, ssa);
-
-        return makeNondetAssignment(lPtrVar, rVar);
       }
+      Formula lPtrVar = makeVariable(lPtrVarName, ssa);
 
-    } else if (right instanceof CFieldReference) {
-      logfOnce(Level.WARNING, edge, "Address of field %s is taken and cannot be handled", right.toASTString());
+      return makeNondetAssignment(lPtrVar, rVar);
 
     } else {
-      throw new IllegalArgumentException(right.toASTString() + " is not a memory location.");
+      logfOnce(Level.WARNING, edge, "Address of expression %s is taken and cannot be handled", right.toASTString());
     }
 
     return bfmgr.makeBoolean(true);
