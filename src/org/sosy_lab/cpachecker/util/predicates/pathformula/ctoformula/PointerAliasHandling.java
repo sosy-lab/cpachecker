@@ -52,9 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -248,29 +246,19 @@ class PointerAliasHandling extends CtoFormulaConverter {
   }
 
   @Override
-  protected BooleanFormula makeReturn(CExpression rightExp, CReturnStatementEdge edge, String function,
-      SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
+  protected BooleanFormula makeAssignment(String pLeftName, CType pLeftType,
+      CExpression pRightHandSide,
+      String function, SSAMapBuilder ssa, CFAEdge edge, Constraints constraints) throws UnrecognizedCCodeException {
 
-    BooleanFormula assignments = super.makeReturn(rightExp, edge, function, ssa, constraints);
+    BooleanFormula assignment = super.makeAssignment(pLeftName, pLeftType,
+        pRightHandSide, function, ssa, edge, constraints);
 
-    if (rightExp != null) {
-      String retVarName = getReturnVarName(function);
+    // Add pointer aliasing predicates if necessary.
+    BooleanFormula secondLevelAssignment = buildDirectSecondLevelAssignment(
+        Variable.create(pLeftName, pLeftType), pRightHandSide, function, constraints, ssa, edge);
 
-      CType returnType =
-          ((CFunctionEntryNode)edge.getSuccessor().getEntryNode())
-            .getFunctionDefinition()
-            .getType()
-            .getReturnType();
-
-      // if the value to be returned may be a pointer, act accordingly
-      BooleanFormula rightAssignment = buildDirectSecondLevelAssignment(
-          Variable.create(retVarName, returnType), rightExp, function, constraints, ssa, edge);
-      assignments = bfmgr.and(assignments, rightAssignment);
-    }
-
-    return assignments;
+    return bfmgr.and(assignment, secondLevelAssignment);
   }
-
 
   @Override
   protected BooleanFormula makeExitFunction(CFunctionSummaryEdge edge, String calledFunction,

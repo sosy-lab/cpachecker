@@ -570,15 +570,22 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * makes a fresh variable out of the varName and assigns the rightHandSide to it
-   * @param varName has to be scoped already
-   * @param rightHandSide
-   * @param ssa
+   * Makes a fresh variable out of the varName and assigns the rightHandSide to it.
+   * To be used when the left-hand side is no expression
+   * (e.g. because we assign to a special hard-coded variable like __retval__).
+   *
+   * @param leftName has to be scoped already
+   * @param rightHandSide The expression to evaluate and assign to left.
+   * @param function The function where rightHandSide should be evaluated in.
    * @return the new Formula (lhs = rhs)
    */
-  private BooleanFormula makeAssignment(String leftName, CType leftType,
-      CType right, Formula rightHandSide, SSAMapBuilder ssa) {
-    Formula rhs = makeCast(right, leftType, rightHandSide);
+  protected BooleanFormula makeAssignment(String leftName, CType leftType,
+      CExpression rightHandSide,
+      String function, SSAMapBuilder ssa, CFAEdge edge, Constraints constraints) throws UnrecognizedCCodeException {
+
+    Formula rhs = buildTerm(rightHandSide, edge, function, ssa, constraints);
+    rhs = makeCast(rightHandSide.getExpressionType(), leftType, rhs);
+
     Formula lhs = makeFreshVariable(leftName, leftType, ssa);
 
     return fmgr.assignment(lhs, rhs);
@@ -1226,22 +1233,14 @@ public class CtoFormulaConverter {
     for (CParameterDeclaration formalParam : formalParams) {
       final String varName = formalParam.getQualifiedName();
       final CType paramType = formalParam.getType();
-      if (paramType.getCanonicalType() instanceof CPointerType) {
-        logger.logOnce(Level.WARNING, "Program contains pointer parameter; analysis is imprecise in case of aliasing.");
-        logfOnce(Level.FINEST, edge,
-            "Ignoring the semantics of pointer for parameter %s of function %s", formalParam.getName(), fn.getFunctionDefinition());
-      }
       CExpression paramExpression = actualParams.get(i++);
       paramExpression = makeCastFromArrayToPointerIfNecessary(paramExpression, paramType);
-
-      // get value of actual parameter
-      Formula actualParam = buildTerm(paramExpression, edge, callerFunction, ssa, constraints);
 
       BooleanFormula eq =
           makeAssignment(
               varName, paramType,
-              paramExpression.getExpressionType(),
-              actualParam, ssa);
+              paramExpression,
+              callerFunction, ssa, edge, constraints);
 
       result = bfmgr.and(result, eq);
     }
@@ -1249,7 +1248,7 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  protected BooleanFormula makeReturn(CExpression rightExp, CReturnStatementEdge edge, String function,
+  private BooleanFormula makeReturn(CExpression rightExp, CReturnStatementEdge edge, String function,
       SSAMapBuilder ssa, Constraints constraints) throws CPATransferException {
     if (rightExp == null) {
       // this is a return from a void function, do nothing
@@ -1260,17 +1259,15 @@ public class CtoFormulaConverter {
       // so that we can use it later on, if it is assigned to
       // a variable. We create a function::__retval__ variable
       // that will hold the return value
-      Formula retval = buildTerm(rightExp, edge, function, ssa, constraints);
       String retVarName = getReturnVarName(function);
 
-      CType expressionType = rightExp.getExpressionType();
       CType returnType =
           ((CFunctionEntryNode)edge.getSuccessor().getEntryNode())
             .getFunctionDefinition()
             .getType()
             .getReturnType();
       BooleanFormula assignments = makeAssignment(retVarName, returnType,
-          expressionType, retval, ssa);
+          rightExp, function, ssa, edge, constraints);
 
       return assignments;
     }
