@@ -282,12 +282,14 @@ class PointerAliasHandling extends CtoFormulaConverter {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
       CLeftHandSide left = exp.getLeftHandSide();
 
-      if (left instanceof CIdExpression) {
-        // a = foo()
+      if (left instanceof CIdExpression ||
+          (options.handleFieldAccess() && left instanceof CFieldReference && !isIndirectFieldReference((CFieldReference)left))) {
+        // a = foo();
+        // s.f = foo();
         // Include aliases if the left or right side may be a pointer a pointer.
 
         String callerFunction = edge.getSuccessor().getFunctionName();
-        Variable leftVar = scopedIfNecessary((CIdExpression)left, ssa, callerFunction);
+        Variable leftVar = scopedIfNecessary(left, ssa, callerFunction);
 
         CFunctionCallExpression funcCallExp = exp.getRightHandSide();
         CType retType = getReturnType(funcCallExp, edge);
@@ -310,8 +312,6 @@ class PointerAliasHandling extends CtoFormulaConverter {
           assignments = bfmgr.and(assignments, ptrAssignment);
         }
       }
-
-      // TODO handle cases like s.f = foo()
     }
     return assignments;
   }
