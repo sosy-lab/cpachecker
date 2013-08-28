@@ -174,7 +174,7 @@ public class CFunctionType extends AFunctionType implements CType {
 
     CFunctionType other = (CFunctionType) obj;
 
-    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile);
+    return isConst == other.isConst && isVolatile == other.isVolatile;
   }
 
   @Override

@@ -224,7 +224,7 @@ public final class CEnumType implements CComplexType {
 
     CEnumType other = (CEnumType) obj;
 
-    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
+    return isConst == other.isConst && isVolatile == other.isVolatile
            && Objects.equals(name, other.name) && Objects.equals(enumerators, other.enumerators);
   }
 
