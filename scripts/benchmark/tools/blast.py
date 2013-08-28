@@ -11,8 +11,8 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getProgrammFiles(self, executable):
-        executableDir = os.path.join(os.path.dirname(executable))
-        return [os.path.join(executableDir)]
+        executableDir = os.path.dirname(executable)
+        return [executableDir]
 
 
     def getWorkingDirectory(self, executable):
