@@ -259,8 +259,9 @@ def getCloudInput(benchmark):
     absWorkingDir = os.path.abspath(workingDir)
     absCloudRunExecutorDir = os.path.abspath(os.path.dirname(__file__))
     absToolpaths = list(map(os.path.abspath, toolpaths))
+    absScriptsPath = os.path.abspath('scripts') # necessary files for non-CPAchecker-tools
     absSourceFiles = list(map(os.path.abspath, sourceFiles))
-    absBaseDir = commonBaseDir(absSourceFiles + absToolpaths + [absCloudRunExecutorDir])
+    absBaseDir = commonBaseDir(absSourceFiles + absToolpaths + [absScriptsPath] + [absCloudRunExecutorDir])
 
     if absBaseDir == "": sys.exit("No common base dir found.")
 
@@ -272,7 +273,7 @@ def getCloudInput(benchmark):
     # see external vcloud/README.txt for details.
     cloudInput = "\n".join(
             [
-                toTabList(absToolpaths),
+                toTabList(absToolpaths + [absScriptsPath]),
                 absCloudRunExecutorDir,
                 toTabList([absBaseDir, absOutputDir, absWorkingDir]),
                 toTabList(requirements),

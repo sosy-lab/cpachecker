@@ -1,4 +1,5 @@
 import subprocess
+import os
 
 import benchmark.util as Util
 import benchmark.tools.template
@@ -7,6 +8,15 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def getExecutable(self):
         return Util.findExecutable('pblast.opt')
+
+
+    def getProgrammFiles(self, executable):
+        executableDir = os.path.join(os.path.dirname(executable))
+        return [os.path.join(executableDir)]
+
+
+    def getWorkingDirectory(self, executable):
+        return os.curdir
 
 
     def getVersion(self, executable):
