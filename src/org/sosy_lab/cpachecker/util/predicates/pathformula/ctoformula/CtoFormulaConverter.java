@@ -234,8 +234,16 @@ public class CtoFormulaConverter {
   int getSizeof(CType pType) {
     int size = pType.accept(sizeofVisitor);
     if (size == 0) {
-      // UNDEFINED: http://stackoverflow.com/questions/1626446/what-is-the-size-of-an-empty-struct-in-c
-      logger.logOnce(Level.WARNING, "Type", pType, "has no fields, this is undefined");
+      CType type = getCanonicalType(pType);
+      if (type instanceof CArrayType) {
+        // C11 §6.7.6.2 (1)
+        logger.logOnce(Level.WARNING, "Type", pType, "is a zero-length array, this is undefined.");
+      } else if (type instanceof CCompositeType) {
+        // UNDEFINED: http://stackoverflow.com/questions/1626446/what-is-the-size-of-an-empty-struct-in-c
+        logger.logOnce(Level.WARNING, "Type", pType, "has no fields, this is undefined.");
+      } else {
+        logger.logOnce(Level.WARNING, "Type", pType, "has size 0 bytes.");
+      }
     }
     return size;
   }

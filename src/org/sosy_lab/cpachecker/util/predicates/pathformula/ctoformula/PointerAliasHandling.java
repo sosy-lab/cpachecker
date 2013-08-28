@@ -1108,7 +1108,9 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
       for (Map.Entry<String, CType> memAddress : memAddresses) {
         Variable varName = getVariableFromMemoryAddress(memAddress.getKey(), memAddress.getValue());
 
-        if (varName.equals(lVarName) || !CtoFormulaConverter.hasRepresentableDereference(varName)) {
+        if (varName.equals(lVarName)
+            || !CtoFormulaConverter.hasRepresentableDereference(varName)
+            || conv.getSizeof(varName.getType()) == 0) {
           continue;
         }
         // *m_old
