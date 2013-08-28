@@ -163,6 +163,10 @@ public final class CCompositeType implements CComplexType {
       return getType().toASTString(name) + ";";
     }
 
+    @Override
+    public String toString() {
+      return toASTString();
+    }
   }
 
   @Override
