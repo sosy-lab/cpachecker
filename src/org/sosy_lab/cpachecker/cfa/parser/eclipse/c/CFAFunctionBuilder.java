@@ -1431,25 +1431,48 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     final int filelocStart = fileloc.getStartingLineNumber();
 
+    // build condition edges, to caseNode with "a==2", to notCaseNode with "!(a==2)"
+    CFANode rootNode = switchCaseStack.pop();
+    final CFANode caseNode = newCFANode(filelocStart);
+    final CFANode notCaseNode = newCFANode(filelocStart);
+
     // build condition, left part, "a"
     final CExpression switchExpr =
         switchExprStack.peek();
 
-    // build condition, right part, "2"
-    final CExpression caseExpr =
-        astCreator.convertExpressionWithoutSideEffects(statement
-            .getExpression());
+    // build condition, right part, "2" or 'a' or 'a'...'c'
+    IASTExpression right = statement.getExpression();
 
-    // build condition, "a==2", TODO correct type?
-    final CBinaryExpression binExp =
-        new CBinaryExpression(ASTConverter.convert(fileloc),
-            switchExpr.getExpressionType(), switchExpr, caseExpr,
-            CBinaryExpression.BinaryOperator.EQUALS);
+    final CBinaryExpression binExp;
+    // if there is a range, this has to be handled in another way,
+    // the expression is split up, and the bounds are tested
+    if (right instanceof IASTBinaryExpression && ((IASTBinaryExpression)right).getOperator() == IASTBinaryExpression.op_ellipses) {
+      CExpression smallEnd = astCreator.convertExpressionWithoutSideEffects(((IASTBinaryExpression)right).getOperand1());
+      CExpression bigEnd = astCreator.convertExpressionWithoutSideEffects(((IASTBinaryExpression)right).getOperand2());
 
-    // build condition edges, to caseNode with "a==2", to notCaseNode with "!(a==2)"
-    final CFANode rootNode = switchCaseStack.pop();
-    final CFANode caseNode = newCFANode(filelocStart);
-    final CFANode notCaseNode = newCFANode(filelocStart);
+      FileLocation filelocation = ASTConverter.convert(fileloc);
+      CBinaryExpression firstPart = new CBinaryExpression(filelocation,
+                                                          switchExpr.getExpressionType(),
+                                                          switchExpr,
+                                                          smallEnd,
+                                                          CBinaryExpression.BinaryOperator.GREATER_EQUAL);
+      binExp = new CBinaryExpression(filelocation,
+                                     switchExpr.getExpressionType(),
+                                     switchExpr,
+                                     bigEnd,
+                                     CBinaryExpression.BinaryOperator.LESS_EQUAL);
+
+      // add the first condition edge, the second one will be added after the if clause
+      final CFANode intermediateNode = newCFANode(filelocStart);
+      addConditionEdges(firstPart, rootNode, intermediateNode, notCaseNode, filelocStart);
+      rootNode = intermediateNode;
+    } else {
+      final CExpression caseExpr = astCreator.convertExpressionWithoutSideEffects(statement.getExpression());
+      // build condition, "a==2", TODO correct type?
+      binExp = new CBinaryExpression(ASTConverter.convert(fileloc),
+                                     switchExpr.getExpressionType(), switchExpr, caseExpr,
+                                     CBinaryExpression.BinaryOperator.EQUALS);
+    }
 
     // fall-through (case before has no "break")
     final CFANode oldNode = locStack.pop();
