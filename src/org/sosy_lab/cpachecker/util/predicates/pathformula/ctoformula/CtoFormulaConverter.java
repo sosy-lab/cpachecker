@@ -246,11 +246,28 @@ public class CtoFormulaConverter {
 
   Variable makeFieldVariable(Variable pName, CFieldReference fExp, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     Pair<Integer, Integer> msb_lsb = getFieldOffsetMsbLsb(fExp);
-    // NOTE: ALWAYS use pName.getType(),
+    String fieldVarName = makeFieldVariableName(pName.getName(), msb_lsb, ssa);
+
+    // For explanation of the following types,
+    // c.f. CFieldTrackType
+    CType fieldType = fExp.getExpressionType();
+    CType structType = getRealFieldOwner(fExp).getExpressionType();
+    structType = structType.getCanonicalType();
+    if (!(structType instanceof CCompositeType)) {
+      throw new UnrecognizedCCodeException("Accessing field in non-compsite type", fExp);
+    }
+
+    // NOTE: ALWAYS use pName.getType() as the actual type,
     // because pName.getType() could be an instance of CFieldTrackType
-    return Variable.create(
-        makeFieldVariableName(pName.getName(), msb_lsb, ssa),
-        new CFieldTrackType(fExp.getExpressionType(), pName.getType(), getRealFieldOwner(fExp).getExpressionType()));
+    CType ownerTypeWithoutCasts = pName.getType();
+
+    if (!getCanonicalType(ownerTypeWithoutCasts).equals(structType)) {
+      logger.logOnce(Level.WARNING, "Cast of non-matching type", ownerTypeWithoutCasts, "to",
+          structType, "in field access", fExp, "so analysis could be imprecise");
+    }
+
+    return Variable.create(fieldVarName,
+        new CFieldTrackType(fieldType, ownerTypeWithoutCasts, (CCompositeType)structType));
   }
 
   public FormulaType<?> getFormulaTypeFromCType(CType type) {
@@ -467,25 +484,14 @@ public class CtoFormulaConverter {
      : "Was not able to track types of Field-references";
 
     CFieldTrackType trackType = (CFieldTrackType)type;
-    CType staticType = trackType.getStructType();
-    Formula struct = resolveFields(structName, staticType, ssa, makeFreshIndex);
-    // At this point it is possible, because of casts, that we have a weird type
-    // Because we are currently unable to create dynamic sized bitvectors
-    // We can't save in content_of variables the real bitvector
-    // For example: void* ptr = malloc( i * sizeof(int))
-    // So we can only use the static Type which is given to us
-    // Now imagine a field in a struct with type void* and saving another struct in it
-    // Now you access it like this: ((otherstruct*)(struct1->voidField))->otherfield
-    // Than we would get a 8 bit struct here, because we can't handle the cast properly anywhere else.
+    CType ownerType = trackType.getOwnerTypeWithoutCasts();
+    Formula struct = resolveFields(structName, ownerType, ssa, makeFreshIndex);
+
+    // If there is a cast inside the field access expression,
+    // the types may differ (c.f. #makeFieldVariable()).
     // The only thing we can do at this point is to expand the variable with nondet bits.
-    CType runtimeType = trackType.getStructTypeRepectingCasts();
-
-    if (!staticType.getCanonicalType().equals(runtimeType.getCanonicalType())) {
-      logger.logOnce(Level.WARNING, "staticType", staticType, "and runtimeType",
-          runtimeType, "do not match for", name, "so analysis could be imprecise");
-    }
-
-    BitvectorFormula realStruct = makeExtractOrConcatNondet(staticType, runtimeType, struct);
+    CCompositeType structType = trackType.getStructType();
+    BitvectorFormula realStruct = makeExtractOrConcatNondet(ownerType, structType, struct);
 
     return accessField(msb_lsb, realStruct);
   }
