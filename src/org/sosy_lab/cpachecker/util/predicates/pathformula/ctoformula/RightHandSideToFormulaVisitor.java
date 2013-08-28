@@ -122,8 +122,10 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
     } else {
       CFunctionDeclaration declaration = fexp.getDeclaration();
       if (declaration == null) {
-        // This should not happen
-        conv.logfOnce(Level.WARNING, edge, "Cannot get declaration of function %s, ignoring calls to it.", fn);
+        if (fn instanceof CIdExpression) {
+          // This happens only if there are undeclared functions.
+          conv.logger.logfOnce(Level.WARNING, "Cannot get declaration of function %s, ignoring calls to it.", fn);
+        }
         return conv.makeFreshVariable(func, expType, ssa); // BUG when expType = void
       }
 
