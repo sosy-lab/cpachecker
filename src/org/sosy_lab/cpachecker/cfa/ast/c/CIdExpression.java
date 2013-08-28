@@ -73,7 +73,9 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
   public int hashCode() {
     int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(getDeclaration().getQualifiedName());
+    if (getDeclaration() != null) {
+      result = prime * result + Objects.hashCode(getDeclaration().getQualifiedName());
+    }
     return prime * result;
   }
 
@@ -94,6 +96,10 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
 
     CIdExpression other = (CIdExpression)obj;
 
-    return Objects.equal(getDeclaration().getQualifiedName(), other.getDeclaration().getQualifiedName());
+    if (getDeclaration() == null) {
+      return other.getDeclaration() == null;
+    } else {
+      return Objects.equal(getDeclaration().getQualifiedName(), other.getDeclaration().getQualifiedName());
+    }
   }
 }
