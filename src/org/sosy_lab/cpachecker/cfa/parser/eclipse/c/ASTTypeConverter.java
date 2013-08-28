@@ -90,6 +90,18 @@ class ASTTypeConverter {
    *  (Eclipse seems to give us identical objects for identical types already). */
   private final static Map<IType, CType> typeConversions = Maps.newIdentityHashMap();
 
+  /**
+   * This can be used to create (fake) mappings from IType to CType.
+   * Use only if you are absolutely sure that your CType corresponds to the
+   * given IType, and you cannot use the regular type conversion methods
+   * of this class.
+   * @see ASTConverter#convert(org.eclipse.cdt.core.dom.ast.IASTFieldReference) for an example
+   */
+  void registerType(IType cdtType, CType ourType) {
+    CType oldType = typeConversions.put(cdtType, ourType);
+    assert oldType == null || oldType == ourType : "Overwriting type conversion";
+  }
+
   CType convert(IType t) {
     CType result = typeConversions.get(t);
     if (result == null) {

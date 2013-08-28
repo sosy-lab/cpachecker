@@ -76,6 +76,7 @@ import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.eclipse.cdt.core.dom.ast.ICompositeType;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignator;
@@ -598,9 +599,43 @@ class ASTConverter {
   }
 
   private CFieldReference convert(IASTFieldReference e) {
-    CType type = typeConverter.convert(e.getExpressionType());
     CExpression owner = convertExpressionWithoutSideEffects(e.getFieldOwner());
     String fieldName = convert(e.getFieldName());
+
+    if (e.getExpressionType() instanceof ICompositeType) {
+      ICompositeType compositeType = (ICompositeType)e.getExpressionType();
+      if (compositeType.getName().isEmpty()) {
+        // This is an access of a field with an anonymous struct as type.
+        // We gave the anonymous struct a real name (c.f. convert(IASTCompositeTypeDeclSpecifier))
+        // and now we need a CType as expression type that also has this new
+        // name in it. However, if we just call typeConverter.convert(e.getExpressionType())
+        // the name will be empty because CDT's IType instance has of course
+        // still the empty name (and there is no chance to get to the correct
+        // declaration and the new name if you only have the IType instance).
+        // So we lookup the correct CType here (where it is easy)
+        // and pre-create the mapping from the anonymous IType instance
+        // to the non-anonymous CType instance,
+        // which the ASTTypeConverter will then just use automatically.
+
+        CCompositeType ownerType = (CCompositeType)owner.getExpressionType().getCanonicalType();
+        CCompositeTypeMemberDeclaration field = null;
+        for (CCompositeTypeMemberDeclaration f : ownerType.getMembers()) {
+          if (fieldName.equals(f.getName())) {
+            field = f;
+            break;
+          }
+        }
+
+        if (field == null) {
+          throw new CFAGenerationRuntimeException("Cannot access field " + fieldName + " in " + ownerType, e);
+        }
+
+        CType fieldType = field.getType();
+        typeConverter.registerType(e.getExpressionType(), fieldType);
+      }
+    }
+
+    CType type = typeConverter.convert(e.getExpressionType());
 
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
     // if the owner is a FieldReference itself there's the need for a temporary Variable
