@@ -49,10 +49,27 @@ import com.google.common.collect.ImmutableMap;
  */
 class GlobalScope implements Scope {
 
-  private final Map<String, CSimpleDeclaration> globalVars = new HashMap<>();
-  private final Map<String, CFunctionDeclaration> functions = new HashMap<>();
-  private final Map<String, CComplexTypeDeclaration> types = new HashMap<>();
-  private final Map<String, CTypeDefDeclaration> typedefs = new HashMap<>();
+  private final Map<String, CSimpleDeclaration> globalVars;
+  private final Map<String, CFunctionDeclaration> functions;
+  private final Map<String, CComplexTypeDeclaration> types;
+  private final Map<String, CTypeDefDeclaration> typedefs;
+
+  public GlobalScope(Map<String, CSimpleDeclaration> globalVars,
+                     Map<String, CFunctionDeclaration> functions,
+                     Map<String, CComplexTypeDeclaration> types,
+                     Map<String, CTypeDefDeclaration> typedefs) {
+    this.globalVars = globalVars;
+    this.functions = functions;
+    this.types = types;
+    this.typedefs = typedefs;
+  }
+
+  public GlobalScope() {
+    this(new HashMap<String, CSimpleDeclaration>(),
+         new HashMap<String, CFunctionDeclaration>(),
+         new HashMap<String, CComplexTypeDeclaration>(),
+         new HashMap<String, CTypeDefDeclaration>());
+  }
 
   @Override
   public boolean isGlobalScope() {
@@ -230,6 +247,10 @@ class GlobalScope implements Scope {
 
   public ImmutableMap<String, CSimpleDeclaration> getGlobalVars() {
     return ImmutableMap.copyOf(globalVars);
+  }
+
+  public ImmutableMap<String, CTypeDefDeclaration> getTypeDefs() {
+    return ImmutableMap.copyOf(typedefs);
   }
 
   @Override

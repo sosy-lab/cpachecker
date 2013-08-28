@@ -29,9 +29,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -174,8 +172,6 @@ class ASTConverter {
 
   private final List<CAstNode> preSideAssignments = new ArrayList<>();
   private final List<CAstNode> postSideAssignments = new ArrayList<>();
-  private static final Map<String, String> replacedStaticNames = new HashMap<>();
-  private boolean isStaticNameExpression = false;
   private final String staticVariablePrefix;
 
   // this list is for ternary operators, &&, etc.
@@ -678,12 +674,13 @@ class ASTConverter {
       params.add(convertExpressionWithoutSideEffects(toExpression(i)));
     }
 
-    if (replacedStaticNames.containsKey(e.getFunctionNameExpression().getRawSignature())) {
-      isStaticNameExpression = true;
-    }
+//    if (scope.lookupFunction(staticVariablePrefix + e.getFunctionNameExpression().getRawSignature()) != null) {
+//      isStaticNameExpression = true;
+//    }
 
     CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
     CFunctionDeclaration declaration = null;
+
 
     if (functionName instanceof CIdExpression) {
       CSimpleDeclaration d = ((CIdExpression)functionName).getDeclaration();
@@ -721,12 +718,12 @@ class ASTConverter {
   private CIdExpression convert(IASTIdExpression e) {
     String name = convert(e.getName());
 
-    if (isStaticNameExpression) {
-      if (replacedStaticNames.containsKey(name)) {
-        name = replacedStaticNames.get(name);
-      }
-      isStaticNameExpression = false;
+    // if this variable is a static variable it is in the scope
+    if (scope.lookupVariable(staticVariablePrefix + name) != null ||
+        scope.lookupFunction(staticVariablePrefix + name) != null) {
+      name = staticVariablePrefix + name;
     }
+
     // Try to find declaration.
     // Variables per se actually do not bind stronger than function,
     // but local variables do.
@@ -960,9 +957,7 @@ class ASTConverter {
     String name = declarator.getThird();
 
     if(cStorageClass == CStorageClass.STATIC) {
-      String replacedBy = staticVariablePrefix + name;
-      replacedStaticNames.put(name, replacedBy);
-      name = replacedBy;
+      name = staticVariablePrefix + name;
     }
 
     FileLocation fileLoc = getLocation(f);

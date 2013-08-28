@@ -34,6 +34,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -243,36 +244,48 @@ public class CFACreator {
           }
 
           c = parser.parseString(program);
+
+          // when there is more than one file which should be evaluated, the
+          // programdenotations are separated from each other and a prefix for
+          // static variables is generated
         } else {
+          List<Pair<String, String>> programs = new ArrayList<>();
           int counter = 0;
           String[] paths = programDenotation.split(", ");
-          String[] programs = new String[paths.length];
-          String[] staticVarPrefixes = new String[paths.length];
+          String staticVarPrefix;
+          String prog;
           for(int i = 0; i < paths.length; i++) {
             String[] tmp = paths[i].split("/");
-            staticVarPrefixes[i] = tmp[tmp.length-1] + "__" + counter + "__";
-            programs[i] = preprocessor.preprocess(paths[i]);
+            staticVarPrefix = tmp[tmp.length-1] + "__" + counter + "__";
+            prog = preprocessor.preprocess(paths[i]);
+            programs.add(Pair.of(prog, staticVarPrefix));
 
-            if (programs[i].isEmpty()) {
+            if (prog.isEmpty()) {
               throw new CParserException("Preprocessor returned empty program");
             }
           }
-          c = ((CParser)parser).parseString(programs, staticVarPrefixes);
+          c = ((CParser)parser).parseString(programs);
         }
 
 
       } else {
         if(denotesOneFile(programDenotation)) {
           c = parser.parseFile((programDenotation));
+
+          // when there is more than one file which should be evaluated, the
+          // programdenotations are separated from each other and a prefix for
+          // static variables is generated
         } else {
+          List<Pair<String, String>> programs = new ArrayList<>();
           int counter = 0;
           String[] paths = programDenotation.split(", ");
-          String[] staticVarPrefixes = new String[paths.length];
+          String staticVarPrefix;
           for(int i = 0; i < paths.length; i++) {
             String[] tmp = paths[i].split("/");
-            staticVarPrefixes[i] = tmp[tmp.length-1] + "__" + counter + "__";
+            staticVarPrefix = tmp[tmp.length-1] + "__" + counter + "__";
+            programs.add(Pair.of(paths[i], staticVarPrefix));
           }
-          c = ((CParser)parser).parseFile(paths, staticVarPrefixes);
+          c = ((CParser)parser).parseFile(programs);
         }
       }
 
