@@ -56,7 +56,7 @@ public class CtoFormulaTypeUtils {
     }
   }
 
-  private static CType getCanonicalType(CType t) {
+  public static CType getCanonicalType(CType t) {
     while (t instanceof CFieldTrackType) {
       t = ((CFieldTrackType)t).getType();
     }

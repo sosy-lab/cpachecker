@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -594,6 +595,9 @@ class PointerAliasHandling extends CtoFormulaConverter {
       Variable varName = removePointerMaskVariable(ptrVarName.getKey(), ptrVarName.getValue());
 
       if (!varName.equals(lVarName)) {
+        if (ssa.getType(varName.getName()) != null) {
+          varName = varName.withType(ssa.getType(varName.getName()));
+        }
 
         Formula var = makeVariable(varName, ssa);
         Formula ptrVar = makeVariable(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
@@ -957,7 +961,11 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
     for (Map.Entry<String, CType> ptrVarName : ptrVarNames) {
       Variable varName = PointerAliasHandling.removePointerMaskVariable(ptrVarName.getKey(), ptrVarName.getValue());
 
-      if (!varName.equals(lVarName) && !varName.equals(rVarName)) {
+      if (!varName.equals(lVarName) && !varName.equals(rVarName)
+          // Ignore arrays, a pointer cannot be equal to an array,
+          // it could only hold the address of the array.
+          && !(getCanonicalType(varName.getType()) instanceof CArrayType)
+          && !(ssa.getType(varName.getName()) instanceof CArrayType)) {
         Formula var = conv.makeVariable(varName, ssa);
 
         Formula oldPtrVar = conv.makeVariable(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
@@ -1312,7 +1320,12 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
       // otherwise only update the index
       for (Map.Entry<String, CType> ptrVarName : PointerAliasHandling.getAllPointerVariablesFromSsaMap(ssa)) {
         Variable varName = PointerAliasHandling.removePointerMaskVariable(ptrVarName.getKey(), ptrVarName.getValue());
-        if (!varName.equals(leftVarName)) {
+        if (!varName.equals(leftVarName)
+            // Ignore arrays, a pointer cannot be equal to an array,
+            // it could only hold the address of the array.
+            && !(getCanonicalType(varName.getType()) instanceof CArrayType)
+            && !(ssa.getType(varName.getName()) instanceof CArrayType)) {
+
           Formula var = conv.makeVariable(varName, ssa);
           Formula oldPtrVar = conv.makeVariable(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
           conv.makeFreshIndex(ptrVarName.getKey(), ptrVarName.getValue(), ssa);
