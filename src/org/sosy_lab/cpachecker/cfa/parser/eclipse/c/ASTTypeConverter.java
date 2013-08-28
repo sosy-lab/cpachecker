@@ -99,7 +99,7 @@ class ASTTypeConverter {
    */
   void registerType(IType cdtType, CType ourType) {
     CType oldType = typeConversions.put(cdtType, ourType);
-    assert oldType == null || oldType == ourType : "Overwriting type conversion";
+    assert oldType == null || oldType.getCanonicalType().equals(ourType.getCanonicalType()): "Overwriting type conversion";
   }
 
   CType convert(IType t) {
