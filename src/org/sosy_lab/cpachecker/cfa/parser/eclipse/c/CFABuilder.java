@@ -46,6 +46,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -67,9 +69,11 @@ import com.google.common.collect.TreeMultimap;
 
 /**
  * Builder to traverse AST.
- * Known Limitations:
- * <p> -- K&R style function definitions not implemented
- * <p> -- Pointer modifiers not tracked (i.e. const, volatile, etc. for *
+ *
+ * After instantiating this class,
+ * call {@link #analyzeTranslationUnit(IASTTranslationUnit, String)}
+ * once for each translation unit that should be used
+ * and finally call {@link #createCFA()}.
  */
 class CFABuilder extends ASTVisitor {
 
@@ -111,34 +115,12 @@ class CFABuilder extends ASTVisitor {
     shouldVisitTranslationUnit = true;
   }
 
-  public void prepareNextASTVisit(String staticVariablePrefix) throws InvalidConfigurationException {
+  public void analyzeTranslationUnit(IASTTranslationUnit ast, String staticVariablePrefix) throws InvalidConfigurationException {
     fileScope = new GlobalScope();
     astCreator = new ASTConverter(config, fileScope, logger, machine, staticVariablePrefix);
     functionDeclarations.add(Pair.of((List<IASTFunctionDefinition>)new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix));
-  }
 
-  /**
-   * Retrieves list of all functions
-   * @return all CFAs in the program
-   */
-  public Map<String, FunctionEntryNode> getCFAs()  {
-    return cfas;
-  }
-
-  /**
-   * Retrieves list of all nodes
-   * @return all CFAs in the program
-   */
-  public SortedSetMultimap<String, CFANode> getCFANodes()  {
-    return cfaNodes;
-  }
-
-  /**
-   * Retrieves list of all global declarations
-   * @return global declarations
-   */
-  public List<Pair<IADeclaration, String>> getGlobalDeclarations() {
-    return globalDeclarations;
+    ast.accept(this);
   }
 
   /* (non-Javadoc)
@@ -263,7 +245,7 @@ class CFABuilder extends ASTVisitor {
     throw new CFAGenerationRuntimeException(problem);
   }
 
-  public void createCFA() {
+  public ParseResult createCFA() {
     ImmutableMap<String, CFunctionDeclaration> functions = globalScope.getFunctions();
     ImmutableMap<String, CComplexTypeDeclaration> types = globalScope.getTypes();
     ImmutableMap<String, CSimpleDeclaration> globalVars = globalScope.getGlobalVars();
@@ -303,6 +285,8 @@ class CFABuilder extends ASTVisitor {
     if (encounteredAsm) {
       logger.log(Level.WARNING, "Inline assembler ignored, analysis is probably unsound!");
     }
+
+    return new ParseResult(cfas, cfaNodes, globalDeclarations, Language.C);
   }
 
   @Override

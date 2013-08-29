@@ -49,7 +49,6 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -219,17 +218,13 @@ abstract class AbstractEclipseCParser<T> implements CParser {
     try {
       CFABuilder builder = new CFABuilder(config, logger, machine);
       for(Pair<IASTTranslationUnit, String> ast : asts) {
-
-        builder.prepareNextASTVisit(ast.getSecond());
-        try {
-          ast.getFirst().accept(builder);
-        } catch (CFAGenerationRuntimeException e) {
-          throw new CParserException(e);
-        }
+        builder.analyzeTranslationUnit(ast.getFirst(), ast.getSecond());
       }
-      builder.createCFA();
 
-      return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getGlobalDeclarations(), Language.C);
+      return builder.createCFA();
+
+    } catch (CFAGenerationRuntimeException e) {
+      throw new CParserException(e);
     } finally {
       cfaTimer.stop();
     }
