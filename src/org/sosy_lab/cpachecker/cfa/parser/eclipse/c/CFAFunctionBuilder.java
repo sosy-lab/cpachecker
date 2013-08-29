@@ -74,6 +74,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarationStatement;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -1637,6 +1638,13 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (lastStatement instanceof IASTProblemStatement) {
       throw new CFAGenerationRuntimeException((IASTProblemStatement) lastStatement);
     }
+
+    if (lastStatement instanceof CASTDeclarationStatement && tempVar == null) {
+      locStack.push(middleNode);
+      visit(lastStatement);
+      return locStack.pop();
+    }
+
     if (!(lastStatement instanceof IASTExpressionStatement)) {
       throw new CFAGenerationRuntimeException("Unsupported statement type " + lastStatement.getClass().getSimpleName() + " at end of compound-statement expression", lastStatement);
     }
