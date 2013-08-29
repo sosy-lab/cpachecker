@@ -606,5 +606,8 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except KeyboardInterrupt: # this block is reached, when interrupt is thrown before or after a run set execution
-        killScript()
+        if config.cloud:
+            killScriptCloud()
+        else:
+            killScriptLocal()
         Util.printOut("\n\nScript was interrupted by user, some runs may not be done.")
