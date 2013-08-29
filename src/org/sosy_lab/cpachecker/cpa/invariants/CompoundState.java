@@ -430,6 +430,24 @@ public class CompoundState {
   }
 
   /**
+   * Gets the signum of the compound state.
+   * @return the signum of the compound state.
+   */
+  public CompoundState signum() {
+    CompoundState result = bottom();
+    if (containsNegative()) {
+      result = result.unionWith(CompoundState.singleton(-1));
+    }
+    if (containsZero()) {
+      result = result.unionWith(CompoundState.singleton(0));
+    }
+    if (containsPositive()) {
+      result = result.unionWith(CompoundState.singleton(1));
+    }
+    return result;
+  }
+
+  /**
    * Computes the state spanning from the compound state's lower bound and its upper bound.
    * @return the state spanning from the compound state's lower bound and its upper bound.
    */
