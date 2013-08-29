@@ -217,7 +217,7 @@ public class ARGStatistics implements Statistics {
       final Set<Pair<ARGState, ARGState>> targetPathEdges = getEdgesOfPath(targetPath);
       allTargetPathEdges.addAll(targetPathEdges);
 
-      if (exportErrorPath && targetPath != null) {
+      if (exportErrorPath && counterexample != null) {
         exportCounterexample(pReached, rootState, cexIndex++, counterexample,
             targetPath, Predicates.in(targetPathEdges));
       }
