@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -295,14 +296,29 @@ class CFABuilder extends ASTVisitor {
     Map<String, CFunctionDeclaration> functions = new HashMap<>();
     Map<String, CComplexTypeDeclaration> types = new HashMap<>();
     Map<String, CTypeDefDeclaration> typedefs = new HashMap<>();
-    globalVars.putAll(fileScope.getGlobalVars());
+
     globalVars.putAll(globalScope.getGlobalVars());
-    functions.putAll(fileScope.getFunctions());
     functions.putAll(globalScope.getFunctions());
-    types.putAll(fileScope.getTypes());
     types.putAll(globalScope.getTypes());
-    typedefs.putAll(fileScope.getTypeDefs());
     typedefs.putAll(globalScope.getTypeDefs());
+
+    globalVars.putAll(fileScope.getGlobalVars());
+    functions.putAll(fileScope.getFunctions());
+    typedefs.putAll(fileScope.getTypeDefs());
+
+    //only add those composite types from the filescope to the globalscope,
+    // where no type, or only an elaborated type without realtype was registered before
+    for (String key : fileScope.getTypes().keySet().asList()) {
+      CComplexTypeDeclaration type = types.get(key);
+
+      if (type != null) {
+        if (type.getType() instanceof CElaboratedType && ((CElaboratedType) type.getType()).getRealType() == null) {
+          types.put(key, fileScope.getTypes().get(key));
+        }
+      } else {
+        types.put(key, fileScope.getTypes().get(key));
+      }
+    }
 
     globalScope= new GlobalScope(globalVars, functions, types, typedefs);
     return PROCESS_CONTINUE;
