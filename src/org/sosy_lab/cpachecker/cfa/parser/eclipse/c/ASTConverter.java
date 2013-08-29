@@ -1069,9 +1069,7 @@ class ASTConverter {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Function definition with initializer", d);
         }
-        if (!isGlobal) {
-          throw new CFAGenerationRuntimeException("Non-global function definition", d);
-        }
+
         CFunctionTypeWithNames functionType = (CFunctionTypeWithNames)type;
         return new CFunctionDeclaration(fileLoc, functionType, name, functionType.getParameterDeclarations());
       }

@@ -52,7 +52,7 @@ import com.google.common.collect.ImmutableMap;
  */
 class FunctionScope implements Scope {
 
-  private final ImmutableMap<String, CFunctionDeclaration> functions;
+  private final Map<String, CFunctionDeclaration> functions = new HashMap<>();
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
   private final Deque<Map<String, CVariableDeclaration>> labelsStack = new ArrayDeque<>();
   private final Deque<Map<String, CLabelNode>> labelsNodeStack = new ArrayDeque<>();
@@ -65,7 +65,7 @@ class FunctionScope implements Scope {
       ImmutableMap<String, CComplexTypeDeclaration> pTypes,
       ImmutableMap<String, CSimpleDeclaration> pGlobalVars) {
 
-    functions = pFunctions;
+    functions.putAll(pFunctions);
     typesStack.addLast(pTypes);
     varsStack.push(pGlobalVars);
     varsList.push(pGlobalVars);
@@ -255,6 +255,10 @@ class FunctionScope implements Scope {
       }
     }
     return null;
+  }
+
+  public void registerLocalFunction(CFunctionDeclaration function) {
+    functions.put(function.getName(), function);
   }
 
   public String getCurrentFunctionName() {

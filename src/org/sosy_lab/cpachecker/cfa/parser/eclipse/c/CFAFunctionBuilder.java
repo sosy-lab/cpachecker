@@ -323,9 +323,18 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       } else if (newD instanceof CComplexTypeDeclaration) {
         scope.registerTypeDeclaration((CComplexTypeDeclaration)newD);
-      } else {
-        assert !(newD instanceof CFunctionDeclaration) : "Function declaration inside function";
+
+        // function declarations in local scope are no problem as long as they
+        // do not have a body
+        // if the function is already declared it will not be redeclared
+      } else if (newD instanceof CFunctionDeclaration) {
+        if (scope.lookupFunction(((CFunctionDeclaration)newD).getName()) == null) {
+          scope.registerLocalFunction((CFunctionDeclaration)newD);
+        } else {
+          return prevNode;
+        }
       }
+
 
       CFANode nextNode = newCFANode(filelocStart);
 
