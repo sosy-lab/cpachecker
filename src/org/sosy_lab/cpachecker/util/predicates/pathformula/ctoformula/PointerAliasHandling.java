@@ -1087,6 +1087,9 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
               if (inner_varName.equals(lVarName) || inner_varName.equals(rVarName)) {
                 continue;
               }
+              if (ssa.getType(inner_varName.getName()) != null) {
+                inner_varName = inner_varName.withType(ssa.getType(inner_varName.getName()));
+              }
 
               Formula k = conv.makeVariable(inner_varName, ssa);
               BooleanFormula cond = conv.makeNondetAssignment(k, g_s);
