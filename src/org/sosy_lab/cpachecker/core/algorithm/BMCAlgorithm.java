@@ -56,6 +56,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -74,7 +75,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -115,13 +115,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
                            },
                        AbstractStates.toState(AssumptionStorageState.class));
 
-  private static final Predicate<AbstractState> IS_IN_LOOP = new Predicate<AbstractState>() {
-    @Override
-    public boolean apply(AbstractState pArg0) {
-      LoopstackState loopState = extractStateByType(pArg0, LoopstackState.class);
-      return loopState.getLoop() != null;
-    }
-  };
 
   private class BMCStatistics implements Statistics {
 
@@ -445,7 +438,16 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     Set<Loop> actualLoops = new HashSet<>();
     Set<Loop> dummyLoops = new HashSet<>();
     for (Loop loop : loops.values()) {
-      if (loop.getLoopNodes().size() > 1) {
+      // Do not count label nodes
+      FluentIterable<CFANode> loopNodes = FluentIterable.from(loop.getLoopNodes()).filter(new Predicate<CFANode>() {
+
+        @Override
+        public boolean apply(CFANode pArg0) {
+          return !(pArg0 instanceof CLabelNode);
+        }
+
+      });
+      if (loopNodes.size() > 1) {
         actualLoops.add(loop);
       } else {
         dummyLoops.add(loop);
@@ -467,7 +469,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
     stats.inductionPreparation.start();
 
-    Loop loop = Iterables.getOnlyElement(actualLoops);
+    final Loop loop = Iterables.getOnlyElement(actualLoops);
 
     // function edges do not count as incoming/outgoing edges
     FluentIterable<CFAEdge> incomingEdges = from(loop.getIncomingEdges())
@@ -549,25 +551,19 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     Multimap<CFANode, AbstractState> reachedPerLocation = Multimaps.index(reached, EXTRACT_LOCATION);
 
     // live view of reached set with only the states in the loop
-    FluentIterable<AbstractState> loopStates = from(reached).filter(IS_IN_LOOP);
+    FluentIterable<AbstractState> loopStates = from(reached).filter(new Predicate<AbstractState>() {
+      @Override
+      public boolean apply(AbstractState pArg0) {
+        LoopstackState loopState = extractStateByType(pArg0, LoopstackState.class);
+        return loop.equals(loopState.getLoop());
+      }
+    });
 
     assert !loopStates.isEmpty();
 
-    FluentIterable<AbstractState> targetStatesInLoop = loopStates.filter(IS_TARGET_STATE);
     // There must not be any target states in real loops
-    for (AbstractState targetStateInLoop : targetStatesInLoop) {
-      // Check if the target state found in the loop is part of a dummy loop
-      CFANode targetStateNode = extractStateByType(targetStateInLoop, LocationState.class).getLocationNode();
-      boolean isInDummyLoop = false;
-      for (Loop dummyLoop : dummyLoops) {
-        if (dummyLoop.getLoopNodes().contains(targetStateNode)) {
-          isInDummyLoop = true;
-          break;
-        }
-      }
-      if (!isInDummyLoop) {
-        logger.log(Level.WARNING, "Could not use induction for proving program safety, target state is contained in the loop");
-      }
+    if (loopStates.anyMatch(IS_TARGET_STATE)) {
+      logger.log(Level.WARNING, "Could not use induction for proving program safety, target state is contained in the loop");
     }
 
     // get global invariants
