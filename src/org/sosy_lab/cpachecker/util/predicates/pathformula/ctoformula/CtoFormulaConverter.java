@@ -1590,7 +1590,7 @@ public class CtoFormulaConverter {
   Formula makeVariableUnsafe(CExpression exp, String function, SSAMapBuilder ssa, boolean makeFresh) {
 
     // We actually support this expression?
-    assert (!isSupportedExpression(exp))
+    assert !options.handlePointerAliasing() || !isSupportedExpression(exp)
        : "A supported Expression is handled as unsupported!";
 
     if (makeFresh) {
