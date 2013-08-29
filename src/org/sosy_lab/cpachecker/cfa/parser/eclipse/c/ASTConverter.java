@@ -169,7 +169,10 @@ class ASTConverter {
 
   private final Scope scope;
 
-  private int anonTypeCounter = 0;
+  // this counter is static to make the replacing names for anonymous types, in
+  // more than one file (which get parsed with different AstConverters, although
+  // they are in the same run) unique
+  private static int anonTypeCounter = 0;
 
   private final List<CAstNode> preSideAssignments = new ArrayList<>();
   private final List<CAstNode> postSideAssignments = new ArrayList<>();
