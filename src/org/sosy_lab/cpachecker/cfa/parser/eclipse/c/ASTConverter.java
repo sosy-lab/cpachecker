@@ -709,10 +709,6 @@ class ASTConverter {
       params.add(convertExpressionWithoutSideEffects(toExpression(i)));
     }
 
-//    if (scope.lookupFunction(staticVariablePrefix + e.getFunctionNameExpression().getRawSignature()) != null) {
-//      isStaticNameExpression = true;
-//    }
-
     CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
     CFunctionDeclaration declaration = null;
 
