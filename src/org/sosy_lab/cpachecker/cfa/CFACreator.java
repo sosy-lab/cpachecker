@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
+import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplifier;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -73,6 +74,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils.Loop;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -114,6 +116,10 @@ public class CFACreator {
   @Option(name="analysis.useGlobalVars",
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
+
+  @Option(name="analysis.simplifyExpressions",
+      description="simplify pure numeral expressions like '1+2' to '3'")
+  private boolean simplifyExpressions = false;
 
   @Option(name="cfa.useMultiEdges",
       description="combine sequences of simple edges into a single edge")
@@ -353,6 +359,16 @@ public class CFACreator {
       if (useGlobalVars) {
         // add global variables at the beginning of main
         insertGlobalDeclarations(cfa, c.getGlobalDeclarations());
+      }
+
+      if (simplifyExpressions) {
+        // this replaces some edges in the CFA with new edges.
+        // all expressions, that can be evaluated, will be replaced with their result.
+        // example: a=1+2; --> a=3;
+        // TODO support for constant propagation like "define MAGIC_NUMBER 1234".
+        ExpressionSimplifier es = new ExpressionSimplifier(machineModel);
+        CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(mainFunction, es);
+        es.replaceEdges();
       }
 
       // get information about variables, needed for some analysis (BDDCPA),
