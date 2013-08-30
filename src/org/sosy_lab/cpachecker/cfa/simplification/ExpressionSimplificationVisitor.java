@@ -47,12 +47,12 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 import com.google.common.collect.Sets;
 
-class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
+public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     <Pair<? extends CExpression, ? extends Number>, RuntimeException> {
 
   private final MachineModel machineModel;
 
-  ExpressionSimplificationVisitor(MachineModel mm) {
+  public ExpressionSimplificationVisitor(MachineModel mm) {
     this.machineModel = mm;
   }
 

@@ -118,7 +118,7 @@ class CFABuilder extends ASTVisitor {
 
   public void analyzeTranslationUnit(IASTTranslationUnit ast, String staticVariablePrefix) throws InvalidConfigurationException {
     fileScope = new GlobalScope();
-    astCreator = new ASTConverter(config, fileScope, logger, machine, staticVariablePrefix);
+    astCreator = new ASTConverter(config, fileScope, logger, machine, staticVariablePrefix, true);
     functionDeclarations.add(Pair.of((List<IASTFunctionDefinition>)new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix));
 
     ast.accept(this);

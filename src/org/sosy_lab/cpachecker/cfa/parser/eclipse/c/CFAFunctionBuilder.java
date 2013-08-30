@@ -173,7 +173,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     logger = pLogger;
     scope = pScope;
-    astCreator = new ASTConverter(config, pScope, pLogger, pMachine, staticVariablePrefix);
+    astCreator = new ASTConverter(config, pScope, pLogger, pMachine, staticVariablePrefix, false);
     checkBinding = new CheckBindingVisitor(pLogger);
 
     shouldVisitDeclarations = true;

@@ -131,6 +131,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -163,6 +164,9 @@ class ASTConverter {
         "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide")
   private boolean simplifyPointerExpressions = false;
 
+  private final boolean simplifyConstExpressions;
+  private final ExpressionSimplificationVisitor expressionSimplificator;
+
   private final LogManager logger;
   private final ASTLiteralConverter literalConverter;
   private final ASTTypeConverter typeConverter;
@@ -183,13 +187,21 @@ class ASTConverter {
 
   private static final ContainsProblemTypeVisitor containsProblemTypeVisitor = new ContainsProblemTypeVisitor();
 
-  public ASTConverter(Configuration config, Scope pScope, LogManager pLogger, MachineModel pMachineModel, String staticVariablePrefix) throws InvalidConfigurationException {
+  public ASTConverter(Configuration config, Scope pScope, LogManager pLogger,
+      MachineModel pMachineModel, String staticVariablePrefix,
+      boolean pSimplifyConstExpressions) throws InvalidConfigurationException {
     config.inject(this);
     scope = pScope;
     logger = pLogger;
     typeConverter = new ASTTypeConverter(scope, this);
     literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
     this.staticVariablePrefix = staticVariablePrefix;
+    simplifyConstExpressions = pSimplifyConstExpressions;
+    if (simplifyConstExpressions) {
+      expressionSimplificator = new ExpressionSimplificationVisitor(pMachineModel);
+    } else {
+      expressionSimplificator = null;
+    }
   }
 
   public List<CAstNode> getAndResetPreSideAssignments() {
@@ -358,6 +370,17 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTConditionalExpression e) {
+    if (simplifyConstExpressions) {
+      CExpression condition = convertExpressionWithoutSideEffects(e.getLogicalConditionExpression());
+      Number value = condition.accept(expressionSimplificator).getSecond();
+
+      if (value != null && value.longValue() == 0) {
+        return convertExpressionWithSideEffects(e.getNegativeResultExpression());
+      } else {
+        return convertExpressionWithSideEffects(e.getPositiveResultExpression());
+      }
+    }
+
     CIdExpression tmp = createTemporaryVariable(e);
     addConditionalExpression(e, tmp);
     return tmp;
