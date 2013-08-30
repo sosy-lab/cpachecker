@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.simplification;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
@@ -70,29 +69,29 @@ public class ExpressionSimplifier implements CFAVisitor {
 
   // Map of oldEdge to newEdge,
   // List is enough, because we only add edges and at last we iterate over them.
-  List<Pair<CFAEdge, CFAEdge>> e2e = new LinkedList<>();
+  private final List<Pair<CFAEdge, CFAEdge>> e2e = new ArrayList<>();
 
 
-  public ExpressionSimplifier(MachineModel mm) {
+  public ExpressionSimplifier(final MachineModel mm) {
     this.machineModel = mm;
   }
 
 
   @Override
-  public TraversalProcess visitEdge(CFAEdge edge) {
+  public TraversalProcess visitEdge(final CFAEdge edge) {
     replaceEdgeWithSimplifiedEdge(edge);
     return TraversalProcess.CONTINUE;
   }
 
 
   @Override
-  public TraversalProcess visitNode(CFANode node) {
+  public TraversalProcess visitNode(final CFANode node) {
     return TraversalProcess.CONTINUE;
   }
 
 
   /** This method analyses the edge for expressions and evaluates them.
-   * If possible, hte edge is replaced with a new edge with the simplified expression. */
+   * If possible, the edge is replaced with a new edge with the simplified expression. */
   private void replaceEdgeWithSimplifiedEdge(final CFAEdge oldEdge) {
     // this info is needed for all types of edges
     final CFANode start = oldEdge.getPredecessor();
@@ -109,9 +108,6 @@ public class ExpressionSimplifier implements CFAVisitor {
       // so we store the new edge and call "replaceEdges()" later.
 
       e2e.add(Pair.of(oldEdge, newEdge));
-
-//      System.out.println("old: " + oldEdge);
-//      System.out.println("new: " + newEdge);
     }
   }
 

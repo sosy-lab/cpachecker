@@ -47,6 +47,9 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 import com.google.common.collect.Sets;
 
+/** This visitor visits an expression and evaluates it.
+ * The returnvalue of the visit consists of the simplified expression and
+ * - if possible - a numeral value for the expression. */
 public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     <Pair<? extends CExpression, ? extends Number>, RuntimeException> {
 
@@ -57,7 +60,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   }
 
   @Override
-  protected Pair<CExpression, Number> visitDefault(CExpression expr) {
+  protected Pair<CExpression, Number> visitDefault(final CExpression expr) {
     return Pair.of(expr, null);
   }
 
@@ -293,12 +296,12 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   }
 
   @Override
-  public Pair<CExpression, Number> visit(CPointerExpression expr) {
+  public Pair<CExpression, Number> visit(final CPointerExpression expr) {
     return visitDefault(expr);
   }
 
   @Override
-  public Pair<CExpression, Number> visit(CFieldReference expr) {
+  public Pair<CExpression, Number> visit(final CFieldReference expr) {
     return visitDefault(expr);
   }
 }
