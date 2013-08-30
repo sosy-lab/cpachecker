@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Predicates.contains;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoFormulaTypeUtils.*;
 
@@ -31,6 +32,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Triple;
@@ -76,13 +79,15 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types.CtoF
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.predicate")
 class PointerAliasHandling extends CtoFormulaConverter {
 
-  static final String POINTER_VARIABLE = "__content_of__";
-  static final Predicate<String> IS_POINTER_VARIABLE = CtoFormulaConverter.startsWith(POINTER_VARIABLE);
+  @VisibleForTesting
+  static final Pattern POINTER_VARIABLE =
+      Pattern.compile("^" + "__content__" + "[0-9]+" + "__of__" + "(.+)" + "__at__" + "-?[0-9]+" + "__end" + "$");
 
   /** The prefix used for variables representing memory locations. */
   static final String MEMORY_ADDRESS_VARIABLE_PREFIX = "__address_of__";
@@ -100,15 +105,18 @@ class PointerAliasHandling extends CtoFormulaConverter {
 
 
   /** Takes a (scoped) variable name and returns the pointer variable name. */
-  static String makePointerMaskName(String scopedId, SSAMapBuilder ssa) {
-    return POINTER_VARIABLE + scopedId + "__at__" + ssa.getIndex(scopedId) + "__end";
+  static String makePointerMaskName(String scopedId, int size, SSAMapBuilder ssa) {
+    checkArgument(size >= 0, "Illegal size %s for target of pointer %s", size, scopedId);
+    return "__content__" + size + "__of__" + scopedId + "__at__" + ssa.getIndex(scopedId) + "__end";
   }
 
-  static Variable makePointerMask(Variable pointerVar, SSAMapBuilder ssa) {
-    Variable ptrMask = Variable.create(makePointerMaskName(pointerVar.getName(), ssa), dereferencedType(pointerVar.getType()));
-    if (isDereferenceType(ptrMask.getType())) {
+  Variable makePointerMask(Variable pointerVar, SSAMapBuilder ssa) {
+    CType targetType = dereferencedType(pointerVar.getType());
+
+    /* Cannot do this anymore with size of variable embedded in name.
+    if (isDereferenceType(targetType)) {
       // lookup in ssa map: Maybe we assigned a size to this current variable
-      CType savedVarType = ssa.getType(ptrMask.getName());
+      CType savedVarType = ssa.getType(targetType);
       if (savedVarType != null) {
 
         //assert isDereferenceType(savedVarType)
@@ -120,20 +128,29 @@ class PointerAliasHandling extends CtoFormulaConverter {
         // but may occur for example when a function pointer
         // with mismatching return type is called.
 
-        ptrMask = ptrMask.withType(savedVarType);
+        targetType = savedVarType;
       }
     }
-    return ptrMask;
+    */
+
+    return makePointerMask(pointerVar, targetType, ssa);
   }
+
+  Variable makePointerMask(Variable pointerVar, CType targetType, SSAMapBuilder ssa) {
+    String targetVarName = makePointerMaskName(pointerVar.getName(), getSizeof(targetType), ssa);
+    return Variable.create(targetVarName, targetType);
+  }
+
   /**
    * Takes a pointer variable name and returns the name of the associated
    * variable.
    */
   @VisibleForTesting
   static String removePointerMask(String pointerVariable) {
-    assert (IS_POINTER_VARIABLE.apply(pointerVariable));
-
-    return pointerVariable.substring(POINTER_VARIABLE.length(), pointerVariable.lastIndexOf("__at__"));
+    Matcher matcher = POINTER_VARIABLE.matcher(pointerVariable);
+    checkArgument(matcher.matches());
+    assert matcher.groupCount() == 1;
+    return matcher.group(1);
   }
 
   static Variable removePointerMaskVariable(String pointerVar, CType type) {
@@ -155,9 +172,22 @@ class PointerAliasHandling extends CtoFormulaConverter {
       return true;
     }
 
-    // check if it has been used as a pointer before
-    String expPtrVarName = makePointerMaskName(var.getName(), ssa);
-    return ssa.getType(expPtrVarName) != null;
+    // Check if it has been used as a pointer before
+    // by looking for __content__of__var__ in SSAMap.
+    final String searchedVarName = var.getName();
+
+    return Iterables.any(ssa.allVariables(),
+        new Predicate<String>() {
+          @Override
+          public boolean apply(String pInput) {
+            Matcher matcher = POINTER_VARIABLE.matcher(pInput);
+            if (!matcher.matches()) {
+              return false;
+            }
+            assert matcher.groupCount() == 1;
+            return matcher.group(1).equals(searchedVarName);
+          }
+        });
   }
 
   /**
@@ -183,7 +213,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
    * Returns a list of all pointer variables stored in the SSAMap.
    */
   static Set<Map.Entry<String, CType>> getAllPointerVariablesFromSsaMap(SSAMapBuilder ssa) {
-    return Sets.filter(ssa.allVariablesWithTypes(), liftToVariable(IS_POINTER_VARIABLE));
+    return Sets.filter(ssa.allVariablesWithTypes(), liftToVariable(contains(POINTER_VARIABLE)));
   }
 
   /**
@@ -199,7 +229,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
 
     String newVar = removePointerMask(newPVar);
 
-    for (String ptrVarName : from(ssa.allVariables()).filter(IS_POINTER_VARIABLE)) {
+    for (String ptrVarName : from(ssa.allVariables()).filter(contains(POINTER_VARIABLE))) {
       String oldVar = removePointerMask(ptrVarName);
       if (!ptrVarName.equals(newPVar) && oldVar.equals(newVar)) {
         ssa.deleteVariable(ptrVarName);
@@ -431,14 +461,13 @@ class PointerAliasHandling extends CtoFormulaConverter {
     // Now identify the several different cases where we need aliasing predicates
     // and handle them.
 
-    Variable lPtrVarName = makePointerMask(lVarName, ssa);
     if (isSimpleVariable(right)) {
       // C statement like: s1 = s2; OR s1 = s2.d;
 
       // include aliases if the left or right side may be a pointer a pointer
       Variable rightVar = scopedIfNecessary(right, ssa, function);
       if (maybePointer(lVarName, ssa) || maybePointer(rightVar, ssa)) {
-        return handlePointerToPointerAssignment(lVarName, lPtrVarName,
+        return handlePointerToPointerAssignment(lVarName,
             right, rightVar, ssa, edge);
       } else {
         // we can assume, that no pointers are affected in this assignment
@@ -450,12 +479,12 @@ class PointerAliasHandling extends CtoFormulaConverter {
       // OR s1 = *(s.b)
       // OR s1 = s->b
 
-      return handleDereferenceAssignment(lVarName, lPtrVarName, right,
+      return handleDereferenceAssignment(lVarName, right,
           function, constraints, ssa);
 
     } else if (isMemoryLocation(right)) {
       // s = &x
-      return handleAssignmentOfMemoryLocation(lVarName, lPtrVarName, right,
+      return handleAssignmentOfMemoryLocation(lVarName, right,
           function, ssa, edge);
 
     } else {
@@ -469,7 +498,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
   }
 
   private BooleanFormula handlePointerToPointerAssignment(
-      Variable lVarName, Variable lPtrVarName,
+      Variable lVarName,
       CExpression right, Variable rightVar,
       SSAMapBuilder ssa, CFAEdge edge) {
     // C statement like: s1 = s2; OR s1 = s2.d;
@@ -481,7 +510,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     }
 
-    CType leftPtrType = lPtrVarName.getType();
+    CType leftPtrType = dereferencedType(lVarName.getType());
     Variable rPtrVarName = makePointerMask(rightVar, ssa);
 
     boolean leftT, rightT;
@@ -496,8 +525,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
           CType currentRightGuess = getGuessedType(rPtrVarName.getType());
           if (currentLeftGuess == null) {
             if (currentRightGuess != null) {
-              lPtrVarName =
-                lPtrVarName.withType(setGuessedType(leftPtrType, currentRightGuess));
+              leftPtrType = setGuessedType(leftPtrType, currentRightGuess);
             }
           } else if (currentRightGuess != null) {
             if (getSizeof(currentRightGuess) != getSizeof(currentLeftGuess)) {
@@ -511,8 +539,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
           // now we assign *l to the type of *r if *l was not assigned before
           CType currentGuess = getGuessedType(leftPtrType);
           if (currentGuess == null) {
-            lPtrVarName =
-                lPtrVarName.withType(setGuessedType(leftPtrType, rPtrVarName.getType()));
+            leftPtrType = setGuessedType(leftPtrType, rPtrVarName.getType());
           } else {
             if (getSizeof(rPtrVarName.getType()) != getSizeof(currentGuess)) {
               logfOnce(Level.WARNING, edge, "Second assignment of an variable that is no pointer with different size");
@@ -543,6 +570,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
       }
     }
 
+    Variable lPtrVarName = makePointerMask(lVarName, leftPtrType, ssa);
     Formula lPtrVar = makeVariable(lPtrVarName, ssa);
     Formula rPtrVar = makeVariable(rPtrVarName, ssa);
 
@@ -550,13 +578,14 @@ class PointerAliasHandling extends CtoFormulaConverter {
   }
 
   private BooleanFormula handleDereferenceAssignment(
-      Variable lVarName, Variable lPtrVarName, CExpression right,
+      Variable lVarName, CExpression right,
       String function, Constraints constraints, SSAMapBuilder ssa) throws UnrecognizedCCodeException {
     // Assignment with dereference on right:
     // s1 = *s2;
     // OR s1 = *(s.b)
     // OR s1 = s->b
 
+    Variable lPtrVarName = makePointerMask(lVarName, ssa);
     CType leftPtrType = lPtrVarName.getType();
     if (isDereferenceType(leftPtrType)) {
       // We have an assignment to a non-pointer type
@@ -622,7 +651,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
   }
 
   private BooleanFormula handleAssignmentOfMemoryLocation(
-      Variable lVarName, Variable lPtrVarName, CExpression right,
+      Variable lVarName, CExpression right,
       String function, SSAMapBuilder ssa, CFAEdge edge) throws UnrecognizedCCodeException {
     // s = &x
     // OR s = &(x.t)
@@ -635,7 +664,7 @@ class PointerAliasHandling extends CtoFormulaConverter {
     CExpression rOperand = removeCast(((CUnaryExpression) right).getOperand());
     if (rOperand instanceof CIdExpression &&
         hasRepresentableDereference(lVarName)) {
-      CType leftPtrType = lPtrVarName.getType();
+      CType leftPtrType = dereferencedType(lVarName.getType());
       Variable rVarName = scopedIfNecessary(rOperand, ssa, function);
       Formula rVar = makeVariable(rVarName, ssa);
 
@@ -643,14 +672,15 @@ class PointerAliasHandling extends CtoFormulaConverter {
         // s is no pointer and if *s was not guessed jet we can use the type of x.
         CType guess = getGuessedType(leftPtrType);
         if (guess == null) {
-          lPtrVarName =
-              lPtrVarName.withType(setGuessedType(leftPtrType, rOperand.getExpressionType()));
+          leftPtrType = setGuessedType(leftPtrType, rOperand.getExpressionType());
         } else {
           if (getSizeof(guess) != getSizeof(rOperand.getExpressionType())) {
-            logfOnce(Level.WARNING, edge, "Size of an old guess doesn't match with the current guess for variable %s", lPtrVarName.getName());
+            logfOnce(Level.WARNING, edge, "Size of an old guess doesn't match with the current guess for target of variable %s", lVarName.getName());
           }
         }
       }
+
+      Variable lPtrVarName = makePointerMask(lVarName, leftPtrType, ssa);
       Formula lPtrVar = makeVariable(lPtrVarName, ssa);
 
       return makeNondetAssignment(lPtrVar, rVar);
@@ -907,7 +937,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
 
     //SSAMapBuilder oldssa = new SSAMapBuilder(ssa.build());
     Variable lVarName = conv.scopedIfNecessary(leftSide.getOperand(), ssa, function);
-    Variable lPtrVarName = PointerAliasHandling.makePointerMask(lVarName, ssa);
+    Variable lPtrVarName = conv.makePointerMask(lVarName, ssa);
     Formula lVar = conv.makeVariable(lVarName, ssa);
     Formula lPtrVar = conv.makeVariable(lPtrVarName, ssa);
 
@@ -933,7 +963,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
         conv.isSupportedExpression((CExpression) r, 1) &&
         CtoFormulaConverter.hasRepresentableDereference((CExpression) r)) {
       rVarName = conv.scopedIfNecessary((CExpression) r, ssa, function);
-      rPtrVar = conv.makeVariable(PointerAliasHandling.makePointerMask(rVarName, ssa), ssa);
+      rPtrVar = conv.makeVariable(conv.makePointerMask(rVarName, ssa), ssa);
       doDeepUpdate = true;
     }
 
@@ -1010,7 +1040,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
 
           // *m_old
           Formula oldVar = conv.makeVariable(varName, ssa);
-          Variable oldPtrVarName = PointerAliasHandling.makePointerMask(varName, ssa);
+          Variable oldPtrVarName = conv.makePointerMask(varName, ssa);
           // **m_old
           Formula oldPtrVar = conv.makeVariable(oldPtrVarName, ssa);
 
@@ -1018,7 +1048,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
 
           // *m_new
           Formula newVar = conv.makeVariable(varName, ssa);
-          Variable newPtrVarName = PointerAliasHandling.makePointerMask(varName, ssa);
+          Variable newPtrVarName = conv.makePointerMask(varName, ssa);
           // **m_new
           Formula newPtrVar = conv.makeVariable(newPtrVarName, ssa);
           PointerAliasHandling.removeOldPointerVariablesFromSsaMap(newPtrVarName.getName(), ssa);
@@ -1122,7 +1152,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
         // *m_new
         Formula newVar = conv.makeVariable(varName, ssa);
         // **m_new
-        Variable newPtrVarName = PointerAliasHandling.makePointerMask(varName, ssa);
+        Variable newPtrVarName = conv.makePointerMask(varName, ssa);
         PointerAliasHandling.removeOldPointerVariablesFromSsaMap(newPtrVarName.getName(), ssa);
 
         // m_new
@@ -1175,7 +1205,7 @@ class StatementToFormulaVisitorPointers extends StatementToFormulaVisitor {
                   new CFieldReference(null, member.getType(), member.getName(), leftSide, false);
 
               Variable f_s = conv.makeFieldVariable(varName, leftField, ssa);
-              Variable content_of_f_s_Name = PointerAliasHandling.makePointerMask(f_s, ssa);
+              Variable content_of_f_s_Name = conv.makePointerMask(f_s, ssa);
 
               Formula content_of_f_s_old = conv.makeVariable(content_of_f_s_Name, ssa);
               conv.makeFreshIndex(content_of_f_s_Name.getName(), content_of_f_s_Name.getType(), ssa);

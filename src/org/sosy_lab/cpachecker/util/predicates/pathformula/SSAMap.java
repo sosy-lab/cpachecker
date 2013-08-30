@@ -111,8 +111,10 @@ public class SSAMap implements Serializable {
       checkNotNull(type);
       CType oldType = varTypes.get(name);
       if (oldType != null) {
-        Preconditions.checkArgument(oldType.getCanonicalType().equals(type.getCanonicalType())
+        Preconditions.checkArgument(
+            name.startsWith("__content__")
             || type instanceof CFunctionType || oldType instanceof CFunctionType
+            || oldType.getCanonicalType().equals(type.getCanonicalType())
             , "Cannot change type of variable %s in SSAMap from %s to %s", name, oldType, type);
       } else {
         varTypes = varTypes.putAndCopy(name, type);
