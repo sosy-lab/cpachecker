@@ -197,11 +197,8 @@ class ASTConverter {
     literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
     this.staticVariablePrefix = staticVariablePrefix;
     simplifyConstExpressions = pSimplifyConstExpressions;
-    if (simplifyConstExpressions) {
-      expressionSimplificator = new ExpressionSimplificationVisitor(pMachineModel);
-    } else {
-      expressionSimplificator = null;
-    }
+
+    expressionSimplificator = new ExpressionSimplificationVisitor(pMachineModel);
   }
 
   public List<CAstNode> getAndResetPreSideAssignments() {
@@ -261,6 +258,10 @@ class ASTConverter {
     } else {
       throw new AssertionError("unknown expression " + node);
     }
+  }
+
+  Pair<? extends CExpression, ? extends Number> simplifyAndEvaluateExpression(CExpression exp) {
+    return exp.accept(expressionSimplificator);
   }
 
   private CExpression addSideassignmentsForExpressionsWithoutSideEffects(CAstNode node,
@@ -372,7 +373,7 @@ class ASTConverter {
   private CAstNode convert(IASTConditionalExpression e) {
     if (simplifyConstExpressions) {
       CExpression condition = convertExpressionWithoutSideEffects(e.getLogicalConditionExpression());
-      Number value = condition.accept(expressionSimplificator).getSecond();
+      Number value = simplifyAndEvaluateExpression(condition).getSecond();
 
       if (value != null && value.longValue() == 0) {
         return convertExpressionWithSideEffects(e.getNegativeResultExpression());
@@ -1301,13 +1302,16 @@ class ASTConverter {
   private CType convert(IASTArrayModifier am, CType type) {
     if (am instanceof org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier) {
       org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier a = (org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier)am;
-      return new CArrayType(a.isConst(), a.isVolatile(), type, convertExpressionWithoutSideEffects(a.getConstantExpression()));
+      CExpression lengthExp = convertExpressionWithoutSideEffects(a.getConstantExpression());
+      if (lengthExp != null) {
+        lengthExp = simplifyAndEvaluateExpression(lengthExp).getFirst();
+      }
+      return new CArrayType(a.isConst(), a.isVolatile(), type, lengthExp);
 
     } else {
       throw new CFAGenerationRuntimeException("Unknown array modifier", am);
     }
   }
-
 
   private Triple<CType, IASTInitializer, String> convert(IASTFunctionDeclarator d, CType returnType) {
 

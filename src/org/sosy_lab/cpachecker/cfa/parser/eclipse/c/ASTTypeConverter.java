@@ -296,6 +296,9 @@ class ASTTypeConverter {
     } else {
       try {
         length = converter.convertExpressionWithoutSideEffects(t.getArraySizeExpression());
+        if (length != null) {
+          length = converter.simplifyAndEvaluateExpression(length).getFirst();
+        }
       } catch (DOMException e) {
         throw new CFAGenerationRuntimeException(e);
       }
