@@ -210,9 +210,8 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
   int getNumberOfGlobalVariables() {
     int numberOfGlobalVariables = 0;
 
-    // TODO Why do we count all variables that are on the stack?
     for (MemoryLocation variableName : constantsMap.keySet()) {
-      if (variableName.isOnFunctionStack()) {
+      if (!variableName.isOnFunctionStack()) {
         numberOfGlobalVariables++;
       }
     }
@@ -460,9 +459,9 @@ public class ExplicitState implements AbstractQueryableState, FormulaReportingSt
     Set<String> difference = new HashSet<>();
 
     for (MemoryLocation variableName : other.constantsMap.keySet()) {
-      if (!contains(variableName.getAsSimpleString())) {
+      if (!contains(variableName)) {
         difference.add(variableName.getAsSimpleString());
-      } else if (!getValueFor(variableName.getAsSimpleString()).equals(other.getValueFor(variableName.getAsSimpleString()))) {
+      } else if (!getValueFor(variableName).equals(other.getValueFor(variableName))) {
         difference.add(variableName.getAsSimpleString());
       }
     }

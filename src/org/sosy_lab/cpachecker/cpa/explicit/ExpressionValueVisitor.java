@@ -270,7 +270,13 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<Long, Unre
 
     boolean isGlobal = isGlobal(idExp);
 
-    String varName = getScopedVariableName(idExp.getName(), getFunctionName(), isGlobal);
+    MemoryLocation varName;
+
+    if (isGlobal) {
+      varName = MemoryLocation.valueOf(idExp.getName(), 0);
+    } else {
+      varName = MemoryLocation.valueOf(getFunctionName(), idExp.getName(), 0);
+    }
 
     if (getState().contains(varName)) {
       return getState().getValueFor(varName);
@@ -684,7 +690,13 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<Long, Unre
 
     boolean isGlobal = declarationIsGlobalScoped(decl);
 
-    String varName = getScopedVariableName(idExp.getName(), getFunctionName(), isGlobal);
+    MemoryLocation varName;
+
+    if (isGlobal) {
+      varName = MemoryLocation.valueOf(idExp.getName(), 0);
+    } else {
+      varName = MemoryLocation.valueOf(getFunctionName(), idExp.getName(), 0);
+    }
 
     if (getState().contains(varName)) {
       return getState().getValueFor(varName);
@@ -796,13 +808,6 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<Long, Unre
   @Override
   public Long visit(JCastExpression pJCastExpression) throws UnrecognizedCCodeException {
     return pJCastExpression.getOperand().accept(this);
-  }
-
-  private String getScopedVariableName(String variableName, String functionName, boolean isGlobal) {
-
-    if (isGlobal) { return variableName; }
-
-    return functionName + "::" + variableName;
   }
 
   public ExplicitState getState() {
