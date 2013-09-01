@@ -234,7 +234,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       String paramName = parameters.get(i).getName();
 
-      MemoryLocation formalParamName = MemoryLocation.valueOf(functionName, paramName, 0);
+      MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName, 0);
 
       if (value == null) {
         newElement.forget(formalParamName);
@@ -287,9 +287,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       // we expect left hand side of the expression to be a variable
 
       if (op1 instanceof CLeftHandSide) {
-        MemoryLocation returnVarName = MemoryLocation.valueOf(FUNCTION_RETURN_VAR);
+        MemoryLocation returnVarName = MemoryLocation.valueOf(functionName, FUNCTION_RETURN_VAR, 0);
 
-        ExpressionValueVisitor v = new ExpressionValueVisitor();
+        ExpressionValueVisitor v = new ExpressionValueVisitor(state, callerFunctionName);
 
         MemoryLocation assignedVarName = v.evaluateMemoryLocation((CLeftHandSide) op1);
 
@@ -402,6 +402,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     Long initialValue = null;
 
+    // get initial value
+    IAInitializer init = decl.getInitializer();
+
     // handle global variables
     if (decl.isGlobal()) {
       // if this is a global variable, add to the list of global variables
@@ -413,11 +416,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       }
 
       // global variables without initializer are set to 0 in C
-      initialValue = 0L;
+      if (init == null) {
+        initialValue = 0L;
+      }
     }
-
-    // get initial value
-    IAInitializer init = decl.getInitializer();
 
     MemoryLocation memoryLocation;
 
@@ -680,6 +682,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     public ExpressionValueVisitor() {
       super(state, functionName, machineModel);
 
+    }
+
+    public ExpressionValueVisitor(ExplicitState pState, String pFunctionName) {
+      super(pState,pFunctionName, machineModel);
     }
   }
 
