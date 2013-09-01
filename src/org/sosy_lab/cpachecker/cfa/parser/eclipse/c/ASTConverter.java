@@ -193,7 +193,7 @@ class ASTConverter {
     config.inject(this);
     scope = pScope;
     logger = pLogger;
-    typeConverter = new ASTTypeConverter(scope, this);
+    typeConverter = new ASTTypeConverter(scope, this, staticVariablePrefix);
     literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
     this.staticVariablePrefix = staticVariablePrefix;
     simplifyConstExpressions = pSimplifyConstExpressions;
@@ -654,7 +654,7 @@ class ASTConverter {
         }
 
         if (field == null) {
-          throw new CFAGenerationRuntimeException("Cannot access field " + fieldName + " in " + ownerType, e);
+          throw new CFAGenerationRuntimeException("Cannot access field " + fieldName + " in " + ownerType + " in file " + staticVariablePrefix.split("__")[0], e);
         }
 
         CType fieldType = field.getType();
@@ -1413,6 +1413,15 @@ class ASTConverter {
     if (Strings.isNullOrEmpty(name)) {
       name = "__anon_type_" + anonTypeCounter++;
     }
+
+    String qualifiedName = (kind.toASTString() + " " + name).trim();
+    if (!scope.isTypeNameAvailable(qualifiedName)) {
+      int counter = 0;
+      while(!scope.isTypeNameAvailable(qualifiedName + "__" + counter)) {
+        counter++;
+      }
+      name = name + "__" + counter;
+    }
     CCompositeType compositeType = new CCompositeType(d.isConst(), d.isVolatile(), kind, list, name);
 
     // in cases like struct s { (struct s)* f }
@@ -1433,7 +1442,20 @@ class ASTConverter {
         lastValue = null;
       }
     }
-    CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, convert(d.getName()));
+
+    // check if name of this enum was already used in another file, if
+    // yes, it is renamed
+    String name = convert(d.getName());
+    if (!scope.isTypeNameAvailable("enum " + name)) {
+      int counter = 0;
+      String qualifiedName = "enum " + name;
+      while(!scope.isTypeNameAvailable(qualifiedName + "__" + counter)) {
+        counter++;
+      }
+      name = name + "__" + counter;
+    }
+
+    CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, name);
     for (CEnumerator enumValue : enumType.getEnumerators()) {
       enumValue.setEnum(enumType);
     }

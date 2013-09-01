@@ -28,8 +28,10 @@ import static com.google.common.base.Preconditions.*;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -58,17 +60,21 @@ class FunctionScope implements Scope {
   private final Deque<Map<String, CLabelNode>> labelsNodeStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
+  private final Set<String> alreayTakenTypeNames;
+
 
   private String currentFunctionName = null;
 
   public FunctionScope(ImmutableMap<String, CFunctionDeclaration> pFunctions,
       ImmutableMap<String, CComplexTypeDeclaration> pTypes,
-      ImmutableMap<String, CSimpleDeclaration> pGlobalVars) {
+      ImmutableMap<String, CSimpleDeclaration> pGlobalVars,
+      Set<String> pAlreadyTykeTypes) {
 
     functions.putAll(pFunctions);
     typesStack.addLast(pTypes);
     varsStack.push(pGlobalVars);
     varsList.push(pGlobalVars);
+    alreayTakenTypeNames = pAlreadyTykeTypes;
 
     enterBlock();
   }
@@ -76,7 +82,8 @@ class FunctionScope implements Scope {
   public FunctionScope() {
     this(ImmutableMap.<String, CFunctionDeclaration>of(),
          ImmutableMap.<String, CComplexTypeDeclaration>of(),
-         ImmutableMap.<String, CSimpleDeclaration>of());
+         ImmutableMap.<String, CSimpleDeclaration>of(),
+         new HashSet<String>());
   }
 
   @Override
@@ -206,12 +213,18 @@ class FunctionScope implements Scope {
 
     if (lookupType(typeName) != null) {
       throw new CFAGenerationRuntimeException("Shadowing types are currently not supported", declaration);
+    } else if (alreayTakenTypeNames.contains(typeName)) {
+      throw new CFAGenerationRuntimeException("Complex type " + typeName + " is already declared in another file");
     }
 
     typesStack.peekLast().put(typeName, declaration);
     return true;
   }
 
+  @Override
+  public boolean isTypeNameAvailable(String name) {
+    return !alreayTakenTypeNames.contains(name);
+  }
 
   public CVariableDeclaration lookupLocalLabel(String name) {
     checkNotNull(name);

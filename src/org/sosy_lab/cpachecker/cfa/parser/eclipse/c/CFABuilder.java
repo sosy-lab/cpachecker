@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -80,6 +81,7 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
   private final List<Pair<List<IASTFunctionDefinition>, String>> functionDeclarations = new ArrayList<>();
+  private final Map<String, Set<String>> renamedTypes = new HashMap<>();
   private final Map<String, FunctionEntryNode> cfas = new HashMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
   private final List<String> eliminateableDuplicates = new ArrayList<>();
@@ -102,6 +104,7 @@ class CFABuilder extends ASTVisitor {
   private final Configuration config;
 
   private boolean encounteredAsm = false;
+  private String staticVariablePrefix;
 
   public CFABuilder(Configuration config, LogManager pLogger, MachineModel pMachine) throws InvalidConfigurationException {
     logger = pLogger;
@@ -117,7 +120,12 @@ class CFABuilder extends ASTVisitor {
   }
 
   public void analyzeTranslationUnit(IASTTranslationUnit ast, String staticVariablePrefix) throws InvalidConfigurationException {
-    fileScope = new GlobalScope();
+    this.staticVariablePrefix = staticVariablePrefix;
+    fileScope = new GlobalScope(new HashMap<String, CSimpleDeclaration>(),
+                                new HashMap<String, CFunctionDeclaration>(),
+                                new HashMap<String, CComplexTypeDeclaration>(),
+                                new HashMap<String, CTypeDefDeclaration>(),
+                                globalScope.getTypes().keySet());
     astCreator = new ASTConverter(config, fileScope, logger, machine, staticVariablePrefix, true);
     functionDeclarations.add(Pair.of((List<IASTFunctionDefinition>)new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix));
 
@@ -258,7 +266,7 @@ class CFABuilder extends ASTVisitor {
 
     for (Pair<List<IASTFunctionDefinition>, String> pair : functionDeclarations) {
       for (IASTFunctionDefinition declaration : pair.getFirst()) {
-        FunctionScope localScope = new FunctionScope(functions, types, globalVars);
+        FunctionScope localScope = new FunctionScope(functions, types, globalVars, renamedTypes.get(pair.getSecond()));
         CFAFunctionBuilder functionBuilder;
 
         try {
@@ -306,6 +314,8 @@ class CFABuilder extends ASTVisitor {
     functions.putAll(fileScope.getFunctions());
     typedefs.putAll(fileScope.getTypeDefs());
 
+    renamedTypes.put(staticVariablePrefix, fileScope.getRenamedTypes());
+
     //only add those composite types from the filescope to the globalscope,
     // where no type, or only an elaborated type without realtype was registered before
     for (String key : fileScope.getTypes().keySet().asList()) {
@@ -320,7 +330,7 @@ class CFABuilder extends ASTVisitor {
       }
     }
 
-    globalScope= new GlobalScope(globalVars, functions, types, typedefs);
+    globalScope= new GlobalScope(globalVars, functions, types, typedefs, new HashSet<String>());
     return PROCESS_CONTINUE;
   }
 }

@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -41,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Implementation of {@link Scope} for the global scope
@@ -53,22 +56,26 @@ class GlobalScope implements Scope {
   private final Map<String, CFunctionDeclaration> functions;
   private final Map<String, CComplexTypeDeclaration> types;
   private final Map<String, CTypeDefDeclaration> typedefs;
+  private final Set<String> alreayTakenTypeNames;
 
   public GlobalScope(Map<String, CSimpleDeclaration> globalVars,
                      Map<String, CFunctionDeclaration> functions,
                      Map<String, CComplexTypeDeclaration> types,
-                     Map<String, CTypeDefDeclaration> typedefs) {
+                     Map<String, CTypeDefDeclaration> typedefs,
+                     Set<String> alreadyTakenTypeNames) {
     this.globalVars = globalVars;
     this.functions = functions;
     this.types = types;
     this.typedefs = typedefs;
+    this.alreayTakenTypeNames = alreadyTakenTypeNames;
   }
 
   public GlobalScope() {
     this(new HashMap<String, CSimpleDeclaration>(),
          new HashMap<String, CFunctionDeclaration>(),
          new HashMap<String, CComplexTypeDeclaration>(),
-         new HashMap<String, CTypeDefDeclaration>());
+         new HashMap<String, CTypeDefDeclaration>(),
+         new HashSet<String>());
   }
 
   @Override
@@ -115,7 +122,13 @@ class GlobalScope implements Scope {
     if (declaration != null) {
       return declaration.getType();
     }
+
     return null;
+  }
+
+  @Override
+  public boolean isTypeNameAvailable(String name) {
+    return !alreayTakenTypeNames.contains(name);
   }
 
   @Override
@@ -204,6 +217,8 @@ class GlobalScope implements Scope {
       // We set a reference to the full type in the old type
       // and update the types map with the full type.
       ((CElaboratedType)oldType).setRealType(type);
+    } else if (alreayTakenTypeNames.contains(name)) {
+      throw new CFAGenerationRuntimeException("Complex type " + name + " is already declared in another file");
     }
     types.put(name, declaration);
     return true;
@@ -251,6 +266,10 @@ class GlobalScope implements Scope {
 
   public ImmutableMap<String, CTypeDefDeclaration> getTypeDefs() {
     return ImmutableMap.copyOf(typedefs);
+  }
+
+  public Set<String> getRenamedTypes() {
+    return ImmutableSet.copyOf(alreayTakenTypeNames);
   }
 
   @Override
