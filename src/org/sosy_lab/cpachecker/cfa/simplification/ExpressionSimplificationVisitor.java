@@ -40,10 +40,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.collect.Sets;
 
@@ -51,7 +55,7 @@ import com.google.common.collect.Sets;
  * The returnvalue of the visit consists of the simplified expression and
  * - if possible - a numeral value for the expression. */
 public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
-    <Pair<? extends CExpression, ? extends Number>, RuntimeException> {
+    <Pair<CExpression, Number>, RuntimeException> {
 
   private final MachineModel machineModel;
 
@@ -65,14 +69,14 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   }
 
   @Override
-  public Pair<? extends CExpression, ? extends Number> visit(final CBinaryExpression expr) {
+  public Pair<CExpression, Number> visit(final CBinaryExpression expr) {
     final BinaryOperator binaryOperator = expr.getOperator();
 
     final CExpression op1 = expr.getOperand1();
-    final Pair<? extends CExpression, ? extends Number> pair1 = op1.accept(this);
+    final Pair<CExpression, Number> pair1 = op1.accept(this);
 
     final CExpression op2 = expr.getOperand2();
-    final Pair<? extends CExpression, ? extends Number> pair2 = op2.accept(this);
+    final Pair<CExpression, Number> pair2 = op2.accept(this);
 
     // if one side can not be evaluated, build new expression
     if (pair1.getSecond() == null || pair2.getSecond() == null) {
@@ -127,7 +131,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       throw new AssertionError("unknown binary operation: " + binaryOperator);
     }
 
-    return Pair.of(
+    return Pair.<CExpression, Number> of(
         new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(result)),
         result);
@@ -184,9 +188,9 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   }
 
   @Override
-  public Pair<? extends CExpression, ? extends Number> visit(CCastExpression expr) {
+  public Pair<CExpression, Number> visit(CCastExpression expr) {
     final CExpression op = expr.getOperand();
-    final Pair<? extends CExpression, ? extends Number> pair = op.accept(this);
+    final Pair<CExpression, Number> pair = op.accept(this);
 
     // if expr can not be evaluated, build new expression
     if (pair.getSecond() == null) {
@@ -213,9 +217,9 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   }
 
   @Override
-  public Pair<? extends CExpression, ? extends Number> visit(CCharLiteralExpression expr) {
+  public Pair<CExpression, Number> visit(CCharLiteralExpression expr) {
     // TODO machinemodel
-    return Pair.of(expr, (int) expr.getCharacter());
+    return Pair.<CExpression, Number> of(expr, (int) expr.getCharacter());
   }
 
   @Override
@@ -224,9 +228,9 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   }
 
   @Override
-  public Pair<? extends CExpression, ? extends Number> visit(CIntegerLiteralExpression expr) {
+  public Pair<CExpression, Number> visit(CIntegerLiteralExpression expr) {
     // TODO machinemodel
-    return Pair.of(expr, expr.asLong());
+    return Pair.<CExpression, Number> of(expr, expr.asLong());
   }
 
   @Override
@@ -240,15 +244,38 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
   }
 
   @Override
-  public Pair<CExpression, Number> visit(CIdExpression expr) {
+  public Pair<CExpression, Number> visit(final CIdExpression expr) {
     return visitDefault(expr);
   }
 
   @Override
-  public Pair<? extends CExpression, ? extends Number> visit(final CUnaryExpression expr) {
+  public Pair<CExpression, Number> visit(final CTypeIdExpression expr) {
+    final TypeIdOperator idOperator = expr.getOperator();
+    final CType innerType = expr.getType();
+
+    switch (idOperator) {
+    case SIZEOF:
+      int size = machineModel.getSizeof(innerType);
+      return Pair.<CExpression, Number> of(
+          new CIntegerLiteralExpression(expr.getFileLocation(),
+              expr.getExpressionType(), BigInteger.valueOf(size)),
+          size);
+
+    default: // TODO support more operators
+      return visitDefault(expr);
+    }
+  }
+
+  @Override
+  public Pair<CExpression, Number> visit(final CTypeIdInitializerExpression expr) {
+    return visitDefault(expr);
+  }
+
+  @Override
+  public Pair<CExpression, Number> visit(final CUnaryExpression expr) {
     final UnaryOperator unaryOperator = expr.getOperator();
     final CExpression op = expr.getOperand();
-    final Pair<? extends CExpression, ? extends Number> pair = op.accept(this);
+    final Pair<CExpression, Number> pair = op.accept(this);
 
     Set<UnaryOperator> evaluableUnaryOperators = Sets.newHashSet(
         UnaryOperator.PLUS, UnaryOperator.MINUS, UnaryOperator.NOT);
@@ -285,11 +312,15 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
       result = (value == 0L) ? 1L : 0L;
       break;
 
+    case SIZEOF:
+      result = machineModel.getSizeof(op.getExpressionType());
+      break;
+
     default:
       throw new AssertionError("unknown unary operation: " + unaryOperator);
     }
 
-    return Pair.of(
+    return Pair.<CExpression, Number> of(
         new CIntegerLiteralExpression(expr.getFileLocation(),
             expr.getExpressionType(), BigInteger.valueOf(result)),
         result);
