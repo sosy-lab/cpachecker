@@ -214,8 +214,7 @@ public final class CCompositeType implements CComplexType {
     CCompositeType other = (CCompositeType) obj;
 
     return isConst == other.isConst && isVolatile == other.isVolatile
-           && kind == other.kind && Objects.equals(name, other.name)
-           && Objects.equals(members, other.members);
+           && kind == other.kind && Objects.equals(name, other.name);
   }
 
   @Override
