@@ -109,6 +109,8 @@ public class CompoundStateTest {
       assertTrue(invertedState.contains(i - 1));
       assertTrue(invertedState.contains(i + 1));
     }
+    assertEquals(CompoundState.singleton(0).extendToNegativeInfinity().unionWith(CompoundState.singleton(6)),
+        CompoundState.of(SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(5))).unionWith(CompoundState.singleton(7).extendToPositiveInfinity()).invert());
   }
 
   @Test

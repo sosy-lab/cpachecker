@@ -475,19 +475,19 @@ public class CompoundState {
     Queue<SimpleInterval> queue = new ArrayDeque<>(this.intervals);
     BigInteger currentLowerBound = null;
     if (!hasLowerBound()) {
-      currentLowerBound = queue.poll().getUpperBound();
+      currentLowerBound = queue.poll().getUpperBound().add(BigInteger.ONE);
     }
     while (!queue.isEmpty()) {
       SimpleInterval current = queue.poll();
       result = result.unionWith(createSimpleInterval(currentLowerBound, current.getLowerBound().subtract(BigInteger.ONE)));
       if (current.hasUpperBound()) {
-        currentLowerBound = current.getUpperBound();
+        currentLowerBound = current.getUpperBound().add(BigInteger.ONE);
       } else {
         currentLowerBound = null;
       }
     }
     if (currentLowerBound != null) {
-      result.intervals.add(createSimpleInterval(currentLowerBound.add(BigInteger.ONE), null));
+      result.intervals.add(createSimpleInterval(currentLowerBound, null));
     }
     return result;
   }
