@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -87,6 +89,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
@@ -912,19 +915,119 @@ public class SMGTransferRelation implements TransferRelation {
 
       if (newInitializer != null) {
         logger.log(Level.FINEST, "Handling variable declaration: handling initializer");
-
-        if (newInitializer instanceof CInitializerExpression) {
-          newState = handleAssignmentToField(newState, edge, newObject, 0, cType,
-              ((CInitializerExpression) newInitializer).getExpression());
-          /*
-          lParam = cVarDecl.toASTString();
-          lParamIsGlobal = cVarDecl.isGlobal();
-          */
-        }
-        //TODO handle other Cases
+        newState = handleInitializer(newState, smgState, edge, newObject, 0, cType, newInitializer);
       }
     }
     return newState;
+  }
+
+  private SMGState handleInitializer(SMGState pNewState, SMGState pSmgState, CFAEdge pEdge,
+      SMGObject pNewObject, int pOffset, CType pLValueType, CInitializer pInitializer)
+      throws UnrecognizedCCodeException, CPATransferException {
+
+    if (pInitializer instanceof CInitializerExpression) {
+      return handleAssignmentToField(pNewState, pEdge, pNewObject,
+          pOffset, pLValueType,
+          ((CInitializerExpression) pInitializer).getExpression());
+
+    } else if (pInitializer instanceof CInitializerList) {
+
+      return handleInitializerList(pNewState, pSmgState, pEdge,
+          pNewObject, pOffset, pLValueType, ((CInitializerList) pInitializer));
+    } else if (pInitializer instanceof CDesignatedInitializer) {
+      // TODO handle CDesignatedInitializer
+      return pNewState;
+
+    } else {
+      throw new UnrecognizedCCodeException("Did not recognize Initializer", pInitializer);
+    }
+  }
+
+  private SMGState handleInitializerList(SMGState pNewState, SMGState pOldState, CFAEdge pEdge,
+      SMGObject pNewObject, int pOffset, CType pLValueType, CInitializerList pNewInitializer)
+      throws UnrecognizedCCodeException, CPATransferException {
+
+    CType realCType = pLValueType.getCanonicalType();
+
+    if (realCType instanceof CArrayType) {
+
+      CArrayType arrayType = (CArrayType) realCType;
+      return handleInitializerList(pNewState, pOldState, pEdge,
+          pNewObject, pOffset, arrayType, pNewInitializer);
+    } else if (realCType instanceof CCompositeType) {
+
+      CCompositeType structType = (CCompositeType) realCType;
+      return handleInitializerList(pNewState, pOldState, pEdge,
+          pNewObject, pOffset, structType, pNewInitializer);
+    }
+
+    // Type cannot be resolved
+    logger.log(Level.WARNING, "Type " + realCType.toASTString("")
+        + "cannot be resolved sufficiently to handle initializer "
+        + pNewInitializer.toASTString());
+
+    return pNewState;
+  }
+
+  private SMGState handleInitializerList(
+      SMGState pNewState, SMGState pOldState, CFAEdge pEdge,
+      SMGObject pNewObject, int pOffset, CCompositeType pLValueType,
+      CInitializerList pNewInitializer)
+      throws UnrecognizedCCodeException, CPATransferException {
+
+    int listCounter = 0;
+
+    List<CCompositeType.CCompositeTypeMemberDeclaration> memberTypes = pLValueType.getMembers();
+
+    int offset = pOffset;
+
+    for (CInitializer initializer : pNewInitializer.getInitializers()) {
+
+      if (listCounter >= memberTypes.size()) {
+        throw new UnrecognizedCCodeException(
+            "More Initializer in initializer list "
+                + pNewInitializer.toASTString()
+                + " than fit in type "
+                + pLValueType.toASTString(""), pEdge);
+      }
+
+      CType memberType = memberTypes.get(listCounter).getType();
+
+      pNewState = handleInitializer(pNewState, pOldState, pEdge, pNewObject, offset, memberType, initializer);
+
+      offset = offset + expressionEvaluator.getSizeof(pEdge, memberType);
+
+      listCounter++;
+    }
+
+    //TODO initialize the rest to 0
+
+    return pNewState;
+  }
+
+  private SMGState handleInitializerList(
+      SMGState pNewState, SMGState pOldState, CFAEdge pEdge,
+      SMGObject pNewObject, int pOffset, CArrayType pLValueType,
+      CInitializerList pNewInitializer)
+      throws UnrecognizedCCodeException, CPATransferException {
+
+    int listCounter = 0;
+
+    CType elementType = pLValueType.getType();
+
+    int sizeOfType = expressionEvaluator.getSizeof(pEdge, elementType);
+
+    for (CInitializer initializer : pNewInitializer.getInitializers()) {
+
+      int offset = pOffset + listCounter * sizeOfType;
+
+      pNewState = handleInitializer(pNewState, pOldState, pEdge,
+          pNewObject, offset, pLValueType.getType(), initializer);
+
+      listCounter++;
+    }
+
+    return pNewState;
   }
 
   /**
