@@ -1426,7 +1426,7 @@ class LvalueVisitorPointers extends LvalueVisitor {
   @Override
   public Formula visit(CCastExpression e) throws UnrecognizedCCodeException {
     Formula inner = e.getOperand().accept(this);
-    return conv.makeCast(e, inner);
+    return conv.makeCast(e, inner, edge);
   }
 
 

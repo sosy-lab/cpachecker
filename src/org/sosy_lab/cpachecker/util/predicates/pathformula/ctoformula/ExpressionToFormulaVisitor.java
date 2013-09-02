@@ -97,9 +97,9 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
     Formula f1 = e1.accept(this);
     Formula f2 = e2.accept(this);
     CType promT1 = conv.getPromotedCType(t1);
-    f1 = conv.makeCast(t1, promT1, f1);
+    f1 = conv.makeCast(t1, promT1, f1, edge);
     CType promT2 = conv.getPromotedCType(t2);
-    f2 = conv.makeCast(t2, promT2, f2);
+    f2 = conv.makeCast(t2, promT2, f2, edge);
 
     CType implicitType;
     // FOR SHIFTS: The type of the result is that of the promoted left operand. (6.5.7 3)
@@ -107,13 +107,13 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
       implicitType = promT1;
 
       // TODO: This is probably not correct as we only need the right formula-type but not a cast
-      f2 = conv.makeCast(promT2, promT1, f2);
+      f2 = conv.makeCast(promT2, promT1, f2, edge);
 
       // UNDEFINED: When the right side is negative the result is not defined
     } else {
       implicitType = conv.getImplicitCType(promT1, promT2);
-      f1 = conv.makeCast(promT1, implicitType, f1);
-      f2 = conv.makeCast(promT2, implicitType, f2);
+      f1 = conv.makeCast(promT1, implicitType, f1, edge);
+      f2 = conv.makeCast(promT2, implicitType, f2, edge);
     }
 
     boolean signed = CtoFormulaTypeUtils.isSignedType(implicitType);
@@ -196,7 +196,7 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
       if (!promT1.getCanonicalType().equals(t1.getCanonicalType())
           && !promT2.getCanonicalType().equals(t2.getCanonicalType())) {
         // We have to cast back to the return type
-        ret = conv.makeCast(implicitType, returnType, ret);
+        ret = conv.makeCast(implicitType, returnType, ret, edge);
       }
     }
 
@@ -217,7 +217,7 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
 
     CType after = cexp.getExpressionType();
     CType before = op.getExpressionType();
-    return conv.makeCast(before, after, operand);
+    return conv.makeCast(before, after, operand, edge);
   }
 
   @Override
@@ -342,7 +342,7 @@ class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, Unre
       CType t = operand.getExpressionType();
       CType promoted = conv.getPromotedCType(t);
       Formula operandFormula = operand.accept(this);
-      operandFormula = conv.makeCast(t, promoted, operandFormula);
+      operandFormula = conv.makeCast(t, promoted, operandFormula, edge);
       Formula ret;
       if (op == UnaryOperator.PLUS) {
         ret = operandFormula;

@@ -598,7 +598,7 @@ public class CtoFormulaConverter {
       String function, SSAMapBuilder ssa, CFAEdge edge, Constraints constraints) throws UnrecognizedCCodeException {
 
     Formula rhs = buildTerm(rightHandSide, edge, function, ssa, constraints);
-    rhs = makeCast(rightHandSide.getExpressionType(), leftType, rhs);
+    rhs = makeCast(rightHandSide.getExpressionType(), leftType, rhs, edge);
 
     Formula lhs = makeFreshVariable(leftName, leftType, ssa);
 
@@ -612,7 +612,7 @@ public class CtoFormulaConverter {
    * @param formula the formula of the expression.
    * @return the new formula after the cast.
    */
-  Formula makeCast(CType fromType, CType toType, Formula formula) {
+  Formula makeCast(CType fromType, CType toType, Formula formula, CFAEdge edge) throws UnrecognizedCCodeException {
     // UNDEFINED: Casting a numeric value into a value that can't be represented by the target type (either directly or via static_cast)
     if (fromType.getCanonicalType().equals(toType.getCanonicalType())) {
       return formula; // No cast required;
@@ -671,14 +671,14 @@ public class CtoFormulaConverter {
       logger.logfOnce(Level.WARNING, "Ignoring cast from %s to %s.", fromType, toType);
       return formula;
     } else {
-      throw new UnsupportedOperationException("Cast from " + fromType + " to " + toType + " not supported!");
+      throw new UnrecognizedCCodeException("Cast from " + fromType + " to " + toType + " not supported!", edge);
     }
   }
 
-  Formula makeCast(CCastExpression e, Formula inner) {
+  Formula makeCast(CCastExpression e, Formula inner, CFAEdge edge) throws UnrecognizedCCodeException {
     CType after = e.getExpressionType();
     CType before = e.getOperand().getExpressionType();
-    return makeCast(before, after, inner);
+    return makeCast(before, after, inner, edge);
   }
 
   CExpression makeCastFromArrayToPointerIfNecessary(CExpression exp, CType targetType) {
@@ -1182,7 +1182,7 @@ public class CtoFormulaConverter {
 
       function = ce.getSuccessor().getFunctionName();
       Formula outvarFormula = buildLvalueTerm(e, ce, function, ssa, constraints);
-      retVar = makeCast(retType, e.getExpressionType(), retVar);
+      retVar = makeCast(retType, e.getExpressionType(), retVar, ce);
       BooleanFormula assignments = fmgr.assignment(outvarFormula, retVar);
 
       return assignments;

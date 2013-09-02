@@ -69,7 +69,8 @@ class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements
     r = conv.makeCast(
           rhs.getExpressionType(),
           lhs.getExpressionType(),
-          r);
+          r,
+          edge);
 
     BooleanFormula a = conv.fmgr.assignment(l, r);
     return Triple.of(r, l, a);
