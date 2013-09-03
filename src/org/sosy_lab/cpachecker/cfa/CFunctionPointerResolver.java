@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
@@ -73,10 +72,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * This class is responsible for replacing calls via function pointers like (*fp)()
@@ -112,7 +113,7 @@ public class CFunctionPointerResolver {
       description="potential targets for call edges created for function pointer calls")
   private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES);
 
-  private final Set<String> addressedFunctions;
+  private final Collection<FunctionEntryNode> candidateFunctions;
 
   private final Predicate<Pair<CFunctionCallExpression, CFunctionType>> matchingFunctionCall;
 
@@ -134,14 +135,20 @@ public class CFunctionPointerResolver {
           varCollector.visitEdge(edge);
         }
       }
-      addressedFunctions = varCollector.getCollectedVars();
+      Set<String> addressedFunctions = varCollector.getCollectedVars();
+      candidateFunctions =
+          from(Sets.intersection(addressedFunctions, cfa.getAllFunctionNames()))
+              .transform(Functions.forMap(cfa.getAllFunctions()))
+              .toList();
+
       if (logger.wouldBeLogged(Level.ALL)) {
         logger.log(Level.ALL, "Possible target functions of function pointers:\n",
-            Joiner.on('\n').join(addressedFunctions));
+            Joiner.on('\n').join(candidateFunctions));
       }
     } else {
-      addressedFunctions = ImmutableSet.of();
+      candidateFunctions = cfa.getAllFunctionHeads();
     }
+
   }
 
   private Predicate<Pair<CFunctionCallExpression, CFunctionType>> getFunctionSetPredicate(Collection<FunctionSet> pFunctionSets) {
@@ -189,12 +196,8 @@ public class CFunctionPointerResolver {
         });
         break;
       case USED_IN_CODE:
-        predicates.add(new Predicate<Pair<CFunctionCallExpression, CFunctionType>>() {
-          @Override
-          public boolean apply(Pair<CFunctionCallExpression, CFunctionType> pInput) {
-            return addressedFunctions.contains(checkNotNull(pInput.getSecond().getName()));
-          }
-        });
+        // Not necessary, only matching functions are in the
+        // candidateFunctions set
         break;
       default:
         throw new AssertionError();
@@ -414,7 +417,7 @@ public class CFunctionPointerResolver {
   }
 
   private List<CFunctionEntryNode> getFunctionSet(final CFunctionCallExpression call) {
-    return from(cfa.getAllFunctionHeads())
+    return from(candidateFunctions)
             .filter(CFunctionEntryNode.class)
             .filter(Predicates.compose(matchingFunctionCall,
                       new Function<CFunctionEntryNode, Pair<CFunctionCallExpression, CFunctionType>>() {
