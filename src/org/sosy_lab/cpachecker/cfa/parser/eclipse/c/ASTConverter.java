@@ -410,42 +410,25 @@ class ASTConverter {
    * creates temporary variables with increasing numbers
    */
   private CIdExpression createTemporaryVariable(IASTExpression e) {
-    String name = "__CPAchecker_TMP_";
-    int i = 0;
-    while (scope.variableNameInUse(name + i, name + i)) {
-      i++;
-    }
-    name += i;
-
-    CVariableDeclaration decl = new CVariableDeclaration(getLocation(e),
-                                               false,
-                                               CStorageClass.AUTO,
-                                               typeConverter.convert(e.getExpressionType()),
-                                               name,
-                                               name,
-                                               scope.createScopedNameOf(name),
-                                               null);
-
-    scope.registerDeclaration(decl);
-    preSideAssignments.add(decl);
-
-    CIdExpression tmp = new CIdExpression(getLocation(e),
-                                                typeConverter.convert(e.getExpressionType()),
-                                                name,
-                                                decl);
-    return tmp;
+    return createInitializedTemporaryVariable(e, null);
   }
 
   /**
-   * creates temporary variables with increasing numbers with a certain initializer
+   * creates temporary variables with increasing numbers with a certain initializer.
+   * If the initializer is 'null', no initializer will be created.
    */
-  private CIdExpression createInitializedTemporaryVariable(IASTExpression e, CExpression initializer) {
+  private CIdExpression createInitializedTemporaryVariable(IASTExpression e, @Nullable CExpression initializer) {
     String name = "__CPAchecker_TMP_";
     int i = 0;
     while (scope.variableNameInUse(name + i, name + i)) {
       i++;
     }
     name += i;
+
+    CInitializerExpression initExp = null;
+    if (initializer != null) {
+      initExp = new CInitializerExpression(getLocation(e), initializer);
+    }
 
     CVariableDeclaration decl = new CVariableDeclaration(getLocation(e),
                                                false,
@@ -454,7 +437,7 @@ class ASTConverter {
                                                name,
                                                name,
                                                scope.createScopedNameOf(name),
-                                               new CInitializerExpression(getLocation(e), initializer));
+                                               initExp);
 
     scope.registerDeclaration(decl);
     preSideAssignments.add(decl);
