@@ -1016,6 +1016,12 @@ class ASTConverter {
 
     if(cStorageClass == CStorageClass.STATIC) {
       name = staticVariablePrefix + name;
+      declSpec = new CFunctionTypeWithNames(declSpec.isConst(),
+                                            declSpec.isVolatile(),
+                                            declSpec.getReturnType(),
+                                            declSpec.getParameterDeclarations(),
+                                            declSpec.takesVarArgs());
+      declSpec.setName(name);
     }
 
     FileLocation fileLoc = getLocation(f);
