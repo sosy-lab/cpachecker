@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
@@ -134,6 +135,10 @@ public class CFunctionPointerResolver {
         }
       }
       addressedFunctions = varCollector.getCollectedVars();
+      if (logger.wouldBeLogged(Level.ALL)) {
+        logger.log(Level.ALL, "Possible target functions of function pointers:\n",
+            Joiner.on('\n').join(addressedFunctions));
+      }
     } else {
       addressedFunctions = ImmutableSet.of();
     }
