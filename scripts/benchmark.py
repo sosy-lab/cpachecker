@@ -412,7 +412,10 @@ def executeBenchmarkInCloud(benchmark):
     else:
         logLevel = "INFO"
     libDir = os.path.abspath("./lib/java-benchmark")
-    cloud = subprocess.Popen(["java", "-jar", libDir + "/vcloud.jar", "benchmark", "--master", config.cloud, "--loglevel", logLevel], stdin=subprocess.PIPE)
+    cmdLine = ["java", "-jar", libDir + "/vcloud.jar", "benchmark", "--loglevel", logLevel]
+    if config.cloudMaster:
+        cmdLine.extend(["--master", config.cloudMaster])
+    cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE)
     try:
         (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
     except KeyboardInterrupt:
@@ -526,8 +529,13 @@ def main(argv=None):
 
     parser.add_argument("--cloud",
                       dest="cloud",
+                      action="store_true",
+                      help="Use cloud to execute benchmarks.")
+
+    parser.add_argument("--cloudMaster",
+                      dest="cloudMaster",
                       metavar="HOST",
-                      help="Use cloud with given host as master.")
+                      help="Sets the master host of the cloud to be used.")
 
     parser.add_argument("--cloudPriority",
                       dest="cloudPriority",
