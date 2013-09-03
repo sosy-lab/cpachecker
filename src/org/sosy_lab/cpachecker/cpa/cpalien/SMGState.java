@@ -935,4 +935,8 @@ public class SMGState implements AbstractQueryableState {
     heap.pruneUnreachable();
     performConsistencyCheck(runtimeCheckLevel);
   }
+
+  public SMGObject getNullObject() {
+    return heap.getNullObject();
+  }
 }

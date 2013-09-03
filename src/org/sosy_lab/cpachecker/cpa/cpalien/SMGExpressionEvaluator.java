@@ -234,6 +234,11 @@ public class SMGExpressionEvaluator {
 
     CExpression fieldOwner = fieldReference.getFieldOwner();
 
+    // unpack
+    while (fieldOwner instanceof CCastExpression) {
+      fieldOwner = ((CCastExpression) fieldOwner).getOperand();
+    }
+
     CType ownerType = getRealExpressionType(fieldOwner);
 
     SMGAddress fieldAddress;
@@ -314,7 +319,35 @@ public class SMGExpressionEvaluator {
 
     } else if (fieldOwner instanceof CArraySubscriptExpression) {
       // (a[]).b
+      // TODO implement this
       fieldAddress = SMGAddress.UNKNOWN;
+
+    } else if (fieldOwner instanceof CUnaryExpression) {
+      CUnaryExpression fieldOwnerUnary = (CUnaryExpression) fieldOwner;
+      if (fieldOwnerUnary.getOperator() == UnaryOperator.AMPER
+          && fieldReference.isPointerDereference()) {
+        // (&a)-> b == a.b
+
+        SMGAddressValue address = evaluateAddress(smgState, cfaEdge, fieldOwner);
+
+        if (address.isUnknown()) {
+          fieldAddress = SMGAddress.UNKNOWN;
+        } else {
+          SMGObject memoryOfFieldOwner = address.getObject();
+          fieldAddress = SMGAddress.valueOf(memoryOfFieldOwner, address.getOffset());
+        }
+      } else {
+        fieldAddress = SMGAddress.UNKNOWN;
+      }
+    } else if(fieldOwner instanceof CIntegerLiteralExpression) {
+
+      boolean isZero = ((CIntegerLiteralExpression) fieldOwner).getValue().equals(BigInteger.ZERO);
+
+      if (isZero) {
+        fieldAddress = SMGAddress.valueOf(smgState.getNullObject(), 0);
+      } else {
+        fieldAddress = SMGAddress.UNKNOWN;
+      }
 
     } else {
       fieldAddress = SMGAddress.UNKNOWN;
@@ -672,7 +705,7 @@ public class SMGExpressionEvaluator {
 
       CExpression address = null;
       CExpression pointerOffset = null;
-      CType addressType = null;
+      CPointerType addressType = null;
 
       if (lVarIsAddress == rVarIsAddress) {
         return SMGUnknownValue.getInstance(); // If both or neither are Addresses,
@@ -680,11 +713,11 @@ public class SMGExpressionEvaluator {
       } else if (lVarIsAddress) {
         address = lVarInBinaryExp;
         pointerOffset = rVarInBinaryExp;
-        addressType = lVarInBinaryExpType;
+        addressType = (CPointerType) lVarInBinaryExpType;
       } else if (rVarIsAddress) {
         address = rVarInBinaryExp;
         pointerOffset = lVarInBinaryExp;
-        addressType = rVarInBinaryExpType;
+        addressType = (CPointerType) rVarInBinaryExpType;
       } else {
         // TODO throw Exception, no Pointer
         return SMGUnknownValue.getInstance();
@@ -708,7 +741,9 @@ public class SMGExpressionEvaluator {
           return addressValue;
         }
 
-        SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, addressType));
+        CType typeOfPointer = addressType.getType().getCanonicalType();
+
+        SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, typeOfPointer));
 
         SMGExplicitValue pointerOffsetValue = offsetValue.multiply(typeSize);
 
@@ -780,7 +815,7 @@ public class SMGExpressionEvaluator {
       return SMGUnknownValue.getInstance();
     }
 
-    //TODO isPointer(symbolicValue)
+
     if(!pSmgState.isPointer(pAddressValue.getAsInt())) {
       return SMGUnknownValue.getInstance();
     }
@@ -1653,8 +1688,15 @@ public class SMGExpressionEvaluator {
         }
 
       case AMPER:
-        // valid expression, but we don't have explicit values for addresses.
-        return SMGUnknownValue.getInstance();
+        SMGAddressValue address = evaluateAddress(smgState, cfaEdge, unaryExpression);
+
+        if (address.isUnknown() || address.getObject().notNull()) {
+          // valid expression, but we don't have explicit values for addresses.
+          return SMGUnknownValue.getInstance();
+        } else {
+          // If the returned Address points to the null object, the value is its offset
+          return address.getOffset();
+        }
 
       case SIZEOF:
 

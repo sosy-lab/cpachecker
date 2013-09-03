@@ -161,6 +161,12 @@ public final class SMGExplicitPlotter {
     ArrayList<String> nodes = new ArrayList<>();
     for (String key : pNamespace.keySet()) {
       SMGObject obj = pNamespace.get(key);
+
+      if (key.equals("node")) {
+        // escape Node1
+        key = "node1";
+      }
+
       nodes.add("<" + key + "> " + obj.toString());
       Location location = Location.valueOf(obj, pFunctionName);
       locationIndex.put(location, "struct" + pStructId + ":" + key);
