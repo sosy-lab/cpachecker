@@ -262,7 +262,7 @@ public class CFACreator {
           String prog;
           for(int i = 0; i < paths.length; i++) {
             String[] tmp = paths[i].split("/");
-            staticVarPrefix = tmp[tmp.length-1] + "__" + counter + "__";
+            staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
             prog = preprocessor.preprocess(paths[i]);
             programs.add(Pair.of(prog, staticVarPrefix));
 
@@ -288,7 +288,7 @@ public class CFACreator {
           String staticVarPrefix;
           for(int i = 0; i < paths.length; i++) {
             String[] tmp = paths[i].split("/");
-            staticVarPrefix = tmp[tmp.length-1] + "__" + counter + "__";
+            staticVarPrefix = tmp[tmp.length-1].replaceAll("\\W", "_") + "__" + counter + "__";
             programs.add(Pair.of(paths[i], staticVarPrefix));
           }
           c = ((CParser)parser).parseFile(programs);
