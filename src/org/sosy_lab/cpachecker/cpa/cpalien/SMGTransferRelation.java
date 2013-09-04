@@ -1221,7 +1221,7 @@ public class SMGTransferRelation implements TransferRelation {
       }
     }
 
-    private class PointerAddressVisitor extends SMGExpressionEvaluator.PointerAddressVisitor {
+    private class PointerAddressVisitor extends SMGExpressionEvaluator.PointerVisitor {
 
       public PointerAddressVisitor(CFAEdge pEdge, SMGState pSmgState) {
         super(pEdge, pSmgState);
@@ -1257,7 +1257,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    protected org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.PointerAddressVisitor getPointerAddressVisitor(
+    protected org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.PointerVisitor getPointerAddressVisitor(
         CFAEdge pCfaEdge, SMGState pNewState) {
       // TODO Auto-generated method stub
       return new PointerAddressVisitor(pCfaEdge, pNewState);

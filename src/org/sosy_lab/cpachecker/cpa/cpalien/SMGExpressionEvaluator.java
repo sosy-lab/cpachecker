@@ -96,6 +96,10 @@ public class SMGExpressionEvaluator {
     }
   }
 
+  /**
+   * This visitor evaluates the address of a LValue. It is predominantly
+   * used to evaluate the left hand side of a Assignment.
+   */
  public class LValueAssignmentVisitor extends DefaultCExpressionVisitor<SMGAddress, CPATransferException> {
 
     private final CFAEdge cfaEdge;
@@ -219,7 +223,7 @@ public class SMGExpressionEvaluator {
 
     } else if (arrayExpressionType instanceof CArrayType) {
 
-      ArrayMemoryVisitor visitor = getArrayMemoryVisitor(cfaEdge, smgState);
+      ArrayVisitor visitor = getArrayMemoryVisitor(cfaEdge, smgState);
 
       return arrayExpression.accept(visitor);
     } else {
@@ -494,7 +498,7 @@ public class SMGExpressionEvaluator {
 
     CType expressionType = getRealExpressionType(rValue);
 
-    PointerAddressVisitor visitor = getPointerAddressVisitor(cfaEdge, newState);
+    PointerVisitor visitor = getPointerAddressVisitor(cfaEdge, newState);
 
     SMGSymbolicValue address;
 
@@ -529,9 +533,20 @@ public class SMGExpressionEvaluator {
     return getRealExpressionType(exp.getExpressionType());
   }
 
-   class PointerAddressVisitor extends ExpressionValueVisitor {
+  /**
+   * This class evaluates expressions that evaluate to a
+   * pointer type. The type of every expression visited by this
+   * visitor has to be a {@link CPointerType }. The result
+   * of this evaluation is a {@link SMGAddressValue}.
+   * The object and the offset of the result represent
+   * the address this pointer points to. The value represents
+   * the value of the address itself. Note that the offset of
+   * pointer addresses that point to the null object represent
+   * also the explicit value of the pointer.
+   */
+  class PointerVisitor extends ExpressionValueVisitor {
 
-    public PointerAddressVisitor(CFAEdge pEdge, SMGState pSmgState) {
+    public PointerVisitor(CFAEdge pEdge, SMGState pSmgState) {
       super(pEdge, pSmgState);
     }
 
@@ -584,29 +599,27 @@ public class SMGExpressionEvaluator {
       case TILDE:
       default:
         // Can't evaluate these Addresses
+        // TODO we can, when the pointer points to the Null Object
         return SMGUnknownValue.getInstance();
       }
     }
 
-    private SMGAddressValue handleAmper(CRightHandSide lValue) throws CPATransferException {
-      if (lValue instanceof CIdExpression) {
+    private SMGAddressValue handleAmper(CRightHandSide amperOperand) throws CPATransferException {
+      if (amperOperand instanceof CIdExpression) {
         // &a
-        return createAddressOfVariable((CIdExpression) lValue);
-      } else if (lValue instanceof CPointerExpression) {
+        return createAddressOfVariable((CIdExpression) amperOperand);
+      } else if (amperOperand instanceof CPointerExpression) {
         // &(*(a))
 
-        //TODO Investigate if correct
-        CExpression rValue = ((CPointerExpression) lValue).getOperand();
+        CExpression rValue = ((CPointerExpression) amperOperand).getOperand();
 
-        return getAddressFromSymbolicValue(smgState,
-            evaluateAddress(smgState, cfaEdge, rValue));
-
-      } else if (lValue instanceof CFieldReference) {
+        return evaluateAddress(smgState, cfaEdge, rValue);
+      } else if (amperOperand instanceof CFieldReference) {
         // &(a.b)
-        return createAddressOfField((CFieldReference) lValue);
-      } else if (lValue instanceof CArraySubscriptExpression) {
-        // &a[b]
-        return createAddressOfArraySubscript((CArraySubscriptExpression) lValue);
+        return createAddressOfField((CFieldReference) amperOperand);
+      } else if (amperOperand instanceof CArraySubscriptExpression) {
+        // &(a[b])
+        return createAddressOfArraySubscript((CArraySubscriptExpression) amperOperand);
       } else {
         return SMGUnknownValue.getInstance();
       }
@@ -854,13 +867,21 @@ public class SMGExpressionEvaluator {
     return createAddress(pSmgState.getPointerFromValue(address));
   }
 
-  class ArrayMemoryVisitor extends DefaultCExpressionVisitor<SMGAddress, CPATransferException>
+   /**
+    * This class evaluates expressions that evaluate to a
+    * array type. The type of every expression visited by this
+    * visitor has to be a {@link CArrayType }. The result of
+    * the evaluation is an {@link SMGAddress}. The object
+    * represents the memory this array is placed in, the offset
+    * represents the start of the array in the object.
+    */
+  class ArrayVisitor extends DefaultCExpressionVisitor<SMGAddress, CPATransferException>
       implements CRightHandSideVisitor<SMGAddress, CPATransferException> {
 
     private final CFAEdge cfaEdge;
     private final SMGState smgState;
 
-    public ArrayMemoryVisitor(CFAEdge pEdge, SMGState pSmgState) {
+    public ArrayVisitor(CFAEdge pEdge, SMGState pSmgState) {
       cfaEdge = pEdge;
       smgState = pSmgState;
     }
@@ -1169,6 +1190,37 @@ public class SMGExpressionEvaluator {
     }
   }
 
+
+  /**
+   * This class evaluates expressions that evaluate to a
+   * struct or union type. The type of every expression visited by this
+   * visitor has to be either {@link CElaboratedType} or
+   * {@link CComplexType}. Furthermore, it must not be a enum.
+   * The result of the evaluation is an {@link SMGAddress}.
+   * The object represents the memory this struct is placed in, the offset
+   * represents the start of the struct.
+   */
+  class StructAndUnionVisitor extends DefaultCExpressionVisitor<SMGAddress, CPATransferException>
+      implements CRightHandSideVisitor<SMGAddress, CPATransferException> {
+
+    @Override
+    public SMGAddress visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
+      return SMGAddress.UNKNOWN;
+    }
+
+    @Override
+    protected SMGAddress visitDefault(CExpression pExp) throws CPATransferException {
+      return SMGAddress.UNKNOWN;
+    }
+  }
+
+  /**
+   * This class evaluates expressions that evaluate not to a
+   * pointer, array, struct or union type.
+   * The result of this evaluation is a {@link SMGSymbolicValue}.
+   * The value represents a symbolic value of the SMG.
+   *
+   */
    class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGSymbolicValue, CPATransferException>
     implements CRightHandSideVisitor<SMGSymbolicValue, CPATransferException> {
 
@@ -1464,7 +1516,7 @@ public class SMGExpressionEvaluator {
 
     protected SMGSymbolicValue dereferenceArray(CExpression exp, CType derefType) throws CPATransferException {
 
-      ArrayMemoryVisitor v = getArrayMemoryVisitor(cfaEdge, smgState);
+      ArrayVisitor v = getArrayMemoryVisitor(cfaEdge, smgState);
 
       SMGAddress address = exp.accept(v);
 
@@ -1756,12 +1808,12 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  protected ArrayMemoryVisitor getArrayMemoryVisitor(CFAEdge pCfaEdge, SMGState pSmgState) {
-    return new ArrayMemoryVisitor(pCfaEdge, pSmgState);
+  protected ArrayVisitor getArrayMemoryVisitor(CFAEdge pCfaEdge, SMGState pSmgState) {
+    return new ArrayVisitor(pCfaEdge, pSmgState);
   }
 
-  protected PointerAddressVisitor getPointerAddressVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
-    return new PointerAddressVisitor(pCfaEdge, pNewState);
+  protected PointerVisitor getPointerAddressVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+    return new PointerVisitor(pCfaEdge, pNewState);
   }
 
   protected ExpressionValueVisitor getAssumeVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
