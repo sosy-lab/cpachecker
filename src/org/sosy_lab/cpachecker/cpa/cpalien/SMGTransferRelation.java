@@ -1181,53 +1181,66 @@ public class SMGTransferRelation implements TransferRelation {
     return getAddressFromSymbolicValue(newState, address);
   }
 
+  private SMGState handleInitializerForDeclaration(SMGState pState, SMGObject pObject, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
+    CInitializer newInitializer = pVarDecl.getInitializer();
+    CType cType = getRealExpressionType(pVarDecl);
+
+    if (newInitializer != null) {
+      logger.log(Level.FINEST, "Handling variable declaration: handling initializer");
+
+      if (newInitializer instanceof CInitializerExpression) {
+        pState = handleAssignmentToField(pState, pEdge, pObject, 0, cType,
+            ((CInitializerExpression) newInitializer).getExpression());
+      }
+      //TODO handle other Cases
+    } else if (pVarDecl.isGlobal()) {
+
+      // Global variables without initializer are nullified in C
+      pState.writeValue(pObject, 0, cType, SMGKnownSymValue.ZERO);
+    }
+
+    return pState;
+  }
+
+  private SMGState handleVariableDeclaration(SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
+    logger.log(Level.FINEST, "Handling variable declaration:", pVarDecl.toASTString());
+
+    String varName = pVarDecl.getName();
+    CType cType = getRealExpressionType(pVarDecl);
+
+    SMGObject newObject;
+
+    if (pVarDecl.isGlobal()) {
+      newObject = pState.addGlobalVariable(cType, varName);
+    } else {
+      newObject = pState.getObjectForVisibleVariable(varName);
+
+      /*
+       *  The variable is not null if we seen the declaration already, for example in loops. Invalid
+       *  occurrences (variable really declared twice) should be caught for us by the parser. If we
+       *  already processed the declaration, we do nothing.
+       */
+      if (newObject == null) {
+        newObject = pState.addLocalVariable(cType, varName);
+      }
+    }
+
+    pState = handleInitializerForDeclaration(pState, newObject, pVarDecl, pEdge);
+
+    return pState;
+  }
+
   private SMGState handleDeclaration(SMGState smgState, CDeclarationEdge edge) throws CPATransferException {
     logger.log(Level.FINEST, ">>> Handling declaration");
-    SMGState newState = new SMGState(smgState);
 
+    SMGState newState;
     CDeclaration cDecl = edge.getDeclaration();
 
     if (cDecl instanceof CVariableDeclaration) {
-      CVariableDeclaration cVarDecl = (CVariableDeclaration) cDecl;
-      logger.log(Level.FINEST, "Handling variable declaration:", cVarDecl.toASTString());
-      String varName = cVarDecl.getName();
-      CType cType = getRealExpressionType(cVarDecl);
-
-      SMGObject newObject;
-
-      CInitializer newInitializer = cVarDecl.getInitializer();
-
-      if (cVarDecl.isGlobal()) {
-        newObject = smgState.createObject(getSizeof(edge, cType), varName);
-        logger.log(Level.FINEST, "Handling variable declaration: adding '", newObject, "' to global objects");
-        newState.addGlobalObject(newObject);
-
-        if (newInitializer == null) {
-          // global variables without initializer are set to 0 in C
-          writeValue(newState, newObject, 0, cType, SMGKnownSymValue.ZERO);
-        }
-
-      } else {
-
-        newObject = newState.addLocalVariable(cType, varName);
-        logger.log(Level.FINEST, "Handling variable declaration: adding '", newObject, "' to current stack");
-
-        //Check whether variable was already declared, for example in loops
-        // TODO explicitly check this
-        newObject = newState.getObjectForVisibleVariable(newObject.getLabel());
-      }
-
-      if (newInitializer != null) {
-        logger.log(Level.FINEST, "Handling variable declaration: handling initializer");
-
-        if (newInitializer instanceof CInitializerExpression) {
-          newState = handleAssignmentToField(newState, edge, newObject, 0, cType,
-              ((CInitializerExpression) newInitializer).getExpression());
-          lParam = cVarDecl.toASTString();
-          lParamIsGlobal = cVarDecl.isGlobal();
-        }
-        //TODO handle other Cases
-      }
+      newState = handleVariableDeclaration(smgState, (CVariableDeclaration)cDecl, edge);
+    } else {
+      //TODO: Handle other declarations?
+      newState = new SMGState(smgState);
     }
     return newState;
   }
