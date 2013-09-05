@@ -185,7 +185,7 @@ public class SMGTransferRelation implements TransferRelation {
             "calloc"
         }));
 
-    public void dumpSMGPlot(String name, SMGState currentState, String location)
+    private void dumpSMGPlot(String name, SMGState currentState, String location)
     {
       if (exportSMGFilePattern != null) {
         if (name == null) {
@@ -385,6 +385,14 @@ public class SMGTransferRelation implements TransferRelation {
 
   final private SMGBuiltins builtins = new SMGBuiltins();
 
+  private void plotWhenConfigured(String pConfig, String pName, SMGState pState, String pLocation ) {
+    //TODO: A variation for more pConfigs
+
+    if (pConfig.equals(exportSMG)){
+      builtins.dumpSMGPlot(pName, pState, pLocation);
+    }
+  }
+
   public SMGTransferRelation(Configuration config, LogManager pLogger,
       MachineModel pMachineModel) throws InvalidConfigurationException {
     config.inject(this);
@@ -410,6 +418,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     case StatementEdge:
       successor = handleStatement(smgState, (CStatementEdge) cfaEdge);
+      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
 
       // this is an assumption, e.g. if (a == b)
@@ -417,11 +426,13 @@ public class SMGTransferRelation implements TransferRelation {
       CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
       successor = handleAssumption(smgState, assumeEdge.getExpression(),
           cfaEdge, assumeEdge.getTruthAssumption());
+      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
 
     case FunctionCallEdge:
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) cfaEdge;
       successor = handleFunctionCall(smgState, functionCallEdge);
+      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
 
     // this is a return edge from function, this is different from return statement
@@ -430,6 +441,7 @@ public class SMGTransferRelation implements TransferRelation {
       CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
       successor = handleFunctionReturn(smgState, functionReturnEdge);
       successor.dropStackFrame(functionReturnEdge.getPredecessor().getFunctionName());
+      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
 
     case ReturnStatementEdge:
@@ -446,6 +458,7 @@ public class SMGTransferRelation implements TransferRelation {
         // TODO: Handle leaks at any program exit point (abort, etc.)
         successor.dropStackFrame(funcName);
       }
+      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
 
     default:
@@ -467,14 +480,10 @@ public class SMGTransferRelation implements TransferRelation {
       result = Collections.singleton(successor);
     }
 
-    if ( this.exportSMG.equals("never")) {
-      return result;
+    for (SMGState smg : result) {
+      plotWhenConfigured("every", null, smg, cfaEdge.getDescription());
     }
-    else if ( this.exportSMG.equals("every")) {
-      for (SMGState smg : result) {
-        builtins.dumpSMGPlot(null, smg, cfaEdge.getDescription());
-      }
-    }
+
     return result;
   }
 
