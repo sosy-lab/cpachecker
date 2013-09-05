@@ -344,7 +344,7 @@ public class SMGState implements AbstractQueryableState {
     }
 
     // If the value represents an address, and the address is known,
-    // add the neccessary points-To edge.
+    // add the necessary points-To edge.
     if (pValue instanceof SMGAddressValue) {
       if (!containsValue(value)) {
         SMGAddress address = ((SMGAddressValue) pValue).getAddress();
