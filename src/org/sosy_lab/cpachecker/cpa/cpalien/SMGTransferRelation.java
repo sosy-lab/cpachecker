@@ -1257,16 +1257,14 @@ public class SMGTransferRelation implements TransferRelation {
     }
 
     @Override
-    protected org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.PointerVisitor getPointerAddressVisitor(
+    protected org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.PointerVisitor getPointerVisitor(
         CFAEdge pCfaEdge, SMGState pNewState) {
-      // TODO Auto-generated method stub
       return new PointerAddressVisitor(pCfaEdge, pNewState);
     }
 
     @Override
     protected org.sosy_lab.cpachecker.cpa.cpalien.SMGExpressionEvaluator.ExpressionValueVisitor getExpressionValueVisitor(
         CFAEdge pCfaEdge, SMGState pNewState) {
-      // TODO Auto-generated method stub
       return new ExpressionValueVisitor(pCfaEdge, pNewState);
     }
 
