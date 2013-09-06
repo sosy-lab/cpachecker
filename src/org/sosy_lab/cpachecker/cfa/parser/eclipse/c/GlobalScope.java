@@ -150,6 +150,7 @@ class GlobalScope implements Scope {
    *
    * @return True if the type actually needs to be declared, False if the declaration can be omitted because the type is already known.
    */
+  @Override
   public boolean registerTypeDeclaration(CComplexTypeDeclaration declaration) {
     CComplexType type = declaration.getType();
 

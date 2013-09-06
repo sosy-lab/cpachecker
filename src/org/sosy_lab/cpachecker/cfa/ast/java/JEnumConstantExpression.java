@@ -29,12 +29,16 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
-
+/**
+ * This class represents a reference to an enum constant.
+ *
+ *
+ */
 public class JEnumConstantExpression extends AExpression implements JExpression {
 
+  // TODO Change the representation of the constantName from String to JIdExpression
 
   private final String constantName;
-
 
   public JEnumConstantExpression(FileLocation pFileLocation, JClassType pType, String pConstantName) {
     super(pFileLocation, pType);

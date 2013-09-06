@@ -93,7 +93,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
 
   @Override
   protected InvariantsFormula<CompoundState> visitDefault(CExpression pExp) throws UnrecognizedCCodeException {
-    return null;
+    return TOP;
   }
 
   @Override
@@ -180,7 +180,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Invari
   @Override
   public InvariantsFormula<CompoundState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws UnrecognizedCCodeException {
-    return null;
+    return TOP;
   }
 
   /**

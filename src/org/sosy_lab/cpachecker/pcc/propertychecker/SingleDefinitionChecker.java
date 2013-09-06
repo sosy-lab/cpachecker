@@ -70,25 +70,30 @@ public class SingleDefinitionChecker implements PropertyChecker {
       rdState = AbstractStates.extractStateByType(elem, ReachingDefState.class);
       if (rdState == ReachingDefState.topElement
           || !(stillSingleDefinition(rdState.getGlobalReachingDefinitions().get(varDefName)) && stillSingleDefinition(rdState
-              .getLocalReachingDefinitions().get(varDefName))))
+              .getLocalReachingDefinitions().get(varDefName)))) {
         return false;
+      }
     }
     return true;
   }
 
   private boolean stillSingleDefinition(Set<DefinitionPoint> definitions) {
-    if (definitions == null)
+    if (definitions == null) {
       return true;
+    }
     for (DefinitionPoint p : definitions) {
       if (p instanceof ProgramDefinitionPoint) {
         // check if there is another known definition
-        if (point == null)
-          if (isDefinitionInProgram((ProgramDefinitionPoint) p))
+        if (point == null) {
+          if (isDefinitionInProgram((ProgramDefinitionPoint) p)) {
             point = (ProgramDefinitionPoint) p;
-          else if (!p.equals(point))
+          } else if (!p.equals(point)) {
             // check if it is a real definition
-            if (isDefinitionInProgram((ProgramDefinitionPoint) p))
+            if (isDefinitionInProgram((ProgramDefinitionPoint) p)) {
               return false;
+            }
+          }
+        }
       }
     }
     return true;
@@ -101,10 +106,12 @@ public class SingleDefinitionChecker implements PropertyChecker {
       edge = pdp.getDefinitionEntryLocation().getEdgeTo(pdp.getDefinitionExitLocation());
       if (edge instanceof CStatementEdge) {
         left = null;
-        if (((CStatementEdge) edge).getStatement() instanceof CExpressionAssignmentStatement)
+        if (((CStatementEdge) edge).getStatement() instanceof CExpressionAssignmentStatement) {
           left = ((CExpressionAssignmentStatement) ((CStatementEdge) edge).getStatement()).getLeftHandSide();
-        if (((CStatementEdge) edge).getStatement() instanceof CFunctionCallAssignmentStatement)
+        }
+        if (((CStatementEdge) edge).getStatement() instanceof CFunctionCallAssignmentStatement) {
           left = ((CFunctionCallAssignmentStatement) ((CStatementEdge) edge).getStatement()).getLeftHandSide();
+        }
         if (left != null) {
           VariableExtractor extractor = new VariableExtractor(edge);
           extractor.resetWarning();
@@ -114,15 +121,17 @@ public class SingleDefinitionChecker implements PropertyChecker {
           } catch (UnsupportedCCodeException e) {
             var = null;
           }
-          if (var != null && var.equals(varDefName))
+          if (var != null && var.equals(varDefName)) {
             return true;
+          }
         }
       }
       if (edge instanceof CDeclarationEdge
           && ((CDeclarationEdge) edge).getDeclaration() instanceof CVariableDeclaration
           && ((CVariableDeclaration) ((CDeclarationEdge) edge).getDeclaration()).getInitializer() != null
-          && ((CVariableDeclaration) ((CDeclarationEdge) edge).getDeclaration()).getName().equals(varDefName))
+          && ((CVariableDeclaration) ((CDeclarationEdge) edge).getDeclaration()).getName().equals(varDefName)) {
         return true;
+      }
     }
     return false;
   }

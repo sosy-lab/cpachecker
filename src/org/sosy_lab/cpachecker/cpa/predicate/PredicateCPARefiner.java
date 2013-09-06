@@ -92,11 +92,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File dumpCounterexampleFile = new File("counterexample.smt2");
 
-  @Option(description="Heuristically extract predicates from the CFA on first refinement?")
-  private boolean predicateHeuristicOnFirstRefinement = false;
-
-
   private boolean lastRefinementUsedHeuristics = false;
+
   private int heuristicsCount = 0;
   // the previously analyzed counterexample to detect repeated counterexamples
   private List<BooleanFormula> lastErrorPath = null;
@@ -138,7 +135,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final PathFormulaManager pfmgr;
   private final InterpolationManager formulaManager;
   private final RefinementStrategy strategy;
-  private final PredicateExtractor extractor;
+  private final PredicateStaticRefiner extractor;
 
   public PredicateCPARefiner(final Configuration config, final LogManager pLogger,
       final ConfigurableProgramAnalysis pCpa,
@@ -146,7 +143,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       final FormulaManagerView pFormulaManager,
       final PathFormulaManager pPathFormulaManager,
       final RefinementStrategy pStrategy,
-      final PredicateExtractor pExtractor) throws CPAException, InvalidConfigurationException {
+      final PredicateStaticRefiner pExtractor) throws CPAException, InvalidConfigurationException {
 
     super(pCpa);
 
@@ -188,7 +185,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     final List<BooleanFormula> formulas = getFormulasForPath(path, pPath.getFirst().getFirst());
     assert path.size() == formulas.size();
 
-    boolean refineUsingInterpolation = (!predicateHeuristicOnFirstRefinement) || (heuristicsCount > 0);
+    boolean refineUsingInterpolation = (extractor == null) || (heuristicsCount > 0);
 
     // build the counterexample
     final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas, elementsOnPath, refineUsingInterpolation);
@@ -200,7 +197,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       boolean repeatedCounterexample = !lastRefinementUsedHeuristics && formulas.equals(lastErrorPath);
       lastErrorPath = formulas;
 
-      if (predicateHeuristicOnFirstRefinement && heuristicsCount == 0) {
+      if (!refineUsingInterpolation) {
         UnmodifiableReachedSet reached = pReached.asReachedSet();
         ARGState root = (ARGState)reached.getFirstState();
         ARGState refinementRoot = Iterables.getLast(root.getChildren());

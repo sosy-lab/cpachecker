@@ -63,20 +63,23 @@ public class PCCStrategyBuilder {
       Class<?>[] paramTypes;
       for (Constructor<?> con : cons) {
         paramTypes = con.getParameterTypes();
-        if (paramTypes.length != 3)
+        if (paramTypes.length != 3) {
           continue;
-        else {
+        } else {
           if (paramTypes[0] == Configuration.class && paramTypes[1] == LogManager.class) {
-            if (pCpa == null)
+            if (pCpa == null) {
               return (PCCStrategy) con.newInstance(pConfig, pLogger, pCpa);
+            }
             if (paramTypes[2] == ProofChecker.class) {
-              if (!(pCpa instanceof ProofChecker))
+              if (!(pCpa instanceof ProofChecker)) {
                 continue;
+              }
               return (PCCStrategy) con.newInstance(pConfig, pLogger, pCpa);
             }
             if (paramTypes[2] == PropertyCheckerCPA.class) {
-              if (!(pCpa instanceof PropertyCheckerCPA))
+              if (!(pCpa instanceof PropertyCheckerCPA)) {
                 continue;
+              }
               return (PCCStrategy) con.newInstance(pConfig,
                   pLogger, pCpa);
             }
@@ -88,7 +91,7 @@ public class PCCStrategyBuilder {
           "Cannot create PCC Strategy "
               + pPccStrategy
               +
-              " if it does not provide a constructor (Configuration, LogManager, (ConfigurableProgramAnalysis|ProofChecker)");
+              " if it does not provide a constructor (Configuration, LogManager, (PropertyCheckerCPA|ProofChecker)");
     } catch (SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException
         | InvocationTargetException e) {
       throw new UnsupportedOperationException(

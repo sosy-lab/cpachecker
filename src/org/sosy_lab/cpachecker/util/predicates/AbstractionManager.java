@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.ArrayDeque;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
@@ -272,8 +272,13 @@ public final class AbstractionManager {
     return rmgr.entails(f1, f2);
   }
 
-  public Collection<AbstractionPredicate> extractPredicates(Region af) {
-    Collection<AbstractionPredicate> vars = new HashSet<>();
+  /**
+   * Return the set of predicates that occur in a a region.
+   * In some cases, this method also returns the predicate 'false'
+   * in the set.
+   */
+  public Set<AbstractionPredicate> extractPredicates(Region af) {
+    Set<AbstractionPredicate> vars = new HashSet<>();
 
     Deque<Region> toProcess = new ArrayDeque<>();
     toProcess.push(af);
@@ -294,19 +299,13 @@ public final class AbstractionManager {
         pred = absVarToPredicate.get(var);
         assert pred != null;
 
-        Region c1 = parts.getSecond();
-        if (c1 != null) {
-          toProcess.push(c1);
-        }
-
-        Region c2 = parts.getThird();
-        if (c2 != null) {
-          toProcess.push(c2);
-        }
+        toProcess.push(parts.getSecond());
+        toProcess.push(parts.getThird());
       }
 
       vars.add(pred);
     }
+
     return vars;
   }
 

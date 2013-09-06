@@ -27,10 +27,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -100,11 +101,8 @@ public class ARGReachedSet {
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
    */
-  public void removeSubtree(ARGState e, Precision p,
-      Class<? extends Precision> pPrecisionType) {
-    Set<ARGState> toWaitlist = removeSubtree0(e);
-
-    for (ARGState ae : toWaitlist) {
+  public void removeSubtree(ARGState e, Precision p, Class<? extends Precision> pPrecisionType) {
+    for (ARGState ae : removeSubtree0(e)) {
       mReached.updatePrecision(ae, adaptPrecision(mReached.getPrecision(ae), p, pPrecisionType));
       mReached.reAddToWaitlist(ae);
     }
@@ -193,8 +191,7 @@ public class ARGReachedSet {
 
   private Set<ARGState> removeSubtree0(ARGState e) {
     Preconditions.checkNotNull(e);
-    Preconditions.checkArgument(!e.getParents().isEmpty(),
-        "May not remove the initial element from the ARG/reached set");
+    Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ARG/reached set");
 
     dumpSubgraph(e);
 
@@ -214,10 +211,14 @@ public class ARGReachedSet {
   }
 
   private void dumpSubgraph(ARGState e) {
-    if (cpa == null) { return; }
+    if (cpa == null) {
+      return;
+    }
 
     ARGToDotWriter refinementGraph = cpa.getRefinementGraphWriter();
-    if (refinementGraph == null) { return; }
+    if (refinementGraph == null) {
+      return;
+    }
 
     SetMultimap<ARGState, ARGState> successors = ARGUtils.projectARG(e,
         ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
@@ -227,10 +228,10 @@ public class ARGReachedSet {
 
     try {
       refinementGraph.enterSubgraph("cluster_" + refinementNumber,
-          "Refinement " + refinementNumber);
+                                    "Refinement " + refinementNumber);
 
       refinementGraph.writeSubgraph(e,
-          Functions.forMap(successors.asMap(), ImmutableSet.<ARGState> of()),
+          Functions.forMap(successors.asMap(), ImmutableSet.<ARGState>of()),
           Predicates.alwaysTrue(),
           Predicates.alwaysFalse());
 
@@ -252,17 +253,17 @@ public class ARGReachedSet {
    *
    * The result will be a set of elements that need to be added to the waitlist
    * to re-discover the removed elements. These are the parents of the removed
-   * elements which are not removed themselves.
+   * elements which are not removed themselves. The set is sorted based on the
+   * relation defined by {@link ARGState#compareTo(ARGState)}), i.e., oldest-first.
    *
    * @param elements the elements to remove
    * @return the elements to re-add to the waitlist
    */
-  private Set<ARGState> removeSet(Set<ARGState> elements) {
+  private SortedSet<ARGState> removeSet(Set<ARGState> elements) {
     mReached.removeAll(elements);
 
-    Set<ARGState> toWaitlist = new LinkedHashSet<>();
+    SortedSet<ARGState> toWaitlist = new TreeSet<>();
     for (ARGState ae : elements) {
-
       for (ARGState parent : ae.getParents()) {
         if (!elements.contains(parent)) {
           toWaitlist.add(parent);

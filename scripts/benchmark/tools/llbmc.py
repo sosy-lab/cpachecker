@@ -50,7 +50,7 @@ class Tool(benchmark.tools.template.BaseTool):
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
         status = 'UNKNOWN'
-        
+
         for line in output.splitlines():
             if 'Error detected.' in line:
                 status = 'UNSAFE'

@@ -76,6 +76,6 @@
         </dependency>
 
         <!-- VerifierCloud -->
-        <dependency org="org.sosy_lab" name="vercip" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
+        <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
     </dependencies>
 </ivy-module>

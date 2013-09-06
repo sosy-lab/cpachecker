@@ -27,7 +27,21 @@ import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
+/**
+ *
+ * This class represents the infix expression AST node type.
+ *
+ * InfixExpression:
+ * Expression InfixOperator Expression { InfixOperator Expression }
+ *
+ * Operand1 is the left operand.
+ * Operand2 the right operand.
+ * The possible Operators are represented by the enum {@link JBinaryExpression.BinaryOperator}
+ *
+ * Some expression in Java, like the postfix increment, will be transformed
+ * into a infix expression in the CFA and also be represented by this class.
+ *
+ */
 public class JBinaryExpression extends ABinaryExpression implements JExpression {
 
   public JBinaryExpression(FileLocation pFileLocation, JType pType, JExpression pOperand1, JExpression pOperand2,

@@ -86,7 +86,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
         // ignore parameters and just create a fresh variable for it
         return conv.makeFreshVariable(func, expType, ssa);
 
-      } else if (conv.externModelFunctionName.equals(func)){
+      } else if (conv.externModelFunctionName.equals(func)) {
         assert (pexps.size()>0): "No external model given!";
         // the parameter comes in C syntax (with ")
         String filename = pexps.get(0).toASTString().replaceAll("\"", "");
@@ -146,6 +146,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
 
         CType paramType= it1.next();
         CExpression pexp = it2.next();
+        pexp = conv.makeCastFromArrayToPointerIfNecessary(pexp, paramType);
 
         Formula arg = pexp.accept(this);
         args.add(conv.makeCast(pexp.getExpressionType(), paramType, arg));
@@ -170,7 +171,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
     if (! pModelFile.getName().endsWith(".dimacs")) {
       throw new UnsupportedOperationException("Sorry, we can only load dimacs models.");
     }
-    try (BufferedReader br = new BufferedReader(new FileReader(pModelFile))){
+    try (BufferedReader br = new BufferedReader(new FileReader(pModelFile))) {
        ArrayList<String> predicates = new ArrayList<>(10000);
        //var ids in dimacs files start with 1, so we want the first var at position 1
        predicates.add("RheinDummyVar");
@@ -195,7 +196,7 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
            String[] parts = line.split(" ");
            // +1 because of the dummy var
            assert predicates.size()==Integer.parseInt(parts[2])+1: "did not get all dimcas variables?";
-         } else if (line.trim().length()>0){
+         } else if (line.trim().length()>0) {
            //-17552 -11882 1489 48905 0
            // constraints
            BooleanFormula constraint = conv.bfmgr.makeBoolean(false);
@@ -204,38 +205,43 @@ class RightHandSideToFormulaVisitor extends ForwardingCExpressionVisitor<Formula
              if (!elementStr.equals("0") && !elementStr.isEmpty()) {
                int elem = Integer.parseInt(elementStr);
                String predName = "";
-               if (elem > 0)
-                 predName = predicates.get(elem);
-               else
-                 predName = predicates.get(-elem);
+               if (elem > 0) {
+                predName = predicates.get(elem);
+              } else {
+                predName = predicates.get(-elem);
+              }
                int ssaIndex = ssa.getIndex(predName);
                BooleanFormula constraintPart = null;
                if (ssaIndex != -1) {
                  // this variable was already declared in the program
                  Formula formulaVar = conv.fmgr.makeVariable(conv.getFormulaTypeFromCType(ssa.getType(predName)), predName, ssaIndex);
-                 if (elem > 0)
-                   constraintPart = conv.fmgr.makeNot(conv.fmgr.makeEqual(formulaVar, zero)); // C semantics (x) <=> (x!=0)
-                 else
-                   constraintPart = conv.fmgr.makeEqual(formulaVar, zero);
+                 if (elem > 0) {
+                  constraintPart = conv.fmgr.makeNot(conv.fmgr.makeEqual(formulaVar, zero)); // C semantics (x) <=> (x!=0)
+                } else {
+                  constraintPart = conv.fmgr.makeEqual(formulaVar, zero);
+                }
                } else {
                  // var was not declared in the program
                  // get a new SMT-var for it (i have to pass a ssa index, choosing 1)
                  BooleanFormula formulaVar = conv.fmgr.makeVariable(FormulaType.BooleanType, predName, 1);
-                 if (elem > 0)
-                   constraintPart = formulaVar;
-                 else
-                   constraintPart = conv.bfmgr.not(formulaVar);
+                 if (elem > 0) {
+                  constraintPart = formulaVar;
+                } else {
+                  constraintPart = conv.bfmgr.not(formulaVar);
+                }
                }
-               if (constraint == null)
-                 constraint = constraintPart;
-               else
-                 constraint = conv.bfmgr.or(constraint, constraintPart);
+               if (constraint == null) {
+                constraint = constraintPart;
+              } else {
+                constraint = conv.bfmgr.or(constraint, constraintPart);
+              }
              }
            }
-           if (externalModel == null)
-             externalModel = constraint;
-           else
-             externalModel = conv.bfmgr.and(externalModel, constraint);
+           if (externalModel == null) {
+            externalModel = constraint;
+          } else {
+            externalModel = conv.bfmgr.and(externalModel, constraint);
+          }
          }
        }// end of while
       return externalModel;

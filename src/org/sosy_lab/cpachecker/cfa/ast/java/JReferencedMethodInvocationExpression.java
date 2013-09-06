@@ -29,7 +29,20 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
+/**
+ *
+ * This class represents the qualified method invocation expression AST node type.
+ *
+ *  Qualified MethodInvocation:
+ *     Expression .
+ *        [ < Type { , Type } > ]
+ *        Identifier ( [ Expression { , Expression } ] )
+ *
+ *  Note that the qualification only consist of variables.
+ *  In the cfa, all method names are transformed to have unique names.
+ *
+ *
+ */
 public class JReferencedMethodInvocationExpression extends JMethodInvocationExpression {
 
   private final JIdExpression qualifier;

@@ -76,6 +76,8 @@ public class PredicateAbstractionManager {
     public int numSatCheckAbstractions = 0;
     public int numCallsAbstractionCached = 0;
     public int numIrrelevantPredicates = 0;
+    public int numTrivialPredicates = 0;
+    public final Timer trivialPredicatesTime = new Timer();
     public final NestedTimer abstractionEnumTime = new NestedTimer(); // outer: solver time, inner: bdd time
     public final Timer abstractionSolveTime = new Timer(); // only the time for solving, not for model enumeration
 
@@ -110,6 +112,10 @@ public class PredicateAbstractionManager {
   @Option(name="refinement.splitItpAtoms",
       description="split each arithmetic equality into two inequalities when extracting predicates from interpolants")
   private boolean splitItpAtoms = false;
+
+  @Option(name = "abstraction.identifyTrivialPredicates",
+      description="Identify those predicates where the result is trivially known before abstraction computation and omit them.")
+  private boolean identifyTrivialPredicates = false;
 
   private boolean warnedOfCartesianAbstraction = false;
 
@@ -180,7 +186,7 @@ public class PredicateAbstractionManager {
     }
 
     logger.log(Level.FINEST, "Computing abstraction", stats.numCallsAbstraction, "with", pPredicates.size(), "predicates");
-    logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
+    logger.log(Level.ALL, "Old abstraction:", abstractionFormula.asFormula());
     logger.log(Level.ALL, "Path formula:", pathFormula);
     logger.log(Level.ALL, "Predicates:", pPredicates);
 
@@ -222,12 +228,27 @@ public class PredicateAbstractionManager {
       }
     }
 
+    // filter out irrelevant predicates and optionally those
+    // where we can trivially identify their truthness in the result
+    Region initialAbs = amgr.getRegionCreator().makeTrue();
+    if (identifyTrivialPredicates) {
+      stats.trivialPredicatesTime.start();
+      Pair<ImmutableSet<AbstractionPredicate>, Region> syntacticCheck
+          = identifyTrivialPredicates(predicates, abstractionFormula, pathFormula);
+      // the set of predicates we still need to use for abstraction
+      predicates = syntacticCheck.getFirst();
+      // the region we have already calculated
+      initialAbs = syntacticCheck.getSecond();
+      stats.trivialPredicatesTime.stop();
+    }
+
     Region abs;
     if (cartesianAbstraction) {
       abs = buildCartesianAbstraction(f, ssa, predicates);
     } else {
       abs = buildBooleanAbstraction(f, ssa, predicates);
     }
+    abs = amgr.getRegionCreator().makeAnd(initialAbs, abs);
 
     AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
 
@@ -291,7 +312,7 @@ public class PredicateAbstractionManager {
       if (bfmgr.isFalse(predicateTerm)) {
         // Ignore predicate "false", it means "check for satisfiability".
         // We do this implicitly.
-        logger.log(Level.FINEST, "Ignoring predicate 'true'");
+        logger.log(Level.FINEST, "Ignoring predicate 'false'");
         continue;
       }
 
@@ -306,6 +327,72 @@ public class PredicateAbstractionManager {
       }
     }
     return predicateBuilder.build();
+  }
+
+  /**
+   * This method finds predicates whose truth value after the
+   * abstraction computation is trivially known,
+   * and returns a region with these predicates,
+   * so that these predicates also do not need to be used in the abstraction computation.
+   *
+   * @param pPredicates The set of predicates.
+   * @param pOldAbs An abstraction formula that determines which variables and predicates are relevant.
+   * @param pBlockFormula A path formula that determines which variables and predicates are relevant.
+   * @return A subset of still relevant pPredicates and a "subregion" of pOldAbs.
+   */
+  private Pair<ImmutableSet<AbstractionPredicate>, Region> identifyTrivialPredicates(
+      final Collection<AbstractionPredicate> pPredicates,
+      final AbstractionFormula pOldAbs, final PathFormula pBlockFormula) {
+
+    final SSAMap ssa = pBlockFormula.getSsa();
+    final Set<String> blockVariables = fmgr.extractVariables(pBlockFormula.getFormula());
+    final Region oldAbs = pOldAbs.asRegion();
+
+    final ImmutableSet.Builder<AbstractionPredicate> predicateBuilder = ImmutableSet.builder();
+    final RegionCreator regionCreator = amgr.getRegionCreator();
+    Region region = regionCreator.makeTrue();
+
+    for (final AbstractionPredicate predicate : pPredicates) {
+      final BooleanFormula predicateTerm = predicate.getSymbolicAtom();
+
+      BooleanFormula instantiatedPredicate = fmgr.instantiate(predicateTerm, ssa);
+      final Set<String> predVariables = fmgr.extractVariables(instantiatedPredicate);
+
+      if (Sets.intersection(predVariables, blockVariables).isEmpty()) {
+        // predicate irrelevant with respect to block formula
+
+        final Region predicateVar = predicate.getAbstractVariable();
+        if (amgr.entails(oldAbs, predicateVar)) {
+          // predicate is unconditionally implied by old abs,
+          // we can just copy it to the output
+          region = regionCreator.makeAnd(region, predicateVar);
+          stats.numTrivialPredicates++;
+          logger.log(Level.FINEST, "Predicate", predicate, "is unconditionally true in old abstraction and can be copied to the result.");
+
+        } else {
+          final Region negatedPredicateVar = regionCreator.makeNot(predicateVar);
+          if (amgr.entails(oldAbs, negatedPredicateVar)) {
+            // negated predicate is unconditionally implied by old abs,
+            // we can just copy it to the output
+            region = regionCreator.makeAnd(region, negatedPredicateVar);
+            stats.numTrivialPredicates++;
+            logger.log(Level.FINEST, "Negation of predicate", predicate, "is unconditionally true in old abstraction and can be copied to the result.");
+
+          } else {
+            // predicate is used in old abs and there is no easy way to handle it,
+            // use it for abstraction
+            predicateBuilder.add(predicate);
+            logger.log(Level.FINEST, "Predicate", predicate, "is relevant because it appears in the old abstraction.");
+          }
+        }
+      } else {
+        predicateBuilder.add(predicate);
+      }
+    }
+
+    assert amgr.entails(oldAbs, region);
+
+    return Pair.of(predicateBuilder.build(), region);
   }
 
   /**
@@ -369,10 +456,9 @@ public class PredicateAbstractionManager {
       }
 
       if (!warnedOfCartesianAbstraction && !fmgr.isPurelyConjunctive(f)) {
-        logger
-            .log(
-                Level.WARNING,
-                "Using cartesian abstraction when formulas contain disjunctions may be imprecise. This might lead to failing refinements.");
+        logger.log(Level.WARNING,
+            "Using cartesian abstraction when formulas contain disjunctions may be imprecise. "
+            + "This might lead to failing refinements.");
         warnedOfCartesianAbstraction = true;
       }
 
@@ -725,7 +811,7 @@ public class PredicateAbstractionManager {
 
   // delegate methods
 
-  public Collection<AbstractionPredicate> extractPredicates(Region pRegion) {
+  public Set<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);
   }
 

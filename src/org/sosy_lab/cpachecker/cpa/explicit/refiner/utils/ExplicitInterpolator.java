@@ -39,8 +39,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitTransferRelation;
@@ -51,6 +49,7 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class ExplicitInterpolator {
@@ -73,7 +72,9 @@ public class ExplicitInterpolator {
   /**
    * the first path element without any successors
    */
-  public Pair<ARGState, CFAEdge> conflictingElement = null;
+  public Integer conflictingOffset = null;
+
+  public Integer currentOffset = null;
 
   /**
    * boolean flag telling whether the current path is feasible
@@ -109,25 +110,27 @@ public class ExplicitInterpolator {
    * @throws InterruptedException
    */
   public Set<Pair<String, Long>> deriveInterpolant(
-      ARGPath errorPath,
+      List<CFAEdge> errorPath,
       int offset,
       Map<String, Long> inputInterpolant) throws CPAException, InterruptedException {
     numberOfInterpolations = 0;
 
+    currentOffset = offset;
+
     // cancel the interpolation if we are interpolating at the conflicting element
-    if (conflictingElement == errorPath.get(offset)) {
+    if (conflictingOffset != null && currentOffset >= conflictingOffset) {
       return null;
     }
 
     // create initial state, based on input interpolant, and create initial successor by consuming the next edge
     ExplicitState initialState      = new ExplicitState(PathCopyingPersistentTreeMap.copyOf(inputInterpolant));
-    ExplicitState initialSuccessor  = getInitialSuccessor(initialState, errorPath.get(offset).getSecond());
+    ExplicitState initialSuccessor  = getInitialSuccessor(initialState, errorPath.get(offset));
     if (initialSuccessor == null) {
       return null;
     }
 
     // if the remaining path is infeasible by itself, i.e., contradicting by itself, skip interpolation
-    if(initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(skip(errorPath, offset + 1), new ExplicitState())) {
+    if (initialSuccessor.getSize() > 1 && !isRemainingPathFeasible(skip(errorPath, offset + 1), new ExplicitState())) {
       return Collections.emptySet();
     }
 
@@ -139,7 +142,7 @@ public class ExplicitInterpolator {
       // remove the value of the current and all already-found-to-be-irrelevant variables from the successor
       successor.forget(currentVariable);
       for (Pair<String, Long> interpolantVariable : interpolant) {
-        if(interpolantVariable.getSecond() == null) {
+        if (interpolantVariable.getSecond() == null) {
           successor.forget(interpolantVariable.getFirst());
         }
       }
@@ -202,20 +205,22 @@ public class ExplicitInterpolator {
    * @return true, it the path is feasible, else false
    * @throws CPATransferException
    */
-  private boolean isRemainingPathFeasible(Iterable<Pair<ARGState, CFAEdge>> errorPath, ExplicitState initialState)
+  private boolean isRemainingPathFeasible(Iterable<CFAEdge> errorPath, ExplicitState initialState)
       throws CPATransferException {
     numberOfInterpolations++;
 
-    for (Pair<ARGState, CFAEdge> pathElement : errorPath) {
+    List<CFAEdge> path = Lists.newArrayList(errorPath);
+    for (int i = 0; i < path.size(); i++) {
+      CFAEdge currentEdge = path.get(i);
       Collection<ExplicitState> successors = transfer.getAbstractSuccessors(
         initialState,
         precision,
-        pathElement.getSecond());
+        currentEdge);
 
       initialState = extractSuccessorState(successors);
 
-      // there is no successor and the current path element is not an error state => error path is spurious
-      if (initialState == null && !pathElement.getFirst().isTarget()) {
+      // there is no successor and the end of the path is not reached => error path is spurious
+      if (initialState == null && currentEdge != Iterables.getLast(path)) {
         /* needed for sequences like ...
           ...
           status = 259;
@@ -225,8 +230,10 @@ public class ExplicitInterpolator {
           ... as this would otherwise stop interpolation after first conflicting element,
           as the path to first conflicting element always is infeasible here
         */
-        if (conflictingElement == null || conflictingElement.getFirst().isOlderThan(pathElement.getFirst())) {
-          conflictingElement = pathElement;
+        //if ((conflictingOffset == null) || (conflictingOffset <= i + currentOffset))
+
+        if ((conflictingOffset == null) || (conflictingOffset <= i + currentOffset)) {
+          conflictingOffset = i + currentOffset + 1;
         }
         return false;
       }

@@ -247,6 +247,11 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
+  public Set<Region> extractPredicates(Region pF) {
+    return delegate.extractPredicates(pF);
+  }
+
+  @Override
   public void printStatistics(PrintStream out) {
     out.println("Number of named predicates:          " + (regionMap.size() - anonymousPredicateCounter));
     delegate.printStatistics(out);

@@ -12,7 +12,12 @@ class Tool(benchmark.tools.template.BaseTool):
     def getVersion(self, executable):
         return subprocess.Popen([executable],
                                 stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT).communicate()[0][6:9]
+                                stderr=subprocess.STDOUT).communicate()[0][6:11]
+
+
+    def getCmdline(self, blastExe, options, sourcefile):
+        ocamlExe = Util.findExecutable('ocamltune')
+        return [ocamlExe, blastExe] + options + [sourcefile]
 
 
     def getName(self):
@@ -20,16 +25,18 @@ class Tool(benchmark.tools.template.BaseTool):
 
 
     def getStatus(self, returncode, returnsignal, output, isTimeout):
-        status = "UNKNOWN"
+        status = 'UNKNOWN'
         for line in output.splitlines():
             if line.startswith('Error found! The system is unsafe :-('):
                 status = 'UNSAFE'
             elif line.startswith('No error found.  The system is safe :-)'):
                 status = 'SAFE'
-            elif (returncode == 2) and line.startswith('Fatal error: out of memory.'):
+            elif line.startswith('Fatal error: exception Out_of_memory'):
                 status = 'OUT OF MEMORY'
-            elif (returncode == 2) and line.startswith('Fatal error: exception Sys_error("Broken pipe")'):
-                status = 'EXCEPTION'
-            elif (returncode == 2) and line.startswith('Ack! The gremlins again!: Sys_error("Broken pipe")'):
+            elif line.startswith('Error: label \'ERROR\' appears multiple times'):
+                status = 'ERROR'
+            elif (returnsignal == 9):
                 status = 'TIMEOUT'
+            elif 'Ack! The gremlins again!' in line:
+                status = 'EXCEPTION (Gremlins)'
         return status

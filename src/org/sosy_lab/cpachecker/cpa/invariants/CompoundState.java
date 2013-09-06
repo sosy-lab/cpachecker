@@ -236,8 +236,31 @@ public class CompoundState {
   public boolean contains(SimpleInterval pInterval) {
     if (isTop()) { return true; }
     if (isBottom() || pInterval.isTop()) { return false; }
-    for (SimpleInterval interval : this.intervals) {
-      if (interval.contains(pInterval)) { return true; }
+    if (!pInterval.hasLowerBound() && hasLowerBound()) {
+      return false;
+    }
+    if (!pInterval.hasUpperBound() && hasUpperBound()) {
+      return false;
+    }
+    boolean hasLowerBound = pInterval.hasLowerBound();
+    boolean hasUpperBound = pInterval.hasUpperBound();
+    BigInteger lb = hasLowerBound ? pInterval.getLowerBound() : null;
+    BigInteger ub = hasUpperBound ? pInterval.getUpperBound() : null;
+    int leftInclusive = 0;
+    int rightExclusive = this.intervals.size();
+    while (leftInclusive < rightExclusive) {
+      int index = (rightExclusive - leftInclusive) / 2;
+      SimpleInterval intervalAtIndex = this.intervals.get(index);
+      boolean lbIndexLeqLb = !intervalAtIndex.hasLowerBound() || hasLowerBound && intervalAtIndex.getLowerBound().compareTo(lb) <= 0;
+      boolean ubIndexGeqUb = !intervalAtIndex.hasUpperBound() || hasUpperBound && intervalAtIndex.getUpperBound().compareTo(ub) >= 0;
+      if (lbIndexLeqLb) { // Interval at index starts before interval
+        if (ubIndexGeqUb) { // Interval at index ends after interval
+          return true;
+        }
+        leftInclusive = index + 1;
+      } else { // Interval at index starts after interval
+        rightExclusive = index;
+      }
     }
     return false;
   }
@@ -248,6 +271,8 @@ public class CompoundState {
    * @return <code>true</code> if the given value is contained in the state, <code>false</code> otherwise.
    */
   public boolean contains(BigInteger pValue) {
+    if (isTop()) { return true; }
+    if (isBottom()) { return false; }
     return contains(SimpleInterval.singleton(pValue));
   }
 
@@ -258,7 +283,26 @@ public class CompoundState {
    * <code>false</code> otherwise.
    */
   public boolean contains(long pValue) {
-    return contains(BigInteger.valueOf(pValue));
+    if (isTop()) { return true; }
+    if (isBottom()) { return false; }
+    int leftInclusive = 0;
+    int rightExclusive = this.intervals.size();
+    BigInteger value = BigInteger.valueOf(pValue);
+    while (leftInclusive < rightExclusive) {
+      int index = (rightExclusive - leftInclusive) / 2;
+      SimpleInterval intervalAtIndex = this.intervals.get(index);
+      boolean lbIndexLeqLb = !intervalAtIndex.hasLowerBound() || intervalAtIndex.getLowerBound().compareTo(value) <= 0;
+      boolean ubIndexGeqUb = !intervalAtIndex.hasUpperBound() || intervalAtIndex.getUpperBound().compareTo(value) >= 0;
+      if (lbIndexLeqLb) { // Interval at index starts before interval
+        if (ubIndexGeqUb) { // Interval at index ends after interval
+          return true;
+        }
+        leftInclusive = index + 1;
+      } else { // Interval at index starts after interval
+        rightExclusive = index;
+      }
+    }
+    return false;
   }
 
   /**
@@ -475,7 +519,7 @@ public class CompoundState {
    * @return <code>true</code> if this state contains the zero value.
    */
   public boolean containsZero() {
-    return contains(BigInteger.ZERO);
+    return contains(0);
   }
 
   /**
@@ -780,7 +824,7 @@ public class CompoundState {
    * <code>true</code>, <code>false</code> otherwise.
    */
   public boolean isDefinitelyTrue() {
-    return !isBottom() && !contains(BigInteger.ZERO);
+    return !isBottom() && !containsZero();
   }
 
   /**

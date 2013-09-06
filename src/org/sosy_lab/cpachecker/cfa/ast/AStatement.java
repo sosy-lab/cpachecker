@@ -40,11 +40,11 @@ public abstract class AStatement extends AstNode implements IAStatement {
 
   @Override
   public boolean equals(Object obj) {
-    if(obj == this) {
+    if (obj == this) {
       return true;
     }
 
-    if(!(obj instanceof AStatement)) {
+    if (!(obj instanceof AStatement)) {
         return false;
     }
 

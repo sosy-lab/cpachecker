@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark SYSTEM "benchmark.dtd">
-<benchmark tool="cpachecker" timelimit="240" memlimit="5000" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="240" memlimit="3000" cpuCores="2">
   <!-- try to make it more deterministic -->
   <option name="-setprop">cpa.predicate.mathsat5.furtherOptions=random_seed=42</option>
 
@@ -15,11 +15,6 @@
     <sourcefiles>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
       <option name="-64"/>
-    </sourcefiles>
-    <sourcefiles>
-      <includesfile>../programs/simple/simple.set</includesfile>
-      <option name="-setprop">cpa.predicate.ignoreCasts=false</option>
-      <option name="-setprop">cpa.predicate.replaceBitvectorWithRationalAndFunctionTheory=false</option>
     </sourcefiles>
     <option name="-noout"/>
     <option name="-predicateAnalysis"/>

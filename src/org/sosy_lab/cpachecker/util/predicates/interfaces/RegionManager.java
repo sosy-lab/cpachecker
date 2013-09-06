@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.io.PrintStream;
+import java.util.Set;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -117,6 +118,12 @@ public interface RegionManager {
    * @return a new predicate
    */
   public Region createPredicate();
+
+  /**
+   * Returns the set of all predicates that occur in the representation of this region.
+   * @return a set of regions where each region represents one predicate
+   */
+  public Set<Region> extractPredicates(Region f);
 
   /**
    * Convert a formula into a region.

@@ -26,7 +26,10 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-
+/**
+ * This class represents initializer expressions in variable and field declarations.
+ *
+ */
 public class JInitializerExpression extends AInitializerExpression implements JInitializer {
 
   public JInitializerExpression(FileLocation pFileLocation, JExpression pExpression) {

@@ -47,6 +47,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.TreeMultimap;
 
 @Options(prefix="cpa.explicit.precision")
 public class ExplicitPrecision implements Precision {
@@ -64,8 +65,10 @@ public class ExplicitPrecision implements Precision {
   @Option(description = "the threshold which controls whether or not variable valuations ought to be abstracted once the specified number of valuations per variable is reached in the set of reached states")
   private int reachedSetThreshold = -1;
 
-  @Option(description = "whether or not to add newly-found variables only to the exact program location (i.e. scoped=false) or to their respective scope (i.e. scoped=true).")
-  private boolean scoped = true;
+  @Option(values={"location", "scope"},
+		  description = "whether to track relevant variables only at the exact program location (sharing=location), " +
+		  		"or within their respective (function-/global-) scope (sharing=scoped).")
+  private String sharing = "scope";
 
   @Option(description = "ignore boolean variables. if this option is used, "
       + "booleans from the cfa should tracked with another CPA, "
@@ -115,7 +118,7 @@ public class ExplicitPrecision implements Precision {
     blackListPattern      = original.blackListPattern;
     reachedSetThreshold   = original.reachedSetThreshold;
 
-    scoped                = original.scoped;
+    sharing               = original.sharing;
     varClass              = original.varClass;
     ignoreBoolean         = original.ignoreBoolean;
     ignoreIntEqual        = original.ignoreIntEqual;
@@ -142,6 +145,11 @@ public class ExplicitPrecision implements Precision {
     return refinablePrecision.getSize();
   }
 
+  @Override
+  public String toString() {
+    return refinablePrecision.toString();
+  }
+
   ExplicitState computeAbstraction(ExplicitState state, CFANode location) {
     refinablePrecision.setLocation(location);
 
@@ -150,26 +158,26 @@ public class ExplicitPrecision implements Precision {
       String name = variableNames.next();
       /* for tests with failing benchmarks in product-lines
        * //if(!name.equals("executiveFloor") && !name.startsWith("calls_") && !name.startsWith("personOnFloor_")) {
-      if(!name.startsWith("personOnFloor_0")
-      	&& !name.startsWith("personOnFloor_1")
-		&& !name.startsWith("personOnFloor_2")
-		&& !name.startsWith("personOnFloor_3")
-		&& !name.startsWith("personOnFloor_4")
-		&& !name.startsWith("personOnFloor_5")
+      if (!name.startsWith("personOnFloor_0")
+          && !name.startsWith("personOnFloor_1")
+          && !name.startsWith("personOnFloor_2")
+          && !name.startsWith("personOnFloor_3")
+          && !name.startsWith("personOnFloor_4")
+          && !name.startsWith("personOnFloor_5")
 
-		&& !name.startsWith("calls_")
+          && !name.startsWith("calls_")
 
-		&& !name.startsWith("persons_")
+          && !name.startsWith("persons_")
 
-		&& !name.startsWith("floorButtons_")
+          && !name.startsWith("floorButtons_")
 
-		&& !name.equals("executiveFloor")
-		&& !name.equals("currentFloorID")
-		&& !name.equals("currentHeading")) {
+          && !name.equals("executiveFloor")
+          && !name.equals("currentFloorID")
+          && !name.equals("currentHeading")) {
         variableNames.remove();
         continue;
       }
-      if(name.contains("___cpa_temp_result_var_")) {
+      if (name.contains("___cpa_temp_result_var_")) {
         variableNames.remove();
         continue;
       }*/
@@ -236,8 +244,19 @@ public class ExplicitPrecision implements Precision {
     return Pair.of(function, varName);
   }
 
-  RefinablePrecision createInstance() {
-    return scoped ? new ScopedRefinablePrecision() : new LocalizedRefinablePrecision();
+  private RefinablePrecision createInstance() {
+	if(sharing.equals("scope")) {
+      return new ScopedRefinablePrecision();
+	}
+
+    else if(sharing.equals("location")) {
+      return new LocalizedRefinablePrecision();
+	}
+
+    else {
+      throw new InternalError("Wrong value for precison sharing strategy given (was " + sharing + ")," +
+      		"or allowed options out-dated.");
+    }
   }
 
   abstract public static class RefinablePrecision {
@@ -313,7 +332,7 @@ public class ExplicitPrecision implements Precision {
 
     @Override
     public LocalizedRefinablePrecision refine(Multimap<CFANode, String> increment) {
-      if(this.rawPrecision.entries().containsAll(increment.entries())) {
+      if (this.rawPrecision.entries().containsAll(increment.entries())) {
         return this;
       }
       else {
@@ -333,10 +352,10 @@ public class ExplicitPrecision implements Precision {
 
     @Override
     void serialize(Writer writer) throws IOException {
-      for(CFANode currentLocation : rawPrecision.keySet()) {
+      for (CFANode currentLocation : rawPrecision.keySet()) {
         writer.write("\n" + currentLocation + ":\n");
 
-        for(String variable : rawPrecision.get(currentLocation)) {
+        for (String variable : rawPrecision.get(currentLocation)) {
           writer.write(variable + "\n");
         }
       }
@@ -357,6 +376,11 @@ public class ExplicitPrecision implements Precision {
     protected Collection<String> getAbstractionCandidates(ExplicitState state) {
       return new HashSet<>(state.getTrackedVariableNames());
     }
+
+    @Override
+    public String toString() {
+      return TreeMultimap.create(rawPrecision).toString();
+    }
   }
 
   public static class ScopedRefinablePrecision extends RefinablePrecision {
@@ -372,7 +396,7 @@ public class ExplicitPrecision implements Precision {
 
     @Override
     public ScopedRefinablePrecision refine(Multimap<CFANode, String> increment) {
-      if(this.rawPrecision.containsAll(increment.values())) {
+      if (this.rawPrecision.containsAll(increment.values())) {
         return this;
       }
       else {
@@ -390,10 +414,10 @@ public class ExplicitPrecision implements Precision {
 
       ArrayList<String> globals = new ArrayList<>();
       String previousScope      = null;
-      for(String variable : sortedPrecision) {
-        if(variable.contains("::")) {
+      for (String variable : sortedPrecision) {
+        if (variable.contains("::")) {
           String functionName = variable.substring(0, variable.indexOf("::"));
-          if(!functionName.equals(previousScope)) {
+          if (!functionName.equals(previousScope)) {
             writer.write("\n" + functionName + ":\n");
           }
           writer.write(variable + "\n");
@@ -405,7 +429,7 @@ public class ExplicitPrecision implements Precision {
         }
       }
 
-      if(previousScope != null) {
+      if (previousScope != null) {
         writer.write("\n");
       }
 
@@ -426,6 +450,11 @@ public class ExplicitPrecision implements Precision {
     @Override
     protected Collection<String> getAbstractionCandidates(ExplicitState state) {
       return new HashSet<>(state.getDelta());
+    }
+
+    @Override
+    public String toString() {
+      return new TreeSet<>(rawPrecision).toString();
     }
   }
 

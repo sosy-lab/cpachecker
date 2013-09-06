@@ -23,18 +23,47 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
+/**
+ *
+ * This class represents the Constructor declaration AST node type.
+ *
+ * ConstructorDeclaration:
+ *   [ Javadoc ] { ExtendedModifier }
+ *                 [ < TypeParameter { , TypeParameter } > ]
+ *       Identifier (
+ *                 [ FormalParameter
+ *                        { , FormalParameter } ] )
+ *       [throws TypeName { , TypeName } ] Block
+ *
+ *  The constructor declaration is a method declaration represented
+ *  in {@link JMethodDeclaration}, who's return type is denoted as
+ *  the class type it was declared in. Additionally, not all valid
+ *  method modifiers are valid for a constructor, e.g. abstract
+ *  static, native, synchronized, final.
+ *
+ */
 public class JConstructorDeclaration extends JMethodDeclaration {
 
+  private static final JConstructorDeclaration UNRESOLVED_CONSTRUCTOR =
+      new JConstructorDeclaration(new FileLocation(0, "", 0, 0, 0),
+          JConstructorType.createUnresolvableConstructorType(), "__UNRESOLVABLE__",
+          "__UNRESOLVABLE__", new ArrayList<JParameterDeclaration>(), VisibilityModifier.NONE,
+          false, JClassType.createUnresolvableType());
 
-
-  public JConstructorDeclaration(FileLocation pFileLocation, JConstructorType pType, String pName,
+  public JConstructorDeclaration(FileLocation pFileLocation,
+      JConstructorType pType, String pName, String simpleName,
+      List<JParameterDeclaration> pParameterDeclarations,
       VisibilityModifier pVisibility, boolean pIsStrictfp, JClassType declaringClass) {
-    super(pFileLocation, pType, pName, pVisibility, false, false, false, false, false,
+    super(pFileLocation, pType, pName, simpleName, pParameterDeclarations, pVisibility,
+        false, false, false, false, false,
         pIsStrictfp, declaringClass);
   }
 
@@ -52,14 +81,39 @@ public class JConstructorDeclaration extends JMethodDeclaration {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
+    if (this == obj) { return true; }
 
-    if (!(obj instanceof JConstructorDeclaration)) {
-      return false;
-    }
+    if (!(obj instanceof JConstructorDeclaration)) { return false; }
 
     return super.equals(obj);
+  }
+
+  public static JConstructorDeclaration createUnresolvedConstructorDeclaration() {
+    return UNRESOLVED_CONSTRUCTOR;
+  }
+
+  public static JConstructorDeclaration createExternConstructorDeclaration(
+      JConstructorType pConstructorType,
+      String pName, String simpleName,
+      VisibilityModifier pVisibility,
+      boolean pStrictFp, JClassType pDeclaringClassType) {
+
+    List<JType> parameterTypes = pConstructorType.getParameters();
+    List<JParameterDeclaration> parameters = new ArrayList<>(parameterTypes.size());
+
+    FileLocation externFileLoc = new FileLocation(0, "", 0, 0, 0);
+
+
+    int i = 0;
+
+    for (JType parameterType : parameterTypes) {
+      parameters.add(
+          new JParameterDeclaration(externFileLoc, parameterType, "parameter" +
+              String.valueOf(i), false));
+      i++;
+    }
+
+    return new JConstructorDeclaration(externFileLoc, pConstructorType,
+        pName, simpleName, parameters, pVisibility, pStrictFp, pDeclaringClassType);
   }
 }

@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.explicit.refiner.ExplicitStaticRefiner;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -69,10 +70,6 @@ import com.google.common.io.Files;
 
 @Options(prefix="cpa.explicit")
 public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, StatisticsProvider {
-
-  public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ExplicitCPA.class);
-  }
 
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ExplicitCPA")
@@ -86,17 +83,25 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
       description="blacklist regex for variables that won't be tracked by ExplicitCPA")
   private String variableBlacklist = "";
 
+  @Option(name="refiner.performInitialStaticRefinement",
+      description="use heuristic to extract a precision from the CFA statically on first refinement")
+  private boolean performInitialStaticRefinement = false;
+
   @Option(description="get an initial precison from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private File initialPrecisionFile = null;
 
-  private ExplicitPrecision precision;
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(ExplicitCPA.class);
+  }
 
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
+  private ExplicitPrecision precision;
   private PrecisionAdjustment precisionAdjustment;
+  private final ExplicitStaticRefiner staticRefiner;
   private final ExplicitReducer reducer;
   private final ExplicitCPAStatistics statistics;
 
@@ -116,6 +121,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     precision           = initializePrecision(config, cfa);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
+    staticRefiner       = initializeStaticRefiner(cfa);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     reducer             = new ExplicitReducer();
     statistics          = new ExplicitCPAStatistics(this);
@@ -149,12 +155,35 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     return null;
   }
 
+  private ExplicitStaticRefiner initializeStaticRefiner(CFA cfa) throws InvalidConfigurationException {
+    if (performInitialStaticRefinement) {
+      return new ExplicitStaticRefiner(config, logger, cfa, precision);
+    }
+
+    return null;
+  }
+
   private ExplicitPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
+    if(refinementWithoutAbstraction(config)) {
+      logger.log(Level.WARNING, "Explicit-Value analysis with refinement needs " +
+            "ComponentAwareExplicitPrecisionAdjustment. Please set option cpa.composite.precAdjust to 'COMPONENT'");
+    }
     ExplicitPrecision prec = new ExplicitPrecision(variableBlacklist, config, cfa.getVarClassification(), restoreMappingFromFile(cfa));
 
     prec = new ExplicitPrecision(prec, restoreMappingFromFile(cfa));
 
     return prec;
+  }
+
+  /**
+   * This method checks if refinement is enabled, but the proper precision adjustment operator is not in use.
+   *
+   * @param config the current configuration
+   * @return true, if refinement is enabled, but abstraction is not available, else false
+   */
+  private boolean refinementWithoutAbstraction(Configuration config) {
+    return Boolean.parseBoolean(config.getProperty("analysis.useRefinement")) &&
+            !config.getProperty("cpa.composite.precAdjust").equals("COMPONENT");
   }
 
   private Multimap<CFANode, String> restoreMappingFromFile(CFA cfa) throws InvalidConfigurationException {
@@ -176,7 +205,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
 
     CFANode location = getDefaultLocation(idToCfaNode);
     for (String currentLine : contents) {
-      if(currentLine.trim().isEmpty()) {
+      if (currentLine.trim().isEmpty()) {
         continue;
       }
 
@@ -239,6 +268,10 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
 
   ExplicitPrecision getPrecision() {
     return precision;
+  }
+
+  public ExplicitStaticRefiner getStaticRefiner() {
+    return staticRefiner;
   }
 
   @Override

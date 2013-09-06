@@ -26,7 +26,10 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.transform;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
@@ -137,11 +140,49 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(isConst);
+      result = prime * result + Objects.hashCode(isVolatile);
+      result = prime * result + Objects.hashCode(name);
+      result = prime * result + super.hashCode();
+      return result;
+  }
+
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CFunctionType) || !super.equals(obj)) {
+      return false;
+    }
+
+    CFunctionType other = (CFunctionType) obj;
+
+    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
+           && Objects.equals(name, other.name);
   }
 
   @Override
-  public boolean equals(Object obj) {
-    return CTypeUtils.equals(this, obj);
+  public CFunctionType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CFunctionType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    List<CType> newParameterTypes = new ArrayList<>();
+    Iterator<CType> it = getParameters().iterator();
+
+    while (it.hasNext()) {
+      newParameterTypes.add(it.next().getCanonicalType());
+    }
+    return new CFunctionType(isConst || pForceConst, isVolatile || pForceVolatile, getReturnType().getCanonicalType(), newParameterTypes, takesVarArgs());
   }
 }

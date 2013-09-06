@@ -55,7 +55,7 @@ public class ReachingDefUtils {
 
   private static CFANode[] cfaNodes;
 
-  public static CFANode[] getAllNodesFromCFA(){
+  public static CFANode[] getAllNodesFromCFA() {
     return cfaNodes;
   }
 
@@ -103,7 +103,7 @@ public class ReachingDefUtils {
         for (int i = 0; i < currentElement.getNumLeavingEdges(); i++) {
           out = currentElement.getLeavingEdge(i);
 
-          if(out instanceof FunctionReturnEdge){
+          if (out instanceof FunctionReturnEdge) {
             continue;
           }
 
@@ -174,10 +174,11 @@ public class ReachingDefUtils {
 
     @Override
     public String visit(CFieldReference pIastFieldReference) throws UnsupportedCCodeException {
-      if (pIastFieldReference.isPointerDereference())
+      if (pIastFieldReference.isPointerDereference()) {
         throw new UnsupportedCCodeException(
             "Does not support assignment to dereferenced variable due to missing aliasing support", edgeForExpression,
             pIastFieldReference);
+      }
       warning = "Analysis may be unsound in case of aliasing.";
       return pIastFieldReference.getFieldOwner().accept(this);
     }
@@ -189,10 +190,11 @@ public class ReachingDefUtils {
 
     @Override
     public String visit(CUnaryExpression pIastUnaryExpression) throws UnsupportedCCodeException {
-      if (pIastUnaryExpression.getOperator() == UnaryOperator.STAR)
+      if (pIastUnaryExpression.getOperator() == UnaryOperator.STAR) {
         throw new UnsupportedCCodeException(
             "Does not support assignment to dereferenced variable due to missing aliasing support", edgeForExpression,
             pIastUnaryExpression);
+      }
       return pIastUnaryExpression.getOperand().accept(this);
     }
 

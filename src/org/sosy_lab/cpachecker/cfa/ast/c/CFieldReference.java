@@ -27,6 +27,8 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CFieldReference extends AExpression implements CExpression {
@@ -44,6 +46,28 @@ public final class CFieldReference extends AExpression implements CExpression {
     name = pName;
     owner = pOwner;
     isPointerDereference = pIsPointerDereference;
+
+    assert checkFieldAccess();
+  }
+
+  private boolean checkFieldAccess() throws IllegalArgumentException {
+    CType structType = owner.getExpressionType().getCanonicalType();
+    if (structType instanceof CCompositeType) {
+      boolean found = false;
+      for (CCompositeTypeMemberDeclaration field : ((CCompositeType)structType).getMembers()) {
+        if (field.getName().equals(name)) {
+          if (!field.getType().getCanonicalType().equals(getExpressionType().getCanonicalType())) {
+            throw new IllegalArgumentException("Illegal type " + getExpressionType() + " for access of field " + name + " in " + structType);
+          }
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        throw new IllegalArgumentException("Accessing unknown field " + name + " in " + structType);
+      }
+    }
+    return true;
   }
 
   @Override

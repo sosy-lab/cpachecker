@@ -24,8 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
 
@@ -423,6 +428,43 @@ public enum PartialEvaluator implements ParameterizedInvariantsFormulaVisitor<Co
     if (operand2.equals(BOTTOM)) {
       return operand1;
     }
+    // Try reducing nested unions by temporarily representing them as a set
+    Set<InvariantsFormula<CompoundState>> atomicUnionParts = new HashSet<>();
+    Queue<InvariantsFormula<CompoundState>> unionParts = new ArrayDeque<>();
+    CompoundState constantPart = CompoundState.bottom();
+    unionParts.offer(pUnion);
+    int partsFound = 0;
+    while (!unionParts.isEmpty()) {
+      InvariantsFormula<CompoundState> currentPart = unionParts.poll();
+      if (currentPart instanceof Union<?>) {
+        Union<CompoundState> currentUnion = (Union<CompoundState>) currentPart;
+        unionParts.add(currentUnion.getOperand1());
+        unionParts.add(currentUnion.getOperand2());
+        partsFound += 2;
+      } else if (currentPart instanceof Constant<?>) {
+        constantPart = constantPart.unionWith(((Constant<CompoundState>) currentPart).getValue());
+      } else {
+        atomicUnionParts.add(currentPart);
+      }
+    }
+    if (partsFound > atomicUnionParts.size()) {
+      InvariantsFormula<CompoundState> result = null;
+      if (atomicUnionParts.size() > 0) {
+        Iterator<InvariantsFormula<CompoundState>> atomicUnionPartsIterator = atomicUnionParts.iterator();
+        result = atomicUnionPartsIterator.next();
+        while (atomicUnionPartsIterator.hasNext()) {
+          result = InvariantsFormulaManager.INSTANCE.union(result, atomicUnionPartsIterator.next());
+        }
+      }
+      if (!constantPart.isBottom()) {
+        InvariantsFormula<CompoundState> constantPartFormula = InvariantsFormulaManager.INSTANCE.asConstant(constantPart);
+        result = result == null ? constantPartFormula : InvariantsFormulaManager.INSTANCE.union(result, constantPartFormula);
+      }
+      if (result != null) {
+        return result;
+      }
+    }
+
     if (operand1 == pUnion.getOperand1() && operand2 == pUnion.getOperand2()) {
       return pUnion;
     }

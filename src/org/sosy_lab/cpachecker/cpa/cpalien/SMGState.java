@@ -23,14 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.cpalien;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.cpalien.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class SMGState implements AbstractQueryableState {
@@ -93,10 +99,10 @@ public class SMGState implements AbstractQueryableState {
   final public void setRuntimeCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
     runtimeCheckLevel = pLevel;
     if (pLevel.isFinerOrEqualThan(SMGRuntimeCheck.HALF)) {
-      CLangSMG.setPerformChecks(true);
+      CLangSMG.setPerformChecks(true, logger);
     }
     else {
-      CLangSMG.setPerformChecks(false);
+      CLangSMG.setPerformChecks(false, logger);
     }
     this.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
@@ -201,7 +207,7 @@ public class SMGState implements AbstractQueryableState {
    */
   final public void performConsistencyCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
     if (this.runtimeCheckLevel.isFinerOrEqualThan(pLevel)) {
-      if ( ! CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap) ){
+      if ( ! CLangSMGConsistencyVerifier.verifyCLangSMG(logger, heap) ) {
         throw new SMGInconsistentException("SMG was found inconsistent during a check");
       }
     }
@@ -246,10 +252,8 @@ public class SMGState implements AbstractQueryableState {
    * @throws SMGInconsistentException When the value passed does not have a Points-To edge.
    */
   public SMGEdgePointsTo getPointerFromValue(Integer pValue) throws SMGInconsistentException {
-    for (SMGEdgePointsTo edge : heap.getPTEdges()){
-      if (edge.getValue() == pValue) {
-        return edge;
-      }
+    if (heap.isPointer(pValue)) {
+      return heap.getPointer(pValue);
     }
 
     throw new SMGInconsistentException("Asked for a Points-To edge for a non-pointer value");
@@ -278,7 +282,7 @@ public class SMGState implements AbstractQueryableState {
     Set<SMGEdgeHasValue> edges = heap.getHVEdges(filter);
 
     for (SMGEdgeHasValue object_edge : edges) {
-      if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())){
+      if (edge.isCompatibleFieldOnSameObject(object_edge, heap.getMachineModel())) {
         this.performConsistencyCheck(SMGRuntimeCheck.HALF);
         return object_edge.getValue();
       }
@@ -295,6 +299,62 @@ public class SMGState implements AbstractQueryableState {
 
   /**
    * Write a value into a field (offset, type) of an Object.
+   * Additionally, this method writes a points-to edge into the
+   * SMG, if the given symbolic value points to an address, and
+   *
+   *
+   * @param object SMGObject representing the memory the field belongs to.
+   * @param offset offset of field written into.
+   * @param type type of field written into.
+   * @param value value to be written into field.
+   * @param machineModel Currently used Machine Model
+   * @throws SMGInconsistentException
+   */
+  public SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset,
+      CType pType, SMGSymbolicValue pValue) throws SMGInconsistentException {
+
+    int value;
+
+    // If the value is not yet known by the SMG
+    // create a unconstrained new symbolic value
+    if (pValue.isUnknown()) {
+      value = SMGValueFactory.getNewValue();
+    } else {
+      value = pValue.getAsInt();
+    }
+
+    // If the value represents an address, and the address is known,
+    // add the neccessary points-To edge.
+    if (pValue instanceof SMGAddressValue) {
+      if (!containsValue(value)) {
+        SMGAddress address = ((SMGAddressValue) pValue).getAddress();
+
+        if (!address.isUnknown()) {
+          addPointsToEdge(
+              address.getObject(),
+              address.getOffset().getAsInt(),
+              value);
+        }
+      }
+    }
+
+    return writeValue(pObject, pOffset, pType, value);
+  }
+
+  private void addPointsToEdge(SMGObject pObject, int pOffset, int pValue) {
+
+    // If the value is not known by the SMG, add it.
+    if(!containsValue(pValue)) {
+      heap.addValue(pValue);
+    }
+
+    SMGEdgePointsTo pointsToEdge = new SMGEdgePointsTo(pValue, pObject, pOffset);
+    heap.addPointsToEdge(pointsToEdge);
+
+  }
+
+  /**
+   * Write a value into a field (offset, type) of an Object.
    *
    *
    * @param object SMGObject representing the memory the field belongs to.
@@ -306,12 +366,13 @@ public class SMGState implements AbstractQueryableState {
    */
   public SMGEdgeHasValue writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
+    //TODO Does this method need to be public?
 
     if (pValue == null) {
       pValue = heap.getNullValue();
     }
 
-    if (! this.heap.isObjectValid(pObject)){
+    if (! this.heap.isObjectValid(pObject)) {
       //Attempt to write to invalid object
       this.setInvalidWrite();
       return null;
@@ -320,22 +381,22 @@ public class SMGState implements AbstractQueryableState {
     SMGEdgeHasValue new_edge = new SMGEdgeHasValue(pType, pOffset, pObject, pValue);
 
     // Check if the edge is  not present already
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
-    filter.filterByObject(pObject);
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
+
     Set<SMGEdgeHasValue> edges = heap.getHVEdges(filter);
-    if (edges.contains(new_edge)){
+    if (edges.contains(new_edge)) {
       this.performConsistencyCheck(SMGRuntimeCheck.HALF);
       return new_edge;
     }
 
     // If the value is not in the SMG, we need to add it
-    if ( ! heap.getValues().contains(pValue) ){
+    if ( ! heap.getValues().contains(pValue) ) {
       heap.addValue(pValue);
     }
 
     // We need to remove all non-zero overlapping edges
-    for (SMGEdgeHasValue hv : edges){
-      if (hv.getValue() != heap.getNullValue() && new_edge.overlapsWith(hv, heap.getMachineModel())){
+    for (SMGEdgeHasValue hv : edges) {
+      if (hv.getValue() != heap.getNullValue() && new_edge.overlapsWith(hv, heap.getMachineModel())) {
         heap.removeHasValueEdge(hv);
       }
     }
@@ -461,28 +522,31 @@ public class SMGState implements AbstractQueryableState {
  }
 
   /**
-   * Get address of the given memory with the given offset.
+   * Get the symbolic value, that represents the address
+   * pointing to the given memory with the given offset, if it exists.
    *
-   * @param memory get address belonging to this memory.
-   * @param offset get address with this offset relative to the beginning of the memory.
-   * @return Address of the given field, or null, if such an address
-   * does not yet exist in the SMG.
+   * @param memory
+   *          get address belonging to this memory.
+   * @param offset
+   *          get address with this offset relative to the beginning of the
+   *          memory.
+   * @return Address of the given field, or null, if such an address does not
+   *         yet exist in the SMG.
    */
-  public Integer getAddress(SMGObject memory, Integer offset) {
-    // TODO Auto-generated method stub
-    return null;
-  }
+  @Nullable
+  public Integer getAddress(SMGObject memory, int offset) {
 
+    // TODO A better way of getting those edges, maybe with a filter
+    // like the Has-Value-Edges
 
-  /**
-   * Get the SMGObject representing the Memory the given address points to.
-   *
-   * @param address the address belonging to the memory to be returned.
-   * @return SMGObject representing the Memory this address points to, or null,
-   * if the memory this address belongs to is unkown.
-   */
-  public SMGObject getMemoryOfAddress(Integer address) {
-    // TODO Auto-generated method stub
+    Map<Integer, SMGEdgePointsTo> pointsToEdges = heap.getPTEdges();
+
+    for (SMGEdgePointsTo edge : pointsToEdges.values()) {
+      if (edge.getObject().equals(memory) && edge.getOffset() == offset) {
+        return edge.getValue();
+      }
+    }
+
     return null;
   }
 
@@ -503,8 +567,8 @@ public class SMGState implements AbstractQueryableState {
       this.setInvalidFree();
     }
     heap.setValidity(smgObject, false);
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
-    filter.filterByObject(smgObject);
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(smgObject);
+
     for (SMGEdgeHasValue edge : heap.getHVEdges(filter)) {
       heap.removeHasValueEdge(edge);
     }
@@ -536,19 +600,6 @@ public class SMGState implements AbstractQueryableState {
   }
 
   /**
-   * Get the offset of this address.
-   *
-   * @param address An address pointing to an object in the SMG.
-   * @return the offset of the given address or null, if the given value is
-   *   not an address or the object its pointing to is unknown.
-   *
-   */
-  public Integer getOffset(Integer address) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  /**
    * Drop the stack frame representing the stack of
    * the function with the given name
    *
@@ -571,65 +622,6 @@ public class SMGState implements AbstractQueryableState {
    */
   public SMGObject createObject(int size, String label) {
     return new SMGObject(size, label);
-  }
-
-  /**
-   * Assigns the given symbolic value an explicit value.
-   *
-   * @param symbolicValue the symbolic value to be assigned.
-   * @param explicitValue the explicit value which will be assigned to the given symbolic value.
-   */
-  public void assignExplicitValue(Integer symbolicValue, Integer explicitValue) {
-    // TODO Auto-generated method stub
-  }
-
-  /**
-   * Return true, if the explicit value of the given symbolic value is known
-   *
-   * @param symbolicValue Search for the explicit value of the given symbolic value.
-   * @return true if the explicit value of the given symbolic one is known, else false.
-   */
-  public boolean isExplicitValueKnown(Integer symbolicValue) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  /**
-   * Return the explicit value assigned to the given symbolic value,
-   * or null, if the symbolic value was not assigned a explicit value.
-   *
-   * @param symbolicValue get the explicit value assigned to this symbolic value.
-   * @return the explicit value assigned to the given symbolic value, or null.
-   */
-  public Integer getExplicitValue(Integer symbolicValue) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  /**
-   * Returns true, if the given explicit value is assigned to
-   * a symbolic value.
-   *
-   * @param explicitValue the explicit Value to be searched for an assignment,
-   *
-   * @return true if the given explicit value is assigned to
-   * a symbolic value, else false.
-   */
-  public boolean isSymbolicValueKnown(int explicitValue) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  /**
-   * Return the symbolic value assigned to a explicit value,
-   * or null, if the explicit value was not assigned  one.
-   *
-   * @param explicitValue get the symbolic value assigned to this explicit value.
-   * @return the symbolic value assigned to the given explicit value, or null.
-   */
-  public Integer getSymbolicValue(int explicitValue) {
-    // TODO Auto-generated method stub
-    return null;
   }
 
   /**

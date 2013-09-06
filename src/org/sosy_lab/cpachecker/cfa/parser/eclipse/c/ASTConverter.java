@@ -85,6 +85,10 @@ import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -98,7 +102,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CEmptyDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -146,7 +149,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
+@Options
 class ASTConverter {
+
+  @Option(name="cfa.simplifyPointerExpressions",
+      description="simplify pointer expressions like s->f to (*s).f with this option " +
+        "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide")
+  private boolean simplifyPointerExpressions = false;
 
   private final LogManager logger;
   private final ASTLiteralConverter literalConverter;
@@ -162,10 +171,11 @@ class ASTConverter {
   // this list is for ternary operators, &&, etc.
   private final List<Pair<IASTExpression, CIdExpression>> conditionalExpressions = new ArrayList<>();
 
-  public ASTConverter(Scope pScope, LogManager pLogger, MachineModel pMachineModel) {
+  public ASTConverter(Configuration config, Scope pScope, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
+    config.inject(this);
     scope = pScope;
     logger = pLogger;
-    typeConverter = new ASTTypeConverter(scope);
+    typeConverter = new ASTTypeConverter(scope, this);
     literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
   }
 
@@ -243,15 +253,21 @@ class ASTConverter {
                                                               FileLocation fileLoc,
                                                               CType type,
                                                               BinaryOperator op) {
-    CIdExpression tmp = createTemporaryVariable(e);
-    preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, tmp, exp));
-
+    CIdExpression tmp = createInitializedTemporaryVariable(e, exp);
 
     CExpression one = createSideeffectLiteralOne(type, fileLoc, e);
     CBinaryExpression postExp = new CBinaryExpression(fileLoc, type, exp, one, op);
     preSideAssignments.add(new CExpressionAssignmentStatement(fileLoc, exp, postExp));
 
     return tmp;
+  }
+
+  private CComplexTypeDeclaration addSideEffectDeclarationForType(CCompositeType type, FileLocation loc) {
+    CComplexTypeDeclaration decl = new CComplexTypeDeclaration(loc, scope.isGlobalScope(), type);
+
+    scope.registerTypeDeclaration(decl);
+    preSideAssignments.add(decl);
+    return decl;
   }
 
   /**
@@ -383,6 +399,36 @@ class ASTConverter {
     return tmp;
   }
 
+  /**
+   * creates temporary variables with increasing numbers with a certain initializer
+   */
+  private CIdExpression createInitializedTemporaryVariable(IASTExpression e, CExpression initializer) {
+    String name = "__CPAchecker_TMP_";
+    int i = 0;
+    while (scope.variableNameInUse(name + i, name + i)) {
+      i++;
+    }
+    name += i;
+
+    CVariableDeclaration decl = new CVariableDeclaration(getLocation(e),
+                                               false,
+                                               CStorageClass.AUTO,
+                                               typeConverter.convert(e.getExpressionType()),
+                                               name,
+                                               name,
+                                               scope.createScopedNameOf(name),
+                                               new CInitializerExpression(getLocation(e), initializer));
+
+    scope.registerDeclaration(decl);
+    preSideAssignments.add(decl);
+
+    CIdExpression tmp = new CIdExpression(getLocation(e),
+                                                typeConverter.convert(e.getExpressionType()),
+                                                name,
+                                                decl);
+    return tmp;
+  }
+
   private CAstNode convert(IASTBinaryExpression e) {
 
     switch (e.getOperator()) {
@@ -463,13 +509,26 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTCastExpression e) {
-    return new CCastExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), convertExpressionWithoutSideEffects(e.getOperand()), convert(e.getTypeId()));
+    CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+
+    if (e.getOperand() instanceof IASTFieldReference && ((IASTFieldReference)e.getOperand()).isPointerDereference()) {
+      return createInitializedTemporaryVariable(e, new CCastExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), operand, convert(e.getTypeId())));
+    } else {
+      return new CCastExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), operand, convert(e.getTypeId()));
+    }
   }
 
   private CFieldReference convert(IASTFieldReference e) {
     CType type = typeConverter.convert(e.getExpressionType());
     CExpression owner = convertExpressionWithoutSideEffects(e.getFieldOwner());
     String fieldName = convert(e.getFieldName());
+
+    // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
+    // if the owner is a FieldReference itself there's the need for a temporary Variable
+    // but only if we are not in global scope, otherwise there will be parsing errors
+    if (simplifyPointerExpressions && owner instanceof CFieldReference && !scope.isGlobalScope() && (e.isPointerDereference())) {
+      owner = createInitializedTemporaryVariable(e.getFieldOwner(), owner);
+    }
 
     if (type instanceof CProblemType) {
       CType ownerType = owner.getExpressionType();
@@ -497,6 +556,28 @@ class ASTConverter {
       }
 
       logger.log(Level.FINE, "Field reference", e.getRawSignature(), "has unknown type", type);
+    }
+
+    // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
+    // if there is a "var->field" convert it to (*var).field
+    if (simplifyPointerExpressions && e.isPointerDereference()) {
+      CType newType = null;
+      CType typeDefType = owner.getExpressionType();
+
+      //unpack typedefs
+      while (typeDefType instanceof CTypedefType) {
+        typeDefType = ((CTypedefType)typeDefType).getRealType();
+      }
+
+      if (typeDefType instanceof CPointerType) {
+        newType = ((CPointerType)typeDefType).getType();
+      } else {
+        throw new CFAGenerationRuntimeException("The owner of the struct with field dereference has an invalid type", owner);
+      }
+
+      CUnaryExpression exp = new CUnaryExpression(getLocation(e), newType, owner, UnaryOperator.STAR);
+
+      return new CFieldReference(getLocation(e), type, fieldName, exp, false);
     }
 
     return new CFieldReference(getLocation(e), type, fieldName, owner, e.isPointerDereference());
@@ -579,18 +660,65 @@ class ASTConverter {
 
   private CAstNode convert(IASTUnaryExpression e) {
     CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
-
-    if (e.getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-      return operand;
-    }
-
-
     FileLocation fileLoc = getLocation(e);
     CType type = typeConverter.convert(e.getExpressionType());
 
 
-
     switch (e.getOperator()) {
+    case IASTUnaryExpression.op_bracketedPrimary:
+      return operand;
+
+    case IASTUnaryExpression.op_star:
+
+      // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
+      if (simplifyPointerExpressions) {
+
+        // if there is a dereference on a field of a struct a temporary variable is needed
+        if (operand instanceof CFieldReference) {
+          CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
+          return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+        }
+
+        // in case of *(a[index])
+        else if(operand instanceof CArraySubscriptExpression) {
+          CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
+          return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+        }
+
+        // in case of *& both can be left out
+        else if(operand instanceof CUnaryExpression
+            && ((CUnaryExpression)operand).getOperator() == UnaryOperator.AMPER) {
+          return ((CUnaryExpression)operand).getOperand();
+        }
+
+        // in case of ** a temporary variable is needed
+        else if(operand instanceof CUnaryExpression && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR) {
+          CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
+          return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+        }
+
+        // in case of p.e. *(a+b) or *(a-b) or *(a ANY_OTHER_OPERATOR b) a temporary variable is needed
+        else if(operand instanceof CBinaryExpression) {
+          CIdExpression tmpVar = createInitializedTemporaryVariable(e.getOperand(), operand);
+          return new CUnaryExpression(fileLoc, type, tmpVar, UnaryOperator.STAR);
+        }
+      }
+
+      // if none of the special cases before fits the default unaryExpression is created
+      return new CUnaryExpression(fileLoc, type, operand, UnaryOperator.STAR);
+
+    case IASTUnaryExpression.op_amper:
+      // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
+      // in case of *& both can be left out
+      if (simplifyPointerExpressions && operand instanceof CUnaryExpression && ((CUnaryExpression)operand).getOperator() == UnaryOperator.STAR ) {
+        return ((CUnaryExpression)operand).getOperand();
+      }
+
+      // if none of the special cases before fits the default unaryExpression is created
+      return new CUnaryExpression(fileLoc, type, operand, UnaryOperator.AMPER);
+
+
+
     case IASTUnaryExpression.op_prefixIncr:
     case IASTUnaryExpression.op_prefixDecr:
       // instead of ++x, create "x = x+1"
@@ -861,6 +989,14 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("Unsupported storage class inside composite type", d);
     }
     CType type = specifier.getSecond();
+
+    if (type instanceof CCompositeType) {
+      // Nested struct declaration
+      CCompositeType compositeType = (CCompositeType)type;
+      addSideEffectDeclarationForType(compositeType, convert(d.getFileLocation()));
+      type = new CElaboratedType(compositeType.isConst(), compositeType.isVolatile(),
+          compositeType.getKind(), compositeType.getName(), compositeType);
+    }
 
     List<CCompositeTypeMemberDeclaration> result;
     IASTDeclarator[] declarators = sd.getDeclarators();
@@ -1148,7 +1284,7 @@ class ASTConverter {
         CUnaryExpression u = (CUnaryExpression)v;
         complement = true;
         v = u.getOperand();
-      } else if (v instanceof CUnaryExpression && ((CUnaryExpression) v).getOperator() != UnaryOperator.PLUS){
+      } else if (v instanceof CUnaryExpression && ((CUnaryExpression) v).getOperator() != UnaryOperator.PLUS) {
         assert false : v;
       }
 
@@ -1213,33 +1349,31 @@ class ASTConverter {
 
     FileLocation fileLoc = cInit.getFileLocation();
 
-    // make initial variable
-    CDesignator exp = new CEmptyDesignator(fileLoc);
+    List<CDesignator> designators = new ArrayList<>(desInit.length);
 
     // convert all designators
-    for (int i = 0; i < desInit.length; i++) {
-      if (desInit[i] instanceof ICASTFieldDesignator) {
-       exp = new CFieldDesignator(fileLoc,
-           convert(((ICASTFieldDesignator) desInit[i]).getName()),
-           exp);
+    for (ICASTDesignator designator : desInit) {
+      CDesignator r;
+      if (designator instanceof ICASTFieldDesignator) {
+       r = new CFieldDesignator(fileLoc,
+           convert(((ICASTFieldDesignator) designator).getName()));
 
-      } else if (desInit[i] instanceof ICASTArrayDesignator) {
-        exp = new CArrayDesignator(fileLoc,
-            convertExpressionWithoutSideEffects(((ICASTArrayDesignator) desInit[i]).getSubscriptExpression()),
-            exp);
+      } else if (designator instanceof ICASTArrayDesignator) {
+        r = new CArrayDesignator(fileLoc,
+            convertExpressionWithoutSideEffects(((ICASTArrayDesignator) designator).getSubscriptExpression()));
 
-      } else if (desInit[i] instanceof IGCCASTArrayRangeDesignator) {
-        exp = new CArrayRangeDesignator(fileLoc,
-            convertExpressionWithoutSideEffects(((IGCCASTArrayRangeDesignator) desInit[i]).getRangeFloor()),
-            convertExpressionWithoutSideEffects(((IGCCASTArrayRangeDesignator) desInit[i]).getRangeCeiling()),
-            exp);
+      } else if (designator instanceof IGCCASTArrayRangeDesignator) {
+        r = new CArrayRangeDesignator(fileLoc,
+            convertExpressionWithoutSideEffects(((IGCCASTArrayRangeDesignator) designator).getRangeFloor()),
+            convertExpressionWithoutSideEffects(((IGCCASTArrayRangeDesignator) designator).getRangeCeiling()));
 
       } else {
-        throw new CFAGenerationRuntimeException("Unsupported Designator", desInit[i]);
+        throw new CFAGenerationRuntimeException("Unsupported Designator", designator);
       }
+      designators.add(r);
     }
 
-    return new CDesignatedInitializer(fileLoc, exp, cInit);
+    return new CDesignatedInitializer(fileLoc, designators, cInit);
   }
 
   private CInitializerList convert(IASTInitializerList iList, @Nullable CVariableDeclaration declaration) {

@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
 
@@ -83,10 +86,53 @@ public class CArrayType extends AArrayType implements CType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(length);
+      result = prime * result + Objects.hashCode(isConst);
+      result = prime * result + Objects.hashCode(isVolatile);
+      result = prime * result + super.hashCode();
+      return result;
   }
+
+
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
   @Override
   public boolean equals(Object obj) {
-    return CTypeUtils.equals(this, obj);
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CArrayType) || !super.equals(obj)) {
+      return false;
+    }
+
+    CArrayType other = (CArrayType) obj;
+
+    if (length instanceof CIntegerLiteralExpression && other.length instanceof CIntegerLiteralExpression) {
+      if (!((CIntegerLiteralExpression)length).getValue().equals(((CIntegerLiteralExpression)other.length).getValue())) {
+        return false;
+      }
+    } else {
+      if (!Objects.equals(length, other.length)) {
+        return false;
+      }
+    }
+
+    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile);
+  }
+
+  @Override
+  public CArrayType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CArrayType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return new CArrayType(isConst || pForceConst, isVolatile || pForceVolatile, getType().getCanonicalType(), length);
   }
 }

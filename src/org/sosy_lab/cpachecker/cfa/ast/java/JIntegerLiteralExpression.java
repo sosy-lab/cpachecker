@@ -31,7 +31,9 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
+/**
+ * This class represents the integer number literal AST node type.
+ */
 public class JIntegerLiteralExpression extends AIntegerLiteralExpression implements JLiteralExpression {
 
   public JIntegerLiteralExpression(FileLocation pFileLocation,  BigInteger pValue) {

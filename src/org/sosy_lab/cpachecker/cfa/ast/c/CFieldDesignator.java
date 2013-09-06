@@ -31,14 +31,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public class CFieldDesignator extends CDesignator {
 
   private final String         name;
-  private final CDesignator owner;
 
   public CFieldDesignator(final FileLocation pFileLocation,
-                            final String pName,
-                            final CDesignator pOwner) {
+                            final String pName) {
     super(pFileLocation);
     name = pName;
-    owner = pOwner;
   }
 
 
@@ -46,13 +43,9 @@ public class CFieldDesignator extends CDesignator {
     return name;
   }
 
-  public CDesignator getFieldOwner() {
-    return owner;
-  }
-
   @Override
   public String toASTString() {
-    return owner.toASTString() + "."  + name;
+    return "."  + name;
   }
 
   @Override
@@ -74,7 +67,6 @@ public class CFieldDesignator extends CDesignator {
     final int prime = 31;
     int result = 7;
     result = prime * result + Objects.hashCode(name);
-    result = prime * result + Objects.hashCode(owner);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -96,7 +88,7 @@ public class CFieldDesignator extends CDesignator {
 
     CFieldDesignator other = (CFieldDesignator) obj;
 
-    return Objects.equals(other.name, name) && Objects.equals(other.owner, owner);
+    return Objects.equals(other.name, name);
   }
 
 

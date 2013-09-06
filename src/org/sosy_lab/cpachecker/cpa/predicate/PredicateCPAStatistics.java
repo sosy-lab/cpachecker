@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaMan
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
@@ -88,10 +87,6 @@ class PredicateCPAStatistics implements Statistics {
             name="predmap.file")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path predmapFile = Paths.get("predmap.txt");
-
-    @Option(description="file for exporting final predicate map",
-        name="predmap.includeSwept")
-    private boolean exportWithSwept = true;
 
     @Option(description="export final loop invariants",
             name="invariants.export")
@@ -116,18 +111,15 @@ class PredicateCPAStatistics implements Statistics {
     private final RegionManager rmgr;
     private final AbstractionManager absmgr;
     private final CFA cfa;
-    private final PredicatePrecisionSweeper sweeper;
 
     public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
-        RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
-        PredicatePrecisionSweeper pSweeper)
+        RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa)
             throws InvalidConfigurationException {
       cpa = pCpa;
       blk = pBlk;
       rmgr = pRmgr;
       absmgr = pAbsmgr;
       cfa = pCfa;
-      sweeper = pSweeper;
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
     }
 
@@ -165,16 +157,6 @@ class PredicateCPAStatistics implements Statistics {
         this.global = Sets.newHashSet();
       }
 
-      private static MutablePredicateSets copyOf(MutablePredicateSets preds) {
-        MutablePredicateSets result = new MutablePredicateSets();
-
-        result.location.putAll(preds.location);
-        result.global.addAll(preds.global);
-        result.function.putAll(preds.function);
-
-        return result;
-      }
-
     }
 
     private void exportPredmapToFile(Path targetFile, MutablePredicateSets predicates) {
@@ -196,37 +178,6 @@ class PredicateCPAStatistics implements Statistics {
       }
     }
 
-    private void exportPredmapIncludingSweptToFile(Path targetFile, MutablePredicateSets predicates, PredicatePrecisionSweeper sweeper) {
-      Preconditions.checkNotNull(targetFile);
-      Preconditions.checkNotNull(predicates);
-      Preconditions.checkNotNull(sweeper);
-
-      MutablePredicateSets merged = MutablePredicateSets.copyOf(predicates);
-
-      // Merge sweeped global predicates...
-      for (AbstractionPredicate p : sweeper.getSweepedGlobalPredicates()) {
-        merged.global.add(p);
-      }
-
-      // Merge sweeped location predicates...
-      ImmutableMultimap<CFANode, AbstractionPredicate> sweptOnLoc = sweeper.getSweepedLocationPredicates();
-      for (CFANode l: sweptOnLoc.keySet()) {
-        for (AbstractionPredicate p: sweptOnLoc.get(l)) {
-          merged.location.put(l, p);
-        }
-      }
-
-      // Merge sweeped function predicates...
-      ImmutableMultimap<String, AbstractionPredicate> sweptOnFunc = sweeper.getSweepedFunctionPredicates();
-      for (String f: sweptOnFunc.keySet()) {
-        for (AbstractionPredicate p: sweptOnFunc.get(f)) {
-          merged.function.put(f, p);
-        }
-      }
-
-      exportPredmapToFile(targetFile, merged);
-    }
-
 
     @Override
     public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
@@ -246,11 +197,7 @@ class PredicateCPAStatistics implements Statistics {
 
       // check if/where to dump the predicate map
       if (exportPredmap && predmapFile != null) {
-        if (exportWithSwept) {
-          exportPredmapIncludingSweptToFile(predmapFile, predicates, sweeper);
-        } else {
-          exportPredmapToFile(predmapFile, predicates);
-        }
+        exportPredmapToFile(predmapFile, predicates);
       }
 
       int maxPredsPerLocation = 0;
@@ -318,9 +265,13 @@ class PredicateCPAStatistics implements Statistics {
       }
       int numAbstractions = as.numCallsAbstraction-as.numSymbolicAbstractions;
       if (numAbstractions > 0) {
+        out.println("Total predicates per abstraction:         " + prec.totalPredsPerAbstraction);
         out.println("Max number of predicates per abstraction: " + prec.maxPredsPerAbstraction);
         out.println("Avg number of predicates per abstraction: " + div(prec.totalPredsPerAbstraction, prec.numAbstractions));
         out.println("Number of irrelevant predicates:          " + as.numIrrelevantPredicates + " (Avg: " + div(as.numIrrelevantPredicates, prec.numAbstractions) + ")");
+        if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
+          out.println("Number of trivially used predicates:      " + as.numTrivialPredicates + " (Avg: " + div(as.numTrivialPredicates, prec.numAbstractions) + ")");
+        }
         out.println("Total number of models for allsat:        " + as.allSatCount);
         out.println("Max number of models for allsat:          " + as.maxAllSatCount);
         out.println("Avg number of models for allsat:          " + div(as.allSatCount, numAbstractions));
@@ -352,6 +303,9 @@ class PredicateCPAStatistics implements Statistics {
       out.println("Time for prec operator:              " + prec.totalPrecTime);
       if (prec.numAbstractions > 0) {
         out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
+        if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
+          out.println("    Relevant predicate analysis:     " + as.trivialPredicatesTime);
+        }
         out.println("    Solving time:                    " + as.abstractionSolveTime + " (Max: " + as.abstractionSolveTime.printMaxTime() + ")");
         out.println("    Model enumeration time:          " + as.abstractionEnumTime.printOuterSumTime());
         out.println("    Time for BDD construction:       " + as.abstractionEnumTime.printInnerSumTime()   + " (Max: " + as.abstractionEnumTime.printInnerMaxTime() + ")");
@@ -381,25 +335,14 @@ class PredicateCPAStatistics implements Statistics {
     }
 
     private void exportInvariants(ReachedSet reached) {
-      Map<CFANode, Region> regions = Maps.newHashMap();
-      for (AbstractState state : reached) {
-        CFANode loc = extractLocation(state);
-        if (loc.isLoopStart()) {
-          PredicateAbstractState predicateState = getPredicateState(state);
-          if (!predicateState.isAbstractionState()) {
-            cpa.getLogger().log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
-            return;
-          }
-          Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
-          region = rmgr.makeOr(region, predicateState.getAbstractionFormula().asRegion());
-          regions.put(loc, region);
-        }
+      Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
+      if (regions == null) {
+        return;
       }
 
       FormulaManagerView fmgr = cpa.getFormulaManager();
       try (Writer invariants = Files.openOutputFile(invariantsFile)) {
-        for (CFANode loc : from(cfa.getAllNodes())
-                             .filter(CFAUtils.IS_LOOP_NODE)
+        for (CFANode loc : from(cfa.getAllLoopHeads().get())
                              .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
           Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
           BooleanFormula formula = absmgr.toConcrete(region);
@@ -427,20 +370,28 @@ class PredicateCPAStatistics implements Statistics {
       return Pair.of(predString, lines);
     }
 
-    private void exportInvariantsAsPrecision(ReachedSet reached) {
+    private Map<CFANode, Region> getLoopHeadInvariants(ReachedSet reached) {
       Map<CFANode, Region> regions = Maps.newHashMap();
       for (AbstractState state : reached) {
         CFANode loc = extractLocation(state);
-        if (loc.isLoopStart()) {
+        if (cfa.getAllLoopHeads().get().contains(loc)) {
           PredicateAbstractState predicateState = getPredicateState(state);
           if (!predicateState.isAbstractionState()) {
             cpa.getLogger().log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
-            return;
+            return null;
           }
           Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
           region = rmgr.makeOr(region, predicateState.getAbstractionFormula().asRegion());
           regions.put(loc, region);
         }
+      }
+      return regions;
+    }
+
+    private void exportInvariantsAsPrecision(ReachedSet reached) {
+      Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
+      if (regions == null) {
+        return;
       }
 
       Set<String> uniqueDefs = new TreeSet<>();
@@ -450,8 +401,7 @@ class PredicateCPAStatistics implements Statistics {
       FormulaManagerView fmgr = cpa.getFormulaManager();
 
       try (Writer invariants = Files.openOutputFile(invariantPrecisionsFile)) {
-        for (CFANode loc : from(cfa.getAllNodes())
-                             .filter(CFAUtils.IS_LOOP_NODE)
+        for (CFANode loc : from(cfa.getAllLoopHeads().get())
                              .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
           Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
           BooleanFormula formula = absmgr.toConcrete(region);

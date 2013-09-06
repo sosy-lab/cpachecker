@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeUtils;
 
 public class SMGEdgeHasValue extends SMGEdge {
   final private CType type;
@@ -144,25 +143,39 @@ public class SMGEdgeHasValue extends SMGEdge {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (!super.equals(obj))
+    }
+    if (!super.equals(obj)) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
     SMGEdgeHasValue other = (SMGEdgeHasValue) obj;
-    if (offset != other.offset)
+    if (offset != other.offset) {
       return false;
+    }
     if (type == null) {
-      if (other.type != null)
+      if (other.type != null) {
         return false;
-     } else if (!type.equals(other.type))
+      }
+    } else if (!type.getCanonicalType().equals(other.type.getCanonicalType())) {
       return false;
+    }
     return true;
   }
 }
 
 class SMGEdgeHasValueFilter {
+
+  public static SMGEdgeHasValueFilter objectFilter(SMGObject pObject) {
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    filter.filterByObject(pObject);
+
+    return filter;
+  }
+
   private SMGObject object = null;
 
   private Integer value = null;
@@ -210,7 +223,7 @@ class SMGEdgeHasValueFilter {
       return false;
     }
 
-    if (type != null && ! CTypeUtils.equals(type, pEdge.getType())) {
+    if (type != null && ! type.getCanonicalType().equals(pEdge.getType().getCanonicalType())) {
       return false;
     }
 

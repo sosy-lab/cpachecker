@@ -118,6 +118,7 @@
 
     <target depends="build-dependencies" name="build-project">
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <echo message="Compiling CPAchecker"/>
         <javac debug="true"
                debuglevel="${debuglevel}"
                includeAntRuntime="false"

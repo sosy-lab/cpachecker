@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
+import java.util.Objects;
+
 
 public class JArrayType extends AArrayType implements JReferenceType {
-
-
 
   private final int dimension;
 
@@ -59,4 +59,27 @@ public class JArrayType extends AArrayType implements JReferenceType {
     return dimension;
   }
 
+  @Override
+  public int hashCode() {
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(dimension);
+      result = prime * result + super.hashCode();
+      return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+      if (this == obj) {
+          return true;
+      }
+
+      if (!(obj instanceof JArrayType) && !super.equals(obj)) {
+          return false;
+      }
+
+      JArrayType other = (JArrayType) obj;
+
+      return Objects.equals(dimension, other.dimension);
+    }
 }

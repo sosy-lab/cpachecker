@@ -25,10 +25,12 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -54,11 +56,18 @@ class StatementToFormulaVisitor extends RightHandSideToFormulaVisitor implements
    * @throws UnrecognizedCCodeException
    */
   public Triple<Formula, Formula, BooleanFormula> visitAssignment(CAssignment assignment) throws UnrecognizedCCodeException {
-    Formula r = assignment.getRightHandSide().accept(this);
-    Formula l = conv.buildLvalueTerm(assignment.getLeftHandSide(), edge, function, ssa, constraints);
+    CRightHandSide rhs = assignment.getRightHandSide();
+    CExpression lhs = assignment.getLeftHandSide();
+
+    if (rhs instanceof CExpression) {
+      rhs = conv.makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhs.getExpressionType());
+    }
+
+    Formula r = rhs.accept(this);
+    Formula l = conv.buildLvalueTerm(lhs, edge, function, ssa, constraints);
     r = conv.makeCast(
-          assignment.getRightHandSide().getExpressionType(),
-          assignment.getLeftHandSide().getExpressionType(),
+          rhs.getExpressionType(),
+          lhs.getExpressionType(),
           r);
 
     BooleanFormula a = conv.fmgr.assignment(l, r);

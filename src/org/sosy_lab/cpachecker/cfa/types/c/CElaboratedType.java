@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.util.Objects;
+
 
 public final class CElaboratedType implements CComplexType {
 
@@ -77,6 +79,7 @@ public final class CElaboratedType implements CComplexType {
   public void setRealType(CComplexType pRealType) {
     checkState(getRealType() == null);
     checkNotNull(pRealType);
+    checkArgument(pRealType != this);
     checkArgument(pRealType.getKind() == kind);
     checkArgument(pRealType.getName().equals(name));
     realType = pRealType;
@@ -123,11 +126,49 @@ public final class CElaboratedType implements CComplexType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(isConst);
+      result = prime * result + Objects.hashCode(isVolatile);
+      result = prime * result + Objects.hashCode(kind);
+      result = prime * result + Objects.hashCode(name);
+      result = prime * result + Objects.hashCode(realType);
+      return result;
+  }
+
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof CElaboratedType)) {
+      return false;
+    }
+
+    CElaboratedType other = (CElaboratedType) obj;
+
+    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile)
+           && Objects.equals(kind, other.kind) && Objects.equals(name, other.name)
+           && Objects.equals(realType, other.realType);
   }
 
   @Override
-  public boolean equals(Object obj) {
-    return CTypeUtils.equals(this, obj);
+  public CType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    if (realType == null) {
+      return new CElaboratedType(isConst || pForceConst, isVolatile || pForceVolatile, kind, name, null);
+    } else {
+      return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
+    }
   }
 }

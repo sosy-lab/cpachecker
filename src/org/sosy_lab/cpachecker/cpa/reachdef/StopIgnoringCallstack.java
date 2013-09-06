@@ -47,8 +47,9 @@ public class StopIgnoringCallstack implements StopOperator{
       for (AbstractState p : pReached) {
         e2 = (ReachingDefState) p;
         if (isSubsetOf(e1.getLocalReachingDefinitions(), e2.getLocalReachingDefinitions())
-            && isSubsetOf(e1.getGlobalReachingDefinitions(), e2.getGlobalReachingDefinitions()))
+            && isSubsetOf(e1.getGlobalReachingDefinitions(), e2.getGlobalReachingDefinitions())) {
           return true;
+        }
       }
     } catch (ClassCastException e) {
     }
@@ -57,14 +58,18 @@ public class StopIgnoringCallstack implements StopOperator{
 
   private boolean isSubsetOf(Map<String, Set<DefinitionPoint>> subset, Map<String, Set<DefinitionPoint>> superset) {
     Set<DefinitionPoint> setSub, setSuper;
-    if (subset == superset)
+    if (subset == superset) {
       return true;
+    }
     for (String var : subset.keySet()) {
       setSub = subset.get(var);
       setSuper = superset.get(var);
-      if(setSub == setSuper) continue;
-      if (setSuper == null || Sets.intersection(setSub, setSuper).size()!=setSub.size())
+      if (setSub == setSuper) {
+        continue;
+      }
+      if (setSuper == null || Sets.intersection(setSub, setSuper).size()!=setSub.size()) {
         return false;
+      }
     }
     return true;
   }

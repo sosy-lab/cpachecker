@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -85,8 +86,7 @@ public class CompositeTransferRelation implements TransferRelation {
 
       results = new ArrayList<>(node.getNumLeavingEdges());
 
-      for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
-        CFAEdge edge = node.getLeavingEdge(edgeIdx);
+      for (CFAEdge edge : leavingEdges(node)) {
         getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
       }
 

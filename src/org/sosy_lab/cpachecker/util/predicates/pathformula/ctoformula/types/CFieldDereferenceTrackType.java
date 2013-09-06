@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
@@ -71,6 +73,41 @@ class CFieldDereferenceTrackType extends CtoFormulaCType {
   public <R, X extends Exception> R accept(CtoFormulaTypeVisitor<R, X> pVisitor) throws X {
     // We do not really want to participate
     return fieldPtrType.accept(pVisitor);
+  }
+
+  @Override
+  public int hashCode() {
+    throw new UnsupportedOperationException("Do not use hashCode of CTypes");
+  }
+
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+
+    if (!(obj instanceof CFieldDereferenceTrackType) || !super.equals(obj)) {
+      return false;
+    }
+
+    CFieldDereferenceTrackType other = (CFieldDereferenceTrackType) obj;
+
+    return Objects.equals(fieldPtrType, other.fieldPtrType) && Objects.equals(fieldType, other.fieldType);
+  }
+
+  @Override
+  public CFieldDereferenceTrackType getCanonicalType() {
+    return getCanonicalType(false, false);
+  }
+
+  @Override
+  public CFieldDereferenceTrackType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return new CFieldDereferenceTrackType(fieldPtrType.getCanonicalType(pForceConst, pForceVolatile), fieldType.getCanonicalType(pForceConst, pForceVolatile));
   }
 
 }

@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Objects;
+
 /**
  * This represents a type which was created by using typedef.
  */
@@ -81,11 +83,43 @@ public final class CTypedefType implements CType {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Do not use hashCode of CType");
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(name);
+      result = prime * result + Objects.hashCode(isConst);
+      result = prime * result + Objects.hashCode(isVolatile);
+      result = prime * result + Objects.hashCode(realType);
+      return result;
+  }
+
+  /**
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
+
+    if (!(obj instanceof CTypedefType)) {
+      return false;
+    }
+
+    CTypedefType other = (CTypedefType) obj;
+
+    return Objects.equals(name, other.name) && Objects.equals(isConst, other.isConst)
+           && Objects.equals(isVolatile, other.isVolatile) && Objects.equals(realType, other.realType);
   }
 
   @Override
-  public boolean equals(Object obj) {
-    return CTypeUtils.equals(this, obj);
+  public CType getCanonicalType() {
+    return getCanonicalType(isConst, isVolatile);
+  }
+
+  @Override
+  public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return realType.getCanonicalType(pForceConst, pForceVolatile);
   }
 }

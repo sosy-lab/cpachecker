@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.types;
 
+import java.util.Objects;
+
 
 
 public abstract class AArrayType implements Type {
@@ -37,6 +39,29 @@ public abstract class AArrayType implements Type {
 
   public Type getType() {
     return elementType;
+  }
+
+  @Override
+  public int hashCode() {
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(elementType);
+      return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (!(obj instanceof AArrayType)) {
+      return false;
+    }
+
+    AArrayType other = (AArrayType) obj;
+
+    return Objects.equals(elementType, other.elementType);
   }
 
 

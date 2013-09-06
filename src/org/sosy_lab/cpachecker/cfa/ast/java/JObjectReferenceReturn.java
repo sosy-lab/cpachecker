@@ -28,7 +28,17 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 
-
+/**
+ * This class makes the return of an object reference to the caller of
+ * an constructor explicit. Semantically, it is the equivalent of return this;
+ * It may however only occur at the end of an constructor in the cfa.
+ *
+ * The returnClassType only provides the compile time type, i. e. the class,
+ * which declared the constructor. This may not always be the case,
+ * i.e. super constructor invocation.
+ *
+ *
+ */
 public class JObjectReferenceReturn extends JReturnStatement {
 
   private final JClassType classReference;

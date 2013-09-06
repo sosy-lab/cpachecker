@@ -27,6 +27,7 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -102,13 +103,18 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     Multimap<CFANode, String> increment   = HashMultimap.create();
     interpolationOffset                   = -1;
 
+    List<CFAEdge> cfaTrace = Lists.newArrayList();
+    for(Pair<ARGState, CFAEdge> elem : errorPath) {
+      cfaTrace.add(elem.getSecond());
+    }
+
     for (int i = 0; i < errorPath.size(); i++) {
       CFAEdge currentEdge = errorPath.get(i).getSecond();
 
       if (currentEdge instanceof BlankEdge) {
-	    // add the current interpolant to the increment
-    	for (String variableName : currentInterpolant.keySet()) {
-    	  increment.put(currentEdge.getSuccessor(), variableName);
+        // add the current interpolant to the increment
+        for (String variableName : currentInterpolant.keySet()) {
+          increment.put(currentEdge.getSuccessor(), variableName);
         }
         continue;
       }
@@ -119,7 +125,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
       // do interpolation
       Map<String, Long> inputInterpolant = new HashMap<>(currentInterpolant);
       try {
-        Set<Pair<String, Long>> interpolant = interpolator.deriveInterpolant(errorPath, i, inputInterpolant);
+        Set<Pair<String, Long>> interpolant = interpolator.deriveInterpolant(cfaTrace, i, inputInterpolant);
         numberOfInterpolations += interpolator.getNumberOfInterpolations();
 
         // early stop once we are past the first statement that made a path feasible for the first time
@@ -187,7 +193,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     // if doing lazy abstraction, use the node closest to the root node where new information is present
     if (doLazyAbstraction) {
       // try to find a more suitable cut-off point when cut-off is an assume edge, and this should be avoided
-      if(avoidAssumes && cutOffIsAssumeEdge(errorPath)) {
+      if (avoidAssumes && cutOffIsAssumeEdge(errorPath)) {
         HashSet<String> values = new HashSet<>(increment.values());
 
         for (Pair<ARGState, CFAEdge> currentElement : Lists.reverse(errorPath.subList(0, interpolationOffset - 1))) {
@@ -196,7 +202,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
           switch (currentElement.getSecond().getEdgeType()) {
             case StatementEdge:
             case DeclarationEdge:
-              if(isAssigningEdge(currentEdge, values)) {
+              if (isAssigningEdge(currentEdge, values)) {
                 return errorPath.get(errorPath.indexOf(currentElement) + 1);
               }
               break;
@@ -242,12 +248,12 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
    * @return true, if any of the given variables is assigned in the given edge
    */
   private boolean isAssigningEdge(CFAEdge currentEdge, Set<String> variableNames) {
-    if(currentEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+    if (currentEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       IAStatement statement = ((AStatementEdge)currentEdge).getStatement();
 
       if (statement instanceof IAssignment) {
         IAExpression assignedVariable = ((IAssignment)statement).getLeftHandSide();
-        if((assignedVariable instanceof AIdExpression) && variableNames.contains(((AIdExpression)assignedVariable).getName())) {
+        if ((assignedVariable instanceof AIdExpression) && variableNames.contains(((AIdExpression)assignedVariable).getName())) {
           return true;
         }
       }
@@ -255,9 +261,9 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
 
     else if (currentEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       ADeclarationEdge declEdge = ((ADeclarationEdge)currentEdge);
-      if(declEdge.getDeclaration() instanceof CVariableDeclaration) {
+      if (declEdge.getDeclaration() instanceof CVariableDeclaration) {
         String declaredVariable = ((CVariableDeclaration)declEdge.getDeclaration()).getQualifiedName();
-        if(variableNames.contains(declaredVariable)) {
+        if (variableNames.contains(declaredVariable)) {
           return true;
         }
       }

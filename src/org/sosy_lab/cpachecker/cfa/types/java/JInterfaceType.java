@@ -23,194 +23,190 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
+import static com.google.common.base.Preconditions.*;
+
+import java.util.*;
 
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
-public class JInterfaceType extends JClassOrInterfaceType implements JReferenceType {
+import com.google.common.collect.ImmutableSet;
+
+public final class JInterfaceType extends JClassOrInterfaceType implements JReferenceType {
+
+  private static final JInterfaceType UNRESOLVABLE_TYPE =
+      new JInterfaceType("_unspecified_", "_unspecified_", VisibilityModifier.NONE,
+          new HashSet<JInterfaceType>());
+
 
   private final Set<JClassType> interfaceImplementingClasses = new HashSet<>();
-  private final Set<JInterfaceType> extendedInterfaces = new HashSet<>();
+  private final Set<JInterfaceType> superInterfaces;
   private final Set<JInterfaceType> directSubInterfaces = new HashSet<>();
 
+  private JInterfaceType(
+      String pFullyQualifiedName, String pSimpleName,
+      final VisibilityModifier pVisibility,
+      Set<JInterfaceType> pExtendedInterfaces) {
+    super(pFullyQualifiedName, pSimpleName, pVisibility);
 
+    checkNotNull(pExtendedInterfaces);
+    superInterfaces = ImmutableSet.copyOf(pExtendedInterfaces);
 
-  public JInterfaceType(String fullyQualifiedpName, final VisibilityModifier pVisibility) {
-    super(fullyQualifiedpName, pVisibility);
+    notifySuperTypes();
+    checkInterfaceConsistency();
   }
 
+  public JInterfaceType(
+      String pFullyQualifiedName, String pSimpleName,
+      VisibilityModifier pVisibility, Set<JInterfaceType> pExtendedInterfaces,
+      JClassOrInterfaceType pEnclosingType) {
 
+    super(pFullyQualifiedName, pSimpleName, pVisibility, pEnclosingType);
+    checkNotNull(pExtendedInterfaces);
+    superInterfaces = ImmutableSet.copyOf(pExtendedInterfaces);
+
+    notifySuperTypes();
+    checkInterfaceConsistency();
+
+  }
+
+  private void checkInterfaceConsistency() {
+    checkInterfaceConsistencyRec(this);
+  }
+
+  private void checkInterfaceConsistencyRec(JInterfaceType basisType) {
+
+    checkArgument(!superInterfaces.contains(basisType));
+
+    // Recursion stops, if the Set superInterfaces is empty
+    for (JInterfaceType directSuperInterface : superInterfaces) {
+      directSuperInterface.checkInterfaceConsistencyRec(basisType);
+    }
+  }
+
+  private void notifySuperTypes() {
+
+    for (JInterfaceType superInterface : superInterfaces) {
+      // link this interface with all superInterfaces
+      superInterface.registerSubType(this);
+    }
+  }
 
   public Set<JClassType> getKnownInterfaceImplementingClasses() {
       return interfaceImplementingClasses;
   }
 
-
-  public Set<JInterfaceType> getExtendedInterfaces() {
-    return extendedInterfaces;
+  public Set<JInterfaceType> getSuperInterfaces() {
+    return superInterfaces;
   }
-
 
   public Set<JInterfaceType> getDirectSubInterfaces() {
     return directSubInterfaces;
   }
 
-
-
-
-  public void registerSuperType(JInterfaceType superType) {
-
-    assert !extendedInterfaces.contains(superType);
-    extendedInterfaces.add(superType);
-
-  }
-
-
-  public void registerSubType(JClassOrInterfaceType subType) {
-
-
+  void registerSubType(JClassOrInterfaceType subType) {
 
     if (subType instanceof JInterfaceType) {
 
-      assert !directSubInterfaces.contains(subType);
-
+      checkArgument(!directSubInterfaces.contains(subType));
       directSubInterfaces.add((JInterfaceType) subType);
     } else {
 
-      assert !interfaceImplementingClasses.contains(subType);
-
+      checkArgument(!interfaceImplementingClasses.contains(subType));
       interfaceImplementingClasses.add((JClassType) subType);
     }
-
   }
 
-  public List<JInterfaceType> getAllSubInterfacesOfInterface() {
+  public Set<JInterfaceType> getAllSubInterfacesOfInterface() {
 
-     List<JInterfaceType> result = new ArrayList<>();
-     Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<>();
+    Set<JInterfaceType> result = new HashSet<>();
 
+    result.addAll(directSubInterfaces);
 
-     for (JInterfaceType subInterface : getDirectSubInterfaces()) {
-
-       if (result.contains(subInterface)) {
-         continue; //maybe Exception?
-       }
-
-       result.add(subInterface);
-       toBeAdded.add(subInterface.getDirectSubInterfaces());
-     }
-
-     while (!toBeAdded.isEmpty()) {
-       for (JInterfaceType subInterface : toBeAdded.poll()) {
-
-         if (result.contains(subInterface)) {
-           continue; //maybe Exception?
-         }
-         result.add(subInterface);
-         toBeAdded.add(subInterface.getDirectSubInterfaces());
-       }
-     }
-
-     return result;
-
-  }
-
-  public List<JInterfaceType> getAllSuperTypesOfInterface() {
-
-
-     List<JInterfaceType> result = new ArrayList<>();
-     Queue<Set<JInterfaceType>> toBeAdded = new LinkedList<>();
-
-
-     for (JInterfaceType superInterface : getExtendedInterfaces()) {
-
-
-       if (result.contains(superInterface)) {
-         continue; //maybe Exception?
-       }
-
-       result.add(superInterface);
-       toBeAdded.add(superInterface.getExtendedInterfaces());
-     }
-
-     while (!toBeAdded.isEmpty()) {
-       for (JInterfaceType superInterface : toBeAdded.poll()) {
-
-         if (result.contains(superInterface)) {
-           continue; //maybe Exception?
-         }
-
-         result.add(superInterface);
-         toBeAdded.add(superInterface.getExtendedInterfaces());
-       }
-     }
-
-     return result;
-
-  }
-
-  public List<JClassType>  getAllKnownImplementedClassesOfInterface() {
-
-    List<JClassType> result = new LinkedList<>();
-    List<JInterfaceType> subInterfaces = new LinkedList<>();
-
-
-    result.addAll(this.getAllKnownDirectlyImplementedClassesOfInterface());
-
-    for (JInterfaceType subInterface : subInterfaces) {
-
-      result.addAll(subInterface.getAllKnownDirectlyImplementedClassesOfInterface());
-
+    // Recursion stops, if the Set directSubClasses is empty
+    for (JInterfaceType directSubInterface : directSubInterfaces) {
+      result.addAll(directSubInterface.getAllSubInterfacesOfInterface());
     }
 
-    subInterfaces.addAll(getAllSubInterfacesOfInterface());
-
-
     return result;
-
   }
 
+  public Set<JInterfaceType> getAllSuperInterfaces() {
 
+    Set<JInterfaceType> result = new HashSet<>();
 
+    result.addAll(superInterfaces);
 
-  private List<JClassType> getAllKnownDirectlyImplementedClassesOfInterface() {
+    // Recursion stops, if the Set superInterfaces is empty
+    for (JInterfaceType directSuperInterface : superInterfaces) {
+      result.addAll(directSuperInterface.getAllSuperInterfaces());
+    }
 
+    return result;
+  }
 
-    List<JInterfaceType> subInterfaces = new LinkedList<>();
+  public Set<JClassType>  getAllKnownImplementingClassesOfInterface() {
 
-    subInterfaces.addAll(getAllSubInterfacesOfInterface());
+    // first, get all subInterfaces of this interface
+    // then, get all Classes of this interface and all subInterfaces.
 
-     List<JClassType> result = new LinkedList<>();
-     Queue<Set<JClassType>> toBeAdded = new LinkedList<>();
+      Set<JClassType> result = new HashSet<>();
 
-     for (JClassType subClasses : getKnownInterfaceImplementingClasses()) {
-       result.add(subClasses);
-       toBeAdded.add(subClasses.getDirectSubClasses());
-     }
+      Set<JInterfaceType> interfaces = getAllSubInterfacesOfInterface();
 
-     while (!toBeAdded.isEmpty()) {
-       for (JClassType subClasses : toBeAdded.poll()) {
-         result.add(subClasses);
-         toBeAdded.add(subClasses.getDirectSubClasses());
-       }
-     }
+      interfaces.add(this);
 
-     return result;
+      for (JInterfaceType itInterface : interfaces) {
 
+        result.addAll(itInterface.getKnownInterfaceImplementingClasses());
+
+        for (JClassType implementingClasses :
+          itInterface.getKnownInterfaceImplementingClasses()) {
+          result.addAll(implementingClasses.getAllSubTypesOfClass());
+        }
+      }
+
+      return result;
   }
 
   public List<JClassOrInterfaceType> getAllSubTypesOfInterfaces() {
 
     List<JClassOrInterfaceType> result = new LinkedList<>();
     result.addAll(getAllSubInterfacesOfInterface());
-    result.addAll(getAllKnownImplementedClassesOfInterface());
+    result.addAll(getAllKnownImplementingClassesOfInterface());
     return result;
-
   }
 
+  public static JInterfaceType valueOf(String pFullyQualifiedName, String pSimpleName,
+      final VisibilityModifier pVisibility, Set<JInterfaceType> pExtendedInterfaces) {
+
+    return new JInterfaceType(pFullyQualifiedName, pSimpleName,
+        pVisibility, pExtendedInterfaces);
+  }
+
+  public static JInterfaceType createUnresolvableType() {
+    return UNRESOLVABLE_TYPE;
+  }
+
+  public static JInterfaceType valueOf(
+      String pFullyQualifiedName, String pSimpleName,
+      VisibilityModifier pVisibility,
+      Set<JInterfaceType> pExtendedInterfaces,
+      JClassOrInterfaceType pEnclosingType) {
+
+    return new JInterfaceType(pFullyQualifiedName, pSimpleName,
+        pVisibility, pExtendedInterfaces, pEnclosingType);
+  }
+
+  @Override
+  public int hashCode() {
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + super.hashCode();
+      return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+     return this == obj || super.equals(obj);
+  }
 }

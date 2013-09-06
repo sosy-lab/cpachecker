@@ -23,31 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
-
-import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 
 
 public class JMethodType extends AFunctionType implements JType {
 
-  private final List<JParameterDeclaration> parameters;
+  private static final JMethodType UNRESOLVABLE_TYPE = new JMethodType(
+     new JSimpleType(JBasicType.UNSPECIFIED), new ArrayList<JType>(), false);
 
-  public JMethodType(JType pReturnType, List<JParameterDeclaration> pParameters, boolean pTakesVarArgs) {
-    super(pReturnType,
-        FluentIterable.from(pParameters).transform(new Function<JParameterDeclaration, JType>() {
-          @Override
-          public JType apply(JParameterDeclaration pInput) {
-            return pInput.getType();
-          }
-        }).toList(),
-        pTakesVarArgs);
-
-    parameters = ImmutableList.copyOf(pParameters);
+  public JMethodType(JType pReturnType, List<JType> pParameters, boolean pTakesVarArgs) {
+    super(pReturnType, pParameters, pTakesVarArgs);
   }
 
   @SuppressWarnings("unchecked")
@@ -56,7 +44,20 @@ public class JMethodType extends AFunctionType implements JType {
     return (List<JType>) super.getParameters();
   }
 
-  public List<JParameterDeclaration> getParameterDeclarations() {
-    return parameters;
+  public static JMethodType createUnresolvableType() {
+    return UNRESOLVABLE_TYPE;
+  }
+
+  @Override
+  public int hashCode() {
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + super.hashCode();
+      return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+      return super.equals(obj);
   }
 }

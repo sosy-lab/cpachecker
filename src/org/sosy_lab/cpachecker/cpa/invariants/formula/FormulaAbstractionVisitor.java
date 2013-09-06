@@ -173,7 +173,7 @@ public class FormulaAbstractionVisitor implements FormulaEvaluationVisitor<Compo
 
   @Override
   public CompoundState visit(Negate<CompoundState> pNegate, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return pNegate.accept(this, pEnvironment).negate();
+    return pNegate.getNegated().accept(this, pEnvironment).negate();
   }
 
   @Override
@@ -199,7 +199,7 @@ public class FormulaAbstractionVisitor implements FormulaEvaluationVisitor<Compo
 
   @Override
   public CompoundState visit(Union<CompoundState> pUnion, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return pUnion.getOperand1().accept(this, pEnvironment).unionWith(pUnion.getOperand2().accept(this, pEnvironment));
+    return CompoundState.span(pUnion.getOperand1().accept(this, pEnvironment), pUnion.getOperand2().accept(this, pEnvironment));
   }
 
   @Override

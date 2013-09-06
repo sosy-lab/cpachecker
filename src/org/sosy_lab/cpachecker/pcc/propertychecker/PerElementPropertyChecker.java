@@ -37,8 +37,9 @@ public abstract class PerElementPropertyChecker implements PropertyChecker {
   @Override
   public boolean satisfiesProperty(Collection<AbstractState> pCertificate) {
     for (AbstractState elem : pCertificate) {
-      if (!satisfiesProperty(elem))
+      if (!satisfiesProperty(elem)) {
         return false;
+      }
     }
     return true;
   }
