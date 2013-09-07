@@ -103,6 +103,7 @@ public class SMGExpressionEvaluator {
  public class LValueAssignmentVisitor extends AddressVisitor {
 
     private final CFAEdge cfaEdge = getCfaEdge();
+    @SuppressWarnings("unused")
     private final SMGState smgState = getSmgState();
 
     public LValueAssignmentVisitor(CFAEdge pEdge, SMGState pSmgState) {
@@ -116,35 +117,6 @@ public class SMGExpressionEvaluator {
     }
 
     @Override
-    public SMGAddress visit(CFieldReference lValue) throws CPATransferException {
-      // a->b = ...
-      return handleAssignmentToFieldReference(lValue);
-    }
-
-    private SMGAddress handleAssignmentToFieldReference(CFieldReference fieldReference)
-        throws CPATransferException {
-
-      CType ownerType = getRealExpressionType(fieldReference.getFieldOwner());
-
-      SMGField field = getField(cfaEdge, ownerType, fieldReference.getFieldName());
-
-      SMGAddress addressOfField = getAddressOfField(smgState, cfaEdge, fieldReference);
-
-      if (addressOfField.isUnknown() || field.isUnknown()) {
-        return SMGAddress.UNKNOWN;
-      }
-
-      return addressOfField.add(field.getOffset());
-    }
-
-    @Override
-    public SMGAddress visit(CArraySubscriptExpression lValue) throws CPATransferException {
-
-      // a[i] = ...
-      return super.visit(lValue);
-    }
-
-    @Override
     public SMGAddress visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
       throw new AssertionError("This expression is not a lValue expression.");
     }
@@ -153,130 +125,41 @@ public class SMGExpressionEvaluator {
   private SMGAddress getAddressOfField(SMGState smgState, CFAEdge cfaEdge, CFieldReference fieldReference)
       throws CPATransferException {
 
-    //TODO Refactor
-
     CExpression fieldOwner = fieldReference.getFieldOwner();
-
-    // unpack
-    while (fieldOwner instanceof CCastExpression) {
-      fieldOwner = ((CCastExpression) fieldOwner).getOperand();
-    }
 
     CType ownerType = getRealExpressionType(fieldOwner);
 
-    SMGAddress fieldAddress;
+    /* Points to the start of this struct or union.
+     *
+     * Note that whether this field Reference is a pointer dereference a->b
+     * or not a.b is indirectly resolved by whether the type of a is
+     * a pointer type, in which case its expression is evaluated, or
+     * a struct type, in which case the address of the expression
+     * similar to &a is evaluated. The type check that if a is a pointer,
+     * it has to point to a struct, is NOT! performed.
+     */
 
-    if (fieldOwner instanceof CIdExpression) {
-      // a.b
+    SMGAddressValue fieldOwnerAddress = evaluateAddress(smgState, cfaEdge, fieldOwner);
 
-      CIdExpression idExpOwner = (CIdExpression) fieldOwner;
-      SMGObject memoryOfFieldOwner = smgState.getObjectForVisibleVariable(idExpOwner.getName());
-
-      if (fieldReference.isPointerDereference()) {
-
-        SMGSymbolicValue address = readValue(smgState, memoryOfFieldOwner, SMGKnownExpValue.ZERO, ownerType, cfaEdge);
-
-        SMGAddressValue addressValue = getAddressFromSymbolicValue(smgState, address);
-
-        fieldAddress = addressValue.getAddress();
-
-      } else {
-        fieldAddress = SMGAddress.valueOf(memoryOfFieldOwner, SMGKnownExpValue.ZERO);
-      }
-
-    } else if (fieldOwner instanceof CFieldReference) {
-      // (a.b).c
-
-     CFieldReference ownerFieldReference = (CFieldReference) fieldOwner;
-
-     SMGAddress addressOfFieldOwner = getAddressOfField(smgState, cfaEdge, ownerFieldReference);
-
-     if (addressOfFieldOwner.isUnknown()) {
-      return SMGAddress.UNKNOWN;
-     }
-
-     // type of a of (a.b).c
-     CType typeOfFieldOwnerOwner = getRealExpressionType(ownerFieldReference.getFieldOwner());
-
-     String fieldName = ownerFieldReference.getFieldName();
-
-     SMGField field = getField(cfaEdge, typeOfFieldOwnerOwner, fieldName);
-
-     if (field.isUnknown()) {
-       return SMGAddress.UNKNOWN;
-     }
-
-     SMGExplicitValue fieldOffset = addressOfFieldOwner.add(field.getOffset()).getOffset();
-
-     SMGObject fieldObject = addressOfFieldOwner.getObject();
-
-
-      if (fieldReference.isPointerDereference()) {
-
-        SMGSymbolicValue address = readValue(smgState, fieldObject, fieldOffset, field.getType(), cfaEdge);
-
-        SMGAddressValue addressValue = getAddressFromSymbolicValue(smgState, address);
-
-        fieldAddress = addressValue.getAddress();
-
-      } else {
-        fieldAddress = SMGAddress.valueOf(fieldObject, fieldOffset);
-      }
-
-    } else if (fieldOwner instanceof CPointerExpression) {
-      // (*a).b
-      SMGAddressValue address = evaluateAddress(smgState, cfaEdge, ((CPointerExpression) fieldOwner).getOperand());
-
-      SMGAddress fieldOwnerAddress = address.getAddress();
-
-      if (fieldReference.isPointerDereference()) {
-        SMGSymbolicValue address2 = readValue(smgState, fieldOwnerAddress.getObject(),
-            fieldOwnerAddress.getOffset(), ownerType, cfaEdge);
-
-        SMGAddressValue address2Value = getAddressFromSymbolicValue(smgState, address2);
-
-        fieldAddress = address2Value.getAddress();
-      } else {
-        fieldAddress = fieldOwnerAddress;
-      }
-
-    } else if (fieldOwner instanceof CArraySubscriptExpression) {
-      // (a[]).b
-      // TODO implement this
-      fieldAddress = SMGAddress.UNKNOWN;
-
-    } else if (fieldOwner instanceof CUnaryExpression) {
-      CUnaryExpression fieldOwnerUnary = (CUnaryExpression) fieldOwner;
-      if (fieldOwnerUnary.getOperator() == UnaryOperator.AMPER
-          && fieldReference.isPointerDereference()) {
-        // (&a)-> b == a.b
-
-        SMGAddressValue address = evaluateAddress(smgState, cfaEdge, fieldOwner);
-
-        if (address.isUnknown()) {
-          fieldAddress = SMGAddress.UNKNOWN;
-        } else {
-          SMGObject memoryOfFieldOwner = address.getObject();
-          fieldAddress = SMGAddress.valueOf(memoryOfFieldOwner, address.getOffset());
-        }
-      } else {
-        fieldAddress = SMGAddress.UNKNOWN;
-      }
-    } else if(fieldOwner instanceof CIntegerLiteralExpression) {
-
-      boolean isZero = ((CIntegerLiteralExpression) fieldOwner).getValue().equals(BigInteger.ZERO);
-
-      if (isZero) {
-        fieldAddress = SMGAddress.valueOf(smgState.getNullObject(), 0);
-      } else {
-        fieldAddress = SMGAddress.UNKNOWN;
-      }
-
-    } else {
-      fieldAddress = SMGAddress.UNKNOWN;
+    if (fieldOwnerAddress.isUnknown()) {
+     return SMGAddress.UNKNOWN;
     }
 
-    return fieldAddress;
+    String fieldName = fieldReference.getFieldName();
+
+    SMGField field = getField(cfaEdge, ownerType, fieldName);
+
+    if (field.isUnknown()) {
+      return SMGAddress.UNKNOWN;
+    }
+
+    SMGAddress addressOfFieldOwner = fieldOwnerAddress.getAddress();
+
+    SMGExplicitValue fieldOffset = addressOfFieldOwner.add(field.getOffset()).getOffset();
+
+    SMGObject fieldObject = addressOfFieldOwner.getObject();
+
+    return SMGAddress.valueOf(fieldObject, fieldOffset);
   }
 
   public SMGSymbolicValue readValue(SMGState pSmgState, SMGObject pObject,
@@ -504,7 +387,6 @@ public class SMGExpressionEvaluator {
 
     @Override
     public SMGAddress visit(CFieldReference pE) throws CPATransferException {
-      // TODO Placeholder for functionality
       return getAddressOfField(smgState, cfaEdge, pE);
     }
 
@@ -659,15 +541,12 @@ public class SMGExpressionEvaluator {
     private SMGAddressValue createAddressOfField(CFieldReference lValue) throws CPATransferException {
 
       SMGAddress addressOfField = getAddressOfField(smgState, cfaEdge, lValue);
-      SMGField field = getField(cfaEdge, getRealExpressionType(lValue.getFieldOwner()), lValue.getFieldName());
 
-      if (field.isUnknown() || addressOfField.isUnknown()) {
+      if (addressOfField.isUnknown()) {
         return SMGUnknownValue.getInstance();
       }
 
-      SMGAddress address = addressOfField.add(field.getOffset());
-
-      return createAddress(smgState, address.getObject(), address.getOffset());
+      return createAddress(smgState, addressOfField.getObject(), addressOfField.getOffset());
     }
 
     private SMGAddressValue createAddressOfVariable(CIdExpression idExpression) throws SMGInconsistentException {
@@ -734,6 +613,13 @@ public class SMGExpressionEvaluator {
     @Override
     public SMGAddressValue visit(CFieldReference exp) throws CPATransferException {
       return getAddressFromSymbolicValue(smgState, super.visit(exp));
+    }
+
+    @Override
+    public SMGAddressValue visit(CCastExpression pCast) throws CPATransferException {
+      // TODO Maybe cast values to pointer to null Object with offset as explicit value
+      // for pointer arithmetic substraction ((void *) 4) - ((void *) 3)?
+      return getAddressFromSymbolicValue(smgState, super.visit(pCast));
     }
   }
 
@@ -964,15 +850,6 @@ public class SMGExpressionEvaluator {
     }
 
     @Override
-    public SMGAddress visit(CFieldReference fieldReference) throws CPATransferException {
-
-      SMGAddress addressOfField = getAddressOfField(getSmgState(), getCfaEdge(), fieldReference);
-      SMGField field = getField(getCfaEdge(), getRealExpressionType(fieldReference.getFieldOwner()), fieldReference.getFieldName());
-
-      return addressOfField.add(field.getOffset());
-    }
-
-    @Override
     public SMGAddress visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
       return SMGAddress.UNKNOWN;
     }
@@ -1172,18 +1049,13 @@ public class SMGExpressionEvaluator {
 
       SMGAddress addressOfField = getAddressOfField(smgState, cfaEdge, fieldReference);
 
-      SMGField field = getField(cfaEdge, getRealExpressionType(fieldReference.getFieldOwner()), fieldReference.getFieldName());
-
-      if (addressOfField.isUnknown() || field.isUnknown()) {
+      if (addressOfField.isUnknown()) {
         return SMGUnknownValue.getInstance();
       }
 
-      SMGExplicitValue addressOffset =  addressOfField.getOffset();
-      SMGExplicitValue fieldOffset =    field.getOffset();
+      CType fieldType = fieldReference.getExpressionType().getCanonicalType();
 
-      SMGExplicitValue offset = addressOffset.add(fieldOffset);
-
-      return readValue(smgState, addressOfField.getObject(), offset, field.getType(), cfaEdge);
+      return readValue(smgState, addressOfField.getObject(), addressOfField.getOffset(), fieldType, cfaEdge);
     }
 
     @Override
@@ -1409,7 +1281,9 @@ public class SMGExpressionEvaluator {
 
     @Override
     public SMGSymbolicValue visit(CCastExpression cast) throws CPATransferException {
-      return cast.getOperand().accept(this);
+      // For different types we need different visitors,
+      // TODO doesn't calculate type reinterpretations
+      return evaluateExpressionValue(getSmgState(), getCfaEdge(), cast.getOperand());
     }
 
     protected SMGSymbolicValue dereferenceArray(CExpression exp, CType derefType) throws CPATransferException {
