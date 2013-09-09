@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.As
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
@@ -93,7 +92,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private int numberOfInterpolations        = 0;
   private Timer timerInterpolation          = new Timer();
 
-  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config, PathFormulaManager pathFormulaManager)
+  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
   }
