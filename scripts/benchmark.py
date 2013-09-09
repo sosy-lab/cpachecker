@@ -271,18 +271,21 @@ def getCloudInput(benchmark):
 
     # build the input for the cloud, 
     # see external vcloud/README.txt for details.
-    cloudInput = "\n".join(
-            [
+    cloudInput = [
                 toTabList(absToolpaths + [absScriptsPath]),
                 absCloudRunExecutorDir,
                 toTabList([absBaseDir, absOutputDir, absWorkingDir]),
-                toTabList(requirements),
+                toTabList(requirements)
+            ]
+    if benchmark.resultFilesPattern:
+        cloudInput.append(benchmark.resultFilesPattern)
+
+    cloudInput.extend([
                 toTabList(numOfRunDefLinesAndPriorityStr),
                 toTabList(limitsAndNumRuns)
-            ]
-            + runDefinitions
-        )
-    return cloudInput
+            ])
+    cloudInput.extend(runDefinitions)
+    return "\n".join(cloudInput)
 
 
 def getToolDataForCloud(benchmark):

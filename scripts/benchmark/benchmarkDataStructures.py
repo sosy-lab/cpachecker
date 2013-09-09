@@ -201,6 +201,13 @@ class Benchmark:
         self.requirements = Requirements.mergeWithCpuModel(self.requirements, config.cloudCpuModel)
         self.requirements = Requirements.mergeWithLimits(self.requirements, self.rlimits)
 
+        self.resultFilesPattern = None
+        resultFilesTags = rootTag.findall("resultfiles")
+        if resultFilesTags:
+            if len(resultFilesTags) > 1:
+                logger.warning("Benchmark file {0} has multiple <resultfiles> tags, ignoring all but the first.")
+            self.resultFilesPattern = resultFilesTags[0].text
+
         # get benchmarks
         self.runSets = []
         for (i, rundefinitionTag) in enumerate(rootTag.findall("rundefinition")):
