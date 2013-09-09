@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateMapWriter.PredicateDumpFormat;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -126,6 +127,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   @Option(name="refinement.dumpPredicates",
       description="After each refinement, dump the newly found predicates.")
   private boolean dumpPredicates = false;
+
+  @Option(name="refinement.dumpPredicatesFormat",
+      description="Format that should be used when dumping predicates after a refinement.")
+  private PredicateMapWriter.PredicateDumpFormat dumpPredicatesFormat = PredicateDumpFormat.SMTLIB2;
 
   @Option(name="refinement.dumpPredicatesFile",
       description="File name for the predicates dumped after refinements.")
@@ -346,7 +351,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
             ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
             ImmutableSetMultimap.<String, AbstractionPredicate>of(),
             ImmutableSet.<AbstractionPredicate>of(),
-            newPredicates.values(), w);
+            newPredicates.values(), w, dumpPredicatesFormat);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not dump precision to file");
       }

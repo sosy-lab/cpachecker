@@ -50,8 +50,9 @@ import com.google.common.collect.Sets;
  */
 class PredicateMapWriter {
 
-  private static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
+  public static enum PredicateDumpFormat {PLAIN, SMTLIB2};
 
+  private static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
   private static final Joiner LINE_JOINER = Joiner.on('\n');
 
   private final FormulaManagerView fmgr;
@@ -65,10 +66,14 @@ class PredicateMapWriter {
   }
 
   public void writePredicateMap(
-      SetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstancePredicates,
+      SetMultimap<Pair<CFANode, Integer>,
+      AbstractionPredicate> locationInstancePredicates,
       SetMultimap<CFANode, AbstractionPredicate> localPredicates,
-      SetMultimap<String, AbstractionPredicate> functionPredicates, Set<AbstractionPredicate> globalPredicates,
-      Collection<AbstractionPredicate> allPredicates, Appendable sb) throws IOException {
+      SetMultimap<String, AbstractionPredicate> functionPredicates,
+      Set<AbstractionPredicate> globalPredicates,
+      Collection<AbstractionPredicate> allPredicates,
+      Appendable sb,
+      PredicateDumpFormat outputFormat) throws IOException {
 
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
@@ -81,18 +86,24 @@ class PredicateMapWriter {
 
     // fill the above set and map
     for (AbstractionPredicate pred : allPredicates) {
-      String s = fmgr.dumpFormula(pred.getSymbolicAtom()).toString();
-      List<String> lines = Lists.newArrayList(LINE_SPLITTER.split(s));
-      assert !lines.isEmpty();
-      String predString = lines.get(lines.size()-1);
-      lines.remove(lines.size()-1);
-      if (!(predString.startsWith("(assert ") && predString.endsWith(")"))) {
-        sb.append("Writing predicate map is only supported for solvers which support the Smtlib2 format, please try using Mathsat5.\n");
-        return;
+      String predString;
+
+      if (outputFormat == PredicateDumpFormat.SMTLIB2) {
+        String s = fmgr.dumpFormula(pred.getSymbolicAtom()).toString();
+        List<String> lines = Lists.newArrayList(LINE_SPLITTER.split(s));
+        assert !lines.isEmpty();
+        predString = lines.get(lines.size()-1);
+        lines.remove(lines.size()-1);
+        if (!(predString.startsWith("(assert ") && predString.endsWith(")"))) {
+          sb.append("Writing predicate map is only supported for solvers which support the Smtlib2 format, please try using Mathsat5.\n");
+          return;
+        }
+        definitions.addAll(lines);
+      } else {
+        predString = pred.getSymbolicAtom().toString();
       }
 
       predToString.put(pred, predString);
-      definitions.addAll(lines);
     }
 
     LINE_JOINER.appendTo(sb, definitions);
