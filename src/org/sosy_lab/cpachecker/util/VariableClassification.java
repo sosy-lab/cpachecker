@@ -257,17 +257,17 @@ public class VariableClassification {
     try (Writer w = Files.openOutputFile(target)) {
       for (String function : getAllVars().keySet()) {
         for (String var : getAllVars().get(function)) {
-          String type;
+          byte type = 0;
           if (getBooleanVars().containsEntry(function, var)) {
-            type = "Bool";
-          } else if (getIntEqualVars().containsEntry(function, var)) {
-            type = "Eq";
-          } else if (getIntAddVars().containsEntry(function, var)) {
-            type = "Add";
-          } else {
-            type = "Other";
+            type += 1;
           }
-          w.append(String.format("%s::%s\t%s\n", function, var, type));
+          if (getIntEqualVars().containsEntry(function, var)) {
+            type += 2;
+          }
+          if (getIntAddVars().containsEntry(function, var)) {
+            type += 4;
+          }
+          w.append(String.format("%s::%s\t%d\n", function, var, type));
         }
       }
     } catch (IOException e) {
