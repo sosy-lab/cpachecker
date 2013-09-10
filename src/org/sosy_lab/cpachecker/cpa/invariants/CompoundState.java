@@ -1094,13 +1094,23 @@ public class CompoundState {
     if (isBottom() || pState.isBottom()) {
       return bottom();
     }
+    if (pState.isSingleton() && pState.containsZero()) {
+      return pState;
+    }
+    if (isSingleton() && containsZero()) {
+      return this;
+    }
     if (pState.isSingleton()) {
-      if (isSingleton()) {
-        return CompoundState.singleton(getValue().and(pState.getValue()));
+      CompoundState result = bottom();
+      for (SimpleInterval interval : this.intervals) {
+        if (!interval.isSingleton()) {
+          return top();
+        }
+        result = result.unionWith(SimpleInterval.singleton(interval.getLowerBound().and(pState.getValue())));
       }
-      if (pState.getValue().equals(BigInteger.ZERO)) {
-        return CompoundState.singleton(BigInteger.ZERO);
-      }
+      return result;
+    } else if (isSingleton()) {
+      return pState.binaryAnd(this);
     }
     // TODO maybe a more exact implementation is possible?
     return top();
@@ -1131,10 +1141,26 @@ public class CompoundState {
     if (isSingleton() && containsZero()) {
       return pState;
     }
+    CompoundState zeroToOne = CompoundState.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE));
     // [0,1] ^ 1 = [0,1]
-    if (pState.isSingleton() && pState.contains(1)
-        && equals(CompoundState.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE)))) {
+    if (pState.isSingleton() && pState.contains(1) && equals(zeroToOne)) {
       return this;
+    }
+    // 1 ^ [0,1] = [0,1]
+    if (isSingleton() && contains(1) && pState.equals(zeroToOne)) {
+      return this;
+    }
+    if (pState.isSingleton()) {
+      CompoundState result = bottom();
+      for (SimpleInterval interval : this.intervals) {
+        if (!interval.isSingleton()) {
+          return top();
+        }
+        result = result.unionWith(SimpleInterval.singleton(interval.getLowerBound().xor(pState.getValue())));
+      }
+      return result;
+    } else if (isSingleton()) {
+      return pState.binaryXor(this);
     }
     // TODO maybe a more exact implementation is possible?
     return top();
@@ -1149,16 +1175,19 @@ public class CompoundState {
    */
   public CompoundState binaryNot() {
     if (isBottom()) { return bottom(); }
-    if (isSingleton()) {
-      return CompoundState.singleton(getValue().not());
+    CompoundState result = bottom();
+    for (SimpleInterval interval : this.intervals) {
+      if (!interval.isSingleton()) {
+        // TODO maybe a more exact implementation is possible?
+        if (!containsNegative()) {
+          return singleton(0).extendToNegativeInfinity();
+        } else if (!containsPositive()) {
+          return singleton(0).extendToPositiveInfinity();
+        }
+      }
+      result = result.unionWith(SimpleInterval.singleton(interval.getLowerBound().not()));
     }
-    if (!containsNegative()) {
-      return singleton(0).extendToNegativeInfinity();
-    } else if (!containsPositive()) {
-      return singleton(0).extendToPositiveInfinity();
-    }
-    // TODO maybe a more exact implementation is possible?
-    return top();
+    return result;
   }
 
   /**
@@ -1179,11 +1208,23 @@ public class CompoundState {
    */
   public CompoundState binaryOr(CompoundState pState) {
     if (isBottom() || pState.isBottom()) { return bottom(); }
-    if (isSingleton()) {
-      return CompoundState.singleton(getValue().or(pState.getValue()));
+    if (isSingleton() && containsZero()) {
+      return pState;
     }
-    if (pState.getValue().equals(BigInteger.ZERO)) {
+    if (pState.isSingleton() && pState.containsZero()) {
       return this;
+    }
+    if (pState.isSingleton()) {
+      CompoundState result = bottom();
+      for (SimpleInterval interval : this.intervals) {
+        if (!interval.isSingleton()) {
+          return top();
+        }
+        result = result.unionWith(SimpleInterval.singleton(interval.getLowerBound().or(pState.getValue())));
+      }
+      return result;
+    } else if (isSingleton()) {
+      return pState.binaryOr(this);
     }
     // TODO maybe a more exact implementation is possible?
     return top();
