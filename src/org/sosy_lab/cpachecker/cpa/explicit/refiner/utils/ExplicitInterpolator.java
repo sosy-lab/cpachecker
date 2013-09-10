@@ -93,7 +93,7 @@ public class ExplicitInterpolator {
     try {
       config      = Configuration.builder().build();
       transfer    = new ExplicitTransferRelation(config);
-      precision   = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
+      precision   = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
     }
     catch (InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);

@@ -172,11 +172,12 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
       logger.log(Level.WARNING, "Explicit-Value analysis with refinement needs " +
             "ComponentAwareExplicitPrecisionAdjustment. Please set option cpa.composite.precAdjust to 'COMPONENT'");
     }
-    ExplicitPrecision prec = new ExplicitPrecision(variableBlacklist, config, cfa.getVarClassification(), restoreMappingFromFile(cfa));
+    
+    // create default (empty) precision
+    ExplicitPrecision precision = new ExplicitPrecision(variableBlacklist, config, cfa.getVarClassification());
 
-    prec = new ExplicitPrecision(prec, restoreMappingFromFile(cfa));
-
-    return prec;
+    // refine it with precision from file
+    return new ExplicitPrecision(precision, restoreMappingFromFile(cfa));
   }
 
   /**

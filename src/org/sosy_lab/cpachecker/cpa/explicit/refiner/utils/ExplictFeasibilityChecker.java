@@ -67,7 +67,7 @@ public class ExplictFeasibilityChecker {
 
       TransferRelation transfer   = new ExplicitTransferRelation(config);
       AbstractState next          = new ExplicitState();
-      ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
+      ExplicitPrecision precision = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
 
       for (Pair<ARGState, CFAEdge> pathElement : path) {
         Collection<? extends AbstractState> successors = transfer.getAbstractSuccessors(
