@@ -108,6 +108,10 @@ public class VariableClassification {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpfile = Paths.get("VariableClassification.log");
 
+  @Option(description = "Dump variable type mapping to a file.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path typeMapFile = Paths.get("VariableTypeMapping.txt");
+
   @Option(description = "Print some information about the variable classification.")
   private boolean printStatsOnStartup = false;
 
@@ -242,6 +246,32 @@ public class VariableClassification {
           logger.logUserException(Level.WARNING, e, "Could not write variable classification to file");
         }
       }
+
+      if (typeMapFile != null) {
+        dumpVariableTypeMapping(typeMapFile);
+      }
+    }
+  }
+
+  public void dumpVariableTypeMapping(Path target)  {
+    try (Writer w = Files.openOutputFile(target)) {
+      for (String function : getAllVars().keySet()) {
+        for (String var : getAllVars().get(function)) {
+          String type;
+          if (getBooleanVars().containsEntry(function, var)) {
+            type = "Bool";
+          } else if (getIntEqualVars().containsEntry(function, var)) {
+            type = "Eq";
+          } else if (getIntAddVars().containsEntry(function, var)) {
+            type = "Add";
+          } else {
+            type = "Other";
+          }
+          w.append(String.format("%s::%s\t%s\n", function, var, type));
+        }
+      }
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write variable type mapping to file");
     }
   }
 

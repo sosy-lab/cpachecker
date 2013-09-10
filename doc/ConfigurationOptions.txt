@@ -290,6 +290,9 @@ cfa.variableClassification.logfile = "VariableClassification.log"
 # Print some information about the variable classification.
 cfa.variableClassification.printStatsOnStartup = false
 
+# Dump variable type mapping to a file.
+cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
+
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
 
