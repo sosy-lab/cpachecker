@@ -75,6 +75,11 @@ public class CompoundStateTest {
     CompoundState six = CompoundState.singleton(6);
     assertEquals(2, zeroToThree.unionWith(six).getIntervals().size());
     assertEquals(zeroToThree.unionWith(six), six.unionWith(zeroToThree));
+    assertEquals(zeroToThree, zeroToThree.unionWith(CompoundState.singleton(0)));
+    assertEquals(zeroToThree, zeroToThree.unionWith(CompoundState.singleton(1)));
+    assertEquals(zeroToThree, zeroToThree.unionWith(CompoundState.singleton(2)));
+    assertEquals(zeroToThree, zeroToThree.unionWith(CompoundState.singleton(3)));
+    assertEquals(zeroToThree, zeroToThree.unionWith(zeroToThree));
   }
 
   @Test
@@ -150,6 +155,21 @@ public class CompoundStateTest {
     assertFalse(CompoundState.span(one, ten).isSingleton());
     assertFalse(zero.unionWith(ten).isSingleton());
     assertFalse(negOne.unionWith(CompoundState.span(one, ten)).isSingleton());
+  }
+
+  @Test
+  public void containsTest() {
+    assertTrue(CompoundState.singleton(-1).contains(-1));
+    assertTrue(CompoundState.singleton(0).contains(0));
+    assertTrue(CompoundState.singleton(1).contains(1));
+    assertTrue(CompoundState.singleton(-1).contains(CompoundState.singleton(-1)));
+    assertTrue(CompoundState.singleton(0).contains(CompoundState.singleton(0)));
+    assertTrue(CompoundState.singleton(1).contains(CompoundState.singleton(1)));
+    assertTrue(CompoundState.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN)).contains(CompoundState.of(SimpleInterval.of(BigInteger.ONE, BigInteger.TEN))));
+    assertFalse(CompoundState.of(SimpleInterval.of(BigInteger.ONE, BigInteger.TEN)).contains(CompoundState.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN))));
+    assertTrue(CompoundState.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN)).contains(5));
+    assertFalse(CompoundState.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.TEN)).contains(-1));
+    assertFalse(CompoundState.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(4))).unionWith(SimpleInterval.of(BigInteger.valueOf(6), BigInteger.TEN)).contains(5));
   }
 
 }
