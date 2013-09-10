@@ -580,6 +580,49 @@ public enum CompoundStateFormulaManager {
     if (definitelyImplies(pOperand2, pOperand1)) {
       return pOperand1;
     }
+    if (pOperand1 instanceof Equal<?> && pOperand2 instanceof Equal<?>) {
+      Equal<CompoundState> p1 = (Equal<CompoundState>) pOperand1;
+      Equal<CompoundState> p2 = (Equal<CompoundState>) pOperand2;
+      Variable<CompoundState> var = null;
+      InvariantsFormula<CompoundState> value = null;
+      if (p1.getOperand1() instanceof Variable<?>) {
+        var = (Variable<CompoundState>) p1.getOperand1();
+        value = p1.getOperand2();
+      } else  if (p1.getOperand2() instanceof Variable<?>) {
+        var = (Variable<CompoundState>) p1.getOperand2();
+        value = p1.getOperand1();
+      }
+      if (var != null && value != null) {
+        InvariantsFormula<CompoundState> newValue = null;
+        InvariantsFormula<CompoundState> otherValue = null;
+        if (var.equals(p2.getOperand1())) {
+          otherValue = p2.getOperand2();
+        } else if (var.equals(p2.getOperand2())) {
+          otherValue = p2.getOperand1();
+        }
+        if (otherValue != null) {
+          newValue = CompoundStateFormulaManager.INSTANCE.union(value, p2.getOperand2());
+          newValue = newValue.accept(new PartialEvaluator(), FORMULA_EVALUATION_VISITOR);
+          CompoundState val = evaluate(newValue);
+          if (val.isTop() && newValue instanceof Constant<?>) {
+            return TRUE;
+          }
+          if (val.isBottom()) {
+            return FALSE;
+          }
+          boolean useNewValue = true;
+          if (newValue instanceof Union<?>) {
+            Union<CompoundState> union = (Union<CompoundState>) newValue;
+            InvariantsFormula<CompoundState> op1 = union.getOperand1();
+            InvariantsFormula<CompoundState> op2 = union.getOperand2();
+            useNewValue = !(op1.equals(value) && op2.equals(otherValue) || op1.equals(otherValue) && op2.equals(value));
+          }
+          if (useNewValue) {
+            return equal(var, newValue);
+          }
+        }
+      }
+    }
     return logicalNot(logicalAnd(logicalNot(pOperand1), logicalNot(pOperand2)));
   }
 
