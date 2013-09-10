@@ -29,7 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constant used in the formulae.
  */
-public class LogicalAnd<ConstantType> implements InvariantsFormula<ConstantType> {
+public class LogicalAnd<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   /**
    * The first operand of the conjunction.
@@ -84,7 +84,7 @@ public class LogicalAnd<ConstantType> implements InvariantsFormula<ConstantType>
   }
 
   @Override
-  public int hashCode() {
+  protected int hashCodeInternal() {
     return getOperand1().hashCode() & getOperand2().hashCode();
   }
 

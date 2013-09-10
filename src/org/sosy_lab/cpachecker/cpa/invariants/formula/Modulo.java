@@ -29,7 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class Modulo<ConstantType> implements InvariantsFormula<ConstantType> {
+public class Modulo<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   /**
    * The numerator of the fraction.
@@ -85,7 +85,7 @@ public class Modulo<ConstantType> implements InvariantsFormula<ConstantType> {
   }
 
   @Override
-  public int hashCode() {
+  protected int hashCodeInternal() {
     return getNumerator().hashCode() % getDenominator().hashCode();
   }
 

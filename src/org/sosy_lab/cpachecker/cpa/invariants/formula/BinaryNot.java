@@ -28,7 +28,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class BinaryNot<ConstantType> implements InvariantsFormula<ConstantType> {
+public class BinaryNot<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   /**
    * The operand of the bit flip operation.
@@ -70,7 +70,7 @@ public class BinaryNot<ConstantType> implements InvariantsFormula<ConstantType> 
   }
 
   @Override
-  public int hashCode() {
+  protected int hashCodeInternal() {
     return ~getFlipped().hashCode();
   }
 

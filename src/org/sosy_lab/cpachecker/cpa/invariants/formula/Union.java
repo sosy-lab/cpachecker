@@ -28,7 +28,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class Union<ConstantType> implements InvariantsFormula<ConstantType> {
+public class Union<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   /**
    * The first operand of the union.
@@ -84,7 +84,7 @@ public class Union<ConstantType> implements InvariantsFormula<ConstantType> {
   }
 
   @Override
-  public int hashCode() {
+  protected int hashCodeInternal() {
     return getOperand1().hashCode() | getOperand2().hashCode();
   }
 

@@ -77,7 +77,7 @@ public class GuessAssumptionVisitor extends DefaultFormulaVisitor<CompoundState,
   }
 
   private Set<InvariantsFormula<CompoundState>> guess(InvariantsFormula<CompoundState> pOperand1, InvariantsFormula<CompoundState> pOperand2) {
-    InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
+    CompoundStateFormulaManager ifm = CompoundStateFormulaManager.INSTANCE;
     Set<InvariantsFormula<CompoundState>> guesses = new HashSet<>();
     InvariantsFormula<CompoundState> equation = ifm.equal(pOperand1, pOperand2);
     guesses.add(equation);
