@@ -80,10 +80,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingProverEnvironme
   public boolean isUnsat() {
     Preconditions.checkState(interpolEnv != 0);
 
-    int res = msat_solve(interpolEnv);
-    assert (res != MSAT_UNKNOWN);
-
-    return res == MSAT_UNSAT;
+    return !msat_check_sat(interpolEnv);
   }
 
   @Override

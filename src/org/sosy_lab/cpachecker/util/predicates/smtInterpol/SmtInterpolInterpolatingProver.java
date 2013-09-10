@@ -38,7 +38,6 @@ import com.google.common.base.Preconditions;
 
 import de.uni_freiburg.informatik.ultimate.logic.AnnotatedTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
-import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 public class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<Term> {
@@ -83,7 +82,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
 
   @Override
   public boolean isUnsat() {
-    return env.checkSat() == LBool.UNSAT;
+    return !env.checkSat();
   }
 
   @Override

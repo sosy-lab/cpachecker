@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.base.Preconditions;
 
-import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 public class SmtInterpolTheoremProver implements ProverEnvironment {
@@ -61,7 +60,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
 
   @Override
   public boolean isUnsat() {
-    return env.checkSat() == LBool.UNSAT;
+    return !env.checkSat();
   }
 
   @Override
@@ -117,7 +116,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
 
     solveTime.start();
     int numModels = 0;
-    while (allsatEnv.checkSat() == LBool.SAT) {
+    while (allsatEnv.checkSat()) {
       Term[] model = new Term[importantTerms.length];
 
       if (importantTerms.length == 0) {

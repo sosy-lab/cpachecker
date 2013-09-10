@@ -255,24 +255,29 @@ class SmtInterpolEnvironment {
     }
   }
 
-  /** This function adds the term on top of the stack.
-   * In most cases LBool.UNKNOWN is returned. */
-  public LBool assertTerm(Term term) {
+  /** This function adds the term on top of the stack. */
+  public void assertTerm(Term term) {
     assert stack.size() > 0 : "assertions should be on higher levels";
-    LBool result = null;
     try {
-      result = script.assertTerm(term);
+      script.assertTerm(term);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }
-    return result;
   }
 
   /** This function causes the SatSolver to check all the terms on the stack,
    * if their conjunction is SAT or UNSAT. */
-  public LBool checkSat() {
+  public boolean checkSat() {
     try {
-      return script.checkSat();
+      LBool result = script.checkSat();
+      switch (result) {
+      case SAT:
+        return true;
+      case UNSAT:
+        return false;
+      default:
+        throw new SMTLIBException("checkSat returned " + result);
+      }
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }

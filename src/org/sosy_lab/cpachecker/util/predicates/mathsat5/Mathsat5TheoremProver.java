@@ -63,9 +63,7 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
 
   @Override
   public boolean isUnsat() {
-    int res = msat_solve(curEnv);
-    assert (res != MSAT_UNKNOWN);
-    return res == MSAT_UNSAT;
+    return !msat_check_sat(curEnv);
   }
 
   @Override

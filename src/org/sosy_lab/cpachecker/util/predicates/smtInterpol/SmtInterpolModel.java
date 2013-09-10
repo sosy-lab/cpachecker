@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironmen
 import com.google.common.collect.ImmutableMap;
 
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
-import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
@@ -136,8 +135,7 @@ class SmtInterpolModel {
 
     ImmutableMap.Builder<AssignableTerm, Object> model = ImmutableMap.builder();
 
-    assert env.checkSat() != LBool.UNSAT:
-            "model is not available for UNSAT"; // TODO expensive check?
+    assert env.checkSat() : "model is only available for SAT environments";
     Map<Term, Term> val = env.getValue(keys);
 
     for (Term lKeyTerm : keys) {
