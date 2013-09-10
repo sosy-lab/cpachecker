@@ -13,10 +13,12 @@ import java.util.Map;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import org.sosy_lab.common.Pair;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 parser code {:
   SmtInterpolEnvironment env;
-  List<Term> termList = new ArrayList<Term>();
+  private final List<Term> termList = new ArrayList<>();
 
   public Parser(SmtInterpolEnvironment env, Reader reader) {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
@@ -27,29 +29,30 @@ parser code {:
     this.env = env;  
   }
 
-  public Term[] getTerms() {
-    return termList.toArray(new Term[0]);
+  public ImmutableList<Term> getTerms() {
+    return ImmutableList.copyOf(termList);
+  }
+
+  void addTerm(Term t) {
+    termList.add(t);
   }
 :}
 
 action code {:
-  Map<String,TermVariable> localVars = new HashMap<String, TermVariable>(); 
-  List<Object> varScopes = new ArrayList<Object>();
+  private final Map<String,TermVariable> localVars = new HashMap<>();
+  private final List<Object> varScopes = new ArrayList<>();
 
-  public Sort lookupSort(String name, Sort[] args) {
-    if (args != null) {
-      for (Sort s: args) {
-        if (s == null) return null;
-      }
-    }
+  private Sort lookupSort(String name, Sort... args) {
+    Preconditions.checkNotNull(args);
+    Preconditions.checkArgument(!Arrays.asList(args).contains(null));
     return parser.env.sort(name, args);
   }
   
-  public Term createTerm(String fun, Term[] params) {
+  private Term createTerm(String fun, Term[] params) {
     return parser.env.term(fun, params);
   }
 
-  public TermVariable createTermVariable(String name, Sort sort) {
+  private TermVariable createTermVariable(String name, Sort sort) {
     if (sort == null) {
        return null;
     }
@@ -62,12 +65,13 @@ action code {:
       varScopes.add(old);
       localVars.put(tv.getName(), tv);
       return tv;
-    } catch (SMTLIBException cannotHappen) {}
-    // Actually unreachable
-    throw new AssertionError();
+    } catch (SMTLIBException cannotHappen) {
+      // Actually unreachable
+      throw new AssertionError(cannotHappen);
+    }
   }
   
-  public void popTermVariable() {
+  private void popTermVariable() {
     Object old = varScopes.remove(varScopes.size()-1);
     if (old instanceof String) {
       localVars.remove((String) old);
@@ -106,7 +110,7 @@ goal ::= LPAR outerTerm RPAR goal
        | LPAR declaration RPAR goal
        | LPAR setinfo RPAR goal
        | /* empty */;
-outerTerm ::= term:t {: parser.termList.add(t); :};
+outerTerm ::= term:t {: parser.addTerm(t); :};
 
 constantTerm ::= NUMERAL:n     {: RESULT = parser.env.numeral(n); :}
                | DECIMAL:n     {: RESULT = parser.env.decimal(n); :}
@@ -121,7 +125,7 @@ sorts_0 ::= sorts:lst {: RESULT = lst; :}
 sorts ::= sort:s sorts:lst {: lst.add(0,s); RESULT = lst; :} // insert at the beginning of the list to preserve the order.
         | sort:s {: RESULT = new ArrayList<Sort>(); RESULT.add(s); :};
 
-sort ::= identifier:id {: RESULT = lookupSort(id, null); :} 
+sort ::= identifier:id {: RESULT = lookupSort(id); :}
        | LPAR identifier:id sorts:lst RPAR
          {: RESULT = lookupSort(id, lst.toArray(new Sort[0])); :};
 

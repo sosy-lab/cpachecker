@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.List;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
@@ -78,7 +79,7 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
   /** Parse a String to Terms and Declarations.
    * The String may contain terms and function-declarations in SMTLIB2-format.
    * Use Prefix-notation! */
-  private Term[] parseStringToTerms(String s) {
+  private List<Term> parseStringToTerms(String s) {
     Parser parser = new Parser(env, new StringReader(s));
 
     try {
@@ -87,8 +88,7 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
       throw new IllegalArgumentException("Could not parse term:" + e.getMessage(), e);
     }
 
-    Term[] terms = parser.getTerms();
-    return terms;
+    return parser.getTerms();
   }
 
   private <T extends Formula> T encapsulateTerm(Class<T> pClazz, Term t) {
@@ -97,7 +97,7 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
   @Override
   public <T extends Formula> T parse(Class<T> pClazz, String pS) throws IllegalArgumentException {
-    return encapsulateTerm(pClazz, parseStringToTerms(pS)[0]);
+    return encapsulateTerm(pClazz, parseStringToTerms(pS).get(0));
   }
 
 
