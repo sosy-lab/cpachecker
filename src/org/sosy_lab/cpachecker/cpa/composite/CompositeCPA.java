@@ -312,7 +312,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public ImmutableList<? extends ConfigurableProgramAnalysis> getWrappedCPAs() {
+  public ImmutableList<ConfigurableProgramAnalysis> getWrappedCPAs() {
     return cpas;
   }
 

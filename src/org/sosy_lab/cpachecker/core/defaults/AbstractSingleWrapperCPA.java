@@ -78,7 +78,7 @@ public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAna
   }
 
   @Override
-  public ImmutableList<? extends ConfigurableProgramAnalysis> getWrappedCPAs() {
+  public ImmutableList<ConfigurableProgramAnalysis> getWrappedCPAs() {
     return ImmutableList.of(wrappedCpa);
   }
 }
