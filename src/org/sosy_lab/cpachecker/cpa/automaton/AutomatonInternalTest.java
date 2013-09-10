@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
@@ -52,7 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.io.ByteStreams;
+import com.google.common.io.CharStreams;
 
 /**
  * This class contains Tests for the AutomatonAnalysis
@@ -96,7 +95,7 @@ public class AutomatonInternalTest {
       @SuppressWarnings("unchecked")
       List<Automaton> as = (List<Automaton>) symbol.value;
       for (Automaton a : as) {
-        a.writeDotFile(new PrintStream(ByteStreams.nullOutputStream()));
+        a.writeDotFile(CharStreams.nullWriter());
       }
     }
   }
