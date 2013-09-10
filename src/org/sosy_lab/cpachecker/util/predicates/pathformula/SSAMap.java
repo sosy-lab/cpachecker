@@ -342,10 +342,14 @@ public class SSAMap implements Serializable {
 
     // This loop iterates synchronously through both sets
     // by trying to keep the keys equal.
-    // If one iterator fails behind, the other is not forwarded until the first catches up.
+    // If one iterator falls behind, the other is not forwarded until the first catches up.
     // The advantage of this is it is in O(n log(n))
     // (n iterations, log(n) per update).
-    while (it1.hasNext() && it2.hasNext()) {
+    // Invariant: The elements e1 and e2, and all the elements in the iterator
+    //            still need to be handled.
+    while (((e1 != null) || it1.hasNext())
+        && ((e2 != null) || it2.hasNext())) {
+
       if (e1 == null) {
         e1 = it1.next();
       }
@@ -393,8 +397,11 @@ public class SSAMap implements Serializable {
       }
     }
 
-    // Now copy the rest of the mappings from s2.
+    // Now copy the rest of the mappings from s2 (e2 and it2).
     // For s1 this is not necessary.
+    if (e2 != null) {
+      result = result.putAndCopy(e2.getKey(), e2.getValue());
+    }
     while (it2.hasNext()) {
       e2 = it2.next();
       result = result.putAndCopy(e2.getKey(), e2.getValue());
