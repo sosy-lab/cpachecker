@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -79,8 +78,6 @@ import com.google.common.collect.Maps;
  * Instances of this class represent states in the light-weight invariants analysis.
  */
 public class InvariantsState implements AbstractState, FormulaReportingState {
-
-  private static final Map<Pair<InvariantsState, InvariantsState>, InvariantsState> joinedStates = new HashMap<>();
 
   /**
    * A visitor used to split boolean conjunction formulas up into the conjuncted clauses
