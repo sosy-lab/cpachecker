@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import java.util.Collection;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
@@ -128,7 +129,7 @@ class SmtInterpolModel {
     }
   }
 
-  static Model createSmtInterpolModel(SmtInterpolFormulaManager mgr, Iterable<Term> terms) {
+  static Model createSmtInterpolModel(SmtInterpolFormulaManager mgr, Collection<Term> terms) {
     SmtInterpolEnvironment env = mgr.getEnv();
     // model can only return values for keys, not for terms
     Term[] keys = SmtInterpolUtil.getVars(terms);

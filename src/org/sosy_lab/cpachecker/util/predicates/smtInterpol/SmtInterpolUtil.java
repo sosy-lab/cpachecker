@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -233,27 +236,29 @@ class SmtInterpolUtil {
 
   /** this function returns all variables in the terms.
    * Doubles are removed. */
-  public static Term[] getVars(Iterable<Term> termList) {
+  public static Term[] getVars(Collection<Term> termList) {
     Set<Term> vars = new HashSet<>();
-    for (Term t : termList) {
-      getVars(t, vars);
-    }
-    return toTermArray(vars);
-  }
+    Set<Term> seen = new HashSet<>();
+    Deque<Term> todo = new ArrayDeque<>(termList);
 
-  private static void getVars(Term t, Set<Term> vars) {
-    if (t instanceof ApplicationTerm &&
-        (t != t.getTheory().TRUE) && (t != t.getTheory().FALSE)) {
-      Term[] params = ((ApplicationTerm) t).getParameters();
-      if (params.length == 0) { // no params --> term is variable
-        vars.add(t);
+    while (!todo.isEmpty()) {
+      Term t = todo.removeLast();
+      if (!seen.add(t)) {
+        continue;
+      }
 
-      } else {
-        for (Term innerTerm : params) { // recursive call
-          getVars(innerTerm, vars);
+      if (t instanceof ApplicationTerm &&
+          (t != t.getTheory().TRUE) && (t != t.getTheory().FALSE)) {
+        Term[] params = ((ApplicationTerm) t).getParameters();
+        if (params.length == 0) { // no params --> term is variable
+          vars.add(t);
+
+        } else {
+          Collections.addAll(todo, params);
         }
       }
     }
+    return toTermArray(vars);
   }
 
   /** This function simplifies a term and returns a shorter terms.
