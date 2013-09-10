@@ -82,10 +82,10 @@ action code {:
 scan with {: return getScanner().next_token(); :}
 
 /* Predefined Symbols */
-terminal String BANG, DECLAREFUN, EXISTS, FORALL, LET;
+terminal String BANG, DECLAREFUN, EXISTS, FORALL, LET, SETINFO;
 
 /* Predefined Keywords */
-terminal String NAMED, HEXADECIMAL, BINARY, NUMERAL, DECIMAL, STRING;
+terminal String NAMED, SOURCE, HEXADECIMAL, BINARY, NUMERAL, DECIMAL, STRING;
 terminal LPAR, RPAR;
 
 non terminal String identifier;
@@ -97,12 +97,15 @@ non terminal Pair<TermVariable, Term> varBinding;
 non terminal List<Pair<TermVariable, Term>> varBindings;
 non terminal TermVariable sortedVar;
 non terminal List<TermVariable> sortedVars;
-non terminal outerTerm, declaration;
+non terminal outerTerm, declaration, setinfo;
 non terminal Term constantTerm, term;
 non terminal List<Term> terms;
 non terminal goal;
 
-goal ::= LPAR outerTerm RPAR goal | LPAR declaration RPAR goal | /* empty */;
+goal ::= LPAR outerTerm RPAR goal
+       | LPAR declaration RPAR goal
+       | LPAR setinfo RPAR goal
+       | /* empty */;
 outerTerm ::= term:t {: parser.termList.add(t); :};
 
 constantTerm ::= NUMERAL:n     {: RESULT = parser.env.numeral(n); :}
@@ -188,3 +191,6 @@ term ::= constantTerm:ct
 
 declaration ::= DECLAREFUN STRING:fun LPAR sorts_0:params RPAR sort:result
             {: parser.env.declareFun(fun, params.toArray(new Sort[0]), result); :};
+
+setinfo ::= SETINFO SOURCE STRING
+            {: ; :};

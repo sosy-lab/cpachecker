@@ -76,9 +76,11 @@ String = {Letter} {LetterDigit}* | {QuotedString}
   "exists"               { return symbol(LexerSymbols.EXISTS); }
   "forall"               { return symbol(LexerSymbols.FORALL); }
   "let"                  { return symbol(LexerSymbols.LET); }
+  "set-info"             { return symbol(LexerSymbols.SETINFO); }
 
   /* Predefined Keywords */
   ":named"               { return symbol(LexerSymbols.NAMED); }
+  ":source"              { return symbol(LexerSymbols.SOURCE); }
 
   /* Other Strings */
   {String}               { return symbol(LexerSymbols.STRING, yytext()); }
