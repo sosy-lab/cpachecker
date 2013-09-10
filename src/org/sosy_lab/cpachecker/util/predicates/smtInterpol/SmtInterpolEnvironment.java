@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -33,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.apache.log4j.Logger;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -61,6 +61,22 @@ import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.SMTInterpol;
  */
 @Options(prefix="cpa.predicate.smtinterpol")
 class SmtInterpolEnvironment {
+
+  // SMTInterpol produces debug messages on System.err without possibility
+  // to disable them, so we filter them.
+  static {
+    System.setErr(new PrintStream(System.err) {
+
+      @Override
+      public void println(String s) {
+        if (s.startsWith("#Shared: ")) {
+          // ignore debug message of SMTInterpol
+        } else {
+          super.println();
+        }
+      }
+    });
+  }
 
   /**
    * Enum listing possible types for SmtInterpol.
@@ -143,8 +159,8 @@ class SmtInterpolEnvironment {
     falseTerm = term("false");
   }
 
-  private static Logger createLog4jLogger(final LogManager ourLogger) {
-    org.apache.log4j.Logger logger = Logger.getLogger("SMTInterpol");
+  private static org.apache.log4j.Logger createLog4jLogger(final LogManager ourLogger) {
+    org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger("SMTInterpol");
     // levels: ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF:
     // WARN is too noisy.
     logger.setLevel(org.apache.log4j.Level.ERROR);
