@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -92,9 +93,12 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private int numberOfInterpolations        = 0;
   private Timer timerInterpolation          = new Timer();
 
-  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config)
+  private final MachineModel machineModel;
+
+  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config, MachineModel pMachineModel)
       throws InvalidConfigurationException {
     config.inject(this);
+    this.machineModel = pMachineModel;
   }
 
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
@@ -105,7 +109,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
         AssignmentsInPathConditionState.class);
 
-    ExplicitInterpolator interpolator     = new ExplicitInterpolator();
+    ExplicitInterpolator interpolator     = new ExplicitInterpolator(machineModel);
     Map<String, Long> currentInterpolant  = new HashMap<>();
     Multimap<CFANode, String> increment   = HashMultimap.create();
 

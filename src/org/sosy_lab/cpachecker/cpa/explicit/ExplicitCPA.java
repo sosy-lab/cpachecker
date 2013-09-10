@@ -121,7 +121,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
     config.inject(this);
 
     abstractDomain      = new ExplicitDomain();
-    transferRelation    = new ExplicitTransferRelation(config);
+    transferRelation    = new ExplicitTransferRelation(config, machineModel);
     precision           = initializePrecision(config, cfa);
     mergeOperator       = initializeMergeOperator();
     stopOperator        = initializeStopOperator();
@@ -172,7 +172,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysisWithABM, Statisti
       logger.log(Level.WARNING, "Explicit-Value analysis with refinement needs " +
             "ComponentAwareExplicitPrecisionAdjustment. Please set option cpa.composite.precAdjust to 'COMPONENT'");
     }
-    
+
     // create default (empty) precision
     ExplicitPrecision precision = new ExplicitPrecision(variableBlacklist, config, cfa.getVarClassification());
 
