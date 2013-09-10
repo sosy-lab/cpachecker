@@ -25,15 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
@@ -41,6 +40,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
@@ -113,32 +113,27 @@ class SmtInterpolEnvironment {
 
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
-  public SmtInterpolEnvironment(Configuration config, Logics pLogic) throws InvalidConfigurationException {
+  public SmtInterpolEnvironment(Configuration config, Logics pLogic,
+      final LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
-    Logger logger = Logger.getRootLogger(); // TODO use SosyLab-Logger
-    // levels: ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF:
-    logger.setLevel(Level.OFF);
-
-    SMTInterpol smtInterpol = new SMTInterpol(logger);
+    Script smtInterpol = new SMTInterpol(createLog4jLogger(logger));
     if (logAllQueries && smtLogfile != null) {
       String filename = getFilename(smtLogfile.getAbsolutePath());
       try {
         // create a thin wrapper around Benchmark,
         // this allows to write most formulas of the solver to outputfile
-        script = new LoggingScript(smtInterpol, filename, true);
+        smtInterpol = new LoggingScript(smtInterpol, filename, true);
       } catch (FileNotFoundException e) {
-        throw new AssertionError(e);
+        logger.logUserException(Level.WARNING, e, "Coud not open log file for SMTInterpol queries");
+        // go on without logging
       }
-
-    } else {
-      script = smtInterpol;
     }
+    script = smtInterpol;
 
     try {
       script.setOption(":produce-interpolants", true);
       script.setOption(":produce-models", true);
-      script.setOption(":verbosity", new BigInteger("2"));
       script.setLogic(pLogic);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
@@ -146,6 +141,40 @@ class SmtInterpolEnvironment {
 
     trueTerm = term("true");
     falseTerm = term("false");
+  }
+
+  private static Logger createLog4jLogger(final LogManager ourLogger) {
+    org.apache.log4j.Logger logger = Logger.getLogger("SMTInterpol");
+    // levels: ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF:
+    // WARN is too noisy.
+    logger.setLevel(org.apache.log4j.Level.ERROR);
+    logger.addAppender(new org.apache.log4j.AppenderSkeleton() {
+
+      @Override
+      public boolean requiresLayout() {
+        return false;
+      }
+
+      @Override
+      public void close() {}
+
+      @Override
+      protected void append(org.apache.log4j.spi.LoggingEvent pArg0) {
+        // Always log at SEVERE because it is a ERROR message (see above).
+        ourLogger.log(Level.SEVERE,
+            pArg0.getLoggerName(),
+            pArg0.getLevel(),
+            "output:",
+            pArg0.getRenderedMessage());
+
+        org.apache.log4j.spi.ThrowableInformation throwable = pArg0.getThrowableInformation();
+        if (throwable != null) {
+          ourLogger.logException(Level.SEVERE, throwable.getThrowable(),
+              pArg0.getLoggerName() + " exception");
+        }
+      }
+    });
+    return logger;
   }
 
   public Term getTrueTerm() { return trueTerm; }
