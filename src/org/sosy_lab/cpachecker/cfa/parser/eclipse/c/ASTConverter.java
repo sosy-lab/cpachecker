@@ -1403,14 +1403,6 @@ class ASTConverter {
       name = "__anon_type_" + anonTypeCounter++;
     }
 
-    String qualifiedName = (kind.toASTString() + " " + name).trim();
-    if (!scope.isTypeNameAvailable(qualifiedName)) {
-      int counter = 0;
-      while(!scope.isTypeNameAvailable(qualifiedName + "__" + counter)) {
-        counter++;
-      }
-      name = name + "__" + counter;
-    }
     CCompositeType compositeType = new CCompositeType(d.isConst(), d.isVolatile(), kind, list, name);
 
     // in cases like struct s { (struct s)* f }
@@ -1432,17 +1424,8 @@ class ASTConverter {
       }
     }
 
-    // check if name of this enum was already used in another file, if
-    // yes, it is renamed
+
     String name = convert(d.getName());
-    if (!scope.isTypeNameAvailable("enum " + name)) {
-      int counter = 0;
-      String qualifiedName = "enum " + name;
-      while(!scope.isTypeNameAvailable(qualifiedName + "__" + counter)) {
-        counter++;
-      }
-      name = name + "__" + counter;
-    }
 
     CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, name);
     for (CEnumerator enumValue : enumType.getEnumerators()) {

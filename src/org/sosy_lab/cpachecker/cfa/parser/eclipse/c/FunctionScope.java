@@ -213,8 +213,6 @@ class FunctionScope implements Scope {
 
     if (lookupType(typeName) != null) {
       throw new CFAGenerationRuntimeException("Shadowing types are currently not supported", declaration);
-    } else if (alreayTakenTypeNames.contains(typeName)) {
-      throw new CFAGenerationRuntimeException("Complex type " + typeName + " is already declared in another file");
     }
 
     typesStack.peekLast().put(typeName, declaration);
