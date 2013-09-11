@@ -557,11 +557,11 @@ cpa.explicit.precision.sharing = "scope"
 cpa.explicit.precisionFile = no default value
 
 # whether or not to avoid restarting at assume edges after a refinement
-cpa.explicit.refiner.avoidAssumes = true
+cpa.explicit.refiner.avoidAssumes = false
 
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
-cpa.explicit.refiner.checkForRepeatedRefinements = false
+cpa.explicit.refiner.checkForRepeatedRefinements = true
 
 # whether or not to do lazy-abstraction
 cpa.explicit.refiner.doLazyAbstraction = true
@@ -732,6 +732,11 @@ cpa.predicate.handlePointerAliasing = true
 # Allows to ignore Concat and Extract Calls when Bitvector theory was
 # replaced.
 cpa.predicate.ignoreExtractConcat = true
+
+# Which solver to use specifically for interpolation (default is to use the
+# main one).
+cpa.predicate.interpolationSolver = no default value
+  allowed values: [MATHSAT5, SMTINTERPOL]
 
 # export final loop invariants
 cpa.predicate.invariants.export = true

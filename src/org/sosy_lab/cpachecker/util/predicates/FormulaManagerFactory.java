@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.logging.Level;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -31,6 +33,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
@@ -53,10 +56,22 @@ public class FormulaManagerFactory {
       description="Whether to use MathSAT 5 or SmtInterpol as SMT solver")
   private String solver = MATHSAT5;
 
+  @Option(values={MATHSAT5, SMTINTERPOL}, toUppercase=true,
+      description="Which solver to use specifically for interpolation (default is to use the main one).")
+  private String interpolationSolver = null;
+
   private final FormulaManager fmgr;
+  private final FormulaManager itpFmgr;
 
   public FormulaManagerFactory(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
+
+    if (solver.equals(interpolationSolver)) {
+      logger.log(Level.WARNING, "The SMT solver", solver, "is explicitly specified"
+          + " as interpolating solver although it is actually the main solver, too."
+          + " This is imprecise, remove the option cpa.predicate.interpolationSolver"
+          + " from your configuration.");
+    }
 
     FormulaManager lFmgr;
     if (solver.equals(SMTINTERPOL)) {
@@ -76,6 +91,22 @@ public class FormulaManagerFactory {
     }
 
     fmgr = lFmgr;
+
+    // Instantiate another SMT solver for interpolation if requested.
+    if (solver.equals(interpolationSolver)) {
+      interpolationSolver = null;
+    }
+
+    if (interpolationSolver != null) {
+      if (interpolationSolver.equals(SMTINTERPOL)) {
+        itpFmgr = SmtInterpolFormulaManager.create(config, logger, useIntegers);
+      } else {
+        assert interpolationSolver.equals(MATHSAT5);
+        itpFmgr = Mathsat5FormulaManager.create(logger, config, useIntegers);
+      }
+    } else {
+      itpFmgr = null;
+    }
   }
 
   public FormulaManager getFormulaManager() {
@@ -91,6 +122,17 @@ public class FormulaManagerFactory {
   }
 
   public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(boolean shared) {
+    if (interpolationSolver != null) {
+      InterpolatingProverEnvironment<?> env = newProverEnvironmentWithInterpolation(interpolationSolver, itpFmgr, shared);
+      return new SeparateInterpolatingProverEnvironment<>(fmgr, itpFmgr, env);
+    }
+
+    return newProverEnvironmentWithInterpolation(solver, fmgr, shared);
+  }
+
+  private static InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(
+          String solver, FormulaManager fmgr, boolean shared) {
+
     if (solver.equals(SMTINTERPOL)) {
       return new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) fmgr);
     } else {
