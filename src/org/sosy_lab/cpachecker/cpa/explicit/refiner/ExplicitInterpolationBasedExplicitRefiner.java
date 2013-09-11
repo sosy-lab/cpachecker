@@ -78,7 +78,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private boolean doLazyAbstraction = true;
 
   @Option(description="whether or not to avoid restarting at assume edges after a refinement")
-  private boolean avoidAssumes = true;
+  private boolean avoidAssumes = false;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis

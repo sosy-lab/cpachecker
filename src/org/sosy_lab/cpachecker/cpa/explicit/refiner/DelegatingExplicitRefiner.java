@@ -106,7 +106,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    * the flag to determine whether or not to check for repeated refinements
    */
   @Option(description="whether or not to check for repeated refinements, to then reset the refinement root")
-  private boolean checkForRepeatedRefinements = false;
+  private boolean checkForRepeatedRefinements = true;
 
   // statistics
   private int numberOfExplicitRefinements           = 0;
