@@ -53,6 +53,8 @@ import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
+import de.uni_freiburg.informatik.ultimate.logic.Theory;
+import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.ParseEnvironment;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.SMTInterpol;
 
 /** This is a Wrapper around SmtInterpol.
@@ -116,6 +118,7 @@ class SmtInterpolEnvironment {
 
   /** the wrapped Script */
   private final Script script;
+  private final Theory theory;
 
   /** This Set stores declared functions.
    * It is used to guarantee, that functions are only declared once. */
@@ -157,6 +160,7 @@ class SmtInterpolEnvironment {
       throw new AssertionError(e);
     }
 
+    theory = smtInterpol.getTheory();
     trueTerm = term("true");
     falseTerm = term("false");
   }
@@ -231,14 +235,24 @@ class SmtInterpolEnvironment {
    * The String may contain terms and function-declarations in SMTLIB2-format.
    * Use Prefix-notation! */
   public List<Term> parseStringToTerms(String s) {
-    Parser parser = new Parser(this, new StringReader(s));
+    FormulaCollectionScript parseScript = new FormulaCollectionScript(script, theory);
+    ParseEnvironment parseEnv = new ParseEnvironment(parseScript) {
+      @Override
+      public void printError(String pMessage) {
+        throw new SMTLIBException(pMessage);
+      }
+
+      @Override
+      public void printSuccess() { }
+    };
 
     try {
-      parser.parse();
-    } catch (Exception e) {
+      parseEnv.parseStream(new StringReader(s), "<stdin>");
+    } catch (SMTLIBException e) {
       throw new IllegalArgumentException("Could not parse term:" + e.getMessage(), e);
     }
-    return parser.getTerms();
+
+    return parseScript.getAssertedTerms();
   }
 
   public void setOption(String opt, Object value) {
