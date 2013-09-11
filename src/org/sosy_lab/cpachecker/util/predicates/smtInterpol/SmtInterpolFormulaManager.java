@@ -27,7 +27,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.ArrayDeque;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
@@ -38,11 +43,14 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
+import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FormulaLet;
+import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.PrintTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
+import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 
 public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
@@ -102,20 +110,72 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
 
   @Override
-  public Appender dumpFormula(final Term t) {
+  public Appender dumpFormula(final Term formula) {
     return new Appenders.AbstractAppender() {
 
       @Override
-      public void appendTo(Appendable pAppendable) throws IOException {
-        pAppendable.append("(assert ");
+      public void appendTo(Appendable out) throws IOException {
+        Set<Term> seen = new HashSet<>();
+        Deque<Term> todo = new ArrayDeque<>();
+        PrintTerm termPrinter = new PrintTerm();
+
+        todo.addLast(formula);
+
+        while (!todo.isEmpty()) {
+          Term t = todo.removeLast();
+          if (!(t instanceof ApplicationTerm)
+              || !seen.add(t)) {
+            continue;
+          }
+
+          ApplicationTerm term = (ApplicationTerm)t;
+          Collections.addAll(todo, term.getParameters());
+
+          FunctionSymbol func = term.getFunction();
+          if (func.isIntern()) {
+            continue;
+          }
+
+          if (func.getDefinition() == null) {
+            out.append("(declare-fun ");
+            out.append(PrintTerm.quoteIdentifier(func.getName()));
+            out.append(" (");
+            for (int i = 0; i < func.getParameterCount(); i++) {
+              termPrinter.append(out, func.getParameterSort(i));
+              out.append(' ');
+            }
+            out.append(") ");
+            termPrinter.append(out, func.getReturnSort());
+            out.append(")\n");
+
+          } else {
+            out.append("(define-fun ");
+            out.append(PrintTerm.quoteIdentifier(func.getName()));
+            out.append(" (");
+            for (TermVariable paramVar : func.getDefinitionVars()) {
+              out.append('(');
+              termPrinter.append(out, paramVar);
+              out.append(' ');
+              termPrinter.append(out, paramVar.getSort());
+              out.append(')');
+            }
+            out.append(") ");
+            termPrinter.append(out, func.getReturnSort());
+            out.append(' ');
+            termPrinter.append(out, func.getDefinition());
+            out.append(")\n");
+          }
+        }
+
+        out.append("(assert ");
 
         // This is the same as t.toString() does,
         // but directly uses the Appendable for better performance
         // and less memory consumption.
-        Term letted = (new FormulaLet()).let(t);
-        new PrintTerm().append(pAppendable, letted);
+        Term letted = (new FormulaLet()).let(formula);
+        termPrinter.append(out, letted);
 
-        pAppendable.append(")");
+        out.append(")");
       }
     };
   }
