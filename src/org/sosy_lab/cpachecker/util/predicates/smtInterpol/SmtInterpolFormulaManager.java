@@ -24,14 +24,13 @@
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.getOnlyElement;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Appender;
@@ -85,28 +84,13 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
     return new SmtInterpolFormulaManager(unsafeManager, functionTheory, booleanTheory, rationalTheory);
   }
 
-  /** Parse a String to Terms and Declarations.
-   * The String may contain terms and function-declarations in SMTLIB2-format.
-   * Use Prefix-notation! */
-  private List<Term> parseStringToTerms(String s) {
-    Parser parser = new Parser(env, new StringReader(s));
-
-    try {
-      parser.parse();
-    } catch (Exception e) {
-      throw new IllegalArgumentException("Could not parse term:" + e.getMessage(), e);
-    }
-
-    return parser.getTerms();
-  }
-
   BooleanFormula encapsulateBooleanFormula(Term t) {
     return creator.encapsulate(BooleanFormula.class, t);
   }
 
   @Override
   public BooleanFormula parse(String pS) throws IllegalArgumentException {
-    return encapsulateBooleanFormula(parseStringToTerms(pS).get(0));
+    return encapsulateBooleanFormula(getOnlyElement(env.parseStringToTerms(pS)));
   }
 
 

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -136,19 +137,12 @@ class SmtInterpolEnvironment {
       final LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
-    Script smtInterpol = new SMTInterpol(createLog4jLogger(logger));
+    SMTInterpol smtInterpol = new SMTInterpol(createLog4jLogger(logger));
     if (logAllQueries && smtLogfile != null) {
-      String filename = getFilename(smtLogfile.getAbsolutePath());
-      try {
-        // create a thin wrapper around Benchmark,
-        // this allows to write most formulas of the solver to outputfile
-        smtInterpol = new LoggingScript(smtInterpol, filename, true);
-      } catch (FileNotFoundException e) {
-        logger.logUserException(Level.WARNING, e, "Coud not open log file for SMTInterpol queries");
-        // go on without logging
-      }
+      script = createLoggingWrapper(smtInterpol, logger);
+    } else {
+      script = smtInterpol;
     }
-    script = smtInterpol;
 
     try {
       script.setOption(":produce-interpolants", true);
@@ -165,6 +159,19 @@ class SmtInterpolEnvironment {
 
     trueTerm = term("true");
     falseTerm = term("false");
+  }
+
+  private Script createLoggingWrapper(SMTInterpol smtInterpol, final LogManager logger) {
+    String filename = getFilename(smtLogfile.getAbsolutePath());
+    try {
+      // create a thin wrapper around Benchmark,
+      // this allows to write most formulas of the solver to outputfile
+      return new LoggingScript(smtInterpol, filename, true);
+    } catch (FileNotFoundException e) {
+      logger.logUserException(Level.WARNING, e, "Coud not open log file for SMTInterpol queries");
+      // go on without logging
+      return smtInterpol;
+    }
   }
 
   private static org.apache.log4j.Logger createLog4jLogger(final LogManager ourLogger) {
@@ -218,6 +225,20 @@ class SmtInterpolEnvironment {
     }
     logfileCounter++;
     return filename;
+  }
+
+  /** Parse a String to Terms and Declarations.
+   * The String may contain terms and function-declarations in SMTLIB2-format.
+   * Use Prefix-notation! */
+  public List<Term> parseStringToTerms(String s) {
+    Parser parser = new Parser(this, new StringReader(s));
+
+    try {
+      parser.parse();
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Could not parse term:" + e.getMessage(), e);
+    }
+    return parser.getTerms();
   }
 
   public void setOption(String opt, Object value) {
