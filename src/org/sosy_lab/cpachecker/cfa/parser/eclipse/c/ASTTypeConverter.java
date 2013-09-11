@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
@@ -88,9 +87,7 @@ class ASTTypeConverter {
     scope = pScope;
     converter = pConverter;
     filePrefix = pFilePrefix;
-    if (!typeConversions.containsKey(filePrefix)) {
-      typeConversions.put(filePrefix, new IdentityHashMap<IType, CType>());
-    }
+    typeConversions.put(filePrefix, new IdentityHashMap<IType, CType>());
   }
 
   /** cache for all ITypes, so that they don't have to be parsed again and again
@@ -107,23 +104,6 @@ class ASTTypeConverter {
   void registerType(IType cdtType, CType ourType) {
     CType oldType = typeConversions.get(filePrefix).put(cdtType, ourType);
     assert oldType == null || oldType.getCanonicalType().equals(ourType.getCanonicalType()): "Overwriting type conversion";
-  }
-
-  /**
-   * This can be used to rename a CType in case of Types with equal names but
-   * different fields, from different files.
-   */
-  void overwriteType(IType cdtType, CType ourType) {
-    typeConversions.get(filePrefix).put(cdtType, ourType);
-  }
-
-  IType getTypeFromTypeConversion(CType ourCType) {
-    for(Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
-      if (ourCType.equals(entry.getValue())) {
-        return entry.getKey();
-      }
-    }
-    return null;
   }
 
   CType convert(IType t) {
@@ -166,12 +146,19 @@ class ASTTypeConverter {
       String name = ct.getName();
       String qualifiedName = kind.toASTString() + " " + name;
 
-      CComplexType oldType = scope.lookupType(qualifiedName);
-      int counter = 0;
-      while (oldType == null && counter < typeConversions.size()) {
-        oldType = scope.lookupType(qualifiedName + "__" + counter);
-        counter++;
+      // check if name of this composite type was already used in another file, if
+      // yes, it is renamed
+      if (!scope.isTypeNameAvailable(qualifiedName)) {
+        int counter = 0;
+        while(!scope.isTypeNameAvailable(qualifiedName + "__" + counter)) {
+          counter++;
+        }
+        qualifiedName = qualifiedName + "__" + counter;
+        name = name + "__" + counter;
       }
+
+      CComplexType oldType = scope.lookupType(qualifiedName);
+
       if (oldType != null) {
         // We have seen this type already.
         // Replace it with a CElaboratedType.
@@ -475,13 +462,16 @@ class ASTTypeConverter {
     String name = ASTConverter.convert(d.getName());
     CComplexType realType = scope.lookupType(type.toASTString() + " " + name);
 
-    int counter = 0;
-    while (realType == null && counter < typeConversions.size()) {
-      realType = scope.lookupType(type.toASTString() + " " + name + "__" + counter);
+    // check if name of this elaborated type was already used in another file, if
+    // yes, it is renamed
+    if (realType == null && !scope.isTypeNameAvailable(type.toASTString() + " " + name)) {
+      int counter = 0;
+      String qualifiedName = type.toASTString() + " " + name;
+      while(!scope.isTypeNameAvailable(qualifiedName + "__" + counter)) {
+        counter++;
+      }
       name = name + "__" + counter;
-      counter++;
     }
-
     return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, realType);
   }
 

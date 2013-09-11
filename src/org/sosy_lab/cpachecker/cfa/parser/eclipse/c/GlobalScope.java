@@ -217,8 +217,9 @@ class GlobalScope implements Scope {
       // We set a reference to the full type in the old type
       // and update the types map with the full type.
       ((CElaboratedType)oldType).setRealType(type);
+    } else if (alreayTakenTypeNames.contains(name)) {
+      throw new CFAGenerationRuntimeException("Complex type " + name + " is already declared in another file");
     }
-
     types.put(name, declaration);
     return true;
   }
