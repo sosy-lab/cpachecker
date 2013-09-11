@@ -208,7 +208,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     super(cpa);
     config.inject(this);
 
-    interpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(config, pMachineModel);
+    interpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(config, logger, pMachineModel);
     predicatingRefiner    = pBackupRefiner;
     staticRefiner         = explicitStaticRefiner;
     machineModel          = pMachineModel;
@@ -367,7 +367,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
   boolean isPathFeasable(ARGPath path) throws CPAException {
     try {
       // create a new ExplicitPathChecker, which does not track any of the given variables
-      ExplictFeasibilityChecker checker = new ExplictFeasibilityChecker(machineModel);
+      ExplictFeasibilityChecker checker = new ExplictFeasibilityChecker(logger, machineModel);
 
       return checker.isFeasible(path);
     }

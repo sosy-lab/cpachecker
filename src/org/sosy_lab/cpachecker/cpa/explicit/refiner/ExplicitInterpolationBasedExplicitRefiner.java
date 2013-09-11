@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -94,11 +95,13 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private Timer timerInterpolation          = new Timer();
 
   private final MachineModel machineModel;
+  private final LogManager logger;
 
-  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config, MachineModel pMachineModel)
+  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config, LogManager pLogger, MachineModel pMachineModel)
       throws InvalidConfigurationException {
     config.inject(this);
     this.machineModel = pMachineModel;
+    this.logger = pLogger;
   }
 
   protected Multimap<CFANode, String> determinePrecisionIncrement(UnmodifiableReachedSet reachedSet,
@@ -109,7 +112,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
     assignments                           = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
         AssignmentsInPathConditionState.class);
 
-    ExplicitInterpolator interpolator     = new ExplicitInterpolator(machineModel);
+    ExplicitInterpolator interpolator     = new ExplicitInterpolator(logger, machineModel);
     Map<String, Long> currentInterpolant  = new HashMap<>();
     Multimap<CFANode, String> increment   = HashMultimap.create();
 

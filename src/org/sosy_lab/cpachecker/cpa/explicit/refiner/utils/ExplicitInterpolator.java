@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -88,10 +89,10 @@ public class ExplicitInterpolator {
   /**
    * This method acts as the constructor of the class.
    */
-  public ExplicitInterpolator(MachineModel pMachineModel) throws CPAException {
+  public ExplicitInterpolator(LogManager pLogger, MachineModel pMachineModel) throws CPAException {
     try {
       config      = Configuration.builder().build();
-      transfer    = new ExplicitTransferRelation(config, pMachineModel);
+      transfer    = new ExplicitTransferRelation(config, pLogger, pMachineModel);
       precision   = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
     }
     catch (InvalidConfigurationException e) {
