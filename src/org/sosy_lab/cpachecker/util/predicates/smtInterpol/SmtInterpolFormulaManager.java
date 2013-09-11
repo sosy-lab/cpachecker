@@ -39,6 +39,7 @@ import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
@@ -99,13 +100,13 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
     return parser.getTerms();
   }
 
-  private <T extends Formula> T encapsulateTerm(Class<T> pClazz, Term t) {
-    return creator.encapsulate(pClazz, t);
+  BooleanFormula encapsulateBooleanFormula(Term t) {
+    return creator.encapsulate(BooleanFormula.class, t);
   }
 
   @Override
-  public <T extends Formula> T parse(Class<T> pClazz, String pS) throws IllegalArgumentException {
-    return encapsulateTerm(pClazz, parseStringToTerms(pS).get(0));
+  public BooleanFormula parse(String pS) throws IllegalArgumentException {
+    return encapsulateBooleanFormula(parseStringToTerms(pS).get(0));
   }
 
 
@@ -183,10 +184,6 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
   @Override
   public String getVersion() {
     return env.getVersion();
-  }
-
-  protected <T extends Formula> T encapsulate(Class<T> pClazz, Term t) {
-    return encapsulateTerm(pClazz, t);
   }
 
 

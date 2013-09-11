@@ -644,8 +644,8 @@ public class FormulaManagerView {
     return manager.getInterface(extractFromView(pInstance));
   }
 
-  public <T extends Formula> T parse(Class<T> pClazz, String pS) throws IllegalArgumentException {
-    return wrapInView(manager.parse(pClazz, pS));
+  public BooleanFormula parse(String pS) throws IllegalArgumentException {
+    return wrapInView(manager.parse(pS));
   }
 
   public <T extends Formula> T  instantiate(T fView, SSAMap ssa) {

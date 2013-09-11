@@ -109,7 +109,7 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
     Term[] itp = env.getInterpolants(new Term[] {termA, termB});
     assert itp.length == 1; // 2 groups -> 1 interpolant
 
-    return mgr.encapsulate(BooleanFormula.class, itp[0]);
+    return mgr.encapsulateBooleanFormula(itp[0]);
   }
 
   private Term buildConjunctionOfNamedTerms(Set<String> termNames) {

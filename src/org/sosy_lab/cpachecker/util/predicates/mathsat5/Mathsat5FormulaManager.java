@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBitvectorFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractBooleanFormulaManager;
@@ -153,14 +154,14 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long> {
     return instance;
   }
 
-  public <T extends Formula> T encapsulateTerm(Class<T> pClazz, long t) {
-    return formulaCreator.encapsulate(pClazz, t);
+  BooleanFormula encapsulateBooleanFormula(long t) {
+    return formulaCreator.encapsulate(BooleanFormula.class, t);
   }
 
   @Override
-  public <T extends Formula> T parse(Class<T> pClazz, String pS) throws IllegalArgumentException {
+  public BooleanFormula parse(String pS) throws IllegalArgumentException {
     long f = msat_from_smtlib2(mathsatEnv, pS);
-    return encapsulateTerm(pClazz, f);
+    return encapsulateBooleanFormula(f);
   }
 
   @Override

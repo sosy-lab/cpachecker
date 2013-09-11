@@ -241,7 +241,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
     }
 
     private BooleanFormula encapsulate(Term pT) {
-      return mgr.encapsulate(BooleanFormula.class, pT);
+      return mgr.encapsulateBooleanFormula(pT);
     }
   }
 }

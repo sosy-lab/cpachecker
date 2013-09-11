@@ -97,7 +97,7 @@ public class Mathsat5InterpolatingProver implements InterpolatingProverEnvironme
     if (!useSharedEnv) {
       itp = msat_make_copy_from(mgr.getMsatEnv(), itp, interpolEnv);
     }
-    return mgr.encapsulateTerm(BooleanFormula.class, itp);
+    return mgr.encapsulateBooleanFormula(itp);
   }
 
   @Override

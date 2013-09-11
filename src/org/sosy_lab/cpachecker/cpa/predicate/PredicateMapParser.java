@@ -263,7 +263,7 @@ public class PredicateMapParser {
         if (currentLine.startsWith("(assert ") && currentLine.endsWith(")")) {
           BooleanFormula f;
           try {
-            f = fmgr.parse(BooleanFormula.class, functionDefinitions + currentLine);
+            f = fmgr.parse(functionDefinitions + currentLine);
           } catch (IllegalArgumentException e) {
             throw new PredicateMapParsingFailedException(e, source, lineNo);
           }

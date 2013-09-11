@@ -218,10 +218,10 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
         if (msat_term_is_not(env, t)) {
           t = msat_term_get_arg(t, 0);
 
-          v = rmgr.getPredicate(prover.mgr.encapsulateTerm(BooleanFormula.class, t));
+          v = rmgr.getPredicate(prover.mgr.encapsulateBooleanFormula(t));
           v = rmgr.makeNot(v);
         } else {
-          v = rmgr.getPredicate(prover.mgr.encapsulateTerm(BooleanFormula.class, t));
+          v = rmgr.getPredicate(prover.mgr.encapsulateBooleanFormula(t));
         }
         curCube.add(v);
       }
