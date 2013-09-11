@@ -35,11 +35,11 @@ import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaMan
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
@@ -364,17 +363,6 @@ class PredicateCPAStatistics implements Statistics {
       }
     }
 
-    private Pair<String, List<String>> splitFormula(FormulaManagerView pV, BooleanFormula pF) {
-      String s = pV.dumpFormula(pF).toString().trim();
-      List<String> lines = Lists.newArrayList(s.split("\n"));
-      assert !lines.isEmpty() : "Formula " + pF + " has empty string representation";
-      String predString = lines.get(lines.size()-1);
-      lines.remove(lines.size()-1);
-      assert (predString.startsWith("(assert ") && predString.endsWith(")")) : "Unexpected formula format: " + predString;
-
-      return Pair.of(predString, lines);
-    }
-
     private Map<CFANode, Region> getLoopHeadInvariants(ReachedSet reached) {
       Map<CFANode, Region> regions = Maps.newHashMap();
       for (AbstractState state : reached) {
@@ -399,8 +387,7 @@ class PredicateCPAStatistics implements Statistics {
         return;
       }
 
-      Set<String> uniqueDefs = new TreeSet<>();
-      StringBuilder defs = new StringBuilder();
+      Set<String> uniqueDefs = new HashSet<>();
       StringBuilder asserts = new StringBuilder();
 
       FormulaManagerView fmgr = cpa.getFormulaManager();
@@ -410,12 +397,12 @@ class PredicateCPAStatistics implements Statistics {
                              .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
           Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
           BooleanFormula formula = absmgr.toConcrete(region);
-          Pair<String, List<String>> locInvariant = splitFormula(fmgr, formula);
+          Pair<String, List<String>> locInvariant = PredicateMapWriter.splitFormula(fmgr, formula);
 
           for (String def : locInvariant.getSecond()) {
             if (uniqueDefs.add(def)) {
-              defs.append(def);
-              defs.append("\n");
+              invariants.append(def);
+              invariants.append("\n");
             }
           }
 
@@ -427,7 +414,6 @@ class PredicateCPAStatistics implements Statistics {
           asserts.append("\n\n");
         }
 
-        invariants.append(defs);
         invariants.append("\n");
         invariants.append(asserts);
 
