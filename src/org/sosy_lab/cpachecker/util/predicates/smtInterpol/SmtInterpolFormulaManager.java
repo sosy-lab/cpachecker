@@ -69,7 +69,7 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger, boolean pUseIntegers) throws InvalidConfigurationException {
 
-    Logics logic = pUseIntegers ? Logics.QF_UFLIA : Logics.QF_UFLRA;
+    Logics logic = pUseIntegers ? Logics.QF_UFLIA : Logics.QF_UFLIRA;
     SmtInterpolEnvironment env = new SmtInterpolEnvironment(config, logic, logger);
 
     Type type = pUseIntegers ? Type.INT : Type.REAL;
