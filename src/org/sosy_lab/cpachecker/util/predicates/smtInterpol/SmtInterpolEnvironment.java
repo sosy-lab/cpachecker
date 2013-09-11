@@ -100,6 +100,9 @@ class SmtInterpolEnvironment {
     }
   }
 
+  @Option(description="Double check generated results like interpolants and models whether they are correct")
+  private boolean checkResults = true;
+
   @Option(description="Export solver queries in Smtlib format into a file.")
   private boolean logAllQueries = false;
 
@@ -150,6 +153,11 @@ class SmtInterpolEnvironment {
     try {
       script.setOption(":produce-interpolants", true);
       script.setOption(":produce-models", true);
+      if (checkResults) {
+        script.setOption(":interpolant-check-mode", true);
+        script.setOption(":unsat-core-check-mode", true);
+        script.setOption(":model-check-mode", true);
+      }
       script.setLogic(pLogic);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);

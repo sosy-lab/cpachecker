@@ -893,6 +893,10 @@ cpa.predicate.replaceBitvectorWithRationalAndFunctionTheory = true
 # blocksize)
 cpa.predicate.satCheck = 0
 
+# Double check generated results like interpolants and models whether they
+# are correct
+cpa.predicate.smtinterpol.checkResults = true
+
 # Export solver queries in Smtlib format into a file.
 cpa.predicate.smtinterpol.logAllQueries = false
 cpa.predicate.smtinterpol.logfile = "smtinterpol.smt2"
