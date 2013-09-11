@@ -475,7 +475,22 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     FluentIterable<CFAEdge> incomingEdges = from(loop.getIncomingEdges())
                                                  .filter(not(instanceOf(CFunctionReturnEdge.class)));
     FluentIterable<CFAEdge> outgoingEdges = from(loop.getOutgoingEdges())
-                                                 .filter(not(instanceOf(CFunctionCallEdge.class)));
+        .filter(new Predicate<CFAEdge>(){
+          @Override
+          public boolean apply(CFAEdge pInput) {
+            if (!(pInput instanceof CFunctionCallEdge)) {
+              return true;
+            }
+            CFANode nodeAfterFunction = ((CFunctionCallEdge)pInput).getSummaryEdge().getSuccessor();
+            if (nodeAfterFunction.getNumEnteringEdges() == 0) {
+              // This is a function call without the chance to return
+              // to the node after the function (a non-terminating function).
+              // This is an exception where the edge counts as an outgoing edge.
+              return true;
+            }
+            return false;
+          }
+        });
 
     if (incomingEdges.size() > 1) {
       logger.log(Level.WARNING, "Could not use induction for proving program safety, loop has too many incoming edges", incomingEdges);
