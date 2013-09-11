@@ -57,7 +57,8 @@ class SmtInterpolUtil {
   public static boolean isVariable(Term t) {
     boolean is = !isTrue(t) && !isFalse(t)
         && (t instanceof ApplicationTerm)
-        && ((ApplicationTerm) t).getParameters().length == 0;
+        && ((ApplicationTerm) t).getParameters().length == 0
+        && ((ApplicationTerm) t).getFunction().getDefinition() == null;
     return is;
   }
 
