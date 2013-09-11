@@ -72,7 +72,7 @@ class SmtInterpolEnvironment {
         if (s.startsWith("#Shared: ")) {
           // ignore debug message of SMTInterpol
         } else {
-          super.println();
+          super.println(s);
         }
       }
     });
