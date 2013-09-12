@@ -91,10 +91,6 @@ public class FormulaManagerFactory {
     fmgr = lFmgr;
 
     // Instantiate another SMT solver for interpolation if requested.
-    if (solver.equals(interpolationSolver)) {
-      interpolationSolver = null;
-    }
-
     if (interpolationSolver != null) {
       if (interpolationSolver.equals(SMTINTERPOL)) {
         itpFmgr = SmtInterpolFormulaManager.create(config, logger, useIntegers);
