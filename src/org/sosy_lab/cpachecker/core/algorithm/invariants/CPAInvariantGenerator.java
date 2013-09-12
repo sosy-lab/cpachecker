@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm;
+package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import static com.google.common.base.Preconditions.*;
 
@@ -46,6 +46,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -56,22 +58,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import com.google.common.base.Throwables;
 
 /**
- * Class that encapsulates invariant generation.
+ * Class that encapsulates invariant generation by using the CPAAlgorithm
+ * with an appropriate configuration.
  * Supports synchronous and asynchronous execution.
- *
- * First {@link #start(CFANode)} needs to be called with the entry point
- * of the CFA, and then {@link #get()} can be called to retrieve the reached
- * set with the invariants.
- *
- * It is a good idea to call {@link #start(CFANode)} as soon as possible
- * and {@link #get()} as late as possible to minimize waiting times
- * if the generator is configured for asynchronous execution.
- *
- * It is also a good idea to call {@link #get()} only if really necessary
- * (in synchronous case, it is expensive).
  */
 @Options(prefix="invariantGeneration")
-public class InvariantGenerator {
+public class CPAInvariantGenerator implements InvariantGenerator {
 
   @Option(name="config",
           required=true,
@@ -91,7 +83,7 @@ public class InvariantGenerator {
 
   private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
 
-  public InvariantGenerator(Configuration config, LogManager pLogger, ReachedSetFactory reachedSetFactory, CFA cfa) throws InvalidConfigurationException, CPAException {
+  public CPAInvariantGenerator(Configuration config, LogManager pLogger, ReachedSetFactory reachedSetFactory, CFA cfa) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger;
 
@@ -109,10 +101,7 @@ public class InvariantGenerator {
     reached = new ReachedSetFactory(invariantConfig, logger).create();
   }
 
-  /**
-   * Prepare invariant generation, and optionally start the algorithm.
-   * May be called only once.
-   */
+  @Override
   public void start(CFANode initialLocation) {
     checkNotNull(initialLocation);
     checkState(invariantGenerationFuture == null);
@@ -136,24 +125,14 @@ public class InvariantGenerator {
     }
   }
 
-  /**
-   * Cancel the invariant generation algorithm, if running.
-   * Can be called only after {@link #start(CFANode)} was called.
-   */
+  @Override
   public void cancel() {
     checkState(invariantGenerationFuture != null);
 
     invariantGenerationFuture.cancel(true);
   }
 
-  /**
-   * Retrieve the generated ReachedSet with the invariants.
-   * Can be called only after {@link #start(CFANode)} was called.
-   * May be called more than once and returns the same result.
-   * @return
-   * @throws CPAException If the invariant generation failed.
-   * @throws InterruptedException If the invariant generation was interrupted.
-   */
+  @Override
   public UnmodifiableReachedSet get() throws CPAException, InterruptedException {
     checkState(invariantGenerationFuture != null);
     try {
@@ -165,11 +144,7 @@ public class InvariantGenerator {
     }
   }
 
-  /*
-   * Returns a Timer from which the time that was necessary to generate
-   * the invariants can be read.
-   * For correct measurements, the caller should not modify the Timer.
-   */
+  @Override
   public Timer getTimeOfExecution() {
     return invariantGeneration;
   }

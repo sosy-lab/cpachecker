@@ -55,6 +55,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.Model;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -193,7 +195,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     cfa = pCfa;
 
     if (induction && useInvariantsForInduction) {
-      invariantGenerator = new InvariantGenerator(config, logger, reachedSetFactory, cfa);
+      invariantGenerator = new CPAInvariantGenerator(config, logger, reachedSetFactory, cfa);
     } else {
       invariantGenerator = null;
     }
