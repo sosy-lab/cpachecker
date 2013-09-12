@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.logging.Level;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -67,10 +65,10 @@ public class FormulaManagerFactory {
     config.inject(this);
 
     if (solver.equals(interpolationSolver)) {
-      logger.log(Level.WARNING, "The SMT solver", solver, "is explicitly specified"
-          + " as interpolating solver although it is actually the main solver, too."
-          + " This is imprecise, remove the option cpa.predicate.interpolationSolver"
-          + " from your configuration.");
+      // If interpolationSolver is not null, we use SeparateInterpolatingProverEnvironment
+      // which copies formula back and forth using strings.
+      // We don't need this if the solvers are the same anyway.
+      interpolationSolver = null;
     }
 
     FormulaManager lFmgr;
