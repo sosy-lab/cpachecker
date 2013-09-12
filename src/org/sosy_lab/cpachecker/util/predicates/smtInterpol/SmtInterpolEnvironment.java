@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,22 +63,6 @@ import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.SMTInterpol;
  */
 @Options(prefix="cpa.predicate.smtinterpol")
 class SmtInterpolEnvironment {
-
-  // SMTInterpol produces debug messages on System.err without possibility
-  // to disable them, so we filter them.
-  static {
-    System.setErr(new PrintStream(System.err) {
-
-      @Override
-      public void println(String s) {
-        if (s.startsWith("#Shared: ")) {
-          // ignore debug message of SMTInterpol
-        } else {
-          super.println(s);
-        }
-      }
-    });
-  }
 
   /**
    * Enum listing possible types for SmtInterpol.

@@ -261,7 +261,7 @@ class FormulaCollectionScript implements Script {
   }
 
   @Override
-  public Term simplifyTerm(Term term) throws SMTLIBException {
+  public Term simplify(Term term) throws SMTLIBException {
     throw new UnsupportedOperationException();
   }
 
