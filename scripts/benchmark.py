@@ -401,7 +401,9 @@ def executeBenchmarkInCloud(benchmark):
 
     # build input for cloud
     cloudInput = getCloudInput(benchmark)
-    filewriter.writeFile(cloudInput, benchmark.logFolder, "cloudInput.txt")
+    cloudInputFile = os.path.join(benchmark.logFolder, 'cloudInput.txt')
+    filewriter.writeFile(cloudInput, cloudInputFile)
+    outputHandler.allCreatedFiles.append(cloudInputFile)
 
     # install cloud and dependencies
     ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"])
