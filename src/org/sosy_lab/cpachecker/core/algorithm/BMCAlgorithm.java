@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -197,7 +198,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     if (induction && useInvariantsForInduction) {
       invariantGenerator = new CPAInvariantGenerator(config, logger, reachedSetFactory, cfa);
     } else {
-      invariantGenerator = null;
+      invariantGenerator = new DoNothingInvariantGenerator(reachedSetFactory);
     }
 
     PredicateCPA predCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
@@ -212,10 +213,8 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public boolean run(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    if (invariantGenerator != null) {
-      CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
-      invariantGenerator.start(initialLocation);
-    }
+    CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
+    invariantGenerator.start(initialLocation);
 
     try {
       logger.log(Level.INFO, "Creating formula for program");
@@ -261,9 +260,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
 
     } finally {
-      if (invariantGenerator != null) {
-        invariantGenerator.cancel();
-      }
+      invariantGenerator.cancel();
     }
   }
 
@@ -683,13 +680,13 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private BooleanFormula extractInvariantsAt(CFANode loc) throws CPAException, InterruptedException {
-    if (invariantGenerator == null) {
-      return bfmgr.makeBoolean(true); // invariant generation was disabled
-    }
-
     BooleanFormula invariant =bfmgr.makeBoolean(false);
     UnmodifiableReachedSet reached = invariantGenerator.get();
     invariantGenerator = null; // so that GC can collect the generator and the reached set
+
+    if (reached.isEmpty()) {
+      return bfmgr.makeBoolean(true); // no invariants available
+    }
 
     for (AbstractState locState : AbstractStates.filterLocation(reached, loc)) {
       BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);
