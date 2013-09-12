@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -116,14 +117,18 @@ class PredicateCPAStatistics implements Statistics {
     private final AbstractionManager absmgr;
     private final CFA cfa;
 
+    private final Timer invariantGeneratorTime;
+
     public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
-        RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa)
+        RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
+        Timer pInvariantGeneratorTimer)
             throws InvalidConfigurationException {
       cpa = pCpa;
       blk = pBlk;
       rmgr = pRmgr;
       absmgr = pAbsmgr;
       cfa = pCfa;
+      invariantGeneratorTime = checkNotNull(pInvariantGeneratorTimer);
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
     }
 
@@ -306,6 +311,10 @@ class PredicateCPAStatistics implements Statistics {
       }
       out.println("Time for prec operator:              " + prec.totalPrecTime);
       if (prec.numAbstractions > 0) {
+        if (invariantGeneratorTime.getNumberOfIntervals() > 0) {
+          out.println("  Time for generating invariants:    " + invariantGeneratorTime);
+          out.println("  Time for extracting invariants:    " + prec.invariantGenerationTime);
+        }
         out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
         if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
           out.println("    Relevant predicate analysis:     " + as.trivialPredicatesTime);

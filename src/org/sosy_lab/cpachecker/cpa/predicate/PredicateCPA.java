@@ -35,6 +35,9 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -46,6 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
@@ -90,6 +94,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       description="use heuristic to extract predicates from the CFA statically on first refinement")
   private boolean performInitialStaticRefinement = false;
 
+  @Option(description="Generate invariants and strengthen the formulas during abstraction with them.")
+  private boolean useInvariantsForAbstraction = false;
+
   private final Configuration config;
   private final LogManager logger;
 
@@ -109,7 +116,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final PredicateStaticRefiner staticRefiner;
 
-  protected PredicateCPA(Configuration config, LogManager logger, BlockOperator blk, CFA cfa) throws InvalidConfigurationException {
+  protected PredicateCPA(Configuration config, LogManager logger,
+      BlockOperator blk, CFA cfa, ReachedSetFactory reachedSetFactory)
+          throws InvalidConfigurationException, CPAException {
     config.inject(this, PredicateCPA.class);
 
     this.config = config;
@@ -164,7 +173,14 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       throw new InternalError("Update list of allowed merge operators");
     }
 
-    prec = new PredicatePrecisionAdjustment(this);
+    InvariantGenerator invariantGenerator;
+    if (useInvariantsForAbstraction) {
+      invariantGenerator = new CPAInvariantGenerator(config, logger, reachedSetFactory, cfa);
+    } else {
+      invariantGenerator = new DoNothingInvariantGenerator(reachedSetFactory);
+    }
+
+    prec = new PredicatePrecisionAdjustment(this, invariantGenerator);
     stop = new PredicateStopOperator(domain);
 
     staticRefiner = initializeStaticRefiner(config, logger, abstractionManager, cfa);
@@ -172,7 +188,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager, cfa);
+    stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager,
+        cfa, invariantGenerator.getTimeOfExecution());
 
     GlobalInfo.getInstance().storeFormulaManager(formulaManager);
   }
@@ -232,6 +249,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public PredicateAbstractState getInitialState(CFANode node) {
+    prec.setInitialLocation(node);
     return topState;
   }
 

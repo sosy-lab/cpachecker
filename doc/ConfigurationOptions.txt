@@ -923,6 +923,10 @@ cpa.predicate.targetStateSatCheck = true
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
 
+# Generate invariants and strengthen the formulas during abstraction with
+# them.
+cpa.predicate.useInvariantsForAbstraction = false
+
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
 

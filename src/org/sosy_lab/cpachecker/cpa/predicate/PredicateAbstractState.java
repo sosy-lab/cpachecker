@@ -74,7 +74,11 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
       super(pf, pA, pAbstractionLocations);
       // Check whether the pathFormula of an abstraction element is just "true".
       // partialOrder relies on this for optimization.
-      Preconditions.checkArgument(bfmgr.isTrue(pf.getFormula()));
+      //Preconditions.checkArgument(bfmgr.isTrue(pf.getFormula()));
+      // Check uncommented because we may pre-initialize the path formula
+      // with an invariant.
+      // This is no problem for the partial order because the invariant
+      // is always the same when the location is the same.
     }
 
     @Override
