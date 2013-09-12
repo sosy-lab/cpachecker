@@ -37,6 +37,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -60,6 +62,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -129,7 +132,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       if (inductionCheck.getNumberOfIntervals() > 0) {
         out.println("Number of cut points for induction:  " + inductionCutPoints);
         out.println("Time for induction formula creation: " + inductionPreparation);
-        out.println("  Time for invariant generation:     " + invariantGenerator.getTimeOfExecution());
+        if (invariantGenerator != null) {
+          out.println("  Time for invariant generation:     " + invariantGenerator.getTimeOfExecution());
+        }
         out.println("Time for induction check:            " + inductionCheck);
       }
     }
@@ -154,6 +159,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   @Option(description="try using induction to verify programs with loops")
   private boolean induction = false;
 
+  @Option(description="Generate invariants and add them to the induction hypothesis.")
+  private boolean useInvariantsForInduction = false;
+
   @Option(description="dump counterexample formula to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File dumpCounterexampleFormula = new File("ErrorPath.%d.smt2");
@@ -161,7 +169,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
   private final BMCStatistics stats = new BMCStatistics();
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
-  private final InvariantGenerator invariantGenerator;
+  private @Nullable InvariantGenerator invariantGenerator;
 
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pmgr;
@@ -184,7 +192,11 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     reachedSetFactory = pReachedSetFactory;
     cfa = pCfa;
 
-    invariantGenerator = new InvariantGenerator(config, logger, reachedSetFactory, cfa);
+    if (induction && useInvariantsForInduction) {
+      invariantGenerator = new InvariantGenerator(config, logger, reachedSetFactory, cfa);
+    } else {
+      invariantGenerator = null;
+    }
 
     PredicateCPA predCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(PredicateCPA.class);
     if (predCpa == null) {
@@ -198,7 +210,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public boolean run(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    if (induction) {
+    if (invariantGenerator != null) {
       CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
       invariantGenerator.start(initialLocation);
     }
@@ -247,7 +259,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
 
     } finally {
-      invariantGenerator.cancelAndWait();
+      if (invariantGenerator != null) {
+        invariantGenerator.cancel();
+      }
     }
   }
 
@@ -571,7 +585,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     // get global invariants
-    BooleanFormula invariants = extractInvariantsAt(loopHead, invariantGenerator.get());
+    BooleanFormula invariants = extractInvariantsAt(loopHead);
     invariants = fmgr.instantiate(invariants, SSAMap.emptySSAMap().withDefault(1));
 
     // Create formulas
@@ -666,12 +680,14 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return sound;
   }
 
-  private BooleanFormula extractInvariantsAt(CFANode loc, ReachedSet reached) {
-    if (reached.isEmpty()) {
+  private BooleanFormula extractInvariantsAt(CFANode loc) throws CPAException, InterruptedException {
+    if (invariantGenerator == null) {
       return bfmgr.makeBoolean(true); // invariant generation was disabled
     }
 
     BooleanFormula invariant =bfmgr.makeBoolean(false);
+    UnmodifiableReachedSet reached = invariantGenerator.get();
+    invariantGenerator = null; // so that GC can collect the generator and the reached set
 
     for (AbstractState locState : AbstractStates.filterLocation(reached, loc)) {
       BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState);

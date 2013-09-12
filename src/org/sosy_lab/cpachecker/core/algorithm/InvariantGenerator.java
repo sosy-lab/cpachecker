@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,7 +35,7 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
-import org.sosy_lab.common.Concurrency;
+import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,6 +49,8 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.base.Throwables;
@@ -56,17 +58,29 @@ import com.google.common.base.Throwables;
 /**
  * Class that encapsulates invariant generation.
  * Supports synchronous and asynchronous execution.
+ *
+ * First {@link #start(CFANode)} needs to be called with the entry point
+ * of the CFA, and then {@link #get()} can be called to retrieve the reached
+ * set with the invariants.
+ *
+ * It is a good idea to call {@link #start(CFANode)} as soon as possible
+ * and {@link #get()} as late as possible to minimize waiting times
+ * if the generator is configured for asynchronous execution.
+ *
+ * It is also a good idea to call {@link #get()} only if really necessary
+ * (in synchronous case, it is expensive).
  */
-@Options(prefix="bmc")
-class InvariantGenerator {
+@Options(prefix="invariantGeneration")
+public class InvariantGenerator {
 
-  @Option(name="invariantGenerationConfigFile",
+  @Option(name="config",
+          required=true,
           description="configuration file for invariant generation")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private File configFile;
 
-  @Option(description="generate invariants for induction in parallel to the analysis")
-  private boolean parallelInvariantGeneration = false;
+  @Option(description="generate invariants in parallel to the normal analysis")
+  private boolean async = false;
 
   private final Timer invariantGeneration = new Timer();
 
@@ -75,80 +89,79 @@ class InvariantGenerator {
   private final ConfigurableProgramAnalysis invariantCPAs;
   private final ReachedSet reached;
 
-  private CFANode initialLocation = null;
-
-  private ExecutorService executor = null;
-  private Future<ReachedSet> invariantGenerationFuture = null;
+  private Future<UnmodifiableReachedSet> invariantGenerationFuture = null;
 
   public InvariantGenerator(Configuration config, LogManager pLogger, ReachedSetFactory reachedSetFactory, CFA cfa) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger;
 
-    if (configFile != null) {
-      Configuration invariantConfig;
-      try {
-        invariantConfig = Configuration.builder()
-                              .loadFromFile(configFile)
-                              .build();
-      } catch (IOException e) {
-        throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
-      }
-
-      invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory).buildCPAs(cfa);
-      invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger, invariantConfig);
-      reached = new ReachedSetFactory(invariantConfig, logger).create();
-
-    } else {
-      // invariant generation is disabled
-      invariantAlgorithm = null;
-      invariantCPAs = null;
-      reached = new ReachedSetFactory(config, logger).create(); // create reached set that will stay empty
+    Configuration invariantConfig;
+    try {
+      invariantConfig = Configuration.builder()
+                            .loadFromFile(configFile)
+                            .build();
+    } catch (IOException e) {
+      throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
+
+    invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory).buildCPAs(cfa);
+    invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger, invariantConfig);
+    reached = new ReachedSetFactory(invariantConfig, logger).create();
   }
 
-  public void start(CFANode pInitialLocation) {
-    checkState(initialLocation == null);
-    initialLocation = pInitialLocation;
-
-    if (invariantCPAs == null) {
-      // invariant generation disabled
-      return;
-    }
+  /**
+   * Prepare invariant generation, and optionally start the algorithm.
+   * May be called only once.
+   */
+  public void start(CFANode initialLocation) {
+    checkNotNull(initialLocation);
+    checkState(invariantGenerationFuture == null);
+    checkState(!reached.hasWaitingState());
 
     reached.add(invariantCPAs.getInitialState(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
 
-    if (parallelInvariantGeneration) {
-
-      executor = Executors.newSingleThreadExecutor();
-      invariantGenerationFuture = executor.submit(new Callable<ReachedSet>() {
-            @Override
-            public ReachedSet call() throws Exception {
-              return findInvariants();
-            }
-          });
-      executor.shutdown();
-    }
-  }
-
-  public void cancelAndWait() {
-    if (invariantGenerationFuture != null) {
-      invariantGenerationFuture.cancel(true);
-      Concurrency.waitForTermination(executor);
-    }
-  }
-
-  public ReachedSet get() throws CPAException, InterruptedException {
-    if (invariantGenerationFuture == null) {
-      return findInvariants();
-
-    } else {
-      try {
-        return invariantGenerationFuture.get();
-
-      } catch (ExecutionException e) {
-        Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
-        throw new UnexpectedCheckedException("invariant generation", e.getCause());
+    Callable<UnmodifiableReachedSet> task = new Callable<UnmodifiableReachedSet>() {
+      @Override
+      public UnmodifiableReachedSet call() throws Exception {
+        return findInvariants();
       }
+    };
+
+    if (async) {
+      ExecutorService executor = Executors.newSingleThreadExecutor();
+      invariantGenerationFuture = executor.submit(task);
+      executor.shutdown();
+    } else {
+      invariantGenerationFuture = new LazyFutureTask<>(task);
+    }
+  }
+
+  /**
+   * Cancel the invariant generation algorithm, if running.
+   * Can be called only after {@link #start(CFANode)} was called.
+   */
+  public void cancel() {
+    checkState(invariantGenerationFuture != null);
+
+    invariantGenerationFuture.cancel(true);
+  }
+
+  /**
+   * Retrieve the generated ReachedSet with the invariants.
+   * Can be called only after {@link #start(CFANode)} was called.
+   * May be called more than once and returns the same result.
+   * @return
+   * @throws CPAException If the invariant generation failed.
+   * @throws InterruptedException If the invariant generation was interrupted.
+   */
+  public UnmodifiableReachedSet get() throws CPAException, InterruptedException {
+    checkState(invariantGenerationFuture != null);
+    try {
+      return invariantGenerationFuture.get();
+
+    } catch (ExecutionException e) {
+      Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+      throw new UnexpectedCheckedException("invariant generation", e.getCause());
     }
   }
 
@@ -161,13 +174,8 @@ class InvariantGenerator {
     return invariantGeneration;
   }
 
-  private ReachedSet findInvariants() throws CPAException, InterruptedException {
-    checkState(initialLocation != null);
-
-    if (!reached.hasWaitingState()) {
-      // invariant generation disabled
-      return reached;
-    }
+  private UnmodifiableReachedSet findInvariants() throws CPAException, InterruptedException {
+    checkState(reached.hasWaitingState());
 
     invariantGeneration.start();
     logger.log(Level.INFO, "Finding invariants");
@@ -176,7 +184,13 @@ class InvariantGenerator {
       assert invariantAlgorithm != null;
       invariantAlgorithm.run(reached);
 
-      return reached;
+      if (reached.hasWaitingState()) {
+        // We may not return the reached set in this case
+        // because the invariants may be incomplete
+        throw new CPAException("Invariant generation algorithm did not finish processing the reached set, invariants not available.");
+      }
+
+      return new UnmodifiableReachedSetWrapper(reached);
 
     } finally {
       invariantGeneration.stop();

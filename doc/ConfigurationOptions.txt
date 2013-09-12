@@ -224,11 +224,8 @@ bmc.dumpCounterexampleFormula = "ErrorPath.%d.smt2"
 # try using induction to verify programs with loops
 bmc.induction = false
 
-# configuration file for invariant generation
-bmc.invariantGenerationConfigFile = no default value
-
-# generate invariants for induction in parallel to the analysis
-bmc.parallelInvariantGeneration = false
+# Generate invariants and add them to the induction hypothesis.
+bmc.useInvariantsForInduction = false
 
 # file name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified.
@@ -960,6 +957,12 @@ cpa.uninitvars.stop = "sep"
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
+
+# generate invariants in parallel to the normal analysis
+invariantGeneration.async = false
+
+# configuration file for invariant generation
+invariantGeneration.config = no default value
 
 # Specify the class code path to search for java class or interface
 # definitions
