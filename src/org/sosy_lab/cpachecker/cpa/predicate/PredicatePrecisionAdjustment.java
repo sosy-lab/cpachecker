@@ -111,8 +111,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     computingAbstractionTime.start();
 
     // compute new abstraction
-    AbstractionFormula newAbstractionFormula = computeAbstraction(
-        abstractionFormula, pathFormula, preds, loc);
+    AbstractionFormula newAbstractionFormula = formulaManager.buildAbstraction(
+        abstractionFormula, pathFormula, preds);
 
     computingAbstractionTime.stop();
 
@@ -130,13 +130,5 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     return PredicateAbstractState.mkAbstractionState(bfmgr, newPathFormula,
         newAbstractionFormula, abstractionLocations);
-  }
-
-  protected AbstractionFormula computeAbstraction(AbstractionFormula pAbstractionFormula, PathFormula pPathFormula, Collection<AbstractionPredicate> pPreds, CFANode node) {
-    return formulaManager.buildAbstraction(pAbstractionFormula, pPathFormula, pPreds);
-  }
-
-  protected LogManager getLogger() {
-    return logger;
   }
 }
