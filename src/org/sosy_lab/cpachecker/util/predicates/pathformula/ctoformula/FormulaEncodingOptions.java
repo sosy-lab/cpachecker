@@ -70,8 +70,7 @@ class FormulaEncodingOptions {
 
   @Option(description="Regexp pattern for functions that should be considered as giving "
     + "a non-deterministic return value (c.f. cpa.predicate.nondedFunctions)")
-  private String nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-z]*";
-  private final Pattern nondetFunctionsPattern;
+  private Pattern nondetFunctionsRegexp = Pattern.compile("^(__VERIFIER_)?nondet_[a-z]*");
 
   @Option(description="Name of an external function that will be interpreted as if the function "
      + "call would be replaced by an externally defined expression over the program variables."
@@ -86,8 +85,6 @@ class FormulaEncodingOptions {
 
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-
-    nondetFunctionsPattern = Pattern.compile(nondetFunctionsRegexp);
   }
 
   public boolean handlePointerAliasing() {
@@ -108,7 +105,7 @@ class FormulaEncodingOptions {
 
   public boolean isNondetFunction(String function) {
     return nondetFunctions.contains(function)
-        || nondetFunctionsPattern.matcher(function).matches();
+        || nondetFunctionsRegexp.matcher(function).matches();
   }
 
   public boolean isMemoryAllocationFunction(String function) {
