@@ -588,7 +588,7 @@ public class FormulaManagerView {
     return functionFormulaManager;
   }
 
-  UnsafeFormulaManager getUnsafeFormulaManager() {
+  public UnsafeFormulaManager getUnsafeFormulaManager() {
     return manager.getUnsafeFormulaManager(); // Unsafe
   }
 
@@ -910,6 +910,10 @@ public class FormulaManagerView {
     }
 
     return atoms;
+  }
+
+  public boolean isPurelyArithmetic(Formula f) {
+    return myIsPurelyArithmetic(extractFromView(f));
   }
 
   // returns true if the given term is a pure arithmetic term
