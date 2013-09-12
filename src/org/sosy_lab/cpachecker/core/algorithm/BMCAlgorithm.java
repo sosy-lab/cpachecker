@@ -23,29 +23,20 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTER_ABSTRACTION_STATES;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Classes.UnexpectedCheckedException;
-import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
@@ -59,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.Model;
@@ -97,7 +87,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -140,7 +129,7 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       if (inductionCheck.getNumberOfIntervals() > 0) {
         out.println("Number of cut points for induction:  " + inductionCutPoints);
         out.println("Time for induction formula creation: " + inductionPreparation);
-        out.println("  Time for invariant generation:     " + invariantGenerator.invariantGeneration);
+        out.println("  Time for invariant generation:     " + invariantGenerator.getTimeOfExecution());
         out.println("Time for induction check:            " + inductionCheck);
       }
     }
@@ -693,128 +682,6 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
     return invariant;
   }
 
-
-  /**
-   * Class that encapsulates invariant generation.
-   * Supports synchronous and asynchronous execution.
-   */
-  @Options(prefix="bmc")
-  private static class InvariantGenerator {
-
-    @Option(name="invariantGenerationConfigFile",
-            description="configuration file for invariant generation")
-    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private File configFile;
-
-    @Option(description="generate invariants for induction in parallel to the analysis")
-    private boolean parallelInvariantGeneration = false;
-
-    private final Timer invariantGeneration = new Timer();
-
-    private final LogManager logger;
-    private final Algorithm invariantAlgorithm;
-    private final ConfigurableProgramAnalysis invariantCPAs;
-    private final ReachedSet reached;
-
-    private CFANode initialLocation = null;
-
-    private ExecutorService executor = null;
-    private Future<ReachedSet> invariantGenerationFuture = null;
-
-    public InvariantGenerator(Configuration config, LogManager pLogger, ReachedSetFactory reachedSetFactory, CFA cfa) throws InvalidConfigurationException, CPAException {
-      config.inject(this);
-      logger = pLogger;
-
-      if (configFile != null) {
-        Configuration invariantConfig;
-        try {
-          invariantConfig = Configuration.builder()
-                                .loadFromFile(configFile)
-                                .build();
-        } catch (IOException e) {
-          throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
-        }
-
-        invariantCPAs = new CPABuilder(invariantConfig, logger, reachedSetFactory).buildCPAs(cfa);
-        invariantAlgorithm = new CPAAlgorithm(invariantCPAs, logger, invariantConfig);
-        reached = new ReachedSetFactory(invariantConfig, logger).create();
-
-      } else {
-        // invariant generation is disabled
-        invariantAlgorithm = null;
-        invariantCPAs = null;
-        reached = new ReachedSetFactory(config, logger).create(); // create reached set that will stay empty
-      }
-    }
-
-    public void start(CFANode pInitialLocation) {
-      checkState(initialLocation == null);
-      initialLocation = pInitialLocation;
-
-      if (invariantCPAs == null) {
-        // invariant generation disabled
-        return;
-      }
-
-      reached.add(invariantCPAs.getInitialState(initialLocation), invariantCPAs.getInitialPrecision(initialLocation));
-
-      if (parallelInvariantGeneration) {
-
-        executor = Executors.newSingleThreadExecutor();
-        invariantGenerationFuture = executor.submit(new Callable<ReachedSet>() {
-              @Override
-              public ReachedSet call() throws Exception {
-                return findInvariants();
-              }
-            });
-        executor.shutdown();
-      }
-    }
-
-    public void cancelAndWait() {
-      if (invariantGenerationFuture != null) {
-        invariantGenerationFuture.cancel(true);
-        Concurrency.waitForTermination(executor);
-      }
-    }
-
-    public ReachedSet get() throws CPAException, InterruptedException {
-      if (invariantGenerationFuture == null) {
-        return findInvariants();
-
-      } else {
-        try {
-          return invariantGenerationFuture.get();
-
-        } catch (ExecutionException e) {
-          Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
-          throw new UnexpectedCheckedException("invariant generation", e.getCause());
-        }
-      }
-    }
-
-    private ReachedSet findInvariants() throws CPAException, InterruptedException {
-      checkState(initialLocation != null);
-
-      if (!reached.hasWaitingState()) {
-        // invariant generation disabled
-        return reached;
-      }
-
-      invariantGeneration.start();
-      logger.log(Level.INFO, "Finding invariants");
-
-      try {
-        assert invariantAlgorithm != null;
-        invariantAlgorithm.run(reached);
-
-        return reached;
-
-      } finally {
-        invariantGeneration.stop();
-      }
-    }
-  }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
