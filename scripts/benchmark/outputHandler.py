@@ -214,13 +214,18 @@ class OutputHandler:
         cpuInfoFilename = '/proc/cpuinfo'
         if os.path.isfile(cpuInfoFilename) and os.access(cpuInfoFilename, os.R_OK):
             cpuInfoFile = open(cpuInfoFilename, 'rt')
-            cpuInfo = dict(tuple(str.split(':')) for str in
+            cpuInfoLines = [tuple(line.split(':')) for line in
                             cpuInfoFile.read()
-                            .replace('\n\n', '\n').replace('\t', '')
-                            .strip('\n').split('\n'))
+                                       .replace('\n\n', '\n').replace('\t', '')
+                                       .strip('\n').split('\n')]
+            cpuInfo = dict(cpuInfoLines)
             cpuInfoFile.close()
-        cpuModel = cpuInfo.get('model name', 'unknown').strip()
-        numberOfCores = cpuInfo.get('cpu cores', 'unknown').strip()
+        cpuModel = cpuInfo.get('model name', 'unknown') \
+                          .strip() \
+                          .replace("(R)", "") \
+                          .replace("(TM)", "") \
+                          .replace("(tm)", "")
+        numberOfCores = str(len([line for line in cpuInfoLines if line[0] == 'processor']))
         if 'cpu MHz' in cpuInfo:
             maxFrequency = cpuInfo['cpu MHz'].split('.')[0].strip() + ' MHz'
 
