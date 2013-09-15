@@ -76,7 +76,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  * This Visitor returns the value from an expression.
  * The result may be null, i.e., the value is unknown.
  */
-public class ExpressionValueVisitor
+public class ExplicitExpressionValueVisitor
     extends DefaultCExpressionVisitor<Long, UnrecognizedCCodeException>
     implements CRightHandSideVisitor<Long, UnrecognizedCCodeException>,
     JRightHandSideVisitor<Long, UnrecognizedCCodeException>,
@@ -94,7 +94,7 @@ public class ExpressionValueVisitor
   private boolean missingEnumComparisonInformation = false;
 
 
-  public ExpressionValueVisitor(ExplicitState pState, String pFunctionName,
+  public ExplicitExpressionValueVisitor(ExplicitState pState, String pFunctionName,
       MachineModel pMachineModel, Set<String> pGlobalVariables) {
 
     this.state = pState;

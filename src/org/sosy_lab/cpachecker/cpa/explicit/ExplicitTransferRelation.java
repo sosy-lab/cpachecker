@@ -183,7 +183,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     // visitor for getting the values of the actual parameters in caller function context
-    ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, functionName, machineModel, globalVariables);
+    ExplicitExpressionValueVisitor visitor = new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables);
 
     // get value of actual parameter in caller function context
     for (int i = 0; i < parameters.size(); i++) {
@@ -219,7 +219,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     return handleAssignmentToVariable(FUNCTION_RETURN_VAR, expression,
-        new ExpressionValueVisitor(state, functionName, machineModel, globalVariables));
+        new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables));
   }
 
   /**
@@ -431,7 +431,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         }
 
         return handleAssignmentToVariable(op1.toASTString(), op2,
-            new ExpressionValueVisitor(state, functionName, machineModel, globalVariables));
+            new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables));
     } else if (op1 instanceof APointerExpression) {
       // *a = ...
 
@@ -454,7 +454,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     else if (op1 instanceof CFieldReference) {
       // a->b = ...
       return handleAssignmentToVariable(op1.toASTString(), op2,
-          new ExpressionValueVisitor(state, functionName, machineModel, globalVariables));
+          new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables));
     }
 
     // TODO assignment to array cell
@@ -469,7 +469,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   /** This method analyses the expression with the visitor and assigns the value to lParam.
    * The method returns a new state, that contains (a copy of) the old state and the new assignment. */
-   private ExplicitState handleAssignmentToVariable(String lParam, IARightHandSide exp, ExpressionValueVisitor visitor)
+   private ExplicitState handleAssignmentToVariable(String lParam, IARightHandSide exp, ExplicitExpressionValueVisitor visitor)
     throws UnrecognizedCCodeException {
 
     Long value;
@@ -525,7 +525,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   /**
    * Visitor that derives further information from an assume edge
    */
-  private class AssigningValueVisitor extends ExpressionValueVisitor {
+  private class AssigningValueVisitor extends ExplicitExpressionValueVisitor {
 
     private ExplicitState assignableState;
     protected boolean truthValue = false;
@@ -677,7 +677,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
   }
 
-  private class PointerExpressionValueVisitor extends ExpressionValueVisitor {
+  private class PointerExpressionValueVisitor extends ExplicitExpressionValueVisitor {
     private final PointerState pointerState;
 
     public PointerExpressionValueVisitor(PointerState pPointerState) {
@@ -718,7 +718,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   }
 }
 
-  private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
+  private class  FieldAccessExpressionValueVisitor extends ExplicitExpressionValueVisitor {
     private final RTTState jortState;
 
     public FieldAccessExpressionValueVisitor(RTTState pJortState) {
@@ -829,7 +829,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     throws UnrecognizedCCodeException {
     if (expression instanceof JRightHandSide) {
 
-        ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, globalVariables);
+        ExplicitExpressionValueVisitor evv = new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables);
         Long value = ((JRightHandSide) expression).accept(evv);
         if (evv.hasMissingFieldAccessInformation() || evv.hasMissingEnumComparisonInformation()) {
           missingInformationRightJExpression = (JRightHandSide) expression;
@@ -840,7 +840,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     } else if (expression instanceof CRightHandSide) {
       final Long value = ((CRightHandSide) expression).accept(
-          new ExpressionValueVisitor(state, functionName, machineModel, globalVariables));
+          new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables));
       return value;
 
     } else {
@@ -1031,7 +1031,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     throws UnrecognizedCCodeException {
     try {
       if (missingInformationRightExpression != null) {
-        ExpressionValueVisitor v = new PointerExpressionValueVisitor(pointerElement);
+        ExplicitExpressionValueVisitor v = new PointerExpressionValueVisitor(pointerElement);
 
         if (missingInformationLeftVariable != null) { // TODO always null? there is no write-access.
           ExplicitState newElement = handleAssignmentToVariable(missingInformationLeftVariable, missingInformationRightExpression, v);
