@@ -372,7 +372,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
       // create a new ExplicitPathChecker, which does not track any of the given variables
       ExplictFeasibilityChecker checker = new ExplictFeasibilityChecker(logger, machineModel);
 
-      return checker.isFeasible(path, logger, machineModel);
+      return checker.isFeasible(path);
     }
     catch (InterruptedException e) {
       throw new CPAException("counterexample-check failed: ", e);
