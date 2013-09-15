@@ -97,7 +97,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private final MachineModel machineModel;
   private final LogManager logger;
 
-  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config, LogManager pLogger, MachineModel pMachineModel)
+  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config, final LogManager pLogger, final MachineModel pMachineModel)
       throws InvalidConfigurationException {
     config.inject(this);
     this.machineModel = pMachineModel;

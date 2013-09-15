@@ -89,7 +89,7 @@ public class ExplicitInterpolator {
   /**
    * This method acts as the constructor of the class.
    */
-  public ExplicitInterpolator(LogManager pLogger, MachineModel pMachineModel) throws CPAException {
+  public ExplicitInterpolator(final LogManager pLogger, final MachineModel pMachineModel) throws CPAException {
     try {
       config      = Configuration.builder().build();
       transfer    = new ExplicitTransferRelation(config, pLogger, pMachineModel);

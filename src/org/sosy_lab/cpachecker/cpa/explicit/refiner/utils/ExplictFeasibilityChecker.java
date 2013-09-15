@@ -66,7 +66,7 @@ public class ExplictFeasibilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  public boolean isFeasible(ARGPath path)
+  public boolean isFeasible(final ARGPath path)
       throws CPAException, InterruptedException {
     try {
       Configuration config = Configuration.builder().build();

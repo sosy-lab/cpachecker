@@ -118,6 +118,9 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    */
   private int previousRefinementId = 0;
 
+  /**
+   * the current machine model
+   */
   private final MachineModel machineModel;
 
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
@@ -199,18 +202,18 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
   }
 
   protected DelegatingExplicitRefiner(
-      final Configuration config,
-      final LogManager logger,
-      final ConfigurableProgramAnalysis cpa,
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ConfigurableProgramAnalysis pCpa,
       @Nullable final PredicateCPARefiner pBackupRefiner,
-      ExplicitStaticRefiner explicitStaticRefiner,
-      MachineModel pMachineModel) throws CPAException, InvalidConfigurationException {
-    super(cpa);
-    config.inject(this);
+      ExplicitStaticRefiner pExplicitStaticRefiner,
+      final MachineModel pMachineModel) throws CPAException, InvalidConfigurationException {
+    super(pCpa);
+    pConfig.inject(this);
 
-    interpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(config, logger, pMachineModel);
+    interpolatingRefiner  = new ExplicitInterpolationBasedExplicitRefiner(pConfig, pLogger, pMachineModel);
     predicatingRefiner    = pBackupRefiner;
-    staticRefiner         = explicitStaticRefiner;
+    staticRefiner         = pExplicitStaticRefiner;
     machineModel          = pMachineModel;
   }
 

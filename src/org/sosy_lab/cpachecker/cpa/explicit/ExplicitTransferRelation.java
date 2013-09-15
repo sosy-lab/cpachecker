@@ -148,8 +148,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   public ExplicitTransferRelation(Configuration config, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
     config.inject(this);
-    this.machineModel = pMachineModel;
-    this.logger = pLogger;
+    machineModel = pMachineModel;
+    logger = pLogger;
   }
 
   @Override
