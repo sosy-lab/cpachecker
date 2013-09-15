@@ -123,7 +123,7 @@ public class CArrayType extends AArrayType implements CType {
       }
     }
 
-    return Objects.equals(isConst, other.isConst) && Objects.equals(isVolatile, other.isVolatile);
+    return isConst == other.isConst && isVolatile == other.isVolatile;
   }
 
   @Override

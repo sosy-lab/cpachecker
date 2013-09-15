@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -47,23 +49,27 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 public interface CParser extends Parser {
 
   /**
-   * Parse the content of a file into a CFA.
+   * Parse the content of files into a single CFA.
    *
-   * @param fileName  The file to parse.
+   * @param fileNames  The List of files to parse. The first part of the pair
+   *                   should be the filename, the second part should be the
+   *                   prefix which will be appended to static variables
    * @return The CFA.
    * @throws IOException If file cannot be read.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseFile(String[] filename, String[] staticVariablePrefix) throws CParserException, IOException, InvalidConfigurationException;
+  ParseResult parseFile(List<Pair<String, String>> filenames) throws CParserException, IOException, InvalidConfigurationException;
 
   /**
-   * Parse the content of a String into a CFA.
+   * Parse the content of Strings into a single CFA.
    *
-   * @param code  The code to parse.
+   * @param code  The List of code fragments to parse. The first part of the pair
+   *                   should be the code, the second part should be the
+   *                   prefix which will be appended to static variables
    * @return The CFA.
    * @throws ParserException If parser or CFA builder cannot handle the C code.
    */
-  ParseResult parseString(String[] code, String[] staticVariablePrefix) throws CParserException, InvalidConfigurationException;
+  ParseResult parseString(List<Pair<String, String>> code) throws CParserException, InvalidConfigurationException;
 
   /**
    * Method for parsing a string that contains exactly one function with exactly

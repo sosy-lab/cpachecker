@@ -102,7 +102,7 @@ public class JSimpleType implements JType {
       }
 
       JSimpleType other = (JSimpleType) obj;
-      return Objects.equals(type, other.type) && Objects.equals(isPrimitive, other.isPrimitive);
+      return type == other.type && isPrimitive == other.isPrimitive;
   }
 
 }

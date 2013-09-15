@@ -29,7 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class ShiftLeft<ConstantType> implements InvariantsFormula<ConstantType> {
+public class ShiftLeft<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   /**
    * The formula shifted by this operation.
@@ -85,7 +85,7 @@ public class ShiftLeft<ConstantType> implements InvariantsFormula<ConstantType> 
   }
 
   @Override
-  public int hashCode() {
+  protected int hashCodeInternal() {
     return getShifted().hashCode() << getShiftDistance().hashCode();
   }
 

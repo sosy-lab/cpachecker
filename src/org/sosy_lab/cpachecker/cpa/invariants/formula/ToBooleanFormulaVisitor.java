@@ -227,24 +227,23 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
         right = pEqual.getOperand1();
       }
       CompoundState rightValue = right.accept(evaluationVisitor, pEnvironment);
-      if (rightValue.isBottom()) {
-        return this.bfmgr.makeBoolean(false);
-      }
-      BooleanFormula bf = this.bfmgr.makeBoolean(true);
+      BooleanFormula bf = this.bfmgr.makeBoolean(false);
       for (SimpleInterval interval : rightValue.getIntervals()) {
+        BooleanFormula intervalFormula = this.bfmgr.makeBoolean(true);
         if (interval.isSingleton()) {
           ValueFormulaType value = getValueFormula(interval.getLowerBound().longValue(), pEnvironment);
-          bf = this.bfmgr.and(bf, getValueVisitor().equal(left, value));
+          intervalFormula = this.bfmgr.and(intervalFormula, getValueVisitor().equal(left, value));
         } else {
           if (interval.hasLowerBound()) {
             ValueFormulaType lb = getValueFormula(interval.getLowerBound().longValue(), pEnvironment);
-            bf = this.bfmgr.and(bf, getValueVisitor().greaterOrEqual(left, lb));
+            intervalFormula = this.bfmgr.and(intervalFormula, getValueVisitor().greaterOrEqual(left, lb));
           }
           if (interval.hasUpperBound()) {
             ValueFormulaType ub = getValueFormula(interval.getUpperBound().longValue(), pEnvironment);
-            bf = this.bfmgr.and(bf, getValueVisitor().lessOrEqual(left, ub));
+            intervalFormula = this.bfmgr.and(intervalFormula, getValueVisitor().lessOrEqual(left, ub));
           }
         }
+        bf = this.bfmgr.or(bf, intervalFormula);
       }
       return bf;
     }
@@ -252,7 +251,7 @@ public class ToBooleanFormulaVisitor<ValueFormulaType> implements ToFormulaVisit
   }
 
   private ValueFormulaType getValueFormula(long pValue, Map<? extends String, ? extends InvariantsFormula<CompoundState>> pEnvironment) {
-    return InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.singleton(pValue)).accept(getValueVisitor(), pEnvironment);
+    return CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.singleton(pValue)).accept(getValueVisitor(), pEnvironment);
   }
 
   @Override

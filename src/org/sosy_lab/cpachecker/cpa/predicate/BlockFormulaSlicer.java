@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -672,6 +673,12 @@ public class BlockFormulaSlicer {
 
     @Override
     public Void visit(CCastExpression exp) {
+      exp.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CComplexCastExpression exp) {
       exp.getOperand().accept(this);
       return null;
     }

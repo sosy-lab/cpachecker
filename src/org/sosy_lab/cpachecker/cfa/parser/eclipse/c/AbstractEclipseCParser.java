@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -51,19 +49,12 @@ import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.ast.IADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
 
 /**
  * Base implementation that should work with all CDT versions we support.
@@ -107,39 +98,49 @@ abstract class AbstractEclipseCParser<T> implements CParser {
   protected abstract T wrapFile(String pFilename) throws IOException;
 
   @Override
-  public ParseResult parseFile(String[] pFilenames, String[] staticVariablePrefixes) throws CParserException, IOException, InvalidConfigurationException {
+  public ParseResult parseFile(List<Pair<String, String>> pFilenames) throws CParserException, IOException, InvalidConfigurationException {
 
-    IASTTranslationUnit[] astUnits = new IASTTranslationUnit[pFilenames.length];
-    for(int i = 0; i < pFilenames.length; i++) {
-      astUnits[i] = parse(wrapFile(pFilenames[i]));
+    List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
+    for(Pair<String, String> pair : pFilenames) {
+      astUnits.add(Pair.of(parse(wrapFile(pair.getFirst())), pair.getSecond()));
     }
-    return buildCFA(astUnits, staticVariablePrefixes);
+    return buildCFA(astUnits);
   }
 
   @Override
-  public ParseResult parseString(String[] pCode, String[] staticVariablePrefixes) throws CParserException, InvalidConfigurationException {
+  public ParseResult parseString(List<Pair<String, String>> codeFragments) throws CParserException, InvalidConfigurationException {
 
-    IASTTranslationUnit[] astUnits = new IASTTranslationUnit[pCode.length];
-    for(int i = 0; i < pCode.length; i++) {
-      astUnits[i] = parse(wrapCode(pCode[i]));
+    List<Pair<IASTTranslationUnit, String>> astUnits = new ArrayList<>();
+    for(Pair<String, String> pair : codeFragments) {
+      astUnits.add(Pair.of(parse(wrapCode(pair.getFirst())), pair.getSecond()));
     }
-    return buildCFA(astUnits, staticVariablePrefixes);
+    return buildCFA(astUnits);
   }
 
+  /**
+   * This method parses a single file where no prefix for static variables is needed.
+   */
   @Override
   public ParseResult parseFile(String pFilename) throws CParserException, IOException, InvalidConfigurationException {
 
-    IASTTranslationUnit[] unit = {parse(wrapFile(pFilename))};
-    String[] prefix = {""};
-    return buildCFA(unit, prefix);
+    IASTTranslationUnit unit = parse(wrapFile(pFilename));
+    String prefix = "";
+    List<Pair<IASTTranslationUnit, String>> returnParam = new ArrayList<>();
+    returnParam.add(Pair.of(unit, prefix));
+    return buildCFA(returnParam);
   }
 
+  /**
+   * This method parses a single string, where no prefix for static variables is needed.
+   */
   @Override
   public ParseResult parseString(String pCode) throws CParserException, InvalidConfigurationException {
 
-    IASTTranslationUnit[] unit = {parse(wrapCode(pCode))};
-    String[] prefix = {""};
-    return buildCFA(unit, prefix);
+    IASTTranslationUnit unit = parse(wrapCode(pCode));
+    String prefix = "";
+    List<Pair<IASTTranslationUnit, String>> returnParam = new ArrayList<>();
+    returnParam.add(Pair.of(unit, prefix));
+    return buildCFA(returnParam);
   }
 
   @Override
@@ -165,8 +166,8 @@ abstract class AbstractEclipseCParser<T> implements CParser {
     if (!(statements.length == 2 && statements[1] == null || statements.length == 1)) {
       throw new CParserException("Not exactly one statement in function body: " + body);
     }
-//TODO
-    return new ASTConverter(config, new FunctionScope(), logger, machine, "").convert(statements[0]);
+
+    return new ASTConverter(config, new FunctionScope(), logger, machine, "", false).convert(statements[0]);
   }
 
   protected static final int PARSER_OPTIONS =
@@ -204,42 +205,26 @@ abstract class AbstractEclipseCParser<T> implements CParser {
 
   protected abstract IASTTranslationUnit getASTTranslationUnit(T code) throws CParserException, CFAGenerationRuntimeException, CoreException;
 
-  private ParseResult buildCFA(IASTTranslationUnit[] ast, String[] staticVariablePrefix) throws CParserException, InvalidConfigurationException {
+  /**
+   * Builds the cfa out of a list of pairs of translation units and their appropriate prefixes for static variables
+   *
+   * @param asts a List of Pairs of translation units and the appropriate prefix for static variables
+   * @return
+   * @throws CParserException
+   * @throws InvalidConfigurationException
+   */
+  private ParseResult buildCFA(List<Pair<IASTTranslationUnit, String>> asts) throws CParserException, InvalidConfigurationException {
     cfaTimer.start();
     try {
-      CFABuilder[] builder = new CFABuilder[ast.length];
-      for(int i = 0; i < ast.length; i++) {
-
-        builder[i] = new CFABuilder(config, logger, machine, staticVariablePrefix[i]);
-        try {
-          ast[i].accept(builder[i]);
-        } catch (CFAGenerationRuntimeException e) {
-          throw new CParserException(e);
-        }
+      CFABuilder builder = new CFABuilder(config, logger, machine);
+      for(Pair<IASTTranslationUnit, String> ast : asts) {
+        builder.analyzeTranslationUnit(ast.getFirst(), ast.getSecond());
       }
 
-      Map<String, FunctionEntryNode> cfas = new HashMap<>();
-      SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
-      List<Pair<IADeclaration, String>> globalDeclarations = Lists.newArrayList();
-      for(CFABuilder b : builder) {
-        cfas.putAll(b.getCFAs());
-        cfaNodes.putAll(b.getCFANodes());
-        globalDeclarations.addAll(b.getGlobalDeclarations());
-      }
+      return builder.createCFA();
 
-      // remove global elements which are declarated in several files
-      Iterator<Pair<IADeclaration, String>> it = globalDeclarations.iterator();
-      HashSet<IADeclaration> globals = new HashSet<>();
-      while(it.hasNext()) {
-        Pair<IADeclaration, String> p = it.next();
-        if(globals.contains(p.getFirst())) {
-          it.remove();
-        } else {
-          globals.add(p.getFirst());
-        }
-      }
-
-      return new ParseResult(cfas, cfaNodes, globalDeclarations, Language.C);
+    } catch (CFAGenerationRuntimeException e) {
+      throw new CParserException(e);
     } finally {
       cfaTimer.stop();
     }

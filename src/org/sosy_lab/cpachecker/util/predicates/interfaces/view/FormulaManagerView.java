@@ -588,7 +588,7 @@ public class FormulaManagerView {
     return functionFormulaManager;
   }
 
-  UnsafeFormulaManager getUnsafeFormulaManager() {
+  public UnsafeFormulaManager getUnsafeFormulaManager() {
     return manager.getUnsafeFormulaManager(); // Unsafe
   }
 
@@ -644,8 +644,8 @@ public class FormulaManagerView {
     return manager.getInterface(extractFromView(pInstance));
   }
 
-  public <T extends Formula> T parse(Class<T> pClazz, String pS) throws IllegalArgumentException {
-    return wrapInView(manager.parse(pClazz, pS));
+  public BooleanFormula parse(String pS) throws IllegalArgumentException {
+    return wrapInView(manager.parse(pS));
   }
 
   public <T extends Formula> T  instantiate(T fView, SSAMap ssa) {
@@ -910,6 +910,10 @@ public class FormulaManagerView {
     }
 
     return atoms;
+  }
+
+  public boolean isPurelyArithmetic(Formula f) {
+    return myIsPurelyArithmetic(extractFromView(f));
   }
 
   // returns true if the given term is a pure arithmetic term

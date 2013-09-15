@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -65,6 +66,11 @@ class IndirectionVisitor implements CExpressionVisitor<Integer, RuntimeException
 
   @Override
   public Integer visit(CCastExpression pIastCastExpression) {
+    return pIastCastExpression.getOperand().accept(this);
+  }
+
+  @Override
+  public Integer visit(CComplexCastExpression pIastCastExpression) {
     return pIastCastExpression.getOperand().accept(this);
   }
 

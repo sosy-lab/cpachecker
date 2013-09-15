@@ -39,7 +39,6 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitState;
@@ -48,10 +47,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -96,7 +93,7 @@ public class ExplicitInterpolator {
     try {
       config      = Configuration.builder().build();
       transfer    = new ExplicitTransferRelation(config, pLogger, pMachineModel);
-      precision   = new ExplicitPrecision("", config, Optional.<VariableClassification>absent(), HashMultimap.<CFANode, String>create());
+      precision   = new ExplicitPrecision("", config, Optional.<VariableClassification>absent());
     }
     catch (InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration for checking path: " + e.getMessage(), e);

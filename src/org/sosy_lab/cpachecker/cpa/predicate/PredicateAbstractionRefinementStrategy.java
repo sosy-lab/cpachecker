@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -53,17 +54,22 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.defaults.AbstractStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateMapWriter.PredicateDumpFormat;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.FormulaMeasuring;
+import org.sosy_lab.cpachecker.util.predicates.FormulaMeasuring.FormulaMeasures;
+import org.sosy_lab.cpachecker.util.predicates.FormulaMeasuring.StatisticalIntValue;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
@@ -127,6 +133,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       description="After each refinement, dump the newly found predicates.")
   private boolean dumpPredicates = false;
 
+  @Option(name="refinement.dumpPredicatesFormat",
+      description="Format that should be used when dumping predicates after a refinement.")
+  private PredicateMapWriter.PredicateDumpFormat dumpPredicatesFormat = PredicateDumpFormat.SMTLIB2;
+
   @Option(name="refinement.dumpPredicatesFile",
       description="File name for the predicates dumped after refinements.")
   @FileOption(Type.OUTPUT_FILE)
@@ -138,8 +148,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PredicateAbstractionManager predAbsMgr;
+  private final FormulaMeasuring formulaMeasuring;
 
-  private class Stats implements Statistics {
+  private class Stats extends AbstractStatistics {
     @Override
     public String getName() {
       return "Predicate Abstraction Refiner";
@@ -147,13 +158,24 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      out.println("  Predicate creation:                 " + predicateCreation);
+      put(out, 1, "Predicate creation", predicateCreation);
+
       if (itpSimplification.getNumberOfIntervals() > 0) {
-        out.println("    Itp simplification with BDDs:     " + itpSimplification);
+        put(out, 2, "Itp simplification with BDDs", itpSimplification);
+
+        put(out, 3, "Conjunctions Delta", simplifyDeltaConjunctions);
+        put(out, 3, "Disjunctions Delta", simplifyDeltaDisjunctions);
+        put(out, 3, "Negations Delta", simplifyDeltaNegations);
+        put(out, 3, "Atoms Delta", simplifyDeltaAtoms);
+        put(out, 3, "Variables Delta", simplifyDeltaVariables);
+        put(out, 3, "Variables Before", simplifyVariablesBefore);
+        put(out, 3, "Variables After", simplifyVariablesAfter);
+        put(out, 3, "Sometimes Useless Variables", sometimesUselessVariables);
       }
-      out.println("  Precision update:                   " + precisionUpdate);
-      out.println("  ARG update:                         " + argUpdate);
+      put(out, 1, "Precision update", precisionUpdate);
+      put(out, 1, "ARG update", argUpdate);
       out.println();
+
       PredicateAbstractionRefinementStrategy.this.printStatistics(out);
       out.println("Number of refs with location-based cutoff:  " + numberOfRefinementsWithStrategy2);
       if (itpSimplification.getNumberOfIntervals() > 0) {
@@ -171,6 +193,15 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private final Timer argUpdate = new Timer();
   private final Timer itpSimplification = new Timer();
 
+  private StatisticalIntValue simplifyDeltaConjunctions = new StatisticalIntValue();
+  private StatisticalIntValue simplifyDeltaDisjunctions = new StatisticalIntValue();
+  private StatisticalIntValue simplifyDeltaNegations = new StatisticalIntValue();
+  private StatisticalIntValue simplifyDeltaAtoms = new StatisticalIntValue();
+  private StatisticalIntValue simplifyDeltaVariables = new StatisticalIntValue();
+  private StatisticalIntValue simplifyVariablesBefore = new StatisticalIntValue();
+  private StatisticalIntValue simplifyVariablesAfter = new StatisticalIntValue();
+  private Set<String> sometimesUselessVariables = new TreeSet<>();
+
   public PredicateAbstractionRefinementStrategy(final Configuration config,
       final LogManager pLogger, final FormulaManagerView pFormulaManager,
       final PredicateAbstractionManager pPredAbsMgr, final Solver pSolver)
@@ -183,6 +214,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     fmgr = pFormulaManager;
     bfmgr = pFormulaManager.getBooleanFormulaManager();
     predAbsMgr = pPredAbsMgr;
+    formulaMeasuring = new FormulaMeasuring(pFormulaManager);
   }
 
   private ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates;
@@ -221,6 +253,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       final BooleanFormula pInterpolant, PathFormula blockFormula) {
 
     BooleanFormula interpolant = pInterpolant;
+
+    FormulaMeasures itpBeforeSimple = formulaMeasuring.measure(interpolant);
+
     if (bfmgr.isTrue(interpolant)) {
       return Collections.<AbstractionPredicate>emptySet();
     }
@@ -234,6 +269,16 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       allPredsCount = predAbsMgr.extractPredicates(interpolant).size();
       interpolant = predAbsMgr.buildAbstraction(fmgr.uninstantiate(interpolant), blockFormula).asInstantiatedFormula();
       itpSimplification.stop();
+
+      FormulaMeasures itpAfterSimple = formulaMeasuring.measure(interpolant);
+      simplifyDeltaAtoms.setNextValue(itpAfterSimple.getAtoms() - itpBeforeSimple.getAtoms());
+      simplifyDeltaDisjunctions.setNextValue(itpAfterSimple.getDisjunctions() - itpBeforeSimple.getDisjunctions());
+      simplifyDeltaConjunctions.setNextValue(itpAfterSimple.getConjunctions() - itpBeforeSimple.getConjunctions());
+      simplifyDeltaNegations.setNextValue(itpAfterSimple.getNegations() - itpBeforeSimple.getNegations());
+      simplifyDeltaVariables.setNextValue(itpAfterSimple.getVariables().size() - itpBeforeSimple.getVariables().size());
+      simplifyVariablesBefore.setNextValue(itpBeforeSimple.getVariables().size());
+      simplifyVariablesAfter.setNextValue(itpAfterSimple.getVariables().size());
+      sometimesUselessVariables.addAll(Sets.difference(itpBeforeSimple.getVariables(), itpAfterSimple.getVariables()));
     }
 
     if (atomicPredicates) {
@@ -346,7 +391,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
             ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
             ImmutableSetMultimap.<String, AbstractionPredicate>of(),
             ImmutableSet.<AbstractionPredicate>of(),
-            newPredicates.values(), w);
+            newPredicates.values(), w, dumpPredicatesFormat);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not dump precision to file");
       }

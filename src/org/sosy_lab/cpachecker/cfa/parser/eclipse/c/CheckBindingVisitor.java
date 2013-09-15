@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatorVisitor;
@@ -95,6 +96,12 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
 
   @Override
   public Void visit(CCastExpression e) {
+    e.getOperand().accept(this);
+    return null;
+  }
+
+  @Override
+  public Void visit(CComplexCastExpression e) {
     e.getOperand().accept(this);
     return null;
   }

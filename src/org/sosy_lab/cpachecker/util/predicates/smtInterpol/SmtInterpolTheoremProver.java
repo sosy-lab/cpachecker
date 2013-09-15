@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.*;
 
 import java.util.ArrayDeque;
@@ -34,15 +34,14 @@ import java.util.Map;
 
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
-import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.base.Preconditions;
 
-import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 public class SmtInterpolTheoremProver implements ProverEnvironment {
@@ -61,7 +60,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
 
   @Override
   public boolean isUnsat() {
-    return env.checkSat() == LBool.UNSAT;
+    return !env.checkSat();
   }
 
   @Override
@@ -101,6 +100,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
     checkNotNull(rmgr);
     checkNotNull(solveTime);
     checkNotNull(enumTime);
+    checkArgument(!formulas.isEmpty());
 
     SmtInterpolEnvironment allsatEnv = env;
     checkNotNull(allsatEnv);
@@ -116,17 +116,9 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
     }
 
     solveTime.start();
-    int numModels = 0;
-    while (allsatEnv.checkSat() == LBool.SAT) {
+    allsatEnv.push(1);
+    while (allsatEnv.checkSat()) {
       Term[] model = new Term[importantTerms.length];
-
-      if (importantTerms.length == 0) {
-        // assert current model to get next model
-        result.callback(model);
-        throw new IllegalStateException("SMTInterpol could not compute model for satisfiable formula");
-      }
-
-      assert importantTerms.length != 0 : "there is no valuation for zero important terms!";
 
       Map<Term, Term> val = allsatEnv.getValue(importantTerms);
       for (int j = 0; j < importantTerms.length; j++) {
@@ -134,6 +126,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
         if (SmtInterpolUtil.isFalse(valueOfT)) {
           model[j] = allsatEnv.term("not", importantTerms[j]);
         } else {
+          assert SmtInterpolUtil.isTrue(valueOfT);
           model[j] = importantTerms[j];
         }
       }
@@ -147,10 +140,9 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
         notTerm = allsatEnv.term("not", allsatEnv.term("and", model));
       }
 
-      numModels++;
-      allsatEnv.push(1);
       allsatEnv.assertTerm(notTerm);
     }
+    allsatEnv.pop(1);
 
     if (solveTime.isRunning()) {
       solveTime.stop();
@@ -158,7 +150,6 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
       enumTime.stopOuter();
     }
 
-    allsatEnv.pop(numModels); // we pushed some levels on assertionStack, remove them
     return result;
   }
 
@@ -184,14 +175,6 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
       this.enumTime = pEnumTime;
     }
 
-/*
-     public void setInfiniteNumberOfModels() {
-      count = Integer.MAX_VALUE;
-      cubes.clear();
-      formula = rmgr.makeTrue();
-    }
-*/
-
     @Override
     public int getCount() {
       return count;
@@ -216,7 +199,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
       formula = cubes.remove();
     }
 
-    public void callback(Term[] model) { // TODO function needed for smtInterpol???
+    public void callback(Term[] model) {
       if (count == 0) {
         solveTime.stop();
         enumTime.startOuter();
@@ -258,7 +241,7 @@ public class SmtInterpolTheoremProver implements ProverEnvironment {
     }
 
     private BooleanFormula encapsulate(Term pT) {
-      return mgr.encapsulate(BooleanFormula.class, pT);
+      return mgr.encapsulateBooleanFormula(pT);
     }
   }
 }

@@ -25,24 +25,39 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.types;
 
 import java.util.Objects;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
- * We use this type to be able to track the type of structs
+ * This type represents the type of a field in a specific struct.
+ * It contains the actual type of the field (as declared in the source code)
+ * and a reference to the struct within which this field is declared.
  */
 public class CFieldTrackType extends CtoFormulaCType {
 
-  private final CType structType;
-  private final CType structTypeRepectingCasts;
   private final CType fieldType;
 
+  // This is the type of the owner expression (with casts eliminated) of the field access.
+  // It may be a CFieldTrackType, too.
+  // It is not necessarily the type of a struct, it can be any type,
+  // if there is a cast expression inside the field access expression.
+  private final CType ownerTypeWithoutCasts;
 
-  public CFieldTrackType(CType pFieldType, CType pStructType, CType pStructTypeRepectingCasts) {
-    structType = pStructType;
+  // This the type of the struct that is actually used in the field access.
+  private final CCompositeType structType;
+
+  // Example:
+  // In ((struct s*)p)->f
+  // fieldType is the type of the whole expression (== the type of f)
+  // ownerType is the type of p
+  // structTypeRespectingCasts is the type struct s
+
+  public CFieldTrackType(CType pFieldType, CType pOwnerTypeWithoutCasts,
+      CCompositeType pStructType) {
     fieldType = pFieldType;
-    structTypeRepectingCasts = pStructTypeRepectingCasts;
+    ownerTypeWithoutCasts = pOwnerTypeWithoutCasts;
+    structType = pStructType;
     assert !(fieldType instanceof CFieldTrackType);
-    assert !(structTypeRepectingCasts instanceof CFieldTrackType);
   }
 
   @Override
@@ -64,12 +79,12 @@ public class CFieldTrackType extends CtoFormulaCType {
     return fieldType;
   }
 
-  public CType getStructType() {
-    return structType;
+  public CType getOwnerTypeWithoutCasts() {
+    return ownerTypeWithoutCasts;
   }
 
-  public CType getStructTypeRepectingCasts() {
-    return structTypeRepectingCasts;
+  public CCompositeType getStructType() {
+    return structType;
   }
 
 
@@ -88,9 +103,9 @@ public class CFieldTrackType extends CtoFormulaCType {
   public int hashCode() {
     int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(structType);
+    result = prime * result + Objects.hashCode(ownerTypeWithoutCasts);
     result = prime * result + Objects.hashCode(fieldType);
-    result = prime * result + Objects.hashCode(structTypeRepectingCasts);
+    result = prime * result + Objects.hashCode(structType);
     return prime * result + super.hashCode();
   }
 
@@ -111,8 +126,8 @@ public class CFieldTrackType extends CtoFormulaCType {
 
     CFieldTrackType other = (CFieldTrackType) obj;
 
-    return Objects.equals(structType, other.structType) && Objects.equals(fieldType, other.fieldType)
-           && Objects.equals(structTypeRepectingCasts, other.structTypeRepectingCasts);
+    return Objects.equals(ownerTypeWithoutCasts, other.ownerTypeWithoutCasts) && Objects.equals(fieldType, other.fieldType)
+           && Objects.equals(structType, other.structType);
   }
 
   @Override
@@ -123,8 +138,8 @@ public class CFieldTrackType extends CtoFormulaCType {
   @Override
   public CFieldTrackType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return new CFieldTrackType(fieldType.getCanonicalType(pForceConst, pForceVolatile),
-                               structType.getCanonicalType(pForceConst, pForceVolatile),
-                               structTypeRepectingCasts.getCanonicalType(pForceConst, pForceVolatile));
+                               ownerTypeWithoutCasts.getCanonicalType(pForceConst, pForceVolatile),
+                               structType.getCanonicalType(pForceConst, pForceVolatile));
   }
 
 }

@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.As
 import org.sosy_lab.cpachecker.cpa.explicit.refiner.utils.ExplicitInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
@@ -79,7 +78,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   private boolean doLazyAbstraction = true;
 
   @Option(description="whether or not to avoid restarting at assume edges after a refinement")
-  private boolean avoidAssumes = true;
+  private boolean avoidAssumes = false;
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
@@ -105,8 +104,7 @@ public class ExplicitInterpolationBasedExplicitRefiner implements Statistics {
   */
   private final MachineModel machineModel;
 
-  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config, final LogManager pLogger,
-		  PathFormulaManager pathFormulaManager, final MachineModel pMachineModel)
+  protected ExplicitInterpolationBasedExplicitRefiner(Configuration config, final LogManager pLogger, final MachineModel pMachineModel)
       throws InvalidConfigurationException {
     config.inject(this);
 

@@ -109,8 +109,8 @@ public final class CTypedefType implements CType {
 
     CTypedefType other = (CTypedefType) obj;
 
-    return Objects.equals(name, other.name) && Objects.equals(isConst, other.isConst)
-           && Objects.equals(isVolatile, other.isVolatile) && Objects.equals(realType, other.realType);
+    return Objects.equals(name, other.name) && isConst == other.isConst
+           && isVolatile == other.isVolatile && Objects.equals(realType, other.realType);
   }
 
   @Override

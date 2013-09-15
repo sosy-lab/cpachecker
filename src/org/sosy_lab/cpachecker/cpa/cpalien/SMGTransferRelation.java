@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -171,7 +172,7 @@ public class SMGTransferRelation implements TransferRelation {
             "calloc"
         }));
 
-    public void dumpSMGPlot(String name, SMGState currentState, String location)
+    private void dumpSMGPlot(String name, SMGState currentState, String location)
     {
       if (exportSMGFilePattern != null) {
         if (name == null) {
@@ -403,6 +404,14 @@ public class SMGTransferRelation implements TransferRelation {
 
   final private SMGBuiltins builtins = new SMGBuiltins();
 
+  private void plotWhenConfigured(String pConfig, String pName, SMGState pState, String pLocation ) {
+    //TODO: A variation for more pConfigs
+
+    if (pConfig.equals(exportSMG) && pName != null){
+      builtins.dumpSMGPlot(pName, pState, pLocation);
+    }
+  }
+
   public SMGTransferRelation(Configuration config, LogManager pLogger,
       MachineModel pMachineModel) throws InvalidConfigurationException {
     config.inject(this);
@@ -433,6 +442,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     case StatementEdge:
       successor = handleStatement(smgState, (CStatementEdge) cfaEdge);
+      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
 
       // this is an assumption, e.g. if (a == b)
@@ -440,11 +450,13 @@ public class SMGTransferRelation implements TransferRelation {
       CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
       successor = handleAssumption(smgState, assumeEdge.getExpression(),
           cfaEdge, assumeEdge.getTruthAssumption());
+      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
 
     case FunctionCallEdge:
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) cfaEdge;
       successor = handleFunctionCall(smgState, functionCallEdge);
+      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
 
     // this is a return edge from function, this is different from return statement
@@ -453,6 +465,7 @@ public class SMGTransferRelation implements TransferRelation {
       CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
       successor = handleFunctionReturn(smgState, functionReturnEdge);
       successor.dropStackFrame(functionReturnEdge.getPredecessor().getFunctionName());
+      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
 
     case ReturnStatementEdge:
@@ -469,6 +482,7 @@ public class SMGTransferRelation implements TransferRelation {
         // TODO: Handle leaks at any program exit point (abort, etc.)
         successor.dropStackFrame(funcName);
       }
+      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
       break;
 
     default:
@@ -490,14 +504,10 @@ public class SMGTransferRelation implements TransferRelation {
       result = Collections.singleton(successor);
     }
 
-    if ( this.exportSMG.equals("never")) {
-      return result;
+    for (SMGState smg : result) {
+      plotWhenConfigured("every", null, smg, cfaEdge.getDescription());
     }
-    else if ( this.exportSMG.equals("every")) {
-      for (SMGState smg : result) {
-        builtins.dumpSMGPlot(null, smg, cfaEdge.getDescription());
-      }
-    }
+
     return result;
   }
 
@@ -755,7 +765,6 @@ public class SMGTransferRelation implements TransferRelation {
 
   private void addMissingInformation(CExpression pLValue, CRightHandSide pRValue) {
     missingInformationList.add(new MissingInformation(pLValue, pRValue, false));
-
   }
 
   private void assignFieldToState(SMGState newState, CFAEdge cfaEdge,
@@ -881,55 +890,68 @@ public class SMGTransferRelation implements TransferRelation {
     return rValue.accept(new IsNotZeroVisitor(newState, cfaEdge));
   }
 
+  private SMGState handleVariableDeclaration(SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
+    logger.log(Level.FINEST, "Handling variable declaration:", pVarDecl.toASTString());
+
+    String varName = pVarDecl.getName();
+    CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
+
+    SMGObject newObject;
+
+    if (pVarDecl.isGlobal()) {
+      newObject = pState.addGlobalVariable(cType, varName);
+    } else {
+      newObject = pState.getObjectForVisibleVariable(varName);
+
+      /*
+       *  The variable is not null if we seen the declaration already, for example in loops. Invalid
+       *  occurrences (variable really declared twice) should be caught for us by the parser. If we
+       *  already processed the declaration, we do nothing.
+       */
+      if (newObject == null) {
+        newObject = pState.addLocalVariable(cType, varName);
+      }
+    }
+
+    pState = handleInitializerForDeclaration(pState, newObject, pVarDecl, pEdge);
+    return pState;
+  }
+
   private SMGState handleDeclaration(SMGState smgState, CDeclarationEdge edge) throws CPATransferException {
     logger.log(Level.FINEST, ">>> Handling declaration");
-    SMGState newState = new SMGState(smgState);
 
+    SMGState newState;
     CDeclaration cDecl = edge.getDeclaration();
 
     if (cDecl instanceof CVariableDeclaration) {
-      CVariableDeclaration cVarDecl = (CVariableDeclaration) cDecl;
-      logger.log(Level.FINEST, "Handling variable declaration:", cVarDecl.toASTString());
-      String varName = cVarDecl.getName();
-
-      CType cType = expressionEvaluator.getRealExpressionType(cVarDecl);
-
-      SMGObject newObject;
-
-      CInitializer newInitializer = cVarDecl.getInitializer();
-
-      if (cVarDecl.isGlobal()) {
-        newObject = smgState.createObject(expressionEvaluator.getSizeof(edge, cType), varName);
-        logger.log(Level.FINEST, "Handling variable declaration: adding '", newObject, "' to global objects");
-        newState.addGlobalObject(newObject);
-
-        if (newInitializer == null) {
-          // global variables without initializer are set to 0 in C
-          writeValue(newState, newObject, 0, cType, SMGKnownSymValue.ZERO, edge);
-        }
-
-      } else {
-
-        //Check whether variable was already declared, for example in loops
-        // TODO explicitly check this
-        newObject = newState.getObjectForVisibleVariable(varName);
-
-        if(newObject == null) {
-
-          newObject = newState.addLocalVariable(cType, varName);
-          logger.log(Level.FINEST, "Handling variable declaration: adding '", newObject, "' to current stack");
-        }
-      }
-
-      if (newInitializer != null) {
-        logger.log(Level.FINEST, "Handling variable declaration: handling initializer");
-        newState = handleInitializer(newState, smgState, edge, newObject, 0, cType, newInitializer);
-      }
+      newState = handleVariableDeclaration(smgState, (CVariableDeclaration)cDecl, edge);
+    } else {
+      //TODO: Handle other declarations?
+      newState = new SMGState(smgState);
     }
     return newState;
   }
 
-  private SMGState handleInitializer(SMGState pNewState, SMGState pSmgState, CFAEdge pEdge,
+  private SMGState handleInitializerForDeclaration(SMGState pState, SMGObject pObject, CVariableDeclaration pVarDecl,
+      CDeclarationEdge pEdge) throws CPATransferException {
+
+    CInitializer newInitializer = pVarDecl.getInitializer();
+    CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
+
+    if (newInitializer != null) {
+      logger.log(Level.FINEST, "Handling variable declaration: handling initializer");
+
+      handleInitializer(pState, pEdge, pObject, 0, cType, newInitializer);
+    } else if (pVarDecl.isGlobal()) {
+
+      // Global variables without initializer are nullified in C
+      pState.writeValue(pObject, 0, cType, SMGKnownSymValue.ZERO);
+    }
+
+    return pState;
+  }
+
+  private SMGState handleInitializer(SMGState pNewState, CFAEdge pEdge,
       SMGObject pNewObject, int pOffset, CType pLValueType, CInitializer pInitializer)
       throws UnrecognizedCCodeException, CPATransferException {
 
@@ -940,7 +962,7 @@ public class SMGTransferRelation implements TransferRelation {
 
     } else if (pInitializer instanceof CInitializerList) {
 
-      return handleInitializerList(pNewState, pSmgState, pEdge,
+      return handleInitializerList(pNewState, pEdge,
           pNewObject, pOffset, pLValueType, ((CInitializerList) pInitializer));
     } else if (pInitializer instanceof CDesignatedInitializer) {
       // TODO handle CDesignatedInitializer
@@ -951,7 +973,7 @@ public class SMGTransferRelation implements TransferRelation {
     }
   }
 
-  private SMGState handleInitializerList(SMGState pNewState, SMGState pOldState, CFAEdge pEdge,
+  private SMGState handleInitializerList(SMGState pNewState, CFAEdge pEdge,
       SMGObject pNewObject, int pOffset, CType pLValueType, CInitializerList pNewInitializer)
       throws UnrecognizedCCodeException, CPATransferException {
 
@@ -960,12 +982,12 @@ public class SMGTransferRelation implements TransferRelation {
     if (realCType instanceof CArrayType) {
 
       CArrayType arrayType = (CArrayType) realCType;
-      return handleInitializerList(pNewState, pOldState, pEdge,
+      return handleInitializerList(pNewState, pEdge,
           pNewObject, pOffset, arrayType, pNewInitializer);
     } else if (realCType instanceof CCompositeType) {
 
       CCompositeType structType = (CCompositeType) realCType;
-      return handleInitializerList(pNewState, pOldState, pEdge,
+      return handleInitializerList(pNewState, pEdge,
           pNewObject, pOffset, structType, pNewInitializer);
     }
 
@@ -978,7 +1000,7 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
   private SMGState handleInitializerList(
-      SMGState pNewState, SMGState pOldState, CFAEdge pEdge,
+      SMGState pNewState, CFAEdge pEdge,
       SMGObject pNewObject, int pOffset, CCompositeType pLValueType,
       CInitializerList pNewInitializer)
       throws UnrecognizedCCodeException, CPATransferException {
@@ -1001,7 +1023,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       CType memberType = memberTypes.get(listCounter).getType();
 
-      pNewState = handleInitializer(pNewState, pOldState, pEdge, pNewObject, offset, memberType, initializer);
+      pNewState = handleInitializer(pNewState, pEdge, pNewObject, offset, memberType, initializer);
 
       offset = offset + expressionEvaluator.getSizeof(pEdge, memberType);
 
@@ -1014,7 +1036,7 @@ public class SMGTransferRelation implements TransferRelation {
   }
 
   private SMGState handleInitializerList(
-      SMGState pNewState, SMGState pOldState, CFAEdge pEdge,
+      SMGState pNewState, CFAEdge pEdge,
       SMGObject pNewObject, int pOffset, CArrayType pLValueType,
       CInitializerList pNewInitializer)
       throws UnrecognizedCCodeException, CPATransferException {
@@ -1029,7 +1051,7 @@ public class SMGTransferRelation implements TransferRelation {
 
       int offset = pOffset + listCounter * sizeOfType;
 
-      pNewState = handleInitializer(pNewState, pOldState, pEdge,
+      pNewState = handleInitializer(pNewState, pEdge,
           pNewObject, offset, pLValueType.getType(), initializer);
 
       listCounter++;
@@ -1119,6 +1141,11 @@ public class SMGTransferRelation implements TransferRelation {
 
     @Override
     public Boolean visit(CCastExpression exp) throws UnrecognizedCCodeException {
+      return exp.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CComplexCastExpression exp) throws UnrecognizedCCodeException {
       return exp.getOperand().accept(this);
     }
 
@@ -1713,7 +1740,6 @@ public class SMGTransferRelation implements TransferRelation {
       checkNotNull(missingCExpressionInformation);
       return missingCExpressionInformation;
     }
-
 
     public CExpression getMissingCLeftMemoryLocation() {
       checkNotNull(missingCLeftMemoryLocation);

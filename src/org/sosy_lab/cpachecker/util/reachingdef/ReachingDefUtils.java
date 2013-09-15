@@ -33,6 +33,7 @@ import java.util.Vector;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -169,6 +170,11 @@ public class ReachingDefUtils {
 
     @Override
     public String visit(CCastExpression pIastCastExpression) throws UnsupportedCCodeException {
+      return pIastCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public String visit(CComplexCastExpression pIastCastExpression) throws UnsupportedCCodeException {
       return pIastCastExpression.getOperand().accept(this);
     }
 

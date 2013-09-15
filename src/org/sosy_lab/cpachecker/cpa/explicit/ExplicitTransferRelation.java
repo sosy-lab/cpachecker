@@ -152,9 +152,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   private boolean missingAssumeInformation;
 
-  private final LogManager logger;
-  private final MachineModel machineModel;
-
   /**
    * This List is used to communicate the missing
    * Information needed from other cpas.
@@ -167,11 +164,13 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
    */
   private ExplicitState oldState;
 
-  public ExplicitTransferRelation(Configuration config, LogManager pLogger, MachineModel pMachineModel)
-      throws InvalidConfigurationException {
+  private final MachineModel machineModel;
+  private final LogManager logger;
+
+  public ExplicitTransferRelation(Configuration config, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
     config.inject(this);
-    logger= pLogger;
     machineModel = pMachineModel;
+    logger = pLogger;
   }
 
   @Override
@@ -219,7 +218,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     // visitor for getting the values of the actual parameters in caller function context
-    ExpressionValueVisitor visitor = new ExpressionValueVisitor();
+    ExplicitExpressionValueVisitor visitor = new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables);
 
     // get value of actual parameter in caller function context
     for (int i = 0; i < parameters.size(); i++) {
@@ -228,8 +227,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       if (exp instanceof JExpression) {
         value = ((JExpression) arguments.get(i)).accept(visitor);
-      } else {
+      } else if (exp instanceof CExpression) {
         value = ((CExpression) arguments.get(i)).accept(visitor);
+      } else {
+        throw new AssertionError("unknown expression: " + exp);
       }
 
       String paramName = parameters.get(i).getName();
@@ -263,7 +264,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     MemoryLocation functionReturnVar = MemoryLocation.valueOf(functionName, FUNCTION_RETURN_VAR, 0);
 
-    return handleAssignmentToVariable(functionReturnVar, expression, new ExpressionValueVisitor());
+    return handleAssignmentToVariable(functionReturnVar, expression,
+        new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables));
   }
 
   /**
@@ -342,10 +344,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     expression = optimizeAssumeForEvaluation(expression);
 
     // We need the visitor for missingInfoInformation
-    ExpressionValueVisitor evv = new ExpressionValueVisitor();
+    ExplicitExpressionValueVisitor evv = new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables);
 
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
-    Long value = getExpressionValue(expression, evv);
+    Long value = getExpressionValue(expression);
 
     // value is null, try to derive further information
     if (value == null) {
@@ -357,7 +359,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
         ((JExpression) expression).accept(avv);
 
-        if (avv.missingFieldAccessInformation || avv.missingEnumComparisonInformation) {
+        if (avv.hasMissingFieldAccessInformation() || avv.hasMissingEnumComparisonInformation()) {
           assert missingInformationRightJExpression != null;
           missingAssumeInformation = true;
         }
@@ -431,13 +433,12 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
 
     if (init instanceof AInitializerExpression) {
-
       // We need information from the expression evaluation,
       // so crate visitor here
-      ExpressionValueVisitor evv = new ExpressionValueVisitor();
+      ExplicitExpressionValueVisitor evv = new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables);
 
       IAExpression exp = ((AInitializerExpression) init).getExpression();
-      initialValue = getExpressionValue(exp, evv);
+      initialValue = getExpressionValue(exp);
 
       if (isMissingCExpressionInformation(evv, exp)) {
         addMissingInformation(memoryLocation, exp);
@@ -465,7 +466,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     return newElement;
   }
 
-  private boolean isMissingCExpressionInformation(ExpressionValueVisitor pEvv,
+  private boolean isMissingCExpressionInformation(ExplicitExpressionValueVisitor pEvv,
       IARightHandSide pExp) {
 
     return pExp instanceof CExpression
@@ -524,7 +525,8 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
           notScopedField = (JIdExpression) op1;
         }
 
-        return handleAssignmentToVariable(op1.toASTString(), op2, new ExpressionValueVisitor());
+        return handleAssignmentToVariable(op1.toASTString(), op2,
+            new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables));
     } else if (op1 instanceof APointerExpression) {
       // *a = ...
 
@@ -550,8 +552,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
     else if (op1 instanceof CFieldReference) {
       // a->b = ...
-
-      ExpressionValueVisitor v = new ExpressionValueVisitor();
+      ExplicitExpressionValueVisitor v = new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables);
 
       MemoryLocation memLoc = v.evaluateMemoryLocation((CFieldReference) op1);
 
@@ -560,15 +561,18 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
       }
 
       if (memLoc != null) {
-        return handleAssignmentToVariable(memLoc, op2, new ExpressionValueVisitor());
+        return handleAssignmentToVariable(memLoc, op2, v);
       }
+
+      return handleAssignmentToVariable(op1.toASTString(), op2,
+          new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables));
     }
 
     else if (op1 instanceof CArraySubscriptExpression || op1 instanceof AArraySubscriptExpression) {
       // array cell
       if (op1 instanceof CArraySubscriptExpression) {
 
-        ExpressionValueVisitor v = new ExpressionValueVisitor();
+        ExplicitExpressionValueVisitor v = new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables);
 
         MemoryLocation memLoc = v.evaluateMemoryLocation((CLeftHandSide) op1);
 
@@ -577,7 +581,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         }
 
         if (memLoc != null) {
-          return handleAssignmentToVariable(memLoc, op2, new ExpressionValueVisitor());
+          return handleAssignmentToVariable(memLoc, op2, v);
         }
       }
     } else {
@@ -593,7 +597,7 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   /** This method analyses the expression with the visitor and assigns the value to lParam.
    * The method returns a new state, that contains (a copy of) the old state and the new assignment. */
-  private ExplicitState handleAssignmentToVariable(String lParam, IARightHandSide exp, ExpressionValueVisitor visitor)
+  private ExplicitState handleAssignmentToVariable(String lParam, IARightHandSide exp, ExplicitExpressionValueVisitor visitor)
       throws UnrecognizedCCodeException {
 
     String assignedVar = getScopedVariableName(lParam, functionName);
@@ -605,40 +609,41 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   /** This method analyses the expression with the visitor and assigns the value to lParam.
    * The method returns a new state, that contains (a copy of) the old state and the new assignment. */
-   private ExplicitState handleAssignmentToVariable(MemoryLocation assignedVar, IARightHandSide exp, ExpressionValueVisitor visitor)
+   private ExplicitState handleAssignmentToVariable(MemoryLocation lParam, IARightHandSide exp, ExplicitExpressionValueVisitor visitor)
     throws UnrecognizedCCodeException {
 
     Long value;
-
-    if (exp instanceof JRightHandSide && !(exp instanceof CRightHandSide)) {
+    if (exp instanceof JRightHandSide) {
        value = ((JRightHandSide) exp).accept(visitor);
-    } else {
+    } else if (exp instanceof CRightHandSide) {
        value = ((CRightHandSide) exp).accept(visitor);
+    } else {
+      throw new AssertionError("unknown righthandside-expression: " + exp);
     }
 
-    if (visitor.missingPointer) {
+    if (visitor.hasMissingPointer()) {
       missingInformationRightExpression = exp;
       assert value == null;
     }
 
     if (isMissingCExpressionInformation(visitor, exp)) {
       // Evaluation
-      addMissingInformation(assignedVar, exp);
+      addMissingInformation(lParam, exp);
     }
 
     // here we clone the state, because we get new information or must forget it.
     ExplicitState newElement = state.clone();
 
-    if (visitor.missingFieldAccessInformation || visitor.missingEnumComparisonInformation) {
+    if (visitor.hasMissingFieldAccessInformation() || visitor.hasMissingEnumComparisonInformation()) {
       // This may happen if an object of class is created which could not be parsed,
       // In  such a case, forget about it
       if (value != null) {
-        newElement.forget(assignedVar);
+        newElement.forget(lParam);
         return newElement;
       } else {
-        missingInformationRightJExpression =  (JRightHandSide) exp;
+        missingInformationRightJExpression = (JRightHandSide) exp;
         if (!missingScopedFieldName) {
-          missingInformationLeftJVariable = assignedVar.getAsSimpleString();
+          missingInformationLeftJVariable = lParam.getAsSimpleString();
         }
       }
     }
@@ -650,10 +655,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         // Don't erase it when there if it has yet to be evaluated
         if (missingInformationRightJExpression == null) {
           // TODO HasToBeErased Later
-         newElement.forget(assignedVar);
+         newElement.forget(lParam);
         }
       } else {
-        newElement.assignConstant(assignedVar, value);
+        newElement.assignConstant(lParam, value);
       }
 
     }
@@ -693,12 +698,13 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   /**
    * Visitor that derives further information from an assume edge
    */
-  private class AssigningValueVisitor extends ExpressionValueVisitor {
+  private class AssigningValueVisitor extends ExplicitExpressionValueVisitor {
 
     private ExplicitState assignableState;
     protected boolean truthValue = false;
 
     public AssigningValueVisitor(ExplicitState assignableState, boolean truthValue) {
+      super(state, functionName, machineModel, globalVariables);
       this.assignableState = assignableState;
       this.truthValue = truthValue;
     }
@@ -836,8 +842,6 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
       boolean result = false;
 
-
-
       if (expression instanceof JIdExpression) {
 
         JSimpleDeclaration decl = ((JIdExpression) expression).getDeclaration();
@@ -851,13 +855,10 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
         }
       }
 
-
-
-
-
       return result;
     }
   }
+
 
   private class SMGAssigningValueVisitor extends AssigningValueVisitor {
 
@@ -897,10 +898,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
 
   }
 
-  private class PointerExpressionValueVisitor extends ExpressionValueVisitor {
+  private class PointerExpressionValueVisitor extends ExplicitExpressionValueVisitor {
     private final PointerState pointerState;
 
     public PointerExpressionValueVisitor(PointerState pPointerState) {
+      super(state, functionName, machineModel, globalVariables);
       pointerState = pPointerState;
     }
 
@@ -937,10 +939,11 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
   }
 }
 
-  private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
+  private class  FieldAccessExpressionValueVisitor extends ExplicitExpressionValueVisitor {
     private final RTTState jortState;
 
     public FieldAccessExpressionValueVisitor(RTTState pJortState) {
+      super(state, functionName, machineModel, globalVariables);
       jortState = pJortState;
     }
 
@@ -1042,36 +1045,28 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     }
   }
 
-  private Long getExpressionValue(IAExpression expression,
-      ExpressionValueVisitor evv) throws UnrecognizedCCodeException {
+  private Long getExpressionValue(IAExpression expression) throws UnrecognizedCCodeException {
 
     if (expression instanceof JRightHandSide
         && !(expression instanceof CRightHandSide)) {
 
+      ExplicitExpressionValueVisitor evv = new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables);
       Long value = ((JRightHandSide) expression).accept(evv);
 
-      if (evv.missingFieldAccessInformation
-          || evv.missingEnumComparisonInformation) {
+      if (evv.hasMissingFieldAccessInformation() || evv.hasMissingEnumComparisonInformation()) {
         missingInformationRightJExpression = (JRightHandSide) expression;
         return null;
       } else {
         return value;
       }
-    } else {
-
-      Long value = ((CRightHandSide) expression).accept(evv);
-
+    } else if (expression instanceof CRightHandSide) {
+      final Long value = ((CRightHandSide) expression).accept(
+          new ExplicitExpressionValueVisitor(state, functionName, machineModel, globalVariables));
       return value;
+
+    } else {
+      throw new AssertionError("unhandled righthandside-expression: " + expression);
     }
-  }
-
-  @SuppressWarnings("unused")
-  private Long getExpressionValue(IAExpression expression)
-      throws UnrecognizedCCodeException {
-
-    ExpressionValueVisitor evv = new ExpressionValueVisitor();
-
-    return getExpressionValue(expression, evv);
   }
 
   public String getScopedVariableName(String variableName, String functionName) {
@@ -1448,9 +1443,9 @@ public class ExplicitTransferRelation extends ForwardingTransferRelation<Explici
     throws UnrecognizedCCodeException {
     try {
       if (missingInformationRightExpression != null) {
-        ExpressionValueVisitor v = new PointerExpressionValueVisitor(pointerElement);
+        ExplicitExpressionValueVisitor v = new PointerExpressionValueVisitor(pointerElement);
 
-        if (missingInformationLeftVariable != null) {
+        if (missingInformationLeftVariable != null) { // TODO always null? there is no write-access.
           ExplicitState newElement = handleAssignmentToVariable(missingInformationLeftVariable, missingInformationRightExpression, v);
 
           return Collections.singleton(newElement);

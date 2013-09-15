@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Objects.firstNonNull;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -35,11 +36,11 @@ import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateMapWriter.PredicateDumpFormat;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -70,7 +72,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaMan
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
@@ -87,6 +88,10 @@ class PredicateCPAStatistics implements Statistics {
             name="predmap.file")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path predmapFile = Paths.get("predmap.txt");
+
+    @Option(description="format for exporting predicates of the final predicate map",
+        name="predmap.predicateFormat")
+    private PredicateMapWriter.PredicateDumpFormat predmapPredicateFormat = PredicateDumpFormat.SMTLIB2;
 
     @Option(description="export final loop invariants",
             name="invariants.export")
@@ -112,14 +117,18 @@ class PredicateCPAStatistics implements Statistics {
     private final AbstractionManager absmgr;
     private final CFA cfa;
 
+    private final Timer invariantGeneratorTime;
+
     public PredicateCPAStatistics(PredicateCPA pCpa, BlockOperator pBlk,
-        RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa)
+        RegionManager pRmgr, AbstractionManager pAbsmgr, CFA pCfa,
+        Timer pInvariantGeneratorTimer)
             throws InvalidConfigurationException {
       cpa = pCpa;
       blk = pBlk;
       rmgr = pRmgr;
       absmgr = pAbsmgr;
       cfa = pCfa;
+      invariantGeneratorTime = checkNotNull(pInvariantGeneratorTimer);
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
     }
 
@@ -172,7 +181,7 @@ class PredicateCPAStatistics implements Statistics {
         PredicateMapWriter writer = new PredicateMapWriter(cpa);
         writer.writePredicateMap(predicates.locationInstance,
             predicates.location, predicates.function, predicates.global,
-            allPredicates, w);
+            allPredicates, w, predmapPredicateFormat);
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write predicate map to file");
       }
@@ -302,6 +311,10 @@ class PredicateCPAStatistics implements Statistics {
       }
       out.println("Time for prec operator:              " + prec.totalPrecTime);
       if (prec.numAbstractions > 0) {
+        if (invariantGeneratorTime.getNumberOfIntervals() > 0) {
+          out.println("  Time for generating invariants:    " + invariantGeneratorTime);
+          out.println("  Time for extracting invariants:    " + prec.invariantGenerationTime);
+        }
         out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.printMaxTime() + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
         if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
           out.println("    Relevant predicate analysis:     " + as.trivialPredicatesTime);
@@ -359,17 +372,6 @@ class PredicateCPAStatistics implements Statistics {
       }
     }
 
-    private Pair<String, List<String>> splitFormula(FormulaManagerView pV, BooleanFormula pF) {
-      String s = pV.dumpFormula(pF).toString().trim();
-      List<String> lines = Lists.newArrayList(s.split("\n"));
-      assert !lines.isEmpty() : "Formula " + pF + " has empty string representation";
-      String predString = lines.get(lines.size()-1);
-      lines.remove(lines.size()-1);
-      assert (predString.startsWith("(assert ") && predString.endsWith(")")) : "Unexpected formula format: " + predString;
-
-      return Pair.of(predString, lines);
-    }
-
     private Map<CFANode, Region> getLoopHeadInvariants(ReachedSet reached) {
       Map<CFANode, Region> regions = Maps.newHashMap();
       for (AbstractState state : reached) {
@@ -394,8 +396,7 @@ class PredicateCPAStatistics implements Statistics {
         return;
       }
 
-      Set<String> uniqueDefs = new TreeSet<>();
-      StringBuilder defs = new StringBuilder();
+      Set<String> uniqueDefs = new HashSet<>();
       StringBuilder asserts = new StringBuilder();
 
       FormulaManagerView fmgr = cpa.getFormulaManager();
@@ -405,12 +406,12 @@ class PredicateCPAStatistics implements Statistics {
                              .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
           Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
           BooleanFormula formula = absmgr.toConcrete(region);
-          Pair<String, List<String>> locInvariant = splitFormula(fmgr, formula);
+          Pair<String, List<String>> locInvariant = PredicateMapWriter.splitFormula(fmgr, formula);
 
           for (String def : locInvariant.getSecond()) {
             if (uniqueDefs.add(def)) {
-              defs.append(def);
-              defs.append("\n");
+              invariants.append(def);
+              invariants.append("\n");
             }
           }
 
@@ -422,7 +423,6 @@ class PredicateCPAStatistics implements Statistics {
           asserts.append("\n\n");
         }
 
-        invariants.append(defs);
         invariants.append("\n");
         invariants.append(asserts);
 

@@ -43,8 +43,21 @@ public abstract class AbstractStatistics implements Statistics {
 
   private Map<String, Object> keyValueStats = new TreeMap<>();
 
+  /**
+   * Print a statistics line in a "pretty" fashion.
+   *
+   * @param pTarget     Write to this stream
+   * @param indentLevel Indentation level (0 = no indentation)
+   * @param pName       Left hand side (name/description)
+   * @param pValue      Right hand side (value)
+   */
+  protected void put(PrintStream pTarget, int indentLevel, String pName, Object pValue) {
+    String indentation = indentLevel > 0 ? String.format("%" + indentLevel * 2 + "s", "") : "";
+    pTarget.println(String.format("%-" + outputNameColWidth + "s %s", indentation + pName + ":", pValue));
+  }
+
   protected void put(PrintStream pTarget, String pName, Object pValue) {
-    pTarget.println(String.format("%-" + outputNameColWidth + "s %s", pName + ":", pValue));
+    put(pTarget, 0, pName, pValue);
   }
 
   public void addKeyValueStatistic(final String pName, final Object pValue) {

@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -134,12 +135,14 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   private final PathFormulaManager pfmgr;
   private final InterpolationManager formulaManager;
+  private final PathChecker pathChecker;
   private final RefinementStrategy strategy;
   private final PredicateStaticRefiner extractor;
 
   public PredicateCPARefiner(final Configuration config, final LogManager pLogger,
       final ConfigurableProgramAnalysis pCpa,
       final InterpolationManager pInterpolationManager,
+      final PathChecker pPathChecker,
       final FormulaManagerView pFormulaManager,
       final PathFormulaManager pPathFormulaManager,
       final RefinementStrategy pStrategy,
@@ -151,6 +154,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     logger = pLogger;
     formulaManager = pInterpolationManager;
+    pathChecker = pPathChecker;
     pfmgr = pPathFormulaManager;
     strategy = pStrategy;
     extractor = pExtractor;
@@ -238,7 +242,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         preciseCounterexample = counterexample;
       }
 
-      CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getCounterexample());
+      CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel());
 
       cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
           dumpCounterexampleFile);
@@ -326,7 +330,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       // try to create a better satisfying assignment by replaying this single path
       CounterexampleTraceInfo info2;
       try {
-        info2 = formulaManager.checkPath(targetPath.asEdgesList());
+        info2 = pathChecker.checkPath(targetPath.asEdgesList());
 
       } catch (CPATransferException e) {
         // path is now suddenly a problem

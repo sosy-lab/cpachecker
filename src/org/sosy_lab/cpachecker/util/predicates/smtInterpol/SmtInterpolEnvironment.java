@@ -25,22 +25,22 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.math.BigInteger;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
 import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
@@ -52,6 +52,8 @@ import de.uni_freiburg.informatik.ultimate.logic.Script.LBool;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
+import de.uni_freiburg.informatik.ultimate.logic.Theory;
+import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.ParseEnvironment;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.SMTInterpol;
 
 /** This is a Wrapper around SmtInterpol.
@@ -84,6 +86,9 @@ class SmtInterpolEnvironment {
     }
   }
 
+  @Option(description="Double check generated results like interpolants and models whether they are correct")
+  private boolean checkResults = true;
+
   @Option(description="Export solver queries in Smtlib format into a file.")
   private boolean logAllQueries = false;
 
@@ -96,6 +101,7 @@ class SmtInterpolEnvironment {
 
   /** the wrapped Script */
   private final Script script;
+  private final Theory theory;
 
   /** This Set stores declared functions.
    * It is used to guarantee, that functions are only declared once. */
@@ -113,24 +119,13 @@ class SmtInterpolEnvironment {
 
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
-  public SmtInterpolEnvironment(Configuration config, Logics pLogic) throws InvalidConfigurationException {
+  public SmtInterpolEnvironment(Configuration config, Logics pLogic,
+      final LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
 
-    Logger logger = Logger.getRootLogger(); // TODO use SosyLab-Logger
-    // levels: ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF:
-    logger.setLevel(Level.OFF);
-
-    SMTInterpol smtInterpol = new SMTInterpol(logger);
+    SMTInterpol smtInterpol = new SMTInterpol(createLog4jLogger(logger));
     if (logAllQueries && smtLogfile != null) {
-      String filename = getFilename(smtLogfile.getAbsolutePath());
-      try {
-        // create a thin wrapper around Benchmark,
-        // this allows to write most formulas of the solver to outputfile
-        script = new LoggingScript(smtInterpol, filename, true);
-      } catch (FileNotFoundException e) {
-        throw new AssertionError(e);
-      }
-
+      script = createLoggingWrapper(smtInterpol, logger);
     } else {
       script = smtInterpol;
     }
@@ -138,14 +133,66 @@ class SmtInterpolEnvironment {
     try {
       script.setOption(":produce-interpolants", true);
       script.setOption(":produce-models", true);
-      script.setOption(":verbosity", new BigInteger("2"));
+      if (checkResults) {
+        script.setOption(":interpolant-check-mode", true);
+        script.setOption(":unsat-core-check-mode", true);
+        script.setOption(":model-check-mode", true);
+      }
       script.setLogic(pLogic);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }
 
+    theory = smtInterpol.getTheory();
     trueTerm = term("true");
     falseTerm = term("false");
+  }
+
+  private Script createLoggingWrapper(SMTInterpol smtInterpol, final LogManager logger) {
+    String filename = getFilename(smtLogfile.getAbsolutePath());
+    try {
+      // create a thin wrapper around Benchmark,
+      // this allows to write most formulas of the solver to outputfile
+      return new LoggingScript(smtInterpol, filename, true);
+    } catch (FileNotFoundException e) {
+      logger.logUserException(Level.WARNING, e, "Coud not open log file for SMTInterpol queries");
+      // go on without logging
+      return smtInterpol;
+    }
+  }
+
+  private static org.apache.log4j.Logger createLog4jLogger(final LogManager ourLogger) {
+    org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger("SMTInterpol");
+    // levels: ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF:
+    // WARN is too noisy.
+    logger.setLevel(org.apache.log4j.Level.ERROR);
+    logger.addAppender(new org.apache.log4j.AppenderSkeleton() {
+
+      @Override
+      public boolean requiresLayout() {
+        return false;
+      }
+
+      @Override
+      public void close() {}
+
+      @Override
+      protected void append(org.apache.log4j.spi.LoggingEvent pArg0) {
+        // Always log at SEVERE because it is a ERROR message (see above).
+        ourLogger.log(Level.SEVERE,
+            pArg0.getLoggerName(),
+            pArg0.getLevel(),
+            "output:",
+            pArg0.getRenderedMessage());
+
+        org.apache.log4j.spi.ThrowableInformation throwable = pArg0.getThrowableInformation();
+        if (throwable != null) {
+          ourLogger.logException(Level.SEVERE, throwable.getThrowable(),
+              pArg0.getLoggerName() + " exception");
+        }
+      }
+    });
+    return logger;
   }
 
   public Term getTrueTerm() { return trueTerm; }
@@ -165,6 +212,30 @@ class SmtInterpolEnvironment {
     }
     logfileCounter++;
     return filename;
+  }
+
+  /** Parse a String to Terms and Declarations.
+   * The String may contain terms and function-declarations in SMTLIB2-format.
+   * Use Prefix-notation! */
+  public List<Term> parseStringToTerms(String s) {
+    FormulaCollectionScript parseScript = new FormulaCollectionScript(script, theory);
+    ParseEnvironment parseEnv = new ParseEnvironment(parseScript) {
+      @Override
+      public void printError(String pMessage) {
+        throw new SMTLIBException(pMessage);
+      }
+
+      @Override
+      public void printSuccess() { }
+    };
+
+    try {
+      parseEnv.parseStream(new StringReader(s), "<stdin>");
+    } catch (SMTLIBException e) {
+      throw new IllegalArgumentException("Could not parse term:" + e.getMessage(), e);
+    }
+
+    return parseScript.getAssertedTerms();
   }
 
   public void setOption(String opt, Object value) {
@@ -255,24 +326,29 @@ class SmtInterpolEnvironment {
     }
   }
 
-  /** This function adds the term on top of the stack.
-   * In most cases LBool.UNKNOWN is returned. */
-  public LBool assertTerm(Term term) {
+  /** This function adds the term on top of the stack. */
+  public void assertTerm(Term term) {
     assert stack.size() > 0 : "assertions should be on higher levels";
-    LBool result = null;
     try {
-      result = script.assertTerm(term);
+      script.assertTerm(term);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }
-    return result;
   }
 
   /** This function causes the SatSolver to check all the terms on the stack,
    * if their conjunction is SAT or UNSAT. */
-  public LBool checkSat() {
+  public boolean checkSat() {
     try {
-      return script.checkSat();
+      LBool result = script.checkSat();
+      switch (result) {
+      case SAT:
+        return true;
+      case UNSAT:
+        return false;
+      default:
+        throw new SMTLIBException("checkSat returned " + result);
+      }
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }

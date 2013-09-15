@@ -29,7 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class Multiply<ConstantType> implements InvariantsFormula<ConstantType> {
+public class Multiply<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   /**
    * The first factor of the multiplication.
@@ -84,7 +84,7 @@ public class Multiply<ConstantType> implements InvariantsFormula<ConstantType> {
   }
 
   @Override
-  public int hashCode() {
+  protected int hashCodeInternal() {
     return getFactor1().hashCode() * getFactor2().hashCode();
   }
 

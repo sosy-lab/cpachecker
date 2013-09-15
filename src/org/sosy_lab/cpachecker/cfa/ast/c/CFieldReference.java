@@ -56,9 +56,6 @@ public final class CFieldReference extends AExpression implements CLeftHandSide 
       boolean found = false;
       for (CCompositeTypeMemberDeclaration field : ((CCompositeType)structType).getMembers()) {
         if (field.getName().equals(name)) {
-          if (!field.getType().getCanonicalType().equals(getExpressionType().getCanonicalType())) {
-            throw new IllegalArgumentException("Illegal type " + getExpressionType() + " for access of field " + name + " in " + structType);
-          }
           found = true;
           break;
         }

@@ -55,3 +55,20 @@ class BaseTool(object):
         If not supported, this method does not need to get overridden.
         """
         pass
+
+
+    def getProgrammFiles(self, executable):
+        """
+        OPTIONAL, this method is only necessary for "cloud-mode".
+        Returns a list of files or directories, 
+        that are necessary to run the tool in "cloud-mode".
+        """
+        return []
+
+
+    def getWorkingDirectory(self, executable):
+        """
+        OPTIONAL, this method is only necessary for "cloud-mode".
+        Returns a working directory, that is used to run the tool in "cloud-mode".
+        """
+        return "."

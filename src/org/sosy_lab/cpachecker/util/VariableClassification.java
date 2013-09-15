@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
@@ -106,6 +107,10 @@ public class VariableClassification {
   @Option(name = "logfile", description = "Dump variable classification to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpfile = Paths.get("VariableClassification.log");
+
+  @Option(description = "Dump variable type mapping to a file.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path typeMapFile = Paths.get("VariableTypeMapping.txt");
 
   @Option(description = "Print some information about the variable classification.")
   private boolean printStatsOnStartup = false;
@@ -241,6 +246,32 @@ public class VariableClassification {
           logger.logUserException(Level.WARNING, e, "Could not write variable classification to file");
         }
       }
+
+      if (typeMapFile != null) {
+        dumpVariableTypeMapping(typeMapFile);
+      }
+    }
+  }
+
+  public void dumpVariableTypeMapping(Path target)  {
+    try (Writer w = Files.openOutputFile(target)) {
+      for (String function : getAllVars().keySet()) {
+        for (String var : getAllVars().get(function)) {
+          byte type = 0;
+          if (getBooleanVars().containsEntry(function, var)) {
+            type += 1;
+          }
+          if (getIntEqualVars().containsEntry(function, var)) {
+            type += 2;
+          }
+          if (getIntAddVars().containsEntry(function, var)) {
+            type += 4;
+          }
+          w.append(String.format("%s::%s\t%d\n", function, var, type));
+        }
+      }
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write variable type mapping to file");
     }
   }
 
@@ -775,6 +806,20 @@ public class VariableClassification {
 
     @Override
     public Multimap<String, String> visit(CCastExpression exp) {
+      BigInteger val = getNumber(exp.getOperand());
+      if (val == null) {
+        return exp.getOperand().accept(this);
+      } else {
+        values.add(val);
+        return null;
+      }
+    }
+
+    @Override
+    public Multimap<String, String> visit(CComplexCastExpression exp) {
+      // TODO complex numbers are not supported for evaluation right now, this
+      // way of handling the variables my be wrong
+
       BigInteger val = getNumber(exp.getOperand());
       if (val == null) {
         return exp.getOperand().accept(this);

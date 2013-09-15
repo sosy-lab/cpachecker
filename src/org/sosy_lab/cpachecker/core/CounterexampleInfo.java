@@ -39,17 +39,17 @@ public class CounterexampleInfo {
   private final boolean spurious;
 
   private final ARGPath targetPath;
-  private final Object assignment;
+  private final Model model;
 
   // list with additional information about the counterexample
   private final Collection<Pair<Object, File>> furtherInfo;
 
   private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null);
 
-  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath, Object pAssignment) {
+  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath, Model pModel) {
     spurious = pSpurious;
     targetPath = pTargetPath;
-    assignment = pAssignment;
+    model = pModel;
 
     if (!spurious) {
       furtherInfo = Lists.newArrayListWithExpectedSize(1);
@@ -62,8 +62,8 @@ public class CounterexampleInfo {
     return SPURIOUS;
   }
 
-  public static CounterexampleInfo feasible(ARGPath pTargetPath, Object pAssignment) {
-    return new CounterexampleInfo(false, pTargetPath, pAssignment);
+  public static CounterexampleInfo feasible(ARGPath pTargetPath, Model pModel) {
+    return new CounterexampleInfo(false, pTargetPath, pModel);
   }
 
   public boolean isSpurious() {
@@ -76,10 +76,10 @@ public class CounterexampleInfo {
     return targetPath;
   }
 
-  public Object getTargetPathAssignment() {
+  public Model getTargetPathModel() {
     checkState(!spurious);
 
-    return assignment;
+    return model;
   }
 
   /**

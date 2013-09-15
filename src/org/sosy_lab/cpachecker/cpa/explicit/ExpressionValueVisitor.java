@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -505,6 +506,12 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<Long, Unre
       return null;
     }
 
+    @Override
+    public MemoryLocation visit(CComplexCastExpression pComplexCastExpression) throws UnrecognizedCCodeException {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
   }
 
   private static class IsGlobalVisitor implements CLeftHandSideVisitor<Boolean, UnrecognizedCCodeException> {
@@ -535,6 +542,12 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<Long, Unre
 
     private boolean declarationIsGlobalScoped(CSimpleDeclaration pDecl) {
       return pDecl instanceof CVariableDeclaration ? ((CVariableDeclaration) pDecl).isGlobal() : false;
+    }
+
+    @Override
+    public Boolean visit(CComplexCastExpression pComplexCastExpression) throws UnrecognizedCCodeException {
+      // TODO Auto-generated method stub
+      return null;
     }
 
   }

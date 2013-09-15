@@ -33,9 +33,9 @@ import java.util.Deque;
 
 import org.sosy_lab.common.NestedTimer;
 import org.sosy_lab.common.Timer;
+import org.sosy_lab.cpachecker.core.Model;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
-import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -63,16 +63,14 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
 
   @Override
   public boolean isUnsat() {
-    int res = msat_solve(curEnv);
-    assert (res != MSAT_UNKNOWN);
-    return res == MSAT_UNSAT;
+    return !msat_check_sat(curEnv);
   }
 
   @Override
   public Model getModel() throws SolverException {
     Preconditions.checkState(curEnv != 0);
 
-    return Mathsat5Model.createMathsatModel(curEnv, mgr, USE_SHARED_ENV);
+    return Mathsat5Model.createMathsatModel(curEnv, mgr);
   }
 
   @Override
@@ -220,10 +218,10 @@ public class Mathsat5TheoremProver implements ProverEnvironment {
         if (msat_term_is_not(env, t)) {
           t = msat_term_get_arg(t, 0);
 
-          v = rmgr.getPredicate(prover.mgr.encapsulateTerm(BooleanFormula.class, t));
+          v = rmgr.getPredicate(prover.mgr.encapsulateBooleanFormula(t));
           v = rmgr.makeNot(v);
         } else {
-          v = rmgr.getPredicate(prover.mgr.encapsulateTerm(BooleanFormula.class, t));
+          v = rmgr.getPredicate(prover.mgr.encapsulateBooleanFormula(t));
         }
         curCube.add(v);
       }

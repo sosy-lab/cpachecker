@@ -21,7 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates;
+package org.sosy_lab.cpachecker.core;
+
+import static com.google.common.base.Preconditions.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -29,16 +31,25 @@ import java.util.Map;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.cpachecker.util.predicates.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.Model.AssignableTerm;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
 import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Multimap;
 
+/**
+ * This class represents an assignment of values to program variables
+ * along a path. Each variable can have several assignments with different
+ * SSA indices if it gets re-assigned along the path.
+ *
+ * The value of each variable can be an arbitrary object, but usually,
+ * this is a {@link Number}.
+ */
 public class Model extends ForwardingMap<AssignableTerm, Object> implements Appender {
 
   public static enum TermType {
@@ -185,25 +196,51 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
   }
 
   private final Map<AssignableTerm, Object> mModel;
-  private final BooleanFormula formulaRepresentation;
+  private final ImmutableSetMultimap<CFAEdge, AssignableTerm> assignments;
 
   @Override
   protected Map<AssignableTerm, Object> delegate() {
     return mModel;
   }
 
-  public Model(FormulaManagerView fmgr) {
+  public static Model empty() {
+    return new Model();
+  }
+
+  private Model() {
     mModel = ImmutableMap.of();
-    formulaRepresentation = fmgr.getBooleanFormulaManager().makeBoolean(true);
+    assignments = ImmutableSetMultimap.of();
   }
 
-  public Model(Map<AssignableTerm, Object> content, BooleanFormula f) {
+  public Model(Map<AssignableTerm, Object> content) {
     mModel = ImmutableMap.copyOf(content);
-    formulaRepresentation = f;
+    assignments = ImmutableSetMultimap.of();
   }
 
-  public BooleanFormula getFormulaRepresentation() {
-    return formulaRepresentation;
+  public Model(Map<AssignableTerm, Object> content, Multimap<CFAEdge, AssignableTerm> pAssignments) {
+    mModel = ImmutableMap.copyOf(content);
+    assignments = ImmutableSetMultimap.copyOf(pAssignments);
+    checkArgument(mModel.keySet().containsAll(assignments.values()));
+  }
+
+  /**
+   * Return a new model that is equal to the current one,
+   * but additionally has information about when each variable was assigned.
+   * @see Model#getAssignedTermsPerEdge()
+   */
+  public Model withAssignmentInformation(Multimap<CFAEdge, AssignableTerm> pAssignments) {
+    checkState(assignments.isEmpty());
+    return new Model(mModel, pAssignments);
+  }
+
+  /**
+   * Return a map that indicates which terms where assigned at which edge.
+   * Note that it is not guaranteed that this is information is present for
+   * all terms, thus <code>this.getAssignedTermsPerEdge().values()</code> may
+   * be smaller than <code>this.keySet()</code> (but not larger).
+   */
+  public ImmutableSetMultimap<CFAEdge, AssignableTerm> getAssignedTermsPerEdge() {
+    return assignments;
   }
 
   private static final MapJoiner joiner = Joiner.on('\n').withKeyValueSeparator(": ");

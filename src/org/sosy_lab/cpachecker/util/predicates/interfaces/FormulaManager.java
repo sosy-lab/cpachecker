@@ -69,7 +69,7 @@ public interface FormulaManager {
    */
   // TODO: Implement solver independent file format and remove this method from the solver interface
   // Instead implement the format in the View
-  public <T extends Formula> T parse(Class<T> clazz, String s) throws IllegalArgumentException;
+  public BooleanFormula parse(String s) throws IllegalArgumentException;
 
   /**
    * Returns the Interface-Class of the given Formula. For example BitvectorFormula.class.

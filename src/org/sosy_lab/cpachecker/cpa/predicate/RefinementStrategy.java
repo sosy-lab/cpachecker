@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.predicates.FormulaMeasuring.StatisticalIntValue;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
@@ -58,12 +59,26 @@ public abstract class RefinementStrategy {
   private int totalPathLengthToInfeasibility = 0; // measured in blocks
   private int totalNumberOfStatesWithNonTrivialInterpolant = 0;
   private int totalNumberOfAffectedStates = 0;
+  private int differentNontrivialInterpolants = 0;
+  private int equalNontrivialInterpolants = 0;
+
+
+  private StatisticalIntValue truePathPrefixStates = new StatisticalIntValue();
+  private StatisticalIntValue nonTrivialPathStates = new StatisticalIntValue();
+  private StatisticalIntValue falsePathSuffixStates = new StatisticalIntValue();
 
   protected void printStatistics(PrintStream out) {
     out.println("Avg. number of states with itp 'true':      " + div(totalUnchangedPrefixLength, numberOfSuccessfulRefinements));
     out.println("Avg. number of states with non-trivial itp: " + div(totalNumberOfStatesWithNonTrivialInterpolant, numberOfSuccessfulRefinements));
     out.println("Avg. length of refined path (in blocks):    " + div(totalPathLengthToInfeasibility, numberOfSuccessfulRefinements));
     out.println("Avg. number of affected states:             " + div(totalNumberOfAffectedStates, numberOfSuccessfulRefinements));
+
+    out.println("Length (states) of path with itp 'true':          " + truePathPrefixStates);
+    out.println("Length (states) of path with itp non-trivial itp: " + nonTrivialPathStates);
+    out.println("Length (states) of path with itp 'false':         " + falsePathSuffixStates);
+
+    out.println("Different non-trivial interpolants along paths:   " + differentNontrivialInterpolants);
+    out.println("Equal non-trivial interpolants along paths:       " + equalNontrivialInterpolants);
   }
 
 
@@ -78,26 +93,41 @@ public abstract class RefinementStrategy {
 
   public void performRefinement(ARGReachedSet pReached, List<ARGState> path,
       List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException {
+    // Do some statistics
     numberOfSuccessfulRefinements++;
 
+    // Hook
     startRefinementOfPath();
 
+    // The last state along the path is the target (error) state
     ARGState lastElement = path.get(path.size()-1);
     assert lastElement.isTarget();
 
-    path = path.subList(0, path.size()-1); // skip last element, itp is always false there
+    // Skip the last element of the path, itp is always false there
+    path = path.subList(0, path.size()-1);
     assert pInterpolants.size() ==  path.size();
 
     List<ARGState> changedElements = new ArrayList<>();
     ARGState infeasiblePartOfART = lastElement;
     boolean previousItpWasTrue = true;
+
+    // Statistics on the current refinement
+    int truePrefixStates = 0;
+    int nonTrivialStates = 0;
+    int falseSuffixStates = 0;
+
+    BooleanFormula lastItp = null;
+
+    // Traverse the path
     for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(pInterpolants, path)) {
       totalPathLengthToInfeasibility++;
       BooleanFormula itp = interpolationPoint.getFirst();
       ARGState w = interpolationPoint.getSecond();
 
+      // ...
       if (bfmgr.isTrue(itp)) {
         // do nothing
+        truePrefixStates++;
         totalUnchangedPrefixLength++;
         previousItpWasTrue =  true;
         continue;
@@ -105,6 +135,7 @@ public abstract class RefinementStrategy {
 
       if (bfmgr.isFalse(itp)) {
         // we have reached the part of the path that is infeasible
+        falseSuffixStates++;
         infeasiblePartOfART = w;
         if (previousItpWasTrue) {
           // If the previous itp was true, and the current one is false,
@@ -116,6 +147,18 @@ public abstract class RefinementStrategy {
         }
         break;
       }
+
+      // Compare non-trivial interpolants along path
+      if (lastItp != null) {
+        if (lastItp.equals(itp)) {
+          equalNontrivialInterpolants++;
+        } else {
+          differentNontrivialInterpolants++;
+        }
+      }
+      lastItp = itp;
+
+      nonTrivialStates++;
       totalNumberOfStatesWithNonTrivialInterpolant++;
       previousItpWasTrue = false;
 
@@ -138,7 +181,13 @@ public abstract class RefinementStrategy {
       throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
     }
 
+    // Hook
     finishRefinementOfPath(infeasiblePartOfART, changedElements, pReached, pRepeatedCounterexample);
+
+    // Update global statistics
+    truePathPrefixStates.setNextValue(truePrefixStates);
+    nonTrivialPathStates.setNextValue(nonTrivialStates);
+    falsePathSuffixStates.setNextValue(falseSuffixStates);
 
     assert !pReached.asReachedSet().contains(lastElement);
   }

@@ -29,7 +29,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -77,6 +76,7 @@ import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.eclipse.cdt.core.dom.ast.ICompositeType;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignator;
@@ -99,6 +99,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
@@ -130,6 +131,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -162,32 +164,41 @@ class ASTConverter {
         "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide")
   private boolean simplifyPointerExpressions = false;
 
+  private final boolean simplifyConstExpressions;
+  private final ExpressionSimplificationVisitor expressionSimplificator;
+
   private final LogManager logger;
   private final ASTLiteralConverter literalConverter;
   private final ASTTypeConverter typeConverter;
 
   private final Scope scope;
 
-  private int anonTypeCounter = 0;
+  // this counter is static to make the replacing names for anonymous types, in
+  // more than one file (which get parsed with different AstConverters, although
+  // they are in the same run) unique
+  private static int anonTypeCounter = 0;
 
   private final List<CAstNode> preSideAssignments = new ArrayList<>();
   private final List<CAstNode> postSideAssignments = new ArrayList<>();
-  private static final HashMap<String, String> replacedStaticNames = new HashMap<>();
-  private boolean isStaticNameExpression = false;
-  private String staticVariablePrefix;
+  private final String staticVariablePrefix;
 
   // this list is for ternary operators, &&, etc.
   private final List<Pair<IASTExpression, CIdExpression>> conditionalExpressions = new ArrayList<>();
 
   private static final ContainsProblemTypeVisitor containsProblemTypeVisitor = new ContainsProblemTypeVisitor();
 
-  public ASTConverter(Configuration config, Scope pScope, LogManager pLogger, MachineModel pMachineModel, String staticVariablePrefix) throws InvalidConfigurationException {
+  public ASTConverter(Configuration config, Scope pScope, LogManager pLogger,
+      MachineModel pMachineModel, String staticVariablePrefix,
+      boolean pSimplifyConstExpressions) throws InvalidConfigurationException {
     config.inject(this);
     scope = pScope;
     logger = pLogger;
-    typeConverter = new ASTTypeConverter(scope, this);
+    typeConverter = new ASTTypeConverter(scope, this, staticVariablePrefix);
     literalConverter = new ASTLiteralConverter(typeConverter, pMachineModel);
     this.staticVariablePrefix = staticVariablePrefix;
+    simplifyConstExpressions = pSimplifyConstExpressions;
+
+    expressionSimplificator = new ExpressionSimplificationVisitor(pMachineModel);
   }
 
   public List<CAstNode> getAndResetPreSideAssignments() {
@@ -247,6 +258,10 @@ class ASTConverter {
     } else {
       throw new AssertionError("unknown expression " + node);
     }
+  }
+
+  Pair<? extends CExpression, ? extends Number> simplifyAndEvaluateExpression(CExpression exp) {
+    return exp.accept(expressionSimplificator);
   }
 
   private CExpression addSideassignmentsForExpressionsWithoutSideEffects(CAstNode node,
@@ -356,6 +371,17 @@ class ASTConverter {
   }
 
   private CAstNode convert(IASTConditionalExpression e) {
+    if (simplifyConstExpressions) {
+      CExpression condition = convertExpressionWithoutSideEffects(e.getLogicalConditionExpression());
+      Number value = simplifyAndEvaluateExpression(condition).getSecond();
+
+      if (value != null && value.longValue() == 0) {
+        return convertExpressionWithSideEffects(e.getNegativeResultExpression());
+      } else {
+        return convertExpressionWithSideEffects(e.getPositiveResultExpression());
+      }
+    }
+
     CIdExpression tmp = createTemporaryVariable(e);
     addConditionalExpression(e, tmp);
     return tmp;
@@ -384,42 +410,25 @@ class ASTConverter {
    * creates temporary variables with increasing numbers
    */
   private CIdExpression createTemporaryVariable(IASTExpression e) {
-    String name = "__CPAchecker_TMP_";
-    int i = 0;
-    while (scope.variableNameInUse(name + i, name + i)) {
-      i++;
-    }
-    name += i;
-
-    CVariableDeclaration decl = new CVariableDeclaration(getLocation(e),
-                                               false,
-                                               CStorageClass.AUTO,
-                                               typeConverter.convert(e.getExpressionType()),
-                                               name,
-                                               name,
-                                               scope.createScopedNameOf(name),
-                                               null);
-
-    scope.registerDeclaration(decl);
-    preSideAssignments.add(decl);
-
-    CIdExpression tmp = new CIdExpression(getLocation(e),
-                                                typeConverter.convert(e.getExpressionType()),
-                                                name,
-                                                decl);
-    return tmp;
+    return createInitializedTemporaryVariable(e, null);
   }
 
   /**
-   * creates temporary variables with increasing numbers with a certain initializer
+   * creates temporary variables with increasing numbers with a certain initializer.
+   * If the initializer is 'null', no initializer will be created.
    */
-  private CIdExpression createInitializedTemporaryVariable(IASTExpression e, CExpression initializer) {
+  private CIdExpression createInitializedTemporaryVariable(IASTExpression e, @Nullable CExpression initializer) {
     String name = "__CPAchecker_TMP_";
     int i = 0;
     while (scope.variableNameInUse(name + i, name + i)) {
       i++;
     }
     name += i;
+
+    CInitializerExpression initExp = null;
+    if (initializer != null) {
+      initExp = new CInitializerExpression(getLocation(e), initializer);
+    }
 
     CVariableDeclaration decl = new CVariableDeclaration(getLocation(e),
                                                false,
@@ -428,7 +437,7 @@ class ASTConverter {
                                                name,
                                                name,
                                                scope.createScopedNameOf(name),
-                                               new CInitializerExpression(getLocation(e), initializer));
+                                               initExp);
 
     scope.registerDeclaration(decl);
     preSideAssignments.add(decl);
@@ -524,6 +533,11 @@ class ASTConverter {
 
   private CAstNode convert(IASTCastExpression e) {
     CExpression operand = convertExpressionWithoutSideEffects(e.getOperand());
+    if(e.getRawSignature().contains("__imag__")) {
+      return new CComplexCastExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), operand, convert(e.getTypeId()), false);
+    } else if (e.getRawSignature().contains("__real__")) {
+      return new CComplexCastExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), operand, convert(e.getTypeId()), true);
+    }
 
     if (e.getOperand() instanceof IASTFieldReference && ((IASTFieldReference)e.getOperand()).isPointerDereference()) {
       return createInitializedTemporaryVariable(e, new CCastExpression(getLocation(e), typeConverter.convert(e.getExpressionType()), operand, convert(e.getTypeId())));
@@ -595,9 +609,43 @@ class ASTConverter {
   }
 
   private CFieldReference convert(IASTFieldReference e) {
-    CType type = typeConverter.convert(e.getExpressionType());
     CExpression owner = convertExpressionWithoutSideEffects(e.getFieldOwner());
     String fieldName = convert(e.getFieldName());
+
+    if (e.getExpressionType() instanceof ICompositeType) {
+      ICompositeType compositeType = (ICompositeType)e.getExpressionType();
+      if (compositeType.getName().isEmpty()) {
+        // This is an access of a field with an anonymous struct as type.
+        // We gave the anonymous struct a real name (c.f. convert(IASTCompositeTypeDeclSpecifier))
+        // and now we need a CType as expression type that also has this new
+        // name in it. However, if we just call typeConverter.convert(e.getExpressionType())
+        // the name will be empty because CDT's IType instance has of course
+        // still the empty name (and there is no chance to get to the correct
+        // declaration and the new name if you only have the IType instance).
+        // So we lookup the correct CType here (where it is easy)
+        // and pre-create the mapping from the anonymous IType instance
+        // to the non-anonymous CType instance,
+        // which the ASTTypeConverter will then just use automatically.
+
+        CCompositeType ownerType = (CCompositeType)owner.getExpressionType().getCanonicalType();
+        CCompositeTypeMemberDeclaration field = null;
+        for (CCompositeTypeMemberDeclaration f : ownerType.getMembers()) {
+          if (fieldName.equals(f.getName())) {
+            field = f;
+            break;
+          }
+        }
+
+        if (field == null) {
+          throw new CFAGenerationRuntimeException("Cannot access field " + fieldName + " in " + ownerType + " in file " + staticVariablePrefix.split("__")[0], e);
+        }
+
+        CType fieldType = field.getType();
+        typeConverter.registerType(e.getExpressionType(), fieldType);
+      }
+    }
+
+    CType type = typeConverter.convert(e.getExpressionType());
 
     // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
     // if the owner is a FieldReference itself there's the need for a temporary Variable
@@ -671,12 +719,9 @@ class ASTConverter {
       params.add(convertExpressionWithoutSideEffects(toExpression(i)));
     }
 
-    if (replacedStaticNames.containsKey(e.getFunctionNameExpression().getRawSignature())) {
-      isStaticNameExpression = true;
-    }
-
     CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
     CFunctionDeclaration declaration = null;
+
 
     if (functionName instanceof CIdExpression) {
       CSimpleDeclaration d = ((CIdExpression)functionName).getDeclaration();
@@ -714,12 +759,12 @@ class ASTConverter {
   private CIdExpression convert(IASTIdExpression e) {
     String name = convert(e.getName());
 
-    if (isStaticNameExpression) {
-      if (replacedStaticNames.containsKey(name)) {
-        name = replacedStaticNames.get(name);
-      }
-      isStaticNameExpression = false;
+    // if this variable is a static variable it is in the scope
+    if (scope.lookupVariable(staticVariablePrefix + name) != null ||
+        scope.lookupFunction(staticVariablePrefix + name) != null) {
+      name = staticVariablePrefix + name;
     }
+
     // Try to find declaration.
     // Variables per se actually do not bind stronger than function,
     // but local variables do.
@@ -953,9 +998,13 @@ class ASTConverter {
     String name = declarator.getThird();
 
     if(cStorageClass == CStorageClass.STATIC) {
-      String replacedBy = staticVariablePrefix + name;
-      replacedStaticNames.put(name, replacedBy);
-      name = replacedBy;
+      name = staticVariablePrefix + name;
+      declSpec = new CFunctionTypeWithNames(declSpec.isConst(),
+                                            declSpec.isVolatile(),
+                                            declSpec.getReturnType(),
+                                            declSpec.getParameterDeclarations(),
+                                            declSpec.takesVarArgs());
+      declSpec.setName(name);
     }
 
     FileLocation fileLoc = getLocation(f);
@@ -1033,9 +1082,7 @@ class ASTConverter {
         if (initializer != null) {
           throw new CFAGenerationRuntimeException("Function definition with initializer", d);
         }
-        if (!isGlobal) {
-          throw new CFAGenerationRuntimeException("Non-global function definition", d);
-        }
+
         CFunctionTypeWithNames functionType = (CFunctionTypeWithNames)type;
         return new CFunctionDeclaration(fileLoc, functionType, name, functionType.getParameterDeclarations());
       }
@@ -1244,13 +1291,16 @@ class ASTConverter {
   private CType convert(IASTArrayModifier am, CType type) {
     if (am instanceof org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier) {
       org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier a = (org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier)am;
-      return new CArrayType(a.isConst(), a.isVolatile(), type, convertExpressionWithoutSideEffects(a.getConstantExpression()));
+      CExpression lengthExp = convertExpressionWithoutSideEffects(a.getConstantExpression());
+      if (lengthExp != null) {
+        lengthExp = simplifyAndEvaluateExpression(lengthExp).getFirst();
+      }
+      return new CArrayType(a.isConst(), a.isVolatile(), type, lengthExp);
 
     } else {
       throw new CFAGenerationRuntimeException("Unknown array modifier", am);
     }
   }
-
 
   private Triple<CType, IASTInitializer, String> convert(IASTFunctionDeclarator d, CType returnType) {
 
@@ -1352,6 +1402,7 @@ class ASTConverter {
     if (Strings.isNullOrEmpty(name)) {
       name = "__anon_type_" + anonTypeCounter++;
     }
+
     CCompositeType compositeType = new CCompositeType(d.isConst(), d.isVolatile(), kind, list, name);
 
     // in cases like struct s { (struct s)* f }
@@ -1372,7 +1423,11 @@ class ASTConverter {
         lastValue = null;
       }
     }
-    CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, convert(d.getName()));
+
+
+    String name = convert(d.getName());
+
+    CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, name);
     for (CEnumerator enumValue : enumType.getEnumerators()) {
       enumValue.setEnum(enumType);
     }

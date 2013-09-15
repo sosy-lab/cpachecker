@@ -32,14 +32,16 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
@@ -50,8 +52,9 @@ import com.google.common.collect.Sets;
  */
 class PredicateMapWriter {
 
-  private static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
+  public static enum PredicateDumpFormat {PLAIN, SMTLIB2}
 
+  private static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
   private static final Joiner LINE_JOINER = Joiner.on('\n');
 
   private final FormulaManagerView fmgr;
@@ -65,10 +68,14 @@ class PredicateMapWriter {
   }
 
   public void writePredicateMap(
-      SetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstancePredicates,
+      SetMultimap<Pair<CFANode, Integer>,
+      AbstractionPredicate> locationInstancePredicates,
       SetMultimap<CFANode, AbstractionPredicate> localPredicates,
-      SetMultimap<String, AbstractionPredicate> functionPredicates, Set<AbstractionPredicate> globalPredicates,
-      Collection<AbstractionPredicate> allPredicates, Appendable sb) throws IOException {
+      SetMultimap<String, AbstractionPredicate> functionPredicates,
+      Set<AbstractionPredicate> globalPredicates,
+      Collection<AbstractionPredicate> allPredicates,
+      Appendable sb,
+      PredicateDumpFormat outputFormat) throws IOException {
 
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
@@ -81,18 +88,17 @@ class PredicateMapWriter {
 
     // fill the above set and map
     for (AbstractionPredicate pred : allPredicates) {
-      String s = fmgr.dumpFormula(pred.getSymbolicAtom()).toString();
-      List<String> lines = Lists.newArrayList(LINE_SPLITTER.split(s));
-      assert !lines.isEmpty();
-      String predString = lines.get(lines.size()-1);
-      lines.remove(lines.size()-1);
-      if (!(predString.startsWith("(assert ") && predString.endsWith(")"))) {
-        sb.append("Writing predicate map is only supported for solvers which support the Smtlib2 format, please try using Mathsat5.\n");
-        return;
+      String predString;
+
+      if (outputFormat == PredicateDumpFormat.SMTLIB2) {
+        Pair<String, List<String>> p = splitFormula(fmgr, pred.getSymbolicAtom());
+        predString = p.getFirst();
+        definitions.addAll(p.getSecond());
+      } else {
+        predString = pred.getSymbolicAtom().toString();
       }
 
       predToString.put(pred, predString);
-      definitions.addAll(lines);
     }
 
     LINE_JOINER.appendTo(sb, definitions);
@@ -115,6 +121,19 @@ class PredicateMapWriter {
            + " " + loc.toString() + "@" + e.getKey().getSecond();
       writeSetOfPredicates(sb, key, e.getValue(), predToString);
     }
+  }
+
+  static Pair<String, List<String>> splitFormula(FormulaManagerView fmgr, BooleanFormula f) {
+    StringBuilder fullString = new StringBuilder();
+    Appenders.appendTo(fullString, fmgr.dumpFormula(f));
+
+    List<String> lines = LINE_SPLITTER.splitToList(fullString);
+    assert !lines.isEmpty();
+    String formulaString = Iterables.getLast(lines);
+    assert formulaString.startsWith("(assert ") && formulaString.endsWith(")") : "Unexpected formula format: " + formulaString;
+    List<String> declarations = lines.subList(0, lines.size()-1);
+
+    return Pair.of(formulaString, declarations);
   }
 
   private void writeSetOfPredicates(Appendable sb, String key,

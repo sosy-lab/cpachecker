@@ -80,6 +80,6 @@ public class JArrayType extends AArrayType implements JReferenceType {
 
       JArrayType other = (JArrayType) obj;
 
-      return Objects.equals(dimension, other.dimension);
+      return dimension == other.dimension;
     }
 }

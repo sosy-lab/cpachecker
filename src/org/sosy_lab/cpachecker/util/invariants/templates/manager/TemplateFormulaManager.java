@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.util.invariants.templates.TemplateFormula;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateTerm;
 import org.sosy_lab.cpachecker.util.invariants.templates.TemplateVariable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -105,7 +106,7 @@ public class TemplateFormulaManager implements FormulaManager {
   }
 
   @Override
-  public <T extends Formula> T parse(Class<T> pClazz, String pS) throws IllegalArgumentException {
+  public BooleanFormula parse(String pS) throws IllegalArgumentException {
     return null;
   }
 

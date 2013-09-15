@@ -27,8 +27,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
@@ -72,7 +75,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 /** This Class contains functions,
  * that convert types from C-source into CPAchecker-format. */
@@ -80,23 +82,57 @@ class ASTTypeConverter {
 
   private final Scope scope;
   private final ASTConverter converter;
+  private final String filePrefix;
 
-  ASTTypeConverter(Scope pScope, ASTConverter pConverter) {
+  ASTTypeConverter(Scope pScope, ASTConverter pConverter, String pFilePrefix) {
     scope = pScope;
     converter = pConverter;
+    filePrefix = pFilePrefix;
+    if (!typeConversions.containsKey(filePrefix)) {
+      typeConversions.put(filePrefix, new IdentityHashMap<IType, CType>());
+    }
   }
 
   /** cache for all ITypes, so that they don't have to be parsed again and again
    *  (Eclipse seems to give us identical objects for identical types already). */
-  private final static Map<IType, CType> typeConversions = Maps.newIdentityHashMap();
+  private final static Map<String, Map<IType, CType>> typeConversions = new HashMap<>();
+
+  /**
+   * This can be used to create (fake) mappings from IType to CType.
+   * Use only if you are absolutely sure that your CType corresponds to the
+   * given IType, and you cannot use the regular type conversion methods
+   * of this class.
+   * @see ASTConverter#convert(org.eclipse.cdt.core.dom.ast.IASTFieldReference) for an example
+   */
+  void registerType(IType cdtType, CType ourType) {
+    CType oldType = typeConversions.get(filePrefix).put(cdtType, ourType);
+    assert oldType == null || oldType.getCanonicalType().equals(ourType.getCanonicalType()): "Overwriting type conversion";
+  }
+
+  /**
+   * This can be used to rename a CType in case of Types with equal names but
+   * different fields, from different files.
+   */
+  void overwriteType(IType cdtType, CType ourType) {
+    typeConversions.get(filePrefix).put(cdtType, ourType);
+  }
+
+  IType getTypeFromTypeConversion(CType ourCType) {
+    for(Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
+      if (ourCType.equals(entry.getValue())) {
+        return entry.getKey();
+      }
+    }
+    return null;
+  }
 
   CType convert(IType t) {
-    CType result = typeConversions.get(t);
+    CType result = typeConversions.get(filePrefix).get(t);
     if (result == null) {
       result = checkNotNull(convert0(t));
       // re-check, in some cases we updated the map already
-      if (!typeConversions.containsKey(t)) {
-        typeConversions.put(t, result);
+      if (!typeConversions.get(filePrefix).containsKey(t)) {
+        typeConversions.get(filePrefix).put(t, result);
       }
     }
     return result;
@@ -129,11 +165,20 @@ class ASTTypeConverter {
       }
       String name = ct.getName();
       String qualifiedName = kind.toASTString() + " " + name;
+
       CComplexType oldType = scope.lookupType(qualifiedName);
-      if (oldType != null) {
-        // We have seen this type already.
-        // Replace it with a CElaboratedType.
+      int counter = 0;
+      while (oldType == null && counter < typeConversions.size() && typeConversions.size() > 1) {
+        oldType = scope.lookupType(qualifiedName + "__" + counter);
+        counter++;
+      }
+
+      // We have seen this type already.
+      // Replace it with a CElaboratedType.
+      if (oldType != null && counter == 0) {
         return new CElaboratedType(false, false, kind, name, oldType);
+      } else if (oldType != null) {
+        return new CElaboratedType(false, false, kind, name + "__" + counter, oldType);
       }
 
       // empty linkedList for the Fields of the struct, they are created afterwards
@@ -150,7 +195,7 @@ class ASTTypeConverter {
       // we cheat and put a CElaboratedType instance in the map.
       // This means that wherever the ICompositeType instance appears, it will be
       // replaced by an CElaboratedType.
-      typeConversions.put(t, new CElaboratedType(false, false, kind, name, compType));
+      typeConversions.get(filePrefix).put(t, new CElaboratedType(false, false, kind, name, compType));
 
       compType.setMembers(conv(ct.getFields()));
 
@@ -284,6 +329,9 @@ class ASTTypeConverter {
     } else {
       try {
         length = converter.convertExpressionWithoutSideEffects(t.getArraySizeExpression());
+        if (length != null) {
+          length = converter.simplifyAndEvaluateExpression(length).getFirst();
+        }
       } catch (DOMException e) {
         throw new CFAGenerationRuntimeException(e);
       }
@@ -363,7 +411,8 @@ class ASTTypeConverter {
     case IASTSimpleDeclSpecifier.t_typeof:
       // TODO This might loose some information of dd or dd.getDeclTypeExpression()
       // (the latter should be of type IASTTypeIdExpression)
-      return convert(dd.getDeclTypeExpression().getExpressionType());
+      CType ctype = convert(dd.getDeclTypeExpression().getExpressionType());
+      return ctype;
     default:
       throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType() + " "
           + dd.getClass().getSimpleName(), dd);
@@ -428,6 +477,14 @@ class ASTTypeConverter {
 
     String name = ASTConverter.convert(d.getName());
     CComplexType realType = scope.lookupType(type.toASTString() + " " + name);
+
+    int counter = 0;
+    while (realType == null && counter < typeConversions.size() && typeConversions.size() > 1) {
+      realType = scope.lookupType(type.toASTString() + " " + name + "__" + counter);
+      name = name + "__" + counter;
+      counter++;
+    }
+
     return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, realType);
   }
 

@@ -306,14 +306,14 @@ public class StateEqualsVisitor extends DefaultParameterizedFormulaVisitor<Compo
     }
     String leftVarName = pVariable.getName();
     InvariantsFormula<CompoundState> resolvedLeft = this.environment.get(leftVarName);
-    resolvedLeft = resolvedLeft == null ? InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.top()) : resolvedLeft;
+    resolvedLeft = resolvedLeft == null ? CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.top()) : resolvedLeft;
     if (pOther instanceof Variable<?>) {
       String rightVarName = ((Variable<?>) pOther).getName();
       if (leftVarName.equals(rightVarName)) {
         return true;
       }
       InvariantsFormula<CompoundState> resolvedRight = this.environment.get(rightVarName);
-      resolvedRight = resolvedRight == null ? InvariantsFormulaManager.INSTANCE.asConstant(CompoundState.top()) : resolvedRight;
+      resolvedRight = resolvedRight == null ? CompoundStateFormulaManager.INSTANCE.asConstant(CompoundState.top()) : resolvedRight;
       if (resolvedLeft.accept(this, resolvedRight)) {
         return true;
       }
