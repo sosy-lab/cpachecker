@@ -66,6 +66,7 @@ public abstract class PredicateRefiner implements Refiner {
         logger,
         fmgr,
         predicateCpa.getPredicateManager(),
+        staticRefiner,
         solver);
 
     return new PredicateCPARefiner(
@@ -76,7 +77,6 @@ public abstract class PredicateRefiner implements Refiner {
         pathChecker,
         fmgr,
         pfmgr,
-        strategy,
-        staticRefiner);
+        strategy);
   }
 }

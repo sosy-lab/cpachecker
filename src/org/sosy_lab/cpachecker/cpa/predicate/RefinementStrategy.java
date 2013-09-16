@@ -90,6 +90,9 @@ public abstract class RefinementStrategy {
     solver = pSolver;
   }
 
+  public boolean needsInterpolants() {
+    return true;
+  }
 
   public void performRefinement(ARGReachedSet pReached, List<ARGState> path,
       List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException {

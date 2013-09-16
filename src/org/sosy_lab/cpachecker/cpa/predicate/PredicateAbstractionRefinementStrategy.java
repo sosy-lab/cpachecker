@@ -144,10 +144,16 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
+  private int heuristicsCount = 0;
+
+  private boolean lastRefinementUsedHeuristics = false;
+
+
   protected final LogManager logger;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PredicateAbstractionManager predAbsMgr;
+  private final PredicateStaticRefiner staticRefiner;
   private final FormulaMeasuring formulaMeasuring;
 
   private class Stats extends AbstractStatistics {
@@ -204,7 +210,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   public PredicateAbstractionRefinementStrategy(final Configuration config,
       final LogManager pLogger, final FormulaManagerView pFormulaManager,
-      final PredicateAbstractionManager pPredAbsMgr, final Solver pSolver)
+      final PredicateAbstractionManager pPredAbsMgr,
+      final PredicateStaticRefiner pStaticRefiner, final Solver pSolver)
           throws CPAException, InvalidConfigurationException {
     super(pFormulaManager.getBooleanFormulaManager(), pSolver);
 
@@ -214,10 +221,45 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     fmgr = pFormulaManager;
     bfmgr = pFormulaManager.getBooleanFormulaManager();
     predAbsMgr = pPredAbsMgr;
+    staticRefiner = pStaticRefiner;
     formulaMeasuring = new FormulaMeasuring(pFormulaManager);
   }
 
   private ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates;
+
+
+  @Override
+  public boolean needsInterpolants() {
+    return !useStaticRefinement();
+  }
+
+  private boolean useStaticRefinement() {
+    return (staticRefiner != null) && (heuristicsCount == 0);
+  }
+
+  @Override
+  public void performRefinement(ARGReachedSet pReached, List<ARGState> pPath,
+      List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException {
+
+    pRepeatedCounterexample = !lastRefinementUsedHeuristics && pRepeatedCounterexample;
+
+    if (useStaticRefinement()) {
+      UnmodifiableReachedSet reached = pReached.asReachedSet();
+      ARGState root = (ARGState)reached.getFirstState();
+      ARGState refinementRoot = Iterables.getLast(root.getChildren());
+
+      PredicatePrecision heuristicPrecision = staticRefiner.extractPrecisionFromCfa();
+
+      pReached.removeSubtree(refinementRoot, heuristicPrecision, PredicatePrecision.class);
+
+      heuristicsCount++;
+      lastRefinementUsedHeuristics = true;
+    } else {
+      lastRefinementUsedHeuristics = false;
+      super.performRefinement(pReached, pPath, pInterpolants, pRepeatedCounterexample);
+    }
+  }
+
 
   @Override
   public void startRefinementOfPath() {

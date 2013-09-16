@@ -170,6 +170,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
             logger,
             formulaManager,
             predicateCpa.getPredicateManager(),
+            extractor,
             solver);
 
         return new PredicateCPARefiner(
@@ -180,8 +181,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
             pathChecker,
             formulaManager,
             pathFormulaManager,
-            backupRefinementStrategy,
-            extractor);
+            backupRefinementStrategy);
       }
   }
 

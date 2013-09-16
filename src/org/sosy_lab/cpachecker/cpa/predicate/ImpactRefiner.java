@@ -49,7 +49,6 @@ public abstract class ImpactRefiner implements Refiner {
     FormulaManagerView fmgr = predicateCpa.getFormulaManager();
     PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
     Solver solver = predicateCpa.getSolver();
-    PredicateStaticRefiner staticRefiner = predicateCpa.getStaticRefiner();
 
     InterpolationManager manager = new InterpolationManager(
         fmgr,
@@ -76,7 +75,6 @@ public abstract class ImpactRefiner implements Refiner {
         pathChecker,
         fmgr,
         pfmgr,
-        strategy,
-        staticRefiner);
+        strategy);
     }
 }
