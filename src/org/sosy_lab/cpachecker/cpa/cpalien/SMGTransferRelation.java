@@ -941,7 +941,7 @@ public class SMGTransferRelation implements TransferRelation {
     if (newInitializer != null) {
       logger.log(Level.FINEST, "Handling variable declaration: handling initializer");
 
-      handleInitializer(pState, pEdge, pObject, 0, cType, newInitializer);
+      return handleInitializer(pState, pEdge, pObject, 0, cType, newInitializer);
     } else if (pVarDecl.isGlobal()) {
 
       // Global variables without initializer are nullified in C
