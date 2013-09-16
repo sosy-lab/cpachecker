@@ -228,4 +228,51 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
     protected abstract R visitEquivalence(BooleanFormula operand1, BooleanFormula operand2);
     protected abstract R visitIfThenElse(BooleanFormula condition, BooleanFormula thenFormula, BooleanFormula elseFormula);
   }
+
+  public static abstract class DefaultBooleanFormulaVisitor<R> extends BooleanFormulaVisitor<R> {
+
+    protected DefaultBooleanFormulaVisitor(FormulaManagerView pFmgr) {
+      super(pFmgr);
+    }
+
+    @Override
+    protected R visitTrue() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitFalse() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitAtom(BooleanFormula pAtom) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitNot(BooleanFormula pOperand) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitAnd(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitOr(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected R visitIfThenElse(BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+      throw new UnsupportedOperationException();
+    }
+  }
 }

@@ -823,51 +823,15 @@ public class PredicateAbstractionManager {
    * This class can be used to extract the left argument of an "or" term.
    * E.g. "x | y" will give "x".
    */
-  private static class ExtractLeftArgumentOfOR extends BooleanFormulaManagerView.BooleanFormulaVisitor<BooleanFormula> {
+  private static class ExtractLeftArgumentOfOR extends BooleanFormulaManagerView.DefaultBooleanFormulaVisitor<BooleanFormula> {
 
     private ExtractLeftArgumentOfOR(FormulaManagerView pFmgr) {
       super(pFmgr);
     }
 
     @Override
-    protected BooleanFormula visitAnd(BooleanFormula pOperand1, BooleanFormula pOperand2) {
-      throw new IllegalArgumentException();
-    }
-
-    @Override
-    protected BooleanFormula visitTrue() {
-      throw new IllegalArgumentException();
-    }
-
-    @Override
-    protected BooleanFormula visitFalse() {
-      throw new IllegalArgumentException();
-    }
-
-    @Override
-    protected BooleanFormula visitAtom(BooleanFormula pAtom) {
-      throw new IllegalArgumentException();
-    }
-
-    @Override
-    protected BooleanFormula visitNot(BooleanFormula pOperand) {
-      throw new IllegalArgumentException();
-    }
-
-    @Override
     protected BooleanFormula visitOr(BooleanFormula pOperand1, BooleanFormula pOperand2) {
       return pOperand1;
-    }
-
-    @Override
-    protected BooleanFormula visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
-      throw new IllegalArgumentException();
-    }
-
-    @Override
-    protected BooleanFormula visitIfThenElse(BooleanFormula pCondition, BooleanFormula pThenFormula,
-        BooleanFormula pElseFormula) {
-      throw new IllegalArgumentException();
     }
   }
 }
