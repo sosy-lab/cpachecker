@@ -34,6 +34,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -1360,7 +1361,22 @@ public class CtoFormulaConverter {
 
   <T extends Formula> BooleanFormula toBooleanFormula(T pF) {
     // If this is not a predicate, make it a predicate by adding a "!= 0"
+    assert !fmgr.getFormulaType(pF).isBooleanType();
+
     T zero = fmgr.makeNumber(fmgr.getFormulaType(pF), 0);
+
+    if (bfmgr.isIfThenElse(pF)) {
+      Triple<BooleanFormula, T, T> parts = bfmgr.splitIfThenElse(pF);
+
+      T one = fmgr.makeNumber(fmgr.getFormulaType(pF), 1);
+
+      if (parts.getSecond().equals(one) && parts.getThird().equals(zero)) {
+        return parts.getFirst();
+      } else if (parts.getSecond().equals(zero) && parts.getThird().equals(one)) {
+        return bfmgr.not(parts.getFirst());
+      }
+    }
+
     return bfmgr.not(fmgr.makeEqual(pF, zero));
   }
 
