@@ -204,6 +204,10 @@ public final class CSimpleType implements CType {
       newType = CBasicType.INT;
     }
 
-    return new CSimpleType(isConst || pForceConst, isVolatile || pForceVolatile, newType, isLong, isShort, isSigned, isUnsigned, isComplex, isImaginary, isLongLong);
+    boolean newIsSigned = isSigned;
+    if (newType == CBasicType.INT && !isSigned && !isUnsigned) {
+      newIsSigned = true;
+    }
+    return new CSimpleType(isConst || pForceConst, isVolatile || pForceVolatile, newType, isLong, isShort, newIsSigned, isUnsigned, isComplex, isImaginary, isLongLong);
   }
 }
