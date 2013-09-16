@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.List;
 
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
@@ -127,6 +130,20 @@ public class BooleanFormulaManagerView extends BaseManagerView<BooleanFormula> i
   public <T extends Formula> boolean isIfThenElse(T pF) {
     FormulaManagerView viewManager = getViewManager();
     return manager.isIfThenElse(viewManager.extractFromView(pF));
+  }
+
+  public <T extends Formula> Triple<BooleanFormula, T, T> splitIfThenElse(T pF) {
+    checkArgument(isIfThenElse(pF));
+
+    FormulaManagerView fmgr = getViewManager();
+    UnsafeFormulaManager unsafe = fmgr.getUnsafeFormulaManager();
+    assert unsafe.getArity(pF) == 3;
+
+    BooleanFormula cond = wrapInView(unsafe.typeFormula(FormulaType.BooleanType, unsafe.getArg(pF, 0)));
+    T thenBranch = fmgr.wrapInView(unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 1)));
+    T elseBranch = fmgr.wrapInView(unsafe.typeFormula(fmgr.getFormulaType(pF), unsafe.getArg(pF, 2)));
+
+    return Triple.of(cond, thenBranch, elseBranch);
   }
 
   @Override
