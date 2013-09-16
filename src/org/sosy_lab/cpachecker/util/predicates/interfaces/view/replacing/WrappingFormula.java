@@ -31,15 +31,22 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RationalFormula;
 
 
 public abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
+
   private TWrap wrapped;
   private FormulaType<TOut> type;
+
   public WrappingFormula(FormulaType<TOut> type, TWrap toWrap) {
     wrapped = toWrap;
     this.type = type;
   }
 
-  public TWrap getWrapped() { return wrapped; }
-  public FormulaType<TOut> getType() { return type; }
+  public TWrap getWrapped() {
+    return wrapped;
+  }
+
+  public FormulaType<TOut> getType() {
+    return type;
+  }
 
   @Override
   public String toString() {
@@ -58,22 +65,27 @@ public abstract class WrappingFormula<TWrap extends Formula, TOut extends Formul
 }
 
 class WrappingBitvectorFormula<TWrap extends Formula>
-extends WrappingFormula<TWrap, BitvectorFormula>
-implements BitvectorFormula {
+    extends WrappingFormula<TWrap, BitvectorFormula>
+    implements BitvectorFormula {
+
   public WrappingBitvectorFormula(FormulaType<BitvectorFormula> type, TWrap pToWrap) {
     super(type, pToWrap);
   }
 }
+
 class WrappingRationalFormula<TWrap extends Formula>
-extends WrappingFormula<TWrap, RationalFormula>
-implements RationalFormula {
+    extends WrappingFormula<TWrap, RationalFormula>
+    implements RationalFormula {
+
   public WrappingRationalFormula(FormulaType<RationalFormula> type, TWrap pToWrap) {
     super(type, pToWrap);
   }
 }
+
 class WrappingBooleanFormula<TWrap extends Formula>
-extends WrappingFormula<TWrap, BooleanFormula>
-implements BooleanFormula {
+    extends WrappingFormula<TWrap, BooleanFormula>
+    implements BooleanFormula {
+
   public WrappingBooleanFormula(FormulaType<BooleanFormula> type, TWrap pToWrap) {
     super(type, pToWrap);
   }
