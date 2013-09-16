@@ -62,6 +62,11 @@ class AbstractFormula<TFormulaInfo> implements Formula, Serializable {
   public int hashCode() {
     return formulaInfo.hashCode();
   }
+
+  @Override
+  public String toString() {
+    return formulaInfo.toString();
+  }
 }
 
 /**
