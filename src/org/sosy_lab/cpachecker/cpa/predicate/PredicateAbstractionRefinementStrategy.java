@@ -248,7 +248,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       ARGState root = (ARGState)reached.getFirstState();
       ARGState refinementRoot = Iterables.getLast(root.getChildren());
 
-      PredicatePrecision heuristicPrecision = staticRefiner.extractPrecisionFromCfa();
+      PredicatePrecision heuristicPrecision = staticRefiner.extractPrecisionFromCfa(atomicPredicates);
 
       pReached.removeSubtree(refinementRoot, heuristicPrecision, PredicatePrecision.class);
 

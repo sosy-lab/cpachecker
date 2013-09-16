@@ -34,18 +34,17 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.StaticRefiner;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -58,14 +57,14 @@ public class PredicateStaticRefiner extends StaticRefiner {
 
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView formulaManagerView;
-  private final AbstractionManager abstractionManager;
+  private final PredicateAbstractionManager predAbsManager;
 
   public PredicateStaticRefiner(
       Configuration pConfig,
       LogManager pLogger,
       PathFormulaManager pPathFormulaManager,
       FormulaManagerView pFormulaManagerView,
-      AbstractionManager pAbstractionManager,
+      PredicateAbstractionManager pPredAbsManager,
       CFA pCfa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCfa);
 
@@ -73,7 +72,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
 
     this.pathFormulaManager = pPathFormulaManager;
     this.formulaManagerView = pFormulaManagerView;
-    this.abstractionManager = pAbstractionManager;
+    this.predAbsManager = pPredAbsManager;
   }
 
   /**
@@ -82,8 +81,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
    * @return a precision for the predicate CPA
    * @throws CPATransferException
    */
-  @Override
-  public PredicatePrecision extractPrecisionFromCfa() throws CPATransferException {
+  public PredicatePrecision extractPrecisionFromCfa(boolean atomicPredicates) throws CPATransferException {
     logger.log(Level.FINER, "Extracting precision from CFA...");
 
     Multimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
@@ -92,11 +90,19 @@ public class PredicateStaticRefiner extends StaticRefiner {
 
     for (CFANode targetLocation : locAssumes.keySet()) {
       for (AssumeEdge assume : locAssumes.get(targetLocation)) {
-        PathFormula relevantAssumesFormula = pathFormulaManager.makeFormulaForPath(Lists.newArrayList((CFAEdge) assume));
-        BooleanFormula assumeFormula = formulaManagerView.uninstantiate(relevantAssumesFormula.getFormula());
+        BooleanFormula relevantAssumesFormula = pathFormulaManager.makeAnd(
+            pathFormulaManager.makeEmptyPathFormula(),
+            assume).getFormula();
+
+        Collection<AbstractionPredicate> preds;
+        if (atomicPredicates) {
+          preds = predAbsManager.extractPredicates(relevantAssumesFormula);
+        } else {
+          preds = ImmutableList.of(predAbsManager.createPredicateFor(
+              formulaManagerView.uninstantiate(relevantAssumesFormula)));
+        }
 
         String function = assume.getPredecessor().getFunctionName();
-        AbstractionPredicate predicate = abstractionManager.makePredicate(assumeFormula);
 
         boolean applyGlobal = true;
         if (applyScoped) {
@@ -112,16 +118,16 @@ public class PredicateStaticRefiner extends StaticRefiner {
           }
 
           if (!applyGlobal) {
-            functionPredicates.put(function, predicate);
+            functionPredicates.putAll(function, preds);
           }
         }
 
         if (applyGlobal) {
-          logger.log(Level.FINEST, "Global predicate mined", predicate);
-          globalPredicates.add(predicate);
+          logger.log(Level.FINEST, "Global predicates mined", preds);
+          globalPredicates.addAll(preds);
         }
 
-        logger.log(Level.FINER, "Extraction result", "Function:", function, "Predicate:", predicate);
+        logger.log(Level.FINER, "Extraction result", "Function:", function, "Predicates:", preds);
       }
     }
 
@@ -133,5 +139,11 @@ public class PredicateStaticRefiner extends StaticRefiner {
         ArrayListMultimap.<CFANode, AbstractionPredicate>create(),
         functionPredicates,
         globalPredicates);
+  }
+
+  @Override
+  @Deprecated
+  public Precision extractPrecisionFromCfa() throws CPATransferException {
+    throw new UnsupportedOperationException();
   }
 }
