@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundState;
@@ -218,6 +221,27 @@ public enum CompoundStateFormulaManager {
     if (isDefinitelyTop(pOperand1) || isDefinitelyTop(pOperand2)) {
       return TOP;
     }
+    // Eliminate duplicate operands
+    Set<InvariantsFormula<CompoundState>> uniqueOperands = new HashSet<>();
+    Queue<InvariantsFormula<CompoundState>> unprocessedOperands = new ArrayDeque<>();
+    unprocessedOperands.offer(pOperand1);
+    unprocessedOperands.offer(pOperand2);
+    while (!unprocessedOperands.isEmpty()) {
+      InvariantsFormula<CompoundState> unprocessedOperand = unprocessedOperands.poll();
+      if (unprocessedOperand instanceof BinaryAnd<?>) {
+        BinaryAnd<CompoundState> and = (BinaryAnd<CompoundState>) unprocessedOperand;
+        unprocessedOperands.offer(and.getOperand1());
+        unprocessedOperands.offer(and.getOperand2());
+      } else {
+        uniqueOperands.add(unprocessedOperand);
+      }
+    }
+    assert !uniqueOperands.isEmpty();
+    Iterator<InvariantsFormula<CompoundState>> operandsIterator = uniqueOperands.iterator();
+    InvariantsFormula<CompoundState> result = operandsIterator.next();
+    while (operandsIterator.hasNext()) {
+      result = InvariantsFormulaManager.INSTANCE.binaryOr(result, operandsIterator.next());
+    }
     return InvariantsFormulaManager.INSTANCE.binaryAnd(pOperand1, pOperand2);
   }
 
@@ -255,7 +279,28 @@ public enum CompoundStateFormulaManager {
     if (isDefinitelyTop(pOperand1) || isDefinitelyTop(pOperand2)) {
       return TOP;
     }
-    return InvariantsFormulaManager.INSTANCE.binaryOr(pOperand1, pOperand2);
+    // Eliminate duplicate operands
+    Set<InvariantsFormula<CompoundState>> uniqueOperands = new HashSet<>();
+    Queue<InvariantsFormula<CompoundState>> unprocessedOperands = new ArrayDeque<>();
+    unprocessedOperands.offer(pOperand1);
+    unprocessedOperands.offer(pOperand2);
+    while (!unprocessedOperands.isEmpty()) {
+      InvariantsFormula<CompoundState> unprocessedOperand = unprocessedOperands.poll();
+      if (unprocessedOperand instanceof BinaryOr<?>) {
+        BinaryOr<CompoundState> or = (BinaryOr<CompoundState>) unprocessedOperand;
+        unprocessedOperands.offer(or.getOperand1());
+        unprocessedOperands.offer(or.getOperand2());
+      } else {
+        uniqueOperands.add(unprocessedOperand);
+      }
+    }
+    assert !uniqueOperands.isEmpty();
+    Iterator<InvariantsFormula<CompoundState>> operandsIterator = uniqueOperands.iterator();
+    InvariantsFormula<CompoundState> result = operandsIterator.next();
+    while (operandsIterator.hasNext()) {
+      result = InvariantsFormulaManager.INSTANCE.binaryOr(result, operandsIterator.next());
+    }
+    return result;
   }
 
   /**

@@ -350,7 +350,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
     if (!updateAssumptions(result, replaceVisitor, pValue, pVarName)) { return null; }
 
     result.visitedEdges.addAll(visitedEdges);
-    result.assumeInternal(CompoundStateFormulaManager.INSTANCE.equal(variable, pValue), getFormulaResolver());
+    result.assumeInternal(CompoundStateFormulaManager.INSTANCE.equal(variable, pValue), getFormulaResolver(pEdge));
 
     if (!result.collectInterestingAssumptions(CompoundStateFormulaManager.INSTANCE.equal(variable, pValue.accept(replaceVisitor)))) {
       return null;
@@ -688,7 +688,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       }
     }
     //return bfmgr.not(rfmgr.equal(rfmgr.makeVariable("ssl3_accept::blastFlag"), rfmgr.makeNumber(4)));
-    //System.out.println(this);
+    System.out.println(this);
     return result;
   }
 
