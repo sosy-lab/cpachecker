@@ -260,7 +260,9 @@ public class BMCAlgorithm implements Algorithm, StatisticsProvider {
       }
 
     } finally {
-      invariantGenerator.cancel();
+      if (invariantGenerator != null) {
+        invariantGenerator.cancel();
+      }
     }
   }
 
