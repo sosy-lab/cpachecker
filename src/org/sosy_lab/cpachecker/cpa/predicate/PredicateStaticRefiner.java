@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -46,7 +48,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -86,49 +87,48 @@ public class PredicateStaticRefiner extends StaticRefiner {
 
     Multimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
     Collection<AbstractionPredicate> globalPredicates         = Lists.newArrayList();
-    ListMultimap<CFANode, AssumeEdge> locAssumes              = getTargetLocationAssumes();
 
-    for (CFANode targetLocation : locAssumes.keySet()) {
-      for (AssumeEdge assume : locAssumes.get(targetLocation)) {
-        BooleanFormula relevantAssumesFormula = pathFormulaManager.makeAnd(
-            pathFormulaManager.makeEmptyPathFormula(),
-            assume).getFormula();
+    Set<AssumeEdge> assumeEdges = new HashSet<>(getTargetLocationAssumes().values());
 
-        Collection<AbstractionPredicate> preds;
-        if (atomicPredicates) {
-          preds = predAbsManager.extractPredicates(relevantAssumesFormula);
-        } else {
-          preds = ImmutableList.of(predAbsManager.createPredicateFor(
-              formulaManagerView.uninstantiate(relevantAssumesFormula)));
-        }
+    for (AssumeEdge assume : assumeEdges) {
+      BooleanFormula relevantAssumesFormula = pathFormulaManager.makeAnd(
+          pathFormulaManager.makeEmptyPathFormula(),
+          assume).getFormula();
 
-        String function = assume.getPredecessor().getFunctionName();
-
-        boolean applyGlobal = true;
-        if (applyScoped) {
-          for (String var : getQualifiedVariablesOfAssume(assume)) {
-            logger.log(Level.FINER, "Checking scope of", function, var);
-            if (isDeclaredInFunction(function, var)) {
-              // Apply the predicate in function scope
-              // as soon one of the variable the assumption talks about is local.
-              applyGlobal = false;
-              logger.log(Level.FINEST, "Local scoped variable mined", function, var);
-              break;
-            }
-          }
-
-          if (!applyGlobal) {
-            functionPredicates.putAll(function, preds);
-          }
-        }
-
-        if (applyGlobal) {
-          logger.log(Level.FINEST, "Global predicates mined", preds);
-          globalPredicates.addAll(preds);
-        }
-
-        logger.log(Level.FINER, "Extraction result", "Function:", function, "Predicates:", preds);
+      Collection<AbstractionPredicate> preds;
+      if (atomicPredicates) {
+        preds = predAbsManager.extractPredicates(relevantAssumesFormula);
+      } else {
+        preds = ImmutableList.of(predAbsManager.createPredicateFor(
+            formulaManagerView.uninstantiate(relevantAssumesFormula)));
       }
+
+      String function = assume.getPredecessor().getFunctionName();
+
+      boolean applyGlobal = true;
+      if (applyScoped) {
+        for (String var : getQualifiedVariablesOfAssume(assume)) {
+          logger.log(Level.FINER, "Checking scope of", function, var);
+          if (isDeclaredInFunction(function, var)) {
+            // Apply the predicate in function scope
+            // as soon one of the variable the assumption talks about is local.
+            applyGlobal = false;
+            logger.log(Level.FINEST, "Local scoped variable mined", function, var);
+            break;
+          }
+        }
+
+        if (!applyGlobal) {
+          functionPredicates.putAll(function, preds);
+        }
+      }
+
+      if (applyGlobal) {
+        logger.log(Level.FINEST, "Global predicates mined", preds);
+        globalPredicates.addAll(preds);
+      }
+
+      logger.log(Level.FINER, "Extraction result", "Function:", function, "Predicates:", preds);
     }
 
     logger.log(Level.FINER, "Extracting finished.");
