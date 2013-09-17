@@ -28,10 +28,8 @@ import java.io.FileNotFoundException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Triple;
@@ -43,6 +41,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 
 import de.uni_freiburg.informatik.ultimate.logic.Annotation;
+import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.LoggingScript;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.QuotedObject;
@@ -102,10 +101,6 @@ class SmtInterpolEnvironment {
   /** the wrapped Script */
   private final Script script;
   private final Theory theory;
-
-  /** This Set stores declared functions.
-   * It is used to guarantee, that functions are only declared once. */
-  private final Set<String> declaredFunctions = new HashSet<>();
 
   /** The stack contains a List of Declarations for each levels on the assertion-stack.
    * It is used to declare functions again, if stacklevels are popped. */
@@ -257,31 +252,23 @@ class SmtInterpolEnvironment {
    * It is possible to check, if the function was declared before.
    * If both ('check' and 'declared before') are true, nothing is done. */
   private void declareFun(String fun, Sort[] paramSorts, Sort resultSort, boolean check) {
-    String funRepr = functionToString(fun, paramSorts, resultSort);
-    if (check != declaredFunctions.contains(funRepr)) {
-      try {
-        script.declareFun(fun, paramSorts, resultSort);
-        declaredFunctions.add(funRepr);
-      } catch (SMTLIBException e) {
-        throw new AssertionError(e);
+    if (check) {
+      FunctionSymbol fsym = theory.getFunction(fun, paramSorts);
+
+      if (fsym == null) {
+        declareFun(fun, paramSorts, resultSort, false);
+      } else {
+        if (!fsym.getReturnSort().equals(resultSort)) {
+          throw new SMTLIBException("Function " + fun + " is already declared with different definition");
+        }
       }
-      if (stack.size() != 0) {
+
+    } else {
+      script.declareFun(fun, paramSorts, resultSort);
+      if (!stack.isEmpty()) {
         currentDeclarations.add(Triple.of(fun, paramSorts, resultSort));
       }
     }
-  }
-
-  /** This function returns a String-representation of a function-declaration.
-   * It can be used to get a hashable representation of a function.
-   * example:   "bool f (int int )"   */
-  private String functionToString(String fun, Sort[] paramSorts, Sort resultSort) {
-    StringBuilder str = new StringBuilder(resultSort.getName())
-        .append(" ").append(fun).append("(");
-    for (Sort paramSort : paramSorts) {
-      str.append(paramSort.getName()).append(" ");
-    }
-    str.append(")");
-    return str.toString();
   }
 
   public void push(int levels) {
