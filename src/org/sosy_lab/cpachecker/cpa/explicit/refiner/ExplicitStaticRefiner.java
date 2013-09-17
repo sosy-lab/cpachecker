@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.explicit.refiner;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -31,6 +32,7 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.explicit.ExplicitPrecision;
@@ -54,20 +56,16 @@ public class ExplicitStaticRefiner extends StaticRefiner {
     explicitPrecision = initialPrecision;
   }
 
-  @Override
   public ExplicitPrecision extractPrecisionFromCfa() throws CPATransferException {
     logger.log(Level.INFO, "Extracting precision from CFA...");
 
-    Set<AssumeEdge> assumeEdges = new HashSet<>(getTargetLocationAssumes().values());
-    Multimap<CFANode, String> increment           = HashMultimap.create();
+    Collection<CFANode> targetNodes = getTargetNodesWithCPA();
+    Set<AssumeEdge> assumeEdges = new HashSet<>(getTargetLocationAssumes(targetNodes).values());
+    Multimap<CFANode, String> increment = HashMultimap.create();
 
     for (AssumeEdge assume : assumeEdges) {
-      String function = assume.getPredecessor().getFunctionName();
-      for (String var : getQualifiedVariablesOfAssume(assume)) {
-        if (isDeclaredInFunction(function, var)) {
-          var = function + "::" + var;
-        }
-
+      for (CIdExpression idExpr : getVariablesOfAssume(assume)) {
+        String var = idExpr.getDeclaration().getQualifiedName();
         increment.put(assume.getSuccessor(), var);
       }
     }
