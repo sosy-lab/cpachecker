@@ -688,7 +688,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState {
       }
     }
     //return bfmgr.not(rfmgr.equal(rfmgr.makeVariable("ssl3_accept::blastFlag"), rfmgr.makeNumber(4)));
-    System.out.println(this);
+    //System.out.println(this);
     return result;
   }
 
