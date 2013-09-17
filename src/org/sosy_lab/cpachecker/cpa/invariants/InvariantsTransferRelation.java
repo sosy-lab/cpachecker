@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -320,10 +319,9 @@ public enum InvariantsTransferRelation implements TransferRelation {
     } else if (pLhs instanceof CCastExpression) {
       CCastExpression cast = (CCastExpression) pLhs;
       return getVarName(cast.getOperand(), pEdge);
-    } else if (pLhs instanceof CLiteralExpression) {
-      return pLhs.toString();
+    } else {
+      return pLhs.toString(); // This actually seems wrong but is currently the only way to deal with some cases of pointer arithmetics
     }
-    throw new UnrecognizedCCodeException("unknown left hand side of assignment", pEdge, pLhs);
   }
 
   static String scope(String pVar, String pFunction) {
