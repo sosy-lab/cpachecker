@@ -83,16 +83,16 @@ public enum CompoundStateFormulaManager {
   }
 
   public static boolean definitelyImplies(Collection<InvariantsFormula<CompoundState>> pFormulas, InvariantsFormula<CompoundState> pFormula) {
-    return definitelyImplies(pFormulas, pFormula, true, new HashMap<String, InvariantsFormula<CompoundState>>());
+    return definitelyImplies(pFormulas, pFormula, true, new HashMap<String, InvariantsFormula<CompoundState>>(), false);
   }
 
   public static boolean definitelyImplies(Collection<InvariantsFormula<CompoundState>> pFormulas, InvariantsFormula<CompoundState> pFormula, Map<String, InvariantsFormula<CompoundState>> pBaseEnvironment) {
-    return definitelyImplies(pFormulas, pFormula, true, new HashMap<>(pBaseEnvironment));
+    return definitelyImplies(pFormulas, pFormula, true, new HashMap<>(pBaseEnvironment), false);
   }
 
-  private static boolean definitelyImplies(Collection<InvariantsFormula<CompoundState>> pFormulas, InvariantsFormula<CompoundState> pFormula, boolean extend, Map<String, InvariantsFormula<CompoundState>> pEnvironment) {
+  private static boolean definitelyImplies(Collection<InvariantsFormula<CompoundState>> pFormulas, InvariantsFormula<CompoundState> pFormula, boolean pExtend, Map<String, InvariantsFormula<CompoundState>> pEnvironment, boolean pEnvironmentComplete) {
     final Collection<InvariantsFormula<CompoundState>> formulas;
-    if (extend) {
+    if (pExtend) {
       formulas = new HashSet<>();
       for (InvariantsFormula<CompoundState> formula : pFormulas) {
         formulas.addAll(formula.accept(SPLIT_CONJUNCTIONS_VISITOR));
@@ -102,9 +102,11 @@ public enum CompoundStateFormulaManager {
     }
     Map<String, InvariantsFormula<CompoundState>> tmpEnvironment = pEnvironment;
     PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(FORMULA_EVALUATION_VISITOR, tmpEnvironment);
-    for (InvariantsFormula<CompoundState> leftFormula : formulas) {
-      if (!leftFormula.accept(patev, CompoundState.logicalTrue())) {
-        return false;
+    if (!pEnvironmentComplete) {
+      for (InvariantsFormula<CompoundState> leftFormula : formulas) {
+        if (!leftFormula.accept(patev, CompoundState.logicalTrue())) {
+          return false;
+        }
       }
     }
     if (pFormula.accept(FORMULA_EVALUATION_VISITOR, tmpEnvironment).isDefinitelyTrue()) {
@@ -119,7 +121,7 @@ public enum CompoundStateFormulaManager {
         Collection<InvariantsFormula<CompoundState>> disjunctions = formula2Part.accept(SPLIT_DISJUNCTIONS_VISITOR);
         if (disjunctions.size() > 1) {
           for (InvariantsFormula<CompoundState> disjunctionPart : disjunctions) {
-            if (definitelyImplies(formulas, disjunctionPart, false, pEnvironment)) { // Potential for optimization: Do not extract environment information again
+            if (definitelyImplies(formulas, disjunctionPart, false, pEnvironment, true)) {
               continue outer;
             }
           }
@@ -180,7 +182,7 @@ public enum CompoundStateFormulaManager {
 
     Collection<InvariantsFormula<CompoundState>> leftFormulas = pFormula1.accept(SPLIT_CONJUNCTIONS_VISITOR);
 
-    return definitelyImplies(leftFormulas, pFormula2, false, new HashMap<String, InvariantsFormula<CompoundState>>());
+    return definitelyImplies(leftFormulas, pFormula2, false, new HashMap<String, InvariantsFormula<CompoundState>>(), false);
   }
 
   /**

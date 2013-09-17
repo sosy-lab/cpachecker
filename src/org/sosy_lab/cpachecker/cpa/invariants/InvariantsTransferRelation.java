@@ -25,11 +25,13 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -38,10 +40,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -69,7 +75,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
    * Base name of the variable that is introduced to pass results from
    * returning function calls.
    */
-  private static final String RETURN_VARIABLE_BASE_NAME = "___cpa_temp_result_var_";
+  static final String RETURN_VARIABLE_BASE_NAME = "___cpa_temp_result_var_";
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
@@ -78,6 +84,17 @@ public enum InvariantsTransferRelation implements TransferRelation {
 
     InvariantsState element = (InvariantsState)pElement;
 
+    element = getSuccessor(pEdge, element);
+
+    if (element == null) {
+      return Collections.emptySet();
+    } else {
+      return Collections.singleton(element);
+    }
+  }
+
+  private InvariantsState getSuccessor(CFAEdge pEdge, InvariantsState pState) throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException {
+    InvariantsState element = pState;
     if (!element.isRelevant(pEdge)) {
       element = null;
     } else {
@@ -105,17 +122,17 @@ public enum InvariantsTransferRelation implements TransferRelation {
       case StatementEdge:
         element = handleStatement(element, (CStatementEdge)pEdge);
         break;
-
+      case MultiEdge:
+        Iterator<CFAEdge> edgeIterator = ((MultiEdge) pEdge).iterator();
+        while (element != null && edgeIterator.hasNext()) {
+          element = getSuccessor(edgeIterator.next(), element);
+        }
+        break;
       default:
         throw new UnrecognizedCFAEdgeException(pEdge);
       }
     }
-
-    if (element == null) {
-      return Collections.emptySet();
-    } else {
-      return Collections.singleton(element);
-    }
+    return element;
   }
 
   private InvariantsState handleAssume(InvariantsState pElement, CAssumeEdge pEdge) throws UnrecognizedCCodeException {
@@ -142,7 +159,8 @@ public enum InvariantsTransferRelation implements TransferRelation {
     if (!pEdge.getTruthAssumption()) {
       expressionFormula = CompoundStateFormulaManager.INSTANCE.logicalNot(expressionFormula);
     }
-    return pElement.assume(expressionFormula, pEdge);
+    InvariantsState result = pElement.assume(expressionFormula, pEdge);
+    return result;
   }
 
   private InvariantsState handleDeclaration(InvariantsState pElement, CDeclarationEdge pEdge) throws UnrecognizedCCodeException {
@@ -289,15 +307,26 @@ public enum InvariantsTransferRelation implements TransferRelation {
       CExpression owner = arraySubscript.getArrayExpression();
       if (subscript instanceof CIntegerLiteralExpression) {
         CIntegerLiteralExpression literal = (CIntegerLiteralExpression) subscript;
-        return getVarName(owner, pEdge, pFunctionName) + "[" + literal.asLong()  + "]";
+        return String.format("%s[%d]", getVarName(owner, pEdge, pFunctionName), literal.asLong());
       } else {
-        return getVarName(owner, pEdge, pFunctionName) + "[*]";
+        return String.format("%s[*]", getVarName(owner, pEdge, pFunctionName));
       }
+    } else if (pLhs instanceof CPointerExpression) {
+      CPointerExpression pe = (CPointerExpression) pLhs;
+      if (pe.getOperand() instanceof CLeftHandSide) {
+        return String.format("*(%s)", getVarName(pe.getOperand(), pEdge));
+      }
+      return pLhs.toString();
+    } else if (pLhs instanceof CCastExpression) {
+      CCastExpression cast = (CCastExpression) pLhs;
+      return getVarName(cast.getOperand(), pEdge);
+    } else if (pLhs instanceof CLiteralExpression) {
+      return pLhs.toString();
     }
     throw new UnrecognizedCCodeException("unknown left hand side of assignment", pEdge, pLhs);
   }
 
-  private static String scope(String pVar, String pFunction) {
+  static String scope(String pVar, String pFunction) {
     return pFunction + "::" + pVar;
   }
 
@@ -309,7 +338,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
     return null;
   }
 
-  private ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge) {
+  public ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge) {
     return getExpressionToFormulaVisitor(new VariableNameExtractor() {
 
       @Override
@@ -319,7 +348,7 @@ public enum InvariantsTransferRelation implements TransferRelation {
     });
   }
 
-  private ExpressionToFormulaVisitor getExpressionToFormulaVisitor(VariableNameExtractor pVariableNameExtractor) {
+  public ExpressionToFormulaVisitor getExpressionToFormulaVisitor(VariableNameExtractor pVariableNameExtractor) {
     return new ExpressionToFormulaVisitor(pVariableNameExtractor);
   }
 }
