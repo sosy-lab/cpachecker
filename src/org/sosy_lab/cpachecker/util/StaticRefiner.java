@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.SplitMultiEdgesCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -133,36 +134,32 @@ abstract public class StaticRefiner {
 
     private void determinScopes() {
       declaredInFunction.clear();
-      CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), new DefaultCFAVisitor() {
+      CFATraversal.dfs().traverseOnce(cfa.getMainFunction(),
+          new SplitMultiEdgesCFAVisitor(new DefaultCFAVisitor() {
 
         @Override
         public TraversalProcess visitEdge(CFAEdge pEdge) {
-          if (pEdge instanceof MultiEdge) {
-            for (CFAEdge edge : ((MultiEdge)pEdge).getEdges()) {
-              visitEdge(edge);
-            }
+          assert !(pEdge instanceof MultiEdge);
 
-          } else {
-            String function = pEdge.getPredecessor().getFunctionName();
+          String function = pEdge.getPredecessor().getFunctionName();
 
-            if (pEdge instanceof CDeclarationEdge) {
-              CDeclaration decl = ((CDeclarationEdge) pEdge).getDeclaration();
-              if (!decl.isGlobal()) {
-                if (decl instanceof CFunctionDeclaration) {
-                  CFunctionDeclaration fdecl = (CFunctionDeclaration) decl;
-                  for (CParameterDeclaration param: fdecl.getParameters()) {
-                    declaredInFunction.put(function, param.getName());
-                  }
-
-                } else if (decl instanceof CVariableDeclaration) {
-                  declaredInFunction.put(function, decl.getName());
+          if (pEdge instanceof CDeclarationEdge) {
+            CDeclaration decl = ((CDeclarationEdge) pEdge).getDeclaration();
+            if (!decl.isGlobal()) {
+              if (decl instanceof CFunctionDeclaration) {
+                CFunctionDeclaration fdecl = (CFunctionDeclaration) decl;
+                for (CParameterDeclaration param: fdecl.getParameters()) {
+                  declaredInFunction.put(function, param.getName());
                 }
+
+              } else if (decl instanceof CVariableDeclaration) {
+                declaredInFunction.put(function, decl.getName());
               }
             }
           }
           return TraversalProcess.CONTINUE;
         }
-      });
+      }));
     }
   }
 

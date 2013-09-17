@@ -32,6 +32,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
@@ -390,6 +391,41 @@ public class CFATraversal {
         }
       }
       return totalResult;
+    }
+  }
+
+
+  /**
+   * An implementation of {@link CFAVisitor} that delegates to another visitor
+   * and splits {@link MultiEdge}s into their contained edges during the process.
+   *
+   * No additional CFANodes are visited, only edges.
+   * The edges of one MultiEdge are always handled in one sequence
+   * from start to end (forwads), with no other edges or nodes in between,
+   * regardless of the actual CFATraversal instance.
+   * Thus it is best to use this implementation only with CFATraversal.dfs().
+   */
+  public static class SplitMultiEdgesCFAVisitor extends CFATraversal.ForwardingCFAVisitor {
+
+    protected SplitMultiEdgesCFAVisitor(CFAVisitor pDelegate) {
+      super(pDelegate);
+    }
+
+    @Override
+    public TraversalProcess visitEdge(CFAEdge pEdge) {
+      if (pEdge instanceof MultiEdge) {
+        for (CFAEdge edge : ((MultiEdge)pEdge).getEdges()) {
+          TraversalProcess result = visitEdge(edge);
+
+          if (result != TraversalProcess.CONTINUE) {
+            return result;
+          }
+        }
+
+        return TraversalProcess.CONTINUE;
+      } else {
+        return super.visitEdge(pEdge);
+      }
     }
   }
 
