@@ -69,7 +69,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
       CFA pCfa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCfa);
 
-    config.inject(this);
+    pConfig.inject(this);
 
     this.pathFormulaManager = pPathFormulaManager;
     this.formulaManagerView = pFormulaManagerView;

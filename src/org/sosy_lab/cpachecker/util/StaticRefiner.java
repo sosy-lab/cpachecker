@@ -30,9 +30,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.Stack;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
@@ -43,12 +41,18 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -63,24 +67,23 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 @Options(prefix="staticRefiner")
 abstract public class StaticRefiner {
 
   @Option(description="collect at most this number of assumes along a path, backwards from each target (= error) location")
-  protected int maxBackscanPathAssumes = 1;
+  private int maxBackscanPathAssumes = 1;
 
+  private final Configuration config;
   private final CFA cfa;
   private final VariableScopeProvider scope;
-  protected final Configuration config;
   protected final LogManager logger;
 
   public StaticRefiner(
@@ -130,36 +133,28 @@ abstract public class StaticRefiner {
 
     private void determinScopes() {
       declaredInFunction.clear();
-      CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), new CFAVisitor() {
-
-        @Override
-        public TraversalProcess visitNode(CFANode pNode) {
-          return TraversalProcess.CONTINUE;
-        }
+      CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), new DefaultCFAVisitor() {
 
         @Override
         public TraversalProcess visitEdge(CFAEdge pEdge) {
-          Stack<CFAEdge> stack = new Stack<>();
-          stack.add(pEdge);
-          while (!stack.isEmpty()) {
-            String function = pEdge.getPredecessor().getFunctionName();
-            CFAEdge edge = stack.pop();
-
-            if (edge instanceof MultiEdge) {
-              stack.addAll(((MultiEdge) edge).getEdges());
+          if (pEdge instanceof MultiEdge) {
+            for (CFAEdge edge : ((MultiEdge)pEdge).getEdges()) {
+              visitEdge(edge);
             }
 
-            else if (edge instanceof CDeclarationEdge) {
-              CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
+          } else {
+            String function = pEdge.getPredecessor().getFunctionName();
+
+            if (pEdge instanceof CDeclarationEdge) {
+              CDeclaration decl = ((CDeclarationEdge) pEdge).getDeclaration();
               if (!decl.isGlobal()) {
                 if (decl instanceof CFunctionDeclaration) {
                   CFunctionDeclaration fdecl = (CFunctionDeclaration) decl;
                   for (CParameterDeclaration param: fdecl.getParameters()) {
                     declaredInFunction.put(function, param.getName());
                   }
-                }
 
-                else if (decl instanceof CVariableDeclaration) {
+                } else if (decl instanceof CVariableDeclaration) {
                   declaredInFunction.put(function, decl.getName());
                 }
               }
@@ -171,11 +166,12 @@ abstract public class StaticRefiner {
     }
   }
 
-  protected List<String> getQualifiedVariablesOfAssume(AssumeEdge pAssume) throws CPATransferException {
+  protected Set<String> getQualifiedVariablesOfAssume(AssumeEdge pAssume) throws CPATransferException {
     if (pAssume.getExpression() instanceof CExpression) {
       CExpression ce = (CExpression) pAssume.getExpression();
-      List<String> result = ce.accept(referencedVariablesVisitor);
-      return result;
+      CollectVariablesVisitor referencedVariablesVisitor = new CollectVariablesVisitor();
+      ce.accept(referencedVariablesVisitor);
+      return referencedVariablesVisitor.referencedVariables;
     } else {
       throw new RuntimeException("Only C programming language supported!");
     }
@@ -190,8 +186,13 @@ abstract public class StaticRefiner {
    * @return the mapping from target nodes to the corresponding preceeding assume edges
    */
   protected ListMultimap<CFANode, AssumeEdge> getTargetLocationAssumes() {
+    // TODO Why do we analyze the whole CFA here?
+    // Wouldn't it make more sense to just look at the current refinment's
+    // target state?
+    // (Possibly doing one static refinement per target state instead of only once.)
+
     ListMultimap<CFANode, AssumeEdge> result  = ArrayListMultimap.create();
-    Collection<CFANode> targetNodes           = getTargetNodesWithCPA(cfa);
+    Collection<CFANode> targetNodes           = getTargetNodesWithCPA();
     if (targetNodes.isEmpty()) {
       return result;
     }
@@ -241,7 +242,7 @@ abstract public class StaticRefiner {
    * @param cfa the CFA to operate on
    * @return the collection of target nodes
    */
-  private Collection<CFANode> getTargetNodesWithCPA(CFA cfa) {
+  private Collection<CFANode> getTargetNodesWithCPA() {
     try {
       ReachedSetFactory lReachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration(), logger);
 
@@ -251,7 +252,6 @@ abstract public class StaticRefiner {
         .clearOption("cpa")
         .clearOption("cpas")
         .clearOption("CompositeCPA.cpas")
-        .clearOption("cpas")
         .clearOption("cpa.composite.precAdjust")
         .build();
 
@@ -269,93 +269,78 @@ abstract public class StaticRefiner {
                .toSet();
 
     } catch (CPAException | InvalidConfigurationException e) {
-      logger.log(Level.WARNING, "Error during CFA reduction, using full CFA");
+      logger.log(Level.WARNING, "Cannot find target locations of the CFA.");
       logger.logDebugException(e);
     } catch (InterruptedException e) {
-      // not handled.
+      Thread.currentThread().interrupt();
     }
+
+    // TODO This is probably not a good idea.
+    // Instead we should just fail and do the normal refinement.
     return cfa.getAllNodes();
   }
 
-  private final CExpressionVisitor<List<String>, CPATransferException> referencedVariablesVisitor = new CExpressionVisitor<List<String>, CPATransferException>() {
+  // TODO return a set of CIdExpression as soon as the issue with CFieldReferences is resolved
+  // Then we can use CIdExpression.getDeclaration()
+  // and the whole VariableScopeProvider becomes useless.
+  private static class CollectVariablesVisitor extends DefaultCExpressionVisitor<Void, RuntimeException> {
+
+    private final Set<String> referencedVariables = new HashSet<>();
+
     @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression pIastIdExpression) throws CPATransferException {
-      return Lists.newArrayList(pIastIdExpression.getName());
+    protected Void visitDefault(CExpression pExp) {
+      return null;
     }
 
     @Override
-    public List<String>visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws CPATransferException {
-      return Lists.newArrayList();
+    public Void visit(CIdExpression pIastIdExpression) {
+      referencedVariables.add(pIastIdExpression.getName());
+      return null;
     }
 
     @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression pIastBinaryExpression) throws CPATransferException {
-      List<String> operand1List = pIastBinaryExpression.getOperand1().accept(this);
-      List<String> operand2List = pIastBinaryExpression.getOperand2().accept(this);
-
-      operand2List.addAll(operand1List);
-
-      return operand2List;
+    public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
+      // TODO: Why not visit the operands here?
+      return null;
     }
 
     @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression pIastCastExpression) throws CPATransferException {
-      return pIastCastExpression.getOperand().accept(this);
+    public Void visit(org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression pIastBinaryExpression) {
+      pIastBinaryExpression.getOperand1().accept(this);
+      pIastBinaryExpression.getOperand2().accept(this);
+      return null;
     }
 
     @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression pIastCastExpression) throws CPATransferException {
-      return pIastCastExpression.getOperand().accept(this);
+    public Void visit(CCastExpression pIastCastExpression) {
+      pIastCastExpression.getOperand().accept(this);
+      return null;
     }
 
     @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression pIastCharLiteralExpression) throws CPATransferException {
-      return Lists.newArrayList();
+    public Void visit(CComplexCastExpression pIastCastExpression) {
+      pIastCastExpression.getOperand().accept(this);
+      return null;
     }
 
     @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference pIastFieldReference) throws CPATransferException {
-      return Lists.newArrayList(pIastFieldReference.getFieldName());
+    public Void visit(CFieldReference pIastFieldReference) {
+      // TODO: Why add the field name here? This is not a variable name.
+      // TODO: Why not visit the field owner expression here?
+      referencedVariables.add(pIastFieldReference.getFieldName());
+      return null;
     }
 
     @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression pIastFloatLiteralExpression) throws CPATransferException {
-      return Lists.newArrayList();
+    public Void visit(CUnaryExpression pIastUnaryExpression) {
+      pIastUnaryExpression.getOperand().accept(this);
+      return null;
     }
 
     @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression pIastLiteralExpression) throws CPATransferException {
-      return Lists.newArrayList();
+    public Void visit(CPointerExpression pIastUnaryExpression) {
+      pIastUnaryExpression.getOperand().accept(this);
+      return null;
     }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression pIastIntegerLiteralExpression) throws CPATransferException {
-      return Lists.newArrayList();
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression pIastStringLiteralExpression) throws CPATransferException {
-      return Lists.newArrayList();
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression pIastTypeIdExpression) throws CPATransferException {
-      return Lists.newArrayList();
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdInitializerExpression pCTypeIdInitializerExpression) throws CPATransferException {
-      return Lists.newArrayList();
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression pIastUnaryExpression) throws CPATransferException {
-      return pIastUnaryExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public List<String> visit(org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression pIastUnaryExpression) throws CPATransferException {
-      return pIastUnaryExpression.getOperand().accept(this);
-    }
-  };
+  }
 }

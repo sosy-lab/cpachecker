@@ -42,7 +42,7 @@ import com.google.common.collect.Multimap;
 
 public class ExplicitStaticRefiner extends StaticRefiner {
 
-  private ExplicitPrecision explicitPrecision;
+  private final ExplicitPrecision explicitPrecision;
 
   public ExplicitStaticRefiner(
       Configuration pConfig,
