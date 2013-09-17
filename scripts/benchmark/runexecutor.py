@@ -270,8 +270,10 @@ def executeRun(args, rlimits, outputFileName, myCpuIndex=None):
     # Furthermore, cpuTime might miss some subprocesses,
     # therefore we expect cpuTime2 to be always greater (and more correct).
     # However, sometimes cpuTime is a little bit bigger than cpuTime2.
+    # This may indicate a problem with cgroups, for example another process
+    # moving our benchmarked process between cgroups.
     if cpuTime2 is not None:
-        if (cpuTime*0.9975) > cpuTime2:
+        if (cpuTime*0.9) > cpuTime2:
             logging.warning('Cputime measured by wait was {0}, cputime measured by cgroup was only {1}, perhaps measurement is flawed.'.format(cpuTime, cpuTime2))
         else:
             cpuTime = cpuTime2
