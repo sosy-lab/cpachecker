@@ -38,13 +38,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Timer;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -54,7 +52,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.defaults.AbstractStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -68,12 +65,16 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.FormulaMeasuring;
 import org.sosy_lab.cpachecker.util.predicates.FormulaMeasuring.FormulaMeasures;
-import org.sosy_lab.cpachecker.util.predicates.FormulaMeasuring.StatisticalIntValue;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -152,6 +153,23 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private final FormulaMeasuring formulaMeasuring;
   private final PredicateMapWriter precisionWriter;
 
+  // statistics
+  private StatCounter numberOfRefinementsWithStrategy2 = new StatCounter("Number of refs with location-based cutoff");
+  private StatInt irrelevantPredsInItp = new StatInt(StatKind.SUM, "Number of irrelevant preds in interpolants");
+
+  private StatTimer predicateCreation = new StatTimer(StatKind.SUM, "Predicate creation");
+  private StatTimer precisionUpdate = new StatTimer(StatKind.SUM, "Precision update");
+  private StatTimer argUpdate = new StatTimer(StatKind.SUM, "ARG update");
+  private StatTimer itpSimplification = new StatTimer(StatKind.SUM, "Itp simplification with BDDs");
+
+  private StatInt simplifyDeltaConjunctions = new StatInt(StatKind.SUM, "Conjunctions Delta");
+  private StatInt simplifyDeltaDisjunctions = new StatInt(StatKind.SUM, "Disjunctions Delta");
+  private StatInt simplifyDeltaNegations = new StatInt(StatKind.SUM, "Negations Delta");
+  private StatInt simplifyDeltaAtoms = new StatInt(StatKind.SUM, "Atoms Delta");
+  private StatInt simplifyDeltaVariables = new StatInt(StatKind.SUM, "Variables Delta");
+  private StatInt simplifyVariablesBefore = new StatInt(StatKind.SUM, "Variables Before");
+  private StatInt simplifyVariablesAfter = new StatInt(StatKind.SUM, "Variables After");
+
   private class Stats extends AbstractStatistics {
     @Override
     public String getName() {
@@ -160,49 +178,31 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      put(out, 1, "Predicate creation", predicateCreation);
+      put(out, 1, predicateCreation);
 
       if (itpSimplification.getNumberOfIntervals() > 0) {
-        put(out, 2, "Itp simplification with BDDs", itpSimplification);
+        put(out, 2, itpSimplification);
 
-        put(out, 3, "Conjunctions Delta", simplifyDeltaConjunctions);
-        put(out, 3, "Disjunctions Delta", simplifyDeltaDisjunctions);
-        put(out, 3, "Negations Delta", simplifyDeltaNegations);
-        put(out, 3, "Atoms Delta", simplifyDeltaAtoms);
-        put(out, 3, "Variables Delta", simplifyDeltaVariables);
-        put(out, 3, "Variables Before", simplifyVariablesBefore);
-        put(out, 3, "Variables After", simplifyVariablesAfter);
-        put(out, 3, "Sometimes Useless Variables", sometimesUselessVariables);
+        put(out, 3, simplifyDeltaConjunctions);
+        put(out, 3, simplifyDeltaDisjunctions);
+        put(out, 3, simplifyDeltaNegations);
+        put(out, 3, simplifyDeltaAtoms);
+        put(out, 3, simplifyDeltaVariables);
+        put(out, 3, simplifyVariablesBefore);
+        put(out, 3, simplifyVariablesAfter);
       }
-      put(out, 1, "Precision update", precisionUpdate);
-      put(out, 1, "ARG update", argUpdate);
+      put(out, 1, precisionUpdate);
+      put(out, 1, argUpdate);
       out.println();
 
-      PredicateAbstractionRefinementStrategy.this.printStatistics(out);
-      out.println("Number of refs with location-based cutoff:  " + numberOfRefinementsWithStrategy2);
+      basicRefinementStatistics.printStatistics(out, pResult, pReached);
+
+      put(out, 0, numberOfRefinementsWithStrategy2);
       if (itpSimplification.getNumberOfIntervals() > 0) {
-        out.println("Number of irrelevant preds in interpolants: " + irrelevantPredsInItp);
+        put(out, 0, irrelevantPredsInItp);
       }
     }
   }
-
-  // statistics
-  private int numberOfRefinementsWithStrategy2 = 0;
-  private int irrelevantPredsInItp = 0;
-
-  private final Timer predicateCreation = new Timer();
-  private final Timer precisionUpdate = new Timer();
-  private final Timer argUpdate = new Timer();
-  private final Timer itpSimplification = new Timer();
-
-  private StatisticalIntValue simplifyDeltaConjunctions = new StatisticalIntValue();
-  private StatisticalIntValue simplifyDeltaDisjunctions = new StatisticalIntValue();
-  private StatisticalIntValue simplifyDeltaNegations = new StatisticalIntValue();
-  private StatisticalIntValue simplifyDeltaAtoms = new StatisticalIntValue();
-  private StatisticalIntValue simplifyDeltaVariables = new StatisticalIntValue();
-  private StatisticalIntValue simplifyVariablesBefore = new StatisticalIntValue();
-  private StatisticalIntValue simplifyVariablesAfter = new StatisticalIntValue();
-  private Set<String> sometimesUselessVariables = new TreeSet<>();
 
   public PredicateAbstractionRefinementStrategy(final Configuration config,
       final LogManager pLogger, final FormulaManagerView pFormulaManager,
@@ -250,7 +250,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       ARGState root = (ARGState)reached.getFirstState();
       ARGState refinementRoot = Iterables.getLast(root.getChildren());
 
-      PredicatePrecision heuristicPrecision = staticRefiner.extractPrecisionFromCfa(atomicPredicates);
+      PredicatePrecision heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pPath, atomicPredicates);
 
       pReached.removeSubtree(refinementRoot, heuristicPrecision, PredicatePrecision.class);
 
@@ -322,14 +322,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       simplifyDeltaVariables.setNextValue(itpAfterSimple.getVariables().size() - itpBeforeSimple.getVariables().size());
       simplifyVariablesBefore.setNextValue(itpBeforeSimple.getVariables().size());
       simplifyVariablesAfter.setNextValue(itpAfterSimple.getVariables().size());
-      sometimesUselessVariables.addAll(Sets.difference(itpBeforeSimple.getVariables(), itpAfterSimple.getVariables()));
     }
 
     if (atomicPredicates) {
       preds = predAbsMgr.extractPredicates(interpolant);
 
       if (useBddInterpolantSimplification) {
-        irrelevantPredsInItp += (allPredsCount-preds.size());
+        irrelevantPredsInItp.setNextValue(allPredsCount-preds.size());
       }
 
     } else {
@@ -475,7 +474,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       if (pRepeatedCounterexample) {
         throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
       }
-      numberOfRefinementsWithStrategy2++;
+      numberOfRefinementsWithStrategy2.inc();
 
       CFANode firstInterpolationPointLocation = AbstractStates.extractLocation(firstInterpolationPoint);
 
