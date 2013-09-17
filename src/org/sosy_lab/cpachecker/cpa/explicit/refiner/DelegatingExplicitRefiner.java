@@ -123,6 +123,8 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
    */
   private final MachineModel machineModel;
 
+  private final LogManager logger;
+
   public static DelegatingExplicitRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(DelegatingExplicitRefiner.class.getSimpleName() + " could not find the ExplicitCPA");
@@ -215,6 +217,7 @@ public class DelegatingExplicitRefiner extends AbstractARGBasedRefiner implement
     predicatingRefiner    = pBackupRefiner;
     staticRefiner         = pExplicitStaticRefiner;
     machineModel          = pMachineModel;
+    logger                = pLogger;
   }
 
   @Override
