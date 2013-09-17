@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateMapWriter.PredicateDumpFormat;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -89,10 +88,6 @@ class PredicateCPAStatistics implements Statistics {
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path predmapFile = Paths.get("predmap.txt");
 
-    @Option(description="format for exporting predicates of the final predicate map",
-        name="predmap.predicateFormat")
-    private PredicateMapWriter.PredicateDumpFormat predmapPredicateFormat = PredicateDumpFormat.SMTLIB2;
-
     @Option(description="export final loop invariants",
             name="invariants.export")
     private boolean exportInvariants = true;
@@ -116,6 +111,7 @@ class PredicateCPAStatistics implements Statistics {
     private final RegionManager rmgr;
     private final AbstractionManager absmgr;
     private final CFA cfa;
+    private final PredicateMapWriter precisionWriter;
 
     private final Timer invariantGeneratorTime;
 
@@ -130,6 +126,12 @@ class PredicateCPAStatistics implements Statistics {
       cfa = pCfa;
       invariantGeneratorTime = checkNotNull(pInvariantGeneratorTimer);
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
+
+      if (exportInvariants && invariantsFile != null) {
+        precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), cpa.getFormulaManager());
+      } else {
+        precisionWriter = null;
+      }
     }
 
     @Override
@@ -178,10 +180,9 @@ class PredicateCPAStatistics implements Statistics {
       allPredicates.addAll(predicates.location.values());
 
       try (Writer w = Files.openOutputFile(targetFile)) {
-        PredicateMapWriter writer = new PredicateMapWriter(cpa);
-        writer.writePredicateMap(predicates.locationInstance,
+        precisionWriter.writePredicateMap(predicates.locationInstance,
             predicates.location, predicates.function, predicates.global,
-            allPredicates, w, predmapPredicateFormat);
+            allPredicates, w);
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write predicate map to file");
       }

@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateMapWriter.PredicateDumpFormat;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -133,10 +132,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       description="After each refinement, dump the newly found predicates.")
   private boolean dumpPredicates = false;
 
-  @Option(name="refinement.dumpPredicatesFormat",
-      description="Format that should be used when dumping predicates after a refinement.")
-  private PredicateMapWriter.PredicateDumpFormat dumpPredicatesFormat = PredicateDumpFormat.SMTLIB2;
-
   @Option(name="refinement.dumpPredicatesFile",
       description="File name for the predicates dumped after refinements.")
   @FileOption(Type.OUTPUT_FILE)
@@ -155,6 +150,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private final PredicateAbstractionManager predAbsMgr;
   private final PredicateStaticRefiner staticRefiner;
   private final FormulaMeasuring formulaMeasuring;
+  private final PredicateMapWriter precisionWriter;
 
   private class Stats extends AbstractStatistics {
     @Override
@@ -223,6 +219,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     predAbsMgr = pPredAbsMgr;
     staticRefiner = pStaticRefiner;
     formulaMeasuring = new FormulaMeasuring(pFormulaManager);
+
+    if (dumpPredicates && dumpPredicatesFile != null) {
+      precisionWriter = new PredicateMapWriter(config, pFormulaManager);
+    } else {
+      precisionWriter = null;
+    }
   }
 
   private ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> newPredicates;
@@ -426,14 +428,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     if (dumpPredicates && dumpPredicatesFile != null) {
       Path precFile = Paths.get(String.format(dumpPredicatesFile.getPath(), precisionUpdate.getNumberOfIntervals()));
-      PredicateMapWriter precWriter = new PredicateMapWriter(fmgr);
       try (Writer w = Files.openOutputFile(precFile)) {
-        precWriter.writePredicateMap(
+        precisionWriter.writePredicateMap(
             ImmutableSetMultimap.copyOf(newPredicates),
             ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
             ImmutableSetMultimap.<String, AbstractionPredicate>of(),
             ImmutableSet.<AbstractionPredicate>of(),
-            newPredicates.values(), w, dumpPredicatesFormat);
+            newPredicates.values(), w);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not dump precision to file");
       }

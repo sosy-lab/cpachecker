@@ -794,7 +794,7 @@ cpa.predicate.predmap.export = true
 # file for exporting final predicate map
 cpa.predicate.predmap.file = "predmap.txt"
 
-# format for exporting predicates of the final predicate map
+# Format for exporting predicates from precisions.
 cpa.predicate.predmap.predicateFormat = SMTLIB2
   enum:     [PLAIN, SMTLIB2]
 
@@ -834,10 +834,6 @@ cpa.predicate.refinement.dumpPredicates = false
 
 # File name for the predicates dumped after refinements.
 cpa.predicate.refinement.dumpPredicatesFile = "refinement%04d-predicates.prec"
-
-# Format that should be used when dumping predicates after a refinement.
-cpa.predicate.refinement.dumpPredicatesFormat = SMTLIB2
-  enum:     [PLAIN, SMTLIB2]
 
 # apply deletion-filter to the abstract counterexample, to get a minimal set
 # of blocks, before applying interpolation-based refinement

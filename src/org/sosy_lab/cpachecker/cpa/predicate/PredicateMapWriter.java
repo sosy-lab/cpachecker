@@ -34,6 +34,10 @@ import java.util.Set;
 
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -50,7 +54,12 @@ import com.google.common.collect.Sets;
  * This class writes a set of predicates to a file in the same format that is
  * also used by {@link PredicateMapParser}.
  */
+@Options(prefix="cpa.predicate")
 class PredicateMapWriter {
+
+  @Option(name="predmap.predicateFormat",
+      description="Format for exporting predicates from precisions.")
+  private PredicateDumpFormat format = PredicateDumpFormat.SMTLIB2;
 
   public static enum PredicateDumpFormat {PLAIN, SMTLIB2}
 
@@ -59,11 +68,8 @@ class PredicateMapWriter {
 
   private final FormulaManagerView fmgr;
 
-  public PredicateMapWriter(PredicateCPA pCpa) {
-    fmgr = pCpa.getFormulaManager();
-  }
-
-  PredicateMapWriter(FormulaManagerView pFmgr) {
+  PredicateMapWriter(Configuration config, FormulaManagerView pFmgr) throws InvalidConfigurationException {
+    config.inject(this);
     fmgr = pFmgr;
   }
 
@@ -74,8 +80,7 @@ class PredicateMapWriter {
       SetMultimap<String, AbstractionPredicate> functionPredicates,
       Set<AbstractionPredicate> globalPredicates,
       Collection<AbstractionPredicate> allPredicates,
-      Appendable sb,
-      PredicateDumpFormat outputFormat) throws IOException {
+      Appendable sb) throws IOException {
 
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
@@ -90,7 +95,7 @@ class PredicateMapWriter {
     for (AbstractionPredicate pred : allPredicates) {
       String predString;
 
-      if (outputFormat == PredicateDumpFormat.SMTLIB2) {
+      if (format == PredicateDumpFormat.SMTLIB2) {
         Pair<String, List<String>> p = splitFormula(fmgr, pred.getSymbolicAtom());
         predString = p.getFirst();
         definitions.addAll(p.getSecond());
