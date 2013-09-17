@@ -75,18 +75,16 @@ public abstract class RefinementStrategy {
   protected AbstractStatistics basicRefinementStatistics = new AbstractStatistics() {
     @Override
     public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-      put(out, 0, totalPathLengthToInfeasibility);
-
-      put(out, 0, numberOfAffectedStates);
-      put(out, 0, truePathPrefixStates);
-      put(out, 0, nonTrivialPathStates);
-      put(out, 0, falsePathSuffixStates);
-
-      put(out, 0, differentNontrivialInterpolants);
-      put(out, 0, equalNontrivialInterpolants);
-
-      put(out, 0, differentPrecisionsOnPaths);
-      put(out, 0, equalPrecisionsOnPaths);
+      beginLeveledOutput(out)
+        .put(totalPathLengthToInfeasibility)
+        .put(numberOfAffectedStates)
+        .put(truePathPrefixStates)
+        .put(nonTrivialPathStates)
+        .put(falsePathSuffixStates)
+        .put(differentNontrivialInterpolants)
+        .put(equalNontrivialInterpolants)
+        .put(differentPrecisionsOnPaths)
+        .put(equalPrecisionsOnPaths);
     }
   };
 

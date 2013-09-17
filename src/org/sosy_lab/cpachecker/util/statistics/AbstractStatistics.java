@@ -69,6 +69,44 @@ public abstract class AbstractStatistics implements Statistics {
     keyValueStats.put(pName, pValue);
   }
 
+  public class LeveledStatisticsWriter {
+    private final LeveledStatisticsWriter parentLevelWriter;
+    private final PrintStream target;
+    private final int level;
+
+    public LeveledStatisticsWriter(PrintStream pTarget, int pLevel, LeveledStatisticsWriter pParentLevelWriter) {
+      this.parentLevelWriter = pParentLevelWriter;
+      this.target = pTarget;
+      this.level = pLevel;
+    }
+
+    public LeveledStatisticsWriter beginLevel() {
+      return new LeveledStatisticsWriter(target, level + 1, this);
+    }
+
+    public LeveledStatisticsWriter endLevel() {
+      if (parentLevelWriter == null) {
+        return this;
+      } else {
+        return parentLevelWriter;
+      }
+    }
+
+    public LeveledStatisticsWriter put(String name, Object value) {
+      AbstractStatistics.this.put(target, level, name, value);
+      return this;
+    }
+
+    public LeveledStatisticsWriter put(AbstractStatValue stat) {
+      AbstractStatistics.this.put(target, level, stat);
+      return this;
+    }
+  }
+
+  public LeveledStatisticsWriter beginLeveledOutput(PrintStream target) {
+    return new LeveledStatisticsWriter(target, 0, null);
+  }
+
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
     for (String key : keyValueStats.keySet()) {
