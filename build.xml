@@ -47,11 +47,11 @@
     <target name="clean">
         <delete includeEmptyDirs="true">
             <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
+            <fileset dir="src/org/sosy_lab/cpachecker/util/predicates/smtInterpol" includes="Parser.java Lexer.java LexerSymbols.java"/>
         </delete>
 
         <!-- Clean subprojects -->
         <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
-        <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/smtInterpol/build.xml" target="clean" inheritAll="false"/>
     </target>
     <target depends="clean" name="cleanall"/>
 
@@ -107,8 +107,6 @@
     <target name="build-subprojects">
             <echo message="Generate automaton parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
-            <echo message="Generate parser for SmtInterpol-Terms if necessary" level="info"/>
-            <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/smtInterpol/build.xml" inheritAll="false"/>
     </target>
 
 
