@@ -28,15 +28,16 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -45,11 +46,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -61,21 +60,25 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 
 /**
- * Helper class that collects all <code>ReferencedVariable</code>s in a given set of nodes.
+ * Helper class that collects all functions referenced by some CFAEdges,
+ * not counting those that are called directly.
+ * (Only functions that have their address taken (implicitly) are returned.)
  */
-public class CFunctionPointerVariablesCollector {
+public class CReferencedFunctionsCollector {
 
-  private final Set<String> collectedVars = new HashSet<>();
+  private final Set<String> collectedFunctions = new HashSet<>();
 
-  public Set<String> getCollectedVars() {
-    return collectedVars;
+  public Set<String> getCollectedFunctions() {
+    return collectedFunctions;
   }
 
   public void visitEdge(CFAEdge edge) {
+    CollectFunctionsVisitor collector = new CollectFunctionsVisitor(collectedFunctions);
+
     switch (edge.getEdgeType()) {
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge)edge;
-      collectVars(assumeEdge.getExpression(), collectedVars);
+      assumeEdge.getExpression().accept(collector);
       break;
     case BlankEdge:
       //nothing to do
@@ -89,30 +92,19 @@ public class CFunctionPointerVariablesCollector {
       if (declaration instanceof CVariableDeclaration) {
         CInitializer init = ((CVariableDeclaration)declaration).getInitializer();
         if (init != null) {
-          init.accept(new CollectVariablesVisitor(collectedVars));
+          init.accept(collector);
         }
       }
       break;
     case ReturnStatementEdge:
       CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
-      if (returnEdge.getExpression()!=null) {
-        collectVars(returnEdge.getExpression(), collectedVars);
+      if (returnEdge.getExpression() != null) {
+        returnEdge.getExpression().accept(collector);
       }
       break;
     case StatementEdge:
       CStatementEdge statementEdge = (CStatementEdge)edge;
-      CStatement s = statementEdge.getStatement();
-      if (s instanceof CAssignment) {
-        CAssignment assignment = (CAssignment)s;
-        collectVars(assignment.getLeftHandSide(), collectedVars);
-        collectVars(assignment.getRightHandSide(), collectedVars);
-      } else if (s instanceof CExpressionStatement) {
-        CExpressionStatement expr = (CExpressionStatement)s;
-        collectVars(expr.getExpression(), collectedVars);
-      } else if (s instanceof CFunctionCallStatement) {
-        CFunctionCallStatement call = (CFunctionCallStatement)s;
-        collectVars(call.getFunctionCallExpression(), collectedVars);
-      }
+      statementEdge.getStatement().accept(collector);
       break;
     case MultiEdge:
       //TODO
@@ -124,28 +116,21 @@ public class CFunctionPointerVariablesCollector {
     }
   }
 
-  private static void collectVars(CRightHandSide pNode, Set<String> pCollectedVars) {
-    pNode.accept(new CollectVariablesVisitor(pCollectedVars));
-  }
-
-  private static class CollectVariablesVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
+  private static class CollectFunctionsVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
                                                implements CRightHandSideVisitor<Void, RuntimeException>,
-                                                           CInitializerVisitor<Void, RuntimeException> {
+                                                          CStatementVisitor<Void, RuntimeException>,
+                                                          CInitializerVisitor<Void, RuntimeException> {
 
-    private final Set<String> collectedVars;
+    private final Set<String> collectedFunctions;
 
-    public CollectVariablesVisitor(Set<String> pCollectedVars) {
-      collectedVars = pCollectedVars;
-    }
-
-    private void collectVar(String var) {
-      collectedVars.add(var);
+    public CollectFunctionsVisitor(Set<String> pCollectedVars) {
+      collectedFunctions = pCollectedVars;
     }
 
     @Override
     public Void visit(CIdExpression pE) {
       if (pE.getExpressionType() instanceof CFunctionType) {
-        collectVar(pE.getName());
+        collectedFunctions.add(pE.getName());
       }
       return null;
     }
@@ -184,12 +169,12 @@ public class CFunctionPointerVariablesCollector {
 
     @Override
     public Void visit(CFunctionCallExpression pE) {
-
-      if (CFASecondPassBuilder.isRegularCall(pE)) {
-        //skip regular calls;
-      } else {
+      if (pE.getDeclaration() == null) {
         pE.getFunctionNameExpression().accept(this);
+      } else {
+        // skip regular function calls
       }
+
       for (CExpression param : pE.getParameterExpressions()) {
         param.accept(this);
       }
@@ -198,17 +183,7 @@ public class CFunctionPointerVariablesCollector {
 
     @Override
     public Void visit(CUnaryExpression pE) {
-      UnaryOperator op = pE.getOperator();
-
-      switch (op) {
-      case AMPER:
-        pE.getOperand().accept(this);
-        break;
-      default:
-        pE.getOperand().accept(this);
-      }
-
-
+      pE.getOperand().accept(this);
       return null;
     }
 
@@ -240,6 +215,32 @@ public class CFunctionPointerVariablesCollector {
     @Override
     public Void visit(CDesignatedInitializer pCStructInitializerPart) throws RuntimeException {
       pCStructInitializerPart.getRightHandSide().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CExpressionStatement pIastExpressionStatement) throws RuntimeException {
+      pIastExpressionStatement.getExpression().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) throws RuntimeException {
+      pIastExpressionAssignmentStatement.getLeftHandSide().accept(this);
+      pIastExpressionAssignmentStatement.getRightHandSide().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) throws RuntimeException {
+      pIastFunctionCallAssignmentStatement.getLeftHandSide().accept(this);
+      pIastFunctionCallAssignmentStatement.getRightHandSide().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CFunctionCallStatement pIastFunctionCallStatement) throws RuntimeException {
+      pIastFunctionCallStatement.getFunctionCallExpression().accept(this);
       return null;
     }
   }
