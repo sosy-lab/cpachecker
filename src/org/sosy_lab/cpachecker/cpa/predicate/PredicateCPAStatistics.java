@@ -36,6 +36,8 @@ import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -89,6 +91,10 @@ class PredicateCPAStatistics extends AbstractStatistics {
     @Option(description="export final loop invariants",
             name="invariants.export")
     private boolean exportInvariants = true;
+
+    @Option(description="export invariants as precision file?",
+        name="invariants.exportAsPrecision")
+    private boolean exportInvariantsAsPrecision = true;
 
     @Option(description="file for exporting final loop invariants",
             name="invariants.file")
@@ -171,7 +177,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
       Set<AbstractionPredicate> allPredicates = Sets.newHashSet(predicates.global);
       allPredicates.addAll(predicates.function.values());
       allPredicates.addAll(predicates.location.values());
-      allPredicates.addAll(predicates.location.values());
+      allPredicates.addAll(predicates.locationInstance.values());
 
       try (Writer w = Files.openOutputFile(targetFile)) {
         precisionWriter.writePredicateMap(predicates.locationInstance,
@@ -217,6 +223,10 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
       if (result == Result.SAFE && exportInvariants && invariantsFile != null) {
         exportInvariants(reached);
+      }
+
+      if (exportInvariantsAsPrecision && invariantPrecisionsFile != null) {
+        exportLoopInvariantsAsPrecision(reached);
       }
 
       PredicateAbstractionManager.Stats as = amgr.stats;
@@ -381,46 +391,46 @@ class PredicateCPAStatistics extends AbstractStatistics {
       return regions;
     }
 
-//    private void exportInvariantsAsPrecision(ReachedSet reached) {
-//      Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
-//      if (regions == null) {
-//        return;
-//      }
-//
-//      Set<String> uniqueDefs = new HashSet<>();
-//      StringBuilder asserts = new StringBuilder();
-//
-//      FormulaManagerView fmgr = cpa.getFormulaManager();
-//
-//      try (Writer invariants = Files.openOutputFile(invariantPrecisionsFile)) {
-//        for (CFANode loc : from(cfa.getAllLoopHeads().get())
-//                             .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
-//          Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
-//          BooleanFormula formula = absmgr.toConcrete(region);
-//          Pair<String, List<String>> locInvariant = PredicateMapWriter.splitFormula(fmgr, formula);
-//
-//          for (String def : locInvariant.getSecond()) {
-//            if (uniqueDefs.add(def)) {
-//              invariants.append(def);
-//              invariants.append("\n");
-//            }
-//          }
-//
-//          asserts.append(loc.getFunctionName());
-//          asserts.append(" ");
-//          asserts.append(loc.toString());
-//          asserts.append(":\n");
-//          asserts.append(locInvariant.getFirst());
-//          asserts.append("\n\n");
-//        }
-//
-//        invariants.append("\n");
-//        invariants.append(asserts);
-//
-//      } catch (IOException e) {
-//        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write loop invariants to file");
-//      }
-//    }
+    private void exportLoopInvariantsAsPrecision(ReachedSet reached) {
+      Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
+      if (regions == null) {
+        return;
+      }
+
+      Set<String> uniqueDefs = new HashSet<>();
+      StringBuilder asserts = new StringBuilder();
+
+      FormulaManagerView fmgr = cpa.getFormulaManager();
+
+      try (Writer invariants = Files.openOutputFile(invariantPrecisionsFile)) {
+        for (CFANode loc : from(cfa.getAllLoopHeads().get())
+                             .toSortedSet(CFAUtils.LINE_NUMBER_COMPARATOR)) {
+          Region region = firstNonNull(regions.get(loc), rmgr.makeFalse());
+          BooleanFormula formula = absmgr.toConcrete(region);
+          Pair<String, List<String>> locInvariant = PredicateMapWriter.splitFormula(fmgr, formula);
+
+          for (String def : locInvariant.getSecond()) {
+            if (uniqueDefs.add(def)) {
+              invariants.append(def);
+              invariants.append("\n");
+            }
+          }
+
+          asserts.append(loc.getFunctionName());
+          asserts.append(" ");
+          asserts.append(loc.toString());
+          asserts.append(":\n");
+          asserts.append(locInvariant.getFirst());
+          asserts.append("\n\n");
+        }
+
+        invariants.append("\n");
+        invariants.append(asserts);
+
+      } catch (IOException e) {
+        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write loop invariants to file");
+      }
+    }
 
 
 }
