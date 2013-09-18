@@ -34,6 +34,10 @@ public class StatTimer extends AbstractStatValue {
     super(pMainStatisticKind, pTitle);
   }
 
+  public StatTimer(String pTitle) {
+    super(StatKind.SUM, pTitle);
+  }
+
   public void start() {
     timer.start();
   }
