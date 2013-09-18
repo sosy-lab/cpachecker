@@ -127,7 +127,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
       invariantGeneratorTime = checkNotNull(pInvariantGeneratorTimer);
       cpa.getConfiguration().inject(this, PredicateCPAStatistics.class);
 
-      if (exportInvariants && invariantsFile != null) {
+      if (exportPredmap && predmapFile != null) {
         precisionWriter = new PredicateMapWriter(cpa.getConfiguration(), cpa.getFormulaManager());
       } else {
         precisionWriter = null;
