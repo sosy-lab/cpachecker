@@ -25,13 +25,17 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringReader;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -91,12 +95,17 @@ class SmtInterpolEnvironment {
   @Option(description="Export solver queries in Smtlib format into a file.")
   private boolean logAllQueries = false;
 
+  @Option(description="Export interpolation queries in Smtlib format into a file.")
+  private boolean logInterpolationQueries = false;
+
   @Option(name="logfile", description="Export solver queries in Smtlib format into a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private File smtLogfile = new File("smtinterpol.smt2");
 
   /** this is a counter to get distinct logfiles for distinct environments. */
   private static int logfileCounter = 0;
+
+  private final LogManager logger;
 
   /** the wrapped Script */
   private final Script script;
@@ -115,12 +124,13 @@ class SmtInterpolEnvironment {
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger. */
   public SmtInterpolEnvironment(Configuration config, Logics pLogic,
-      final LogManager logger) throws InvalidConfigurationException {
+      final LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
+    logger = pLogger;
 
     SMTInterpol smtInterpol = new SMTInterpol(createLog4jLogger(logger));
     if (logAllQueries && smtLogfile != null) {
-      script = createLoggingWrapper(smtInterpol, logger);
+      script = createLoggingWrapper(smtInterpol);
     } else {
       script = smtInterpol;
     }
@@ -143,7 +153,7 @@ class SmtInterpolEnvironment {
     falseTerm = term("false");
   }
 
-  private Script createLoggingWrapper(SMTInterpol smtInterpol, final LogManager logger) {
+  private Script createLoggingWrapper(SMTInterpol smtInterpol) {
     String filename = getFilename(smtLogfile.getAbsolutePath());
     try {
       // create a thin wrapper around Benchmark,
@@ -207,6 +217,31 @@ class SmtInterpolEnvironment {
     }
     logfileCounter++;
     return filename;
+  }
+
+  SmtInterpolInterpolatingProver getInterpolator(SmtInterpolFormulaManager mgr) {
+    if (logInterpolationQueries && smtLogfile != null) {
+      String logfile = getFilename(smtLogfile.getAbsolutePath());
+
+      try {
+        PrintWriter out = new PrintWriter(Files.openOutputFile(Paths.get(logfile)));
+
+        out.println("(set-option :produce-interpolants true)");
+        out.println("(set-option :produce-models true)");
+        if (checkResults) {
+          out.println("(set-option :interpolant-check-mode true)");
+          out.println("(set-option :unsat-core-check-mode true)");
+          out.println("(set-option :model-check-mode true)");
+        }
+
+        out.println("(set-logic " + theory.getLogic().name() + ")");
+        return new LoggingSmtInterpolInterpolatingProver(mgr, out);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write interpolation query to file");
+      }
+    }
+
+    return new SmtInterpolInterpolatingProver(mgr);
   }
 
   /** Parse a String to Terms and Declarations.

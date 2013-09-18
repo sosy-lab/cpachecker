@@ -44,7 +44,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 public class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<String> {
 
-  private final SmtInterpolFormulaManager mgr;
+  protected final SmtInterpolFormulaManager mgr;
   private SmtInterpolEnvironment env;
 
   private final List<String> assertedFormulas; // Collection of termNames
@@ -68,12 +68,16 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
 
     String termName = prefix + counter++;
     Term annotatedTerm = env.annotate(t, new Annotation(":named", termName));
-    env.push(1);
-    env.assertTerm(annotatedTerm);
+    pushAndAssert(annotatedTerm);
     assertedFormulas.add(termName);
     annotatedTerms.put(termName, t);
     assert assertedFormulas.size() == annotatedTerms.size();
     return termName;
+  }
+
+  protected void pushAndAssert(Term annotatedTerm) {
+    env.push(1);
+    env.assertTerm(annotatedTerm);
   }
 
   @Override
@@ -105,6 +109,10 @@ public class SmtInterpolInterpolatingProver implements InterpolatingProverEnviro
     Term termA = buildConjunctionOfNamedTerms(termNamesOfA);
     Term termB = buildConjunctionOfNamedTerms(termNamesOfB);
 
+    return getInterpolant(termA, termB);
+  }
+
+  protected BooleanFormula getInterpolant(Term termA, Term termB) {
     // get interpolant of groups
     Term[] itp = env.getInterpolants(new Term[] {termA, termB});
     assert itp.length == 1; // 2 groups -> 1 interpolant

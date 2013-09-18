@@ -738,9 +738,6 @@ cpa.predicate.interpolationSolver = no default value
 # export final loop invariants
 cpa.predicate.invariants.export = true
 
-# export invariants as precision file?
-cpa.predicate.invariants.exportAsPrecision = true
-
 # file for exporting final loop invariants
 cpa.predicate.invariants.file = "invariants.txt"
 
@@ -897,6 +894,11 @@ cpa.predicate.smtinterpol.checkResults = true
 
 # Export solver queries in Smtlib format into a file.
 cpa.predicate.smtinterpol.logAllQueries = false
+
+# Export interpolation queries in Smtlib format into a file.
+cpa.predicate.smtinterpol.logInterpolationQueries = false
+
+# Export solver queries in Smtlib format into a file.
 cpa.predicate.smtinterpol.logfile = "smtinterpol.smt2"
 
 # Whether to use MathSAT 5 or SmtInterpol as SMT solver

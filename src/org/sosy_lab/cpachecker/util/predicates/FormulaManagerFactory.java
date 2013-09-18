@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5InterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5TheoremProver;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolInterpolatingProver;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolTheoremProver;
 
 @Options(prefix="cpa.predicate")
@@ -128,7 +127,7 @@ public class FormulaManagerFactory {
           String solver, FormulaManager fmgr, boolean shared) {
 
     if (solver.equals(SMTINTERPOL)) {
-      return new SmtInterpolInterpolatingProver((SmtInterpolFormulaManager) fmgr);
+      return ((SmtInterpolFormulaManager)fmgr).createInterpolator();
     } else {
       assert solver.equals(MATHSAT5);
       return new Mathsat5InterpolatingProver((Mathsat5FormulaManager) fmgr, shared);

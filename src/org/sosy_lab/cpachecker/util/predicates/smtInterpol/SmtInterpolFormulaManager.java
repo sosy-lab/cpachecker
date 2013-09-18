@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolEnvironment.Type;
 
+import de.uni_freiburg.informatik.ultimate.logic.AnnotatedTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FormulaLet;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
@@ -84,6 +85,10 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
     return new SmtInterpolFormulaManager(unsafeManager, functionTheory, booleanTheory, rationalTheory);
   }
 
+  public SmtInterpolInterpolatingProver createInterpolator() {
+    return env.getInterpolator(this);
+  }
+
   BooleanFormula encapsulateBooleanFormula(Term t) {
     return creator.encapsulate(BooleanFormula.class, t);
   }
@@ -108,6 +113,9 @@ public class SmtInterpolFormulaManager extends AbstractFormulaManager<Term> {
 
         while (!todo.isEmpty()) {
           Term t = todo.removeLast();
+          while (t instanceof AnnotatedTerm) {
+            t = ((AnnotatedTerm) t).getSubterm();
+          }
           if (!(t instanceof ApplicationTerm)
               || !seen.add(t)) {
             continue;
